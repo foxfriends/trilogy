@@ -1,0 +1,15 @@
+name: Spec
+on: [push]
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wtfjoke/setup-tectonic@v2
+      - run: tectonic -X build
+        working-directory: spec
+      - name: Upload pdf
+        uses: actions/upload-artifact@v3
+        with:
+          name: Trilogy Language Specification
+          path: spec/build/trilogy-language-specification/trilogy-language-specification.pdf
