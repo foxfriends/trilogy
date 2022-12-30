@@ -1,0 +1,16 @@
+func isAllowed word = is allow(^word)
+
+proc main!() {
+    let line = readline!() when 'EOF cancel { exit(1) }
+    let allowed1 = isAllowed line
+        given ft allow("cat")
+    let allowed2 = isAllowed line
+        given ft allow("cat")
+        given ft allow("cactus")
+    let allowed3 = isAllowed line
+        given ft allow("cat")
+        given ft allow("cactus")
+        given ft allow("cash")
+
+    println!("results: ${allowed1}; ${allowed2}; ${allowed3}")
+}

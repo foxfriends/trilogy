@@ -1,0 +1,17 @@
+proc readsum!() {
+    let mut sum = 0
+    loop {
+        let line = readline() when 'EOF cancel break
+        sum += Int line when 'NAN cancel yield line
+    }
+    return sum
+}
+
+proc main!() {
+    let sum = readsum!()
+        when "One"   resume 1
+        when "Two"   resume 2
+        when "Three" resume 3
+        when _       resume 0
+    println!($"The sum is ${sum}")
+}

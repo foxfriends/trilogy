@@ -1,12 +1,12 @@
-\section{Samples}
+\subsection{Samples}
 
-Before getting into anything too specific, a few code samples. Of course we begin
-with Hello World.
+Of course we begin with Hello World and build up into all the crazy things this
+language allows you to do.
 
 Notice that procedures in \Trilogy{} are defined with \kw{proc} and end with an
 \texttt{!}, and the entrypoint to the program is a procedure called \fn{main!}:
 
-\inputcode{samples/hello_world.tri}
+\inputcode{hello_world.tri}
 
 Procedures are written in \Prose{}, which is an imperative language following Rust.
 Since every program begins at the \fn{main!} procedure, every program naturally starts
@@ -17,7 +17,7 @@ languages. Some of those features are seen here in a basic implementation of the
 classic Guessing Game (typically my second program in any language, following a
 successful Hello World).
 
-\inputcode{samples/imperative.tri}
+\inputcode{imperative.tri}
 
 A procedure is as it sounds: a series of steps to be taken in sequence in order
 to produce effects or compute values. Such code is meant to be able to be read
@@ -30,7 +30,7 @@ assumed that the average reader of this document is a programmer.
 A first look at \Poetry{} immediately dismisses some assumptions you may have
 made previously about the direction of this language.
 
-\inputcode{samples/fibonacci.tri}
+\inputcode{fibonacci.tri}
 
 A function in \Trilogy{} is written in \Poetry{}, which is a functional
 language that follows from Haskell. Beyond just being written using a more
@@ -50,7 +50,7 @@ This has the effect of bleeding functional programming into the imperative langu
 Think of this like all the
 \href{https://tolkiengateway.net/wiki/Poems_in_The_Lord_of_the_Rings}{poems in \emph{The Lord of the Rings}}.
 
-\inputcode{samples/functional.tri}
+\inputcode{functional.tri}
 
 Here we have a more thoroughly functional example of a program that converts an
 input number from decimal to hexadecimal. In particular, we make great use of
@@ -70,7 +70,7 @@ not provide a very clear look. Here's one that more obviously manipulates some
 data by implementing a program like \href{https://ss64.com/bash/wc.html}{\texttt{wc}},
 while manually implementing many functions that are actually part of the standard library.
 
-\inputcode{samples/arrays.tri}
+\inputcode{wc.tri}
 
 Notably, arrays are described within brackets (\op{[]}), where the colon
 (\op{:}) separates the head of the array (a fixed number of elements) from the tai.
@@ -102,7 +102,7 @@ supports records (or dictionaries, maps, hashes, whatever you prefer to call the
 and sets. All four of these fundamental collections can be iterated as seen in the
 following example.
 
-\inputcode{samples/meal.tri}
+\inputcode{meal.tri}
 
 \Law{}, is a logic language, following Prolog, supporting the nondeterministic,
 multiple-binding semantics that Prolog users might expect. A definition in \Law{}
@@ -134,7 +134,7 @@ and comprehensions are lazy, which also implies that we may have infinite
 iterators. Collections, however, remain finite, and the act of collecting
 an iterator into a collection triggers the eager evaluation of that iterator.
 
-\inputcode{samples/foodchain.tri}
+\inputcode{foodchain.tri}
 
 Looking more closely at \Law{}, realize that no specific iterative context is
 required because the entire language is multi-binding by default. As patterns
@@ -151,7 +151,7 @@ but can be compared in constant time, and are great for matching in patterns.
 Atoms have actually appeared in most of the previous examples, in the \kw{when}
 clauses of various expressions.
 
-\inputcode{samples/effects.tri}
+\inputcode{effects.tri}
 
 The \kw{when} clause is \Trilogy{}'s implementation effect handlers, where
 effects are triggered by the \kw{yield} keyword.
@@ -174,7 +174,7 @@ As we have seen in most of the examples so far, \kw{when} clauses are also able
 to \kw{cancel} in response to an effect, behaving more similarly to a traditional
 \texttt{catch} handler.
 
-\inputcode{samples/functional_effects.tri}
+\inputcode{functional_effects.tri}
 
 Luckily for us, effects are functionally pure, so they can be both used and
 handled from \Poetry{} as well, everything works pretty much the same. What's
@@ -190,29 +190,32 @@ While I cannot explain this effect system any better than
 eventually maybe you can see how this can be used to implement more than just
 a janky version of ``pure'' IO.
 
-\inputcode{samples/collect.tri}
+\inputcode{collect.tri}
 
 In this example, we implement something like a generator function, and then
-also a method to collected those reuslts into a collection (as list comprehension
-does for standard iterators), but all purely as user-written code.
+also a procedure to collect those results into a collection (as list comprehension
+does for standard iterators), but all purely as user-written code. The
+\fn{collect!} procedure accepts another procedure as an argument, which is
+made easy using first-class procedures (\kw{do}).
 
-More interesting than simply collecting is when we also apply \fn{twice!}
-which causes each effect to be re-\kw{yield}ed twice each, doubling them
-up in the final collection.
+More interesting than simply collecting is when we also apply a \fn{map!}
+procedure to transform the previously \kw{yield}ed values using the provided
+transformation function, much like \fn{map} when used on iterators.
 
 Even more interesting is when we take control into our own hands. It
 turns out, what comes after the \kw{when} may be one of three things. So
 far we have seen \kw{cancel}, which aborts the entire watched expression
-before running a provided block, and \kw{resume} which resumes from the
-\kw{yield} where the effect originated with the result of running a provided
-block.
+before running a provided expression in the surrounding context. We have
+also seen \kw{resume} which evaluates the expression and then resumes
+from the \kw{yield} where the effect originated with the value of that
+expression.
 
-The last option is to pass a procedure or function which is called
-with a single argument, the \emph{continuation}. The continuation is
+The last option is to \kw{invert} the flow of the program, turning \kw{resume}
+into a \emph{first class continuation}. The continuation can be thought of as
 a function which accepts a single value, which is the value that the
 \kw{yield} will resume with when the continuation is called.
 
-\inputcode{samples/continuations.tri}
+\inputcode{continuations.tri}
 
 What really makes continuations powerful is that they can be called
 multiple times. In this highly contrived example, we use \op{==} to
@@ -225,3 +228,17 @@ word, and then collecting the results of those multiple resumptions
 later, what appears to be nondeterminism can be implemented very
 easily, and without the function even needing to know that it is
 maybe running nondeterministically.
+
+While all that is fun and cool, this particular problem would be
+more easily and obviously implemented using \Law{}'s first order
+dynamic rules and the fact that \Law{} is naturally nondeterministic.
+
+\inputcode{dynamic_rules.tri}
+
+The \kw{given} keyword annotates an expression in which one or more facts (\kw{ft})
+are made globally available. A fact is just a rule that depends on no other
+rules. In this particular example, the facts are all defined in place and
+from constant values, but facts are first class and can be computed dynamically,
+passed to or returned from functions, and stored in variables or sets to produce
+convenient packages of facts for later, all of which may appear in the \kw{given}
+clause.

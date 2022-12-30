@@ -1,15 +1,12 @@
 func getWord str =
-    takeWhile (is ' ') str : dropWhile (is ' ') str
+    takeWhile (== ' ') str : dropWhile (== ' ') str
 
 func length [] = 0
 func length [x : xs] = 1 + length xs
 
 func join _ [] = ""
 func join _ [line] = line
-func join sep [line : lines] =
-    line
-    <> sep
-    <> join sep lines
+func join sep [line : lines] = line <> sep <> join sep lines
 
 func words "" = []
 func words str =

@@ -11,11 +11,11 @@ rule eats('human, 'fish)
 rule eats('human, 'berry)
 
 rule chain(a, b) = eats(a, b)
-rule chain(a, c) = eats(a, b), eats(b, c)
-rule chain(a, d) = eats(a, b), chain(b, c), eats(c, d)
+rule chain(a, c) = eats(a, b) and eats(b, c)
+rule chain(a, d) = eats(a, b) and chain(b, c) and eats(c, d)
 
 proc main!() {
-    let animal = Atom readline!() when 'EOF cancel { exit!(1) }
+    let animal = Atom readline!() when 'EOF cancel exit!(1)
     for chain(^animal, eats) {
         println!($"${animal} is above ${eats}")
     }

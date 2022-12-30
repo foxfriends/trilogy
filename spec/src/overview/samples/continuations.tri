@@ -1,0 +1,28 @@
+func isAllowed word = word == yield 'getAllowed
+
+proc allowOne!(word, body) {
+    return body!() when 'getAllowed resume word
+}
+
+proc allowAlso!(word, body) {
+    return body!() when 'getAllowed invert {
+        resume word or resume yield 'getAllowed
+    }
+}
+
+proc allowMany!(words, body) {
+    return body!() when 'getAllowed invert (any resume words)
+}
+
+proc main!() {
+    let line = readline!() when 'EOF cancel exit(1)
+    let allowed1 = allowOne!("cat", do() isAllowed line))
+    let allowed2 = allowOne!("cat", do() {
+        return allowAlso!("cactus", do() isAllowed line)
+    })
+    let allowed3 = allowMany!(
+        ["cat", "cactus", "cash"],
+        do() isAllowed line,
+    )
+    println!("results: ${allowed1}; ${allowed2}; ${allowed3}")
+}
