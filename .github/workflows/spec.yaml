@@ -6,10 +6,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: wtfjoke/setup-tectonic@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - run: tectonic -X build
         working-directory: spec
-      - name: Upload pdf
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
           name: Trilogy Language Specification
           path: spec/build/trilogy-language-specification/trilogy-language-specification.pdf
