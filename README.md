@@ -1,5 +1,7 @@
 # Trilogy
 
+[![Spec](https://github.com/foxfriends/trilogy/actions/workflows/spec.yaml/badge.svg)](https://github.com/foxfriends/trilogy/actions/workflows/spec.yaml)
+
 My third attempt at building a programming language[^1][^2].
 
 Also a programming language that more closely resembles three languages
