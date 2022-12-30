@@ -1,0 +1,40 @@
+func getWord str =
+    takeWhile (is ' ') str : dropWhile (is ' ') str
+
+func length [] = 0
+func length [x : xs] = 1 + length xs
+
+func join _ [] = ""
+func join _ [line] = line
+func join sep [line : lines] =
+    line
+    <> sep
+    <> join sep lines
+
+func words "" = []
+func words str =
+    let word : rest = getWord str
+    [word : words (trim rest)]
+
+func concat [] xs = xs
+func concat [y : ys] xs = [y : concat ys xs]
+
+func flatMap f [] = []
+func flatMap f [x : xs] = concat (f x) (flatMap f xs)
+
+proc readlines!() {
+    let mut array = []
+    loop {
+        let line = readline!() when 'EOF cancel break
+        array.[length array] = line
+    }
+    return array
+}
+
+proc main() {
+    let lines = readlines!()
+    let lc = length lines
+    let wc = length (flatMap words lines)
+    let cc = length (join "\n" lines)
+    println!($"${lc} ${wc} ${cc}")
+}

@@ -1,0 +1,25 @@
+rule eats('chicken, 'grain)
+rule eats('pig, 'grain)
+rule eats('fish, 'algae)
+rule eats('cat, 'chicken)
+rule eats('cat, 'fish)
+rule eats('bear, 'berry)
+rule eats('bear, 'fish)
+rule eats('human, 'pig)
+rule eats('human, 'chicken)
+rule eats('human, 'fish)
+rule eats('human, 'berry)
+
+rule chain(a, b) = eats(a, b)
+rule chain(a, c) = eats(a, b), eats(b, c)
+rule chain(a, d) = eats(a, b), chain(b, c), eats(c, d)
+
+proc main!() {
+    let animal = Atom readline!() when 'EOF cancel { exit!(1) }
+    for chain(^animal, eats) {
+        println!($"${animal} is above ${eats}")
+    }
+    for chain(eater, ^animal) {
+        println!($"${animal} is below ${eater}")
+    }
+}

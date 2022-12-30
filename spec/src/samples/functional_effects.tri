@@ -1,0 +1,16 @@
+func check goal guess =
+    if guess > goal then yield 'high
+    else if guess < goal then yield 'low
+    else if guess == goal then yield 'done
+
+func guessingGame goal =
+    check yield 'guess
+    1 + guessingGame goal
+
+proc main!() {
+    let guesses = guessingGame random!(10bits)
+        when 'guess resume { Int readline!() }
+        when 'high resume { println!("Too high") }
+        when 'low resume { println!("Too low") }
+        when 'EOF cancel { exit!(1) }
+}

@@ -1,0 +1,73 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{codeblack}{RGB}{56,58,66}
+\definecolor{codelightblack}{RGB}{160,161,167}
+\definecolor{codered}{RGB}{228,86,73}
+\definecolor{codelightred}{RGB}{179,48,34}
+\definecolor{codegreen}{RGB}{80,161,79}
+\definecolor{codeyellow}{RGB}{193,132,1}
+\definecolor{codelightyellow}{RGB}{224,128,38}
+\definecolor{codeblue}{RGB}{36,139,224}
+\definecolor{codelightblue}{RGB}{55,86,112}
+\definecolor{codemagenta}{RGB}{198,120,221}
+\definecolor{codelightmagenta}{RGB}{166,38,164}
+\definecolor{codecyan}{RGB}{9,151,180}
+\definecolor{codewhite}{RGB}{212,212,212}
+\definecolor{codelightwhite}{RGB}{250,250,250}
+
+\newcommand{\kw}[1]{\textcolor{codemagenta}{\texttt{#1}}}
+\newcommand{\fn}[1]{\texttt{#1}}
+\newcommand{\op}[1]{\texttt{#1}}
+\newcommand{\var}[1]{\texttt{#1}}
+\newcommand{\val}[1]{\texttt{#1}}
+\newcommand{\Trilogy}{\textbf{Trilogy}}
+\newcommand{\Prose}{\textbf{Prose}}
+\newcommand{\Poetry}{\textbf{Poetry}}
+\newcommand{\Law}{\textbf{Law}}
+
+\lstdefinestyle{onelight}{
+    backgroundcolor=\color{codelightwhite},
+    commentstyle=\color{codelightblack},
+    keywordstyle=\color{codemagenta},
+    numberstyle=\tiny\color{codelightblack},
+    stringstyle=\color{codegreen},
+    basicstyle=\ttfamily\small\color{codeblack},
+    breakatwhitespace=false,
+    breaklines=false,
+    captionpos=b,
+    extendedchars=true,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=true,
+    showstringspaces=false,
+    showtabs=true,
+    tabsize=2,
+}
+
+\lstdefinelanguage{Trilogy}{
+    sensitive=true,
+    morekeywords=[1]{proc,let,var,mut,break,continue,or,and,if,else,loop,while,for,in,return,do,match,body},
+    morekeywords=[2]{func,where,if,then,else,let,in,fn,unit},
+    morekeywords=[3]{rule},
+    morekeywords=[4]{when,cancel,resume,yield},
+    morestring=[b]{"},
+    morestring=[s]{$"}{"},
+    morecomment=[l]{\#}
+}
+
+\newcommand{\inputcode}[1]{\noindent\begin{minipage}{\linewidth}\lstinputlisting[language=Trilogy]{#1}\end{minipage}}
+
+\lstset{style=onelight}
+
+\title{Trilogy Language Specification}
+\author{Cameron Eldridge}
+
+\begin{document}

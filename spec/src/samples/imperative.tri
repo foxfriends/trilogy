@@ -1,0 +1,21 @@
+proc main!() {
+    let target = random!(10bits)
+    let mut guesses = 0
+    loop {
+        let guess = Int readline!()
+            when 'EOF cancel { exit!(1) }
+            when 'NAN cancel {
+                println!("That's not a valid integer")
+                continue
+            }
+        guesses += 1
+        if guess > target {
+            println!("Too high")
+        } else if guess < target {
+            println!("Too low")
+        } else {
+            break
+        }
+    }
+    println!($"You got it in ${guesses} tries")
+}

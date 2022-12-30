@@ -1,0 +1,7 @@
+func fibonacci 0 = 0
+func fibonacci 1 = 1
+func fibonacci n = fibonacci (n - 2) + fibonacci (n - 1)
+
+proc main!() {
+    println!(fibonacci 12)
+}

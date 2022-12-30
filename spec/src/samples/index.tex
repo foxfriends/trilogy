@@ -1,0 +1,227 @@
+\section{Samples}
+
+Before getting into anything too specific, a few code samples. Of course we begin
+with Hello World.
+
+Notice that procedures in \Trilogy{} are defined with \kw{proc} and end with an
+\texttt{!}, and the entrypoint to the program is a procedure called \fn{main!}:
+
+\inputcode{samples/hello_world.tri}
+
+Procedures are written in \Prose{}, which is an imperative language following Rust.
+Since every program begins at the \fn{main!} procedure, every program naturally starts
+in \Prose{}.
+
+As an imperative language, \Prose{} features features familiar to other imperative
+languages. Some of those features are seen here in a basic implementation of the
+classic Guessing Game (typically my second program in any language, following a
+successful Hello World).
+
+\inputcode{samples/imperative.tri}
+
+A procedure is as it sounds: a series of steps to be taken in sequence in order
+to produce effects or compute values. Such code is meant to be able to be read
+in a straightforward manner. Control flow is described using explicit keywords.
+
+This particular procedure should hopefully make sense to the average reader,
+despite a few structures that may not be immediately familiar. Note that it is
+assumed that the average reader of this document is a programmer.
+
+A first look at \Poetry{} immediately dismisses some assumptions you may have
+made previously about the direction of this language.
+
+\inputcode{samples/fibonacci.tri}
+
+A function in \Trilogy{} is written in \Poetry{}, which is a functional
+language that follows from Haskell. Beyond just being written using a more
+traditionally functional syntax, functions written in \Poetry{} are \emph{pure}
+(i.e. they cannot perform side effects). This is in contrast to \Prose{} which
+performs side effects freely; IO and mutation were both seen in the previous
+example.
+
+Functions are defined with the \kw{func} keyword, to clearly differentiate them
+from procedures. To further differentiate functions from procedures, they are called
+without parentheses or commas (the function name and all following arguments are space
+separated). They support partial application and currying as one might expect coming
+from Haskell.
+
+Functions may be called directly from \Prose{}, where these rules continue to apply.
+This has the effect of bleeding functional programming into the imperative language.
+Think of this like all the
+\href{https://tolkiengateway.net/wiki/Poems_in_The_Lord_of_the_Rings}{poems in \emph{The Lord of the Rings}}.
+
+\inputcode{samples/functional.tri}
+
+Here we have a more thoroughly functional example of a program that converts an
+input number from decimal to hexadecimal. In particular, we make great use of
+calling functions from \Prose{} with the help of the pipe operator (\op{|>}),
+which simply calls the function on the right with the value on the left. Recall
+that with functions being curried, an expression such as \texttt{map toHex} is a
+function (given that \fn{map} is a function that takes a transformer function and
+returns a function that applies that transformer over a list).
+
+In addition to full fledged functions, \Poetry{} supports lambdas (\kw{fn}) which
+may be defined within functions and act as closures. Lambdas and regular functions
+are both first class functions, and may be passed around as values in much the same
+ways.
+
+This is also our first taste of more complex data types in \Trilogy{}, but does
+not provide a very clear look. Here's one that more obviously manipulates some
+data by implementing a program like \href{https://ss64.com/bash/wc.html}{\texttt{wc}},
+while manually implementing many functions that are actually part of the standard library.
+
+\inputcode{samples/arrays.tri}
+
+Notably, arrays are described within brackets (\op{[]}), where the colon
+(\op{:}) separates the head of the array (a fixed number of elements) from the tai.
+(an array onto which those fixed elements are attached, if any). This syntax is
+reminiscent of the list syntax from other languages (think Prolog/Erlang), but
+is implemented using actual arrays, and not linked lists.
+
+Using \op{:} without the brackets, as seen in the definition of \fn{getWord},
+creates a tuple. Those looking for linked lists might find them trivially implemented
+using tuples.
+
+Arrays being arrays makes them natural and efficient to manipulate in \Prose{}, as
+seen in \fn{readlines!} where we extend the array by assigning to the index one
+past the last existing index in the array, using a syntax more like that of most
+languages which feature arrays. A notable difference is that the ``member access''
+operator (\op{.}) is required before the index is supplied in brackets.
+
+Arrays in \Trilogy{} are of dynamic length, they will grow and shrink as required
+to contain all the elements assigned to them. That is, assigning to an index past
+the end of the array will instead append a value to the array. Similarly, assigning
+to an index before the beginning of the array will instead prepend that element, and
+shift all existing elements to larger indices. Though assignment may occur to indices
+well past the ends of the array, arrays always start at index 0 and may not contain
+holes; immediately after assignment array elements will be shifted, maintaining order,
+to satisfy those requirements.
+
+In addition to arrays, and tuple-based linked lists, \Trilogy{} also natively
+supports records (or dictionaries, maps, hashes, whatever you prefer to call them)
+and sets. All four of these fundamental collections can be iterated as seen in the
+following example.
+
+\inputcode{samples/meal.tri}
+
+\Law{}, is a logic language, following Prolog, supporting the nondeterministic,
+multiple-binding semantics that Prolog users might expect. A definition in \Law{}
+is a \kw{rule} defining a pattern that must hold true, which may be implied by
+other existing patterns.
+
+Rules may be applied in most situations where patterns are being matched, making
+for a very powerful pattern-matching experience. However, since these rules
+may bind to multiple solutions at one time, if a pattern binds variables as
+a result of applying rule, it must be written in an \emph{iterative context}.
+Patterns which provably cannot bind multiple solutions may be written in Boolean
+contexts, such as if statements or other expressions.
+
+In \Prose{}, the primary iterative context is the \kw{for} loop. Unlike other
+\kw{for} loops you may have seen, the head of such a loop in \Prose{} is actually
+a pattern onto which the values are bound.
+
+In \Poetry{}, the primary iterative context is in comprehension. Comprehensions
+collect each of their yielded items into a new iterator, or directly into a
+collection. The four types of comprehensions (array \op{[]}, set \op{\{\}},
+record \op{\{:\}} and iterator \op{\$()}) are each seen in this example.
+
+Most functions from the standard library that act on multiple values are built to
+function over generic iterators, rather than arrays or lists or any other one
+collection in particular, allowing us to pass the iterator directly to the
+\fn{sum} function, which can then compute the sum without ever allocating storage
+for any collection. That this is made possible by the fact that iterators
+and comprehensions are lazy, which also implies that we may have infinite
+iterators. Collections, however, remain finite, and the act of collecting
+an iterator into a collection triggers the eager evaluation of that iterator.
+
+\inputcode{samples/foodchain.tri}
+
+Looking more closely at \Law{}, realize that no specific iterative context is
+required because the entire language is multi-binding by default. As patterns
+are reflexive, we are able to check both directions along the food chain with
+just one definition of \fn{chain}, while defining the food chain using the
+flat structure of \fn{eats}.
+
+Now may be a good time to bring up atoms, which take the form of identifiers
+prefixed by an apostrophe (\texttt{'}). Atoms are a staple of logic languages
+such as Prolog, which also make appearances in functional languages where
+they are sometimes called symbols. They are values without inherent meaning,
+but can be compared in constant time, and are great for matching in patterns.
+
+Atoms have actually appeared in most of the previous examples, in the \kw{when}
+clauses of various expressions.
+
+\inputcode{samples/effects.tri}
+
+The \kw{when} clause is \Trilogy{}'s implementation effect handlers, where
+effects are triggered by the \kw{yield} keyword.
+
+Effects can be seen as the parent of generators, iterators, monads,
+exceptions... many control flow or fancy patterns can be implemented using
+effects, and in fact, many of the control flow and fancy patterns seen so far
+are actually powered by this effect system deep down.
+
+In this latest example, we have used effects to implement a sort of try-catch,
+but with the bonus of being able to handle the exception and resume the program
+from where it left off, as if the exception had never happened. Specifically,
+\kw{when} the \fn{Int} function \kw{yield}s that \var{line} is \val{'NAN}
+(``not a number''), \fn{readsum!} in turn \kw{yield}s the string in hopes that
+some handler will be able to figure out what to do with it and pass back something
+more useful. The \kw{when} clauses in the \fn{main!} procedure guard the call to
+\fn{readsum!} and \kw{resume} with numbers parsed from the string, when possible.
+
+As we have seen in most of the examples so far, \kw{when} clauses are also able
+to \kw{cancel} in response to an effect, behaving more similarly to a traditional
+\texttt{catch} handler.
+
+\inputcode{samples/functional_effects.tri}
+
+Luckily for us, effects are functionally pure, so they can be both used and
+handled from \Poetry{} as well, everything works pretty much the same. What's
+interesting is that their handlers \emph{don't} need to be functionally pure.
+By making use of effects, we can bring IO to \Poetry{}.
+
+This latest example implements a guessing game equivalent to that seen earlier
+written purely in \Prose{}, but now taking advantage of effects. Why you would
+do this particular thing, I cannot say, but at least now you \emph{can}.
+
+While I cannot explain this effect system any better than
+\href{https://www.eff-lang.org/handlers-tutorial.pdf}{existing literature},
+eventually maybe you can see how this can be used to implement more than just
+a janky version of ``pure'' IO.
+
+\inputcode{samples/collect.tri}
+
+In this example, we implement something like a generator function, and then
+also a method to collected those reuslts into a collection (as list comprehension
+does for standard iterators), but all purely as user-written code.
+
+More interesting than simply collecting is when we also apply \fn{twice!}
+which causes each effect to be re-\kw{yield}ed twice each, doubling them
+up in the final collection.
+
+Even more interesting is when we take control into our own hands. It
+turns out, what comes after the \kw{when} may be one of three things. So
+far we have seen \kw{cancel}, which aborts the entire watched expression
+before running a provided block, and \kw{resume} which resumes from the
+\kw{yield} where the effect originated with the result of running a provided
+block.
+
+The last option is to pass a procedure or function which is called
+with a single argument, the \emph{continuation}. The continuation is
+a function which accepts a single value, which is the value that the
+\kw{yield} will resume with when the continuation is called.
+
+\inputcode{samples/continuations.tri}
+
+What really makes continuations powerful is that they can be called
+multiple times. In this highly contrived example, we use \op{==} to
+check if a provided word equals the ``allowed'' word, which is retrieved
+as an effect. What we didn't tell this function is that sometimes there
+are multiple allowed words, but that's ok, it all works out anyway.
+
+By resuming the continuation multiple times, once with each allowed
+word, and then collecting the results of those multiple resumptions
+later, what appears to be nondeterminism can be implemented very
+easily, and without the function even needing to know that it is
+maybe running nondeterministically.

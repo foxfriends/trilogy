@@ -1,0 +1,45 @@
+rule food("bread",    'grain)
+rule food("potato",   'vegetable)
+rule food("steak",    'protein)
+rule food("broccoli", 'vegetable)
+rule food("cheese",   'dairy)
+
+func calories "bread" = 140
+func calories "potato" = 161
+func calories "steak" = 160
+func calories "broccoli" = 25
+func calories "cheese" = 120
+
+proc main!() {
+    println!("Enter your meal. Options:")
+    for food(item, _) {
+        println!($"${item}")
+    }
+    
+    let mut meal = []
+    loop {
+        let item = readline!() when 'EOF cancel { break }
+        if food(^item, _) {
+            meal[length meal] = item
+        } else {
+            println($"${item} is not a known type of food")
+        }
+    }
+
+    let itemcalories = [calories item for item in meal]
+
+    let itemfoodgroups = {
+        group
+        for item in meal,
+            food(^item, group)
+    }
+
+    let foodgroupcalories = {
+        group: sum $(
+            calories item
+            for item in meal,
+                food(^item, ^group)
+        )
+        for group in itemfoodgroups
+    }
+}

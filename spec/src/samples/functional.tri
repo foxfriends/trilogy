@@ -1,0 +1,23 @@
+func toHex 10 = "A"
+func toHex 11 = "B"
+func toHex 12 = "C"
+func toHex 13 = "D"
+func toHex 14 = "E"
+func toHex 15 = "F"
+func toHex n = Str n
+
+func digitsInBase _ 0 = [0]
+func digitsInBase base n =
+    let digit = fn n. n % base
+    let removeDigit = fn n. (n - digit n) / base
+    unfoldUntil (== 0) (fn n. digit n : removeDigit n) n
+
+proc main!() {
+    let input = Int readline!()
+        when 'EOF or 'NAN cancel { exit!(1) }
+    let hexstring = input
+        |> digitsInBase 16
+        |> map toHex
+        |> foldr "" (<>)
+    println!($"${input} in hexadecimal is ${hexstring}")
+}
