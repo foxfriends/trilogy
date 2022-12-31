@@ -1,0 +1,35 @@
+module ReverseInt {
+    func cmp x y =
+        if x < y then 'gt
+        else if x > y then 'lt
+        else 'eq
+
+    export cmp
+}
+
+module OrdList(Ord) {
+    func empty = 'ordered(unit)
+
+    func insert v 'ordered(x : xs) =
+        if Ord.cmp(v, x) == 'lt then 'ordered(v : x : xs)
+        else let 'ordered(oxs) = insert v xs
+            'ordered(x : oxs)
+
+    proc print!('ordered(list)) {
+        for item in list {
+            println!(item)
+        }
+    }
+
+    export empty, insert, print!
+}
+
+import OrdIntList from OrdList(Int)
+import ReverseIntList from OrdList(ReverseInt)
+
+proc main!() {
+    let list = [1, 3, 2, 6, 4]
+    let ordered = collectInto!(OrdIntList, list)
+    let reverseOrdered = collectInto!(ReverseIntList, list)
+    OrdList.print!(reverseOrdered)
+}

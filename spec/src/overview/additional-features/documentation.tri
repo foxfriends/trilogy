@@ -1,0 +1,21 @@
+module ImportantStuff {
+    #! This is the module that actually implements
+    #!  all the important things.
+
+    ## Doubles the provided number
+    func double x = x * 2
+
+    export double
+}
+
+## This is a program that does something very important.
+##
+## See if you can figure it out.
+proc main!() {
+    loop {
+        let inputNumber = Int readline!()
+            when 'EOF cancel break # done
+            when 'NAN cancel #- default when invalid: -# 0
+        println!(double inputNumber)
+    }
+}

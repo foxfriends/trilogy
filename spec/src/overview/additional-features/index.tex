@@ -1,4 +1,96 @@
 \subsection{Additional Features}
 
-In addition to the main programming language, \Trilogy{} includes facilities for
-modularization, documentation, and tests.
+In addition to the core programming language, \Trilogy{}'s ecosystem includes
+facilities for code sharing, scripting, documentation, and testing, which
+take advantage of specific features of the syntax.
+
+\subsubsection{Code Sharing}
+
+Code sharing in \Trilogy{} comes in the form of modules, which follow after
+the module system of OCaml.
+
+\inputcode{module.tri}
+
+Beginning with the \kw{module} keyword, we can define a simple module. A
+module may contain any number of declarations of any type (procedures,
+rules, functions, and even nested modules). Names listed in an \kw{export}
+statement are available to other modules that \kw{import} the module and
+\kw{use} those declarations.
+
+\inputcode{adt.tri}
+
+Modules may alternatively (or additionally) be imported ``whole''. \Trilogy{}
+modules are first class values, somewhat similar to read-only records, so they
+can be passed to functions or procedures, allowing the contents to be used
+generically. This technique can be used to build something similar to ADTs
+and generic functions.
+
+\inputcode{functor.tri}
+
+Modules may also take parameters, granted that those parameters can be found
+and applied statically. When doing so, \kw{from} must be used to denote that
+module application and separate it from the final name.
+
+An \kw{import} statement is just a scoping mechanism, so one may be written
+within another declaration, even with parameters, but they will still be
+resolved statically.
+
+This module system is \emph{applicative}; that is, when applied to the same
+(resolved) arguments, a module function will return the exact same module.
+Given the lack of named and structured data types in \Trilogy{}, this is
+naturally the only option - there is nothing that could be made generative.
+Supposing syntactically named types were eventually added to \Trilogy{},
+such applicativity will be preserved, following similar semantics to that of
+OCaml.
+
+For truly dynamic ``modules'', using records and first class procedures,
+functions and rules may be a suitable alternative with similar syntax.
+
+Of course, no code sharing solution is complete without allowing code
+to be split into files and shared between projects. A \kw{module} declaration
+in \Trilogy{} may be found in another file.
+
+Much like with Deno's modules, external modules may either be found locally
+given a relative file path, or via the Internet given an absolute URL. For
+now, these are the only options, but further loading strategies may come
+later.
+
+\inputcode[title=\texttt{main.tri}]{external_main.tri}
+
+In this one file we have defined three modules, each in different locations.
+The first, \mod{HereModule} is as we have seen previously. The second,
+\mod{LocalModule} is written the file \texttt{local\_module.tri} located
+beside \texttt{main.tri}. Its contents are just the contents of the module
+(no \kw{module} declaration is required).
+
+\inputcode[title=\texttt{local\_module.tri}]{external_local.tri}
+
+The third module was written externally and hosted on the Internet.
+Its contents are similarly just the contents of the module, without
+any declaration.
+
+\inputcode[title=\texttt{https://cameldridge.com/module.tri}]{external_url.tri}
+
+All three of these modules define and export a single procedure, which
+are each made available to \fn{main!}.
+
+\subsubsection{Documentation}
+
+Just as important as writing code is being able to write high quality
+documentation that other developers (including your own future self)
+are able to find and read in a predictable location and format.
+
+Comments in \Trilogy{} come in the typical two forms of line comments
+(\texttt{\#}) and block comments (\texttt{\#-} until \texttt{-\#}).
+
+In addition there are external doc comments (\texttt{\#\#}) and internal
+doc comments (\texttt{\#!}), as found in Rust.
+
+\inputcode{documentation.tri}
+
+Doc comments will be transformed into external documentation by a built
+in documentation command, similar to Rust's \texttt{cargo doc} command.
+Such exported documentation can be made available by whatever means the
+author desires, but more importantly, can exported locally alongside the
+documentation of all other referenced code, so it can be found in a
+predictable location alongside any project that uses it.

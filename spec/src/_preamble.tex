@@ -28,6 +28,7 @@
 \newcommand{\op}[1]{\texttt{#1}}
 \newcommand{\var}[1]{\texttt{#1}}
 \newcommand{\val}[1]{\texttt{#1}}
+\newcommand{\mod}[1]{\texttt{#1}}
 \newcommand{\Trilogy}{\textbf{Trilogy}}
 \newcommand{\Prose}{\textbf{Prose}}
 \newcommand{\Poetry}{\textbf{Poetry}}
@@ -59,12 +60,16 @@
     morekeywords=[2]{func,where,if,then,else,let,in,fn,unit},
     morekeywords=[3]{rule,is,ft,given,and,or},
     morekeywords=[4]{when,cancel,resume,invert,yield},
+    morekeywords=[5]{module,import,from,use,export,at},
     morestring=[b]{"},
     morestring=[s]{$"}{"},
-    morecomment=[l]{\#}
+    morecomment=[l]{\#},
+    morecomment=[l][\color{codelightblack}\bfseries]{\#\#},
+    morecomment=[l][\color{codelightblack}\bfseries]{\#!},
+    morecomment=[s]{\#-}{-\#},
 }
 
-\newcommand{\inputcode}[1]{\noindent\begin{minipage}{\linewidth}\lstinputlisting[language=Trilogy]{#1}\end{minipage}}
+\newcommand{\inputcode}[2][{}]{\noindent\begin{minipage}{\linewidth}\lstinputlisting[language=Trilogy,#1]{#2}\end{minipage}}
 
 \lstset{style=onelight}
 

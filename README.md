@@ -24,6 +24,7 @@ As you can see, progress at this time is limited:
     - http://www.math.bas.bg/bantchev/place/iswim/j-explanation.pdf
     - https://cs.ru.nl/~dfrumin/notes/delim.html
     - https://www.cs.cmu.edu/~rwh/students/filinski.pdf
+    - https://caml.inria.fr/pub/papers/xleroy-applicative_functors-popl95.pdf
 - [ ] Design the language (In Progress)
 - [ ] Read the [book](https://craftinginterpreters.com/) (In Progress)
 - [ ] Specify the language

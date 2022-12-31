@@ -1,0 +1,23 @@
+module Helpers {
+    func repeat 0 _ = unit
+    func repeat n x = x : repeat (n - 1) x
+
+    func twice = repeat 2
+    func thrice = repeat 3
+
+    proc printEach!(iter) {
+        for item in iter {
+            println!(item)
+        }
+    }
+
+    export twice, thrice, printEach!
+}
+
+import Helpers use twice, thrice, printEach!
+
+proc main!() {
+    let numbers = [1, 2, 3, 4, 5]
+    printEach!(map twice numbers)
+    printEach!(map thrice numbers)
+}
