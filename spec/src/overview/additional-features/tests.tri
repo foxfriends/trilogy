@@ -1,0 +1,10 @@
+func double x = x * 2
+func triple x = x * 4  # uh oh
+
+test can_double!() {
+    assert double 2 == 4
+}
+
+test can_triple() {
+    assert triple 2 == 6
+}
