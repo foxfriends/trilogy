@@ -7,6 +7,9 @@
 \usepackage{xcolor}
 \usepackage[hidelinks]{hyperref}
 \usepackage{import}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage[epsilon]{backnaur}
 
 \definecolor{codeblack}{RGB}{56,58,66}
 \definecolor{codelightblack}{RGB}{160,161,167}
@@ -28,7 +31,7 @@
 \newcommand{\op}[1]{\texttt{#1}}
 \newcommand{\var}[1]{\texttt{#1}}
 \newcommand{\val}[1]{\texttt{#1}}
-\newcommand{\mod}[1]{\texttt{#1}}
+\newcommand{\module}[1]{\texttt{#1}}
 \newcommand{\Trilogy}{\textbf{Trilogy}}
 \newcommand{\Prose}{\textbf{Prose}}
 \newcommand{\Poetry}{\textbf{Poetry}}
@@ -56,12 +59,13 @@
 
 \lstdefinelanguage{Trilogy}{
     sensitive=true,
-    morekeywords=[1]{proc,let,var,mut,break,continue,or,and,if,else,loop,while,for,in,return,do,match},
-    morekeywords=[2]{func,where,if,then,else,let,in,fn,unit},
-    morekeywords=[3]{rule,is,ft,given,and,or},
+    morekeywords=[1]{proc,let,mut,break,continue,and,or,not,if,else,loop,while,for,in,return,do,match},
+    morekeywords=[2]{func,where,if,then,else,let,in,fn},
+    morekeywords=[3]{rule,is,ft,given,and,or,not},
     morekeywords=[4]{when,cancel,resume,invert,yield},
     morekeywords=[5]{module,import,from,use,export,at},
     morekeywords=[6]{test,assert},
+    morekeywords=[7]{true,false,unit},
     morestring=[b]{"},
     morestring=[s]{$"}{"},
     morecomment=[l]{\#},

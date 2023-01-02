@@ -1,0 +1,474 @@
+\section{Lexical Structure}
+
+Grammars in this document are \href{https://en.wikipedia.org/wiki/Parsing_expression_grammar}{PEGs},
+despite maybe looking like BNF (though, really, do they look any different?).
+I did not find a particularly good grammar-typesetting package in a brief
+Google search. Excuse any typographic inconsistencies within the grammars
+at this time.
+
+\subsection{Input Format}
+
+\Trilogy{} input is interpreted as UTF-8 text. Any sequence of bytes which
+does not constitute a valid UTF-8 codepoint sequence is not valid \Trilogy{}
+code.
+
+Including the Unicode \href{https://en.wikipedia.org/wiki/Byte_order_mark}{byte-order mark}
+(BOM \texttt{U+FEFF}) is \emph{strongly recommended against}, but \Trilogy{}
+implementations may accept its existence (and ignore it) with a warning.
+
+\subsection{Keywords}
+
+Keywords in \Trilogy{} have different meanings in the different
+sublanguages, but \emph{all} keywords are considered ``reserved''
+words in all contexts. That is, they may only be used as keywords,
+even in sublanguages which do not have a use for that keyword.
+Usage as variable or function identifiers, module names, or as
+bare record keys is prohibited.
+
+The keywords are as follows:
+
+\begin{table}[H]
+\parbox[t]{0.45\linewidth}{
+    \centering
+    \begin{tabular}[t]{|ll|}
+        \hline
+        \textbf{Token Type} & \textbf{Keyword} \\
+        \hline
+        \texttt{KW\_AND} & \kw{and} \\
+        \texttt{KW\_ASSERT} & \kw{assert} \\
+        \texttt{KW\_AT} & \kw{at} \\
+        \texttt{KW\_BREAK} & \kw{break} \\
+        \texttt{KW\_CANCEL} & \kw{cancel} \\
+        \texttt{KW\_CONTINUE} & \kw{continue} \\
+        \texttt{KW\_DO} & \kw{do} \\
+        \texttt{KW\_ELSE} & \kw{else} \\
+        \texttt{KW\_EXPORT} & \kw{export} \\
+        \texttt{KW\_FALSE} & \kw{false} \\
+        \texttt{KW\_FN} & \kw{fn} \\
+        \texttt{KW\_FOR} & \kw{for} \\
+        \texttt{KW\_FROM} & \kw{from} \\
+        \texttt{KW\_FT} & \kw{ft} \\
+        \texttt{KW\_FUNC} & \kw{func} \\
+        \texttt{KW\_GIVEN} & \kw{given} \\
+        \texttt{KW\_IF} & \kw{if} \\
+        \texttt{KW\_IMPORT} & \kw{import} \\
+        \texttt{KW\_INVERT} & \kw{invert} \\
+        \hline
+    \end{tabular}
+}
+\hfill
+\parbox[t]{0.45\linewidth}{
+    \centering
+    \begin{tabular}[t]{|ll|}
+        \hline
+        \textbf{Token Type} & \textbf{Keyword} \\
+        \hline
+        \texttt{KW\_IN} & \kw{in} \\
+        \texttt{KW\_IS} & \kw{is} \\
+        \texttt{KW\_LET} & \kw{let} \\
+        \texttt{KW\_LOOP} & \kw{loop} \\
+        \texttt{KW\_MATCH} & \kw{match} \\
+        \texttt{KW\_MODULE} & \kw{module} \\
+        \texttt{KW\_MUT} & \kw{mut} \\
+        \texttt{KW\_NOT} & \kw{not} \\
+        \texttt{KW\_OR} & \kw{or} \\
+        \texttt{KW\_PROC} & \kw{proc} \\
+        \texttt{KW\_RESUME} & \kw{resume} \\
+        \texttt{KW\_RETURN} & \kw{return} \\
+        \texttt{KW\_RULE} & \kw{rule} \\
+        \texttt{KW\_TEST} & \kw{test} \\
+        \texttt{KW\_TRUE} & \kw{true} \\
+        \texttt{KW\_UNIT} & \kw{unit} \\
+        \texttt{KW\_USE} & \kw{use} \\
+        \texttt{KW\_WHEN} & \kw{when} \\
+        \texttt{KW\_WHILE} & \kw{while} \\
+        \texttt{KW\_YIELD} & \kw{yield} \\
+        \hline
+    \end{tabular}
+}
+\end{table}
+
+\subsection{Reserved Words}
+
+Some additional words are reserved for future usage, following the
+same usage restrictions as keywords. This list is intentionally
+very restrictive (who knows what ill advised feature I might add
+to this language next) and will be relaxed over time as features
+are ruled out or implemented as library code. Notably, this includes
+most keywords I can think of from other languages.
+
+\begin{table}[H]
+\parbox[t]{0.45\linewidth}{
+    \centering
+    \begin{tabular}[t]{|ll|}
+        \hline
+        \textbf{Token Type} & \textbf{Keyword} \\
+        \hline
+        \texttt{KW\_ASYNC} & \kw{async} \\
+        \texttt{KW\_AWAIT} & \kw{await} \\
+        \texttt{KW\_CASE} & \kw{case} \\
+        \texttt{KW\_CATCH} & \kw{catch} \\
+        \texttt{KW\_CLASS} & \kw{class} \\
+        \texttt{KW\_CONST} & \kw{const} \\
+        \texttt{KW\_DATA} & \kw{data} \\
+        \texttt{KW\_DEFER} & \kw{defer} \\
+        \texttt{KW\_ENUM} & \kw{enum} \\
+        \texttt{KW\_EXCEPT} & \kw{except} \\
+        \texttt{KW\_EXTENDS} & \kw{extends} \\
+        \texttt{KW\_IMPLEMENTS} & \kw{implements} \\
+        \texttt{KW\_INLINE} & \kw{inline} \\
+        \texttt{KW\_INSTANCEOF} & \kw{instanceof} \\
+        \texttt{KW\_INTERFACE} & \kw{interface} \\
+        \texttt{KW\_LAZY} & \kw{lazy} \\
+        \texttt{KW\_LENS} & \kw{lens} \\
+        \texttt{KW\_MACRO} & \kw{macro} \\
+        \hline
+    \end{tabular}
+}
+\hfill
+\parbox[t]{0.45\linewidth}{
+    \centering
+    \begin{tabular}[t]{|ll|}
+        \hline
+        \textbf{Token Type} & \textbf{Keyword} \\
+        \hline
+        \texttt{KW\_NEXT} & \kw{next} \\
+        \texttt{KW\_OPER} & \kw{oper} \\
+        \texttt{KW\_PREC} & \kw{prec} \\
+        \texttt{KW\_PROTOCOL} & \kw{protocol} \\
+        \texttt{KW\_STATIC} & \kw{static} \\
+        \texttt{KW\_STRUCT} & \kw{struct} \\
+        \texttt{KW\_SUPER} & \kw{super} \\
+        \texttt{KW\_SWITCH} & \kw{switch} \\
+        \texttt{KW\_TAG} & \kw{tag} \\
+        \texttt{KW\_TRAIT} & \kw{trait} \\
+        \texttt{KW\_TRY} & \kw{try} \\
+        \texttt{KW\_TYPE} & \kw{type} \\
+        \texttt{KW\_TYPEOF} & \kw{typeof} \\
+        \texttt{KW\_UNLESS} & \kw{unless} \\
+        \texttt{KW\_UNTIL} & \kw{until} \\
+        \texttt{KW\_VAR} & \kw{var} \\
+        \texttt{KW\_WHERE} & \kw{where} \\
+        \hline
+    \end{tabular}
+}
+\end{table}
+
+\subsection{Identifiers}
+
+Identifiers in \Trilogy{} are currently restricted to US-ASCII characters,
+with the intent being to support Unicode identifiers (including Emoji) in
+a later edition.
+
+Additionally, there are two other types of identifiers that are used in
+special cases, those ending with an exclamation mark (\texttt{!}) used as
+procedure names, and those ending with an equal sign (\texttt{=}) for
+functions when used as an operator.
+
+An additional restriction: the single underscore (\texttt{\_}) is never an
+identifier, and is instead classified separately.
+
+\begin{bnf*}
+    \bnfprod{DISCARD}{\bnfts{\_}}\\
+    \bnfprod{IDENTIFIER\_EQ}{\bnfpn{id}\bnfsp\bnfts{=}}\\
+    \bnfprod{IDENTIFIER\_BANG}{\bnfpn{IDENTIFIER}\bnfsp\bnfts{!}}\\
+    \bnfprod{IDENTIFIER}{\bnfpn{id}\quad\bnftd{excluding keywords}}\\
+    \bnfprod{id}{\bnfts{[a-zA-Z\_][a-zA-Z0-9\_]*}} \\
+\end{bnf*}
+
+\subsection{Atom Literals}
+
+Atoms are typically identifiers with a leading single-quote (\texttt{'}).
+Atoms may be used as labels for a single value.
+
+\begin{bnf*}
+    \bnfprod{ATOM}{
+        \bnfpn{atomlabel}
+        \bnfor
+        \bnfpn{atomlabel}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{expression}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{atomlabel}{\bnfts{'}\bnfsp\bnfpn{IDENTIFIER}} \\
+\end{bnf*}
+
+\subsection{Numeric Literals}
+
+Numbers in \Trilogy{} are real numbers, as in supporting arbitrary
+precision and largeness. Complex numbers are supported as well
+(not that I have ever required the use of complex numbers in any
+piece of code) for completeness.
+
+Numeric literals additionally support ``tagging'', for example to implement
+units of measurement. Though the tag may be defined as user code (same as any
+function), it is tokenized as part of the numeric literal as a space is not
+permitted between the number and the tag.
+
+Numeric tokens are of the following grammar:
+
+\begin{bnf*}
+    \bnfprod{NUMERIC}{\bnfpn{number}\bnfor\bnfpn{number}\bnfsp\bnfpn{IDENTIFIER}} \\
+    \bnfprod{number}{\bnfpn{integer}\bnfor\bnfpn{rational}\bnfor\bnfpn{real}} \\
+    \bnfprod{integer}{
+        \bnfpn{decimal}
+        \bnfor
+        \bnfpn{hexadecimal}
+        \bnfor
+        \bnfpn{binary}
+        \bnfor
+        \bnfpn{octal}
+    } \\
+    \bnfprod{decimal}{\bnfts{[1-9][0-9\_]*}} \\
+    \bnfprod{hexadecimal}{\bnfts{0x}\bnfsp\bnfts{[0-9A-Fa-f][0-9A-Fa-f\_]*}} \\
+    \bnfprod{binary}{\bnfts{0b}\bnfsp\bnfts{[01][01\_]*}} \\
+    \bnfprod{octal}{\bnfts{0o}\bnfsp\bnfts{[0-7][0-7\_]*}} \\
+    \bnfprod{rational}{\bnfpn{integer}\bnfsp\bnfts{/}\bnfsp\bnfpn{integer}} \\
+    \bnfprod{real}{\bnfpn{decimal}\bnfsp\bnfts{.}\bnfsp\bnfpn{decimal}} \\
+\end{bnf*}
+
+Negative numbers do not exist in source code, and are actually
+an appliction of the unary negation operator \op{-} to a non-negative number.
+
+Numbers with exponential components also do not exist. Similar results
+can be achieved using tagging.
+
+Numbers may contain the underscore character (\texttt{\_}) as a separator.
+There are no restrictions on the placement of underscores, beyond that they
+may not start a number. \val{1000000}, \val{1\_000\_000}, and
+\val{1\_0\_0\_\_\_000\_0} are all valid number literals representing one
+million.
+
+Worth noting as well, rational number literals (e.g. \texttt{2/3}) are
+parsed as a single token, while runtime division (e.g. \texttt{2 / 3})
+is parsed as three separate tokens. Be careful of this distinction later
+when writing or parsing expressions, as these two representations will
+lead to different results in ways not relevant to other languages without
+rational literals.
+
+\subsection{String and Character Literals}
+
+Strings in \Trilogy{} are always enclosed in double quotes (\texttt{"}).
+
+Similar to numeric literals, string literals support tagging, implemented
+as part of the string literal for similar reason.
+
+At this time, one other special type of string, the ``template string'',
+is prefixed with a \texttt{\$}. In future, other special strings may %
+be implemented where tagging proves insufficient. Template strings may
+be tagged.
+
+String token grammar is as follows:
+
+\begin{bnf*}
+    \bnfprod{STRING}{\bnfpn{plainstr}\bnfor\bnfpn{plainstr}\bnfsp\bnfpn{IDENTIFIER}\bnfor} \\
+    \bnfmore{\bnfpn{templatestr}\bnfor\bnfpn{templatestr}\bnfsp\bnfpn{IDENTIFIER}} \\
+    \bnfprod{plainstr}{\bnfts{"}\bnfsp\bnfpn{content}\bnfsp\bnfts{"}} \\
+    \bnfprod{content}{\bnftd{Any UTF-8 characters or escape sequences}} \\
+    \bnfprod{template}{\bnfpn{content}\bnfor} \\ %
+    \bnfmore{\bnfpn{content}\bnfsp\bnfts{\$\{}\bnfsp\bnfpn{EXPRESSION}\bnfsp\bnfts{\}}\bnfsp\bnfpn{template}} \\ %
+\end{bnf*}
+
+Similarly, characters are always enclosed in single quotes (\texttt{'}).
+Unlike many other dynamically typed languages, \Trilogy{} \emph{does} differentiate
+between characters and strings. Character literals may contain either a
+single (non-single-quote) character, or a single escape sequence.
+
+\begin{bnf*}
+    \bnfprod{CHARACTER}{\bnfts{'}\bnfsp\bnfpn{char}\bnfsp\bnfts{'}} \\
+    \bnfprod{char}{\bnftd{One Unicode Character}\bnfor\bnftd{One Escape sequence}} \\
+\end{bnf*}
+
+\subsubsection{Escape Sequences}
+
+Within character and string literals, escape sequences may be used to denote
+special characters, typically ones that would otherwise be hard to physically
+type or print and read.
+
+Valid escape sequences and their meanings are listed here:
+
+\begin{table}[H]
+    \centering
+\begin{tabular}[c]{|ll|}
+    \hline
+    \textbf{Code} & \textbf{Usage} \\
+    \hline
+    \texttt{\textbackslash n} & New line \\
+    \texttt{\textbackslash r} & Carriage Return \\
+    \texttt{\textbackslash t} & Tab \\
+    \texttt{\textbackslash\textbackslash} & Backslash \\
+    \texttt{\textbackslash 0} & Null \\
+    \texttt{\textbackslash '} & Single Quote \\
+    \texttt{\textbackslash "} & Double Quote \\
+    \texttt{\textbackslash \$} & Dollar Sign \\ %
+    \texttt{\textbackslash x41} & ASCII escape \\
+    \texttt{\textbackslash u\{7FFF\}} & Unicode escape sequence \\
+    \hline
+\end{tabular}
+\end{table}
+
+Escape sequences in both strings and characters are resolved by the lexer
+and replaced before the tokens are handed off to further passes.
+
+\subsection{Whitespace}
+
+\Trilogy{} aims to be (mostly) a ``free-form'' language, meaning that
+whitespace holds no special meaning. The only exception to this rule
+is when line breaks may lead to differing results, the specifics of which
+are detailed later.
+
+Otherwise, all whitespace may be treated equally, though the only supported
+whitespaces at this time are the four ASCII whitespace characters listed:
+
+\begin{itemize}
+    \item \texttt{U+0009} (tab \texttt{'\textbackslash t'})
+    \item \texttt{U+000A} (line feed \texttt{'\textbackslash n'})
+    \item \texttt{U+000D} (carriage return \texttt{'\textbackslash r'})
+    \item \texttt{U+0020} (space \texttt{' '})
+\end{itemize}
+
+For the purposes of ending lines, the only valid whitespace character is
+\texttt{U+000A} (line feed \texttt{'\textbackslash n'}).
+\texttt{U+000D} (carriage return \texttt{'\textbackslash r'}) is ignored,
+as with any other whitespace, for any purpose other than separating tokens.
+
+When \texttt{U+000A} (line feed \texttt{'\textbackslash n'}) is encountered
+in the source code (other than within a string literal), the token
+\texttt{ENDLINE} is emitted.
+
+\subsection{Comments}
+
+Comments hold no semantic meaning, but they may constitute a line break,
+if there is a line break within the comment. A line comment continues until and
+includes the line feed character, and so are always considered as line breaks.
+Comments which do not contain a line feed are treated as a non-line
+break whitespace. Block comments may be nested.
+
+\begin{bnf*}
+    \bnfprod{COMMENT\_BL}{
+        \bnfts{\#-}
+        \bnfsp
+        \bnftd{Anything}
+        \bnfsp
+        \bnfpn{COMMENT\_BL}
+        \bnfsp
+        \bnftd{Anything}
+        \bnfsp
+        \bnfts{-\#}
+        \bnfor
+    } \\
+    \bnfmore{\bnfts{\#-} \bnfsp \bnftd{Anything} \bnfsp \bnfts{-\#}} \\
+    \bnfprod{DOC\_OUTER}{\bnfts{\#\#} \bnfsp \bnftd{All characters until line feed}} \\
+    \bnfprod{DOC\_INNER}{\bnfts{\#!} \bnfsp \bnftd{All characters until line feed}} \\
+    \bnfprod{COMMENT\_LN}{\bnfts{\#} \bnfsp \bnftd{All characters until line feed}} \\
+\end{bnf*}
+
+\subsection{Punctuation}
+
+Punctuation includes symbols and operators that treated as whole tokens when encountered
+on their own.
+
+Keep in mind the slash (\texttt{/}) also appears as part of rational number literals, so
+will not be exclusively identified as an individual token.
+
+\begin{table}[H]
+\parbox[t]{0.45\linewidth}{
+    \centering
+    \begin{tabular}[t]{|ll|}
+        \hline
+        \textbf{Token Type} & \textbf{Symbol} \\
+        \hline
+        \texttt{OP\_EQ} & \op{=} \\
+        \texttt{OP\_LT} & \op{<} \\
+        \texttt{OP\_GT} & \op{>} \\
+        \texttt{OP\_EQEQ} & \op{==} \\
+        \texttt{OP\_LTEQ} & \op{<=} \\
+        \texttt{OP\_GTEQ} & \op{>=} \\
+        \hline
+        \texttt{OP\_AMP} & \op{\&} \\
+        \texttt{OP\_PIPE} & \op{|} \\
+        \texttt{OP\_CARET} & \op{\textasciicircum} \\
+        \texttt{OP\_TILDE} & \op{\textasciitilde} \\
+        \texttt{OP\_SHR} & \op{\textasciitilde>} \\
+        \texttt{OP\_SHL} & \op{<\textasciitilde} \\
+        \hline
+        \texttt{OP\_AMPEQ} & \op{\&=} \\
+        \texttt{OP\_PIPEEQ} & \op{|=} \\
+        \texttt{OP\_CARETEQ} & \op{\textasciicircum=} \\
+        \texttt{OP\_TILDEEQ} & \op{\textasciitilde=} \\
+        \texttt{OP\_SHREQ} & \op{\textasciitilde>=} \\
+        \texttt{OP\_SHLEQ} & \op{<\textasciitilde=} \\
+        \hline
+        \texttt{OP\_AT} & \op{@} \\
+        \texttt{OP\_DOT} & \op{.} \\
+        \texttt{OP\_DOTDOT} & \op{..} \\
+        \texttt{OP\_COMMA} & \op{,} \\
+        \texttt{OP\_COLON} & \op{:} \\
+        \texttt{OP\_SEMI} & \op{;} \\
+        \hline
+    \end{tabular}
+}
+\hfill
+\parbox[t]{0.45\linewidth}{
+    \centering
+    \begin{tabular}[t]{|ll|}
+        \hline
+        \textbf{Token Type} & \textbf{Symbol} \\
+        \hline
+        \texttt{OP\_PLUS} & \op{+} \\
+        \texttt{OP\_MINUS} & \op{-} \\
+        \texttt{OP\_STAR} & \op{*} \\
+        \texttt{OP\_SLASH} & \op{/} \\
+        \texttt{OP\_SLASHSLASH} & \op{//} \\
+        \texttt{OP\_PERCENT} & \op{\%} \\
+        \texttt{OP\_STARSTAR} & \op{**} \\
+        \hline
+        \texttt{OP\_PLUSEQ} & \op{+=} \\
+        \texttt{OP\_MINUSEQ} & \op{-=} \\
+        \texttt{OP\_STAREQ} & \op{*=} \\
+        \texttt{OP\_SLASHEQ} & \op{/=} \\
+        \texttt{OP\_SLASHSLASHEQ} & \op{//=} \\
+        \texttt{OP\_PERCENTEQ} & \op{\%=} \\
+        \texttt{OP\_STARSTAREQ} & \op{**=} \\
+        \hline
+        \texttt{OP\_LTLT} & \op{<<} \\
+        \texttt{OP\_GTGT} & \op{>>} \\
+        \texttt{OP\_PIPEGT} & \op{|>} \\
+        \texttt{OP\_LTPIPE} & \op{<|} \\
+        \hline
+    \end{tabular}
+}
+\end{table}
+
+\subsection{Delimeters}
+
+Delimiters typically surround other pieces of code, and must come in
+matched opening-closing pairs.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}[t]{|ll|ll|}
+        \hline
+        \textbf{Token Type} & \textbf{Symbol}& \textbf{Token Type} & \textbf{Symbol} \\
+        \hline
+        \texttt{OBRACE} & \texttt{\{}& \texttt{CBRACE} & \texttt{\}} \\
+        \texttt{OPAREN} & \texttt{(} & \texttt{CPAREN} & \texttt{)} \\
+        \texttt{OBRACK} & \texttt{[} & \texttt{CBRACK} & \texttt{]} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Shebang}
+
+A \Trilogy{} file may optionally begin with a
+\href{https://en.wikipedia.org/wiki/Shebang_(Unix)}{shebang}. This has no bearing
+on how the program is run or interpreted when provided to a \Trilogy{} implementation,
+but may affect how the operating system treats the file.
+
+Conveniently, this matches standard comment syntax. Inconveniently, it is not
+likely that it is meant to be interpreted as a doc comment. Conveniently,
+we don't care, and so it is up to the documentation generator to detect and
+hide a shebang from generated documentation if so desired.
