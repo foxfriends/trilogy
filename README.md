@@ -5,10 +5,9 @@
 My third attempt at building a programming language[^1][^2].
 
 Also a programming language that more closely resembles three languages
-at once than any one single language. You'll see what I mean when it
-comes out.
+at once than any one single language.
 
-Thus, this makes a trilogy. Hopefully I produce something useful this time.
+This makes a trilogy. Hopefully I produce something useful this time.
 
 Third time's the charm!
 
