@@ -7,9 +7,7 @@ My third attempt at building a programming language[^1][^2].
 Also a programming language that more closely resembles three languages
 at once than any one single language.
 
-This makes a trilogy. Hopefully I produce something useful this time.
-
-Third time's the charm!
+That makes a trilogy. Hopefully I produce something useful. Third time's the charm!
 
 [^1]: First few were school projects, WLP4 (a subset of C), and Joos (a subset of Java), and maybe a few others. Though technically I did (attempt to) implement them (with friends), they aren't *my* languages, and I cannot produce such source code.
 [^2]: Third was [Lumber](https://github.com/foxfriends/lumber), an experiment at a functioning language.
