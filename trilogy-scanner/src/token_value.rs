@@ -1,4 +1,4 @@
-use num::{rational::BigRational, BigUint};
+use num::{rational::BigRational, Complex};
 
 /// The raw value a token represents.
 ///
@@ -8,8 +8,7 @@ use num::{rational::BigRational, BigUint};
 pub enum TokenValue {
     Char(char),
     String(String),
-    Integer(BigUint),
-    Rational(BigRational),
+    Number(Complex<BigRational>),
 }
 
 impl TokenValue {
@@ -36,5 +35,11 @@ impl From<char> for TokenValue {
 impl From<&'static str> for TokenValue {
     fn from(value: &'static str) -> Self {
         Self::String(value.to_owned())
+    }
+}
+
+impl From<Complex<BigRational>> for TokenValue {
+    fn from(value: Complex<BigRational>) -> Self {
+        Self::Number(value)
     }
 }

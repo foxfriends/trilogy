@@ -1,7 +1,9 @@
 use super::token::Token;
 use crate::TokenType::{self, *};
+use num::{BigInt, BigRational, Complex, Num, Zero};
+use peekmore::{PeekMore, PeekMoreIterator};
 use source_span::{DefaultMetrics, Span};
-use std::iter::Peekable;
+use std::ops::Range;
 use std::str::Chars;
 use std::string::String;
 
@@ -9,7 +11,7 @@ const METRICS: DefaultMetrics = DefaultMetrics::with_tab_stop(4);
 
 #[derive(Clone, Debug)]
 pub struct Scanner<'a> {
-    chars: Peekable<Chars<'a>>,
+    chars: PeekMoreIterator<Chars<'a>>,
     span: Span,
     is_started: bool,
     is_finished: bool,
@@ -26,6 +28,18 @@ impl CharPattern for char {
     }
 }
 
+impl CharPattern for Range<char> {
+    fn check(&self, ch: char) -> bool {
+        self.contains(&ch)
+    }
+}
+
+impl CharPattern for &'static str {
+    fn check(&self, ch: char) -> bool {
+        self.contains(ch)
+    }
+}
+
 impl<F> CharPattern for F
 where
     F: Fn(char) -> bool,
@@ -38,7 +52,7 @@ where
 impl<'a> Scanner<'a> {
     pub fn new(source: &'a str) -> Self {
         Self {
-            chars: source.chars().peekable(),
+            chars: source.chars().peekmore(),
             span: Span::default(),
             is_started: false,
             is_finished: false,
@@ -74,6 +88,14 @@ impl<'a> Scanner<'a> {
             return None;
         }
         self.consume()
+    }
+
+    fn predict<P: CharPattern>(&mut self, pattern: P) -> bool {
+        self.chars
+            .peek_nth(1)
+            .copied()
+            .map(|ch| pattern.check(ch))
+            .unwrap_or(false)
     }
 
     fn identifier(&mut self, mut value: String) -> String {
@@ -206,16 +228,13 @@ impl<'a> Scanner<'a> {
     }
 
     fn comment(&mut self) -> Token {
-        if self.expect('-').is_some() {
-            return self.block_comment();
+        match self.expect("#-!") {
+            Some('-') => self.block_comment(),
+            Some('#') => self.make_token(DocOuter).with_value(self.finish_line()),
+            Some('!') => self.make_token(DocInner).with_value(self.finish_line()),
+            None => self.make_token(CommentLine).with_value(self.finish_line()),
+            _ => unreachable!(),
         }
-        if self.expect('#').is_some() {
-            return self.make_token(DocOuter).with_value(self.finish_line());
-        }
-        if self.expect('!').is_some() {
-            return self.make_token(DocInner).with_value(self.finish_line());
-        }
-        self.make_token(CommentLine).with_value(self.finish_line())
     }
 
     // Not my best method signature, but it gets the job done.
@@ -239,6 +258,112 @@ impl<'a> Scanner<'a> {
             content.push(ch)
         }
         self.make_error("Unexpected end of file found before end of string literal.")
+    }
+
+    fn fractional(&mut self) -> BigRational {
+        let mut value = String::new();
+        while let Some(ch) = self.expect('0'..'9') {
+            value.push(ch);
+        }
+        if value.is_empty() {
+            value.push('0');
+        }
+        let num = BigInt::from_str_radix(&value, 10).unwrap();
+        if num == BigInt::zero() {
+            return BigRational::zero();
+        }
+        let denom = BigInt::from(10).pow(value.len() as u32);
+        BigRational::new(num, denom)
+    }
+
+    fn decimal(&mut self, mut value: String) -> BigInt {
+        while let Some(ch) = self.expect('0'..'9') {
+            value.push(ch)
+        }
+        BigInt::from_str_radix(&value, 10).unwrap()
+    }
+
+    fn binary(&mut self) -> BigInt {
+        let mut value = String::new();
+        while let Some(ch) = self.expect('0'..'1') {
+            value.push(ch)
+        }
+        BigInt::from_str_radix(&value, 2).unwrap()
+    }
+
+    fn octal(&mut self) -> BigInt {
+        let mut value = String::new();
+        while let Some(ch) = self.expect('0'..'7') {
+            value.push(ch)
+        }
+        BigInt::from_str_radix(&value, 8).unwrap()
+    }
+
+    fn hexadecimal(&mut self) -> BigInt {
+        let mut value = String::new();
+        while let Some(ch) = self.expect(|ch: char| ch.is_ascii_hexdigit()) {
+            value.push(ch)
+        }
+        BigInt::from_str_radix(&value, 16).unwrap()
+    }
+
+    // Another odd method signature; the bool is whether a floating point
+    // literal is to be accepted still.
+    //
+    // Really though, why do we restrict that? Rationals can represent
+    // floating points on non-decimal values too. Maybe a fun little update
+    // to the language to implement that if I ever require it.
+    fn zero_or_other_base(&mut self) -> (BigInt, bool) {
+        match self.expect("box") {
+            Some('b') => (self.binary(), false),
+            Some('o') => (self.octal(), false),
+            Some('x') => (self.hexadecimal(), false),
+            None => (BigInt::zero(), true),
+            _ => unreachable!(),
+        }
+    }
+
+    fn integer(&mut self, starts_with: char) -> (BigInt, bool) {
+        match starts_with {
+            '0' => self.zero_or_other_base(),
+            _ => (self.decimal(starts_with.into()), true),
+        }
+    }
+
+    fn rational_or_float(&mut self, starts_with: char) -> BigRational {
+        let (numerator, can_be_float) = self.integer(starts_with);
+        match self.peek() {
+            Some('/') if self.predict('0'..'9') => {
+                self.expect('/').unwrap();
+                let first = self.consume().unwrap();
+                let (denominator, _) = self.integer(first);
+                BigRational::new(numerator, denominator)
+            }
+            Some('.') if can_be_float && self.predict('0'..'9') => {
+                self.expect('.').unwrap();
+                let number = self.fractional();
+                BigRational::from(numerator) + number
+            }
+            _ => numerator.into(),
+        }
+    }
+
+    fn complex(&mut self, starts_with: char) -> Complex<BigRational> {
+        let real = self.rational_or_float(starts_with);
+        let imaginary = match self.peek() {
+            Some('i') if self.predict('0'..'9') => {
+                self.consume().unwrap();
+                let first = self.consume().unwrap();
+                self.rational_or_float(first)
+            }
+            _ => BigRational::zero(),
+        };
+        Complex::new(real, imaginary)
+    }
+
+    fn numeric(&mut self, starts_with: char) -> Token {
+        let number = self.complex(starts_with);
+        self.make_token(Numeric).with_value(number)
     }
 }
 
@@ -280,6 +405,7 @@ impl Iterator for Scanner<'_> {
             '#' => self.comment(),
             '"' => self.string_or_template(false, String),
             // Feels slightly irresponsible to put side effects into a guard...
+            // but it's been done all over this file. Apologies to reader.
             '$' if self.expect(|ch| ch == '"').is_some() => {
                 self.consume();
                 self.string_or_template(true, String)
@@ -316,7 +442,7 @@ impl Iterator for Scanner<'_> {
                 self.make_token(CParen)
             }
             '\n' => self.make_token(EndOfLine),
-            // '0'..='9' => self.numeric(),
+            ch @ '0'..='9' => self.numeric(ch),
             // operators...
             _ => todo!("Working on it..."),
         };

@@ -197,10 +197,11 @@ precision and largeness. Complex numbers are supported as well
 (not that I have ever required the use of complex numbers in any
 piece of code) for completeness.
 
-Numeric tokens are of the following grammar:
+Numeric tokens are of the following structure:
 
 \begin{bnf*}
-    \bnfprod{Numeric}{\bnfpn{integer}\bnfor\bnfpn{rational}\bnfor\bnfpn{real}} \\
+    \bnfprod{Numeric}{\bnfpn{real}\bnfor\bnfpn{real}\bnfsp\bnfpn{complex}} \\
+    \bnfprod{real}{\bnfpn{integer}\bnfor\bnfpn{rational}\bnfor\bnfpn{float}} \\
     \bnfprod{integer}{
         \bnfpn{decimal}
         \bnfor
@@ -215,7 +216,8 @@ Numeric tokens are of the following grammar:
     \bnfprod{binary}{\bnfts{0b}\bnfsp\bnfts{[01][01\_]*}} \\
     \bnfprod{octal}{\bnfts{0o}\bnfsp\bnfts{[0-7][0-7\_]*}} \\
     \bnfprod{rational}{\bnfpn{integer}\bnfsp\bnfts{/}\bnfsp\bnfpn{integer}} \\
-    \bnfprod{real}{\bnfpn{decimal}\bnfsp\bnfts{.}\bnfsp\bnfpn{decimal}} \\
+    \bnfprod{float}{\bnfpn{decimal}\bnfsp\bnfts{.}\bnfsp\bnfpn{decimal}} \\
+    \bnfprod{complex}{\bnfts{i}\bnfsp\bnfpn{real}}
 \end{bnf*}
 
 Negative numbers do not exist in source code, and are actually
@@ -236,6 +238,14 @@ is parsed as three separate tokens. Be careful of this distinction later
 when writing or parsing expressions, as these two representations will
 lead to different results in ways not relevant to other languages without
 rational literals.
+
+As they are not often seen in other languages (and similarly unlikely to
+be witnessed in \Trilogy{}), complex numbers are written such as \val{13i5}
+to represent $13 + 5i$. On either side of the \texttt{i} may be a valid
+real number (including rational or floating point numbers). Neither value
+may be omitted (i.e. \val{0i5} not \texttt{i5}, and \val{13i0} not
+\texttt{13i}). A negative complex number $15 - 5i$ is written \val{15 - 0i5}
+(there is no literal, this is just a subtraction).
 
 \subsection{String and Character Literals}
 
