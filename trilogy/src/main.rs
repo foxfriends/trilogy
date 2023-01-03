@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use trilogy_scanner::Scanner;
 
 /// Trilogy Programming Language
 #[derive(Parser, Clone, Debug)]
@@ -30,9 +31,19 @@ enum Command {
     Lsp { files: Vec<PathBuf> },
 }
 
-fn main() {
+fn main() -> std::io::Result<()> {
     let args = Cli::parse();
-    println!("{:?}", args);
 
-    println!("Hello, world!");
+    match args.command {
+        Command::Run { file } => {
+            let contents = std::fs::read_to_string(file)?;
+            let scanner = Scanner::new(&contents);
+            for token in scanner {
+                println!("{:?}", token);
+            }
+        }
+        _ => unimplemented!("This feature is not yet built"),
+    }
+
+    Ok(())
 }

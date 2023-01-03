@@ -1,6 +1,7 @@
 \section{Lexical Structure}
 
-Grammars in this document are \href{https://en.wikipedia.org/wiki/Parsing_expression_grammar}{PEGs},
+Grammars in this document are typically
+\href{https://en.wikipedia.org/wiki/Parsing_expression_grammar}{PEGs},
 despite maybe looking like BNF (though, really, do they look any different?).
 I did not find a particularly good grammar-typesetting package in a brief
 Google search. Excuse any typographic inconsistencies within the grammars
@@ -15,6 +16,11 @@ code.
 Including the Unicode \href{https://en.wikipedia.org/wiki/Byte_order_mark}{byte-order mark}
 (BOM \texttt{U+FEFF}) is \emph{strongly recommended against}, but \Trilogy{}
 implementations may accept its existence (and ignore it) with a warning.
+
+A valid \Trilogy{} file should end with a new line character (\texttt{\textbackslash n}),
+but \Trilogy{} implementations may accept a file that does not have
+a trailing new line by implying the existence of one, and emitting a
+warning.
 
 \subsection{Keywords}
 
@@ -34,25 +40,25 @@ The keywords are as follows:
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
-        \texttt{KW\_AND} & \kw{and} \\
-        \texttt{KW\_ASSERT} & \kw{assert} \\
-        \texttt{KW\_AT} & \kw{at} \\
-        \texttt{KW\_BREAK} & \kw{break} \\
-        \texttt{KW\_CANCEL} & \kw{cancel} \\
-        \texttt{KW\_CONTINUE} & \kw{continue} \\
-        \texttt{KW\_DO} & \kw{do} \\
-        \texttt{KW\_ELSE} & \kw{else} \\
-        \texttt{KW\_EXPORT} & \kw{export} \\
-        \texttt{KW\_FALSE} & \kw{false} \\
-        \texttt{KW\_FN} & \kw{fn} \\
-        \texttt{KW\_FOR} & \kw{for} \\
-        \texttt{KW\_FROM} & \kw{from} \\
-        \texttt{KW\_FT} & \kw{ft} \\
-        \texttt{KW\_FUNC} & \kw{func} \\
-        \texttt{KW\_GIVEN} & \kw{given} \\
-        \texttt{KW\_IF} & \kw{if} \\
-        \texttt{KW\_IMPORT} & \kw{import} \\
-        \texttt{KW\_INVERT} & \kw{invert} \\
+        \texttt{KwAnd} & \kw{and} \\
+        \texttt{KwAssert} & \kw{assert} \\
+        \texttt{KwAt} & \kw{at} \\
+        \texttt{KwBreak} & \kw{break} \\
+        \texttt{KwCancel} & \kw{cancel} \\
+        \texttt{KwContinue} & \kw{continue} \\
+        \texttt{KwDo} & \kw{do} \\
+        \texttt{KwElse} & \kw{else} \\
+        \texttt{KwExport} & \kw{export} \\
+        \texttt{KwFalse} & \kw{false} \\
+        \texttt{KwFn} & \kw{fn} \\
+        \texttt{KwFor} & \kw{for} \\
+        \texttt{KwFrom} & \kw{from} \\
+        \texttt{KwFt} & \kw{ft} \\
+        \texttt{KwFunc} & \kw{func} \\
+        \texttt{KwGiven} & \kw{given} \\
+        \texttt{KwIf} & \kw{if} \\
+        \texttt{KwImport} & \kw{import} \\
+        \texttt{KwInvert} & \kw{invert} \\
         \hline
     \end{tabular}
 }
@@ -63,26 +69,26 @@ The keywords are as follows:
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
-        \texttt{KW\_IN} & \kw{in} \\
-        \texttt{KW\_IS} & \kw{is} \\
-        \texttt{KW\_LET} & \kw{let} \\
-        \texttt{KW\_LOOP} & \kw{loop} \\
-        \texttt{KW\_MATCH} & \kw{match} \\
-        \texttt{KW\_MODULE} & \kw{module} \\
-        \texttt{KW\_MUT} & \kw{mut} \\
-        \texttt{KW\_NOT} & \kw{not} \\
-        \texttt{KW\_OR} & \kw{or} \\
-        \texttt{KW\_PROC} & \kw{proc} \\
-        \texttt{KW\_RESUME} & \kw{resume} \\
-        \texttt{KW\_RETURN} & \kw{return} \\
-        \texttt{KW\_RULE} & \kw{rule} \\
-        \texttt{KW\_TEST} & \kw{test} \\
-        \texttt{KW\_TRUE} & \kw{true} \\
-        \texttt{KW\_UNIT} & \kw{unit} \\
-        \texttt{KW\_USE} & \kw{use} \\
-        \texttt{KW\_WHEN} & \kw{when} \\
-        \texttt{KW\_WHILE} & \kw{while} \\
-        \texttt{KW\_YIELD} & \kw{yield} \\
+        \texttt{KwIn} & \kw{in} \\
+        \texttt{KwIs} & \kw{is} \\
+        \texttt{KwLet} & \kw{let} \\
+        \texttt{KwLoop} & \kw{loop} \\
+        \texttt{KwMatch} & \kw{match} \\
+        \texttt{KwModule} & \kw{module} \\
+        \texttt{KwMut} & \kw{mut} \\
+        \texttt{KwNot} & \kw{not} \\
+        \texttt{KwOr} & \kw{or} \\
+        \texttt{KwProc} & \kw{proc} \\
+        \texttt{KwResume} & \kw{resume} \\
+        \texttt{KwReturn} & \kw{return} \\
+        \texttt{KwRule} & \kw{rule} \\
+        \texttt{KwTest} & \kw{test} \\
+        \texttt{KwTrue} & \kw{true} \\
+        \texttt{KwUnit} & \kw{unit} \\
+        \texttt{KwUse} & \kw{use} \\
+        \texttt{KwWhen} & \kw{when} \\
+        \texttt{KwWhile} & \kw{while} \\
+        \texttt{KwYield} & \kw{yield} \\
         \hline
     \end{tabular}
 }
@@ -104,24 +110,24 @@ most keywords I can think of from other languages.
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
-        \texttt{KW\_ASYNC} & \kw{async} \\
-        \texttt{KW\_AWAIT} & \kw{await} \\
-        \texttt{KW\_CASE} & \kw{case} \\
-        \texttt{KW\_CATCH} & \kw{catch} \\
-        \texttt{KW\_CLASS} & \kw{class} \\
-        \texttt{KW\_CONST} & \kw{const} \\
-        \texttt{KW\_DATA} & \kw{data} \\
-        \texttt{KW\_DEFER} & \kw{defer} \\
-        \texttt{KW\_ENUM} & \kw{enum} \\
-        \texttt{KW\_EXCEPT} & \kw{except} \\
-        \texttt{KW\_EXTENDS} & \kw{extends} \\
-        \texttt{KW\_IMPLEMENTS} & \kw{implements} \\
-        \texttt{KW\_INLINE} & \kw{inline} \\
-        \texttt{KW\_INSTANCEOF} & \kw{instanceof} \\
-        \texttt{KW\_INTERFACE} & \kw{interface} \\
-        \texttt{KW\_LAZY} & \kw{lazy} \\
-        \texttt{KW\_LENS} & \kw{lens} \\
-        \texttt{KW\_MACRO} & \kw{macro} \\
+        \texttt{KwAsync} & \kw{async} \\
+        \texttt{KwAwait} & \kw{await} \\
+        \texttt{KwCase} & \kw{case} \\
+        \texttt{KwCatch} & \kw{catch} \\
+        \texttt{KwClass} & \kw{class} \\
+        \texttt{KwConst} & \kw{const} \\
+        \texttt{KwData} & \kw{data} \\
+        \texttt{KwDefer} & \kw{defer} \\
+        \texttt{KwEnum} & \kw{enum} \\
+        \texttt{KwExcept} & \kw{except} \\
+        \texttt{KwExtends} & \kw{extends} \\
+        \texttt{KwImplements} & \kw{implements} \\
+        \texttt{KwInline} & \kw{inline} \\
+        \texttt{KwInstanceof} & \kw{instanceof} \\
+        \texttt{KwInterface} & \kw{interface} \\
+        \texttt{KwLazy} & \kw{lazy} \\
+        \texttt{KwLens} & \kw{lens} \\
+        \texttt{KwMacro} & \kw{macro} \\
         \hline
     \end{tabular}
 }
@@ -132,23 +138,23 @@ most keywords I can think of from other languages.
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
-        \texttt{KW\_NEXT} & \kw{next} \\
-        \texttt{KW\_OPER} & \kw{oper} \\
-        \texttt{KW\_PREC} & \kw{prec} \\
-        \texttt{KW\_PROTOCOL} & \kw{protocol} \\
-        \texttt{KW\_STATIC} & \kw{static} \\
-        \texttt{KW\_STRUCT} & \kw{struct} \\
-        \texttt{KW\_SUPER} & \kw{super} \\
-        \texttt{KW\_SWITCH} & \kw{switch} \\
-        \texttt{KW\_TAG} & \kw{tag} \\
-        \texttt{KW\_TRAIT} & \kw{trait} \\
-        \texttt{KW\_TRY} & \kw{try} \\
-        \texttt{KW\_TYPE} & \kw{type} \\
-        \texttt{KW\_TYPEOF} & \kw{typeof} \\
-        \texttt{KW\_UNLESS} & \kw{unless} \\
-        \texttt{KW\_UNTIL} & \kw{until} \\
-        \texttt{KW\_VAR} & \kw{var} \\
-        \texttt{KW\_WHERE} & \kw{where} \\
+        \texttt{KwNext} & \kw{next} \\
+        \texttt{KwOper} & \kw{oper} \\
+        \texttt{KwPrec} & \kw{prec} \\
+        \texttt{KwProtocol} & \kw{protocol} \\
+        \texttt{KwStatic} & \kw{static} \\
+        \texttt{KwStruct} & \kw{struct} \\
+        \texttt{KwSuper} & \kw{super} \\
+        \texttt{KwSwitch} & \kw{switch} \\
+        \texttt{KwTag} & \kw{tag} \\
+        \texttt{KwTrait} & \kw{trait} \\
+        \texttt{KwTry} & \kw{try} \\
+        \texttt{KwType} & \kw{type} \\
+        \texttt{KwTypeof} & \kw{typeof} \\
+        \texttt{KwUnless} & \kw{unless} \\
+        \texttt{KwUntil} & \kw{until} \\
+        \texttt{KwVar} & \kw{var} \\
+        \texttt{KwWhere} & \kw{where} \\
         \hline
     \end{tabular}
 }
@@ -169,31 +175,19 @@ An additional restriction: the single underscore (\texttt{\_}) is never an
 identifier, and is instead classified separately.
 
 \begin{bnf*}
-    \bnfprod{DISCARD}{\bnfts{\_}}\\
-    \bnfprod{IDENTIFIER\_EQ}{\bnfpn{id}\bnfsp\bnfts{=}}\\
-    \bnfprod{IDENTIFIER\_BANG}{\bnfpn{IDENTIFIER}\bnfsp\bnfts{!}}\\
-    \bnfprod{IDENTIFIER}{\bnfpn{id}\quad\bnftd{excluding keywords}}\\
+    \bnfprod{Discard}{\bnfts{\_}}\\
+    \bnfprod{IdentifierEq}{\bnfpn{id}\bnfsp\bnfts{=}}\\
+    \bnfprod{IdentifierBang}{\bnfpn{Identifier}\bnfsp\bnfts{!}}\\
+    \bnfprod{Identifier}{\bnfpn{id}\quad\bnftd{excluding keywords}}\\
     \bnfprod{id}{\bnfts{[a-zA-Z\_][a-zA-Z0-9\_]*}} \\
 \end{bnf*}
 
 \subsection{Atom Literals}
 
-Atoms are typically identifiers with a leading single-quote (\texttt{'}).
-Atoms may be used as labels for a single value.
+Atoms are represented as identifiers with a leading single-quote (\texttt{'}).
 
 \begin{bnf*}
-    \bnfprod{ATOM}{
-        \bnfpn{atomlabel}
-        \bnfor
-        \bnfpn{atomlabel}
-        \bnfsp
-        \bnfts{(}
-        \bnfsp
-        \bnfpn{expression}
-        \bnfsp
-        \bnfts{)}
-    } \\
-    \bnfprod{atomlabel}{\bnfts{'}\bnfsp\bnfpn{IDENTIFIER}} \\
+    \bnfprod{Atom}{\bnfts{'}\bnfsp\bnfpn{Identifier}} \\
 \end{bnf*}
 
 \subsection{Numeric Literals}
@@ -203,16 +197,10 @@ precision and largeness. Complex numbers are supported as well
 (not that I have ever required the use of complex numbers in any
 piece of code) for completeness.
 
-Numeric literals additionally support ``tagging'', for example to implement
-units of measurement. Though the tag may be defined as user code (same as any
-function), it is tokenized as part of the numeric literal as a space is not
-permitted between the number and the tag.
-
 Numeric tokens are of the following grammar:
 
 \begin{bnf*}
-    \bnfprod{NUMERIC}{\bnfpn{number}\bnfor\bnfpn{number}\bnfsp\bnfpn{IDENTIFIER}} \\
-    \bnfprod{number}{\bnfpn{integer}\bnfor\bnfpn{rational}\bnfor\bnfpn{real}} \\
+    \bnfprod{Numeric}{\bnfpn{integer}\bnfor\bnfpn{rational}\bnfor\bnfpn{real}} \\
     \bnfprod{integer}{
         \bnfpn{decimal}
         \bnfor
@@ -253,23 +241,48 @@ rational literals.
 
 Strings in \Trilogy{} are always enclosed in double quotes (\texttt{"}).
 
-Similar to numeric literals, string literals support tagging, implemented
-as part of the string literal for similar reason.
-
 At this time, one other special type of string, the ``template string'',
-is prefixed with a \texttt{\$}. In future, other special strings may %
-be implemented where tagging proves insufficient. Template strings may
-be tagged.
-
-String token grammar is as follows:
+is prefixed with a \texttt{\$}. In future, other special strings may be %
+implemented. String tokenization ends up producing many types of tokens
+for template strings, where template strings containing no interpolations
+are parsed as regular strings:
 
 \begin{bnf*}
-    \bnfprod{STRING}{\bnfpn{plainstr}\bnfor\bnfpn{plainstr}\bnfsp\bnfpn{IDENTIFIER}\bnfor} \\
-    \bnfmore{\bnfpn{templatestr}\bnfor\bnfpn{templatestr}\bnfsp\bnfpn{IDENTIFIER}} \\
-    \bnfprod{plainstr}{\bnfts{"}\bnfsp\bnfpn{content}\bnfsp\bnfts{"}} \\
+    \bnfprod{String}{
+        \bnfts{"}
+        \bnfsp
+        \bnfpn{content}
+        \bnfsp
+        \bnfts{"}
+        \bnfor
+        \bnfts{\$"} %
+        \bnfsp
+        \bnfpn{content}
+        \bnfsp
+        \bnfts{"}
+    }\\
+    \bnfprod{TemplateStart}{
+        \bnfts{\$"} %
+        \bnfsp
+        \bnfpn{content}
+        \bnfsp
+        \bnfts{\$\{} %
+    } \\
+    \bnfprod{TemplateMiddle}{
+        \bnfts{\}}
+        \bnfsp
+        \bnfpn{content}
+        \bnfsp
+        \bnfts{\$\{} %
+    } \\
+    \bnfprod{TemplateEnd}{
+        \bnfts{\}}
+        \bnfsp
+        \bnfpn{content}
+        \bnfsp
+        \bnfts{"}
+    } \\
     \bnfprod{content}{\bnftd{Any UTF-8 characters or escape sequences}} \\
-    \bnfprod{template}{\bnfpn{content}\bnfor} \\ %
-    \bnfmore{\bnfpn{content}\bnfsp\bnfts{\$\{}\bnfsp\bnfpn{EXPRESSION}\bnfsp\bnfts{\}}\bnfsp\bnfpn{template}} \\ %
 \end{bnf*}
 
 Similarly, characters are always enclosed in single quotes (\texttt{'}).
@@ -278,8 +291,8 @@ between characters and strings. Character literals may contain either a
 single (non-single-quote) character, or a single escape sequence.
 
 \begin{bnf*}
-    \bnfprod{CHARACTER}{\bnfts{'}\bnfsp\bnfpn{char}\bnfsp\bnfts{'}} \\
-    \bnfprod{char}{\bnftd{One Unicode Character}\bnfor\bnftd{One Escape sequence}} \\
+    \bnfprod{Character}{\bnfts{'}\bnfsp\bnfpn{char}\bnfsp\bnfts{'}} \\
+    \bnfprod{char}{\bnftd{One Unicode character}\bnfor\bnftd{One escape sequence}} \\
 \end{bnf*}
 
 \subsubsection{Escape Sequences}
@@ -337,7 +350,7 @@ as with any other whitespace, for any purpose other than separating tokens.
 
 When \texttt{U+000A} (line feed \texttt{'\textbackslash n'}) is encountered
 in the source code (other than within a string literal), the token
-\texttt{ENDLINE} is emitted.
+\texttt{EndOfLine} is emitted. No other whitespace constitutes a token.
 
 \subsection{Comments}
 
@@ -347,13 +360,29 @@ includes the line feed character, and so are always considered as line breaks.
 Comments which do not contain a line feed are treated as a non-line
 break whitespace. Block comments may be nested.
 
+To distinguish between line-breaking comments and non-line breaking comments,
+block comments have two different token types.
+
 \begin{bnf*}
-    \bnfprod{COMMENT\_BL}{
+    \bnfprod{CommentInline}{
+        \bnfts{\#-}
+        \bnfsp
+        \bnftd{No line feed}
+        \bnfsp
+        \bnfpn{CommentInline}
+        \bnfsp
+        \bnftd{No line feed}
+        \bnfsp
+        \bnfts{-\#}
+        \bnfor
+    } \\
+    \bnfmore{\bnfts{\#-} \bnfsp \bnftd{No line feed} \bnfsp \bnfts{-\#}} \\
+    \bnfprod{CommentBlock}{
         \bnfts{\#-}
         \bnfsp
         \bnftd{Anything}
         \bnfsp
-        \bnfpn{COMMENT\_BL}
+        \bnfpn{CommentBl}
         \bnfsp
         \bnftd{Anything}
         \bnfsp
@@ -361,9 +390,9 @@ break whitespace. Block comments may be nested.
         \bnfor
     } \\
     \bnfmore{\bnfts{\#-} \bnfsp \bnftd{Anything} \bnfsp \bnfts{-\#}} \\
-    \bnfprod{DOC\_OUTER}{\bnfts{\#\#} \bnfsp \bnftd{All characters until line feed}} \\
-    \bnfprod{DOC\_INNER}{\bnfts{\#!} \bnfsp \bnftd{All characters until line feed}} \\
-    \bnfprod{COMMENT\_LN}{\bnfts{\#} \bnfsp \bnftd{All characters until line feed}} \\
+    \bnfprod{DocOuter}{\bnfts{\#\#} \bnfsp \bnftd{All characters until line feed}} \\
+    \bnfprod{DocInner}{\bnfts{\#!} \bnfsp \bnftd{All characters until line feed}} \\
+    \bnfprod{CommentLine}{\bnfts{\#} \bnfsp \bnftd{All characters until line feed}} \\
 \end{bnf*}
 
 \subsection{Punctuation}
@@ -381,33 +410,33 @@ will not be exclusively identified as an individual token.
         \hline
         \textbf{Token Type} & \textbf{Symbol} \\
         \hline
-        \texttt{OP\_EQ} & \op{=} \\
-        \texttt{OP\_LT} & \op{<} \\
-        \texttt{OP\_GT} & \op{>} \\
-        \texttt{OP\_EQEQ} & \op{==} \\
-        \texttt{OP\_LTEQ} & \op{<=} \\
-        \texttt{OP\_GTEQ} & \op{>=} \\
+        \texttt{OpEq} & \op{=} \\
+        \texttt{OpLt} & \op{<} \\
+        \texttt{OpGt} & \op{>} \\
+        \texttt{OpEqEq} & \op{==} \\
+        \texttt{OpLtEq} & \op{<=} \\
+        \texttt{OpGtEq} & \op{>=} \\
         \hline
-        \texttt{OP\_AMP} & \op{\&} \\
-        \texttt{OP\_PIPE} & \op{|} \\
-        \texttt{OP\_CARET} & \op{\textasciicircum} \\
-        \texttt{OP\_TILDE} & \op{\textasciitilde} \\
-        \texttt{OP\_SHR} & \op{\textasciitilde>} \\
-        \texttt{OP\_SHL} & \op{<\textasciitilde} \\
+        \texttt{OpAmp} & \op{\&} \\
+        \texttt{OpPipe} & \op{|} \\
+        \texttt{OpCaret} & \op{\textasciicircum} \\
+        \texttt{OpTilde} & \op{\textasciitilde} \\
+        \texttt{OpShr} & \op{\textasciitilde>} \\
+        \texttt{OpShl} & \op{<\textasciitilde} \\
         \hline
-        \texttt{OP\_AMPEQ} & \op{\&=} \\
-        \texttt{OP\_PIPEEQ} & \op{|=} \\
-        \texttt{OP\_CARETEQ} & \op{\textasciicircum=} \\
-        \texttt{OP\_TILDEEQ} & \op{\textasciitilde=} \\
-        \texttt{OP\_SHREQ} & \op{\textasciitilde>=} \\
-        \texttt{OP\_SHLEQ} & \op{<\textasciitilde=} \\
+        \texttt{OpAmpEq} & \op{\&=} \\
+        \texttt{OpPipeEq} & \op{|=} \\
+        \texttt{OpCaretEq} & \op{\textasciicircum=} \\
+        \texttt{OpTildeEq} & \op{\textasciitilde=} \\
+        \texttt{OpShrEq} & \op{\textasciitilde>=} \\
+        \texttt{OpShlEq} & \op{<\textasciitilde=} \\
         \hline
-        \texttt{OP\_AT} & \op{@} \\
-        \texttt{OP\_DOT} & \op{.} \\
-        \texttt{OP\_DOTDOT} & \op{..} \\
-        \texttt{OP\_COMMA} & \op{,} \\
-        \texttt{OP\_COLON} & \op{:} \\
-        \texttt{OP\_SEMI} & \op{;} \\
+        \texttt{OpAt} & \op{@} \\
+        \texttt{OpDot} & \op{.} \\
+        \texttt{OpDotDot} & \op{..} \\
+        \texttt{OpComma} & \op{,} \\
+        \texttt{OpColon} & \op{:} \\
+        \texttt{OpSemi} & \op{;} \\
         \hline
     \end{tabular}
 }
@@ -418,26 +447,26 @@ will not be exclusively identified as an individual token.
         \hline
         \textbf{Token Type} & \textbf{Symbol} \\
         \hline
-        \texttt{OP\_PLUS} & \op{+} \\
-        \texttt{OP\_MINUS} & \op{-} \\
-        \texttt{OP\_STAR} & \op{*} \\
-        \texttt{OP\_SLASH} & \op{/} \\
-        \texttt{OP\_SLASHSLASH} & \op{//} \\
-        \texttt{OP\_PERCENT} & \op{\%} \\
-        \texttt{OP\_STARSTAR} & \op{**} \\
+        \texttt{OpPlus} & \op{+} \\
+        \texttt{OpMinus} & \op{-} \\
+        \texttt{OpStar} & \op{*} \\
+        \texttt{OpSlash} & \op{/} \\
+        \texttt{OpSlashSlash} & \op{//} \\
+        \texttt{OpPercent} & \op{\%} \\
+        \texttt{OpStarStar} & \op{**} \\
         \hline
-        \texttt{OP\_PLUSEQ} & \op{+=} \\
-        \texttt{OP\_MINUSEQ} & \op{-=} \\
-        \texttt{OP\_STAREQ} & \op{*=} \\
-        \texttt{OP\_SLASHEQ} & \op{/=} \\
-        \texttt{OP\_SLASHSLASHEQ} & \op{//=} \\
-        \texttt{OP\_PERCENTEQ} & \op{\%=} \\
-        \texttt{OP\_STARSTAREQ} & \op{**=} \\
+        \texttt{OpPlusEq} & \op{+=} \\
+        \texttt{OpMinusEq} & \op{-=} \\
+        \texttt{OpStarEq} & \op{*=} \\
+        \texttt{OpSlashEq} & \op{/=} \\
+        \texttt{OpSlashSlashEq} & \op{//=} \\
+        \texttt{OpPercentEq} & \op{\%=} \\
+        \texttt{OpStarstarEq} & \op{**=} \\
         \hline
-        \texttt{OP\_LTLT} & \op{<<} \\
-        \texttt{OP\_GTGT} & \op{>>} \\
-        \texttt{OP\_PIPEGT} & \op{|>} \\
-        \texttt{OP\_LTPIPE} & \op{<|} \\
+        \texttt{OpLtLt} & \op{<<} \\
+        \texttt{OpGtGt} & \op{>>} \\
+        \texttt{OpPipeGt} & \op{|>} \\
+        \texttt{OpLtPipe} & \op{<|} \\
         \hline
     \end{tabular}
 }
@@ -454,9 +483,9 @@ matched opening-closing pairs.
         \hline
         \textbf{Token Type} & \textbf{Symbol}& \textbf{Token Type} & \textbf{Symbol} \\
         \hline
-        \texttt{OBRACE} & \texttt{\{}& \texttt{CBRACE} & \texttt{\}} \\
-        \texttt{OPAREN} & \texttt{(} & \texttt{CPAREN} & \texttt{)} \\
-        \texttt{OBRACK} & \texttt{[} & \texttt{CBRACK} & \texttt{]} \\
+        \texttt{OBrace} & \texttt{\{}& \texttt{CBrace} & \texttt{\}} \\
+        \texttt{OParen} & \texttt{(} & \texttt{CParen} & \texttt{)} \\
+        \texttt{OBrack} & \texttt{[} & \texttt{CBrack} & \texttt{]} \\
         \hline
     \end{tabular}
 \end{table}

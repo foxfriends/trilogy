@@ -1,6 +1,6 @@
 module ImportantStuff {
     #! This is the module that actually implements
-    #!  all the important things.
+    #! all the important things.
 
     ## Doubles the provided number
     func double x = x * 2
