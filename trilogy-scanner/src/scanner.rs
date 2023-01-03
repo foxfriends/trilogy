@@ -238,14 +238,16 @@ impl<'a> Scanner<'a> {
     }
 
     // Not my best method signature, but it gets the job done.
-    fn string_or_template(&mut self, allow_templates: bool, on_end: TokenType) -> Token {
+    fn string_or_template(&mut self, on_continue: Option<TokenType>, on_end: TokenType) -> Token {
         let mut content = String::new();
         while let Some(mut ch) = self.consume() {
             if ch == '"' {
                 return self.make_token(on_end).with_value(content);
             }
-            if allow_templates && ch == '$' && self.expect(|ch| ch == '{').is_some() {
-                return self.make_token(TemplateStart).with_value(content);
+            if let Some(on_continue) = on_continue {
+                if ch == '$' && self.expect(|ch| ch == '{').is_some() {
+                    return self.make_token(on_continue).with_value(content);
+                }
             }
             if ch == '\\' {
                 ch = match self.escape_sequence() {
@@ -401,18 +403,23 @@ impl Iterator for Scanner<'_> {
             ch @ ('_' | 'a'..='z' | 'A'..='Z') => self.identifier_or_keyword(ch),
             '\'' => self.char_or_atom(),
             '#' => self.comment(),
-            '"' => self.string_or_template(false, String),
+            '"' => self.string_or_template(None, String),
             // Feels slightly irresponsible to put side effects into a guard...
             // but it's been done all over this file. Apologies to reader.
             '$' if self.expect(|ch| ch == '"').is_some() => {
-                self.consume();
-                self.string_or_template(true, String)
+                self.string_or_template(Some(TemplateStart), String)
+            }
+            '$' if self.expect(|ch| ch == '(').is_some() => {
+                self.nesting.push('(');
+                self.make_token(DollarOParen)
             }
             '{' => {
                 self.nesting.push('{');
                 self.make_token(OBrace)
             }
-            '}' if self.context('$') => self.string_or_template(true, TemplateEnd),
+            '}' if self.context('$') => {
+                self.string_or_template(Some(TemplateContinue), TemplateEnd)
+            }
             '}' => {
                 if self.context('{') {
                     self.nesting.pop();
@@ -472,6 +479,7 @@ impl Iterator for Scanner<'_> {
             '/' if self.expect('=').is_some() => self.make_token(OpSlashEq),
             '/' => self.make_token(OpSlash),
 
+            ':' if self.expect('-').is_some() => self.make_token(OpTurnstile),
             ':' => self.make_token(OpColon),
             ';' => self.make_token(OpSemi),
 
@@ -529,6 +537,9 @@ impl Iterator for Scanner<'_> {
         };
         if token.token_type == TemplateEnd && self.context('$') {
             self.nesting.pop();
+        }
+        if token.token_type == TemplateStart {
+            self.nesting.push('$');
         }
 
         self.span.clear();

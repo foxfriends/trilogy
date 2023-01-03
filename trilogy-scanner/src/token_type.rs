@@ -127,6 +127,7 @@ pub enum TokenType {
     OpDotDot,
     OpComma,
     OpColon,
+    OpTurnstile,
     OpSemi,
     OpPlus,
     OpMinus,
@@ -152,6 +153,7 @@ pub enum TokenType {
     // Delimiters
     OBrace,
     CBrace,
+    DollarOParen,
     OParen,
     CParen,
     OBrack,
