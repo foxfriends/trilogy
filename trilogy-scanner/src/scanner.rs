@@ -379,14 +379,12 @@ impl Iterator for Scanner<'_> {
         if self.is_finished {
             return None;
         }
+        // Skip whitespaces in between tokens when there was more than one in a row
+        while self.expect(" \t\r").is_some() {}
+        self.span.clear();
         if self.peek().is_none() {
             self.is_finished = true;
             return Some(self.make_token(EndOfFile));
-        }
-        // Skip whitespaces in between tokens when there was more than one in a row
-        while self.peek().map(is_ignored_whitespace).unwrap_or(false) {
-            self.consume();
-            self.span.clear();
         }
 
         // Match the token. We do some weird stuff with nesting here,
@@ -443,8 +441,91 @@ impl Iterator for Scanner<'_> {
             }
             '\n' => self.make_token(EndOfLine),
             ch @ '0'..='9' => self.numeric(ch),
-            // operators...
-            _ => todo!("Working on it..."),
+
+            '*' if self.expect('*').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpStarStarEq)
+                } else {
+                    self.make_token(OpStarStar)
+                }
+            }
+            '*' if self.expect('=').is_some() => self.make_token(OpStarEq),
+            '*' => self.make_token(OpStar),
+
+            '+' if self.expect('=').is_some() => self.make_token(OpPlusEq),
+            '+' => self.make_token(OpPlus),
+
+            ',' => self.make_token(OpComma),
+            '-' if self.expect('=').is_some() => self.make_token(OpMinusEq),
+            '-' => self.make_token(OpMinus),
+
+            '.' if self.expect('.').is_some() => self.make_token(OpDotDot),
+            '.' => self.make_token(OpDot),
+
+            '/' if self.expect('/').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpSlashSlashEq)
+                } else {
+                    self.make_token(OpSlashSlash)
+                }
+            }
+            '/' if self.expect('=').is_some() => self.make_token(OpSlashEq),
+            '/' => self.make_token(OpSlash),
+
+            ':' => self.make_token(OpColon),
+            ';' => self.make_token(OpSemi),
+
+            '<' if self.expect('<').is_some() => self.make_token(OpLtLt),
+            '<' if self.expect('=').is_some() => self.make_token(OpLtEq),
+            '<' if self.expect('>').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpGlueEq)
+                } else {
+                    self.make_token(OpGlue)
+                }
+            }
+            '<' if self.expect('|').is_some() => self.make_token(OpLtPipe),
+            '<' if self.expect('~').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpShlEq)
+                } else {
+                    self.make_token(OpShl)
+                }
+            }
+            '<' => self.make_token(OpLt),
+
+            '=' if self.expect('=').is_some() => self.make_token(OpEqEq),
+            '=' => self.make_token(OpEq),
+
+            '>' if self.expect('=').is_some() => self.make_token(OpGtEq),
+            '>' if self.expect('>').is_some() => self.make_token(OpGtGt),
+            '>' => self.make_token(OpGt),
+
+            '@' => self.make_token(OpAt),
+
+            '%' if self.expect('=').is_some() => self.make_token(OpPercentEq),
+            '%' => self.make_token(OpPercent),
+
+            '&' if self.expect('=').is_some() => self.make_token(OpAmpEq),
+            '&' => self.make_token(OpAmp),
+
+            '^' if self.expect('=').is_some() => self.make_token(OpCaretEq),
+            '^' => self.make_token(OpCaret),
+
+            '|' if self.expect('=').is_some() => self.make_token(OpPipeEq),
+            '|' if self.expect('>').is_some() => self.make_token(OpPipeGt),
+            '|' => self.make_token(OpPipe),
+
+            '~' if self.expect('=').is_some() => self.make_token(OpTildeEq),
+            '~' if self.expect('>').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpShrEq)
+                } else {
+                    self.make_token(OpShr)
+                }
+            }
+            '~' => self.make_token(OpTilde),
+            _ => self.make_error("Unexpected character found in input"),
         };
         if token.token_type == TemplateEnd && self.context('$') {
             self.nesting.pop();
@@ -457,12 +538,6 @@ impl Iterator for Scanner<'_> {
 
 fn is_identifier(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
-}
-
-fn is_ignored_whitespace(ch: char) -> bool {
-    // \n is not ignored whitespace, though it is valid.
-    // Other whitespace is not valid except in strings.
-    ch == '\r' || ch == '\t' || ch == ' '
 }
 
 fn hex_to_u32(ch: char) -> u32 {

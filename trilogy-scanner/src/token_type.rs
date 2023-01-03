@@ -141,11 +141,13 @@ pub enum TokenType {
     OpSlashEq,
     OpSlashSlashEq,
     OpPercentEq,
-    OpStarstarEq,
+    OpStarStarEq,
     OpLtLt,
     OpGtGt,
     OpPipeGt,
     OpLtPipe,
+    OpGlue,
+    OpGlueEq,
 
     // Delimiters
     OBrace,
