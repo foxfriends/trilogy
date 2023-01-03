@@ -1,6 +1,7 @@
 # Trilogy
 
 [![Spec](https://github.com/foxfriends/trilogy/actions/workflows/spec.yaml/badge.svg)](https://github.com/foxfriends/trilogy/actions/workflows/spec.yaml)
+[![Rust CI](https://github.com/foxfriends/trilogy/actions/workflows/rust.yml/badge.svg)](https://github.com/foxfriends/trilogy/actions/workflows/rust.yml)
 
 My third attempt at building a programming language[^1][^2].
 
