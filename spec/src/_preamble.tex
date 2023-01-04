@@ -10,6 +10,7 @@
 \usepackage{float}
 \usepackage{amsmath}
 \usepackage[epsilon]{backnaur}
+\usepackage{bussproofs}
 
 \definecolor{codeblack}{RGB}{56,58,66}
 \definecolor{codelightblack}{RGB}{160,161,167}
@@ -36,6 +37,9 @@
 \newcommand{\Prose}{\textbf{Prose}}
 \newcommand{\Poetry}{\textbf{Poetry}}
 \newcommand{\Law}{\textbf{Law}}
+
+\let\uglyepsilon\epsilon
+\let\epsilon\varepsilon
 
 \lstdefinestyle{onelight}{
     backgroundcolor=\color{codelightwhite},

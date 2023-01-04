@@ -1,0 +1,384 @@
+\section{Syntax and Semantics}
+
+As previously mentioned, grammars in this document are
+\href{https://en.wikipedia.org/wiki/Parsing_expression_grammar}{PEGs},
+albeit lacking in all syntax sugar.
+
+In this section, terminals each refer to token types, though for tokens
+with a single source text representation, their textual representation
+is preferred for readability. The productions refer to nodes in the
+abstract syntax tree, and are named as they are in the implementation
+source code.
+
+Between any two tokens may be any number of comment nodes. Additionally,
+any whitespace (including line breaks) may occur between any two tokens
+without issue. In certain marked cases, however, line breaks are required
+as a statement terminator; in such cases, the line break is always interpreted
+as a statement terminator, and not as meaningless whitespace.
+
+The required end of line rule is formalized as follows:
+
+\begin{bnf*}
+    \bnfprod{EOL}{
+        \bnfts{EndOfLine}\bnfor
+        \bnfts{CommentLine}\bnfor
+        \bnfts{CommentBlock}\bnfor
+    } \\
+    \bnfmore{
+        \bnfts{DocInner}\bnfor
+        \bnfts{DocOuter}
+    }
+\end{bnf*}
+
+\subsection{Trilogy}
+
+The top level of a \Trilogy{} module is the only part of the document that
+is not written in one of the child languages. This section of the program
+may only contain definitions.
+
+A \Trilogy{} file \emph{should} end with a final line break,
+but files without such a final line break may be accepted (with warning).
+It is optional to implement rule~\ref{bnf:finaleol}.
+
+As a notable exception, rule~\ref{bnf:empty} indicates that a truly empty file \emph{is}
+accepted, regardless of the fact that it does not end with a line break.
+
+A byte order mark \emph{may} be accepted (with warning) at the start of
+the file. It is optional to implement rule~\ref{bnf:bom}.
+
+\begin{bnf}
+    \bnfprod*{Document}{
+        \bnfpn{Preamble}
+        \bnfsp
+        \bnfpn{Definitions}
+        \bnfsp
+        \bnfpn{Postamble}
+        \bnfor
+    } \\
+    \bnfmore{\label{bnf:empty}\bnfpn{Preamble}\bnfsp\bnfts{EndOfFile}} \\
+    \bnfprod*{Preamble}{\bnfts{StartOfFile}\bnfor} \\
+    \bnfmore{
+        \label{bnf:bom}
+        \bnfts{StartOfFile}
+        \bnfsp
+        \bnfts{ByteOrderMark}
+    } \\
+    \bnfprod*{Postamble}{
+        \bnfts{EOL}
+        \bnfsp
+        \bnfts{EndOfFile}
+        \bnfor
+    } \\
+    \bnfmore{\label{bnf:finaleol}\bnfts{EndOfFile}} \\
+    \bnfprod*{Definitions}{
+        \bnfpn{Definition}\bnfsp\bnfpn{Definitions}\bnfor\bnfes
+    } \\
+    \bnfprod*{Definition}{
+        \bnfpn{ModuleDefinition}\bnfor
+        \bnfpn{ProcedureDefinition}\bnfor
+    } \\
+    \bnfmore*{
+        \bnfpn{FunctionDefinition}\bnfor
+        \bnfpn{RuleDefinition}
+    }
+\end{bnf}
+
+Modules are a bit special in that they may contain further definitions,
+including other modules.
+
+\begin{bnf*}
+    \bnfprod{ModuleDefinition}{\bnfpn{LocalModuleDefinition}\bnfor} \\
+    \bnfmore{\bnfpn{ForeignModuleDefinition}} \\
+    \bnfprod{ForeignModuleDefinition}{\bnfts{\kw{module}}\bnfsp\bnfts{Identifier}\bnfsp\bnfts{\kw{at}}\bnfsp\bnfts{String}} \\
+    \bnfprod{LocalModuleDefinition}{\bnfts{\kw{module}}\bnfsp\bnfts{\{}\bnfsp\bnfpn{Definitions}\bnfsp\bnfts{\}}}
+\end{bnf*}
+
+The other types of definitions each hand off to their respective child
+languages.
+
+\begin{bnf*}
+    \bnfprod{ProcedureDefinition}{
+        \bnfts{\kw{proc}}
+        \bnfsp
+        \bnfpn{ProcedureHead}
+        \bnfsp
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{ProcedureBody}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod{FunctionDefinition}{
+        \bnfts{\kw{func}}
+        \bnfsp
+        \bnfpn{FunctionHead}
+        \bnfsp
+        \bnfts{=}
+        \bnfsp
+        \bnfpn{FunctionBody}
+    } \\
+    \bnfprod{RuleDefinition}{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfor} \\
+    \bnfmore{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfsp{\op{:-}}\bnfsp\bnfpn{RuleBody}}
+\end{bnf*}
+
+\subimport{prose/}{index.tex}
+
+When viewed on its own, \Prose{} has a fairly ``standard'' C-family syntax.
+Arbitrary patterns are permitted in the procedure heads.
+Trailing commas are permitted in all places where commas are found.
+
+\begin{bnf*}
+    \bnfprod{ProcedureHead}{
+        \bnfts{IdentiferBang}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{ParameterList}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{ParameterList}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{ParameterList}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfes
+    }
+\end{bnf*}
+
+The body of a procedure is a sequence of statements. \Prose{} statements
+are a superset of \Poetry{} expressions, allowing \Poetry{} to be gracefully
+injected into \Prose{} code.
+
+Statements in sequence must be separated by a line break or an explicit separator
+(\op{,}). In the formal semantics defined throughout this section, the explicit
+separator is used to indicate sequencing
+
+\begin{bnf*}
+    \bnfprod{ProcedureBody}{\bnfpn{Sequence}} \\
+    \bnfprod{Sep}{\bnfpn{EOL}\bnfor\bnfts{,}} \\
+    \bnfprod{Sequence}{\bnfpn{Statement}\bnfsp\bnfpn{Sep}\bnfsp\bnfpn{Sequence}\bnfor} \\
+    \bnfmore{\bnfpn{Statement}\bnfor\bnfes}
+\end{bnf*}
+
+A sequence of statements evaluates to the last statement in the sequence.
+The values of preceding statements are lost.
+
+\begin{prooftree}
+    \AxiomC{$M : \tau_0$}
+    \AxiomC{$N : \tau_1$}
+    \LeftLabel{Sequencing:}
+    \BinaryInfC{$M \op{,}\ N : \tau_1$}
+\end{prooftree}
+
+While most imperative languages bring some sort of distinction between
+expressions and statements, \Prose{} does not. Statements in this
+sense might have been more aptly referred to as expressions, but we
+stick to the statement terminology to differentiate from expressions
+in \Poetry{}.
+
+Any statement or expression may occur within any other statement, and
+all statements evaluate to some value, albeit sometimes \kw{unit}.
+This can make for some pretty unexpected combinations
+(e.g. \texttt{x == 5 or return 3}); whether it is a good idea to use
+such combinations is left to the developer to decide.
+
+While some statements are unique to \Prose{}, others look remarkably similar
+to those found in the other languages, but while allowing other statements
+to be nested within; for example, \texttt{Int readline!()} could almost be
+a \Poetry{} application of \fn{Int} if not for the procedure call in argument
+position. As procedure calls are not permitted in \Poetry{}, this ends up
+producing very similar productions with very similar semantics. To
+differentiate potentially ambiguous statement production names, they
+are prefixed with \texttt{S}.
+
+\begin{bnf*}
+    \bnfprod{Statement}{
+        \bnfpn{SIfElse}
+        \bnfor
+        \bnfpn{SFor}
+        \bnfor
+        \bnfpn{SWhile}
+        \bnfor
+        \bnfpn{SLoop}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SLet}
+        \bnfor
+        \bnfpn{SAssignment}
+        \bnfor
+        \bnfpn{SMatch}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SBreak}
+        \bnfor
+        \bnfpn{SContinue}
+        \bnfor
+        \bnfpn{SReturn}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SYield}
+        \bnfor
+        \bnfpn{SWhen}
+        \bnfor
+        \bnfpn{SGiven}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SCollection}
+        \bnfor
+        \bnfpn{SComprehension}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SInfixOp}
+        \bnfor
+        \bnfpn{SApplication}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{ProcedureCall}
+        \bnfor
+        \bnfpn{DoBlock}
+        \bnfor
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{ValueAccess}
+        \bnfor
+        \bnfpn{ParenthesizedStatement}
+    } \\
+    \bnfprod{Substatement}{
+        \bnfpn{SPrefixOp}\bnfor\bnfpn{Statement}
+    } \\
+    \bnfprod{ParenthesizedStatement}{
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Substatement}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{Block}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Sequence}
+        \bnfsp
+        \bnfts{\}}
+    }
+\end{bnf*}
+
+The one distinction is that a top-level statement may not begin with a
+prefix operator. Given the lack of postfix operators in Trilogy, that
+leaves infix operators being the only valid operators at the top-level
+of a sequence.
+
+Add the trivial evaluation semantics for parenthezised and block
+expressions:
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.35\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$M : \tau$}
+            \LeftLabel{Unwrap}
+            \UnaryInfC{$\texttt{(}\ M\ \texttt{)} : \tau$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.35\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$M : \tau$}
+            \LeftLabel{Unnest}
+            \UnaryInfC{$\texttt{\{}\ M\ \texttt{\}} : \tau$}
+        \end{prooftree}
+    }
+\end{figure}
+
+\subsubsection{Conditionals}
+
+The conditional statement in \Trilogy{} comes in the form of \kw{if}-\kw{else}
+chains. For \Prose{} they are defined as follows.
+
+\begin{bnf*}
+    \bnfprod{SIfElse}{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Condition}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfpn{SElseChain}
+        \bnfor
+    } \\
+    \bnfprod{SElseChain}{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Condition}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfpn{SElseChain}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+        \bnfes
+    }
+\end{bnf*}
+
+An \kw{if}-\kw{else} chain evaluates to the value of the block that is executed.
+If no block is executed (there is no \kw{else} clause, and none of the
+conditions matched) the resulting value is \kw{unit}.
+
+In the common case, the condition is a statement that evaluates to a boolean
+result, \kw{true} or \kw{false}.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$C : \kw{true}$}
+            \AxiomC{$T : \tau_1$}
+            \AxiomC{$F : \tau_2$}
+            \TrinaryInfC{$\kw{if}\ C\ T\ \kw{else}\ F : \tau_1$}
+        \end{prooftree}
+    }
+    \hfill
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$C : \kw{false}$}
+            \AxiomC{$T : \tau_1$}
+            \AxiomC{$F : \tau_2$}
+            \TrinaryInfC{$\kw{if}\ C\ T\ \kw{else}\ F : \tau_2$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$C : \kw{true}$}
+            \AxiomC{$T : \tau$}
+            \BinaryInfC{$\kw{if}\ C\ T : \tau$}
+        \end{prooftree}
+    }
+    \hfill
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$C : \kw{false}$}
+            \AxiomC{$T : \tau$}
+            \BinaryInfC{$\kw{if}\ C\ T : \kw{unit}$}
+        \end{prooftree}
+    }
+\end{figure}

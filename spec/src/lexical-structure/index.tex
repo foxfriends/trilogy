@@ -7,6 +7,11 @@ I did not find a particularly good grammar-typesetting package in a brief
 Google search. Excuse any typographic inconsistencies within the grammars
 at this time.
 
+In this section, capitalized productions represent actual token types, the
+names of which reflect the names of tokens found in the implementation source
+code. Lowercase productions represent internal rules which are not seen in the
+resulting token stream after lexing.
+
 \subsection{Input Format}
 
 \Trilogy{} input is interpreted as UTF-8 text. Any sequence of bytes which
@@ -392,7 +397,7 @@ block comments have two different token types.
         \bnfsp
         \bnftd{Anything}
         \bnfsp
-        \bnfpn{CommentBl}
+        \bnfpn{CommentBlock}
         \bnfsp
         \bnftd{Anything}
         \bnfsp
