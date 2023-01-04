@@ -15,3 +15,136 @@ Of course, seeing as this trilogy is yet to be written, those languages do not
 exist at this time. The following chapters will explore these languages to
 gradually build up a formal definition of each and how they weave together
 into a cohesive whole.
+
+\subsection{Motivation}
+
+It's pretty common these days to see ``multi-paradigm'' languages. I might even
+go so far as to say it would be the wrong choice to commit a new language to
+any single paradigm, as developers are so accustomed to having at least a few
+options at their disposal to solve any particular problem.
+
+Many inherently imperative languages, think Javascript, Python, or Rust,
+incorporate ideas from functional programming, leading to clean and concise
+code for a lot of common tasks. These languages typically don't embrace
+all of the power of functional programming though, and instead choose to
+maintain a consistent and familiar imperative ideal, giving up the full
+conveniences afforded by features like currying and partial application.
+Such languages also often include aspects of object-oriented programming
+with classes (or similar) as a form of encapsulation and abstraction
+without going so far as to make \emph{every single thing} a class (like Java).
+
+Meanwhile there are functional languages, taking Scala as an extreme, which
+incorporate typically imperative constructs in order to make traditionally
+imperative operations, such as I/O, easier. In other functional languages, common
+imperative tasks, like updating an element of a list (without mutation), or
+reading all lines of input into an array (without loops), become somewhat
+convoluted constructs of recursion whose performance characteristics feel
+questionable to me.
+
+In other cases, a second paradigm is tacked on as an afterthought to catch up with
+other more ``modern'' languages. C++ and Java are like this, with the addition of
+lambdas in later versions. Sadly, in both of those cases, using lambdas
+feels clumsy; they don't quite fit in with the rest of the language or
+pre-existing standard library. The lambdas are forced to squeeze into the
+language as a mostly runtime construct via strange classes with special cased
+compiler level syntax sugar.
+
+Similarly, Haskell, which requires everything to be purely functional, encapsulates
+concepts taken for granted in imperative languages through monads, which (as much
+as I enjoy the mental gymnastics they involve) I have only found to lead to
+unnecessarily complicated abstractions and hard to read documentation written
+by scientists who have forgone human communication in favour of mathematical supremacy.
+
+What I have trouble finding are languages which fully embrace the strengths of
+every paradigm involved, nor can I find languages which incorporate logic programming
+as one of its core ideas. \Trilogy{} tries be both of those things, while also
+being an experimental playground in which I can try out features less often seen
+(namely effect systems for now).
+
+With three distinct sub-languages (and no fear of adding further branches if ever
+there comes such a reason to), \Trilogy{} is able to take on the latest and greatest
+features of every paradigm it chooses to embrace. Each can play to its strengths,
+while gracefully handing off to the other branches when its usefulness wears off.
+
+\subsection{Prose}
+
+\Prose{} is the imperative language of \Trilogy{}, named for the
+straightforward nature of reading prose, which is the same way
+well written imperative code should be read.
+
+\Prose{} contains all of the standard fixings of an imperative language:
+\begin{itemize}
+    \item Sequenced operations
+    \item Immutable constants (\kw{let}) and mutable variables (\kw{let mut})
+    \item Branching in the form of \kw{if}, \kw{else if}, and \kw{else}
+    \item The (iterative) \kw{for} loop, \kw{while} loop, and infinite \kw{loop}
+    \item Callable \kw{proc}edures
+    \item \kw{match} as a supercharged switch
+    \item Exception handling (\texttt{try}/\texttt{catch}) via the effect system (\kw{yield}/\kw{when})
+    \item Traditionally indexable arrays
+\end{itemize}
+
+\Prose{} is meant to handle the simple and mundane tasks of your
+average program; it acts as the entrypoint of every application,
+and is expected to handle all of the I/O operations and general
+sequencing of the flow of the program.
+
+It then frictionlessly gets out of the way by allowing the other languages
+to interject when necessary. In a sense, everything possible in any of the
+three languages can be spliced almost seamlessly into \Prose{}, as if it
+were all the same thing.
+
+\subsection{Poetry}
+
+\Poetry{} is the functional language of \Trilogy{}, named for
+the concise, cerebral nature of reading poetry, which I think
+holds a literary parallel to the mathematical poetry that is
+functional programming.
+
+\Poetry{} of course contains the features one might expect from a purely
+functional language:
+\begin{itemize}
+    \item Expression-first; everything has a value
+    \item First class \kw{func}tions
+    \item Lambda functions (\kw{fn}), closures
+    \item Automatic currying and partial application
+    \item Function composition (\op{>>}) and pipelining (\op{|>}) operators
+    \item Pattern matching, even in function heads
+    \item Monadic encapsulation of imperative concepts via the effect system
+\end{itemize}
+
+Once the flow of the program transitions to \Poetry{}, there is no going
+back; \Poetry{} remains purely functional to the core. From \Poetry{}, it
+is impossible to call code written in \Prose{}, only by \kw{yield}ing effects
+is \Prose{} able to react to \Poetry{} and respond with values, maintaining
+functional purity while allowing interaction with the outside world.
+
+\subsection{Law}
+
+\Law{} is the logical language of \Trilogy{}, named for the way that
+the law defines rules, and the rule based nature in which logical
+programs are constructed.
+
+\Law{} contains those features typical of logic programming languages
+(if ``typical'' can be used to describe so relatively few):
+\begin{itemize}
+    \item Facts and \kw{rule}s
+    \item Non-deterministic branching behaviour
+    \item Pattern matching to the extreme
+    \item Bi-directional parameters
+\end{itemize}
+
+Unlike other logical languages in existence, \Law{} is able to remain more
+tightly tied to the pure-logic nature, and leave the non-logical tasks of
+computation and side effects to languages better suited to them.
+
+Where \Law{} really shines is in bringing powerful pattern matching
+abilities to the other languages, allowing you to implement expressions
+which are capable of not just consuming iterators for loops and
+comprehensions, but also generating them.
+
+More experimentally, \Law{} is also able to take advantage of the
+effect system to fall back on the other languages and access the
+results of computation or side effects. While I suspect this does
+break out of the purely logical nature of the language, maybe a
+more cohesive model for effects will come up later on.
