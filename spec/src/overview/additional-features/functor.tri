@@ -24,8 +24,8 @@ module OrdList(Ord) {
     export empty, insert, print!
 }
 
-import OrdIntList from OrdList(Int)
-import ReverseIntList from OrdList(ReverseInt)
+import OrdList(Int) as OrdIntList
+import OrdList(ReverseInt) as ReverseIntList
 
 proc main!() {
     let list = [1, 3, 2, 6, 4]

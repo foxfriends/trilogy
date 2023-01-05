@@ -27,6 +27,8 @@
 \definecolor{codewhite}{RGB}{212,212,212}
 \definecolor{codelightwhite}{RGB}{250,250,250}
 
+\newcommand{\todo}[1]{\marginpar{\textcolor{red}{#1}}}
+
 \newcommand{\kw}[1]{\textcolor{codemagenta}{\texttt{#1}}}
 \newcommand{\fn}[1]{\texttt{#1}}
 \newcommand{\op}[1]{\texttt{#1}}
@@ -67,7 +69,7 @@
     morekeywords=[2]{func,where,if,then,else,let,in,fn},
     morekeywords=[3]{rule,is,ft,given,and,or,not},
     morekeywords=[4]{when,cancel,resume,invert,yield},
-    morekeywords=[5]{module,import,from,use,export,at},
+    morekeywords=[5]{module,import,from,export,at,as},
     morekeywords=[6]{test,assert},
     morekeywords=[7]{true,false,unit},
     morestring=[b]{"},

@@ -1,0 +1,312 @@
+\subsection{Prose}
+
+When viewed on its own, \Prose{} has a fairly ``standard'' C-family syntax.
+Arbitrary patterns are permitted in the procedure heads.
+Trailing commas are permitted in all places where commas are found.
+
+\begin{bnf*}
+    \bnfprod{ProcedureHead}{
+        \bnfts{IdentiferBang}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{ParameterList}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{ParameterList}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{ParameterList}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfes
+    }
+\end{bnf*}
+
+\begin{prooftree}
+    \def\defaultHypSeparation{\hskip 0.05in}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
+    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash N : \tau$}
+    \AxiomC{$M \Rightarrow \kw{return}\ N$}
+    \LeftLabel{Procedure}
+    \TrinaryInfC{$\Gamma \vdash p: \tau_{1\hdots n}\rightarrow\tau$}
+\end{prooftree}
+
+The body of a procedure is a sequence of statements. Statements in sequence
+must be separated by a line break or an explicit separator (\op{,}).
+
+\begin{bnf*}
+    \bnfprod{ProcedureBody}{\bnfpn{Sequence}} \\
+    \bnfprod{Sep}{\bnfpn{EOL}\bnfor\bnfts{,}} \\
+    \bnfprod{Sequence}{\bnfpn{Statement}\bnfsp\bnfpn{Sep}\bnfsp\bnfpn{Sequence}\bnfor} \\
+    \bnfmore{\bnfpn{Statement}\bnfor\bnfes}
+\end{bnf*}
+
+A sequence of statements evaluates to the result of the last statement
+in the sequence. The values of preceding statements are lost.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash M : \tau_0$}
+    \AxiomC{$\Gamma \vdash N : \tau_1$}
+    \LeftLabel{Sequencing}
+    \BinaryInfC{$\Gamma \vdash M \op{,}\ N : \tau_1$}
+\end{prooftree}
+
+While most imperative languages bring some sort of distinction between
+expressions and statements, \Prose{} does not. Statements in this
+sense might have been more aptly referred to as expressions, but we
+stick to the statement terminology to differentiate from expressions
+in \Poetry{}.
+
+Any statement or expression may occur within any other statement, and
+all statements evaluate to some value, albeit sometimes \kw{unit}.
+This can make for some pretty unexpected combinations
+(e.g. \texttt{x == 5 or return 3}); whether it is a good idea to use
+such combinations is left to the developer to decide.
+
+While some statements are unique to \Prose{}, others look remarkably similar
+to those found in the other languages, but while allowing other statements
+to be nested within; for example, \texttt{Int readline!()} could almost be
+a \Poetry{} application of \fn{Int} if not for the procedure call in argument
+position. As procedure calls are not permitted in \Poetry{}, this ends up
+producing very similar productions with very similar semantics. To
+differentiate potentially ambiguous statement production names, they
+are prefixed with \texttt{S}.
+
+\begin{bnf*}
+    \bnfprod{Statement}{
+        \bnfpn{SLet}
+        \bnfor
+        \bnfpn{SAssignment}
+        \bnfor
+        \bnfpn{SIfElse}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SMatch}
+        \bnfor
+        \bnfpn{SFor}
+        \bnfor
+        \bnfpn{SWhile}
+        \bnfor
+        \bnfpn{SLoop}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SBreak}
+        \bnfor
+        \bnfpn{SContinue}
+        \bnfor
+        \bnfpn{SReturn}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SYield}
+        \bnfor
+        \bnfpn{SWhen}
+        \bnfor
+        \bnfpn{SGiven}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SCollection}
+        \bnfor
+        \bnfpn{SComprehension}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SInfixOp}
+        \bnfor
+        \bnfpn{SApplication}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{ProcedureCall}
+        \bnfor
+        \bnfpn{DoBlock}
+        \bnfor
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{ValueAccess}
+        \bnfor
+        \bnfpn{ParenthesizedStatement}
+    } \\
+    \bnfprod{Substatement}{
+        \bnfpn{SPrefixOp}\bnfor\bnfpn{Statement}
+    } \\
+    \bnfprod{ParenthesizedStatement}{
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Substatement}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{Block}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Sequence}
+        \bnfsp
+        \bnfts{\}}
+    }
+\end{bnf*}
+
+The one distinction is that a top-level statement may not begin with a
+prefix operator. Given the lack of postfix operators in Trilogy, that
+leaves infix operators being the only valid operators at the top-level
+of a sequence.
+
+Add the trivial evaluation semantics for parenthesized and block
+expressions:
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.35\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma \vdash M : \tau$}
+            \LeftLabel{Unwrap}
+            \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \tau$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.35\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma \vdash M : \tau$}
+            \LeftLabel{Unnest}
+            \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \tau$}
+        \end{prooftree}
+    }
+\end{figure}
+
+\subsubsection{Let}
+
+\subsubsection{Assignment}
+
+\subsubsection{Conditionals}
+
+The conditional statement in \Trilogy{} comes in the form of \kw{if}-\kw{else}
+chains. For \Prose{} they are defined as follows.
+
+\begin{bnf*}
+    \bnfprod{SIfElse}{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Condition}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfpn{SElseChain}
+        \bnfor
+    } \\
+    \bnfprod{SElseChain}{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Condition}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfpn{SElseChain}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+        \bnfes
+    }
+\end{bnf*}
+
+In the common case, the condition is a statement that evaluates to a Boolean
+result, \kw{true} or \kw{false}, and control flows as you might expect.
+\todo{Define runtime failure}
+If the result is not a Boolean, this triggers a runtime failure.
+
+An \kw{if}-\kw{else} chain evaluates to the value of the block that is executed.
+If no block is executed (there is no \kw{else} clause, and none of the
+conditions matched) the resulting value is \kw{unit}.
+
+\begin{prooftree}
+    \AxiomC{$C : \kw{true}$}
+    \AxiomC{$T : \tau_1$}
+    \AxiomC{$F : \tau_2$}
+    \LeftLabel{Branch Hit\textsuperscript{A}}
+    \TrinaryInfC{$\kw{if}\ C\ T\ \kw{else}\ F : \tau_1$}
+\end{prooftree}
+\begin{prooftree}
+    \AxiomC{$C : \kw{false}$}
+    \AxiomC{$T : \tau_1$}
+    \AxiomC{$F : \tau_2$}
+    \LeftLabel{Branch Miss\textsuperscript{A}}
+    \TrinaryInfC{$\kw{if}\ C\ T\ \kw{else}\ F : \tau_2$}
+\end{prooftree}
+\begin{prooftree}
+    \AxiomC{$C : \kw{true}$}
+    \AxiomC{$T : \tau$}
+    \LeftLabel{Branch Hit\textsuperscript{B}}
+    \BinaryInfC{$\kw{if}\ C\ T : \tau$}
+\end{prooftree}
+\begin{prooftree}
+    \AxiomC{$C : \kw{false}$}
+    \AxiomC{$T : \tau$}
+    \LeftLabel{Branch Miss\textsuperscript{B}}
+    \BinaryInfC{$\kw{if}\ C\ T : \kw{unit}$}
+\end{prooftree}
+
+In addition to Boolean evaluations, Conditions may be queries which bind
+values to names available for the scope of the block of the first matching
+condition. This is similar to the \texttt{if let} statement seen in other
+languages, but extended to cover more than just pattern matching by taking
+advantage of \Law{}. Conditions may not be empty, but trailing commas are
+still supported, so we end up with this annoying extra bit of rule.
+
+\begin{bnf*}
+    \bnfprod{Condition}{
+        \bnfpn{Statement}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{Condition}
+        \bnfor
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{Condition}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Statement}
+        \bnfsp
+        \bnfts{,}
+        \bnfor
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{,}
+        \bnfor
+        \bnfpn{Statement}
+        \bnfor
+        \bnfpn{Query}
+    } \\
+    \bnfprod{Query}{
+        \bnfpn{Statement}
+        \bnfsp
+        \bnfts{\kw{is}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfpn{RuleCheck}
+    }
+\end{bnf*}
+
+A conditional is not an iterative context. If a pattern condition matches
+to multiple results, the first result is chosen and the rest are skipped.
+Meanwhile, if a pattern is a statement which evaluates to

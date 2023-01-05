@@ -3,6 +3,7 @@ pub enum TokenType {
     // Keywords
     KwAnd,
     KwAssert,
+    KwAs,
     KwAt,
     KwBreak,
     KwCancel,

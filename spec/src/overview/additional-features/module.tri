@@ -14,7 +14,7 @@ module Helpers {
     export twice, thrice, printEach!
 }
 
-import Helpers use twice, thrice, printEach!
+import twice, thrice, printEach! from Helpers
 
 proc main!() {
     let numbers = [1, 2, 3, 4, 5]

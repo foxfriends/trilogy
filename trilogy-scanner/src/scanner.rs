@@ -112,9 +112,12 @@ impl<'a> Scanner<'a> {
     }
 
     fn identifier_or_keyword(&mut self, starts_with: char) -> Token {
-        let mut identifier = self.identifier(starts_with.into());
+        let identifier = self.identifier(starts_with.into());
         if self.expect('!').is_some() {
-            identifier.push('!');
+            return self.make_token(IdentifierBang).with_value(identifier);
+        }
+        if self.expect('=').is_some() {
+            return self.make_token(IdentifierEq).with_value(identifier);
         }
         self.make_token(Identifier)
             .with_value(identifier)

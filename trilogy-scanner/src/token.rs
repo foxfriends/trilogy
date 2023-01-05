@@ -39,6 +39,7 @@ impl Token {
             "and" => TokenType::KwAnd,
             "assert" => TokenType::KwAssert,
             "async" => TokenType::KwAsync,
+            "as" => TokenType::KwAs,
             "at" => TokenType::KwAt,
             "await" => TokenType::KwAwait,
             "break" => TokenType::KwBreak,
