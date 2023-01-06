@@ -1,0 +1,154 @@
+\section{Type System}
+
+\Trilogy{} is (currently) a dynamically typed language; all types are determined
+and checked at runtime. Recall that ``dynamically typed'' is not the absence of
+a type system, but the presence of a type system so complex that it cannot be
+fully statically analyzed.
+
+Despite the lack of static analysis, we attempt to fully specify the type system
+of \Trilogy{} in hopes that someday it can be statically analyzed (an attempt at
+(potentially optional) static typing is on the long term roadmap).
+
+Worth mentioning is that the type system of \Trilogy{} spans all sub-languages
+consistently. The syntax and behaviours of all data types are the same, no matter
+where they are being used.
+
+\subsection{Built-In Types}
+
+There are 5 primitive data types in \Trilogy{}:
+
+\begin{itemize}
+    \item Never
+    \item Unit
+    \item Boolean
+    \item Atom
+    \item Character
+    \item Number
+\end{itemize}
+
+\noindent
+There are also 5 compound types, which may be constructed out of primitives
+and other types:
+
+\begin{itemize}
+    \item String
+    \item Tuple
+    \item Array
+    \item Set
+    \item Record
+    \item Iterator
+    \item Tag
+\end{itemize}
+
+\noindent
+Defined items (and their locally defined counterparts) are also values which
+have types:
+
+\begin{itemize}
+    \item Procedure
+    \item Procedure Closure
+    \item Function
+    \item Function Closure
+    \item Rule
+    \item Ruleset
+    \item Continuation
+    \item Module
+    \item Module Function
+\end{itemize}
+
+\noindent
+There are no explicit user defined types, only combinations of the built in
+types, so this is a complete list of all types to be seen in a \Trilogy{}
+program.
+
+By no means, however, is this the end of the story for \Trilogy{}'s type
+system. Custom data types, as well as further built-in primitive types are,
+are on the list of things to implement once the language is in a functioning
+state.
+
+\subsection{Primitive Types}
+
+There's not much interesting to be said about primitives. These types are
+backed directly by counterparts in the interpreter's implementation language,
+and so cannot be further broken down in exchange for performance closer to
+that of native code on their basic operations.
+
+\subsubsection{Never}
+
+Never is a type with no values. While not particularly useful as a value,
+Never is the type of a \kw{return} statement, as well as the type of
+a \kw{yield} that is not \kw{resume}d, and of actions which terminate the
+program, such as calling \fn{exit!}.
+
+\subsubsection{Unit}
+
+Unit is a type with a single-value, the literal \kw{unit}. Unit on its own
+has no particular meaning, but it can be used to signal the lack of value.
+
+This is the type returned by functions or procedures which do not return
+any other value. Within the standard library, Unit is used as the sentinel
+value for the end of a list.
+
+\subsubsection{Boolean}
+
+Boolean is a type with two values, the literals \kw{true} and \kw{false},
+which act much like they do in every language I can think of.
+
+Boolean values are the result of many comparisons (such as \op{lt} and
+\op{gt}), can be manipulated by the Boolean operators (\kw{and}, \kw{or},
+and \kw{not}) and are used by control flow constructs (\kw{if} and
+\kw{while}).
+
+\subsubsection{Atom}
+
+Atom is a type which typically exist in finite quantities. Any individual
+Atom has no value on its own, but its literal form may hint to a reader at
+what its value is meant to signal. The only real operation available for
+Atom values is equality, which is performed in $O(1)$ time.
+
+An Atom literal is an identifier prefixed with a single quote (\texttt{'}).
+Within the standard library, some Atoms yielded as effects to signal
+exceptional situations:
+
+\begin{itemize}
+    \item \val{'NAN}: yielded by Number parsing functions when the value
+    cannot be parsed as a Number.
+    \item \val{'EOF}: yielded by input procedures when the end of input
+    has been reached.
+\end{itemize}
+
+\subsubsection{Character}
+
+The Character type is used to represent individual Unicode code points,
+a Character value representing exactly one.
+
+Internally, Characters are represented as UTF-8. Characters can safely
+be converted to Numbers, as every Character's UTF-8 encoding is a valid
+Number. Meanwhile, not every Number may be safely converted to a Character,
+as not every binary sequence represents a valid UTF-8 codepoint.
+
+Character literals are specified as a single UTF-8 code point between
+single quotes. Alternatively, an escape sequence (\S\ref{sec:escapesequences})
+may be used to represent an ASCII or Unicode character code by its hexadecimal
+representation, or one of the specially supported common escape sequences.
+
+\subsubsection{Number}
+
+The Number type is used to represent numbers, on which mathematical
+operations can be performed. In \Trilogy{}, numbers go beyond integers
+and floating point numbers to also include any rational or complex
+numbers as well.
+
+These numbers support all the normal operations (addition \op{+},
+subtraction \op{-}, multiplication \op{*}, division \op{/},
+modulus \op{\%}, integer division \op{//}, power \op{**}), but
+division is perfect (\texttt{1 / 3 == 1/3}), and operations that
+require complex numbers (\texttt{(-1) ** 1/2 == 0i1}) will succeed.
+
+This does come at the cost of slower mathematical operations, and a
+more questionable binary representation of non-integer values. Bitwise
+operations (and \op{\&}, or \op{|}, xor \op{\textasciicircum}, not
+\op{\textasciitilde}, shift \op{\textasciitilde>} and \op{<\textasciitilde})
+will act as expected on integers, whose binary representation is
+standard, but will fail on non-integer values. As Numbers are unbounded,
+the shift operators will never wrap around nor truncate.

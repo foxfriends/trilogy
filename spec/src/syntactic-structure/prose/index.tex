@@ -186,6 +186,25 @@ expressions:
 
 \subsubsection{Let}
 
+The \kw{let} statement in \Prose{} is a non-fallible pattern matching context.
+If the value on the right side of the \op{=} does not match the pattern on the
+left, a runtime failure is triggered.
+
+Only a single pattern may be bound in each let statement, though tuple patterns
+may be used to simulate binding multiple values at once.
+
+\begin{bnf*}
+    \bnfprod{SLet}{
+        \bnfts{\kw{let}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\op{=}}
+        \bnfsp
+        \bnfpn{Statement}
+    }
+\end{bnf*}
+
 \subsubsection{Assignment}
 
 \subsubsection{Conditionals}
