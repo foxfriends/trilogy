@@ -66,12 +66,42 @@ system. Custom data types, as well as further built-in primitive types are,
 are on the list of things to implement once the language is in a functioning
 state.
 
+\subsubsection{Structural Types}
+
+Structural types are types which have a ``physical'' structure, which may be
+interpreted intuitively. Structural types may be destructured using pattern
+matching, and are compared structurally (deeply) using the structural equality
+operator (\kw{is}).
+
+\subsubsection{Reference Types}
+
+Reference types are those which are stored and passed by \emph{reference}. When
+a value of a reference type is passed as an argument or a assigned to a variable, both
+variables refer to the same \emph{instance} of that value. When dealing with
+mutation of an instance with multiple references, modifications made to any
+reference to that instances are reflected in all other references. This should be
+intuitive to users of Javascript, which follows similar reference semantics.
+
+When comparing reference types, there are two options. The referential equality
+operator (\op{==)} will compare the values by reference first; that is, if
+both values are of a reference type, they are considered equal if and only
+if they are references to the same instance. If either value is not a reference
+type, they will be compared structurally. In contrast, the structural equality
+operator (\kw{is}) will compare structurally first: if both values are structural
+types, they will be compared structurally, otherwise they will be compared by
+reference.
+
+Some types are both structural and reference types.
+
 \subsection{Primitive Types}
 
 There's not much interesting to be said about primitives. These types are
 backed directly by counterparts in the interpreter's implementation language,
 and so cannot be further broken down in exchange for performance closer to
 that of native code on their basic operations.
+
+All primitive types are structural types, no primitive types are reference
+types.
 
 \subsubsection{Never}
 
@@ -83,7 +113,7 @@ program, such as calling \fn{exit!}.
 \subsubsection{Unit}
 
 Unit is a type with a single-value, the literal \kw{unit}. Unit on its own
-has no particular meaning, but it can be used to signal the lack of value.
+has no particular meaning, but it can be used to signal a lack of a value.
 
 This is the type returned by functions or procedures which do not return
 any other value. Within the standard library, Unit is used as the sentinel
@@ -94,15 +124,15 @@ value for the end of a list.
 Boolean is a type with two values, the literals \kw{true} and \kw{false},
 which act much like they do in every language I can think of.
 
-Boolean values are the result of many comparisons (such as \op{lt} and
-\op{gt}), can be manipulated by the Boolean operators (\kw{and}, \kw{or},
+Boolean values are the result of many comparisons (such as \op{<} and
+\op{>}), can be manipulated by the Boolean operators (\kw{and}, \kw{or},
 and \kw{not}) and are used by control flow constructs (\kw{if} and
 \kw{while}).
 
 \subsubsection{Atom}
 
-Atom is a type which typically exist in finite quantities. Any individual
-Atom has no value on its own, but its literal form may hint to a reader at
+Atom, also sometimes called ``symbol'' by other languages, is a literal
+value that has no inherent meaning, but may have meaning to a reader at
 what its value is meant to signal. The only real operation available for
 Atom values is equality, which is performed in $O(1)$ time.
 
@@ -115,6 +145,10 @@ exceptional situations:
     cannot be parsed as a Number.
     \item \val{'EOF}: yielded by input procedures when the end of input
     has been reached.
+    \item \val{'INF}: yielded when dividing by zero, or other operations
+    that could be considered to produce an infinitely large result. Notably
+    this is not actually a representation of ``infinity'', as an Atom
+    cannot be used in further mathematical operations.
 \end{itemize}
 
 \subsubsection{Character}
@@ -124,8 +158,9 @@ a Character value representing exactly one.
 
 Internally, Characters are represented as UTF-8. Characters can safely
 be converted to Numbers, as every Character's UTF-8 encoding is a valid
-Number. Meanwhile, not every Number may be safely converted to a Character,
-as not every binary sequence represents a valid UTF-8 codepoint.
+Number. However, not every Number may be safely converted to a Character
+as not every binary sequence represents a valid UTF-8 codepoint, and
+non-integer Numbers also cannot be valid UTF-8 encodings of a character.
 
 Character literals are specified as a single UTF-8 code point between
 single quotes. Alternatively, an escape sequence (\S\ref{sec:escapesequences})
@@ -137,18 +172,19 @@ representation, or one of the specially supported common escape sequences.
 The Number type is used to represent numbers, on which mathematical
 operations can be performed. In \Trilogy{}, numbers go beyond integers
 and floating point numbers to also include any rational or complex
-numbers as well.
+numbers as well. At this time, there is no Number for infinity
+or irrational numbers.
 
-These numbers support all the normal operations (addition \op{+},
+Numbers support all the normal operations (addition \op{+},
 subtraction \op{-}, multiplication \op{*}, division \op{/},
 modulus \op{\%}, integer division \op{//}, power \op{**}), but
 division is perfect (\texttt{1 / 3 == 1/3}), and operations that
-require complex numbers (\texttt{(-1) ** 1/2 == 0i1}) will succeed.
+have complex results (\texttt{(-1) ** 1/2 == 0i1}) will succeed.
 
 This does come at the cost of slower mathematical operations, and a
 more questionable binary representation of non-integer values. Bitwise
 operations (and \op{\&}, or \op{|}, xor \op{\textasciicircum}, not
 \op{\textasciitilde}, shift \op{\textasciitilde>} and \op{<\textasciitilde})
 will act as expected on integers, whose binary representation is
-standard, but will fail on non-integer values. As Numbers are unbounded,
-the shift operators will never wrap around nor truncate.
+standard, but will fail on non-integer values. As Numbers are
+unbounded, the shift operators will never wrap around nor truncate.
