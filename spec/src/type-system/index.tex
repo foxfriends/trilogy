@@ -68,6 +68,33 @@ system. Custom data types, as well as further built-in primitive types are,
 are on the list of things to implement once the language is in a functioning
 state.
 
+\subsubsection{Structural Types}
+
+Structural types are types which have a ``physical'' structure, which may be
+interpreted intuitively. Structural types may be destructured using pattern
+matching, and are compared structurally (deeply) using the structural equality
+operator (\kw{is}).
+
+\subsubsection{Reference Types}
+
+Reference types are those which are stored and passed by \emph{reference}. When
+a value of a reference type is passed as an argument or a assigned to a variable, both
+variables refer to the same \emph{instance} of that value. When dealing with
+mutation of an instance with multiple references, modifications made to any
+reference to that instances are reflected in all other references. This should be
+intuitive to users of Javascript, which follows similar reference semantics.
+
+When comparing reference types, there are two options. The referential equality
+operator (\op{==)} will compare the values by reference first; that is, if
+both values are of a reference type, they are considered equal if and only
+if they are references to the same instance. If either value is not a reference
+type, they will be compared structurally. In contrast, the structural equality
+operator (\kw{is}) will compare structurally first: if both values are structural
+types, they will be compared structurally, otherwise they will be compared by
+reference.
+
+Some types are both structural and reference types.
+
 \input{primitives.tex}
 
 \input{compound-types.tex}
