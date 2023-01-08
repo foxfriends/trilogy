@@ -1,0 +1,123 @@
+\subsection{Compound Types}
+
+Compound types are constructions that can be made up of the primitive
+types. In Trilogy, all compound types are heterogeneous - they may
+contain many values of different types.
+
+Similarly to primitives, compound types have string and source
+representations. The string representation is computed by recursively
+converting component values into their string representations. The
+source representation is once again the same as you would write it
+in source code.
+
+\subsubsection{Labelled}
+
+A Label wraps a single other value, becoming a Labelled value. The Label
+looks a lot like an Atom, and the value can be any single value (including
+a composite value).
+
+Examples of tagged values:
+
+\begin{lstlisting}[language=Trilogy]
+'taggedString("String")
+'taggedNumber(135)
+'taggedTuple("hello" : "world")
+\end{lstlisting}
+
+Each individual Labelled value actually acts more like its own ``type'' from
+a type-system perspective, since labels cannot be referenced dynamically, only
+in literal patterns. Alternatively, you could think of them as sum-type variants,
+but without defining them as a members of a specific list of variants.
+
+The string representation of a Labelled value is the label (without the quote)
+followed by the string string representation of the value in parentheses.
+For example, the string representation of \texttt{'hello("world")} is
+\texttt{hello(world)}.
+
+\subsubsection{Tuple}
+
+A Tuple attaches a pair of values into one, and is written with the colon or
+``cons'' operator (\op{:}) as in  \texttt{"hello" : "world"}.
+
+While a Tuple can only contain two values, one of those values may be another
+Tuple to emulate larger collections, for example \texttt{1 : 2 : 3} is equivalent
+to \texttt{1 : (2 : 3)}, a Tuple of \val{1} cons-ed to a Tuple \texttt{2 : 3}.
+
+While finite Tuples are useful for representing structured data, recursive Tuples
+are useful as a representation of (linked) lists. In this interpretation, we use
+\kw{unit} to indicate the empty list, and any value consed with a list on the
+right side to be a list. For example `1 : 2 : 3 : unit` is the list of 1, 2 and 3,
+which can then be consumed recursively. We use the name List to refer to constructions
+of Tuples in this way, but List is not a true distinct ``type''.
+
+The string representation of a Tuple consists of the string representations of its
+two parts, separated by a colon much like its source representation.
+For example, the Tuple value \texttt{"hello" : "world"} is represented as a string
+as \texttt{hello : world}.
+
+\subsubsection{Array}
+
+An Array is a contiguous, ordered sequence of values, backed by an array of
+the implementation language. In terms of function and capabilities, Arrays
+and Lists are pretty much equivalent, but the performance characteristics
+of the two are quite distinct, particularly when the list will be resizing
+frequently, versus having frequent random access.
+
+Array literals are written with square brackets, and items separated by
+comma, with the tail optionally captured after a colon. Some examples:
+
+\begin{lstlisting}[language=Trilogy]
+# These three are all the same
+let a = [1, 2, 3, 4, 5]
+let b = [1, 2, 3, ...[4, 5]]
+let c = [1 ...[2 ...[3 ...[4 ...[5 ...[]]]]]]
+
+# Arrays can be heterogeneous
+let x = [1, true, "hello"]
+let y = ['prepended, ...x]
+\end{lstlisting}
+the Array \texttt{[1, 2, 3, 4, 5]} and the Array \texttt{[1, 2, 3 : [4, 5 : []]]}
+are equivalent.
+
+Typical array operations include direct access using the indexing operator,
+push (\texttt{+}), and concatenation or glue (\texttt{<>}).
+
+The string representation of an Array is simply the string representation of
+each of its elements, separated by commas within square brackets. Therefore,
+\texttt{["hello", "world"]} becomes \texttt{[hello, world]}.
+
+\subsubsection{Set}
+
+A Set is an unordered collection of values without containing duplicates.
+Sets come with useful operations union (\op{|}), intersection (\op{\&}),
+add (\op{+}), remove (\op{-}), difference (\op{/}), and symmetric
+difference (\op{\textasciicircum}).
+
+Set literals are written with curly braces and items separated by comma,
+with the tail captured after a colon. The sets \texttt{\{1, 2, 3, 4, 5\}}
+and \texttt{\{1, 2, 3 : \{ 3, 4, 5 \}\}} are equivalent, though the tail,
+when matched as a pattern, will never contain an item listed in the head.
+
+Sets may hold any values; those which are not structural (iterators,
+functions, rules, etc.) are identified by reference. However, to
+distinguish from Records, a Tuple in a Set literal must be parenthesized.
+
+The string representation of a Set is the string representation of
+each of its elements, separated by commas within curly braces. Therefore,
+\texttt{\{"hello", "world"\}} becomes \texttt{\{hello, world\}} (or
+equivalently, \texttt{\{world, hello\}}, as Sets are unordered so we
+cannot know which order they will be iterated in).
+
+\subsubsection{Record}
+
+A Record is an unordered collection of key-value pairs, often also called
+a dictionary, map, or object. Record keys are unique.
+
+The main operation of a Record is the indexing operator. The keys of a
+Record may be any value; like Sets, non-structural values will be compared
+by reference.
+
+A Record literal is written as comma separated \texttt{key: value} pairs
+within curly braces. For example: \texttt{\{"hello": "world", "goodbye": "world"\}}.
+
+\subsubsection{Iterator}
