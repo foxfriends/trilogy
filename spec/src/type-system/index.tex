@@ -68,6 +68,30 @@ system. Custom data types, as well as further built-in primitive types are,
 are on the list of things to implement once the language is in a functioning
 state.
 
+\subsubsection{Serialization}
+
+Most values in \Trilogy{} support multiple serializations when converting
+to values of String type which are supported by the language runtime itself.
+
+The ``string'' representation is used when converting to a String for
+the purposes of debug printing or constructing messages for users.
+This is the representation used when converted to String via template
+interpolation or direct type conversion. Not all types have a string
+representation; particularly functions, lambdas, and similar cannot
+be converted to String in this way.
+
+The ``source'' representation is the same as the value's source code literal
+representation and is used when serializing or deserializing data as code.
+This is particularly useful when generating code or a data file to be used
+later. Not all values have a source representation; transient values such
+as iterators may be infinite and cannot be written as a source literal, so
+do not have source representations. Library- or user-defined functions may
+be converted to a source representation; running such printed code should
+be done with care as it may have unexpected consequences.
+
+Other common representations (e.g. JSON or YAML) are left
+to be implemented as library code.
+
 \subsubsection{Structural Types}
 
 Structural types are types which have a ``physical'' structure, which may be

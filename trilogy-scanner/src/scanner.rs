@@ -126,14 +126,15 @@ impl<'a> Scanner<'a> {
 
     fn unicode_escape_sequence(&mut self) -> Option<char> {
         self.expect('{')?;
-        let a = self.expect(|ch: char| ch.is_ascii_alphanumeric())?;
-        let b = self.expect(|ch: char| ch.is_ascii_alphanumeric())?;
-        let c = self.expect(|ch: char| ch.is_ascii_alphanumeric())?;
-        let d = self.expect(|ch: char| ch.is_ascii_alphanumeric())?;
-        self.expect('}')?;
-        char::from_u32(
-            hex_to_u32(a) << 12 & hex_to_u32(b) << 8 & hex_to_u32(c) << 4 & hex_to_u32(d),
-        )
+        let mut repr = String::new();
+        loop {
+            if self.expect('}').is_some() {
+                break;
+            }
+            repr.push(self.expect(|ch: char| ch.is_ascii_hexdigit())?);
+        }
+        let num = u32::from_str_radix(&repr, 16).ok()?;
+        char::from_u32(num)
     }
 
     fn ascii_escape_sequence(&mut self) -> Option<char> {

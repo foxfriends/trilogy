@@ -5,11 +5,6 @@ backed directly by counterparts in the interpreter's implementation language,
 and so cannot be further broken down in exchange for performance closer to
 that of native code on their basic operations.
 
-The primitive values of \Trilogy{} have two representations: a ``string''
-representation used when converting to a String, and their ``source''
-representation, which is the same as their source code literal representation
-and is used when serializing or deserializing data as code.
-
 All primitive types are structural types, no primitive types are reference
 types.
 
@@ -82,7 +77,21 @@ may be used to represent an ASCII or Unicode character code by its hexadecimal
 representation, or one of the specially supported common escape sequences.
 
 The string representation of a Character is a String containing that one
-Character.
+Character. Some examples:
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ll}
+        \hline
+        \textbf{Source} & \textbf{String} \\
+        \hline
+        \val{'c'} & \texttt{c} \\
+        \val{'\textbackslash t'} & \emph{Line break}\\
+        \val{'\textbackslash x65'} & \texttt{e} \\
+        \val{'\textbackslash u\{03BB\}} & \texttt{$\lambda$} \\
+        \hline
+    \end{tabular}
+\end{table}
 
 \subsubsection{String}
 
