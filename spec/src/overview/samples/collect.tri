@@ -26,8 +26,8 @@ proc reverse!(body) {
 }
 
 proc main!() {
-    let collected = collect!(do() hello!())
+    let collected = collect!(do!() hello!())
     println!($"Collected once: ${collected}")
-    let doubled = collect!(do() map!((* 2), do() hello!()))
+    let doubled = collect!(do!() map!((* 2), do!() hello!()))
     println!($"Collected doubled: ${doubled}")
 }

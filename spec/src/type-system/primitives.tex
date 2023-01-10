@@ -15,10 +15,15 @@ Never is the type of a \kw{return} statement, as well as the type of
 a \kw{yield} that is not \kw{resume}d, and of actions which terminate the
 program, such as calling \fn{exit!}.
 
+In type annotation or documentation, the Never type is written \ty{!}.
+In the formal semantics throughout this document, Never is abbreviated to
+$\bot$.
+
 \subsubsection{Unit}
 
 Unit is a type with a single-value, the literal \kw{unit}. Unit on its own
 has no particular meaning, but it can be used to signal the lack of value.
+In type annotation, the Unit type is written \ty{Unit}.
 
 This is the type returned by functions or procedures which do not return
 any other value. Within the standard library, Unit is used as the sentinel
@@ -30,6 +35,7 @@ The string representation of Unit is \texttt{unit}.
 
 Boolean is a type with two values, the literals \kw{true} and \kw{false},
 which act much like they do in every language I can think of.
+In type annotation, the Boolean type is written \ty{Bool}.
 
 Boolean values are the result of many comparisons (such as \op{lt} and
 \op{gt}), can be manipulated by the Boolean operators (\kw{and}, \kw{or},
@@ -51,6 +57,10 @@ An Atom literal is an identifier prefixed with a single quote (\texttt{'}).
 Within the standard library, some Atoms yielded as effects to signal
 exceptional situations:
 
+In type annotation, the Atom type is written \ty{Atom} when any Atom
+is expected, or using the exact value of the atom (e.g. \ty{'NAN}) if
+only that exact value is expected.
+
 \begin{itemize}
     \item \val{'NAN}: yielded by Number parsing functions when the value
     cannot be parsed as a Number.
@@ -65,6 +75,7 @@ The string representation of an Atom is its symbol without the single quote
 
 The Character type is used to represent individual Unicode code points,
 a Character value representing exactly one.
+In type annotation, the Character type is written \ty{Char}.
 
 Internally, Characters are represented using their UTF-8 encodings. Characters
 can safely be converted to Numbers, as every Character's UTF-8 encoding is a valid
@@ -97,16 +108,18 @@ Character. Some examples:
 
 The String type is a sequence of Characters. This sounds somewhat like
 a composite type, but since a String can only contain Characters and has
-its own literal format, it is practically more like a primitive.
+its own literal format, it is practically more like a primitive. In type
+annotation, the String type is written \ty{String}.
 
 Strings may be manipulated using the push operator (\op{+}) to attach a
 Character to a String, and the glue operator (\op{<>}) to attach two
 Strings together. The indexing operator (\op{.[]}) may also be used to
 access a Character at a particular index.
 
-String literals are represented using double quotes. Additionally,
-untagged template literals produce Strings by using the natural
-string representation of the interpolated values.
+String literals are represented using double quotes, and may contain
+any characters or escape sequences. Untagged template literals produce
+Strings by inserting the string representation of the interpolated values
+(tagged literals don't actually produce Strings).
 
 The string representation of a String is the string itself.
 
@@ -115,7 +128,9 @@ The string representation of a String is the string itself.
 The Number type is used to represent numbers, on which mathematical
 operations can be performed. In \Trilogy{}, numbers go beyond integers
 and floating point numbers to also include any rational or complex
-numbers as well.
+numbers as well. In type annotation, the Number type is written \ty{Number}.
+Additonally, the names \ty{Int}, \ty{Float}, and \ty{Rational} refer to
+different subsets of the full range of the \ty{Number} type.
 
 These numbers support all the normal operations (addition \op{+},
 subtraction \op{-}, multiplication \op{*}, division \op{/},
@@ -140,6 +155,7 @@ and is most conveniently described by example:
         \hline
         \textbf{Source} & \textbf{String} \\
         \hline
+        \val{0} & \texttt{0} \\
         \val{123} & \texttt{123} \\
         \val{-123} & \texttt{-123} \\
         \val{123.456} & \texttt{123.456} \\

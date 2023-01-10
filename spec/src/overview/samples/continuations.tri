@@ -16,13 +16,13 @@ proc allowMany!(words, body) {
 
 proc main!() {
     let line = readline!() when 'EOF cancel exit(1)
-    let allowed1 = allowOne!("cat", do() isAllowed line))
-    let allowed2 = allowOne!("cat", do() {
-        return allowAlso!("cactus", do() isAllowed line)
+    let allowed1 = allowOne!("cat", do!() isAllowed line))
+    let allowed2 = allowOne!("cat", do!() {
+        return allowAlso!("cactus", do!() isAllowed line)
     })
     let allowed3 = allowMany!(
         ["cat", "cactus", "cash"],
-        do() isAllowed line,
+        do!() isAllowed line,
     )
     println!("results: ${allowed1}; ${allowed2}; ${allowed3}")
 }
