@@ -11,6 +11,16 @@ is preferred for readability. The productions refer to nodes in the
 abstract syntax tree, and are named as they are in the implementation
 source code.
 
+Following relevant blocks describing the syntax of \Trilogy{} code is some
+approximation of a formalization of the semantics of that code, using some
+loose understanding of the notation and rules of what might be natural
+deduction, which I may or may not have learned briefly some years ago.
+I am no expert, and if some expert ever sees this I will gladly accept any
+corrections to these notes, as I am sure they will be conflicting themselves
+in more than a few places.
+
+\subsection{Whitespace}
+
 Between any two tokens may be any number of comment nodes. Additionally,
 any whitespace (including line breaks) may occur between any two tokens
 without issue. In certain marked cases, however, line breaks are required
@@ -268,7 +278,5 @@ languages.
     \bnfprod{RuleDefinition}{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfor} \\
     \bnfmore{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfsp{\op{:-}}\bnfsp\bnfpn{RuleBody}}
 \end{bnf*}
-
-\subimport{data/}{index.tex}
 
 \subimport{prose/}{index.tex}

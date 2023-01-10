@@ -29,14 +29,41 @@ Trailing commas are permitted in all places where commas are found.
     }
 \end{bnf*}
 
+\noindent A procedure declaration binds the name in the scope of the current module.
+As with all kinds of declarations in \Trilogy{}, procedure declarations may be
+referenced out of order.
+
+When called, the body of the procedure is run with the formal parameters bound to
+the arguments with which the procedure was called. A procedure may use the \kw{return}
+keyword to end its evaluation, with its call evaluating to the returned value.
+If control runs off the end of the procedure's body, its call evaluates to \kw{unit}.
+
+It is also possible for a procedure to never return (e.g. built-in \fn{exit!}), in
+which case, the return type is Never, and such a value may never be realized.
+
 \begin{prooftree}
-    \def\defaultHypSeparation{\hskip 0.05in}
-    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
-    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash N : \tau$}
-    \AxiomC{$M \Rightarrow \kw{return}\ N$}
-    \LeftLabel{Procedure}
-    \TrinaryInfC{$\Gamma \vdash p: \tau_{1\hdots n}\rightarrow\tau$}
+    \def\defaultHypSeparation{\hskip 0pt}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M,\ \kw{return}\ N\ \}$}
+    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash M,\ N : \tau$}
+    \LeftLabel{Procedure\textsuperscript{ret}}
+    \BinaryInfC{$\Gamma \vdash p: \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\tau$}
 \end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
+    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash M : \top$}
+    \LeftLabel{Procedure\textsuperscript{end}}
+    \BinaryInfC{$\Gamma \vdash p: \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\kw{unit}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
+    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash M : \bot$}
+    \LeftLabel{Procedure\textsuperscript{$\bot$}}
+    \BinaryInfC{$\Gamma \vdash p:\ \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\bot$}
+\end{prooftree}
+
+\subsubsection{Sequences}
 
 The body of a procedure is a sequence of statements. Statements in sequence
 must be separated by a line break or an explicit separator (\op{,}).
@@ -49,7 +76,9 @@ must be separated by a line break or an explicit separator (\op{,}).
 \end{bnf*}
 
 A sequence of statements evaluates to the result of the last statement
-in the sequence. The values of preceding statements are lost.
+in the sequence. The values of preceding statements are lost. This rule
+is overridden by the Declaration rule~(\S\ref{sem:declaration}) when
+the first statement is a \kw{let} statement.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash M : \tau_0$}
@@ -57,6 +86,8 @@ in the sequence. The values of preceding statements are lost.
     \LeftLabel{Sequencing}
     \BinaryInfC{$\Gamma \vdash M \op{,}\ N : \tau_1$}
 \end{prooftree}
+
+\subsubsection{Statements}
 
 While most imperative languages bring some sort of distinction between
 expressions and statements, \Prose{} does not. Statements in this
@@ -204,6 +235,16 @@ may be used to simulate binding multiple values at once.
         \bnfpn{Statement}
     }
 \end{bnf*}
+
+\begin{prooftree}
+    \def\defaultHypSeparation{\hskip 0in}
+    \AxiomC{$\Gamma \vdash y: \tau_1$}
+    \AxiomC{$\Gamma \vdash y \mapsto x$}
+    \AxiomC{$\Gamma \vdash \{ a_i : \sigma_i\ |\ a_i := x \}$}
+    \AxiomC{$\Gamma, a_i: \sigma_i \vdash M : \tau$}
+    \LeftLabel{\label{sem:declaration}Declaration}
+    \QuaternaryInfC{$\Gamma \vdash \kw{let}\ x = y\op{,}\ M : \tau$}
+\end{prooftree}
 
 \subsubsection{Assignment}
 
