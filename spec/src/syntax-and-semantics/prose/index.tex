@@ -77,8 +77,8 @@ must be separated by a line break or an explicit separator (\op{,}).
 
 A sequence of statements evaluates to the result of the last statement
 in the sequence. The values of preceding statements are lost. This rule
-is overridden by the Declaration rule~(\S\ref{sem:declaration}) when
-the first statement is a \kw{let} statement.
+may be overridden by the rules in the following sections depending on
+the specific types of statements.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash M : \tau_0$}
@@ -97,7 +97,7 @@ in \Poetry{}.
 
 Any statement or expression may occur within any other statement, and
 all statements evaluate to some value, albeit sometimes \kw{unit}.
-This can make for some pretty unexpected combinations
+This can make for some possibly unexpected but useful combinations
 (e.g. \texttt{x == 5 or return 3}); whether it is a good idea to use
 such combinations is left to the developer to decide.
 
@@ -194,26 +194,22 @@ prefix operator. Given the lack of postfix operators in Trilogy, that
 leaves infix operators being the only valid operators at the top-level
 of a sequence.
 
-Add the trivial evaluation semantics for parenthesized and block
-expressions:
+Add the evaluation semantics for parenthesized and block statements.
+Notably, a block introduces a new scopes in which names are bound,
+while parentheses do not.
 
-\begin{figure}[H]
-    \centering
-    \parbox[t]{0.35\linewidth}{
-        \begin{prooftree}
-            \AxiomC{$\Gamma \vdash M : \tau$}
-            \LeftLabel{Unwrap}
-            \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \tau$}
-        \end{prooftree}
-    }
-    \parbox[t]{0.35\linewidth}{
-        \begin{prooftree}
-            \AxiomC{$\Gamma \vdash M : \tau$}
-            \LeftLabel{Unnest}
-            \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \tau$}
-        \end{prooftree}
-    }
-\end{figure}
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash M : \tau$}
+    \LeftLabel{Unwrap}
+    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma :> \Phi$}
+    \AxiomC{$\Phi \vdash M : \tau$}
+    \LeftLabel{Unnest}
+    \BinaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \tau$}
+\end{prooftree}
 
 \subsubsection{Let}
 
@@ -224,6 +220,9 @@ left, a runtime failure is triggered.
 Only a single pattern may be bound in each let statement, though tuple patterns
 may be used to simulate binding multiple values at once.
 
+The \kw{let} introduces an implicit scope from its location in the source
+code until the end of the nearest explicit scope (e.g. the end of a block).
+
 \begin{bnf*}
     \bnfprod{SLet}{
         \bnfts{\kw{let}}
@@ -232,21 +231,106 @@ may be used to simulate binding multiple values at once.
         \bnfsp
         \bnfts{\op{=}}
         \bnfsp
-        \bnfpn{Statement}
+        \bnfpn{Substatement}
     }
 \end{bnf*}
 
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0in}
-    \AxiomC{$\Gamma \vdash y: \tau_1$}
+    \AxiomC{$\Gamma \vdash y:\pi$}
     \AxiomC{$\Gamma \vdash y \mapsto x$}
-    \AxiomC{$\Gamma \vdash \{ a_i : \sigma_i\ |\ a_i := x \}$}
-    \AxiomC{$\Gamma, a_i: \sigma_i \vdash M : \tau$}
+    \AxiomC{$\Gamma \vdash \{ a_i : \pi_i\ |\ a_i := x \}$}
+    \AxiomC{$\Gamma, a_i: \pi_i \vdash M : \tau$}
     \LeftLabel{\label{sem:declaration}Declaration}
     \QuaternaryInfC{$\Gamma \vdash \kw{let}\ x = y\op{,}\ M : \tau$}
 \end{prooftree}
 
 \subsubsection{Assignment}
+
+Variables (specifically, mutable bindings) may be assigned to. Similar to
+declaration via \kw{let}, the left-hand side of standard assignment may be
+any pattern that does not introduce \emph{new} bindings. The pattern may only
+use previously bound names.
+
+Function assignment is a special syntax for applying a function to a value and
+then simultaneously reassigning that value with the result of the function; a
+generalization of operators like \op{+=} to any function. In this form of assignment,
+the left-hand side of the assignment operator is a single identifier, and the right
+side is the arguments to apply to the function being used as the assignment operator.
+The left hand side is then applied as the last argument to the function.
+
+Regular operator assignment (\op{+=}, \op{-=}, etc.) is supported as well, in the
+intuitive way (the left hand identifer is used as the left hand side of the operator).
+
+\begin{bnf*}
+    \bnfprod{SAssignment}{
+        \bnfpn{PatternAssignment}
+        \bnfor
+        \bnfpn{FunctionAssignment}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{OperatorAssignment}
+    } \\
+    \bnfprod{PatternAssignment}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\op{=}}
+        \bnfsp
+        \bnfpn{Substatement}
+    } \\
+    \bnfprod{FunctionAssignment}{
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfts{IdentifierEq}
+        \bnfsp
+        \bnfpn{ApplicationList}
+    } \\
+    \bnfprod{OperatorAssignment}{
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfpn{OperatorEq}
+        \bnfsp
+        \bnfpn{Substatement}
+    } \\
+    \bnfprod{OperatorEq}{
+        \bnfts{+=}\bnfor
+        \bnfts{-=}\bnfor
+        \bnfts{*=}\bnfor
+        \bnfts{/=}\bnfor
+        \bnfts{\%=}\bnfor
+        \bnfts{**=}\bnfor
+        \bnfts{//=}\bnfor
+        \bnfts{<>=}\bnfor
+    } \\
+    \bnfmore{
+        \bnfts{|=}\bnfor
+        \bnfts{\&=}\bnfor
+        \bnfts{\textasciicircum=}\bnfor
+        \bnfts{\textasciitilde=}\bnfor
+        \bnfts{<\textasciitilde=}\bnfor
+        \bnfts{\textasciitilde>=}
+    }
+\end{bnf*}
+
+\begin{prooftree}
+    \def\defaultHypSeparation{\hskip 0.05in}
+    \AxiomC{$\Gamma \vdash y:\pi$}
+    \AxiomC{$y \mapsto x$}
+    \AxiomC{$\Gamma \vdash \{a_i : \pi_i\ |\ a_i := x\ \}$}
+    \AxiomC{$\Gamma,a_i:\pi_i \vdash M : \tau$}
+    \LeftLabel{Assignment}
+    \QuaternaryInfC{$\Gamma\vdash x\ \op{=}\ y\op{,}\ M : \tau$}
+\end{prooftree}
+
+Rather than defining the exact semantics of function or operator assignment,
+instead understand those by syntax transformation, and use the same assignment
+semantics as normal:
+
+\begin{align*}
+    \texttt{\$x:id \$fn:id= \$(\$a:expr)+} &\Rightarrow \texttt{\$x = \$f \$(\$a)+ \$x} \\ %
+    \texttt{\$x:id \$op:op= \$a:expr} & \Rightarrow \texttt{\$x = \$x \$op \$a} %
+\end{align*}
 
 \subsubsection{Conditionals}
 
@@ -330,7 +414,7 @@ still supported, so we end up with this annoying extra bit of rule.
 
 \begin{bnf*}
     \bnfprod{Condition}{
-        \bnfpn{Statement}
+        \bnfpn{Substatement}
         \bnfsp
         \bnfts{,}
         \bnfsp
@@ -344,7 +428,7 @@ still supported, so we end up with this annoying extra bit of rule.
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{Statement}
+        \bnfpn{Substatement}
         \bnfsp
         \bnfts{,}
         \bnfor
@@ -352,12 +436,12 @@ still supported, so we end up with this annoying extra bit of rule.
         \bnfsp
         \bnfts{,}
         \bnfor
-        \bnfpn{Statement}
+        \bnfpn{Substatement}
         \bnfor
         \bnfpn{Query}
     } \\
     \bnfprod{Query}{
-        \bnfpn{Statement}
+        \bnfpn{Substatement}
         \bnfsp
         \bnfts{\kw{is}}
         \bnfsp

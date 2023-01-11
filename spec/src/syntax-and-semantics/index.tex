@@ -19,6 +19,24 @@ I am no expert, and if some expert ever sees this I will gladly accept any
 corrections to these notes, as I am sure they will be conflicting themselves
 in more than a few places.
 
+Seeing as I am not an expert, some potentially non-standard symbols used in
+the following are summarized here:
+
+\begin{itemize}
+    \item $\Gamma :> \Phi$ --- Extends from, as a scope. Names looked up in the
+    context $\Phi$ will search $\Phi$ first; if not found, the context $\Gamma$
+    is searched. New names bound are bound in $\Phi$ without affecting $\Gamma$.
+    Names which are rebound (e.g. in assignment) are rebound in the scope in
+    which they are found.
+    \item $x \mapsto y$ --- Maps to, as a pattern. $x$ and $y$ have the same
+    shape, but $x$ is a value and $y$ is a pattern with potentially unbound
+    variables.
+    \item $a := x$ --- Declares, as a name. $x$ is a pattern and $a$ is a value
+    bound by that pattern. Patterns often declare more than one name.
+    \item $\text{read}(\sigma)$ --- Read, as a file. $\sigma$ is a String which is interpreted
+    as a URL, and $\text{read}(\sigma)$ is the contents of the file located by that URL.
+\end{itemize}
+
 \subsection{Whitespace}
 
 Between any two tokens may be any number of comment nodes. Additionally,
