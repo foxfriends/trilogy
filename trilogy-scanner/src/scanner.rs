@@ -483,10 +483,10 @@ impl Iterator for Scanner<'_> {
             '/' if self.expect('=').is_some() => self.make_token(OpSlashEq),
             '/' => self.make_token(OpSlash),
 
-            ':' if self.expect('-').is_some() => self.make_token(OpTurnstile),
             ':' => self.make_token(OpColon),
             ';' => self.make_token(OpSemi),
 
+            '<' if self.expect('-').is_some() => self.make_token(OpLeftArrow),
             '<' if self.expect('<').is_some() => self.make_token(OpLtLt),
             '<' if self.expect('=').is_some() => self.make_token(OpLtEq),
             '<' if self.expect('>').is_some() => {
@@ -506,7 +506,13 @@ impl Iterator for Scanner<'_> {
             }
             '<' => self.make_token(OpLt),
 
-            '=' if self.expect('=').is_some() => self.make_token(OpEqEq),
+            '=' if self.expect('=').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpEqEqEq)
+                } else {
+                    self.make_token(OpEqEq)
+                }
+            }
             '=' => self.make_token(OpEq),
 
             '>' if self.expect('=').is_some() => self.make_token(OpGtEq),

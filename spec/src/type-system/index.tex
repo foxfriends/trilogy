@@ -49,7 +49,6 @@ have types:
 \begin{itemize}
     \item Procedure and Procedure Closure
     \item Function and Function Closure
-    \item Rule, Fact, and Ruleset
     \item Continuation
     \item Module and Module Function
 \end{itemize}
@@ -93,7 +92,7 @@ to be implemented as library code.
 Structural types are types which have a ``physical'' structure, which may be
 interpreted intuitively. Structural types may be destructured using pattern
 matching, and are compared structurally (deeply) using the structural equality
-operator (\kw{is}).
+operator (\op{==}).
 
 \subsubsection{Reference Types}
 
@@ -105,11 +104,11 @@ reference to that instances are reflected in all other references. This should b
 intuitive to users of Javascript, which follows similar reference semantics.
 
 When comparing reference types, there are two options. The referential equality
-operator (\op{==)} will compare the values by reference first; that is, if
+operator (\op{===)} will compare the values by reference first; that is, if
 both values are of a reference type, they are considered equal if and only
 if they are references to the same instance. If either value is not a reference
 type, they will be compared structurally. In contrast, the structural equality
-operator (\kw{is}) will compare structurally first: if both values are structural
+operator (\kw{==}) will compare structurally first: if both values are structural
 types, they will be compared structurally, otherwise they will be compared by
 reference.
 
@@ -125,6 +124,10 @@ The individual names and representations of specific types are described
 in their respective sections. In addition to those types, the type sum operator
 (\op{|}) may be used to describe a value that may be of one of two types (chaining
 to reach more than two types), as in \ty{A | B}.
+
+Another ``type'' that occasionally comes up in dynamically typed languages is the
+``any'' type. In \Trilogy{}, an ``any'' type is avoided in favour of type variables,
+which may be left unconstrained to represent accepting any other type in its place.
 
 \input{primitives.tex}
 

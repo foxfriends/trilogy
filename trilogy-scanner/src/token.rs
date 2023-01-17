@@ -61,7 +61,6 @@ impl Token {
             "fn" => TokenType::KwFn,
             "for" => TokenType::KwFor,
             "from" => TokenType::KwFrom,
-            "ft" => TokenType::KwFt,
             "func" => TokenType::KwFunc,
             "given" => TokenType::KwGiven,
             "if" => TokenType::KwIf,
@@ -110,6 +109,7 @@ impl Token {
             "when" => TokenType::KwWhen,
             "where" => TokenType::KwWhere,
             "while" => TokenType::KwWhile,
+            "with" => TokenType::KwWith,
             "yield" => TokenType::KwYield,
             _ => TokenType::Identifier,
         };

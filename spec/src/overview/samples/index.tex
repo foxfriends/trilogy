@@ -105,20 +105,20 @@ following example.
 \inputcode{meal.tri}
 
 \Law{}, is a logic language, following Prolog, supporting the nondeterministic,
-multiple-binding semantics that Prolog users might expect. A definition in \Law{}
+multiple-solution semantics that Prolog users might expect. A definition in \Law{}
 is a \kw{rule} defining a pattern that must hold true, which may be implied by
 other existing patterns.
 
 Rules may be applied in most situations where patterns are being matched, making
-for a very powerful pattern-matching experience. However, since these rules
-may bind to multiple solutions at one time, if a pattern binds variables as
-a result of applying rule, it must be written in an \emph{iterative context}.
-Patterns which provably cannot bind multiple solutions may be written in Boolean
-contexts, such as if statements or other expressions.
+for a very powerful pattern-matching experience. When used within an \emph{iterative
+context}, if a pattern binds variables as a result of applying rule, those bindings
+are iterated over successively.
 
 In \Prose{}, the primary iterative context is the \kw{for} loop. Unlike other
 \kw{for} loops you may have seen, the head of such a loop in \Prose{} is actually
-a pattern onto which the values are bound.
+a pattern matching, which is triggered multiple times by multi-solution patterns.
+As an additional unusual feature, the \kw{for} loop may include an \kw{else} clause
+which is called if the pattern in the head of the loop did not bind to anything.
 
 In \Poetry{}, the primary iterative context is in comprehension. Comprehensions
 collect each of their yielded items into a new iterator, or directly into a
@@ -136,13 +136,11 @@ an iterator into a collection triggers the eager evaluation of that iterator.
 
 \inputcode{foodchain.tri}
 
-Looking more closely at \Law{}, realize that no specific iterative context is
-required because the entire language is multi-binding by default. As patterns
-are reflexive, we are able to check both directions along the food chain with
-just one definition of \fn{chain}, while defining the food chain using the
-flat structure of \fn{eats}.
+Looking more closely at \Law{}, notice that as patterns are reflexive, we are
+able to check both directions along the food chain with just one definition of
+\fn{chain}, while defining the food chain using the flat structure of \fn{eats}.
 
-Now may be a good time to bring up atoms, which take the form of identifiers
+Now may also be a good time to bring up atoms, which take the form of identifiers
 prefixed by an apostrophe (\texttt{'}). Atoms are a staple of logic languages
 such as Prolog, which also make appearances in functional languages where
 they are sometimes called symbols. They are values without inherent meaning,
@@ -230,15 +228,53 @@ easily, and without the function even needing to know that it is
 maybe running nondeterministically.
 
 While all that is fun and cool, this particular problem would be
-more easily and obviously implemented using \Law{}'s first order
-dynamic rules and the fact that \Law{} is naturally nondeterministic.
+more easily and obviously implemented using dynamic rules
+and the natural nondeterminism introduced by \Law{}.
 
 \inputcode{dynamic_rules.tri}
 
-The \kw{given} keyword annotates an expression in which one or more facts (\kw{ft})
-are made globally available. A fact is just a rule that depends on no other
-rules. In this particular example, the facts are all defined in place and
-from constant values, but facts are first class and can be computed dynamically,
-passed to or returned from functions, and stored in variables or sets to produce
-convenient packages of facts for later, all of which may appear in the \kw{given}
-clause.
+The \kw{given} keyword annotates an expression in which one or more
+rules (\kw{rl}) are made available, similarly to how the \kw{when}
+keyword annotates the expression with an effect handler.
+
+Meanwhile, the \kw{is} keyword seen here introduces a Boolean context,
+converting the result of calling a rule of \Law{} into a Boolean,
+rather than letting it act as a branch in control flow as it would
+have by default. An \kw{if} statement acts similarly, but with the
+capability of conditionally introducing bindings for its branches,
+similar to the \texttt{if let} statement of some other languages.
+
+\inputcode{fizzle.tri}
+
+Omitting the \kw{is} keyword, rules of \Law{} may still be called
+in the default context. In this case, nondeterminism in execution
+is exposed leading to some unusual but interesting behaviour.
+
+When a pattern in the default context fails to match, we say the execution
+\emph{fizzles}, ending it silently. Meanwhile, if a pattern in the default
+context binds more than once, the execution branches into multiple parallel
+executions, which run independently of each other.
+
+Note that in order for execution of a rule to introduce new bindings,
+it must have been within a pattern matching context (e.g. \kw{let}).
+If a pattern does not introduce new bindings it may be called without
+the \kw{let}. This is not likely to be useful for anything but
+triggering a fizzle, but may be used irresponsibly to cause unexpected
+and undetectable branching.
+
+If the program itself fizzles (i.e. the last remaining execution in
+a program has fizzled), the program is considered to have ended in
+failure, and will exit with an error status code. Similarly, if the
+program completes via multiple executions it is also considered
+a failure, even if all those executions were successful, because a
+program running in the real world is restricted to determinism and
+may only exit with a single value.
+
+In the example above, the program will always end in failure, but
+depending on the first character of the line read, may or may not
+print multiple possible words.
+
+To avoid such confusing behaviour, it is generally recommended that
+nondeterministic branching is not used directly at the top level without
+some handling to combine the parallel executions or to recover from all
+executions fizzling in a way that makes sense for the current application.

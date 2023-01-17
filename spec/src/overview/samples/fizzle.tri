@@ -1,0 +1,12 @@
+rule branch("a", "acrid")
+rule branch("b", "brake")
+rule branch("b", "barge")
+rule branch("c", "catch")
+rule branch("c", "close")
+rule branch("c", "crate")
+
+proc main!() {
+    let char = readline!()[0] when 'EOF cancel exit!(1)
+    let branch(^char, possibility)
+    println!($"Possible word: ${possibility}")
+}

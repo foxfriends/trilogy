@@ -15,7 +15,7 @@ proc allowMany!(words, body) {
 }
 
 proc main!() {
-    let line = readline!() when 'EOF cancel exit(1)
+    let line = readline!() when 'EOF cancel exit!(1)
     let allowed1 = allowOne!("cat", do!() isAllowed line))
     let allowed2 = allowOne!("cat", do!() {
         return allowAlso!("cactus", do!() isAllowed line)

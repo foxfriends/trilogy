@@ -15,7 +15,6 @@ pub enum TokenType {
     KwFn,
     KwFor,
     KwFrom,
-    KwFt,
     KwFunc,
     KwGiven,
     KwIf,
@@ -78,6 +77,7 @@ pub enum TokenType {
     KwUntil,
     KwVar,
     KwWhere,
+    KwWith,
 
     // Identifiers
     Discard,
@@ -109,6 +109,7 @@ pub enum TokenType {
     OpLt,
     OpGt,
     OpEqEq,
+    OpEqEqEq,
     OpLtEq,
     OpGtEq,
     OpAmp,
@@ -128,7 +129,7 @@ pub enum TokenType {
     OpDotDot,
     OpComma,
     OpColon,
-    OpTurnstile,
+    OpLeftArrow,
     OpSemi,
     OpPlus,
     OpMinus,
