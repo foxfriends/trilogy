@@ -247,32 +247,31 @@ similar to the \texttt{if let} statement of some other languages.
 \inputcode{fizzle.tri}
 
 Omitting the \kw{is} keyword, rules of \Law{} may still be called
-in the default context. In this case, nondeterminism in execution
-is exposed leading to some unusual but interesting behaviour.
+when in a default binding context, such as that of \kw{let}. In this case,
+nondeterminism in execution is exposed leading to some unusual but
+interesting behaviour.
 
-When a pattern in the default context fails to match, we say the execution
+When a pattern in a default binding context fails to match, we say the execution
 \emph{fizzles}, ending it silently. Meanwhile, if a pattern in the default
 context binds more than once, the execution branches into multiple parallel
 executions, which run independently of each other.
 
-Note that in order for execution of a rule to introduce new bindings,
-it must have been within a pattern matching context (e.g. \kw{let}).
-If a pattern does not introduce new bindings it may be called without
-the \kw{let}. This is not likely to be useful for anything but
-triggering a fizzle, but may be used irresponsibly to cause unexpected
-and undetectable branching.
-
 If the program itself fizzles (i.e. the last remaining execution in
 a program has fizzled), the program is considered to have ended in
-failure, and will exit with an error status code. Similarly, if the
-program completes via multiple executions it is also considered
-a failure, even if all those executions were successful, because a
-program running in the real world is restricted to determinism and
-may only exit with a single value.
+failure, and will exit with an error status code. This error status
+code may also be accompanied by a printed error message describing
+to the user the circumstances of the program's failure, for debugging
+purposes.
 
-In the example above, the program will always end in failure, but
+If the program completes via multiple executions it is again considered
+a failure, even if all those executions were successful. This is because
+a program running in the real world is restricted to determinism and
+may only exit with a single value; a program exiting by more than one
+path in this way is not something supported by any operating system.
+
+Given that, the example program above will always end in failure, but
 depending on the first character of the line read, may or may not
-print multiple possible words.
+print multiple possible words first.
 
 To avoid such confusing behaviour, it is generally recommended that
 nondeterministic branching is not used directly at the top level without

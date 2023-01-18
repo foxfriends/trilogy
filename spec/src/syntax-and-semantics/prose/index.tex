@@ -38,13 +38,13 @@ the arguments with which the procedure was called. A procedure may use the \kw{r
 keyword to end its evaluation, with its call evaluating to the returned value.
 If control runs off the end of the procedure's body, its call evaluates to \kw{unit}.
 
-It is also possible for a procedure to never return (e.g. built-in \fn{exit!}), in
-which case, the return type is Never, and such a value may never be realized.
+It is also possible for a procedure to never return, such as the built-in \fn{exit!},
+in which case the return type is Never and such a value may never be realized.
 
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0pt}
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M,\ \kw{return}\ N\ \}$}
-    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash M,\ N : \tau$}
+    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n},M \vdash N : \tau$}
     \LeftLabel{Procedure\textsuperscript{ret}}
     \BinaryInfC{$\Gamma \vdash p: \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\tau$}
 \end{prooftree}
@@ -52,7 +52,7 @@ which case, the return type is Never, and such a value may never be realized.
 \begin{prooftree}
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
     \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash M : \top$}
-    \LeftLabel{Procedure\textsuperscript{end}}
+    \LeftLabel{Procedure\textsuperscript{$\top$}}
     \BinaryInfC{$\Gamma \vdash p: \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\kw{unit}$}
 \end{prooftree}
 
@@ -75,40 +75,33 @@ must be separated by a line break or an explicit separator (\op{,}).
     \bnfmore{\bnfpn{Statement}\bnfor\bnfes}
 \end{bnf*}
 
-A sequence of statements evaluates to the result of the last statement
-in the sequence. The values of preceding statements are lost. This rule
-may be overridden by the rules in the following sections depending on
-the specific types of statements.
+A sequence of statements has no value, but rather each step of the sequence
+performs some effect on the context in which it is being run, eventually
+producing the result of the program.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash M : \tau_0$}
-    \AxiomC{$\Gamma \vdash N : \tau_1$}
-    \LeftLabel{Sequencing}
-    \BinaryInfC{$\Gamma \vdash M \op{,}\ N : \tau_1$}
+    \AxiomC{$\Gamma \vdash M \Rightarrow \Phi$}
+    \AxiomC{$\Phi \vdash N : \tau$}
+    \LeftLabel{Sequence\textsuperscript{$\top$}}
+    \BinaryInfC{$\Gamma \vdash M \op{,}\ N: \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash M \Rightarrow \bot$}
+    \LeftLabel{Sequence\textsuperscript{$\bot$}}
+    \UnaryInfC{$\Gamma \vdash M \op{,}\ N: \bot$}
 \end{prooftree}
 
 \subsubsection{Statements}
 
-While most imperative languages bring some sort of distinction between
-expressions and statements, \Prose{} does not. Statements in this
-sense might have been more aptly referred to as expressions, but we
-stick to the statement terminology to differentiate from expressions
-in \Poetry{}.
+A statement is a single ``step'' of a procedure in \Prose{}. Statements do not
+evaluate to any value, but they perform effects on the state of the program and
+its environment.
 
-Any statement or expression may occur within any other statement, and
-all statements evaluate to some value, albeit sometimes \kw{unit}.
-This can make for some possibly unexpected but useful combinations
-(e.g. \texttt{x == 5 or return 3}); whether it is a good idea to use
-such combinations is left to the developer to decide.
-
-While some statements are unique to \Prose{}, others look remarkably similar
-to those found in the other languages, but while allowing other statements
-to be nested within; for example, \texttt{Int readline!()} could almost be
-a \Poetry{} application of \fn{Int} if not for the procedure call in argument
-position. As procedure calls are not permitted in \Poetry{}, this ends up
-producing very similar productions with very similar semantics. To
-differentiate potentially ambiguous statement production names, they
-are prefixed with \texttt{S}.
+To differentiate with similar constructs in \Poetry{}, while also saving space,
+the names of the statement productions are prefixed with S, short for statement.
+Meanwhile, expressions are actually all \Poetry{}, so such specification is left
+until later.
 
 \begin{bnf*}
     \bnfprod{Statement}{
@@ -140,43 +133,18 @@ are prefixed with \texttt{S}.
     \bnfmore{
         \bnfpn{SYield}
         \bnfor
-        \bnfpn{SWhen}
-        \bnfor
-        \bnfpn{SGiven}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{SCollection}
-        \bnfor
-        \bnfpn{SComprehension}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{SInfixOp}
-        \bnfor
-        \bnfpn{SApplication}
-        \bnfor
-    } \\
-    \bnfmore{
         \bnfpn{ProcedureCall}
-        \bnfor
-        \bnfpn{DoBlock}
         \bnfor
         \bnfpn{Block}
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{ValueAccess}
-        \bnfor
-        \bnfpn{ParenthesizedStatement}
+        \bnfpn{ParenthesizedExpression}
     } \\
-    \bnfprod{Substatement}{
-        \bnfpn{SPrefixOp}\bnfor\bnfpn{Statement}
-    } \\
-    \bnfprod{ParenthesizedStatement}{
+    \bnfprod{ParenthesizedExpression}{
         \bnfts{(}
         \bnfsp
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
         \bnfsp
         \bnfts{)}
     } \\
@@ -189,19 +157,10 @@ are prefixed with \texttt{S}.
     }
 \end{bnf*}
 
-The one distinction is that a top-level statement may not begin with a
-prefix operator. Given the lack of postfix operators in Trilogy, that
-leaves infix operators being the only valid operators at the top-level
-of a sequence.
-
-Add the evaluation semantics for parenthesized and block statements.
-Notably, a block introduces a new scopes in which names are bound,
-while parentheses do not.
-
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash M : \tau$}
     \LeftLabel{Unwrap}
-    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \tau$}
+    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \top$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -213,15 +172,13 @@ while parentheses do not.
 
 \subsubsection{Let}
 
-The \kw{let} statement in \Prose{} is a non-fallible pattern matching context.
-If the value on the right side of the \op{=} does not match the pattern on the
-left, the execution fizzles.
+The \kw{let} statement in \Prose{} exposes a ``default binding context'' in which
+bindings may be introduced. Depending on how many times the binding pattern matches,
+this may introduce a branch or cause a fizzle. Most often, however, such bindings
+are deterministic and so control flow will progress intuitively.
 
-Only a single pattern may be bound in each let statement, though tuple patterns
-may be used to simulate binding multiple values at once.
-
-The \kw{let} introduces an implicit scope from its location in the source
-code until the end of the nearest explicit scope (e.g. the end of a block).
+There are two forms to a \kw{let} statement: the common unification
+case, and the more general \Law{} rule application.
 
 \begin{bnf*}
     \bnfprod{SLet}{
@@ -231,19 +188,38 @@ code until the end of the nearest explicit scope (e.g. the end of a block).
         \bnfsp
         \bnfts{\op{=}}
         \bnfsp
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{let}}
+        \bnfsp
+        \bnfpn{RuleApplication}
     }
 \end{bnf*}
 
+Semantically, a \kw{let} statement introduces an implicit scope from its location
+in the source code until the end of the nearest explicit scope (e.g. the end of a block).
+The bindings declared in this statement are available within that scope.
+
 \begin{prooftree}
-    \def\defaultHypSeparation{\hskip 0in}
-    \AxiomC{$\Gamma \vdash y:\pi$}
-    \AxiomC{$\Gamma \vdash y \mapsto x$}
-    \AxiomC{$\Gamma \vdash \{ a_i : \pi_i\ |\ a_i := x \}$}
-    \AxiomC{$\Gamma, a_i: \pi_i \vdash M : \tau$}
+    \AxiomC{$\Gamma \vdash x = y$}
+    \AxiomC{$\Gamma, \{ a_i\ |\ a_i := x \} :> \Phi$}
     \LeftLabel{\label{sem:declaration}Declaration}
-    \QuaternaryInfC{$\Gamma \vdash \kw{let}\ x = y\op{,}\ M : \tau$}
+    \BinaryInfC{$\Gamma \vdash \kw{let}\ x = y \Rightarrow \Phi$}
 \end{prooftree}
+
+What is more unique to \Trilogy{} is the branching and fizzling capability of the
+\kw{let} statement, which may lead to multiple executions of the program running
+in parallel.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash x \neq y$}
+    \LeftLabel{\label{sem:declaration}Declaration\textsuperscript{$\bot$}}
+    \UnaryInfC{$\Gamma \vdash \kw{let}\ x = y : \bot$}
+\end{prooftree}
+
+% NOTE: in process of reconsidering. Below is not likely accurate.
 
 \subsubsection{Assignment}
 
@@ -277,7 +253,7 @@ intuitive way (the left hand identifer is used as the left hand side of the oper
         \bnfsp
         \bnfts{\op{=}}
         \bnfsp
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
     } \\
     \bnfprod{FunctionAssignment}{
         \bnfpn{Identifier}
@@ -291,7 +267,7 @@ intuitive way (the left hand identifer is used as the left hand side of the oper
         \bnfsp
         \bnfpn{OperatorEq}
         \bnfsp
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
     } \\
     \bnfprod{OperatorEq}{
         \bnfts{+=}\bnfor
@@ -316,7 +292,7 @@ intuitive way (the left hand identifer is used as the left hand side of the oper
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0.05in}
     \AxiomC{$\Gamma \vdash y:\pi$}
-    \AxiomC{$y \mapsto x$}
+    \AxiomC{$y = x$}
     \AxiomC{$\Gamma \vdash \{a_i : \pi_i\ |\ a_i := x\ \}$}
     \AxiomC{$\Gamma,a_i:\pi_i \vdash M : \tau$}
     \LeftLabel{Assignment}
@@ -413,7 +389,7 @@ still supported, so we end up with this annoying extra bit of rule.
 
 \begin{bnf*}
     \bnfprod{Condition}{
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
         \bnfsp
         \bnfts{,}
         \bnfsp
@@ -427,7 +403,7 @@ still supported, so we end up with this annoying extra bit of rule.
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
         \bnfsp
         \bnfts{,}
         \bnfor
@@ -435,7 +411,7 @@ still supported, so we end up with this annoying extra bit of rule.
         \bnfsp
         \bnfts{,}
         \bnfor
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
         \bnfor
         \bnfpn{Query}
     } \\
@@ -444,7 +420,7 @@ still supported, so we end up with this annoying extra bit of rule.
         \bnfsp
         \bnfts{=}
         \bnfsp
-        \bnfpn{Substatement}
+        \bnfpn{Expression}
         \bnfor
         \bnfpn{RuleCheck}
     }

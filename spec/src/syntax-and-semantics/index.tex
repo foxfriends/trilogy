@@ -28,10 +28,10 @@ the following are summarized here:
     is searched. New names bound are bound in $\Phi$ without affecting $\Gamma$.
     Names which are rebound (e.g. in assignment) are rebound in the scope in
     which they are found.
-    \item $x \mapsto y$ --- Maps to, as a pattern. $x$ and $y$ have the same
-    shape, but $x$ is a value and $y$ is a pattern with potentially unbound
-    variables.
-    \item $a := x$ --- Declares, as a name. $x$ is a pattern and $a$ is a value
+    \item $x = y$ --- Unifies, via the unification algorithm. Given the patterns
+    $x$ and $y$, find substitutions for the variables of both patterns such that
+    $x$ and $y$ are the same.
+    \item $a := x$ --- Declares, as a name. $x$ is a pattern and $a$ is a name
     bound by that pattern. Patterns often declare more than one name.
     \item $\text{read}(\sigma)$ --- Read, as a file. $\sigma$ is a String which is interpreted
     as a URL, and $\text{read}(\sigma)$ is the contents of the file located by that URL.
@@ -234,7 +234,8 @@ into scope, or to rename a module something more convenient.
 When a module is defined locally (directly in the same file as its parent
 module), the definitions within the module may access all definitions (including
 private definitions) of the containing module. The reverse is not true; the
-private members of a submodule remain private unless exported.
+private members of a submodule remain private unless exported. Modules defined
+externally also may not access members of the module in which they are declared.
 
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0in}
@@ -294,7 +295,7 @@ languages.
         \bnfpn{FunctionBody}
     } \\
     \bnfprod{RuleDefinition}{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfor} \\
-    \bnfmore{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfsp{\op{:-}}\bnfsp\bnfpn{RuleBody}}
+    \bnfmore{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfsp{\op{<-}}\bnfsp\bnfpn{RuleBody}}
 \end{bnf*}
 
 \subimport{prose/}{index.tex}
