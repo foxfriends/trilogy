@@ -1,0 +1,89 @@
+\subsection{Semantic Types}
+
+The remaining types are called ``semantic'' types, referring to how values of these
+types are what make up the semantic meaning of the program.
+
+All semantic types are non-structural and reference types. Semantic types do
+have string and source representations, but in versions prior to the 1.0
+release of \Trilogy{}, converting to source representation of these types will
+not be officially defined or supported.
+
+\subsubsection{Procedures}
+
+The first semantic type is the Procedure type, which is the type of both
+defined procedures and procedure closures.
+
+In type annotation, the Procedure type is written as in \texttt{!(A, B, C) -> T}
+where, in this example, \texttt{A}, \texttt{B}, and \texttt{C} are the types of
+the parameters and \texttt{T} the type of the return value. The number of parameters
+may change depending on the actual signature of the procedure in question.
+
+Values of the Procedure type may be called using the procedure call syntax \texttt{!()},
+passing arguments to all of the defined parameters within the parentheses.
+
+Values of Procedure type are created at the top level by \kw{proc} definitions, or as
+closures using the keyword \kw{do}.
+
+The string representation of a defined (named) procedure is its name; the name does
+not include the \texttt{!} symbol. Meanwhile, the string representation of an anonymous
+procedure closure is defined to be the literal string \texttt{<do>}.
+
+\subsubsection{Functions}
+
+The Function type is a semantic type, which is the type of defined functions and
+function closures.
+
+In type annotation, the Function type is written as \texttt{T -> U}. Notably, the
+function type only has space for a single parameter type: because \Poetry{} supports
+currying, all functions actually only accept a single parameter and ``multi-parameter''
+functions are syntax sugar for single parameter functions returning a closure over
+the argument value and accepting the next parameter.
+
+A value of the Function type may be applied by providing its argument directly after,
+separated only by a space.
+
+The string representation of a defined (named) function is its name. Meanwhile, the
+string representation of an anonymous function closure is defined to be the literal
+string \texttt{<fn>}.
+
+\subsubsection{Continuations}
+
+Very similar to the Function type is the Continuation type. Conceptually, a continuation
+may actually just \emph{be} a function, and indeed when written as a type annotation, it
+is written the same as a function (e.g. \texttt{T -> U}).
+
+The difference is mostly one of implementation, as a continuation is not constructed in
+the same way as a function, but can only be acquired through an effect handler in the
+form of the \kw{resume} keyword which, though technically a keyword, works much like a
+function in that it can be captured by closures or passed to another function as a
+parameter.
+
+Continuations are applied much like functions, and evaluate to some value just as a
+function application does.
+
+The string representation of a continuation is the literal string \texttt{<resume>}.
+
+\subsubsection{Modules and Module Functions}
+
+Modules and Module Functions in \Trilogy{} are first class objects which behave much
+like values of Record or Function type. While they may be passed as arguments
+to other procedures and functions, Module Functions are restricted to accepting other
+Modules (and Module Functions) as parameters, ensuring that all module lookups can be
+performed statically.
+
+At this time, a Module allows you to implement the closest thing to what you might
+consider an abstract data type in another language. A Module Function could be considered
+as a generic data type, where the expected signatures of its parameters are like interfaces that
+other modules may implement. None of that requires particular handling in the type system
+however, as modules are restricted to being applied statically.
+
+In type annotation, the module type is written as \texttt{Module}, and a module function
+as \texttt{Module -> Module}. This is not exactly the most strongly typed of descriptors,
+but suffices for the purposes of \Trilogy{} as a dynamically typed language. While it may
+be useful at times to be able to describe the signature of these modules, in practice it
+is unnecessary as the interpreter will be able to determine statically whether a module
+call is valid or not.
+
+That said, modules can still be converted to string representation, which is the
+of the module followed by the names of its parameter modules, if any, in parentheses,
+such as \texttt{ModuleA(ModuleB, ModuleC(ModuleD))}.

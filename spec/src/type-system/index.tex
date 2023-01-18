@@ -54,9 +54,13 @@ have types:
 \end{itemize}
 
 \noindent
-There are no explicit user defined types, only combinations of the built in
-types; this is a complete list of all types to be seen in a \Trilogy{}
-program.
+Notably there is currently no type for a rule at this time. First class rules
+may come later, but their semantics are unclear as rules are currently considered
+more of pure control flow and pattern matching, and not as values themselves.
+
+Additionally, there are no explicit user defined types, only combinations of the
+built in types. That makes this list a complete summary of all types to be seen
+in a \Trilogy{} program.
 
 By no means, however, is this the end of the story for \Trilogy{}'s type
 system. Custom abstract data types, as well as further built-in primitive types
@@ -133,4 +137,4 @@ which may be left unconstrained to represent accepting any other type in its pla
 
 \input{compound-types.tex}
 
-\input{function-types.tex}
+\input{semantic-types.tex}
