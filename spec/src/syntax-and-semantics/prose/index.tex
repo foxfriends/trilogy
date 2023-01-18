@@ -215,7 +215,7 @@ while parentheses do not.
 
 The \kw{let} statement in \Prose{} is a non-fallible pattern matching context.
 If the value on the right side of the \op{=} does not match the pattern on the
-left, a runtime failure is triggered.
+left, the execution fizzles.
 
 Only a single pattern may be bound in each let statement, though tuple patterns
 may be used to simulate binding multiple values at once.
@@ -371,8 +371,7 @@ chains. For \Prose{} they are defined as follows.
 
 In the common case, the condition is a statement that evaluates to a Boolean
 result, \kw{true} or \kw{false}, and control flows as you might expect.
-\todo{Define runtime failure}
-If the result is not a Boolean, this triggers a runtime failure.
+If the result is not a Boolean, the execution fizzles.
 
 An \kw{if}-\kw{else} chain evaluates to the value of the block that is executed.
 If no block is executed (there is no \kw{else} clause, and none of the
@@ -441,11 +440,11 @@ still supported, so we end up with this annoying extra bit of rule.
         \bnfpn{Query}
     } \\
     \bnfprod{Query}{
-        \bnfpn{Substatement}
-        \bnfsp
-        \bnfts{\kw{is}}
-        \bnfsp
         \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{=}
+        \bnfsp
+        \bnfpn{Substatement}
         \bnfor
         \bnfpn{RuleCheck}
     }
@@ -453,4 +452,3 @@ still supported, so we end up with this annoying extra bit of rule.
 
 A conditional is not an iterative context. If a pattern condition matches
 to multiple results, the first result is chosen and the rest are skipped.
-Meanwhile, if a pattern is a statement which evaluates to
