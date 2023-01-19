@@ -22,6 +22,7 @@ As you can see, progress at this time is limited:
     - http://www.math.bas.bg/bantchev/place/iswim/j-explanation.pdf
     - https://cs.ru.nl/~dfrumin/notes/delim.html
     - https://www.cs.cmu.edu/~rwh/students/filinski.pdf
+    - https://homepages.inf.ed.ac.uk/slindley/papers/effmondel-jfp.pdf
     - https://caml.inria.fr/pub/papers/xleroy-applicative_functors-popl95.pdf
     - https://doc.rust-lang.org/reference/
 - [ ] Design the language (In Progress)
