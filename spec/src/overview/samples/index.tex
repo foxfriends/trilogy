@@ -111,7 +111,7 @@ other existing patterns.
 
 Rules may be applied in most situations where patterns are being matched, making
 for a very powerful pattern-matching experience. When used within an \emph{iterative
-context}, if a pattern binds variables as a result of applying rule, those bindings
+context}, if a pattern binds variables as a result of looking up a rule, those bindings
 are iterated over successively.
 
 In \Prose{}, the primary iterative context is the \kw{for} loop. Unlike other
@@ -276,4 +276,4 @@ print multiple possible words first.
 To avoid such confusing behaviour, it is generally recommended that
 nondeterministic branching is not used directly at the top level without
 some handling to combine the parallel executions or to recover from all
-executions fizzling in a way that makes sense for the current application.
+executions fizzling in a way that makes sense for the current program.

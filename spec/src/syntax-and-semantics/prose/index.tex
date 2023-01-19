@@ -177,8 +177,8 @@ bindings may be introduced. Depending on how many times the binding pattern matc
 this may introduce a branch or cause a fizzle. Most often, however, such bindings
 are deterministic and so control flow will progress intuitively.
 
-There are two forms to a \kw{let} statement: the common unification
-case, and the more general \Law{} rule application.
+There are two forms to a \kw{let} statement: the common unification case,
+and the more general \Law{} rule lookup case.
 
 \begin{bnf*}
     \bnfprod{SLet}{
@@ -194,7 +194,7 @@ case, and the more general \Law{} rule application.
     \bnfmore{
         \bnfts{\kw{let}}
         \bnfsp
-        \bnfpn{RuleApplication}
+        \bnfpn{Lookup}
     }
 \end{bnf*}
 
@@ -203,21 +203,31 @@ in the source code until the end of the nearest explicit scope (e.g. the end of 
 The bindings declared in this statement are available within that scope.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash x = y$}
-    \AxiomC{$\Gamma, \{ a_i\ |\ a_i := x \} :> \Phi$}
-    \LeftLabel{\label{sem:declaration}Declaration}
-    \BinaryInfC{$\Gamma \vdash \kw{let}\ x = y \Rightarrow \Phi$}
+    \AxiomC{$\Gamma \vdash y$}
+    \AxiomC{$x = y$}
+    \AxiomC{$\Gamma, \{ a\ |\ a := x \} :> \Phi$}
+    \LeftLabel{\label{sem:declaration}Declare}
+    \TrinaryInfC{$\Gamma \vdash \kw{let}\ x = y \Rightarrow \Phi$}
 \end{prooftree}
 
 What is more unique to \Trilogy{} is the branching and fizzling capability of the
-\kw{let} statement, which may lead to multiple executions of the program running
-in parallel.
+\kw{let} statement when provided a lookup of a rule of \Law{}. Depending on
+how many possible bindings there are for the provided rule, a \kw{let} statement
+may lead to multiple executions of the program running in parallel, or none.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash x \neq y$}
-    \LeftLabel{\label{sem:declaration}Declaration\textsuperscript{$\bot$}}
-    \UnaryInfC{$\Gamma \vdash \kw{let}\ x = y : \bot$}
+    \AxiomC{$\Gamma \vdash y$}
+    \AxiomC{$x = y$}
+    \AxiomC{$\Gamma, \{ a\ |\ a := x \} :> \Phi$}
+    \LeftLabel{Branch}
+    \TrinaryInfC{$\Gamma \vdash \kw{let}\ x \Rightarrow \Phi$}
 \end{prooftree}
+
+Notably, the semantics are nearly the same, the only difference is that in the
+binding case $y$ is determined contextually (leading to its multiple possibilities)
+whereas, in the declaration case, the single value of $y$ was noted in the source
+code leading to the typical at-most-once binding behaviour found in most programming
+languages. The declaration case may still fail to bind, leading to a fizzle.
 
 % NOTE: in process of reconsidering. Below is not likely accurate.
 
@@ -293,8 +303,8 @@ intuitive way (the left hand identifer is used as the left hand side of the oper
     \def\defaultHypSeparation{\hskip 0.05in}
     \AxiomC{$\Gamma \vdash y:\pi$}
     \AxiomC{$y = x$}
-    \AxiomC{$\Gamma \vdash \{a_i : \pi_i\ |\ a_i := x\ \}$}
-    \AxiomC{$\Gamma,a_i:\pi_i \vdash M : \tau$}
+    \AxiomC{$\Gamma \vdash \{a : \pi_i\ |\ a := x\ \}$}
+    \AxiomC{$\Gamma,a:\pi_i \vdash M : \tau$}
     \LeftLabel{Assignment}
     \QuaternaryInfC{$\Gamma\vdash x\ \op{=}\ y\op{,}\ M : \tau$}
 \end{prooftree}
