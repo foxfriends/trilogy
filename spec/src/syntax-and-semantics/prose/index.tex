@@ -119,9 +119,9 @@ until later.
         \bnfor
         \bnfpn{SWhile}
         \bnfor
-        \bnfpn{SLoop}
-        \bnfor
         \bnfpn{SFor}
+        \bnfor
+        \bnfpn{SLoop}
         \bnfor
     } \\
     \bnfmore{
@@ -171,62 +171,34 @@ until later.
 
 \subsubsection{Let}
 
-The \kw{let} statement in \Prose{} exposes a ``default binding context'' in which
-bindings may be introduced. Depending on how many times the binding pattern matches,
-this may introduce a branch or cause a fizzle. Most often, however, such bindings
-are deterministic and so control flow will progress intuitively.
-
-There are two forms to a \kw{let} statement: the common single unification case,
-and the more general branching case via \Law{}.
+The \kw{let} statement in \Prose{} exposes a ``binding context'' in which
+bindings may be introduced, similar to that of \Law{}. Depending on how many times
+the binding pattern matches, this may introduce a branch or cause a fizzle.
+Most often, however, such bindings are done via a direct single unification
+which is determinisitic, and so control flow will progress intuitively.
 
 \begin{bnf*}
     \bnfprod{SLet}{
         \bnfts{\kw{let}}
         \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{\op{=}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfor
+        \bnfpn{Unification}
     } \\
-    \bnfmore{
-        \bnfts{\kw{let}}
-        \bnfsp
-        \bnfpn{Lookup}
-    }
 \end{bnf*}
 
 Semantically, a \kw{let} statement introduces an implicit scope from its location
 in the source code until the end of the nearest explicit scope (e.g. the end of a block).
 The bindings declared in this statement are available within that scope.
 
-\begin{prooftree}
-    \AxiomC{$\Gamma \vdash E$}
-    \AxiomC{$P = E$}
-    \AxiomC{$\Gamma, \{ a\ |\ a := P \} :> \Phi$}
-    \LeftLabel{\label{sem:declaration}Declare}
-    \TrinaryInfC{$\Gamma \vdash \kw{let}\ P = E \Rightarrow \Phi$}
-\end{prooftree}
-
 What is more unique to \Trilogy{} is the branching and fizzling capability of the
-\kw{let} statement when provided a lookup of a rule of \Law{}. Depending on
-how many possible bindings there are for the provided rule, a \kw{let} statement
-may lead to multiple executions of the program running in parallel, or none.
+\kw{let} statement when provided a unification via a more complex rule of \Law{}.
+Depending on how many possible bindings there are for the provided rule, a \kw{let}
+statement may lead to multiple executions of the program running in parallel, or none.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash y$}
-    \AxiomC{$P = y$}
-    \AxiomC{$\Gamma, \{ a\ |\ a := P \} :> \Phi$}
+    \AxiomC{$\Gamma \vdash U \Rightarrow \Phi$}
     \LeftLabel{Branch}
-    \TrinaryInfC{$\Gamma \vdash \kw{let}\ P \Rightarrow \Phi$}
+    \UnaryInfC{$\Gamma \vdash \kw{let}\ U \Rightarrow \Phi$}
 \end{prooftree}
-
-Notably, the semantics are nearly the same, the only difference is that in the
-binding case $y$ is determined contextually (leading to its multiple possibilities)
-whereas, in the declaration case, the single value of $E$ was noted in the source
-code leading to the typical at-most-once binding behaviour found in most programming
-languages. The declaration case may still fail to bind, leading to a fizzle.
 
 \subsubsection{Assignment}
 
@@ -377,7 +349,7 @@ If the result is not a Boolean, the execution fizzles.
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash C = \kw{false}$}
     \LeftLabel{If\textsuperscript{\kw{false}}}
-    \UnaryInfC{$\Gamma \vdash \kw{if}\ C\ T \Rightarrow \Gamma$}
+    \UnaryInfC{$\Gamma \vdash \kw{if}\ C\ T : \top$}
 \end{prooftree}
 
 \subsubsection{Match}
@@ -484,3 +456,57 @@ The omitted clauses of the \kw{case} statement are formalized by syntax transfor
     \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %
     \texttt{\kw{case} \kw{if} \$c:expr} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \$c} \\ %
 \end{align*}
+
+\subsubsection{While}
+
+The \kw{while} loop accepts a Boolean condition and repeats a block of code
+until that condition evaluates to \kw{false}. \Trilogy{}'s \kw{while} loop is
+very standard, as far as such loops go. There is no \texttt{do}\dots\texttt{while}
+loop in \Trilogy{}.
+
+\begin{bnf*}
+    \bnfprod{SWhile}{
+        \bnfts{\kw{while}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+    }
+\end{bnf*}
+
+Branching may occur in the body of a \kw{while} loop, leading to more iterations
+than expected if not careful. However, since the \kw{while} loop provides no collection
+mechanism, once those branches break out of the loop they will continue to execute
+beyond the end of the loop.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash C = \kw{true}$}
+    \AxiomC{$\Gamma\vdash B \Rightarrow \Phi$}
+    \AxiomC{$\Phi\vdash \kw{while}\ C\ B \Rightarrow\Sigma$}
+    \LeftLabel{Loop}
+    \TrinaryInfC{$\Gamma\vdash \kw{while}\ C\ B \Rightarrow \Sigma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash C = \kw{false}$}
+    \LeftLabel{End Loop}
+    \UnaryInfC{$\Gamma\vdash \kw{while}\ C\ B:\top$}
+\end{prooftree}
+
+\subsubsection{For}
+
+The \kw{for} loop accepts a pattern as a condition and repeats a block of code
+for all valid bindings generated by that pattern. This is more similar to a for-each
+loop than the three part conditional loop seen in some imperative languages.
+No such conditional \kw{for} loop exists in \Trilogy{}, but similar semantics can
+be constructed using \kw{while}.
+
+\begin{bnf*}
+    \bnfprod{SFor}{
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Unification}
+        \bnfsp
+        \bnfpn{Block}
+    }
+\end{bnf*}

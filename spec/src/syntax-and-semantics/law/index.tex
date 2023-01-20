@@ -1,0 +1,102 @@
+\subsection{Law}
+
+We begin with \Law{}, as the semantics of \Law{} are the most fundamental to
+the whole of \Trilogy{}. \Law{} is also the most isolated of the three
+sublanguages, and so easiest to describe without much knowledge beyond
+the intuitive understanding of the other two.
+
+For those familiar with logical languages such as Prolog, \Law{} may be
+familiar, though with different syntax and less logical impurity. \Law{} can
+afford to give up the ability to express certain actions (such as side effects
+or computations) given the existence of \Prose{} and \Poetry{}.
+
+\begin{bnf*}
+    \bnfprod{RuleHead}{
+        \bnfts{\texttt{Identifier}}
+        \bnfsp
+        \bnfts{\texttt{(}}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfsp
+        \bnfts{\texttt{)}}
+    } \\
+    \bnfprod{PatternList}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\texttt{,}}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfor
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{RuleBody}{\bnfpn{Query}}
+\end{bnf*}
+
+\subsubsection{Query}
+
+A query is a way to chain together multiple unifications using different
+logical operations.
+
+\begin{bnf*}
+    \bnfprod{Query}{
+        \bnfpn{Unification}
+        \bnfsp
+        \bnfts{\kw{and}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfor
+        \bnfpn{Unification}
+        \bnfsp
+        \bnfts{\kw{or}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Unification}
+        \bnfsp
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfor
+        \bnfpn{Unification}
+        \bnfor
+        \bnfts{\texttt{(}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{\texttt{)}}
+    }
+\end{bnf*}
+
+\subsubsection{Unification}
+
+One of the most fundamental parts of \Law{} and indeed of \Trilogy{} itself
+is unification. All assignment and binding in \Trilogy{} occurs through
+unification of values and patterns.
+
+\begin{bnf*}
+    \bnfprod{Unification}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\op{=}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{in}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{\bnfts{\kw{true}} \bnfor\bnfts{\kw{false}}\bnfor \bnfpn{Lookup}}
+\end{bnf*}
+
+\subsubsection{Lookup}
