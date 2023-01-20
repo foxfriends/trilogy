@@ -19,8 +19,8 @@ I am no expert, and if some expert ever sees this I will gladly accept any
 corrections to these notes, as I am sure they will be conflicting themselves
 in more than a few places.
 
-Seeing as I am not an expert, some potentially non-standard symbols used in
-the following are summarized here:
+Seeing as I am not an expert, some symbols used in potentially non-
+standard ways in the following documentation are summarized here:
 
 \begin{itemize}
     \item $\Gamma :> \Phi$ --- Extends from, as a scope. Names looked up in the
@@ -28,13 +28,20 @@ the following are summarized here:
     is searched. New names bound are bound in $\Phi$ without affecting $\Gamma$.
     Names which are rebound (e.g. in assignment) are rebound in the scope in
     which they are found.
-    \item $x = y$ --- Unifies, via the unification algorithm. Given the patterns
-    $x$ and $y$, find substitutions for the variables of both patterns such that
-    $x$ and $y$ are the same.
-    \item $a := x$ --- Declares, as a name. $x$ is a pattern and $a$ is a name
+    \item $P = E$ --- Unifies, via the unification algorithm. Given the pattern
+    $P$ and value $E$, find values for the free variables in $P$ such that
+    that $P$ and $E$ represent the same value.
+    \item $a := P$ --- Declares, as a name. $P$ is a pattern and $a$ is a name
     bound by that pattern. Patterns often declare more than one name.
     \item $\text{read}(\sigma)$ --- Read, as a file. $\sigma$ is a String which is interpreted
     as a URL, and $\text{read}(\sigma)$ is the contents of the file located by that URL.
+    \item $X : \top$ --- Continues execution. After evaluation of the code $X$,
+    the evaluation of the program continues at least once. Due to branching, there
+    may be multiple executions remaining at this time.
+    \item $X : \bot$ --- Ends execution. After evaluation of the code $X$,
+    no further code is executed. This may be due to failed branching (fizzling),
+    as a result of certain control flow (e.g. \kw{return}), or explicit as in the
+    case of certain built-in procedures such as \fn{exit!}.
 \end{itemize}
 
 \subsection{Whitespace}
@@ -238,34 +245,34 @@ private members of a submodule remain private unless exported. Modules defined
 externally also may not access members of the module in which they are declared.
 
 \begin{prooftree}
-    \def\defaultHypSeparation{\hskip 0in}
-    \AxiomC{$\Gamma,m_{1\hdots n},\Phi \vdash p : \tau$}
+    \def\defaultHypSeparation{\hskip 0.1in}
+    \AxiomC{$\Gamma,m_{1\hdots n},\Phi \vdash p$}
     \AxiomC{$\kw{module}\ m\ (m_{1\hdots n})\ \{\ K\ \}$}
     \AxiomC{$K \Rightarrow \kw{export}\ p$}
     \LeftLabel{Local Module}
-    \TrinaryInfC{$\Gamma \vdash m\texttt{.}p : \tau$}
+    \TrinaryInfC{$\Gamma \vdash m\texttt{.}p$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\Phi \vdash p : \tau$}
+    \AxiomC{$\Phi \vdash p$}
     \AxiomC{$\kw{module}\ m\ \kw{at}\ \sigma$}
     \AxiomC{$\text{read}(\sigma) \Rightarrow \kw{export}\ p$ }
     \LeftLabel{External Module}
-    \TrinaryInfC{$\Gamma \vdash m\texttt{.}p : \tau$}
+    \TrinaryInfC{$\Gamma \vdash m\texttt{.}p$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash m.p : \tau$}
+    \AxiomC{$\Gamma \vdash m.p$}
     \AxiomC{$\kw{import}\ m\ \kw{as}\ n$}
     \LeftLabel{Import As}
-    \BinaryInfC{$\Gamma \vdash n\texttt{.}p : \tau$}
+    \BinaryInfC{$\Gamma \vdash n\texttt{.}p$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash m.p : \tau$}
+    \AxiomC{$\Gamma \vdash m.p$}
     \AxiomC{$\kw{import}\ p\ \kw{from}\ m$}
     \LeftLabel{Import From}
-    \BinaryInfC{$\Gamma \vdash p : \tau$}
+    \BinaryInfC{$\Gamma \vdash p$}
 \end{prooftree}
 
 \subsubsection{Definitions}

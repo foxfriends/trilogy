@@ -37,30 +37,32 @@ When called, the body of the procedure is run with the formal parameters bound t
 the arguments with which the procedure was called. A procedure may use the \kw{return}
 keyword to end its evaluation, with its call evaluating to the returned value.
 If control runs off the end of the procedure's body, its call evaluates to \kw{unit}.
+A procedure may cause a fizzle or branch, in which case all evaluations are propgated
+to the call site, conceptually causing the call to fizzle or branch respectively.
 
-It is also possible for a procedure to never return, such as the built-in \fn{exit!},
-in which case the return type is Never and such a value may never be realized.
+It is also possible for a procedure to never return, yet also not cause a fizzle,
+such as the built-in \fn{exit!}, in which case the return type is Never and such a
+value may never be realized.
 
 \begin{prooftree}
-    \def\defaultHypSeparation{\hskip 0pt}
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M,\ \kw{return}\ N\ \}$}
-    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n},M \vdash N : \tau$}
-    \LeftLabel{Procedure\textsuperscript{ret}}
-    \BinaryInfC{$\Gamma \vdash p: \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\tau$}
+    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M\op{,}\ N $}
+    \LeftLabel{Procedure}
+    \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}=N$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
-    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash M : \top$}
+    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M : \top$}
     \LeftLabel{Procedure\textsuperscript{$\top$}}
-    \BinaryInfC{$\Gamma \vdash p: \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\kw{unit}$}
+    \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}=\kw{unit}$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
-    \AxiomC{$\Gamma,x_{1\hdots n}:\tau_{1\hdots n} \vdash M : \bot$}
+    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M : \bot$}
     \LeftLabel{Procedure\textsuperscript{$\bot$}}
-    \BinaryInfC{$\Gamma \vdash p:\ \texttt{!(}\tau_{1\hdots n}\texttt{)}\rightarrow\bot$}
+    \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}:\bot$}
 \end{prooftree}
 
 \subsubsection{Sequences}
@@ -177,8 +179,8 @@ bindings may be introduced. Depending on how many times the binding pattern matc
 this may introduce a branch or cause a fizzle. Most often, however, such bindings
 are deterministic and so control flow will progress intuitively.
 
-There are two forms to a \kw{let} statement: the common unification case,
-and the more general \Law{} rule lookup case.
+There are two forms to a \kw{let} statement: the common single unification case,
+and the more general branching case via \Law{}.
 
 \begin{bnf*}
     \bnfprod{SLet}{
@@ -203,11 +205,11 @@ in the source code until the end of the nearest explicit scope (e.g. the end of 
 The bindings declared in this statement are available within that scope.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash y$}
-    \AxiomC{$x = y$}
-    \AxiomC{$\Gamma, \{ a\ |\ a := x \} :> \Phi$}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma, \{ a\ |\ a := P \} :> \Phi$}
     \LeftLabel{\label{sem:declaration}Declare}
-    \TrinaryInfC{$\Gamma \vdash \kw{let}\ x = y \Rightarrow \Phi$}
+    \TrinaryInfC{$\Gamma \vdash \kw{let}\ P = E \Rightarrow \Phi$}
 \end{prooftree}
 
 What is more unique to \Trilogy{} is the branching and fizzling capability of the
@@ -217,36 +219,36 @@ may lead to multiple executions of the program running in parallel, or none.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash y$}
-    \AxiomC{$x = y$}
-    \AxiomC{$\Gamma, \{ a\ |\ a := x \} :> \Phi$}
+    \AxiomC{$P = y$}
+    \AxiomC{$\Gamma, \{ a\ |\ a := P \} :> \Phi$}
     \LeftLabel{Branch}
-    \TrinaryInfC{$\Gamma \vdash \kw{let}\ x \Rightarrow \Phi$}
+    \TrinaryInfC{$\Gamma \vdash \kw{let}\ P \Rightarrow \Phi$}
 \end{prooftree}
 
 Notably, the semantics are nearly the same, the only difference is that in the
 binding case $y$ is determined contextually (leading to its multiple possibilities)
-whereas, in the declaration case, the single value of $y$ was noted in the source
+whereas, in the declaration case, the single value of $E$ was noted in the source
 code leading to the typical at-most-once binding behaviour found in most programming
 languages. The declaration case may still fail to bind, leading to a fizzle.
-
-% NOTE: in process of reconsidering. Below is not likely accurate.
 
 \subsubsection{Assignment}
 
 Variables (specifically, mutable bindings) may be assigned to. Similar to
 declaration via \kw{let}, the left-hand side of standard assignment may be
-any pattern that does not introduce \emph{new} bindings. The pattern may only
-use previously bound names.
+any pattern so long as it does not introduce new bindings. The pattern may only
+use previously bound names. The assignment statement updates the values of the
+bindings in the pattern.
 
 Function assignment is a special syntax for applying a function to a value and
 then simultaneously reassigning that value with the result of the function; a
-generalization of operators like \op{+=} to any function. In this form of assignment,
-the left-hand side of the assignment operator is a single identifier, and the right
-side is the arguments to apply to the function being used as the assignment operator.
-The left hand side is then applied as the last argument to the function.
+generalization of operator assignment (e.g. \op{+=}) to any function. In this form
+of assignment, the left-hand side of the assignment operator is a single identifier,
+and the right side is the arguments to apply to the function being used as the
+assignment operator. The left hand side is then applied as the last argument to
+the function.
 
 Regular operator assignment (\op{+=}, \op{-=}, etc.) is supported as well, in the
-intuitive way (the left hand identifer is used as the left hand side of the operator).
+intuitive way: the left hand identifer is used as the left hand side of the operator.
 
 \begin{bnf*}
     \bnfprod{SAssignment}{
@@ -300,13 +302,11 @@ intuitive way (the left hand identifer is used as the left hand side of the oper
 \end{bnf*}
 
 \begin{prooftree}
-    \def\defaultHypSeparation{\hskip 0.05in}
-    \AxiomC{$\Gamma \vdash y:\pi$}
-    \AxiomC{$y = x$}
-    \AxiomC{$\Gamma \vdash \{a : \pi_i\ |\ a := x\ \}$}
-    \AxiomC{$\Gamma,a:\pi_i \vdash M : \tau$}
+    \AxiomC{$\Gamma \vdash y$}
+    \AxiomC{$P = y$}
+    \AxiomC{$\Gamma, \{a\ |\ a := P\} :> \Phi$}
     \LeftLabel{Assignment}
-    \QuaternaryInfC{$\Gamma\vdash x\ \op{=}\ y\op{,}\ M : \tau$}
+    \TrinaryInfC{$\Gamma\vdash P\ \op{=}\ y \Rightarrow \Phi$}
 \end{prooftree}
 
 Rather than defining the exact semantics of function or operator assignment,
@@ -315,19 +315,19 @@ semantics as normal:
 
 \begin{align*}
     \texttt{\$x:id \$fn:id= \$(\$a:expr)+} &\Rightarrow \texttt{\$x = \$f \$(\$a)+ \$x} \\ %
-    \texttt{\$x:id \$op:op= \$a:expr} & \Rightarrow \texttt{\$x = \$x \$op \$a} %
+    \texttt{\$x:id \$op:op= \$a:expr} & \Rightarrow \texttt{\$x = \$x \$op \$a} \\ %
 \end{align*}
 
 \subsubsection{Conditionals}
 
-The conditional statement in \Trilogy{} comes in the form of \kw{if}-\kw{else}
-chains. For \Prose{} they are defined as follows.
+The primary conditional statement in \Prose{} is the \kw{if} statement,
+which appears as you might expect coming from nearly any other language.
 
 \begin{bnf*}
     \bnfprod{SIfElse}{
         \bnfts{\kw{if}}
         \bnfsp
-        \bnfpn{Condition}
+        \bnfpn{Expression}
         \bnfsp
         \bnfpn{Block}
         \bnfsp
@@ -339,7 +339,7 @@ chains. For \Prose{} they are defined as follows.
         \bnfsp
         \bnfts{\kw{if}}
         \bnfsp
-        \bnfpn{Condition}
+        \bnfpn{Expression}
         \bnfsp
         \bnfpn{Block}
         \bnfsp
@@ -359,82 +359,131 @@ In the common case, the condition is a statement that evaluates to a Boolean
 result, \kw{true} or \kw{false}, and control flows as you might expect.
 If the result is not a Boolean, the execution fizzles.
 
-An \kw{if}-\kw{else} chain evaluates to the value of the block that is executed.
-If no block is executed (there is no \kw{else} clause, and none of the
-conditions matched) the resulting value is \kw{unit}.
-
 \begin{prooftree}
-    \AxiomC{$C : \kw{true}$}
-    \AxiomC{$T : \tau_1$}
-    \AxiomC{$F : \tau_2$}
-    \LeftLabel{Branch Hit\textsuperscript{A}}
-    \TrinaryInfC{$\kw{if}\ C\ T\ \kw{else}\ F : \tau_1$}
+    \AxiomC{$\Gamma \vdash C = \kw{true}$}
+    \AxiomC{$\Gamma \vdash T \Rightarrow \Phi$}
+    \LeftLabel{If Else\textsuperscript{\kw{true}}}
+    \BinaryInfC{$\Gamma \vdash \kw{if}\ C\ T\ \kw{else}\ F \Rightarrow \Phi$}
 \end{prooftree}
 \begin{prooftree}
-    \AxiomC{$C : \kw{false}$}
-    \AxiomC{$T : \tau_1$}
-    \AxiomC{$F : \tau_2$}
-    \LeftLabel{Branch Miss\textsuperscript{A}}
-    \TrinaryInfC{$\kw{if}\ C\ T\ \kw{else}\ F : \tau_2$}
+    \AxiomC{$\Gamma \vdash C = \kw{false}$}
+    \AxiomC{$\Gamma \vdash F \Rightarrow \Phi$}
+    \LeftLabel{If Else\textsuperscript{\kw{false}}}
+    \BinaryInfC{$\Gamma \vdash \kw{if}\ C\ T\ \kw{else}\ F \Rightarrow \Phi$}
 \end{prooftree}
 \begin{prooftree}
-    \AxiomC{$C : \kw{true}$}
-    \AxiomC{$T : \tau$}
-    \LeftLabel{Branch Hit\textsuperscript{B}}
-    \BinaryInfC{$\kw{if}\ C\ T : \tau$}
+    \AxiomC{$\Gamma \vdash C = \kw{true}$}
+    \AxiomC{$\Gamma \vdash T \Rightarrow \Phi$}
+    \LeftLabel{If\textsuperscript{\kw{true}}}
+    \BinaryInfC{$\Gamma \vdash \kw{if}\ C\ T \Rightarrow \Phi$}
 \end{prooftree}
 \begin{prooftree}
-    \AxiomC{$C : \kw{false}$}
-    \AxiomC{$T : \tau$}
-    \LeftLabel{Branch Miss\textsuperscript{B}}
-    \BinaryInfC{$\kw{if}\ C\ T : \kw{unit}$}
+    \AxiomC{$\Gamma \vdash C = \kw{false}$}
+    \LeftLabel{If\textsuperscript{\kw{false}}}
+    \UnaryInfC{$\Gamma \vdash \kw{if}\ C\ T \Rightarrow \Gamma$}
 \end{prooftree}
 
-In addition to Boolean evaluations, Conditions may be queries which bind
-values to names available for the scope of the block of the first matching
-condition. This is similar to the \texttt{if let} statement seen in other
-languages, but extended to cover more than just pattern matching by taking
-advantage of \Law{}. Conditions may not be empty, but trailing commas are
-still supported, so we end up with this annoying extra bit of rule.
+\subsubsection{Match}
+
+The \kw{match} statement allows for pattern matching, allowing code to branch
+on the structure of a value, rather than a Boolean evaluation of an expression.
+As \Trilogy{} is a dynamically typed language, it is hard to ensure completeness
+of a \kw{match} statement, so completeness is not enforced; a mismatch is skipped
+in much the same way a \kw{false} evaluation of an \kw{if} statement is skipped.
+
+The \kw{match} statement takes an expression and is followed by multiple \kw{case}
+statements. Each \kw{case} statement has a pattern, a guard, or both, and then a block
+of code to run if that case is selected.
 
 \begin{bnf*}
-    \bnfprod{Condition}{
+    \bnfprod{SMatch}{
+        \bnfts{\kw{match}}
+        \bnfsp
         \bnfpn{Expression}
         \bnfsp
-        \bnfts{,}
+        \bnfpn{Cases}
+    } \\
+    \bnfprod{Cases}{
+        \bnfpn{Case}\bnfsp\bnfpn{Cases}\bnfor\bnfpn{Case}
+    } \\
+    \bnfprod{Case}{
+        \bnfts{\kw{case}}
         \bnfsp
-        \bnfpn{Condition}
-        \bnfor
-        \bnfpn{Query}
+        \bnfpn{Pattern}
         \bnfsp
-        \bnfts{,}
-        \bnfsp
-        \bnfpn{Condition}
+        \bnfpn{Block}
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{Expression}
+        \bnfts{\kw{case}}
         \bnfsp
-        \bnfts{,}
-        \bnfor
-        \bnfpn{Query}
-        \bnfsp
-        \bnfts{,}
-        \bnfor
-        \bnfpn{Expression}
-        \bnfor
-        \bnfpn{Query}
-    } \\
-    \bnfprod{Query}{
         \bnfpn{Pattern}
         \bnfsp
-        \bnfts{=}
+        \bnfts{\kw{if}}
         \bnfsp
         \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
         \bnfor
-        \bnfpn{RuleCheck}
+    } \\
+    \bnfmore{
+        \bnfts{\kw{case}}
+        \bnfsp
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
     }
 \end{bnf*}
 
-A conditional is not an iterative context. If a pattern condition matches
-to multiple results, the first result is chosen and the rest are skipped.
+To evaluate a \kw{match} statement, the original expression is evaluated, and compared
+against the pattern of each \kw{case}; an omitted pattern is interpreted like an underscore
+(\texttt{\_}) pattern, matching with any value.
+
+Before committing to a \kw{case} with a matching pattern, the guard is evaluated, if any.
+If the guard expression evaluates to \kw{true} (or there are no guards), the case is selected.
+Identifiers bound in the pattern are in scope for this evaluation. Any value that is not \kw{true},
+including non-Boolean values, are treated as \kw{false}, and the case is not selected. An omitted
+guard is treated to be always \kw{true}.
+
+The block following the first selected case is then run. If no cases are selected,
+they are simply ignored and the program continues.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma,\{a\ |\ a := P\} \vdash C = \kw{true}$}
+    \LeftLabel{Match}
+    \TrinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{case}\ P\ \kw{if}\ C\ B \Rightarrow \Phi$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma,\{a\ |\ a := P\} \vdash C \neq \kw{true}$}
+    \TrinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ B$}
+    \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
+    \LeftLabel{Match\textsuperscript{\kw{false}}}
+    \insertBetweenHyps{\hskip -12pt}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P \neq E$}
+    \BinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ B$}
+    \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
+    \LeftLabel{Match\textsuperscript{$\bot$}}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
+\end{prooftree}
+
+The omitted clauses of the \kw{case} statement are formalized by syntax transformation:
+
+\begin{align*}
+    \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %
+    \texttt{\kw{case} \kw{if} \$c:expr} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \$c} \\ %
+\end{align*}
