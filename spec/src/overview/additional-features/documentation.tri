@@ -12,7 +12,7 @@ module ImportantStuff {
 ##
 ## See if you can figure it out.
 proc main!() {
-    loop {
+    while true {
         let inputNumber = Int readline!()
             when 'EOF cancel break  # done
             when 'NAN cancel #- default when invalid: -# 0

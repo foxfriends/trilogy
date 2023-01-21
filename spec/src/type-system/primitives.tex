@@ -12,12 +12,13 @@ types.
 
 Never is a type with no values. While not particularly useful as a value,
 Never is the type of a \kw{return} statement, as well as the type of
-a \kw{yield} that is not \kw{resume}d, and of actions which terminate the
-program, such as calling \fn{exit!}.
+a \kw{yield} that is not \kw{resume}d, and of actions which terminate an
+execution, such as the \kw{end} statement, among other things.
 
 In type annotation or documentation, the Never type is written \ty{!}.
-In the formal semantics throughout this document, Never is abbreviated to
-$\bot$.
+In the formal semantics throughout this document, Never is typically not
+mentioned, but is similar to the usage of $\bot$ to represent the code
+that never completes execution.
 
 \subsubsection{Unit}
 

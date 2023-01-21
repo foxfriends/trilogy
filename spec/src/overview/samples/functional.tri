@@ -14,7 +14,7 @@ func digitsInBase base n =
 
 proc main!() {
     let input = Int readline!()
-        when 'EOF or 'NAN cancel exit!(1)
+        when 'EOF or 'NAN cancel end 1
     let hexstring = input
         |> digitsInBase 16
         |> map toHex

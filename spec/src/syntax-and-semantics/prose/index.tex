@@ -37,10 +37,6 @@ If control runs off the end of the procedure's body, its call evaluates to \kw{u
 A procedure may cause a fizzle or branch, in which case all evaluations are propgated
 to the call site, conceptually causing the call to fizzle or branch respectively.
 
-It is also possible for a procedure to never return, yet also not cause a fizzle,
-such as the built-in \fn{exit!}, in which case the return type is Never and such a
-value may never be realized.
-
 \begin{prooftree}
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M,\ \kw{return}\ N\ \}$}
     \AxiomC{$\Gamma,x_{1\hdots n} \vdash M\op{,}\ N $}
@@ -108,41 +104,47 @@ until later.
         \bnfor
         \bnfpn{SAssignment}
         \bnfor
-        \bnfpn{SIfElse}
+        \bnfpn{SIf}
+        \bnfor
+        \bnfpn{SMatch}
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{SMatch}
-        \bnfor
         \bnfpn{SWhile}
         \bnfor
         \bnfpn{SFor}
         \bnfor
-        \bnfpn{SLoop}
-        \bnfor
-    } \\
-    \bnfmore{
         \bnfpn{SBreak}
         \bnfor
         \bnfpn{SContinue}
         \bnfor
+    } \\
+    \bnfmore{
         \bnfpn{SReturn}
         \bnfor
-    } \\
-    \bnfmore{
+        \bnfpn{SEnd}
+        \bnfor
         \bnfpn{SYield}
         \bnfor
-        \bnfpn{ProcedureCall}
-        \bnfor
-        \bnfpn{Block}
-        \bnfor
     } \\
     \bnfmore{
+        \bnfpn{ProcedureCall}
+        \bnfor
         \bnfts{(}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
         \bnfts{)}
+        \bnfor
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\texttt{Identifier}}
+        \bnfsp
+        \bnfts{\texttt{:}}
+        \bnfsp
+        \bnfpn{Statement}
     } \\
     \bnfprod{Block}{
         \bnfts{\{}
@@ -153,11 +155,21 @@ until later.
     }
 \end{bnf*}
 
+Evaluating an expressions as a statement is allowed, but is typically
+recommended against. In particular cases, however, it may be necessary,
+so wrapping the expression in parentheses will allow this. Bare expressions
+are not permitted, except for procedure calls which are allowed by special
+case of the statement syntax.
+
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash M : \tau$}
     \LeftLabel{Unwrap}
-    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \top$}
+    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \tau$}
 \end{prooftree}
+
+Blocks may be used in any situation statements are allowed, and act as
+a scope barrier. Bindings declared within a block go out of scope at
+the end of the block.
 
 \begin{prooftree}
     \AxiomC{$\Gamma :> \Phi$}
@@ -165,6 +177,11 @@ until later.
     \LeftLabel{Unnest}
     \BinaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \tau$}
 \end{prooftree}
+
+Labelled statements evaluate as if they were unlabelled, but
+may be referred to by their name in substatements. Though this uses the
+same colon (\texttt{:}) as the cons operator, this does not produce any
+tuple.
 
 \subsubsection{Let}
 
@@ -290,34 +307,36 @@ The primary conditional statement in \Prose{} is the \kw{if} statement,
 which appears as you might expect coming from nearly any other language.
 
 \begin{bnf*}
-    \bnfprod{SIfElse}{
+    \bnfprod{SIf}{
         \bnfts{\kw{if}}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
         \bnfpn{Block}
-        \bnfsp
-        \bnfpn{SElseChain}
-        \bnfor
-    } \\
-    \bnfprod{SElseChain}{
-        \bnfts{\kw{else}}
-        \bnfsp
-        \bnfts{\kw{if}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfpn{Block}
-        \bnfsp
-        \bnfpn{SElseChain}
         \bnfor
     } \\
     \bnfmore{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{SIf}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
         \bnfts{\kw{else}}
         \bnfsp
         \bnfpn{Block}
-        \bnfor
-        \bnfes
     }
 \end{bnf*}
 
@@ -434,7 +453,7 @@ they are simply ignored and the program continues.
     \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
     \LeftLabel{Match\textsuperscript{\kw{false}}}
     \insertBetweenHyps{\hskip -12pt}
-    \BinaryInfC{$\Gamma \vdash \kw{match}\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -444,7 +463,7 @@ they are simply ignored and the program continues.
     \BinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ B$}
     \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
     \LeftLabel{Match\textsuperscript{$\bot$}}
-    \BinaryInfC{$\Gamma \vdash \kw{match}\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
 \end{prooftree}
 
 The omitted clauses of the \kw{case} statement are formalized by syntax transformation:
@@ -492,18 +511,169 @@ beyond the end of the loop.
 
 \subsubsection{For}
 
-The \kw{for} loop accepts a pattern as a condition and repeats a block of code
-for all valid bindings generated by that pattern. This is more similar to a for-each
-loop than the three part conditional loop seen in some imperative languages.
-No such conditional \kw{for} loop exists in \Trilogy{}, but similar semantics can
-be constructed using \kw{while}.
+The \kw{for} loop repeats a block of code for all solutions to a provided query.
+This is more similar to a for-each loop than the three part conditional loop seen in
+some imperative languages. No such conditional \kw{for} loop exists in \Trilogy{},
+but similar semantics can be constructed using \kw{while}.
 
 \begin{bnf*}
     \bnfprod{SFor}{
         \bnfts{\kw{for}}
         \bnfsp
-        \bnfpn{Unification}
+        \bnfpn{Query}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{SFor}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfts{\kw{else}}
         \bnfsp
         \bnfpn{Block}
     }
 \end{bnf*}
+
+Notably different from other languages is that a \kw{for} loop may have an \kw{else} clause,
+similar to an \kw{if} statement. This \kw{else} clause is triggered in the case that the
+unification fails.
+
+The query of the \kw{for} loop is performed only once, at the beginning of the loop.
+Any mutation to the values as a result of the loop's execution will not affect the remaining
+iterations.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U_{1\hdots n}$}
+    \AxiomC{$Q = U_i$}
+    \AxiomC{$\Gamma,U_1\vdash B \Rightarrow\Phi_1$}
+    \noLine
+    \UnaryInfC{$\Phi_1,U_2\vdash B \Rightarrow\Phi_2$}
+    \noLine
+    \UnaryInfC{$\vdots$}
+    \noLine
+    \UnaryInfC{$\Phi_{n-1},U_n\vdash B \Rightarrow\Sigma$}
+    \LeftLabel{For}
+    \TrinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Sigma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash Q:\bot$}
+    \AxiomC{$\Gamma\vdash F\Rightarrow\Phi$}
+    \LeftLabel{For\textsuperscript{$\bot$}}
+    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Phi$}
+\end{prooftree}
+
+A \kw{for} loop is distinct from the branching \kw{let} statement in how execution
+continues after each branch has been evaluated. Where a \kw{let} statement would
+result in multiple parallel executions with separate execution contexts, the
+\kw{for} loop executes the block for each binding of the query in sequence,
+all within one continuous execution context. A failed \kw{let} binding will cause
+the current execution to fizzle, while a \kw{for} loop query that does not
+have a solution simply causes the loop to be skipped, but execution does not end.
+
+\subsubsection{Break and Continue}
+
+The statements \kw{break} and \kw{continue} may be used in loops to control iteration.
+The \kw{break} statement will exit the loop immediately, skipping all further iteration,
+whereas the \kw{continue} statement will end the current iteration and move on to the
+next, without executing any further code. This applies for both \kw{for} and \kw{while}
+loops.
+
+Either of these statements given a label will act on that labelled loop.
+Without a label, the closest enclosing loop is assumed. If the label corresponds to a
+statement that is not a loop (or block for a \kw{break}), the syntax is to be considered
+invalid.
+
+The \kw{break} statement may be used in labelled blocks as well, breaking out of
+those blocks immediately. Unlabelled blocks cannot be used with the \kw{break}
+statement in order to give priority to the loop usage, which is likely to be
+more frequent. The \kw{continue} statement may not be used on regular blocks,
+only on loops.
+
+\begin{bnf*}
+    \bnfprod{SBreak}{
+        \bnfts{\kw{break}}
+        \bnfor
+        \bnfts{\kw{break}}
+        \bnfsp
+        \bnfts{Identifier}
+    } \\
+    \bnfprod{SContinue}{
+        \bnfts{\kw{continue}}
+        \bnfor
+        \bnfts{\kw{continue}}
+        \bnfsp
+        \bnfts{Identifier}
+    }
+\end{bnf*}
+
+Labels are a concept only at the syntax level, so are not considered bindings
+that may be used at runtime, and may not be passed as parameters. When a \kw{break}
+or \kw{continue} statement uses a label, they may only refer to labels on blocks
+or loops syntactically surrounding the statement using the label. In the semantics
+below, it is assumed that the block or loop that the \kw{break} or \kw{continue}
+is meant to correspond to has already been correctly resolved, and so the labels are
+omitted.
+
+A \kw{break} or \kw{continue} statement on its own does not evaluate to anything.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Break}
+            \UnaryInfC{$\Gamma \vdash \kw{break} : \bot$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Continue}
+            \UnaryInfC{$\Gamma \vdash \kw{continue} : \bot$}
+        \end{prooftree}
+    }
+\end{figure}
+
+Though the statement ends the local execution, it changes the behaviour of the loop
+or block it corresponds to, which picks up the execution before it fizzles completely.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Break\textsuperscript{Block}}
+    \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash \kw{for}\ Q\ \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Break\textsuperscript{for}}
+    \UnaryInfC{$\Gamma \vdash \kw{for}\ Q\ \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash \kw{while}\ E\ \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Break\textsuperscript{while}}
+    \UnaryInfC{$\Gamma \vdash \kw{while}\ E\ \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Continue}
+    \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{,}\ \kw{continue}\ \texttt{\}} : \top$}
+\end{prooftree}

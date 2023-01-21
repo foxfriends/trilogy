@@ -54,6 +54,7 @@ impl Token {
             "do" => TokenType::KwDo,
             "else" => TokenType::KwElse,
             "enum" => TokenType::KwEnum,
+            "end" => TokenType::KwEnd,
             "except" => TokenType::KwExcept,
             "export" => TokenType::KwExport,
             "extends" => TokenType::KwExtends,

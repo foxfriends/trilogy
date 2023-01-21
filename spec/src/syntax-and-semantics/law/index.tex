@@ -5,7 +5,6 @@ The semantics of \Law{} are the most fundamental to the whole of \Trilogy{}, and
 of the three sublanguages, and so easiest to describe without much knowledge beyond
 the intuitive understanding of the other two.
 
-
 For those familiar with logical languages such as Prolog, \Law{} may be
 familiar, though with different syntax and less logical impurity. \Law{} can
 afford to give up the ability to express certain actions (such as side effects
@@ -294,9 +293,9 @@ depending on whether its unification succeeds at least once.
 
 \subsubsection{Lookup}
 
-The lookup case is the most complex, and most powerful of the unifications,
-where a rule is looked up in the current scope and its definitions are applied
-by unifying each parameter with the arguments provided.
+The lookup case is the most powerful of the unifications, where a rule is looked up
+in the current scope and its definitions are applied by unifying each parameter with
+the arguments provided.
 
 For all its flexibility, the syntax is very simple. Recall Rule~\ref{bnf:patternlist}
 from earlier.
@@ -322,16 +321,12 @@ from earlier.
     }
 \end{bnf*}
 
-The availability of a rule depends on the module scope in which the rule was defined.
-Imported names, locally defined rules, and paths through available modules to rules
-may be used to look up the rule.
-
-% TODO: This is not right yet?
+Rules are looked up in the current module scope. Available rules may include locally
+defined or imported rules, or rules found in accessible modules given the proper path.
 
 \begin{prooftree}
-    \AxiomC{$R(P_{1\hdots n})\in\Gamma$}
-    \AxiomC{$\Gamma \vdash P_i = A_i$}
-    \AxiomC{$\Sigma,A_i\vdash R(A_{1\hdots n})\Rightarrow\Phi$}
+    \AxiomC{$\Gamma\vdash R(P_{1\hdots n})\Rightarrow\Phi$}
+    \AxiomC{$A_i = P_i$}
     \LeftLabel{Lookup}
-    \TrinaryInfC{$\Gamma\vdash R\ \texttt{(}\ A_i\ \texttt{)} \Rightarrow\Phi$}
+    \BinaryInfC{$\Gamma\vdash R\ \texttt{(}\ A_{1\hdots n}\ \texttt{)} \Rightarrow\Phi$}
 \end{prooftree}

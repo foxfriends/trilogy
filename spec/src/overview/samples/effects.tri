@@ -1,6 +1,6 @@
 proc readsum!() {
     let mut sum = 0
-    loop {
+    while true {
         let line = readline() when 'EOF cancel break
         sum += Int line when 'NAN cancel yield line
     }
