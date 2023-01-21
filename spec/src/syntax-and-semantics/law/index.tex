@@ -1,9 +1,10 @@
 \subsection{Law}
 
-We begin with \Law{}, as the semantics of \Law{} are the most fundamental to
-the whole of \Trilogy{}. \Law{} is also the most isolated of the three
-sublanguages, and so easiest to describe without much knowledge beyond
+The semantics of \Law{} are the most fundamental to the whole of \Trilogy{}, and
+\Law{} is also syntactically the least complex. \Law{} is also the most isolated
+of the three sublanguages, and so easiest to describe without much knowledge beyond
 the intuitive understanding of the other two.
+
 
 For those familiar with logical languages such as Prolog, \Law{} may be
 familiar, though with different syntax and less logical impurity. \Law{} can
@@ -33,6 +34,12 @@ or computations) given the existence of \Prose{} and \Poetry{}.
     } \\
     \bnfprod{RuleBody}{\bnfpn{Query}}
 \end{bnf*}
+
+Definitions in \Law{} must have a head, and may optionally include a body. While
+definitions in other logic languages such as Prolog may be defined with no parameters,
+omitting the parentheses entirely, \Law{} does not permit this. All rules must include
+a parameter list. The parameter list may be empty, but the usefulness of such rules
+is not certain.
 
 \subsubsection{Query}
 
@@ -64,14 +71,78 @@ logical operations.
         \bnfpn{Query}
         \bnfor
         \bnfpn{Unification}
-        \bnfor
-        \bnfts{\texttt{(}}
-        \bnfsp
-        \bnfpn{Query}
-        \bnfsp
-        \bnfts{\texttt{)}}
     }
 \end{bnf*}
+
+While logic is orderless, \Law{} is constraint by its being a programming language,
+and so unifications in \Law{} do occur in an order; the order in which they are
+written. After a unification, the free variables of each pattern are bound and
+control continues to the next unification depending on which connective was used.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}
+    \AxiomC{$\Phi\vdash Q\Rightarrow\Sigma$}
+    \LeftLabel{Conjunction}
+    \BinaryInfC{$\Gamma\vdash P\ \kw{and}\ Q\Rightarrow\Sigma$}
+\end{prooftree}
+
+Conjunction is straight forward, and will be the connective used in most situations.
+
+\begin{center}
+    \parbox[t]{0.45\linewidth}{
+    \begin{prooftree}
+        \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}
+        \LeftLabel{Disjunction\textsuperscript{L}}
+        \UnaryInfC{$\Gamma\vdash P\ \kw{or}\ Q\Rightarrow\Phi$}
+    \end{prooftree}
+    }
+    \quad
+    \parbox[t]{0.45\linewidth}{
+    \begin{prooftree}
+        \AxiomC{$\Gamma\vdash Q\Rightarrow\Phi$}
+        \LeftLabel{Disjunction\textsuperscript{R}}
+        \UnaryInfC{$\Gamma\vdash P\ \kw{or}\ Q\Rightarrow\Phi$}
+    \end{prooftree}
+}
+\end{center}
+
+Disjunction is a bit trickier to get right. Notably, this is not a mutually
+exclusive disjunction: both branches will be chosen, given that their unifications
+are successful, before moving on to the next branch.
+
+The precedence of \kw{or} is low such that \texttt{A \kw{and} B \kw{or} C \kw{and} D}
+is equivalent to \texttt{(A \kw{and} B) \kw{or} (C \kw{and} D)}.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}
+    \AxiomC{$\Phi\vdash Q\Rightarrow\Sigma$}
+    \LeftLabel{Implication\textsuperscript{$\top$}}
+    \BinaryInfC{$\Gamma\vdash \kw{if}\ P\ \kw{then}\ Q\Rightarrow\Sigma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash P:\bot$}
+    \LeftLabel{Implication\textsuperscript{$\top$}}
+    \UnaryInfC{$\Gamma\vdash \kw{if}\ P\ \kw{then}\ Q:\top$}
+\end{prooftree}
+
+Implication is also a bit tricky to use correctly, particular as it is most likely
+to be used in conjunction with \kw{or} in order to set up conditional branches.
+With multiple \kw{if}s connected together with \kw{or}, all matching branches
+will be chosen, rather than the first matching branch as the \kw{if} statement
+of most languages would work.
+
+The precedence of \kw{if} is between that of \kw{and} and \kw{or} such that
+
+\begin{center}
+\texttt{\kw{if} A \kw{then} B \kw{or} \kw{if} C \kw{then} D \kw{and} \kw{if} E \kw{then} F \kw{or} G}
+\end{center}
+
+is equivalent to
+
+\begin{center}
+\texttt{(\kw{if} A \kw{then} B) \kw{or} (\kw{if} C \kw{then} (D \kw{and} \kw{if} E \kw{then} F)) \kw{or} G}
+\end{center}
 
 \subsubsection{Unification}
 
@@ -96,7 +167,29 @@ unification of values and patterns.
         \bnfpn{Expression}
         \bnfor
     } \\
-    \bnfmore{\bnfts{\kw{true}} \bnfor\bnfts{\kw{false}}\bnfor \bnfpn{Lookup}}
+    \bnfmore{
+        \bnfts{\texttt{(}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{\texttt{)}}
+        \bnfor
+        \bnfpn{Lookup}
+        \bnfor
+    } \\
+    \bnfmore{\bnfts{\kw{true}} \bnfor\bnfts{\kw{false}}}
 \end{bnf*}
+
+While most unifications are performed by ``looking up'' (in the database)
+a rule and unifying its definition with the inputs, a few special forms are
+included for convenience.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash P\Rightarrow \Phi$}
+    \LeftLabel{Unwrap}
+    \UnaryInfC{$\Gamma\vdash \texttt{(}\ P\ \texttt{)} \Rightarrow \Phi$}
+\end{prooftree}
+
+Parentheses works purely for grouping, as one might expect.
 
 \subsubsection{Lookup}
