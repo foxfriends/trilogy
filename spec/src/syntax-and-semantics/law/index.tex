@@ -11,8 +11,11 @@ familiar, though with different syntax and less logical impurity. \Law{} can
 afford to give up the ability to express certain actions (such as side effects
 or computations) given the existence of \Prose{} and \Poetry{}.
 
-\begin{bnf*}
-    \bnfprod{RuleHead}{
+Rule~\ref{bnf:patternlist} is marked for reference later, as it will come up
+repeatedly.
+
+\begin{bnf}
+    \bnfprod*{RuleHead}{
         \bnfts{\texttt{Identifier}}
         \bnfsp
         \bnfts{\texttt{(}}
@@ -22,6 +25,7 @@ or computations) given the existence of \Prose{} and \Poetry{}.
         \bnfts{\texttt{)}}
     } \\
     \bnfprod{PatternList}{
+        \label{bnf:patternlist}
         \bnfpn{Pattern}
         \bnfsp
         \bnfts{\texttt{,}}
@@ -32,14 +36,33 @@ or computations) given the existence of \Prose{} and \Poetry{}.
         \bnfor
         \bnfes
     } \\
-    \bnfprod{RuleBody}{\bnfpn{Query}}
-\end{bnf*}
+    \bnfprod*{RuleBody}{\bnfpn{Query}}
+\end{bnf}
 
 Definitions in \Law{} must have a head, and may optionally include a body. While
 definitions in other logic languages such as Prolog may be defined with no parameters,
 omitting the parentheses entirely, \Law{} does not permit this. All rules must include
 a parameter list. The parameter list may be empty, but the usefulness of such rules
 is not certain.
+
+\begin{prooftree}
+    \AxiomC{$\kw{rule}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{)}$}
+    \AxiomC{$A_i = P_i$}
+    \AxiomC{$\Gamma,\{a\ |\ a := A_i\}:>\Phi$}
+    \LeftLabel{Fact}
+    \TrinaryInfC{$R(A_{1\hdots n}) \Rightarrow \Phi \in \Gamma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\kw{rule}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{) <-}\ B$}
+    \AxiomC{$A_i = P_i$}
+    \BinaryInfC{$\Gamma,\{a\ |\ a := A_i\}:>\Phi$}
+    \AxiomC{$\Gamma,\{p\ |\ p := P_i\}:>\Sigma$}
+    \AxiomC{$\Sigma\vdash B:\top$}
+    \LeftLabel{Rule}
+    \TrinaryInfC{$R(A_{1\hdots n}) \Rightarrow \Phi\in\Gamma$}
+\end{prooftree}
 
 \subsubsection{Query}
 
@@ -177,12 +200,45 @@ unification of values and patterns.
         \bnfpn{Lookup}
         \bnfor
     } \\
-    \bnfmore{\bnfts{\kw{true}} \bnfor\bnfts{\kw{false}}}
+    \bnfmore{\bnfts{\kw{true}} \bnfor\bnfts{\kw{false}}\bnfor\kw{not}\bnfsp\bnfpn{Unification}}
 \end{bnf*}
 
 While most unifications are performed by ``looking up'' (in the database)
 a rule and unifying its definition with the inputs, a few special forms are
 included for convenience.
+
+The \op{=} ``operator'' is used to unify an expression with a pattern directly. The
+expression is a syntax of \Poetry{}, rather than \Law{}, so its details are covered
+later. This does break the purely logical aspect of \Law{}; a direct unification in
+this way cannot be ``reversed'' the same way pure \Law{} unifications may be called
+in reverse.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma,\{a\ |\ a := P\}:>\Phi$}
+    \LeftLabel{Unification}
+    \TrinaryInfC{$\Gamma\vdash P\ \op{=}\ E \Rightarrow\Phi$}
+\end{prooftree}
+
+The \kw{in} keyword is used to unify an expression with each element of a collection,
+binding each element in sequence and continuing the program. Once again, the collection
+is specified as an expression in \Poetry{}, so this unification may not be reversed.
+The collection may be a Set, Array, List, Record, or Iterator, as described in
+Compound Types (\S\ref{sec:compound-types}).
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E$}
+    \AxiomC{$e\in E$}
+    \AxiomC{$P = e$}
+    \AxiomC{$\{a\ |\ a := P\}:>\Phi$}
+    \LeftLabel{Iteration}
+    \QuaternaryInfC{$\Gamma\vdash P\ \kw{in}\ E\Rightarrow\Phi$}
+\end{prooftree}
+
+Parentheses may be used for grouping, as one might expect. The grouped query works
+as if it were a single unification, all bindings made within the group
+persisting afterwards.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash P\Rightarrow \Phi$}
@@ -190,6 +246,92 @@ included for convenience.
     \UnaryInfC{$\Gamma\vdash \texttt{(}\ P\ \texttt{)} \Rightarrow \Phi$}
 \end{prooftree}
 
-Parentheses works purely for grouping, as one might expect.
+The two keywords \kw{true} and \kw{false} may be used as a unification on
+their own as well. \kw{true} is treated as a unification that succeeds once,
+while \kw{false} is treated as a unification that never succeeds. Though
+the symbol used is the same, \kw{true} and \kw{false} are not to be interpreted
+as Boolean values in this situation.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.3\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{$\top$}
+            \UnaryInfC{$\Gamma \vdash \kw{true} : \top$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.3\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{$\bot$}
+            \UnaryInfC{$\Gamma \vdash \kw{false} : \bot$}
+        \end{prooftree}
+    }
+\end{figure}
+
+The keyword \kw{not} may be used to negate a unification. A negated unification
+can produces no bindings, but may cause the execution to continue or fizzle
+depending on whether its unification succeeds at least once.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash U : \top$}
+            \LeftLabel{Negation}
+            \UnaryInfC{$\Gamma\vdash \kw{not}\ U : \bot$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash U : \bot$}
+            \LeftLabel{Negation}
+            \UnaryInfC{$\Gamma\vdash \kw{not}\ U : \top$}
+        \end{prooftree}
+    }
+\end{figure}
 
 \subsubsection{Lookup}
+
+The lookup case is the most complex, and most powerful of the unifications,
+where a rule is looked up in the current scope and its definitions are applied
+by unifying each parameter with the arguments provided.
+
+For all its flexibility, the syntax is very simple. Recall Rule~\ref{bnf:patternlist}
+from earlier.
+
+\begin{bnf*}
+    \bnfprod{Path}{
+        \bnfts{\texttt{Identifier}}
+        \bnfsp
+        \bnfts{\op{.}}
+        \bnfsp
+        \bnfpn{Path}
+        \bnfor
+        \bnfts{\texttt{Identifier}}
+    } \\
+    \bnfprod{Lookup}{
+        \bnfpn{Path}
+        \bnfsp
+        \bnfts{\texttt{(}}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfsp
+        \bnfts{\texttt{)}}
+    }
+\end{bnf*}
+
+The availability of a rule depends on the module scope in which the rule was defined.
+Imported names, locally defined rules, and paths through available modules to rules
+may be used to look up the rule.
+
+% TODO: This is not right yet?
+
+\begin{prooftree}
+    \AxiomC{$R(P_{1\hdots n})\in\Gamma$}
+    \AxiomC{$\Gamma \vdash P_i = A_i$}
+    \AxiomC{$\Sigma,A_i\vdash R(A_{1\hdots n})\Rightarrow\Phi$}
+    \LeftLabel{Lookup}
+    \TrinaryInfC{$\Gamma\vdash R\ \texttt{(}\ A_i\ \texttt{)} \Rightarrow\Phi$}
+\end{prooftree}

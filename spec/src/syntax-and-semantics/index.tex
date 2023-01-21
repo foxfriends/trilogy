@@ -20,7 +20,8 @@ corrections to these notes, as I am sure they will be conflicting themselves
 in more than a few places.
 
 Seeing as I am not an expert, some symbols used in potentially non-
-standard ways in the following documentation are summarized here:
+standard ways in the following documentation are summarized here.
+Some are further formalized later.
 
 \begin{itemize}
     \item $\Gamma :> \Phi$ --- Extends from, as a scope. Names looked up in the
@@ -35,16 +36,31 @@ standard ways in the following documentation are summarized here:
     bound by that pattern. Patterns often declare more than one name.
     \item $\text{read}(\sigma)$ --- Read, as a file. $\sigma$ is a String which is interpreted
     as a URL, and $\text{read}(\sigma)$ is the contents of the file located by that URL.
-    \item $X : \top$ --- Continues execution. After evaluation of the code $X$,
-    the evaluation of the program continues at least once. Due to branching, there
-    may be multiple executions remaining at this time.
+    \item $e \in E$ --- Is an element of, via iteration. The value $E$ is a value
+    which can be converted to an Iterator. Each $e$ is an element of that iterator.
+    \item $X \Rightarrow \Phi$ --- Continues execution in context. After evaluation
+    of the code $X$, the evaluation of the program continues at least once. Due to
+    branching, there may be multiple executions remaining at this time. The
+    continuing context of the program in each of these branches is denoted as
+    $\Phi$.
+    \item $X : \top$ --- Continues execution. $\Gamma\vdash X : \top$ could be
+    seen as equivalent to $\Gamma \vdash X \Rightarrow \Gamma$, in that execution
+    continues, possibly more than once, but without modifying the context.
     \item $X : \bot$ --- Ends execution. After evaluation of the code $X$,
     no further code is executed. This may be due to failed branching (fizzling),
     as a result of certain control flow (e.g. \kw{return}), or explicit as in the
     case of certain built-in procedures such as \fn{exit!}.
+    \item $X : \tau$ --- Is of type. More generally than execution, a value may
+    be of a particular type.
 \end{itemize}
 
-\subsection{Whitespace}
+\subsection{Trilogy}
+
+While the specifics of most of the executable code in \Trilogy{} are separated into
+the three sublanguages, the non-executable parts of the language are considered
+to be part of \Trilogy{} as a whole.
+
+\subsubsection{Whitespace}
 
 Between any two tokens may be any number of comment nodes. Additionally,
 any whitespace (including line breaks) may occur between any two tokens
@@ -66,13 +82,10 @@ The required end of line rule is formalized as follows:
     }
 \end{bnf*}
 
-\subsection{Trilogy}
-
-The top level of a \Trilogy{} file is the only part of the document that
-is not written in one of the child languages. This section of the program
-may only contain definitions.
-
 \subsubsection{The Document}
+
+The top level of a \Trilogy{} file is not considered to be written in any
+of the sublanguages. This section of the program may only contain definitions.
 
 A \Trilogy{} document \emph{should} end with a final line break,
 but files without such a final line break may be accepted (with warning).

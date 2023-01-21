@@ -1,8 +1,17 @@
 \subsection{Prose}
 
 When viewed on its own, \Prose{} has a fairly ``standard'' C-family syntax.
-Arbitrary patterns are permitted in the procedure heads.
-Trailing commas are permitted in all places where commas are found.
+
+Arbitrary patterns are permitted in the procedure heads, just as in \Law{}'s
+rule definitions. This does imply that some procedure calls will fail silently
+via fizzling as procedures may not be defined multiple times with different
+patterns, in the way that rules or functions may be. It is recommended to only
+use such arbitrary patterns in the most certain of cases, and otherwise use
+single identifier patterns whenever possible and handle alternative inputs
+accordingly.
+
+The ability to define multiple procedures with the same name but different
+patterns may be added in future.
 
 \begin{bnf*}
     \bnfprod{ProcedureHead}{
@@ -10,23 +19,11 @@ Trailing commas are permitted in all places where commas are found.
         \bnfsp
         \bnfts{(}
         \bnfsp
-        \bnfpn{ParameterList}
+        \bnfpn{PatternList}
         \bnfsp
         \bnfts{)}
     } \\
-    \bnfprod{ParameterList}{
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{,}
-        \bnfsp
-        \bnfpn{ParameterList}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{Pattern}
-        \bnfor
-        \bnfes
-    }
+    \bnfprod{ProcedureBody}{\bnfpn{Sequence}} \\
 \end{bnf*}
 
 \noindent A procedure declaration binds the name in the scope of the current module.
@@ -67,11 +64,11 @@ value may never be realized.
 
 \subsubsection{Sequences}
 
-The body of a procedure is a sequence of statements. Statements in sequence
-must be separated by a line break or an explicit separator (\op{,}).
+Sequences are statements which are to be executed in order, in typical
+imperative fashion. Statements in sequence must be separated by a line break or
+an explicit separator (\op{,}).
 
 \begin{bnf*}
-    \bnfprod{ProcedureBody}{\bnfpn{Sequence}} \\
     \bnfprod{Sep}{\bnfpn{EOL}\bnfor\bnfts{,}} \\
     \bnfprod{Sequence}{\bnfpn{Statement}\bnfsp\bnfpn{Sep}\bnfsp\bnfpn{Sequence}\bnfor} \\
     \bnfmore{\bnfpn{Statement}\bnfor\bnfes}
@@ -83,9 +80,9 @@ producing the result of the program.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash M \Rightarrow \Phi$}
-    \AxiomC{$\Phi \vdash N : \tau$}
-    \LeftLabel{Sequence\textsuperscript{$\top$}}
-    \BinaryInfC{$\Gamma \vdash M \op{,}\ N: \tau$}
+    \AxiomC{$\Phi \vdash N \Rightarrow \Sigma$}
+    \LeftLabel{Sequence}
+    \BinaryInfC{$\Gamma \vdash M \op{,}\ N \Rightarrow \Sigma$}
 \end{prooftree}
 
 \begin{prooftree}
