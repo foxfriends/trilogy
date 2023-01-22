@@ -27,8 +27,11 @@
 \definecolor{codewhite}{RGB}{212,212,212}
 \definecolor{codelightwhite}{RGB}{250,250,250}
 
-\hyphenation{non-determinism}
-\hyphenation{non-determin-istic}
+\hyphenation{non-deter-minism}
+\hyphenation{non-deter-min-istic}
+
+\newcounter{proofno}
+\newcommand{\ProofLabel}[1]{\RightLabel{\refstepcounter{proofno}\label{#1}\scriptsize{(\ref{#1})}}}
 
 \newcommand{\todo}[1]{\marginpar{\textcolor{red}{#1}}}
 
@@ -71,7 +74,7 @@
     sensitive=true,
     morekeywords=[1]{proc,let,mut,break,continue,and,or,not,if,else,while,for,in,return,do,match,case,end},
     morekeywords=[2]{func,where,if,then,else,let,in,fn},
-    morekeywords=[3]{rule,given,and,or,not,if,then},
+    morekeywords=[3]{rule,given,and,or,not,if,then,is},
     morekeywords=[4]{when,cancel,resume,invert,yield},
     morekeywords=[5]{module,import,from,export,at,as},
     morekeywords=[6]{test,assert},

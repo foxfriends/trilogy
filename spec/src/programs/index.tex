@@ -1,0 +1,47 @@
+\section{Programs}
+
+While the semantics of the language are nice, the practical matters of
+executing a program must also be discussed.
+
+\subsection{Exit Codes}
+\label{sec:exitcode}
+
+On all operating systems I have experienced, programs end with an exit
+code indicating the status of the programs execution.
+
+A \Trilogy{} program's exit code is determined by the return value (or
+return values, in the case of parallel executions) of its \fn{main} procedure.
+
+% TODO: this is just rambling, will have to make it more proper.
+
+If a single evaluation makes it to the end of the program (i.e. runs off the end of the
+\fn{main} procedure, rather than fizzling) the program is also considered a success (exit 0).
+If not \emph{exactly} one (0 or more than 1) evaluation runs off the \fn{main} procedure,
+the program is treated as unsuccessful due to indeterminite result, and exits 1.
+
+
+If the program itself fizzles (i.e. the last remaining execution in
+a program has fizzled), the program is considered to have ended in
+failure, and will exit with an exit code of 1. This error status code
+\emph{may} also be accompanied by a printed error message describing
+to the user the circumstances of the program's failure, for debugging
+purposes.
+
+If the program terminates implicitly (i.e. not with the \kw{end} keyword)
+through more than one execution it is again considered a failure, even if
+all those executions were successful. A program running in the real world
+is restricted to determinism and may only exit with a single value;
+a program exiting by more than one path in this way is not something
+supported by any operating system, so the only safe assumption is that
+the programmer made an error.
+
+Given that, the example program above will always end in failure, but
+depending on the first character of the line read, may or may not
+print multiple possible words first.
+
+To avoid such confusing behaviour, it is generally recommended that
+nondeterministic branching is not used directly at the top level without
+some handling to combine the parallel executions or to recover from all
+executions fizzling in a way that makes sense for the current program.
+Alternatively, explicit use of the \kw{end} keyword to disambiguate the
+exit codes may help, but is still a bit confusing.

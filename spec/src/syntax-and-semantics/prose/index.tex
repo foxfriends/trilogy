@@ -41,6 +41,7 @@ to the call site, conceptually causing the call to fizzle or branch respectively
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M,\ \kw{return}\ N\ \}$}
     \AxiomC{$\Gamma,x_{1\hdots n} \vdash M\op{,}\ N $}
     \LeftLabel{Procedure}
+    \ProofLabel{proof:return}
     \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}=N$}
 \end{prooftree}
 
@@ -125,6 +126,8 @@ until later.
         \bnfpn{SEnd}
         \bnfor
         \bnfpn{SYield}
+        \bnfor
+        \bnfpn{SResume}
         \bnfor
     } \\
     \bnfmore{
@@ -676,4 +679,119 @@ or block it corresponds to, which picks up the execution before it fizzles compl
     \AxiomC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \top$}
     \LeftLabel{Continue}
     \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{,}\ \kw{continue}\ \texttt{\}} : \top$}
+\end{prooftree}
+
+\subsubsection{Return}
+
+Similar to \kw{break} and \kw{continue}, the \kw{return} statement causes execution
+to end and be picked up elsewhere. The \kw{return} statement may designate the value
+that a procedure call evaluates to. This should be intuitive to any who have written
+code before.
+
+A \kw{return} statement with no value is assumed to return \kw{unit}, the same as if
+the \kw{return} statement was omitted entirely and execution ran off the end of the
+procedure.
+
+\begin{bnf*}
+    \bnfprod{SReturn}{
+        \bnfts{\kw{return}}
+        \bnfor
+        \bnfts{\kw{return}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+Semantically, the \kw{return} statement on its own is simple. Meanwhile, its meaning
+to a procedure was already covered as part of the semantics of procedure definitions
+(Proof~\ref{proof:return}).
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash N:\top$}
+    \LeftLabel{Return}
+    \UnaryInfC{$\Gamma\vdash\kw{return}\ N : \bot$}
+\end{prooftree}
+
+\subsubsection{End}
+
+The last execution ending statement is the \kw{end} statement, of which the only
+purpose is to explicitly end an execution.
+
+The \kw{end} statement may be bare, or be provided a single value. In the case of
+a bare \kw{end} statement, the execution is simply stopped, the same as any fizzle.
+
+Meanwhile, provided a value, the execution is treated to have been completed and
+the value is its final result. While this value is not currently accessible from
+within the program, it is used to treat the current execution as if it had returned
+that value from the \fn{main} procedure, which has some effect on the resulting
+exit code of the program (\S\ref{sec:exitcode}).
+
+\begin{bnf*}
+    \bnfprod{SEnd}{
+        \bnfts{\kw{end}}
+        \bnfor
+        \bnfts{\kw{end}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+Semantically, the \kw{end} statement is very simple, as with the other execution
+ending statements.
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{End}
+    \UnaryInfC{$\Gamma\vdash\kw{end}\ : \bot$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash N:\top$}
+    \LeftLabel{End}
+    \UnaryInfC{$\Gamma\vdash\kw{end}\ N : \bot$}
+\end{prooftree}
+
+\subsubsection{Yield and Resume}
+
+The \kw{yield} statement, however simple in appearance, is one of the most
+semantically ambiguous statements in all of \Trilogy{}, as it provides direct
+access to the effect system that underpins the entirety of \Trilogy{}'s control
+flow structure.
+
+The \kw{resume} statement is a bit of a special case in that it is
+treated both as a keyword and a value. The \kw{resume} statement is available only
+in an effect handler, and is syntactically invalid when not within an effect handler.
+In the case of nested effect handlers, the \kw{resume} keyword refers to the innermost
+handler's continuation.
+
+% TODO: use first-class keyword for break and continue, for consistency. No labels!
+% Would additionally make it possible to pass break and continue to functions, which
+% would be an interesting control flow experiment consistent with how break and continue
+% would work were they user-built as effects and handlers.
+
+\begin{bnf*}
+    \bnfprod{SYield}{
+        \bnfts{\kw{yield}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+On its own, the \kw{yield} keyword is used to perform an ``effect'', which is
+handled by an upstream handler, designated by \kw{when} (which will be seen later).
+The effect in this situation is simply any value which is unified with the patterns
+in the handlers to find the first one which matches, running its body in order to
+handle the effect and determine how execution should proceed.
+
+Seen here, the \kw{yield} keyword is used in statement position, so its resulting
+value, if any, is discarded (\kw{yield} is more often used in expression position).
+However, due to an effect handler being possibly useful for side effects, \kw{yield}
+may be used in statement position as well.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E$}
+    \AxiomC{$\Gamma\vdash \text{when}\ P\ B$}
+    \UnaryInfC{$\Gamma\vdash B$}
+    \AxiomC{$P = E$}
+    \TrinaryInfC{$\Gamma\vdash \kw{yield}\ E : \top$}
 \end{prooftree}
