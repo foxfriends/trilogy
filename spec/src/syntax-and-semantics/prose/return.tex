@@ -3,11 +3,15 @@
 Similar to \kw{break} and \kw{continue}, the \kw{return} statement causes execution
 to end and be picked up elsewhere. The \kw{return} statement may designate the value
 that a procedure call evaluates to. This should be intuitive to any who have written
-code before.
+imperative code before.
 
 A \kw{return} statement with no value is assumed to return \kw{unit}, the same as if
 the \kw{return} statement was omitted entirely and execution ran off the end of the
 procedure.
+
+Also similar to \kw{break} and \kw{continue}, the \kw{return} keyword is a first-class
+keyword, allowing it to be assigned to a variable within a procedure and later passed
+around to other parts of the code.
 
 \begin{bnf*}
     \bnfprod{SReturn}{

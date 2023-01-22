@@ -6,43 +6,26 @@ whereas the \kw{continue} statement will end the current iteration and move on t
 next, without executing any further code. This applies for both \kw{for} and \kw{while}
 loops.
 
-Either of these statements given a label will act on that labelled loop.
-Without a label, the closest enclosing loop is assumed. If the label corresponds to a
-statement that is not a loop (or block for a \kw{break}), the syntax is to be considered
-invalid.
+Unlike in other languages, \Trilogy{} does not have labelled statements. Instead, to break
+out of the outer loop from within a nested loop, \Trilogy{} supports \emph{first-class keywords}.
+The \kw{break} or \kw{continue} keywords, when not used in statement form, are treated as
+nullary procedures, meaning they can be assigned to variables and later called as any
+other procedure. These keywords are tied syntactically to nearest enclosing loop, so when
+invoked from an inner loop, the captured \kw{break} or \kw{continue}'s original loop is
+the one that is affected.
 
-The \kw{break} statement may be used in labelled blocks as well, breaking out of
-those blocks immediately. Unlabelled blocks cannot be used with the \kw{break}
-statement in order to give priority to the loop usage, which is likely to be
-more frequent. The \kw{continue} statement may not be used on regular blocks,
-only on loops.
+Of course, grammatically that case is covered later, as part of the expression grammar.
+Here are only listed the syntax of the \kw{break} and \kw{continue} statements, which are
+trivial.
 
 \begin{bnf*}
-    \bnfprod{SBreak}{
-        \bnfts{\kw{break}}
-        \bnfor
-        \bnfts{\kw{break}}
-        \bnfsp
-        \bnfts{Identifier}
-    } \\
-    \bnfprod{SContinue}{
-        \bnfts{\kw{continue}}
-        \bnfor
-        \bnfts{\kw{continue}}
-        \bnfsp
-        \bnfts{Identifier}
-    }
+    \bnfprod{SBreak}{\bnfts{\kw{break}}} \\
+    \bnfprod{SContinue}{\bnfts{\kw{continue}}}
 \end{bnf*}
 
-Labels are a concept only at the syntax level, so are not considered bindings
-that may be used at runtime, and may not be passed as parameters. When a \kw{break}
-or \kw{continue} statement uses a label, they may only refer to labels on blocks
-or loops syntactically surrounding the statement using the label. In the semantics
-below, it is assumed that the block or loop that the \kw{break} or \kw{continue}
-is meant to correspond to has already been correctly resolved, and so the labels are
-omitted.
-
-A \kw{break} or \kw{continue} statement on its own does not evaluate to anything.
+A \kw{break} or \kw{continue} statement on its own does not evaluate to anything, so
+their semantics are uninteresting. When captured in a variable or closure, the semantics
+are unchanged, only the syntax is adjusted to disambiguate.
 
 \begin{figure}[H]
     \centering
@@ -65,11 +48,9 @@ A \kw{break} or \kw{continue} statement on its own does not evaluate to anything
 Though the statement ends the local execution, it changes the behaviour of the loop
 or block it corresponds to, which picks up the execution before it fizzles completely.
 
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash \texttt{\{}\ M\ \texttt{\}} : \top$}
-    \LeftLabel{Break\textsuperscript{Block}}
-    \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
-\end{prooftree}
+The behaviour of binding the keyword to a loop is only of syntactic concern, so in the
+semantics we assume that the break or continue in question has already been resolved to
+the correct containing loop.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash \kw{for}\ Q\ \texttt{\{}\ M\ \texttt{\}} : \top$}
@@ -88,3 +69,12 @@ or block it corresponds to, which picks up the execution before it fizzles compl
     \LeftLabel{Continue}
     \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{,}\ \kw{continue}\ \texttt{\}} : \top$}
 \end{prooftree}
+
+It is worth noting, however, that if either the \kw{break} or \kw{continue} keyword escapes the
+loop it was bound to and is invoked outside of the loop, the program is to be considered invalid.
+Syntactically this may be hard to enforce, so instead it is enforced as a runtime invariant.
+
+Rather than fizzling, the expected behaviour in this situation is the immediate end of the
+program as an ``execution failure''. This fact is not included in any proof of semantics,
+and is instead defined only as a safeguard against undefined behaviour until more nuanced
+options may be explored at a later time.

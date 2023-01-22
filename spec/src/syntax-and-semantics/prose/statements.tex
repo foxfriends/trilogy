@@ -52,13 +52,6 @@ until later.
         \bnfpn{Block}
         \bnfor
     } \\
-    \bnfmore{
-        \bnfts{\texttt{Identifier}}
-        \bnfsp
-        \bnfts{\texttt{:}}
-        \bnfsp
-        \bnfpn{Statement}
-    } \\
     \bnfprod{Block}{
         \bnfts{\{}
         \bnfsp
@@ -90,8 +83,3 @@ the end of the block.
     \LeftLabel{Unnest}
     \BinaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \tau$}
 \end{prooftree}
-
-Labelled statements evaluate as if they were unlabelled, but
-may be referred to by their name in substatements. Though this uses the
-same colon (\texttt{:}) as the cons operator, this does not produce any
-tuple.
