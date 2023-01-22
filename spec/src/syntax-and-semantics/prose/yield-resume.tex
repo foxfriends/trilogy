@@ -5,20 +5,35 @@ semantically ambiguous statements in all of \Trilogy{}, as it provides direct
 access to the effect system that underpins the entirety of \Trilogy{}'s control
 flow structure.
 
-The \kw{resume} statement is a bit of a special case in that it is
-treated both as a keyword and a value. The \kw{resume} statement is available only
-in an effect handler, and is syntactically invalid when not within an effect handler.
-In the case of nested effect handlers, the \kw{resume} keyword refers to the innermost
-handler's continuation.
+The \kw{resume} statement is the response to a \kw{yield}, providing the value
+that the \kw{yield} keyword evaluates to (when used in an expression). The
+\kw{resume} statement is available only in an effect handler, and is syntactically
+invalid when not within an effect handler. In the case of nested effect handlers,
+the \kw{resume} keyword refers to the innermost handler's continuation. This is
+much like \kw{break} or \kw{continue} on loops.
 
-% TODO: use first-class keyword for break and continue, for consistency. No labels!
-% Would additionally make it possible to pass break and continue to functions, which
-% would be an interesting control flow experiment consistent with how break and continue
-% would work were they user-built as effects and handlers.
+The \kw{resume} keyword is a first-class keyword, and so follows the now familiar
+rules of first-class keywords. When used in value position, the \kw{resume} keyword
+becomes a unary function.
+
+In either case, the \kw{resume} keyword can be considered to represent the delimited
+continuation of the \kw{yield} statement that is performing the current effect, until the
+expresson to which the handler for the current \kw{resume} is attached.
+
+While the \kw{yield} statement requires a value (describing the intended effect), the
+\kw{resume} statement may be used without a value, in which case the \kw{yield} that
+is performing the effect evaluates to \kw{unit}.
 
 \begin{bnf*}
     \bnfprod{SYield}{
         \bnfts{\kw{yield}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{SResume}{
+        \bnfts{\kw{resume}}
+        \bnfor
+        \bnfts{\kw{resume}}
         \bnfsp
         \bnfpn{Expression}
     }

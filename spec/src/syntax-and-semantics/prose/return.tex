@@ -12,8 +12,9 @@ procedure.
 Also similar to \kw{break} and \kw{continue}, the \kw{return} keyword is a first-class
 keyword, allowing it to be assigned to a variable within a procedure and later passed
 around to other parts of the code. Unlike \kw{break} and \kw{continue}, when used as
-a first-class keyword, \kw{return} becomes a single argument function. This is a
-realization of something like the operator \textbf{J}, described by Landin\cite{j}.
+a first-class keyword, \kw{return} becomes a unary function which represents the continuation
+of the call to the current procedure. This is a realization of something like the operator
+\textbf{J}, described by Landin\cite{j}.
 
 When called as a function with a value, a first-class \kw{return} causes the procedure
 it is bound to to return. Called from within the function, this allows for an early
