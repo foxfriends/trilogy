@@ -1,0 +1,44 @@
+\subsubsection{Yield and Resume}
+
+The \kw{yield} statement, however simple in appearance, is one of the most
+semantically ambiguous statements in all of \Trilogy{}, as it provides direct
+access to the effect system that underpins the entirety of \Trilogy{}'s control
+flow structure.
+
+The \kw{resume} statement is a bit of a special case in that it is
+treated both as a keyword and a value. The \kw{resume} statement is available only
+in an effect handler, and is syntactically invalid when not within an effect handler.
+In the case of nested effect handlers, the \kw{resume} keyword refers to the innermost
+handler's continuation.
+
+% TODO: use first-class keyword for break and continue, for consistency. No labels!
+% Would additionally make it possible to pass break and continue to functions, which
+% would be an interesting control flow experiment consistent with how break and continue
+% would work were they user-built as effects and handlers.
+
+\begin{bnf*}
+    \bnfprod{SYield}{
+        \bnfts{\kw{yield}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+On its own, the \kw{yield} keyword is used to perform an ``effect'', which is
+handled by an upstream handler, designated by \kw{when} (which will be seen later).
+The effect in this situation is simply any value which is unified with the patterns
+in the handlers to find the first one which matches, running its body in order to
+handle the effect and determine how execution should proceed.
+
+Seen here, the \kw{yield} keyword is used in statement position, so its resulting
+value, if any, is discarded (\kw{yield} is more often used in expression position).
+However, due to an effect handler being possibly useful for side effects, \kw{yield}
+may be used in statement position as well.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E$}
+    \AxiomC{$\Gamma\vdash \text{when}\ P\ B$}
+    \UnaryInfC{$\Gamma\vdash B$}
+    \AxiomC{$P = E$}
+    \TrinaryInfC{$\Gamma\vdash \kw{yield}\ E : \top$}
+\end{prooftree}

@@ -1,0 +1,86 @@
+\subsubsection{Assignment}
+
+Variables (specifically, mutable bindings) may be assigned to. Similar to
+declaration via \kw{let}, the left-hand side of standard assignment may be
+any pattern so long as it does not introduce new bindings. The pattern may only
+use previously bound names. The assignment statement updates the values of the
+bindings in the pattern.
+
+Function assignment is a special syntax for applying a function to a value and
+then simultaneously reassigning that value with the result of the function; a
+generalization of operator assignment (e.g. \op{+=}) to any function. In this form
+of assignment, the left-hand side of the assignment operator is a single identifier,
+and the right side is the arguments to apply to the function being used as the
+assignment operator. The left hand side is then applied as the last argument to
+the function.
+
+Regular operator assignment (\op{+=}, \op{-=}, etc.) is supported as well, in the
+intuitive way: the left hand identifer is used as the left hand side of the operator.
+
+\begin{bnf*}
+    \bnfprod{SAssignment}{
+        \bnfpn{PatternAssignment}
+        \bnfor
+        \bnfpn{FunctionAssignment}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{OperatorAssignment}
+    } \\
+    \bnfprod{PatternAssignment}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\op{=}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{FunctionAssignment}{
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfts{IdentifierEq}
+        \bnfsp
+        \bnfpn{ApplicationList}
+    } \\
+    \bnfprod{OperatorAssignment}{
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfpn{OperatorEq}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{OperatorEq}{
+        \bnfts{+=}\bnfor
+        \bnfts{-=}\bnfor
+        \bnfts{*=}\bnfor
+        \bnfts{/=}\bnfor
+        \bnfts{\%=}\bnfor
+        \bnfts{**=}\bnfor
+        \bnfts{//=}\bnfor
+        \bnfts{<>=}\bnfor
+    } \\
+    \bnfmore{
+        \bnfts{|=}\bnfor
+        \bnfts{\&=}\bnfor
+        \bnfts{\textasciicircum=}\bnfor
+        \bnfts{\textasciitilde=}\bnfor
+        \bnfts{<\textasciitilde=}\bnfor
+        \bnfts{\textasciitilde>=}
+    }
+\end{bnf*}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash y$}
+    \AxiomC{$P = y$}
+    \AxiomC{$\Gamma, \{a\ |\ a := P\} :> \Phi$}
+    \LeftLabel{Assignment}
+    \TrinaryInfC{$\Gamma\vdash P\ \op{=}\ y \Rightarrow \Phi$}
+\end{prooftree}
+
+Rather than defining the exact semantics of function or operator assignment,
+instead understand those by syntax transformation, and use the same assignment
+semantics as normal:
+
+\begin{align*}
+    \texttt{\$x:id \$fn:id= \$(\$a:expr)+} &\Rightarrow \texttt{\$x = \$f \$(\$a)+ \$x} \\ %
+    \texttt{\$x:id \$op:op= \$a:expr} & \Rightarrow \texttt{\$x = \$x \$op \$a} \\ %
+\end{align*}

@@ -1,0 +1,35 @@
+\subsubsection{While}
+
+The \kw{while} loop accepts a Boolean condition and repeats a block of code
+until that condition evaluates to \kw{false}. \Trilogy{}'s \kw{while} loop is
+very standard, as far as such loops go. There is no \texttt{do}\dots\texttt{while}
+loop in \Trilogy{}.
+
+\begin{bnf*}
+    \bnfprod{SWhile}{
+        \bnfts{\kw{while}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+    }
+\end{bnf*}
+
+Branching may occur in the body of a \kw{while} loop, leading to more iterations
+than expected if not careful. However, since the \kw{while} loop provides no collection
+mechanism, once those branches break out of the loop they will continue to execute
+beyond the end of the loop.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash C = \kw{true}$}
+    \AxiomC{$\Gamma\vdash B \Rightarrow \Phi$}
+    \AxiomC{$\Phi\vdash \kw{while}\ C\ B \Rightarrow\Sigma$}
+    \LeftLabel{Loop}
+    \TrinaryInfC{$\Gamma\vdash \kw{while}\ C\ B \Rightarrow \Sigma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash C = \kw{false}$}
+    \LeftLabel{End Loop}
+    \UnaryInfC{$\Gamma\vdash \kw{while}\ C\ B:\top$}
+\end{prooftree}

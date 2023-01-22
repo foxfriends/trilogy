@@ -1,0 +1,104 @@
+\subsubsection{Match}
+
+The \kw{match} statement allows for pattern matching, allowing code to branch
+on the structure of a value, rather than a Boolean evaluation of an expression.
+As \Trilogy{} is a dynamically typed language, it is hard to ensure completeness
+of a \kw{match} statement, so completeness is not enforced; a mismatch is skipped
+in much the same way a \kw{false} evaluation of an \kw{if} statement is skipped.
+
+The \kw{match} statement takes an expression and is followed by multiple \kw{case}
+statements. Each \kw{case} statement has a pattern, a guard, or both, and then a block
+of code to run if that case is selected.
+
+\begin{bnf*}
+    \bnfprod{SMatch}{
+        \bnfts{\kw{match}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Cases}
+    } \\
+    \bnfprod{Cases}{
+        \bnfpn{Case}\bnfsp\bnfpn{Cases}\bnfor\bnfpn{Case}
+    } \\
+    \bnfprod{Case}{
+        \bnfts{\kw{case}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{case}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{case}}
+        \bnfsp
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    }
+\end{bnf*}
+
+To evaluate a \kw{match} statement, the original expression is evaluated, and compared
+against the pattern of each \kw{case}; an omitted pattern is interpreted like an underscore
+(\texttt{\_}) pattern, matching with any value.
+
+Before committing to a \kw{case} with a matching pattern, the guard is evaluated, if any.
+If the guard expression evaluates to \kw{true} (or there are no guards), the case is selected.
+Identifiers bound in the pattern are in scope for this evaluation. Any value that is not \kw{true},
+including non-Boolean values, are treated as \kw{false}, and the case is not selected. An omitted
+guard is treated to be always \kw{true}.
+
+The block following the first selected case is then run. If no cases are selected,
+they are simply ignored and the program continues.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma,\{a\ |\ a := P\} \vdash C = \kw{true}$}
+    \LeftLabel{Match}
+    \TrinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{case}\ P\ \kw{if}\ C\ B \Rightarrow \Phi$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma,\{a\ |\ a := P\} \vdash C \neq \kw{true}$}
+    \TrinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ B$}
+    \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
+    \LeftLabel{Match\textsuperscript{\kw{false}}}
+    \insertBetweenHyps{\hskip -12pt}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P \neq E$}
+    \BinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ B$}
+    \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
+    \LeftLabel{Match\textsuperscript{$\bot$}}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
+\end{prooftree}
+
+The omitted clauses of the \kw{case} statement are formalized by syntax transformation:
+
+\begin{align*}
+    \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %
+    \texttt{\kw{case} \kw{if} \$c:expr} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \$c} \\ %
+\end{align*}

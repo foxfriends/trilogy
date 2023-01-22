@@ -1,0 +1,30 @@
+\subsubsection{Let}
+
+The \kw{let} statement in \Prose{} exposes a ``binding context'' in which
+bindings may be introduced, similar to that of \Law{}. Depending on how many times
+the binding pattern matches, this may introduce a branch or cause a fizzle.
+Most often, however, such bindings are done via a direct single unification
+which is determinisitic, and so control flow will progress intuitively.
+
+\begin{bnf*}
+    \bnfprod{SLet}{
+        \bnfts{\kw{let}}
+        \bnfsp
+        \bnfpn{Unification}
+    } \\
+\end{bnf*}
+
+Semantically, a \kw{let} statement introduces an implicit scope from its location
+in the source code until the end of the nearest explicit scope (e.g. the end of a block).
+The bindings declared in this statement are available within that scope.
+
+What is more unique to \Trilogy{} is the branching and fizzling capability of the
+\kw{let} statement when provided a unification via a more complex rule of \Law{}.
+Depending on how many possible bindings there are for the provided rule, a \kw{let}
+statement may lead to multiple executions of the program running in parallel, or none.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash U \Rightarrow \Phi$}
+    \LeftLabel{Branch}
+    \UnaryInfC{$\Gamma \vdash \kw{let}\ U \Rightarrow \Phi$}
+\end{prooftree}

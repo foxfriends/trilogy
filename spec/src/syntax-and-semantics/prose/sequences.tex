@@ -1,0 +1,28 @@
+\subsubsection{Sequences}
+
+Sequences are statements which are to be executed in order, in typical
+imperative fashion. Statements in sequence must be separated by a line break or
+an explicit separator (\op{,}).
+
+\begin{bnf*}
+    \bnfprod{Sep}{\bnfpn{EOL}\bnfor\bnfts{,}} \\
+    \bnfprod{Sequence}{\bnfpn{Statement}\bnfsp\bnfpn{Sep}\bnfsp\bnfpn{Sequence}\bnfor} \\
+    \bnfmore{\bnfpn{Statement}\bnfor\bnfes}
+\end{bnf*}
+
+A sequence of statements has no value, but rather each step of the sequence
+performs some effect on the context in which it is being run, eventually
+producing the result of the program.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash M \Rightarrow \Phi$}
+    \AxiomC{$\Phi \vdash N \Rightarrow \Sigma$}
+    \LeftLabel{Sequence}
+    \BinaryInfC{$\Gamma \vdash M \op{,}\ N \Rightarrow \Sigma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash M \Rightarrow \bot$}
+    \LeftLabel{Sequence\textsuperscript{$\bot$}}
+    \UnaryInfC{$\Gamma \vdash M \op{,}\ N: \bot$}
+\end{prooftree}

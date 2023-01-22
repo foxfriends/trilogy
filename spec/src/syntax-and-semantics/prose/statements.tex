@@ -1,0 +1,97 @@
+\subsubsection{Statements}
+
+A statement is a single ``step'' of a procedure in \Prose{}. Statements do not
+evaluate to any value, but they perform effects on the state of the program and
+its environment.
+
+To differentiate with similar constructs in \Poetry{}, while also saving space,
+the names of the statement productions are prefixed with S, short for statement.
+Meanwhile, expressions are actually all \Poetry{}, so such specification is left
+until later.
+
+\begin{bnf*}
+    \bnfprod{Statement}{
+        \bnfpn{SLet}
+        \bnfor
+        \bnfpn{SAssignment}
+        \bnfor
+        \bnfpn{SIf}
+        \bnfor
+        \bnfpn{SMatch}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SWhile}
+        \bnfor
+        \bnfpn{SFor}
+        \bnfor
+        \bnfpn{SBreak}
+        \bnfor
+        \bnfpn{SContinue}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SReturn}
+        \bnfor
+        \bnfpn{SEnd}
+        \bnfor
+        \bnfpn{SYield}
+        \bnfor
+        \bnfpn{SResume}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{ProcedureCall}
+        \bnfor
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{)}
+        \bnfor
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\texttt{Identifier}}
+        \bnfsp
+        \bnfts{\texttt{:}}
+        \bnfsp
+        \bnfpn{Statement}
+    } \\
+    \bnfprod{Block}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Sequence}
+        \bnfsp
+        \bnfts{\}}
+    }
+\end{bnf*}
+
+Evaluating an expressions as a statement is allowed, but is typically
+recommended against. In particular cases, however, it may be necessary,
+so wrapping the expression in parentheses will allow this. Bare expressions
+are not permitted, except for procedure calls which are allowed by special
+case of the statement syntax.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash M : \tau$}
+    \LeftLabel{Unwrap}
+    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \tau$}
+\end{prooftree}
+
+Blocks may be used in any situation statements are allowed, and act as
+a scope barrier. Bindings declared within a block go out of scope at
+the end of the block.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma :> \Phi$}
+    \AxiomC{$\Phi \vdash M : \tau$}
+    \LeftLabel{Unnest}
+    \BinaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \tau$}
+\end{prooftree}
+
+Labelled statements evaluate as if they were unlabelled, but
+may be referred to by their name in substatements. Though this uses the
+same colon (\texttt{:}) as the cons operator, this does not produce any
+tuple.

@@ -1,0 +1,30 @@
+\subsubsection{Return}
+
+Similar to \kw{break} and \kw{continue}, the \kw{return} statement causes execution
+to end and be picked up elsewhere. The \kw{return} statement may designate the value
+that a procedure call evaluates to. This should be intuitive to any who have written
+code before.
+
+A \kw{return} statement with no value is assumed to return \kw{unit}, the same as if
+the \kw{return} statement was omitted entirely and execution ran off the end of the
+procedure.
+
+\begin{bnf*}
+    \bnfprod{SReturn}{
+        \bnfts{\kw{return}}
+        \bnfor
+        \bnfts{\kw{return}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+Semantically, the \kw{return} statement on its own is simple. Meanwhile, its meaning
+to a procedure was already covered as part of the semantics of procedure definitions
+(Proof~\ref{proof:return}).
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash N:\top$}
+    \LeftLabel{Return}
+    \UnaryInfC{$\Gamma\vdash\kw{return}\ N : \bot$}
+\end{prooftree}

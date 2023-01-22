@@ -1,0 +1,90 @@
+\subsubsection{Break and Continue}
+
+The statements \kw{break} and \kw{continue} may be used in loops to control iteration.
+The \kw{break} statement will exit the loop immediately, skipping all further iteration,
+whereas the \kw{continue} statement will end the current iteration and move on to the
+next, without executing any further code. This applies for both \kw{for} and \kw{while}
+loops.
+
+Either of these statements given a label will act on that labelled loop.
+Without a label, the closest enclosing loop is assumed. If the label corresponds to a
+statement that is not a loop (or block for a \kw{break}), the syntax is to be considered
+invalid.
+
+The \kw{break} statement may be used in labelled blocks as well, breaking out of
+those blocks immediately. Unlabelled blocks cannot be used with the \kw{break}
+statement in order to give priority to the loop usage, which is likely to be
+more frequent. The \kw{continue} statement may not be used on regular blocks,
+only on loops.
+
+\begin{bnf*}
+    \bnfprod{SBreak}{
+        \bnfts{\kw{break}}
+        \bnfor
+        \bnfts{\kw{break}}
+        \bnfsp
+        \bnfts{Identifier}
+    } \\
+    \bnfprod{SContinue}{
+        \bnfts{\kw{continue}}
+        \bnfor
+        \bnfts{\kw{continue}}
+        \bnfsp
+        \bnfts{Identifier}
+    }
+\end{bnf*}
+
+Labels are a concept only at the syntax level, so are not considered bindings
+that may be used at runtime, and may not be passed as parameters. When a \kw{break}
+or \kw{continue} statement uses a label, they may only refer to labels on blocks
+or loops syntactically surrounding the statement using the label. In the semantics
+below, it is assumed that the block or loop that the \kw{break} or \kw{continue}
+is meant to correspond to has already been correctly resolved, and so the labels are
+omitted.
+
+A \kw{break} or \kw{continue} statement on its own does not evaluate to anything.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Break}
+            \UnaryInfC{$\Gamma \vdash \kw{break} : \bot$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.45\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Continue}
+            \UnaryInfC{$\Gamma \vdash \kw{continue} : \bot$}
+        \end{prooftree}
+    }
+\end{figure}
+
+Though the statement ends the local execution, it changes the behaviour of the loop
+or block it corresponds to, which picks up the execution before it fizzles completely.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Break\textsuperscript{Block}}
+    \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash \kw{for}\ Q\ \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Break\textsuperscript{for}}
+    \UnaryInfC{$\Gamma \vdash \kw{for}\ Q\ \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash \kw{while}\ E\ \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Break\textsuperscript{while}}
+    \UnaryInfC{$\Gamma \vdash \kw{while}\ E\ \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \LeftLabel{Continue}
+    \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{,}\ \kw{continue}\ \texttt{\}} : \top$}
+\end{prooftree}

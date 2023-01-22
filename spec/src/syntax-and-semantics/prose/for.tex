@@ -1,0 +1,77 @@
+\subsubsection{For}
+
+The \kw{for} loop repeats a block of code for all solutions to a provided query.
+This is more similar to a for-each loop than the three part conditional loop seen in
+some imperative languages. No such conditional \kw{for} loop exists in \Trilogy{},
+but similar semantics can be constructed using \kw{while}.
+
+\begin{bnf*}
+    \bnfprod{SFor}{
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{SFor}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Block}
+    }
+\end{bnf*}
+
+Notably different from other languages is that a \kw{for} loop may have an \kw{else} clause,
+similar to an \kw{if} statement. This \kw{else} clause is triggered in the case that the
+unification fails.
+
+The query of the \kw{for} loop is performed only once, at the beginning of the loop.
+Any mutation to the values as a result of the loop's execution will not affect the remaining
+iterations.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U_{1\hdots n}$}
+    \AxiomC{$Q = U_i$}
+    \AxiomC{$\Gamma,U_1\vdash B \Rightarrow\Phi_1$}
+    \noLine
+    \UnaryInfC{$\Phi_1,U_2\vdash B \Rightarrow\Phi_2$}
+    \noLine
+    \UnaryInfC{$\vdots$}
+    \noLine
+    \UnaryInfC{$\Phi_{n-1},U_n\vdash B \Rightarrow\Sigma$}
+    \LeftLabel{For}
+    \TrinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Sigma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash Q:\bot$}
+    \AxiomC{$\Gamma\vdash F\Rightarrow\Phi$}
+    \LeftLabel{For\textsuperscript{$\bot$}}
+    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Phi$}
+\end{prooftree}
+
+A \kw{for} loop is distinct from the branching \kw{let} statement in how execution
+continues after each branch has been evaluated. Where a \kw{let} statement would
+result in multiple parallel executions with separate execution contexts, the
+\kw{for} loop executes the block for each binding of the query in sequence,
+all within one continuous execution context. A failed \kw{let} binding will cause
+the current execution to fizzle, while a \kw{for} loop query that does not
+have a solution simply causes the loop to be skipped, but execution does not end.

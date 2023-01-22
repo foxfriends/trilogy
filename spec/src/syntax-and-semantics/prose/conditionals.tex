@@ -1,0 +1,66 @@
+\subsubsection{Conditionals}
+
+The primary conditional statement in \Prose{} is the \kw{if} statement,
+which appears as you might expect coming from nearly any other language.
+
+\begin{bnf*}
+    \bnfprod{SIf}{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{SIf}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Block}
+    }
+\end{bnf*}
+
+In the common case, the condition is a statement that evaluates to a Boolean
+result, \kw{true} or \kw{false}, and control flows as you might expect.
+If the result is not a Boolean, the execution fizzles.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash C = \kw{true}$}
+    \AxiomC{$\Gamma \vdash T \Rightarrow \Phi$}
+    \LeftLabel{If Else\textsuperscript{\kw{true}}}
+    \BinaryInfC{$\Gamma \vdash \kw{if}\ C\ T\ \kw{else}\ F \Rightarrow \Phi$}
+\end{prooftree}
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash C = \kw{false}$}
+    \AxiomC{$\Gamma \vdash F \Rightarrow \Phi$}
+    \LeftLabel{If Else\textsuperscript{\kw{false}}}
+    \BinaryInfC{$\Gamma \vdash \kw{if}\ C\ T\ \kw{else}\ F \Rightarrow \Phi$}
+\end{prooftree}
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash C = \kw{true}$}
+    \AxiomC{$\Gamma \vdash T \Rightarrow \Phi$}
+    \LeftLabel{If\textsuperscript{\kw{true}}}
+    \BinaryInfC{$\Gamma \vdash \kw{if}\ C\ T \Rightarrow \Phi$}
+\end{prooftree}
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash C = \kw{false}$}
+    \LeftLabel{If\textsuperscript{\kw{false}}}
+    \UnaryInfC{$\Gamma \vdash \kw{if}\ C\ T : \top$}
+\end{prooftree}
