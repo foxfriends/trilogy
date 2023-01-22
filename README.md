@@ -20,6 +20,7 @@ As you can see, progress at this time is limited:
 - [x] Read some papers and instructions on programming languages
     - https://www.eff-lang.org/handlers-tutorial.pdf
     - http://www.math.bas.bg/bantchev/place/iswim/j-explanation.pdf
+    - http://www.math.bas.bg/bantchev/place/iswim/j.pdf
     - https://cs.ru.nl/~dfrumin/notes/delim.html
     - https://www.cs.cmu.edu/~rwh/students/filinski.pdf
     - https://homepages.inf.ed.ac.uk/slindley/papers/effmondel-jfp.pdf

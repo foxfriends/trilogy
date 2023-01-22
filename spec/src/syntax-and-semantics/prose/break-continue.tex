@@ -10,7 +10,9 @@ Unlike in other languages, \Trilogy{} does not have labelled statements. Instead
 out of the outer loop from within a nested loop, \Trilogy{} supports \emph{first-class keywords}.
 The \kw{break} or \kw{continue} keywords, when not used in statement form, are treated as
 nullary procedures, meaning they can be assigned to variables and later called as any
-other procedure. These keywords are tied syntactically to nearest enclosing loop, so when
+other procedure.
+
+These keywords are tied syntactically to nearest enclosing loop, so when
 invoked from an inner loop, the captured \kw{break} or \kw{continue}'s original loop is
 the one that is affected.
 
