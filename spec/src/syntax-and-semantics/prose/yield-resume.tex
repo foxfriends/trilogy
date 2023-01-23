@@ -1,7 +1,7 @@
 \subsubsection{Yield and Resume}
 
 The \kw{yield} statement, however simple in appearance, is one of the most
-semantically ambiguous statements in all of \Trilogy{}, as it provides direct
+semantically complex statements in all of \Trilogy{}, as it provides direct
 access to the effect system that underpins the entirety of \Trilogy{}'s control
 flow structure.
 
@@ -39,21 +39,5 @@ is performing the effect evaluates to \kw{unit}.
     }
 \end{bnf*}
 
-On its own, the \kw{yield} keyword is used to perform an ``effect'', which is
-handled by an upstream handler, designated by \kw{when} (which will be seen later).
-The effect in this situation is simply any value which is unified with the patterns
-in the handlers to find the first one which matches, running its body in order to
-handle the effect and determine how execution should proceed.
-
-Seen here, the \kw{yield} keyword is used in statement position, so its resulting
-value, if any, is discarded (\kw{yield} is more often used in expression position).
-However, due to an effect handler being possibly useful for side effects, \kw{yield}
-may be used in statement position as well.
-
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash E$}
-    \AxiomC{$\Gamma\vdash \text{when}\ P\ B$}
-    \UnaryInfC{$\Gamma\vdash B$}
-    \AxiomC{$P = E$}
-    \TrinaryInfC{$\Gamma\vdash \kw{yield}\ E : \top$}
-\end{prooftree}
+While the syntax of yield and resume are easy to specify at this time, the semantics
+will be left for later, when we look at the effect system as a whole in \S\ref{sec:effects}.
