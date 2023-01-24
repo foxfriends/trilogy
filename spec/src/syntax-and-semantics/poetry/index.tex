@@ -4,3 +4,61 @@ As \Law{} is a language of binding, and \Prose{} a language of control
 flow, \Poetry{} is a language of value. As a pure functional programming
 language, \Poetry{} is highly expression-based, though given the existence
 of the effect system it is possible to trigger side effects, in a way.
+
+\begin{bnf*}
+    \bnfprod{FunctionHead}{
+        \bnfts{Identifier}
+        \bnfsp
+        \bnfpn{ParameterList}
+    } \\
+    \bnfprod{ParameterList}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfor
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{FunctionBody}{\bnfpn{Expression}}
+\end{bnf*}
+
+Similar to Haskell, functions in \Poetry{} are defined as equations. Defining
+the same name multiple times is allowed, given that its number of arguments
+is the same, and the patterns of its parameters are changed, allowing different
+cases of a function to be handled by different expressions. When the function is
+applied, the first matching definition in source code order is used, and the
+others are skipped.
+
+Also similar to Haskell, functions support currying and partial application by
+default. In \Trilogy{}, this is defined as a syntax transformation over function
+definitions with multiple parameters into unary functions returning a function
+that accepts the next parameter.
+
+\begin{align*}
+    \texttt{\$f:id \$(\$r:pat)* \$p:pat = \$e:expr} & \Rightarrow \texttt{\$f \$(\$r)* = \kw{fn} \$p = \$e} %
+\end{align*}
+
+The parameter list may be empty, defining a nullary (0-argument) function. As
+\Poetry{} is lazy, this function will only be evaluated when its result is
+needed, so even a nullary function may, for example, yield an effect which will
+only be performed when it is required. Note that the lazy evaluation of \Poetry{}
+can lead to some code being run in unexpected order, so it is recommended to
+think carefully about whether effects in \Poetry{} are required.
+
+Though \Poetry{} is lazy, \Prose{} and \Law{} (except for through Iterators)
+are not. When an expression of \Poetry{} appears in \Prose{} or \Law{},
+as in an assignment or unification, it is evaluated immediately. This implies
+that while \Poetry{} may be used to represent infinite data structures those
+data structures must remain in \Poetry{} or else they will be infinitely
+evaluated, unless converted to Iterator.
+
+\begin{prooftree}
+    \AxiomC{$f\ P\ \texttt{=}\ E$}
+    \AxiomC{$P = X$}
+    \AxiomC{$\Gamma,\{a\ |\ a:=P\}\vdash E = v$}
+    \LeftLabel{Function}
+    \TrinaryInfC{$\Gamma\vdash f(X) = v$}
+\end{prooftree}
+
+\input{expressions.tex}

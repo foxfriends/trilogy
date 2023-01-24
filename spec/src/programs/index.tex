@@ -1,7 +1,23 @@
 \section{Programs}
 
-While the semantics of the language are nice, the practical matters of
-executing a program must also be discussed.
+While the semantics of the language are fun and all, the practical matters of
+executing a program must also be discussed. One of the goals of \Trilogy{} is
+to be a practical language, which can be used to build actual programs after
+all.
+
+\subsection{Program Arguments}
+
+As with any program run on the command line, \Trilogy{} programs may accept
+command line arguments which alter the behaviour of the program.
+
+When run through the interpreter command, the command line arguments passed
+to the \Trilogy{} program are specified after the separator \texttt{--}. When
+the path to the \Trilogy{} interpreter is specified via the shebang, arguments
+may be passed directly.
+
+From within a \Trilogy{} program, these command line arguments are received
+as an array of strings which may be accessed via the built in procedure
+\fn{args}.
 
 \subsection{Exit Codes}
 \label{sec:exitcode}

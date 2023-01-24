@@ -12,6 +12,26 @@ calls in statement position are also explicitly permitted to carry effect handle
         \bnfpn{ProcedureCall}
         \bnfsp
         \bnfpn{EffectHandlers}
+    } \\
+    \bnfprod{ProcedureCall}{
+        \bnfts{IdentifierBang}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{ArgumentList}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{ArgumentList}{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{ArgumentList}
+        \bnfor
+        \bnfpn{Expression}
+        \bnfor
+        \bnfes
     }
 \end{bnf*}
 

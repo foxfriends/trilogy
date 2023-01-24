@@ -15,19 +15,19 @@ repeatedly.
 
 \begin{bnf}
     \bnfprod*{RuleHead}{
-        \bnfts{\texttt{Identifier}}
+        \bnfts{Identifier}
         \bnfsp
-        \bnfts{\texttt{(}}
+        \bnfts{(}
         \bnfsp
         \bnfpn{PatternList}
         \bnfsp
-        \bnfts{\texttt{)}}
+        \bnfts{)}
     } \\
     \bnfprod{PatternList}{
         \label{bnf:patternlist}
         \bnfpn{Pattern}
         \bnfsp
-        \bnfts{\texttt{,}}
+        \bnfts{\op{,}}
         \bnfsp
         \bnfpn{PatternList}
         \bnfor
@@ -43,6 +43,9 @@ definitions in other logic languages such as Prolog may be defined with no param
 omitting the parentheses entirely, \Law{} does not permit this. All rules must include
 a parameter list. The parameter list may be empty, but the usefulness of such rules
 is not certain.
+
+Rules may be defined with the same name and number of parameters, in which case when
+applied, all definitions will be used at once, leading to more branching.
 
 \begin{prooftree}
     \AxiomC{$\kw{rule}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{)}$}
@@ -100,6 +103,9 @@ While logic is orderless, \Law{} is constraint by its being a programming langua
 and so unifications in \Law{} do occur in an order; the order in which they are
 written. After a unification, the free variables of each pattern are bound and
 control continues to the next unification depending on which connective was used.
+
+Similarly, when a rule has multiple definitions, they will be evaluated fully in
+source code order, as if they were connected by \kw{or}.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}
@@ -190,11 +196,11 @@ unification of values and patterns.
         \bnfor
     } \\
     \bnfmore{
-        \bnfts{\texttt{(}}
+        \bnfts{(}
         \bnfsp
         \bnfpn{Query}
         \bnfsp
-        \bnfts{\texttt{)}}
+        \bnfts{)}
         \bnfor
         \bnfpn{Lookup}
         \bnfor
@@ -302,22 +308,22 @@ from earlier.
 
 \begin{bnf*}
     \bnfprod{Path}{
-        \bnfts{\texttt{Identifier}}
+        \bnfts{Identifier}
         \bnfsp
         \bnfts{\op{.}}
         \bnfsp
         \bnfpn{Path}
         \bnfor
-        \bnfts{\texttt{Identifier}}
+        \bnfts{Identifier}
     } \\
     \bnfprod{Lookup}{
         \bnfpn{Path}
         \bnfsp
-        \bnfts{\texttt{(}}
+        \bnfts{(}
         \bnfsp
         \bnfpn{PatternList}
         \bnfsp
-        \bnfts{\texttt{)}}
+        \bnfts{)}
     }
 \end{bnf*}
 

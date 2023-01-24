@@ -1,0 +1,66 @@
+\subsubsection{Expressions}
+\label{sec:expressions}
+
+Seeing as the entirety of \Poetry{} (and admittedly, much of \Trilogy{} as a whole)
+is made up of expressions, there are a lot of cases.
+
+Though the expression grammar does include binary operators and other binary keywords
+\Trilogy{} does not encode precedence as part of the grammar but instead resolves that
+in a later pass in the interpreter.
+
+\begin{bnf*}
+    \bnfprod{Expression}{
+        \bnfpn{Expr}
+        \bnfor
+        \bnfpn{Expr}
+        \bnfsp
+        \bnfpn{EffectHandlers}
+    } \\
+    \bnfprod{Expr}{
+        \bnfpn{Literal}
+        \bnfor
+        \bnfpn{Reference}
+        \bnfor
+        \bnfpn{Comprehension}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Application}
+        \bnfor
+        \bnfpn{ProcedureCall}
+        \bnfor
+        \bnfpn{BinOp}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{UnaryOp}
+        \bnfor
+        \bnfpn{Let}
+        \bnfor
+        \bnfpn{IfElse}
+        \bnfor
+        \bnfpn{Match}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Yield}
+        \bnfor
+        \bnfpn{Resume}
+        \bnfor
+        \bnfpn{Return}
+        \bnfor
+        \bnfpn{End}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{FnClosure}
+        \bnfor
+        \bnfpn{DoClosure}
+        \bnfor
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{)}
+    }
+\end{bnf*}
