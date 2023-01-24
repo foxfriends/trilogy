@@ -47,21 +47,18 @@ The query of the \kw{for} loop is performed only once, at the beginning of the l
 Any mutation to the values as a result of the loop's execution will not affect the remaining
 iterations.
 
-% TODO: not happy with this proof, is there an inductive way to define it? Would be clearer
-% for first-class break semantics.
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U$}
+    \AxiomC{$\Gamma\vdash \forall\setof{U \given Q = U}.\ B\Rightarrow\Sigma$}
+    \LeftLabel{For}
+    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Sigma$}
+\end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\Gamma\vdash U_{1\hdots n}$}
-    \AxiomC{$Q = U_i$}
-    \AxiomC{$\Gamma,U_1\vdash B \Rightarrow\Phi_1$}
-    \noLine
-    \UnaryInfC{$\Phi_1,U_2\vdash B \Rightarrow\Phi_2$}
-    \noLine
-    \UnaryInfC{$\vdots$}
-    \noLine
-    \UnaryInfC{$\Phi_{n-1},U_n\vdash B \Rightarrow\Sigma$}
+    \AxiomC{$\Gamma, U_1\vdash B \Rightarrow\Phi$}
+    \AxiomC{$\Phi\vdash \forall\setof{U_2, \cdots, U_n}.\ B\Rightarrow\Sigma$}
     \LeftLabel{For}
-    \TrinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Sigma$}
+    \BinaryInfC{$\Gamma\vdash \forall\setof{U_1, U_2, \cdots, U_n}.\ B\Rightarrow\Sigma$}
 \end{prooftree}
 
 \begin{prooftree}

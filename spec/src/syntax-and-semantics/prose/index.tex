@@ -38,7 +38,7 @@ A procedure may cause a fizzle or branch, in which case all evaluations are prop
 to the call site, conceptually causing the call to fizzle or branch respectively.
 
 \begin{prooftree}
-    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M,\ \kw{return}\ N\ \}$}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \block{M,\ \kw{return}\ N}$}
     \AxiomC{$\Gamma,x_{1\hdots n} \vdash M\op{,}\ N $}
     \LeftLabel{Procedure}
     \ProofLabel{proof:return}
@@ -46,14 +46,14 @@ to the call site, conceptually causing the call to fizzle or branch respectively
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \block{M}$}
     \AxiomC{$\Gamma,x_{1\hdots n} \vdash M : \top$}
     \LeftLabel{Procedure\textsuperscript{$\top$}}
     \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}=\kw{unit}$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \{\ M\ \}$}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \block{M}$}
     \AxiomC{$\Gamma,x_{1\hdots n} \vdash M : \bot$}
     \LeftLabel{Procedure\textsuperscript{$\bot$}}
     \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}:\bot$}

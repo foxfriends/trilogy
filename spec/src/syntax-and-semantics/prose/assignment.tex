@@ -71,7 +71,7 @@ intuitive way: the left hand identifer is used as the left hand side of the oper
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash y$}
     \AxiomC{$P = y$}
-    \AxiomC{$\Gamma, \{a\ |\ a := P\} :> \Phi$}
+    \AxiomC{$\Gamma, \setof{a\given a \defby P} \extends \Phi$}
     \LeftLabel{Assignment}
     \TrinaryInfC{$\Gamma\vdash P\ \op{=}\ y \Rightarrow \Phi$}
 \end{prooftree}

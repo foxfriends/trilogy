@@ -69,7 +69,7 @@ they are simply ignored and the program continues.
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash E$}
     \AxiomC{$P = E$}
-    \AxiomC{$\Gamma,\{a\ |\ a := P\} \vdash C = \kw{true}$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash C = \kw{true}$}
     \LeftLabel{Match}
     \TrinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{case}\ P\ \kw{if}\ C\ B \Rightarrow \Phi$}
 \end{prooftree}
@@ -78,7 +78,7 @@ they are simply ignored and the program continues.
     \def\extraVskip{3.5pt}
     \AxiomC{$\Gamma \vdash E$}
     \AxiomC{$P = E$}
-    \AxiomC{$\Gamma,\{a\ |\ a := P\} \vdash C \neq \kw{true}$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash C \neq \kw{true}$}
     \TrinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ B$}
     \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
     \LeftLabel{Match\textsuperscript{\kw{false}}}

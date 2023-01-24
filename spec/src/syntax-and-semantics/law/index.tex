@@ -50,20 +50,20 @@ applied, all definitions will be used at once, leading to more branching.
 \begin{prooftree}
     \AxiomC{$\kw{rule}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{)}$}
     \AxiomC{$A_i = P_i$}
-    \AxiomC{$\Gamma,\{a\ |\ a := A_i\}:>\Phi$}
+    \AxiomC{$\Gamma,\{a\ |\ a \defby A_i\}\extends\Phi$}
     \LeftLabel{Fact}
-    \TrinaryInfC{$R(A_{1\hdots n}) \Rightarrow \Phi \in \Gamma$}
+    \TrinaryInfC{$\Gamma\vdash R(A_{1\hdots n}) \Rightarrow \Phi$}
 \end{prooftree}
 
 \begin{prooftree}
     \def\extraVskip{3.5pt}
     \AxiomC{$\kw{rule}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{) <-}\ B$}
     \AxiomC{$A_i = P_i$}
-    \BinaryInfC{$\Gamma,\{a\ |\ a := A_i\}:>\Phi$}
-    \AxiomC{$\Gamma,\{p\ |\ p := P_i\}:>\Sigma$}
+    \BinaryInfC{$\Gamma,\setof{a \given a \defby A_i}\extends\Phi$}
+    \AxiomC{$\Gamma,\setof{p \given p \defby P_i}\extends\Sigma$}
     \AxiomC{$\Sigma\vdash B:\top$}
     \LeftLabel{Rule}
-    \TrinaryInfC{$R(A_{1\hdots n}) \Rightarrow \Phi\in\Gamma$}
+    \TrinaryInfC{$\Gamma\vdash R(A_{1\hdots n}) \Rightarrow \Phi$}
 \end{prooftree}
 
 \subsubsection{Query}
@@ -221,7 +221,7 @@ in reverse.
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash E$}
     \AxiomC{$P = E$}
-    \AxiomC{$\Gamma,\{a\ |\ a := P\}:>\Phi$}
+    \AxiomC{$\Gamma,\setof{a \given a \defby P}\extends\Phi$}
     \LeftLabel{Unification}
     \TrinaryInfC{$\Gamma\vdash P\ \op{=}\ E \Rightarrow\Phi$}
 \end{prooftree}
@@ -236,7 +236,7 @@ Compound Types (\S\ref{sec:compound-types}).
     \AxiomC{$\Gamma\vdash E$}
     \AxiomC{$e\in E$}
     \AxiomC{$P = e$}
-    \AxiomC{$\{a\ |\ a := P\}:>\Phi$}
+    \AxiomC{$\setof{a \given a \defby P}\extends\Phi$}
     \LeftLabel{Iteration}
     \QuaternaryInfC{$\Gamma\vdash P\ \kw{in}\ E\Rightarrow\Phi$}
 \end{prooftree}
@@ -276,7 +276,7 @@ as Boolean values in this situation.
 \end{figure}
 
 The keyword \kw{not} may be used to negate a unification. A negated unification
-can produces no bindings, but may cause the execution to continue or fizzle
+produces no bindings, but may cause the execution to continue or fizzle
 depending on whether its unification succeeds at least once.
 
 \begin{figure}[H]

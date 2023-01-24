@@ -55,21 +55,21 @@ semantics we assume that the break or continue in question has already been reso
 the correct containing loop.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash \kw{for}\ Q\ \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \AxiomC{$\Gamma \vdash \kw{for}\ Q\ \block{M} : \top$}
     \LeftLabel{Break\textsuperscript{for}}
-    \UnaryInfC{$\Gamma \vdash \kw{for}\ Q\ \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+    \UnaryInfC{$\Gamma \vdash \kw{for}\ Q\ \block{M\ \op{,}\ \kw{break}} : \top$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash \kw{while}\ E\ \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \AxiomC{$\Gamma \vdash \kw{while}\ E\ \block{M} : \top$}
     \LeftLabel{Break\textsuperscript{while}}
-    \UnaryInfC{$\Gamma \vdash \kw{while}\ E\ \texttt{\{}\ M\ \op{,}\ \kw{break}\ \texttt{\}} : \top$}
+    \UnaryInfC{$\Gamma \vdash \kw{while}\ E\ \block{M\ \op{,}\ \kw{break}} : \top$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{\}} : \top$}
+    \AxiomC{$\Gamma \vdash \block{M} : \top$}
     \LeftLabel{Continue}
-    \UnaryInfC{$\Gamma \vdash \texttt{\{}\ M\ \texttt{,}\ \kw{continue}\ \texttt{\}} : \top$}
+    \UnaryInfC{$\Gamma \vdash \block{M\ \texttt{,}\ \kw{continue}} : \top$}
 \end{prooftree}
 
 It is worth noting, however, that if either the \kw{break} or \kw{continue} keyword escapes the

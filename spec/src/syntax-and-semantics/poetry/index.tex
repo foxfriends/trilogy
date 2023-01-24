@@ -56,7 +56,7 @@ evaluated, unless converted to Iterator.
 \begin{prooftree}
     \AxiomC{$f\ P\ \texttt{=}\ E$}
     \AxiomC{$P = X$}
-    \AxiomC{$\Gamma,\{a\ |\ a:=P\}\vdash E = v$}
+    \AxiomC{$\Gamma,\setof{a\given a\defby P}\vdash E = v$}
     \LeftLabel{Function}
     \TrinaryInfC{$\Gamma\vdash f(X) = v$}
 \end{prooftree}

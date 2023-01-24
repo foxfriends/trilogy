@@ -259,7 +259,7 @@ externally also may not access members of the module in which they are declared.
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0.1in}
     \AxiomC{$\Gamma,m_{1\hdots n},\Phi \vdash p$}
-    \AxiomC{$\kw{module}\ m\ (m_{1\hdots n})\ \{\ K\ \}$}
+    \AxiomC{$\kw{module}\ m\ (m_{1\hdots n})\ \block{K}$}
     \AxiomC{$K \Rightarrow \kw{export}\ p$}
     \LeftLabel{Local Module}
     \TrinaryInfC{$\Gamma \vdash m\texttt{.}p$}
