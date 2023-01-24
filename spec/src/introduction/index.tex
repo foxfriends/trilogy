@@ -18,14 +18,27 @@ into a cohesive whole.
 
 \subsection{Motivation}
 
-It's pretty common these days to see ``multi-paradigm'' languages. I might even
-go so far as to say it would be the wrong choice to commit a new language to
+My motivation behind \Trilogy{} is threefold (obviously). The further I go
+into this language, the more things I find that come in threes.
+
+\subsubsection{Expressivity}
+
+As someone who has tried many languages, for little reason other than
+to try them out, I find that nearly every language has something that
+makes it interesting and unique. Conversely, every language is missing
+the interesting and unique feature of every other languages, and so
+is disappointing in some way.
+
+In an attempt to cover as many such features as possible, it's pretty common these
+days to see languages incorporating features of multiple paradigms at once. I might even
+go so far as to say it would be \emph{wrong} to commit a new language to
 any single paradigm, as developers are so accustomed to having at least a few
 options at their disposal to solve any particular problem.
 
 Many inherently imperative languages, think Javascript, Python, or Rust,
-incorporate ideas from functional programming, leading to clean and concise
-code for a lot of common tasks. These languages typically don't embrace
+incorporate ideas from functional programming, allowing for the concise and
+composable code that functional languages are known for when manipulating simple
+data structures, often lists or arrays. These languages typically don't embrace
 all of the power of functional programming though, and instead choose to
 maintain a consistent and familiar imperative ideal, giving up the full
 conveniences afforded by features like currying and partial application.
@@ -38,12 +51,12 @@ incorporate typically imperative constructs in order to make traditionally
 imperative operations, such as I/O, easier. In other functional languages, common
 imperative tasks, like updating an element of a list (without mutation), or
 reading all lines of input into an array (without loops), become somewhat
-convoluted constructs of recursion whose performance characteristics feel
-questionable to me.
+convoluted constructs of recursion for which it becomes hard to reason about
+in what order side effects will be performed.
 
 In other cases, a second paradigm is tacked on as an afterthought to catch up with
-other more ``modern'' languages. C++ and Java are like this, with the addition of
-lambdas in later versions. Sadly, in both of those cases, using lambdas
+other more ``modern'' languages. \CC{} and Java are like this, with the addition of
+lambdas in later versions of each. Sadly, in both of those cases, using lambdas
 feels clumsy; they don't quite fit in with the rest of the language or
 pre-existing standard library. The lambdas are forced to squeeze into the
 language as a mostly runtime construct via strange classes with special cased
@@ -56,15 +69,61 @@ unnecessarily complicated abstractions and hard to read documentation written
 by scientists who have forgone human communication in favour of mathematical supremacy.
 
 What I have trouble finding are languages which fully embrace the strengths of
-every paradigm involved, nor can I find languages which incorporate logic programming
-as one of its core ideas. \Trilogy{} tries be both of those things, while also
-being an experimental playground in which I can try out features less often seen
-(namely effect systems for now).
+every paradigm involved. Neither can I find languages which incorporate logic programming
+as one of its core ideas. \Trilogy{} aims to solve this by incorporating
+three paradigms (imperative, functional, and logic programming) at once, while
+maintaining the full expressivity of each.
 
-With three distinct sub-languages (and no fear of adding further branches if ever
-there comes such a reason to), \Trilogy{} is able to take on the latest and greatest
-features of every paradigm it chooses to embrace. Each can play to its strengths,
-while gracefully handing off to the other branches when its usefulness wears off.
+With three distinct sub-languages (and no fear of adding further branches if
+ever there comes such a reason to), \Trilogy{} is able to take on the latest
+and greatest features of every paradigm it chooses to embrace. Each can play
+to its strengths, while gracefully handing off to the other branches when
+its usefulness wears off.
+
+Though it may be a bit tricky to have to switch between three different
+syntaxes, it should be remembered that notation is simply a tool by which
+we are able to codify our thoughts, and what is really important is the
+structure of those thoughts. With three notations at your disposal, it is
+much easier to express those thoughts exactly as you think them, rather than
+having to force them into the restrictions of just one.
+
+\subsubsection{Experimentation}
+
+By being a truly multi-paradigm language, there is no choice but to accept the
+fact that something of this whole idea must be an experiment. \Trilogy{} is a
+mixture of features not often all seen in a single language. Indeed it is all
+the features I wish I had a language in which I could experiment with them,
+but since they simply didn't exist, I could not.
+
+From the research I've read, and the thought I've put into this language, what
+I have found is that the differences between languages that already exist are
+typically based on value, binding, and control flow. By providing different
+combinations of each, we arrive at different paradigms: highly value based
+languages with minimal control flow operators end up looking functional; highly
+binding focused languages tend to turn out more logical but value manipulation
+becomes hard; traditional imperative languages have all sorts of control flow
+constructs, but are relatively elementary when it comes to manipulating values
+and bindings.
+
+\Trilogy{} takes those three pillars and raises the bar on each. To do so must
+take advantage of the more advanced control flow options provided by continuations,
+expressed directly to the language through the effect system. Both from an
+implementation and language design standpoint, \Trilogy{} is an experiment.
+Additionally, \Trilogy{} is an environment in which we can experiment with
+all these properties.
+
+\subsubsection{Practicality}
+
+Despite supporting features and a design that are fundamentally experimental,
+\Trilogy{} tries to remain practical at all times. Bringing along all of the
+common tooling, features, and developer experience we have come to expect of
+modern languages, \Trilogy{} should be easy and enjoyable to work with.
+
+Though it's likely that not every feature of \Trilogy{} will be used to its
+fullest, nor are some even a good idea to use to begin with, their existence
+will not get in the way of the usefulness of the language. Rather the opposite,
+there will be no situation where \Trilogy{} \emph{can't} do something that you
+need it to do; what could be more practical than that.
 
 \subsection{Prose}
 
