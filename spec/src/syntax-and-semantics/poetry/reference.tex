@@ -1,0 +1,21 @@
+\subsubsection{Reference}
+
+Defined names may be referenced at any time, their naming evaluating to the value
+they currently hold. This is a typical variable reference as in any language.
+Notably this is \emph{only} for variable references, looking up a name in another
+scope is handled by the member lookup operator (\op{.}) as a binary operation.
+
+\begin{bnf*}
+    \bnfprod{Reference}{\bnfpn{Identifier}}
+\end{bnf*}
+
+Admittedly the following semantics look a little wonky due to an ambiguous choice
+of notation. Rest assured, in the hypotheses the $x$ refers to the binding in the
+context, while in the inference the $x$ refers to the symbol in source code, so
+this is not an infinitely recursive deduction.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash x : \tau$}
+    \LeftLabel{Reference}
+    \UnaryInfC{$\Gamma\vdash x : \tau$}
+\end{prooftree}

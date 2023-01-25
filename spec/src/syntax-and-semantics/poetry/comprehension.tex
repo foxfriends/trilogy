@@ -1,0 +1,115 @@
+\subsubsection{Comprehension}
+
+Comprehension is a syntax by which collections can be iterated, filtered, and updated.
+In \Trilogy{}, comprehensions also allow lists to be generated; a special power afforded
+by \Law{} that other languages' comprehensions cannot do.
+
+The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
+
+\begin{bnf*}
+    \bnfprod{Comprehension}{
+        \bnfpn{ArrayComprehension}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SetComprehension}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{RecordComprehension}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{IteratorComprehension}
+    } \\
+    \bnfprod{ArrayComprehension}{
+        \bnfts{[}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{]}
+    } \\
+    \bnfprod{SetComprehension}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod{RecordComprehension}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{:}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod{IteratorComprehension}{
+        \bnfts{\$(} %
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfsp
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{)}
+    }
+\end{bnf*}
+
+The expression and the bindings introduced to that expression are in reverse in
+this syntax, one of the only places in \Trilogy{} where that is the case. The
+query in each form of comprehension introduces the bindings which may be used
+in the expression which generates the collection that is being comprehended.
+
+Where most languages allow iterator terms and filter terms for their comprehensions,
+\Trilogy{} requires none of that, instead opting to use \Law{}'s queries to allow
+filtering, iterating, and generating all with a familiar syntax.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U$}
+    \AxiomC{$U = Q$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash E : \tau$}
+    \LeftLabel{List Comprehension}
+    \TrinaryInfC{$\Gamma\vdash \texttt{[}\ E\ \kw{for}\ Q\ \texttt{]} : \ty{List}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U$}
+    \AxiomC{$U = Q$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash E : \tau$}
+    \LeftLabel{Set Comprehension}
+    \TrinaryInfC{$\Gamma\vdash \texttt{\{}\ E\ \kw{for}\ Q\ \texttt{\}} : \ty{Set}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U$}
+    \AxiomC{$U = Q$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash K : \kappa, V : \nu$}
+    \LeftLabel{Record Comprehension}
+    \TrinaryInfC{$\Gamma\vdash \texttt{\{}\ K\ \texttt{:}\ V\ \kw{for}\ Q\ \texttt{\}} : \ty{Record}\ \kappa:\nu$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U$}
+    \AxiomC{$U = Q$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash E : \tau$}
+    \LeftLabel{Iterator Comprehension}
+    \TrinaryInfC{$\Gamma\vdash \texttt{\$(}\ E\ \kw{for}\ Q\ \texttt{)} : \ty{Iter}\ \tau$}
+\end{prooftree}

@@ -205,7 +205,19 @@ unification of values and patterns.
         \bnfpn{Lookup}
         \bnfor
     } \\
-    \bnfmore{\bnfts{\kw{true}} \bnfor\bnfts{\kw{false}}\bnfor\kw{not}\bnfsp\bnfpn{Unification}}
+    \bnfmore{
+        \bnfts{\kw{true}}
+        \bnfor
+        \bnfts{\kw{false}}
+        \bnfor
+        \bnfts{\kw{is}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \kw{not}\bnfsp\bnfpn{Unification}
+    }
 \end{bnf*}
 
 While most unifications are performed by ``looking up'' (in the database)
@@ -271,6 +283,30 @@ as Boolean values in this situation.
             \AxiomC{}
             \LeftLabel{$\bot$}
             \UnaryInfC{$\Gamma \vdash \kw{false} : \bot$}
+        \end{prooftree}
+    }
+\end{figure}
+
+The keyword \kw{is} may be used to evaluate an expression and convert its Boolean
+result into logical success or failure, equivalent to the \kw{true} and \kw{false}
+keywords above. As this type of unification includes an expression, it is not
+reversible. If the expression does not evaluate to a Boolean value, it is treated
+as failure (the same as \kw{false}). No bindings are introduced by this form.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E : \kw{true}$}
+            \LeftLabel{Is $\top$}
+            \UnaryInfC{$\Gamma\vdash \kw{is}\ E : \top$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E : \kw{false}$}
+            \LeftLabel{Is $\bot$}
+            \UnaryInfC{$\Gamma\vdash \kw{is}\ E : \bot$}
         \end{prooftree}
     }
 \end{figure}

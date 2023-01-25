@@ -30,15 +30,15 @@ proc main!() {
 
     let itemfoodgroups = {
         group
-        for item in meal,
-            food(^item, group)
+        for item in meal
+        and food(^item, group)
     }
 
     let foodgroupcalories = {
         group: sum $(
             calories item
-            for item in meal,
-                food(^item, ^group)
+            for item in meal
+            and food(^item, ^group)
         )
         for group in itemfoodgroups
     }
