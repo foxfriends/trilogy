@@ -76,9 +76,9 @@ are not permitted, except for procedure calls which are allowed by special
 case of the statement syntax.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash M : \tau$}
+    \AxiomC{$\Gamma \vdash M : \top$}
     \LeftLabel{Unwrap}
-    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \tau$}
+    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \top$}
 \end{prooftree}
 
 Blocks may be used in any situation statements are allowed, and act as
@@ -87,9 +87,9 @@ the end of the block.
 
 \begin{prooftree}
     \AxiomC{$\Gamma :> \Phi$}
-    \AxiomC{$\Phi \vdash M : \tau$}
+    \AxiomC{$\Phi \vdash M : \top$}
     \LeftLabel{Unnest}
-    \BinaryInfC{$\Gamma \vdash \block{M} : \tau$}
+    \BinaryInfC{$\Gamma \vdash \block{M} : \top$}
 \end{prooftree}
 
 In addition to being a scope barrier, blocks serve as anchor points onto

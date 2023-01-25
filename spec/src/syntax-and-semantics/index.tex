@@ -49,8 +49,10 @@ Some are further formalized later.
     \item $X : \bot$ --- Ends execution. After evaluation of the code $X$,
     no further code is executed. This may be due to failed branching (fizzling),
     or as a result of certain control flow (e.g. \kw{return}).
-    \item $X : \tau$ --- Is of type. More generally than execution, a value may
-    be of a particular type.
+    \item $X : \tau$ --- Is of type. More specifically than execution, a value may
+    be of a particular type. This is treated similarly to $\top$ in terms of
+    execution continuing, possibly more than once, but we have additional
+    information about the type of the value that the expression $X$ evaluated to.
 \end{itemize}
 
 \subsection{Trilogy}
@@ -166,17 +168,17 @@ algorithm are defined later.
         \label{bnf:module-at}
         \bnfts{\kw{module}}
         \bnfsp
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfsp
         \bnfts{\kw{at}}
         \bnfsp
-        \bnfts{String}
+        \bnfpn{String}
         \bnfor
     } \\
     \bnfmore*{\bnfts{\kw{module}}\bnfsp\bnfts{\{}\bnfsp\bnfpn{Definitions}\bnfsp\bnfts{\}}\bnfor} \\
     \bnfmore*{\bnfts{\kw{module}}\bnfsp\bnfts{(}\bnfsp\bnfpn{ModuleParameters}\bnfsp\bnfts{)}\bnfsp\bnfts{\{}\bnfsp\bnfpn{Definitions}\bnfsp\bnfts{\}}} \\
-    \bnfprod*{ModuleParameters}{\bnfts{Identifier}\bnfsp\bnfts{,}\bnfsp\bnfpn{ModuleParameters}\bnfor} \\
-    \bnfmore*{\bnfts{Identifier}\bnfor\bnfes} \\
+    \bnfprod*{ModuleParameters}{\bnfpn{Identifier}\bnfsp\bnfts{,}\bnfsp\bnfpn{ModuleParameters}\bnfor} \\
+    \bnfmore*{\bnfpn{Identifier}\bnfor\bnfes} \\
     \bnfprod*{Import}{
         \bnfts{\kw{import}}
         \bnfsp
@@ -184,7 +186,7 @@ algorithm are defined later.
         \bnfsp
         \bnfts{\kw{as}}
         \bnfsp
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfor
     } \\
     \bnfmore*{
@@ -197,7 +199,7 @@ algorithm are defined later.
         \bnfpn{ModuleReference}
     } \\
     \bnfprod*{ImportList}{
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfsp
         \bnfts{,}
         \bnfsp
@@ -205,7 +207,7 @@ algorithm are defined later.
         \bnfor
     } \\
     \bnfmore*{
-        \bnfts{IdentifierBang}
+        \bnfpn{IdentifierBang}
         \bnfsp
         \bnfts{,}
         \bnfsp
@@ -213,16 +215,16 @@ algorithm are defined later.
         \bnfor
     } \\
     \bnfmore*{
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfor
-        \bnfts{IdentifierBang}
+        \bnfpn{IdentifierBang}
         \bnfor
         \bnfes
     } \\
     \bnfprod*{ModuleReference}{
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfor
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfsp
         \bnfts{(}
         \bnfsp
@@ -231,7 +233,7 @@ algorithm are defined later.
         \bnfts{)}
     } \\
     \bnfprod*{ModuleArguments}{
-        \bnfts{ModuleReference}
+        \bnfpn{ModuleReference}
         \bnfsp
         \bnfts{,}
         \bnfsp
@@ -239,7 +241,7 @@ algorithm are defined later.
         \bnfor
     } \\
     \bnfmore*{
-        \bnfts{ModuleReference}
+        \bnfpn{ModuleReference}
         \bnfor
         \bnfes
     }

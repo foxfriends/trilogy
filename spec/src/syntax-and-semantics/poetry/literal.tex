@@ -1,0 +1,245 @@
+\subsubsection{Literals}
+
+Starting easy, the simplest expression is a primitive value.
+
+\begin{bnf*}
+    \bnfprod{Primitive}{
+        \bnfts{\kw{unit}}
+        \bnfor
+        \bnfts{\kw{false}}
+        \bnfor
+        \bnfts{\kw{true}}
+        \bnfor
+        \bnfpn{Numeric}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Atom}
+        \bnfor
+        \bnfpn{String}
+        \bnfor
+        \bnfpn{Character}
+    }
+\end{bnf*}
+
+The evaluation of a literal primitive value is simply the value it represents.
+For completeness, some trivial specifications:
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.3\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Unit}
+            \UnaryInfC{$\kw{unit} : \ty{Unit}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.3\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Boolean}
+            \UnaryInfC{$\kw{false} : \ty{Bool}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.3\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Boolean}
+            \UnaryInfC{$\kw{true} : \ty{Bool}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Numeric}
+            \UnaryInfC{$\langle\text{Numeric}\rangle : \ty{Number}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{String}
+            \UnaryInfC{$\langle\text{String}\rangle : \ty{String}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Atom}
+            \UnaryInfC{$\langle\text{Atom}\rangle : \ty{Atom}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Character}
+            \UnaryInfC{$\langle\text{Character}\rangle : \ty{Char}$}
+        \end{prooftree}
+    }
+\end{figure}
+
+Of similar literal-ness are the literals for compound types. Notably
+tuples are missing from this section, as they are implemented in terms
+of the cons operator, rather than a literal form.
+
+\begin{bnf*}
+    \bnfprod{Compound}{
+        \bnfpn{Struct}
+        \bnfor
+        \bnfpn{Array}
+        \bnfor
+        \bnfpn{Set}
+        \bnfor
+        \bnfpn{Record}
+    } \\
+    \bnfprod{Struct}{
+        \bnfpn{Atom}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{Array}{
+        \bnfts{[}
+        \bnfsp
+        \bnfpn{CompoundElements}
+        \bnfsp
+        \bnfts{]}
+    } \\
+    \bnfprod{Set}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{CompoundElements}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod{CompoundElements}{
+        \bnfpn{CompoundElement}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{CompoundElements}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{CompoundElement}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{CompoundElement}{
+        \bnfpn{Expression}
+        \bnfor
+        \bnfts{\op{..}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{Record}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{KeyValueElements}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod{KeyValueElements}{
+        \bnfpn{KeyValueElement}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{KeyValueElements}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{KeyValueElement}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{KeyValueElement}{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\op{:}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfts{\op{..}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+\end{bnf*}
+
+As you might expect, the evaluation of a compound literal is a value of the
+compound type, where the items it contains are the values the evaluate to.
+The only thing of particular interest is the use of spread (\op{..}) in
+Array, Set, and Record literals, for which the expression must evaluate
+to a value of the same compound type, and that value is then inserted
+as if its elements were written in place of the spread.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \LeftLabel{Struct}
+    \UnaryInfC{$\Gamma\vdash\texttt{'}l\ \texttt{(}\ E\ \texttt{)} : \texttt{'} l(\tau)$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{Array\textsuperscript{$\epsilon$}}
+    \UnaryInfC{$\texttt{[]} : \ty{List}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash X_1 : \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{[}X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+    \LeftLabel{Array}
+    \BinaryInfC{$\Gamma\vdash\texttt{[}X_1, X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash X_1 : \ty{List}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{[}X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+    \LeftLabel{Array\textsuperscript{\op{..}}}
+    \BinaryInfC{$\Gamma\vdash\texttt{[}\op{..}X_1, X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{Set\textsuperscript{$\epsilon$}}
+    \UnaryInfC{$\texttt{\{\}} : \ty{Set}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash X_1 : \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{\{}X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+    \LeftLabel{Set}
+    \BinaryInfC{$\Gamma\vdash\texttt{\{}X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash X_1 : \ty{Set}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{\{}X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+    \LeftLabel{Set\textsuperscript{\op{..}}}
+    \BinaryInfC{$\Gamma\vdash\texttt{\{}\op{..}X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{Record\textsuperscript{$\epsilon$}}
+    \UnaryInfC{$\texttt{\{:\}} : \ty{Record}\ \kappa : \nu$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\defaultHypSeparation{\hskip 0.05in}
+    \AxiomC{$\Gamma\vdash K_1 : \kappa$}
+    \AxiomC{$\Gamma\vdash V_1 : \nu$}
+    \AxiomC{$\Gamma\vdash \texttt{\{}K_2:V_2\ \texttt{,}\cdots\texttt{,}\ K_n:V_n\texttt{\}} : \ty{Record}\ \kappa:\nu$}
+    \LeftLabel{Record}
+    \TrinaryInfC{$\Gamma\vdash\texttt{\{}K_1:V_1\ \texttt{,}\ K_2:V_2\ \texttt{,}\cdots\texttt{,}\ K_n:V_n\texttt{\}} : \ty{Record}\ \kappa:\nu$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\defaultHypSeparation{\hskip 0.1in}
+    \AxiomC{$\Gamma\vdash X : \ty{Record}\ \kappa:\nu$}
+    \AxiomC{$\Gamma\vdash \texttt{\{}K_2:V_2\ \texttt{,}\cdots\texttt{,}\ K_n:V_n\texttt{\}} : \ty{Record}\ \kappa:\nu$}
+    \LeftLabel{Record\textsuperscript{\op{..}}}
+    \BinaryInfC{$\Gamma\vdash\texttt{\{}\op{..}X\ \texttt{,}\ K_2:V_2\ \texttt{,}\cdots\texttt{,}\ K_n:V_n\texttt{\}} : \ty{Record}\ \kappa:\nu$}
+\end{prooftree}

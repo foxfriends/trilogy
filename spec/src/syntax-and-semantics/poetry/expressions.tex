@@ -17,23 +17,25 @@ in a later pass in the interpreter.
         \bnfpn{EffectHandlers}
     } \\
     \bnfprod{Expr}{
-        \bnfpn{Literal}
+        \bnfpn{Primitive}
         \bnfor
-        \bnfpn{Reference}
+        \bnfpn{Compound}
         \bnfor
         \bnfpn{Comprehension}
         \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Reference}
+        \bnfor
         \bnfpn{Application}
         \bnfor
         \bnfpn{ProcedureCall}
         \bnfor
-        \bnfpn{BinOp}
-        \bnfor
     } \\
     \bnfmore{
         \bnfpn{UnaryOp}
+        \bnfor
+        \bnfpn{BinOp}
         \bnfor
         \bnfpn{Let}
         \bnfor

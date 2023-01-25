@@ -15,7 +15,7 @@ repeatedly.
 
 \begin{bnf}
     \bnfprod*{RuleHead}{
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfsp
         \bnfts{(}
         \bnfsp
@@ -308,13 +308,13 @@ from earlier.
 
 \begin{bnf*}
     \bnfprod{Path}{
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
         \bnfsp
         \bnfts{\op{.}}
         \bnfsp
         \bnfpn{Path}
         \bnfor
-        \bnfts{Identifier}
+        \bnfpn{Identifier}
     } \\
     \bnfprod{Lookup}{
         \bnfpn{Path}
