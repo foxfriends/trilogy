@@ -383,9 +383,9 @@ impl<'a> Scanner<'a> {
     fn integer(&mut self, starts_with: char) -> Result<BigInt, Box<Token>> {
         match starts_with {
             '0' => match self.zero_or_other_base() {
-                Numberlike::Bits(..) => {
-                    Err(Box::new(self.make_error("The denominator must be a number, not bits")))
-                }
+                Numberlike::Bits(..) => Err(Box::new(
+                    self.make_error("The denominator must be a number, not bits"),
+                )),
                 Numberlike::Complete(n) | Numberlike::Incomplete(n) => Ok(n),
             },
             _ => Ok(self.decimal(starts_with.into())),
