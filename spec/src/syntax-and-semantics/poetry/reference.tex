@@ -5,8 +5,28 @@ they currently hold. This is a typical variable reference as in any language.
 Notably this is \emph{only} for variable references, looking up a name in another
 scope is handled by the member lookup operator (\op{.}) as a binary operation.
 
+As a bit of a special case, the built-in operators may be referenced as if they
+were functions by wrapping them in parentheses. This allows operators to be passed
+as values and applied as if they were functions to their arguments, occasionally
+useful in some functional compositions. The operators themselves are specified
+in \S\ref{sec:unaryop} and \S\ref{sec:binop}
+
 \begin{bnf*}
-    \bnfprod{Reference}{\bnfpn{Identifier}}
+    \bnfprod{Reference}{
+        \bnfpn{Identifier}
+        \bnfor
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{UnaryOperator}
+        \bnfsp
+        \bnfts{)}
+        \bnfor
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{BinaryOperator}
+        \bnfsp
+        \bnfts{)}
+    }
 \end{bnf*}
 
 Admittedly the following semantics look a little wonky due to an ambiguous choice
@@ -19,3 +39,6 @@ this is not an infinitely recursive deduction.
     \LeftLabel{Reference}
     \UnaryInfC{$\Gamma\vdash x : \tau$}
 \end{prooftree}
+
+% TODO: for completeness, include semantics of each parenthesized operator? Or
+% is that just a pain...

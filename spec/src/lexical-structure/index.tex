@@ -82,7 +82,6 @@ The keywords are as follows:
         \texttt{KwMatch} & \kw{match} \\
         \texttt{KwModule} & \kw{module} \\
         \texttt{KwMut} & \kw{mut} \\
-        \texttt{KwNext} & \kw{next} \\
         \texttt{KwNot} & \kw{not} \\
         \texttt{KwOr} & \kw{or} \\
         \texttt{KwProc} & \kw{proc} \\
@@ -144,6 +143,7 @@ most keywords I can think of from other languages.
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
+        \texttt{KwNext} & \kw{next} \\
         \texttt{KwOper} & \kw{oper} \\
         \texttt{KwPrec} & \kw{prec} \\
         \texttt{KwProtocol} & \kw{protocol} \\
@@ -343,6 +343,26 @@ Valid escape sequences and their meanings are listed here:
 
 Escape sequences in both strings and characters are resolved by the lexer
 and replaced before the tokens are handed off to further passes.
+
+\subsection{Bits Literals}
+
+\Trilogy{} supports a specific type for arbitrary binary strings, distinct
+from numbers. These values are written similarly to integers, but with an
+extra ``b''. As with numeric literals, bits literals may use \texttt{\_}
+as a separator.
+
+\begin{bnf*}
+    \bnfprod{Bits}{
+        \bnfpn{bitshexadecimal}
+        \bnfor
+        \bnfpn{bitsbinary}
+        \bnfor
+        \bnfpn{bitsoctal}
+    } \\
+    \bnfprod{bitshexadecimal}{\bnfts{0xb}\bnfsp\bnfts{[0-9A-Fa-f][0-9A-Fa-f\_]*}} \\
+    \bnfprod{bitsbinary}{\bnfts{0bb}\bnfsp\bnfts{[01][01\_]*}} \\
+    \bnfprod{bitsoctal}{\bnfts{0ob}\bnfsp\bnfts{[0-7][0-7\_]*}} \\
+\end{bnf*}
 
 \subsection{Whitespace}
 

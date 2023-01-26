@@ -1,0 +1,79 @@
+\subsubsection{Binary Operation}
+\label{sec:binop}
+
+Binary operators in \Poetry{} are infix operators, and are always written
+with both arguments. As previously mentioned, operator precedence is not
+handled by the syntax tree but by another pass afterwards.
+
+\begin{bnf*}
+    \bnfprod{BinaryOp}{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{BinaryOperator}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{BinaryOperator}{
+        \bnfts{\kw{and}}
+        \bnfor
+        \bnfts{\kw{or}}
+        \bnfor
+        \bnfts{\op{+}}
+        \bnfor
+        \bnfts{\op{-}}
+        \bnfor
+        \bnfts{\op{*}}
+        \bnfor
+        \bnfts{\op{/}}
+        \bnfor
+        \bnfts{\op{\%}}
+        \bnfor
+        \bnfts{\op{**}}
+        \bnfor
+        \bnfts{\op{//}}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\op{==}}
+        \bnfor
+        \bnfts{\op{===}}
+        \bnfor
+        \bnfts{\op{<}}
+        \bnfor
+        \bnfts{\op{>}}
+        \bnfor
+        \bnfts{\op{>=}}
+        \bnfor
+        \bnfts{\op{<=}}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\op{\&}}
+        \bnfor
+        \bnfts{\op{|}}
+        \bnfor
+        \bnfts{\op{\textasciicircum}}
+        \bnfor
+        \bnfts{\op{<\textasciitilde}}
+        \bnfor
+        \bnfts{\op{\textasciitilde>}}
+        \bnfor
+        \bnfts{\op{,}}
+        \bnfor
+        \bnfts{\op{:}}
+        \bnfor
+        \bnfts{\op{.}}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\op{<>}}
+        \bnfor
+        \bnfts{\op{>>}}
+        \bnfor
+        \bnfts{\op{<<}}
+        \bnfor
+        \bnfts{\op{|>}}
+        \bnfor
+        \bnfts{\op{<|}}
+    } \\
+\end{bnf*}

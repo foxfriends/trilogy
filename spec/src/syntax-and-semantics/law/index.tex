@@ -138,8 +138,8 @@ Disjunction is a bit trickier to get right. Notably, this is not a mutually
 exclusive disjunction: both branches will be chosen, given that their unifications
 are successful, before moving on to the next branch.
 
-The precedence of \kw{or} is low such that \texttt{A \kw{and} B \kw{or} C \kw{and} D}
-is equivalent to \texttt{(A \kw{and} B) \kw{or} (C \kw{and} D)}.
+The precedence of \kw{or} is low such that \texttt{A~\kw{and}~B~\kw{or}~C~\kw{and}~D}
+is equivalent to \texttt{(A~\kw{and}~B)~\kw{or}~(C~\kw{and}~D)}.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}
@@ -291,7 +291,7 @@ The keyword \kw{is} may be used to evaluate an expression and convert its Boolea
 result into logical success or failure, equivalent to the \kw{true} and \kw{false}
 keywords above. As this type of unification includes an expression, it is not
 reversible. If the expression does not evaluate to a Boolean value, it is treated
-as failure (the same as \kw{false}). No bindings are introduced by this form.
+as a runtime type error. No bindings are created in this form.
 
 \begin{figure}[H]
     \centering

@@ -1,3 +1,4 @@
+use bitvec::vec::BitVec;
 use num::{rational::BigRational, Complex};
 
 /// The raw value a token represents.
@@ -9,6 +10,7 @@ pub enum TokenValue {
     Char(char),
     String(String),
     Number(Complex<BigRational>),
+    Bits(BitVec),
 }
 
 impl TokenValue {
@@ -41,5 +43,11 @@ impl From<&'static str> for TokenValue {
 impl From<Complex<BigRational>> for TokenValue {
     fn from(value: Complex<BigRational>) -> Self {
         Self::Number(value)
+    }
+}
+
+impl From<BitVec> for TokenValue {
+    fn from(value: BitVec) -> Self {
+        Self::Bits(value)
     }
 }

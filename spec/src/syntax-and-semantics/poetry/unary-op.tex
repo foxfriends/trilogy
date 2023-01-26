@@ -1,0 +1,77 @@
+\subsubsection{Unary Operation}
+\label{sec:unaryop}
+
+There are a few unary operators in \Poetry{}, all of which are prefix operators.
+There are no postfix operators in \Trilogy{}, as they end up being a parsing
+nightmare for little value (the only commonly seen postfix operators are
+ones like \texttt{++}, and we prefer \texttt{+= 1} in general these days).
+
+\begin{bnf*}
+    \bnfprod{UnaryOp}{
+        \bnfpn{UnaryOperator}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{UnaryOperator}{
+        \bnfts{\kw{not}}
+        \bnfor
+        \bnfts{\op{-}}
+        \bnfor
+        \bnfts{\op{\textasciitilde}}
+        \bnfor
+        \bnfts{\kw{yield}}
+    }
+\end{bnf*}
+
+Though there aren't that many of these operators, they cover a very wide
+range of features. A lot of this stuff is actually just implemented as
+a unary operator for convenience.
+
+The \kw{not} operator is used to perform Boolean negation. \texttt{\kw{not}~\kw{true}}
+evaluates to \kw{false} and \texttt{\kw{not}~\kw{false}} evaluates to \kw{true}, as
+you might have expected. If the expression is not a Boolean, it causes a runtime type
+error. This is much like the operator \texttt{!} seen in other languages.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E:\kw{true}$}
+            \LeftLabel{Not}
+            \UnaryInfC{$\Gamma\vdash \kw{not}\ E:\kw{false}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E:\kw{false}$}
+            \LeftLabel{Not}
+            \UnaryInfC{$\Gamma\vdash \kw{not}\ E:\kw{true}$}
+        \end{prooftree}
+    }
+\end{figure}
+
+The operator \op{-} is the numeric negation operator. In \Trilogy{} there are no
+negative numeric literals, so all negative numbers must go through this operator.
+Used on a non-Number value, it causes a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E:n$}
+    \LeftLabel{Negation}
+    \UnaryInfC{$\Gamma\vdash \op{-}\ E:-n$}
+\end{prooftree}
+
+The operator \op{\textasciitilde} is the bitwise negation operator. Used on a value
+of Bits type, the state of each bit in the value is inverted.
+Used on a non-Bits value, it causes a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E:\ty{Bits}$}
+    \LeftLabel{Bitwise Negation}
+    \UnaryInfC{$\Gamma\vdash \op{\textasciitilde}\ E:\ty{Bits}$}
+\end{prooftree}
+
+The \kw{yield} keyword used in \Poetry{} is actually also an operator, mostly for
+convenience. This operator works similarly to how the \kw{yield} statement of \Prose{}
+works, but the returned value is relevant. It may return more or less than once if
+the effect handler resumes more or less that once. Though it would be nice to explain
+it now, once again leave the detailed explanation to \S\ref{sec:effects}.

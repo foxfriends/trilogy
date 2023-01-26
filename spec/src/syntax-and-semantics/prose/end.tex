@@ -6,11 +6,9 @@ purpose is to explicitly end an execution.
 The \kw{end} statement may be bare, or be provided a single value. In the case of
 a bare \kw{end} statement, the execution is simply stopped, the same as any fizzle.
 
-Meanwhile, provided a value, the execution is treated to have been completed and
-the value is its final result. While this value is not currently accessible from
-within the program, it is used to treat the current execution as if it had returned
-that value from the \fn{main} procedure, which has some effect on the resulting
-exit code of the program (\S\ref{sec:exitcode}).
+Meanwhile, provided a value, the program is treated to have been completed and
+the value is used as the exit code, as if that value were returned from \kw{main}.
+See the section on Exit Codes (\S\ref{sec:exitcode}) for more details.
 
 \begin{bnf*}
     \bnfprod{SEnd}{

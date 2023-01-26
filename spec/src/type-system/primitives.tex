@@ -139,14 +139,6 @@ modulus \op{\%}, integer division \op{//}, power \op{**}), but
 division is perfect (\texttt{1 / 3 == 1/3}), and operations that
 require complex numbers (\texttt{(-1) ** 1/2 == 0i1}) will succeed.
 
-This does come at the cost of slower mathematical operations, and a
-more questionable binary representation of non-integer values. Bitwise
-operations (and \op{\&}, or \op{|}, xor \op{\textasciicircum}, not
-\op{\textasciitilde}, shift \op{\textasciitilde>} and \op{<\textasciitilde})
-will act as expected on integers, whose binary representation is
-standard, but will fail on non-integer values. As Numbers are unbounded,
-the shift operators will never wrap around nor truncate.
-
 The string representation of a Number depends on the value of the number,
 and is most conveniently described by example:
 
@@ -172,3 +164,18 @@ and is most conveniently described by example:
 
 \noindent
 There are some cases missing, but hopefully they are easy to extrapolate.
+
+\subsubsection{Bits}
+
+The Bits type is used to represent binary numbers as sequences of bits.
+While many languages use their number type for this purpose, \Trilogy{}
+differentiates Bits from Numbers due to the fact that Numbers are represented
+in arbitrary precision and so bitwise operations (and \op{\&}, or \op{|},
+xor \op{\textasciicircum}, not \op{\textasciitilde}, shift \op{\textasciitilde>}
+and \op{<\textasciitilde}) do not work all that well on them.
+In type annotation, the Bits type is written \ty{Bits}.
+
+The string representation of Bits is the literal value of those bits in full
+represented using 1s and 0s, as in \texttt{010101}. The source representation
+is as the bits literal when written with prefix \texttt{0bb} as in as in
+\texttt{0bb010101}

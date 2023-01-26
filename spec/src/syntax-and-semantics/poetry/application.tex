@@ -1,0 +1,30 @@
+\subsubsection{Application}
+
+Functions in \Poetry{} are single-argument, and that argument is supplied
+simply by writing it after the function, separated by a space. The function
+itself may be an expression, including another application expression, allowing
+for multi-argument functions to be simulated by passing further space separated
+parameters.
+
+\begin{bnf*}
+    \bnfprod{Application}{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+The first expression must evaluate to a value of Function type, otherwise
+it is a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash F : \tau \rightarrow \rho$}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \LeftLabel{Application}
+    \BinaryInfC{$\Gamma\vdash F\ E : \rho$}
+\end{prooftree}
+
+In terms of precedence, the expression \texttt{f~a~b~c} is equivalent to
+\texttt{((f~a)~b)~c}. Parentheses and the application operator (\op{|>},
+explored in \S\ref{sec:binop}) may be used to manipulate the precedence as
+necessary.

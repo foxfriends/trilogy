@@ -20,6 +20,9 @@ than expected if not careful. However, since the \kw{while} loop provides no col
 mechanism, once those branches break out of the loop they will continue to execute
 beyond the end of the loop.
 
+If the expression in the condition of the \kw{while} loop does not evaluate to a
+Boolean, it is a runtime type error.
+
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash C = \kw{true}$}
     \AxiomC{$\Gamma\vdash B \Rightarrow \Phi$}

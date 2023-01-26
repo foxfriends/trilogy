@@ -1,5 +1,6 @@
 use super::token::Token;
 use crate::TokenType::{self, *};
+use bitvec::vec::BitVec;
 use num::{BigInt, BigRational, Complex, Num, Zero};
 use peekmore::{PeekMore, PeekMoreIterator};
 use source_span::{DefaultMetrics, Span};
@@ -47,6 +48,17 @@ where
     fn check(&self, ch: char) -> bool {
         self(ch)
     }
+}
+
+enum Numberlike {
+    Complete(BigInt),
+    Incomplete(BigInt),
+    Bits(BitVec),
+}
+
+enum BitsOrNumber<T> {
+    Number(T),
+    Bits(BitVec),
 }
 
 impl<'a> Scanner<'a> {
@@ -284,7 +296,7 @@ impl<'a> Scanner<'a> {
 
     fn decimal(&mut self, mut value: String) -> BigInt {
         while let Some(ch) = self.expect('0'..'9') {
-            value.push(ch)
+            value.push(ch);
         }
         BigInt::from_str_radix(&value, 10).unwrap()
     }
@@ -292,7 +304,7 @@ impl<'a> Scanner<'a> {
     fn binary(&mut self) -> BigInt {
         let mut value = String::new();
         while let Some(ch) = self.expect('0'..'1') {
-            value.push(ch)
+            value.push(ch);
         }
         BigInt::from_str_radix(&value, 2).unwrap()
     }
@@ -300,7 +312,7 @@ impl<'a> Scanner<'a> {
     fn octal(&mut self) -> BigInt {
         let mut value = String::new();
         while let Some(ch) = self.expect('0'..'7') {
-            value.push(ch)
+            value.push(ch);
         }
         BigInt::from_str_radix(&value, 8).unwrap()
     }
@@ -308,9 +320,38 @@ impl<'a> Scanner<'a> {
     fn hexadecimal(&mut self) -> BigInt {
         let mut value = String::new();
         while let Some(ch) = self.expect(|ch: char| ch.is_ascii_hexdigit()) {
-            value.push(ch)
+            value.push(ch);
         }
         BigInt::from_str_radix(&value, 16).unwrap()
+    }
+
+    fn bits_binary(&mut self) -> BitVec {
+        let mut value = BitVec::new();
+        while let Some(ch) = self.expect('0'..'1') {
+            value.push(ch == '1');
+        }
+        value
+    }
+
+    fn bits_octal(&mut self) -> BitVec {
+        let mut value = BitVec::new();
+        while let Some(ch) = self.expect('0'..'7') {
+            value.push(hex_to_u32(ch) & 0b100 > 0);
+            value.push(hex_to_u32(ch) & 0b010 > 0);
+            value.push(hex_to_u32(ch) & 0b001 > 0);
+        }
+        value
+    }
+
+    fn bits_hexadecimal(&mut self) -> BitVec {
+        let mut value = BitVec::new();
+        while let Some(ch) = self.expect(|ch: char| ch.is_ascii_hexdigit()) {
+            value.push(hex_to_u32(ch) & 0b1000 > 0);
+            value.push(hex_to_u32(ch) & 0b0100 > 0);
+            value.push(hex_to_u32(ch) & 0b0010 > 0);
+            value.push(hex_to_u32(ch) & 0b0001 > 0);
+        }
+        value
     }
 
     // Another odd method signature; the bool is whether a floating point
@@ -319,57 +360,98 @@ impl<'a> Scanner<'a> {
     // Really though, why do we restrict that? Rationals can represent
     // floating points on non-decimal values too. Maybe a fun little update
     // to the language to implement that if I ever require it.
-    fn zero_or_other_base(&mut self) -> (BigInt, bool) {
+    fn zero_or_other_base(&mut self) -> Numberlike {
         match self.expect("box") {
-            Some('b') => (self.binary(), false),
-            Some('o') => (self.octal(), false),
-            Some('x') => (self.hexadecimal(), false),
-            None => (BigInt::zero(), true),
+            Some('b') if self.expect('b').is_some() => Numberlike::Bits(self.bits_binary()),
+            Some('b') => Numberlike::Complete(self.binary()),
+            Some('o') if self.expect('b').is_some() => Numberlike::Bits(self.bits_octal()),
+            Some('o') => Numberlike::Complete(self.octal()),
+            Some('x') if self.expect('b').is_some() => Numberlike::Bits(self.bits_hexadecimal()),
+            Some('x') => Numberlike::Complete(self.hexadecimal()),
+            None => Numberlike::Incomplete(BigInt::zero()),
             _ => unreachable!(),
         }
     }
 
-    fn integer(&mut self, starts_with: char) -> (BigInt, bool) {
+    fn integer_or_bits(&mut self, starts_with: char) -> Numberlike {
         match starts_with {
             '0' => self.zero_or_other_base(),
-            _ => (self.decimal(starts_with.into()), true),
+            _ => Numberlike::Incomplete(self.decimal(starts_with.into())),
         }
     }
 
-    fn rational_or_float(&mut self, starts_with: char) -> BigRational {
-        let (numerator, can_be_float) = self.integer(starts_with);
+    fn integer(&mut self, starts_with: char) -> Result<BigInt, Box<Token>> {
+        match starts_with {
+            '0' => match self.zero_or_other_base() {
+                Numberlike::Bits(..) => {
+                    Err(Box::new(self.make_error("The denominator must be a number, not bits")))
+                }
+                Numberlike::Complete(n) | Numberlike::Incomplete(n) => Ok(n),
+            },
+            _ => Ok(self.decimal(starts_with.into())),
+        }
+    }
+
+    fn rational_or_float_or_bits(
+        &mut self,
+        starts_with: char,
+    ) -> Result<BitsOrNumber<BigRational>, Box<Token>> {
+        let (numerator, can_be_float) = match self.integer_or_bits(starts_with) {
+            Numberlike::Complete(number) => (number, false),
+            Numberlike::Incomplete(number) => (number, true),
+            Numberlike::Bits(bits) => return Ok(BitsOrNumber::Bits(bits)),
+        };
         match self.peek() {
             Some('/') if self.predict('0'..'9') => {
                 self.expect('/').unwrap();
                 let first = self.consume().unwrap();
-                let (denominator, _) = self.integer(first);
-                BigRational::new(numerator, denominator)
+                let denominator = self.integer(first)?;
+                Ok(BitsOrNumber::Number(BigRational::new(
+                    numerator,
+                    denominator,
+                )))
             }
             Some('.') if can_be_float && self.predict('0'..'9') => {
                 self.expect('.').unwrap();
                 let number = self.fractional();
-                BigRational::from(numerator) + number
+                Ok(BitsOrNumber::Number(BigRational::from(numerator) + number))
             }
-            _ => numerator.into(),
+            _ => Ok(BitsOrNumber::Number(numerator.into())),
         }
     }
 
-    fn complex(&mut self, starts_with: char) -> Complex<BigRational> {
-        let real = self.rational_or_float(starts_with);
+    fn complex_or_bits(
+        &mut self,
+        starts_with: char,
+    ) -> Result<BitsOrNumber<Complex<BigRational>>, Box<Token>> {
+        let real = match self.rational_or_float_or_bits(starts_with)? {
+            BitsOrNumber::Number(number) => number,
+            BitsOrNumber::Bits(bits) => return Ok(BitsOrNumber::Bits(bits)),
+        };
         let imaginary = match self.peek() {
             Some('i') if self.predict('0'..'9') => {
                 self.consume().unwrap();
                 let first = self.consume().unwrap();
-                self.rational_or_float(first)
+                match self.rational_or_float_or_bits(first)? {
+                    BitsOrNumber::Number(number) => number,
+                    BitsOrNumber::Bits(..) => {
+                        return Err(Box::new(
+                            self.make_error("An imaginary component must be a number, not bits"),
+                        ))
+                    }
+                }
             }
             _ => BigRational::zero(),
         };
-        Complex::new(real, imaginary)
+        Ok(BitsOrNumber::Number(Complex::new(real, imaginary)))
     }
 
     fn numeric(&mut self, starts_with: char) -> Token {
-        let number = self.complex(starts_with);
-        self.make_token(Numeric).with_value(number)
+        match self.complex_or_bits(starts_with) {
+            Ok(BitsOrNumber::Number(number)) => self.make_token(Numeric).with_value(number),
+            Ok(BitsOrNumber::Bits(bits)) => self.make_token(Bits).with_value(bits),
+            Err(error) => *error,
+        }
     }
 }
 

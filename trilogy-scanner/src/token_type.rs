@@ -94,6 +94,7 @@ pub enum TokenType {
     TemplateContinue,
     TemplateEnd,
     Character,
+    Bits,
 
     // Whitespace
     EndOfLine,

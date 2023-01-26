@@ -1,0 +1,31 @@
+\subsubsection{Is}
+
+The \kw{is} keyword used in \Poetry{} does the opposite of what it does
+in \Law{}; that is, it checks if a query has any solutions and converts
+that result into a Boolean value.
+
+\begin{bnf*}
+    \bnfprod{Is}{
+        \bnfts{\kw{is}}
+        \bnfsp
+        \bnfpn{Query}
+    }
+\end{bnf*}
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash Q:\bot$}
+            \LeftLabel{Is}
+            \UnaryInfC{$\Gamma\vdash \kw{is}\ Q:\kw{false}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash Q:\top$}
+            \LeftLabel{Is}
+            \UnaryInfC{$\Gamma\vdash \kw{is}\ Q:\kw{true}$}
+        \end{prooftree}
+    }
+\end{figure}

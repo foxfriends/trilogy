@@ -19,45 +19,51 @@ From within a \Trilogy{} program, these command line arguments are received
 as an array of strings which may be accessed via the built in procedure
 \fn{args}.
 
+\subsection{Errors}
+
+Some errors are considered more non-recoverable than others, typically those
+that are as a result of code that likely does not do what the author intended.
+In fact, there are no built-in ``error handling'' mechanisms because indeed
+a well formed \Trilogy{} program code contains no error states, only exceptional
+circumstances. A true ``error'' is something that cannot be recovered from, and
+immediately ends the \Trilogy{} program, which exits with exit code \texttt{255}
+indicating an error.
+
+The most common of these errors is the \emph{runtime type error}, where an
+expression is expected by the runtime to evaluate to a value of a particular
+type, but it does not. As this is most likely a developer error, the safest
+result as directed by the fail-fast principle is to end the program immediately.
+
+Another such error is an \emph{assertion error}, triggered by the \kw{assert} keyword's
+condition evaluating to \kw{false}. This allows custom abstractions to enforce
+their invariants and provide in a way that provides a clear indication that
+something is being done incorrectly.
+
+A fizzle is typically not treated as an error; fizzles are often expected
+to cull unnecessary branches of execution. Fizzles are caused only by bindings
+which do not have any solutions. The only time a fizzle is treated as an error
+is when it is the last execution in the program, in which case it is an \emph{execution
+fizzled error}.
+
+Most things considered ``errors'' languages with typical exception
+handling constructs (e.g. \texttt{try} and \texttt{catch}) are handled through
+the effect system in \Trilogy{}; situations such as I/O failures and division by
+zero are in this category. However, in the case of an unrecoverable error in the
+runtime implementation itself, the program ends with an \emph{internal runtime error}.
+
 \subsection{Exit Codes}
 \label{sec:exitcode}
 
-On all operating systems I have experienced, programs end with an exit
-code indicating the status of the programs execution.
+Apart from runtime errors causing the program to exit with a code of \texttt{1},
+the developer may choose their own exit codes in a few ways.
 
-A \Trilogy{} program's exit code is determined by the return value (or
-return values, in the case of parallel executions) of its \fn{main} procedure.
+In the simplest case, a \Trilogy{} program's exit code is determined by the
+return value of its \fn{main} procedure. The first execution to reach the end
+of the \fn{main} procedure ends the program with the return value as the exit
+code. If the return value of \fn{main} is not a valid exit code value, this
+is a runtime type error and exit code is set to \texttt{255}.
 
-% TODO: this is just rambling, will have to make it more proper.
-
-If a single evaluation makes it to the end of the program (i.e. runs off the end of the
-\fn{main} procedure, rather than fizzling) the program is also considered a success (exit 0).
-If not \emph{exactly} one (0 or more than 1) evaluation runs off the \fn{main} procedure,
-the program is treated as unsuccessful due to indeterminite result, and exits 1.
-
-
-If the program itself fizzles (i.e. the last remaining execution in
-a program has fizzled), the program is considered to have ended in
-failure, and will exit with an exit code of 1. This error status code
-\emph{may} also be accompanied by a printed error message describing
-to the user the circumstances of the program's failure, for debugging
-purposes.
-
-If the program terminates implicitly (i.e. not with the \kw{end} keyword)
-through more than one execution it is again considered a failure, even if
-all those executions were successful. A program running in the real world
-is restricted to determinism and may only exit with a single value;
-a program exiting by more than one path in this way is not something
-supported by any operating system, so the only safe assumption is that
-the programmer made an error.
-
-Given that, the example program above will always end in failure, but
-depending on the first character of the line read, may or may not
-print multiple possible words first.
-
-To avoid such confusing behaviour, it is generally recommended that
-nondeterministic branching is not used directly at the top level without
-some handling to combine the parallel executions or to recover from all
-executions fizzling in a way that makes sense for the current program.
-Alternatively, explicit use of the \kw{end} keyword to disambiguate the
-exit codes may help, but is still a bit confusing.
+Alternatively, the program may be ended at any time by using the \kw{end} keyword.
+While the \kw{end} keyword with no argument ends the current execution (as a fizzle),
+an \kw{end} with a value exit code value ends the program with that value. Again, if
+the value is not a valid exit code value, it is a runtime type error.
