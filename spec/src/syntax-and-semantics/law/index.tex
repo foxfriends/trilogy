@@ -297,14 +297,14 @@ as a runtime type error. No bindings are created in this form.
     \centering
     \parbox[t]{0.4\linewidth}{
         \begin{prooftree}
-            \AxiomC{$\Gamma\vdash E : \kw{true}$}
+            \AxiomC{$\Gamma\vdash E = \kw{true}$}
             \LeftLabel{Is $\top$}
             \UnaryInfC{$\Gamma\vdash \kw{is}\ E : \top$}
         \end{prooftree}
     }
     \parbox[t]{0.4\linewidth}{
         \begin{prooftree}
-            \AxiomC{$\Gamma\vdash E : \kw{false}$}
+            \AxiomC{$\Gamma\vdash E = \kw{false}$}
             \LeftLabel{Is $\bot$}
             \UnaryInfC{$\Gamma\vdash \kw{is}\ E : \bot$}
         \end{prooftree}

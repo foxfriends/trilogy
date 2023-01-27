@@ -48,8 +48,18 @@ fizzled error}.
 Most things considered ``errors'' languages with typical exception
 handling constructs (e.g. \texttt{try} and \texttt{catch}) are handled through
 the effect system in \Trilogy{}; situations such as I/O failures and division by
-zero are in this category. However, in the case of an unrecoverable error in the
-runtime implementation itself, the program ends with an \emph{internal runtime error}.
+zero are in this category. Though these situations are yielded via the effect
+system, if you do not handle that effect, then it does become an
+\emph{unhandled effect error}. This is true of any effect that is yielded in
+a program, even effects of your own design; if they are not handled by any
+surrounding handler, there can be no known course of action so the program
+must end.
+
+Finally, in the case of an unrecoverable error in the runtime implementation
+itself, the program ends with an \emph{internal runtime error}. This situation
+should be rare, maybe caused by the host process running out of memory, or
+other unexpected hardware failure. Honestly, you should hope never to witness
+this, as it means there is something seriously going wrong.
 
 \subsection{Exit Codes}
 \label{sec:exitcode}

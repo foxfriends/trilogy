@@ -36,16 +36,16 @@ error. This is much like the operator \texttt{!} seen in other languages.
     \centering
     \parbox[t]{0.4\linewidth}{
         \begin{prooftree}
-            \AxiomC{$\Gamma\vdash E:\kw{true}$}
+            \AxiomC{$\Gamma\vdash E=\kw{true}$}
             \LeftLabel{Not}
-            \UnaryInfC{$\Gamma\vdash \kw{not}\ E:\kw{false}$}
+            \UnaryInfC{$\Gamma\vdash \kw{not}\ E=\kw{false}$}
         \end{prooftree}
     }
     \parbox[t]{0.4\linewidth}{
         \begin{prooftree}
-            \AxiomC{$\Gamma\vdash E:\kw{false}$}
+            \AxiomC{$\Gamma\vdash E=\kw{false}$}
             \LeftLabel{Not}
-            \UnaryInfC{$\Gamma\vdash \kw{not}\ E:\kw{true}$}
+            \UnaryInfC{$\Gamma\vdash \kw{not}\ E=\kw{true}$}
         \end{prooftree}
     }
 \end{figure}
@@ -55,9 +55,9 @@ negative numeric literals, so all negative numbers must go through this operator
 Used on a non-Number value, it causes a runtime type error.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma\vdash E:n$}
+    \AxiomC{$\Gamma\vdash E = n : \ty{Number}$}
     \LeftLabel{Negation}
-    \UnaryInfC{$\Gamma\vdash \op{-}\ E:-n$}
+    \UnaryInfC{$\Gamma\vdash \op{-}\ E = -n$}
 \end{prooftree}
 
 The operator \op{\textasciitilde} is the bitwise negation operator. Used on a value

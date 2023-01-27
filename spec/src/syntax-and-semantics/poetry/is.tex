@@ -18,14 +18,14 @@ that result into a Boolean value.
         \begin{prooftree}
             \AxiomC{$\Gamma\vdash Q:\bot$}
             \LeftLabel{Is}
-            \UnaryInfC{$\Gamma\vdash \kw{is}\ Q:\kw{false}$}
+            \UnaryInfC{$\Gamma\vdash \kw{is}\ Q=\kw{false}$}
         \end{prooftree}
     }
     \parbox[t]{0.4\linewidth}{
         \begin{prooftree}
             \AxiomC{$\Gamma\vdash Q:\top$}
             \LeftLabel{Is}
-            \UnaryInfC{$\Gamma\vdash \kw{is}\ Q:\kw{true}$}
+            \UnaryInfC{$\Gamma\vdash \kw{is}\ Q=\kw{true}$}
         \end{prooftree}
     }
 \end{figure}

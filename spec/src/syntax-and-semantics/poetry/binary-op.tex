@@ -77,3 +77,144 @@ handled by the syntax tree but by another pass afterwards.
         \bnfts{\op{<|}}
     } \\
 \end{bnf*}
+
+Now comes the long and tedious process of defining each of these operators.
+Worst part is that I know you know how these operators are supposed to work,
+they're all the regular old stuff we see in every other language, but since
+we are working with the primitive types, there's nothing we can do but to
+define these things as internal magic, and so I guess it does require
+specification somewhere.
+
+Starting with the Boolean operators \kw{and} and \kw{or}, these are the typical
+ones with behaviour that hardly needs explaining, and are short circuiting. If
+one of the operands to either of these operators is evaluated and does not result
+in a Boolean value, this is a runtime type error (if it does not get evaluated
+due to short circuiting, the type error never happens).
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \kw{false}$}
+    \LeftLabel{And}
+    \UnaryInfC{$\Gamma\vdash A\ \kw{and}\ B = \kw{false}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \kw{true}$}
+    \AxiomC{$\Gamma\vdash B = \kw{false}$}
+    \LeftLabel{And}
+    \BinaryInfC{$\Gamma\vdash A\ \kw{and}\ B = \kw{false}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \kw{true}$}
+    \AxiomC{$\Gamma\vdash B = \kw{true}$}
+    \LeftLabel{And}
+    \BinaryInfC{$\Gamma\vdash A\ \kw{and}\ B = \kw{true}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \kw{true}$}
+    \LeftLabel{Or}
+    \UnaryInfC{$\Gamma\vdash A\ \kw{or}\ B = \kw{true}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \kw{false}$}
+    \AxiomC{$\Gamma\vdash B = \kw{true}$}
+    \LeftLabel{Or}
+    \BinaryInfC{$\Gamma\vdash A\ \kw{or}\ B = \kw{true}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \kw{false}$}
+    \AxiomC{$\Gamma\vdash B = \kw{false}$}
+    \LeftLabel{Or}
+    \BinaryInfC{$\Gamma\vdash A\ \kw{or}\ B = \kw{false}$}
+\end{prooftree}
+
+The mathematical operators are next, and as you might expect they work
+as expected. Some details are worth noting however.
+
+The mathematical operators work on values of Number type, if either operand
+is not a Number, it causes a runtime type error.
+
+Though we are strict about that, division by zero is not an error but instead
+yields the exceptional result \val{'INF}. I am aware that division by zero is
+explicitly defined as undefined, and is very definitely not mathematically
+infinity, but \val{'INF} is not infinity, it is simply a signal that division
+by zero was performed. This is the case for both regular divison (\op{/}) and
+integer division (\op{//}), which floors to the nearest integer after dividing.
+
+The \op{\%} operator is the remainder operator, returning the remainder of
+integer division. Notably the remainder operator is the integer remainder operator,
+not a modulus operator, and is implemented following the same floored division
+as with integer division.
+
+The \op{**} operator is the exponentiation operator and, given the fact that
+precise rationals are available in \Trilogy{}, it also can be used for computing
+square roots and such when given a fractional power. Since \Trilogy{} also
+supports complex numbers, the result of something such as \texttt{-1 ** 1/2}
+will not be an error, but actually the complex number \val{0i1}.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
+    \LeftLabel{Addition}
+    \BinaryInfC{$\Gamma\vdash A\ \op{+}\ B = a + b : \ty{Number}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
+    \LeftLabel{Subtraction}
+    \BinaryInfC{$\Gamma\vdash A\ \op{-}\ B = a - b : \ty{Number}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
+    \LeftLabel{Multiplication}
+    \BinaryInfC{$\Gamma\vdash A\ \op{*}\ B = a \times b : \ty{Number}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = 0$}
+    \LeftLabel{Division}
+    \BinaryInfC{$\Gamma\vdash A\ \op{/}\ B \vartriangle \val{'INF}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
+    \LeftLabel{Division}
+    \BinaryInfC{$\Gamma\vdash A\ \op{/}\ B = a \div b : \ty{Number}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = 0$}
+    \LeftLabel{Integer Division}
+    \BinaryInfC{$\Gamma\vdash A\ \op{//}\ B \vartriangle \val{'INF}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
+    \LeftLabel{Integer Division}
+    \BinaryInfC{$\Gamma\vdash A\ \op{//}\ B = \lfloor a \div b \rfloor : \ty{Number}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
+    \LeftLabel{Remainder}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\%}\ B = a - b \lfloor a \div b \rfloor : \ty{Number}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
+    \LeftLabel{Exponentiation}
+    \BinaryInfC{$\Gamma\vdash A\ \op{**}\ B = a^b : \ty{Number}$}
+\end{prooftree}
+
