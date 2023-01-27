@@ -1,4 +1,5 @@
 \section{Type System}
+\label{sec:types}
 
 \Trilogy{} is (currently) a dynamically typed language; all types are determined
 and checked at runtime. Recall that ``dynamically typed'' is not the absence of
@@ -93,6 +94,7 @@ Other common representations (e.g. JSON or YAML) are left
 to be implemented as library code.
 
 \subsubsection{Structural Types}
+\label{sec:structuraltypes}
 
 Structural types are types which have a ``physical'' structure, which may be
 interpreted intuitively. Structural types may be destructured using pattern
@@ -100,6 +102,7 @@ matching, and are compared structurally (deeply) using the structural equality
 operator (\op{==}).
 
 \subsubsection{Reference Types}
+\label{sec:referencetypes}
 
 Reference types are those which are stored and passed by \emph{reference}. When
 a value of a reference type is passed as an argument or a assigned to a variable, both

@@ -62,8 +62,6 @@ handled by the syntax tree but by another pass afterwards.
         \bnfor
         \bnfts{\op{:}}
         \bnfor
-        \bnfts{\op{.}}
-        \bnfor
     } \\
     \bnfmore{
         \bnfts{\op{<>}}
@@ -218,3 +216,170 @@ will not be an error, but actually the complex number \val{0i1}.
     \BinaryInfC{$\Gamma\vdash A\ \op{**}\ B = a^b : \ty{Number}$}
 \end{prooftree}
 
+Comparison operators compare two values and returns a Boolean result depending
+on the result of the comparison.
+
+The structural equality operator (\op{==}) compares values of structural type
+(\S\ref{sec:structuraltypes}), returning \kw{true} if they are the same value,
+and \kw{false} otherwise. Non-structural types are compared by reference
+instead, only an exact reference evaluating to \kw{true}. This turns out to
+be much like a Boolean valuation of a direct unification, only without option
+of comparing two incomplete patterns.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \AxiomC{$\Gamma\vdash A = B$}
+    \LeftLabel{Structural Equality}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{==}\ B = \kw{true}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \AxiomC{$\Gamma\vdash A \neq B$}
+    \LeftLabel{Structural Equality}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{==}\ B = \kw{false}$}
+\end{prooftree}
+
+The referential equality operator (\op{===}) compares values of reference type
+(\S\ref{sec:referencetypes}), returning \kw{true} if they are the same instance,
+and \kw{false} otherwise. Non-reference types are compared structurally instead.
+This operator is of a more practical sort, hooking in to implementation detail
+rather than logical or mathematical purity.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \AxiomC{$\Gamma\vdash \text{addr}(A) = \text{addr}(B)$}
+    \LeftLabel{Reference Equality}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{===}\ B = \kw{true}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \AxiomC{$\Gamma\vdash \text{addr}(A) \neq \text{addr}(B)$}
+    \LeftLabel{Reference Equality}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{===}\ B = \kw{false}$}
+\end{prooftree}
+
+The ordered comparison operators work on any two values of the same type. Not
+all types are orderable, however, in which case the comparison returns \kw{unit}
+to indicate that an order cannot be determined. This \kw{unit} result is distinct
+from indicating that two compared items are the ``same'' in magnitude. When used
+on two values of different types, they are treated as unorderable and the comparison
+again returns \kw{unit}. This is different from most other type-mismatches in \Trilogy{},
+which cause a runtime type error; where those situations have no clear path forward,
+the ``unorderable'' option in this case is more flexible and does not make any
+assumptions about the behaviour of a program.
+
+Rather than defining the proof trees for every comparable type, this table summarizes
+orderings, and is referred to as $\text{cmp}(A \square B)$ in the proof trees below. Note
+that in lexicographical order, elements are compared before the lengths of the sequences;
+if one value is a prefix of the other, the prefix value is less than the longer value.
+In the fallible lexicographical order, if any element-wise comparison is unorderable, the
+whole result is treated unorderable.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ll}
+        \hline
+        \textbf{Type}          & \textbf{Ordering} \\
+        \hline
+        Unit                   & Unorderable \\
+        Atom                   & Unorderable \\
+        Boolean                & \kw{false} then \kw{true} \\
+        Real Number            & Number line ordering \\
+        Imaginary Number       & Magnitude ordering \\
+        Complex Number         & Unorderable \\
+        Character              & Unicode code point order \\
+        String                 & Lexicographical order of characters \\
+        Struct (same tag)      & Ordered by wrapped value order \\
+        Struct (different tag) & Unorderable \\
+        Bits                   & Ordered by big-endian integer interpretation \\
+        Tuple                  & Compare left elements, then right elements \\
+        Array                  & Fallible lexicographical order of elements \\
+        Set                    & Unorderable\footnotemark[1] \\
+        Record                 & Unorderable\footnotemark[1] \\
+        Iterator               & Unorderable \\
+        Semantic types         & Unorderable \\
+        Mismatched types       & Unorderable \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\footnotetext[1]{May be added at a later date, if a reasonable ordering is
+determined and found to be useful.}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \LeftLabel{Less Than}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<}\ B = \text{cmp}(A < B)$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \LeftLabel{Greater Than}
+    \BinaryInfC{$\Gamma\vdash A\ \op{>}\ B = \text{cmp}(A > B)$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \LeftLabel{Less Than Or Equal To}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<=}\ B = \text{cmp}(A \leq B)$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B$}
+    \LeftLabel{Greater Than Or Equal To}
+    \BinaryInfC{$\Gamma\vdash A\ \op{>=}\ B = \text{cmp}(A \geq B)$}
+\end{prooftree}
+
+The bitwise operators work only on values of Bits type, with the exception
+of the shift operators which expect the right-hand operand to be an integer.
+Again, if the types are incorrect, it causes is a runtime type error.
+
+The regular bitwise operators extend the shorter operand with 0s on the left
+until both are of the same length. The left shift will extend with 0s on the
+right, while the right shift removes bits from the right (no bits are added).
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Bits}$}
+    \LeftLabel{Bitwise And}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\&}\ B = a \land b$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Bits}$}
+    \LeftLabel{Bitwise Or}
+    \BinaryInfC{$\Gamma\vdash A\ \op{|}\ B = a \lor b$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Bits}$}
+    \LeftLabel{Bitwise Xor}
+    \BinaryInfC{$\Gamma\vdash A\ \op{|}\ B = a \oplus b$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
+    \LeftLabel{Left Shift}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<\textasciitilde}\ B = a(b\cdot \texttt{0})$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \rho \sigma : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
+    \AxiomC{$|\sigma| = b$}
+    \LeftLabel{Right Shift}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = \rho$}
+\end{prooftree}

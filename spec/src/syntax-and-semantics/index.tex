@@ -55,6 +55,11 @@ Some are further formalized later.
     information about the type of the value that the expression $X$ evaluated to.
     \item $X \vartriangle E$ --- Yields, as an effect. The expression $X$ causes
     an effect $E$ to be yielded. That effect may be handled later.
+    \item $\text{addr}(X)$ --- Address of, as an instance. The address of the value
+    of the evaluated value of $X$ is used, rather than the actual value of $X$
+    itself. Values of reference type have such addresses, values of structural type
+    do not, but you could imagine that every distinct value of structural type has
+    its own unique pseudo-address that is used equivalently.
 \end{itemize}
 
 \subsection{Trilogy}
