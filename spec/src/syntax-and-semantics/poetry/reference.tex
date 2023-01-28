@@ -13,8 +13,16 @@ in \S\ref{sec:unaryop} and \S\ref{sec:binop}
 
 \begin{bnf*}
     \bnfprod{Reference}{
+        \bnfpn{Path}
+        \bnfsp
+        \bnfts{.}
+        \bnfsp
         \bnfpn{Identifier}
         \bnfor
+        \bnfpn{Identifier}
+        \bnfor
+    } \\
+    \bnfmore{
         \bnfts{(}
         \bnfsp
         \bnfpn{UnaryOperator}

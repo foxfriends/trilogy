@@ -1,1 +1,118 @@
 \subsubsection{Member Access}
+
+Some values contain other values within them, and those values are accessed using
+the member access syntax. There are a few variations on this syntax, allowing for
+some flexibility the structure of your data.
+
+\begin{bnf*}
+    \bnfprod{MemberAccess}{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\op{.}}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\op{.[}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{]}
+    }
+\end{bnf*}
+
+The only form of particular relevance is the second, as the first can be
+transformed by interpreting the identifier as an atom and passing that
+in the brackets:
+
+\begin{align*}
+    \texttt{\$c:expr . \$i:id} & \Rightarrow \texttt{\$c .[ ' \$i ]} %
+\end{align*}
+
+After that, the way the lookup works depends on the type of the expression
+on the left.
+
+For Arrays, the expression in the brackets must evaluate to an integer
+which is the index of the element to access, starting from 0 at the left.
+If the index is an integer but is not within the bounds of the array,
+\val{'MIA} is yielded instead. Meanwhile, if the index expression is
+not an integer, it is considered a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = \sigma : \ty{Array}\ \tau$}
+    \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
+    \AxiomC{$0 \leq i < |\sigma|$}
+    \LeftLabel{Array Access}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} : \ty{tau}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \ty{Array}\ \tau$}
+    \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
+    \AxiomC{$i < 0 \lor |\sigma| < i$}
+    \LeftLabel{String MIA}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
+\end{prooftree}
+
+For Strings, similar to arrays, the expression in the brackets must evaluate
+to an integer which is the index of the Character to access, starting from 0
+at the left. If the index is an integer but is not within the bounds of the
+string, \val{'MIA} is yielded instead. Meanwhile, if the index expression
+is not an integer, it is considered a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = \sigma : \ty{String}$}
+    \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
+    \AxiomC{$0 \leq i < |\sigma|$}
+    \LeftLabel{String Access}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} : \ty{Char}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \ty{String}$}
+    \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
+    \AxiomC{$i < 0 \lor |\sigma| < i$}
+    \LeftLabel{String MIA}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
+\end{prooftree}
+
+For Bits, the expression again must evaluate to an integer, which
+is the index of the bit to access, starting from 0 at the right,
+represented as a Boolean. If the index is an integer less than 0,
+it is a runtime type error. Bits values are considered treated as
+infinite length, so large integers will never be out of range, and
+are treated as \kw{false}.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = \sigma : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
+    \AxiomC{$0 \leq i < |\sigma|$}
+    \LeftLabel{Bits Access}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} : \ty{Bool}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = \sigma : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
+    \AxiomC{$i < 0 \lor |\sigma| < i$}
+    \LeftLabel{Bits MIA}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
+\end{prooftree}
+
+For Records, the expression in the brackets may be any value which is
+the key of the element to access. If the key is not found in the
+record, \val{'MIA} is yielded. Any value is valid as a record key,
+so there are no runtime type errors for record access.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \ty{Record}\ \kappa:\nu$}
+    \AxiomC{$\Gamma\vdash k : \kappa$}
+    \LeftLabel{Record Access}
+    \BinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ k\ \texttt{]} : \nu$}
+\end{prooftree}
+
+If the value on the left is of any other type, it is a runtime type error;
+other types of values do not have members which can be accessed.
