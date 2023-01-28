@@ -89,7 +89,7 @@ are treated as \kw{false}.
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash E = \sigma : \ty{Bits}$}
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
-    \AxiomC{$0 \leq i < |\sigma|$}
+    \AxiomC{$0 \leq i$}
     \LeftLabel{Bits Access}
     \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} : \ty{Bool}$}
 \end{prooftree}
@@ -97,7 +97,7 @@ are treated as \kw{false}.
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash E = \sigma : \ty{Bits}$}
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
-    \AxiomC{$i < 0 \lor |\sigma| < i$}
+    \AxiomC{$i < 0$}
     \LeftLabel{Bits MIA}
     \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
 \end{prooftree}
