@@ -3,7 +3,7 @@
 
 Binary operators in \Poetry{} are infix operators, and are always written
 with both arguments. As previously mentioned, operator precedence is not
-handled by the syntax tree but by another pass afterwards.
+handled by the syntax tree but by another pass afterwards (\S\ref{sec:precedence}).
 
 \begin{bnf*}
     \bnfprod{BinaryOp}{
@@ -300,8 +300,8 @@ whole result is treated unorderable.
         Bits                   & Ordered by big-endian integer interpretation \\
         Tuple                  & Compare left elements, then right elements \\
         Array                  & Fallible lexicographical order of elements \\
-        Set                    & Unorderable\footnotemark[1] \\
-        Record                 & Unorderable\footnotemark[1] \\
+        Set                    & Unorderable\footnotemark \\
+        Record                 & Unorderable\footref{foot:ord} \\
         Iterator               & Unorderable \\
         Semantic types         & Unorderable \\
         Mismatched types       & Unorderable \\
@@ -309,8 +309,9 @@ whole result is treated unorderable.
     \end{tabular}
 \end{table}
 
-\footnotetext[1]{May be added at a later date, if a reasonable ordering is
-determined and found to be useful.}
+\footnotetext{\label{foot:ord}Such ordering may be added at a later date, if
+a reasonable ordering is determined and found to be useful. I have not yet
+found it to be useful however.}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A$}
@@ -382,4 +383,84 @@ right, while the right shift removes bits from the right (no bits are added).
     \AxiomC{$|\sigma| = b$}
     \LeftLabel{Right Shift}
     \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = \rho$}
+\end{prooftree}
+
+Sequencing exists in \Poetry{}, as it does in \Prose{}, but is
+decidedly less fundamental. Sequencing in \Poetry{} however is never done
+with a line break, it must be explicitly denoted using the sequence operator
+(\op{,}). Semantically, the sequence operator simply does the first thing,
+then throws away its result and does the second. Useful in the case of effects.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A$}
+    \AxiomC{$\Gamma\vdash B : \tau$}
+    \LeftLabel{Sequence}
+    \BinaryInfC{$\Gamma\vdash A\ \op{,}\ B : \tau$}
+\end{prooftree}
+
+The cons operator (\op{:}) is used for constructing tuples and lists. The
+two operands may be any value, and the result is the two values as a tuple.
+This unfortunately produces a horrible looking proof where everything is
+separated by colons that indicate different things in different contexts.
+I trust you'll figure it out.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A : \tau$}
+    \AxiomC{$\Gamma\vdash B : \rho$}
+    \LeftLabel{Cons}
+    \BinaryInfC{$\Gamma\vdash A\ \op{:}\ B : \tau \ty{:} \rho$}
+\end{prooftree}
+
+The glue\footnote{Indeed a nod to \href{https://www.inklestudios.com/ink/}{Ink}, another
+project of interest to me.} operator (\op{<>}) is for joining strings. Unlike some
+other languages, \Trilogy{} does not overload the addition operator (\op{+}) for
+this purpose. The two operands must be of String type, otherwise it is a runtime
+type error. The two strings are joined without separator into one longer string.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \alpha : \ty{String}$}
+    \AxiomC{$\Gamma\vdash B = \beta : \ty{String}$}
+    \LeftLabel{Glue}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<>}\ B = \alpha\beta : \ty{String}$}
+\end{prooftree}
+
+The function composition operators (\op{<<} and \op{>>}) take a function on either
+side and return a function where the result of calling one function is passed as the
+argument to the other, as in standard mathematical composition. The direction of
+the arrows indicates the direction that the value flows. As usual for operators,
+if either operand is not a function, it is a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash f : \tau \rightarrow \rho$}
+    \AxiomC{$\Gamma\vdash g : \rho \rightarrow \phi$}
+    \LeftLabel{Composition}
+    \BinaryInfC{$\Gamma\vdash f\ \op{>>}\ g : \tau \rightarrow \phi$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash f : \rho \rightarrow \phi$}
+    \AxiomC{$\Gamma\vdash g : \tau \rightarrow \rho$}
+    \LeftLabel{Composition}
+    \BinaryInfC{$\Gamma\vdash f\ \op{<<}\ g : \tau \rightarrow \phi$}
+\end{prooftree}
+
+In similar style, the function application operators (\op{<|} and \op{|>}) apply
+a function to its value immediately. Though it seems pointless, these operators
+actually do come in handy for splitting a function application over lines, changing
+the parenthesization precedence, or for complex compositions. In either case, the
+value is supplied on the flat side, and goes into the function on the pointed side.
+If the pointed side does not point to a function, it is a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash x : \tau$}
+    \AxiomC{$\Gamma\vdash f : \tau \rightarrow \rho$}
+    \LeftLabel{Application}
+    \BinaryInfC{$\Gamma\vdash x\ \op{|>}\ f : \rho$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash f : \tau \rightarrow \rho$}
+    \AxiomC{$\Gamma\vdash x : \tau$}
+    \LeftLabel{Application}
+    \BinaryInfC{$\Gamma\vdash f\ \op{<|}\ x : \rho$}
 \end{prooftree}

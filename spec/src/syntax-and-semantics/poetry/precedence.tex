@@ -1,0 +1,46 @@
+\subsubsection{Expression Precedence}
+\label{sec:precedence}
+
+The following table lists expression forms in order of decreasing precedence (that is,
+the top rows bind more tightly than the bottom). For many types of expression, this
+order could be determined by analyzing the syntax tree, but for easy consumption they
+are included in the table.
+
+Listed also is associativity, when relevant: left to right, right to left, or indeterminate.
+If associativity is indeterminate, explicit disambiguation with parentheses are required.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ll}
+        \hline
+        \textbf{Operator} & \textbf{Associativity} \\
+        \hline
+        Paths & Left to right \\
+        Member access & Left to right \\
+        Unary operators & \\
+        Function application & Left to right \\
+        \op{>>} & Left to right \\
+        \op{<<} & Left to right \\
+        \op{**} & Right to left \\
+        \op{\%}\quad\op{/}\quad\op{//}\quad\op{*} & Left to right \\
+        \op{+}\quad\op{-} & Left to right \\
+        \op{\&} & Left to right \\
+        \op{<\textasciitilde}\quad\op{\textasciitilde>} & Left to right \\
+        \op{\textasciicircum} & Left to right \\
+        \op{|} & Left to right \\
+        \op{:} & Right to left \\
+        \op{<=}\quad\op{>=}\quad\op{<}\quad\op{>} & Indeterminate \\
+        \op{==}\quad\op{===} & Indeterminate \\
+        \kw{and} & Left to right \\
+        \kw{or} & Left to right \\
+        \op{|>} & Left to right \\
+        \op{<|} & Right to left \\
+        \kw{when} & Left to right \\
+        \kw{yield} & Right to left \\
+        \kw{fn} & Right to left \\
+        \kw{end} & \\
+        \kw{return} & \\
+        \op{,} & Left to right \\
+        \hline
+    \end{tabular}
+\end{table}

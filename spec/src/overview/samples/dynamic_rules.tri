@@ -1,5 +1,5 @@
 proc main!() {
-    let line = readline!() when 'EOF cancel end 1
+    let line = readline!()
 
     let allowed1 = is allow(line)
         given allow("cat")

@@ -3,7 +3,10 @@ proc main!() {
     let mut guesses = 0
     while true {
         let guess = Int readline!()
-            when 'EOF cancel { end 1 }
+            when 'EOF cancel {
+                println!("You give up? Then you lose.")
+                end 1
+            }
             when 'NAN cancel {
                 println!("That's not a valid integer")
                 continue
