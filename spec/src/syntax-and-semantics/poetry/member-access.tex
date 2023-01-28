@@ -53,7 +53,7 @@ not an integer, it is considered a runtime type error.
     \AxiomC{$\Gamma\vdash E : \ty{Array}\ \tau$}
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
     \AxiomC{$i < 0 \lor |\sigma| < i$}
-    \LeftLabel{String MIA}
+    \LeftLabel{Array MIA}
     \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
 \end{prooftree}
 
