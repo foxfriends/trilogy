@@ -7,7 +7,11 @@ order could be determined by analyzing the syntax tree, but for easy consumption
 are included in the table.
 
 Listed also is associativity, when relevant: left to right, right to left, or indeterminate.
-If associativity is indeterminate, explicit disambiguation with parentheses are required.
+If associativity is indeterminate, explicit disambiguation with parentheses is required.
+
+% TODO: come back to this table, it'll be easier to feel out what
+% is natural when the language is running. There are probably some
+% operators missing.
 
 \begin{table}[H]
     \centering
@@ -32,16 +36,16 @@ If associativity is indeterminate, explicit disambiguation with parentheses are 
         \op{:} & Right to left \\
         \op{<=}\quad\op{>=}\quad\op{<}\quad\op{>} & Indeterminate \\
         \op{==}\quad\op{===} & Indeterminate \\
+        \kw{is} & \\
         \kw{and} & Left to right \\
         \kw{or} & Left to right \\
         \op{|>} & Left to right \\
         \op{<|} & Right to left \\
         \kw{when} & Left to right \\
         \kw{yield} & \\
-        \kw{fn} & Right to left \\
+        \op{,} & Left to right \\
         \kw{end} & \\
         \kw{return} & \\
-        \op{,} & Left to right \\
         \hline
     \end{tabular}
 \end{table}
