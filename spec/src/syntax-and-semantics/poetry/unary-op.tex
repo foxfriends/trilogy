@@ -6,8 +6,6 @@ There are no postfix operators in \Trilogy{}, as they end up being a parsing
 nightmare for little value (the only commonly seen postfix operators are
 ones like \texttt{++}, and we prefer \texttt{+= 1} in general these days).
 
-% TODO: some not on disambiguating the `-` operator
-
 \begin{bnf*}
     \bnfprod{UnaryOp}{
         \bnfpn{UnaryOperator}
@@ -25,9 +23,32 @@ ones like \texttt{++}, and we prefer \texttt{+= 1} in general these days).
     }
 \end{bnf*}
 
-Though there aren't that many of these operators, they cover a very wide
-range of features. A lot of this stuff is actually just implemented as
-a unary operator for convenience.
+It turns out, even prefix unary operators cause some parsing ambiguity, particularly
+when it comes to application of a function to a negative number. To resolve this
+ambiguity, we simply declare unary operators to be the last choice when parsing;
+only if there is no other interpretation of the expression but the interpretation
+where the operator is used as a unary operator will it be a interpreted unary operation.
+
+To illustrate that point, the following table summarizes some syntax and a
+less ambiguous ``formal'' representation. The formal representation is actually
+valid \Trilogy{} code as well, showing that \Trilogy{} could be used like a Lisp
+if you really wanted to.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lll}
+        \hline
+        \textbf{Conventional} & \textbf{Formal} & \textbf{Explanation} \\
+        \hline
+        \tri{x - 5} & \tri{((-) x 5)} & Infix takes precedence \\
+        \tri{x (- 5)} & \tri{(x ((-) 5))} & Explicitly disambiguated \\
+        \tri{x (-) 5} &  \tri{((x (-)) 5))} & \tri{(-)} is a reference \\
+        \tri{x not true} & \tri{(x ((not) true))} & \tri{not} cannot be infix \\
+        \tri{x (not) true} & \tri{((x (not)) true))} & \tri{(not)} is a reference \\
+        \tri{x + - 5} & \tri{((+) x ((-) 5))} & One of two operators is unary \\
+        \hline
+    \end{tabular}
+\end{table}
 
 The \kw{not} operator is used to perform Boolean negation. \texttt{\kw{not}~\kw{true}}
 evaluates to \kw{false} and \texttt{\kw{not}~\kw{false}} evaluates to \kw{true}, as
@@ -74,6 +95,6 @@ Used on a non-Bits value, it causes a runtime type error.
 
 The \kw{yield} keyword used in \Poetry{} is actually also an operator, mostly for
 convenience. This operator works similarly to how the \kw{yield} statement of \Prose{}
-works, but the returned value is relevant. It may return more or less than once if
+works, but the returned value is accessible. It may return more or less than once if
 the effect handler resumes more or less that once. Though it would be nice to explain
 it now, once again leave the detailed explanation to \S\ref{sec:effects}.
