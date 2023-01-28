@@ -39,7 +39,7 @@ fn main() -> std::io::Result<()> {
             let contents = std::fs::read_to_string(file)?;
             let scanner = Scanner::new(&contents);
             for token in scanner {
-                println!("{:?}", token);
+                println!("{token:?}");
             }
         }
         _ => unimplemented!("This feature is not yet built"),
