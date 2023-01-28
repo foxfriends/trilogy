@@ -1,0 +1,33 @@
+\subsubsection{Let}
+
+The \kw{let} expression performs a binding for the scope of its body. As with
+the \kw{let} statement of \Prose{}, the binding may bind more or less than once,
+leading to branching or fizzling behaviour which may be unexpected if not careful.
+
+Interesting about the \kw{let} expression is that the line break is required to
+separate the binding from the body, as opposed to an explicit separator keyword
+as in languages such as Haskell\footnote{A radical choice, which may be revised later
+with more experience. Apologies to anyone who uses this expression if it changes. I
+just never liked the way that \texttt{let}\dots\texttt{in} becomes indented.}.
+
+\begin{bnf*}
+    \bnfprod{Let}{
+        \bnfts{\kw{let}}
+        \bnfsp
+        \bnfpn{Unification}
+        \bnfsp
+        \bnfpn{EOL}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+In a \kw{let} expression, the body is evaluated with the newly introduced bindings,
+and the whole expression evaluates to the result of that body's evaluation.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash U \Rightarrow \Phi$}
+    \AxiomC{$\Phi\vdash B : \tau$}
+    \LeftLabel{Let}
+    \BinaryInfC{$\Gamma\vdash \kw{let}\ U\ B : \tau$}
+\end{prooftree}

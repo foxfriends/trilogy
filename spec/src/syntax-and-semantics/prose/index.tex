@@ -47,7 +47,7 @@ to the call site, conceptually causing the call to fizzle or branch respectively
 
 \begin{prooftree}
     \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \block{M,\ \kw{return}\ N}$}
-    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M\op{,}\ N $}
+    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M\op{;}\ N $}
     \LeftLabel{Procedure}
     \ProofLabel{proof:return}
     \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}=N$}

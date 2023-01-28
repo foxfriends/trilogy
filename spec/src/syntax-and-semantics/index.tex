@@ -124,14 +124,20 @@ the file. It is optional to implement rule~\ref{bnf:bom}.
         \bnfts{ByteOrderMark}
     } \\
     \bnfprod*{Postamble}{
-        \bnfts{EOL}
+        \bnfts{EndOfLine}
         \bnfsp
         \bnfts{EndOfFile}
         \bnfor
     } \\
     \bnfmore{\label{bnf:finaleol}\bnfts{EndOfFile}} \\
     \bnfprod*{Definitions}{
-        \bnfpn{Definition}\bnfsp\bnfpn{Definitions}\bnfor\bnfes
+        \bnfpn{Definition}
+        \bnfsp
+        \bnfpn{EOL}
+        \bnfsp
+        \bnfpn{Definitions}
+        \bnfor
+        \bnfpn{Definition}
     } \\
     \bnfprod*{Definition}{
         \bnfpn{ModuleDefinition}\bnfor

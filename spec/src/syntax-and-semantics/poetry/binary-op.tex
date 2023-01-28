@@ -385,11 +385,11 @@ right, while the right shift removes bits from the right (no bits are added).
     \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = \rho$}
 \end{prooftree}
 
-Sequencing exists in \Poetry{}, as it does in \Prose{}, but is
-decidedly less fundamental. Sequencing in \Poetry{} however is never done
-with a line break, it must be explicitly denoted using the sequence operator
-(\op{,}). Semantically, the sequence operator simply does the first thing,
-then throws away its result and does the second. Useful in the case of effects.
+Sequencing exists in \Poetry{}, as it does in \Prose{}, but is decidedly less
+fundamental. Sequencing in \Poetry{} however is never done with a line break,
+it must be explicitly denoted using the sequence operator (\op{,}). Semantically,
+the sequence operator simply does the first thing, then throws away its result
+and does the second. Useful in the case of effects, but not much else.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A$}

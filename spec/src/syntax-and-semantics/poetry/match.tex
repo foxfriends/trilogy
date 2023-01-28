@@ -1,0 +1,97 @@
+\subsubsection{Match}
+
+The \kw{match} expression unifies a value with its cases, and evaluates the
+branch associated with the first unification that succeeds. This is much
+like the \kw{match} statement of \Prose{} but the branches hold expressions
+instead of blocks.
+
+\begin{bnf*}
+    \bnfprod{Match}{
+        \bnfts{\kw{match}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Cases}
+    } \\
+    \bnfprod{Cases}{
+        \bnfpn{Case}\bnfsp\bnfpn{Cases}\bnfor\bnfpn{Case}
+    } \\
+    \bnfprod{Case}{
+        \bnfts{\kw{case}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{case}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{case}}
+        \bnfsp
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Block}
+    }
+\end{bnf*}
+
+The \kw{match} expression is evaluated in much the same way as the \kw{match} statement of
+\Prose{} (\S\ref{sec:prose-match}). The only difference is that instead of executing the
+matched block, the matched expression is evaluated and that expression's final result is the
+evaluation of the \kw{match} expression as a whole.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash C = \kw{true}, B : \tau$}
+    \LeftLabel{Match}
+    \TrinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{case}\ P\ \kw{if}\ C\ \kw{then}\ B : \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P = E$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash C = \kw{false}$}
+    \TrinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ \kw{then}\ B$}
+    \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n : \tau$}
+    \LeftLabel{Match\textsuperscript{\kw{false}}}
+    \insertBetweenHyps{\hskip -12pt}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n : \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\Gamma \vdash E$}
+    \AxiomC{$P \neq E$}
+    \BinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ \kw{then}\ B$}
+    \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
+    \LeftLabel{Match\textsuperscript{$\bot$}}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
+\end{prooftree}
+
+The omitted clauses of the \kw{case} statement are formalized by the same syntax
+transformation as before:
+
+\begin{align*}
+    \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %
+    \texttt{\kw{case} \kw{if} \$c:expr} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \$c} \\ %
+\end{align*}

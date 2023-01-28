@@ -1,4 +1,5 @@
 \subsubsection{Match}
+\label{sec:prose-match}
 
 The \kw{match} statement allows for pattern matching, allowing code to branch
 on the structure of a value, rather than a Boolean evaluation of an expression.
@@ -16,12 +17,12 @@ of code to run if that case is selected.
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
-        \bnfpn{Cases}
+        \bnfpn{SCases}
     } \\
-    \bnfprod{Cases}{
-        \bnfpn{Case}\bnfsp\bnfpn{Cases}\bnfor\bnfpn{Case}
+    \bnfprod{SCases}{
+        \bnfpn{SCase}\bnfsp\bnfpn{SCases}\bnfor\bnfpn{SCase}
     } \\
-    \bnfprod{Case}{
+    \bnfprod{SCase}{
         \bnfts{\kw{case}}
         \bnfsp
         \bnfpn{Pattern}
@@ -49,7 +50,6 @@ of code to run if that case is selected.
         \bnfpn{Expression}
         \bnfsp
         \bnfpn{Block}
-        \bnfor
     }
 \end{bnf*}
 
@@ -57,11 +57,11 @@ To evaluate a \kw{match} statement, the original expression is evaluated, and co
 against the pattern of each \kw{case}; an omitted pattern is interpreted like an underscore
 (\texttt{\_}) pattern, matching with any value.
 
-Before committing to a \kw{case} with a matching pattern, the guard is evaluated, if any.
-If the guard expression evaluates to \kw{true} (or there are no guards), the case is selected.
-Identifiers bound in the pattern are in scope for this evaluation. Any value that is not \kw{true},
-including non-Boolean values, are treated as \kw{false}, and the case is not selected. An omitted
-guard is treated to be always \kw{true}.
+Before committing to a \kw{case} with a matching pattern the guard, if any, is evaluated.
+Identifiers bound in the pattern are in scope for this evaluation. If the guard expression
+evaluates to \kw{true} (or there are no guards), the case is selected. If the guard expression
+evaluates to \kw{false}, it is skipped. If the guard expression evalutes to a non-Boolean result,
+it is a runtime type error. An omitted guard is treated to be always \kw{true}.
 
 The block following the first selected case is then run. If no cases are selected,
 they are simply ignored and the program continues.
@@ -78,7 +78,7 @@ they are simply ignored and the program continues.
     \def\extraVskip{3.5pt}
     \AxiomC{$\Gamma \vdash E$}
     \AxiomC{$P = E$}
-    \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash C \neq \kw{true}$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash C = \kw{false}$}
     \TrinaryInfC{$R_1 = \kw{case}\ P\ \kw{if}\ C\ B$}
     \AxiomC{$\Gamma \vdash \kw{match}\ E\ R_2 \cdots R_n \Rightarrow \Phi$}
     \LeftLabel{Match\textsuperscript{\kw{false}}}

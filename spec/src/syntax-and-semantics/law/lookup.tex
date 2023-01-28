@@ -1,0 +1,39 @@
+\subsubsection{Lookup}
+
+The lookup case is the most powerful of the unifications, where a rule is looked up
+in the current scope and its definitions are applied by unifying each parameter with
+the arguments provided.
+
+For all its flexibility, the syntax is very simple. Recall Rule~\ref{bnf:patternlist}
+from earlier.
+
+\begin{bnf*}
+    \bnfprod{Path}{
+        \bnfpn{ModuleReference}
+        \bnfsp
+        \bnfts{\op{.}}
+        \bnfsp
+        \bnfpn{Path}
+        \bnfor
+        \bnfpn{Identifier}
+    } \\
+    \bnfprod{Lookup}{
+        \bnfpn{Path}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfsp
+        \bnfts{)}
+    }
+\end{bnf*}
+
+Rules are looked up in the current module scope. Available rules may include locally
+defined or imported rules, or rules found in accessible modules given the proper path.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash R(P_{1\hdots n})\Rightarrow\Phi$}
+    \AxiomC{$A_i = P_i$}
+    \LeftLabel{Lookup}
+    \BinaryInfC{$\Gamma\vdash R\ \texttt{(}\ A_{1\hdots n}\ \texttt{)} \Rightarrow\Phi$}
+\end{prooftree}
