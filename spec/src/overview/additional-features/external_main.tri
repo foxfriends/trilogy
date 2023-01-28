@@ -3,7 +3,7 @@ module HereModule {
         return 5
     }
 
-    export getRandomNumber!
+    export getRandomNumber
 }
 
 module LocalModule at "./local_module.tri"

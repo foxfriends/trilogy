@@ -11,7 +11,7 @@ module Helpers {
         }
     }
 
-    export twice, thrice, printEach!
+    export twice, thrice, printEach
 }
 
 import twice, thrice, printEach! from Helpers

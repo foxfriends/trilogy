@@ -182,10 +182,44 @@ algorithm are defined later.
         \bnfpn{String}
         \bnfor
     } \\
-    \bnfmore*{\bnfts{\kw{module}}\bnfsp\bnfts{\{}\bnfsp\bnfpn{Definitions}\bnfsp\bnfts{\}}\bnfor} \\
-    \bnfmore*{\bnfts{\kw{module}}\bnfsp\bnfts{(}\bnfsp\bnfpn{ModuleParameters}\bnfsp\bnfts{)}\bnfsp\bnfts{\{}\bnfsp\bnfpn{Definitions}\bnfsp\bnfts{\}}} \\
-    \bnfprod*{ModuleParameters}{\bnfpn{Identifier}\bnfsp\bnfts{,}\bnfsp\bnfpn{ModuleParameters}\bnfor} \\
-    \bnfmore*{\bnfpn{Identifier}\bnfor\bnfes} \\
+    \bnfmore*{
+        \bnfts{\kw{module}}
+        \bnfsp
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Definitions}
+        \bnfsp
+        \bnfts{\}}
+        \bnfor
+    } \\
+    \bnfmore*{
+        \bnfts{\kw{module}}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{ModuleParameters}
+        \bnfsp
+        \bnfts{)}
+        \bnfsp
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Definitions}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod*{ModuleParameters}{
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{ModuleParameters}
+        \bnfor
+    } \\
+    \bnfmore*{
+        \bnfpn{Identifier}
+        \bnfor
+        \bnfes
+    } \\
     \bnfprod*{Import}{
         \bnfts{\kw{import}}
         \bnfsp
@@ -199,34 +233,36 @@ algorithm are defined later.
     \bnfmore*{
         \bnfts{\kw{import}}
         \bnfsp
-        \bnfpn{ImportList}
+        \bnfpn{NameList}
         \bnfsp
         \bnfts{\kw{from}}
         \bnfsp
         \bnfpn{ModuleReference}
     } \\
-    \bnfprod*{ImportList}{
-        \bnfpn{Identifier}
+    \bnfprod*{Export}{
+        \bnfts{\kw{export}}
+        \bnfsp
+        \bnfpn{NameList}
+    } \\
+    \bnfprod*{NameList}{
+        \bnfpn{Name}
         \bnfsp
         \bnfts{,}
         \bnfsp
-        \bnfpn{ImportList}
+        \bnfpn{NameList}
         \bnfor
-    } \\
-    \bnfmore*{
-        \bnfpn{IdentifierBang}
-        \bnfsp
-        \bnfts{,}
-        \bnfsp
-        \bnfpn{ImportList}
-        \bnfor
-    } \\
-    \bnfmore*{
-        \bnfpn{Identifier}
-        \bnfor
-        \bnfpn{IdentifierBang}
+        \bnfpn{Name}
         \bnfor
         \bnfes
+    } \\
+    \bnfprod*{Name}{
+        \bnfpn{Identifier}
+        \bnfor
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfts{\kw{as}}
+        \bnfsp
+        \bnfpn{Identifier}
     } \\
     \bnfprod*{ModuleReference}{
         \bnfpn{Identifier}
@@ -325,6 +361,10 @@ languages.
     \bnfprod{RuleDefinition}{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfor} \\
     \bnfmore{\bnfts{\kw{rule}}\bnfsp\bnfpn{RuleHead}\bnfsp{\op{<-}}\bnfsp\bnfpn{RuleBody}}
 \end{bnf*}
+
+For name resolution purposes, defintions of all types are stored in the same
+scope. For example, aprocedure and a function defined in the same module may
+not have the same name.
 
 \subimport{law/}{index.tex}
 

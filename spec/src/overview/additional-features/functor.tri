@@ -21,7 +21,7 @@ module OrdList(Ord) {
         }
     }
 
-    export empty, insert, print!
+    export empty, insert, print
 }
 
 import OrdList(Int) as OrdIntList

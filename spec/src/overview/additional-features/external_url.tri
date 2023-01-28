@@ -2,4 +2,4 @@ proc getRandomNumber!() {
     return 4
 }
 
-export getRandomNumber!
+export getRandomNumber

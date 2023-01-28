@@ -9,7 +9,7 @@ module UnordList {
         }
     }
 
-    export empty, insert, print!
+    export empty, insert, print
 }
 
 module OrdList {
@@ -26,7 +26,7 @@ module OrdList {
         }
     }
 
-    export empty, insert, print!
+    export empty, insert, print
 }
 
 proc collectInto!(Collection, iter) {

@@ -10,6 +10,14 @@ use such arbitrary patterns in the most certain of cases, and otherwise use
 single identifier patterns whenever possible and handle alternative inputs
 accordingly.
 
+Though it appears that the name of the procedure includes the exclamation mark,
+this is not actually the case; the exclamation mark is only part of the procedure
+definition and call syntax. The name of the procedure itself (for the purposes
+of name resolution, imports, and exports) does not include it. It is, however,
+a fragment of syntax that happens to be handled by the scanner, rather than the
+parser, as an easy way to bind the exclamation mark to the identifier, where
+it belongs.
+
 The ability to define multiple procedures with the same name but different
 patterns may be added in future.
 

@@ -6,6 +6,10 @@ another procedure, as a statement. In this situation, the return value of
 the procedure call is lost, but multiple evaluations may be created. Procedure
 calls in statement position are also explicitly permitted to carry effect handlers.
 
+Again, though the procedure call syntax includes the exclamation mark joined to the
+name of the procedure before the argument list, this exclamation mark is not part
+of the name of the procedure; it is only a piece of the definition and call syntax.
+
 \begin{bnf*}
     \bnfprod{SProcedureCall}{
         \bnfpn{ProcedureCall}
@@ -15,13 +19,22 @@ calls in statement position are also explicitly permitted to carry effect handle
         \bnfpn{EffectHandlers}
     } \\
     \bnfprod{ProcedureCall}{
-        \bnfpn{IdentifierBang}
+        \bnfpn{PathBang}
         \bnfsp
         \bnfts{(}
         \bnfsp
         \bnfpn{ArgumentList}
         \bnfsp
         \bnfts{)}
+    } \\
+    \bnfprod{PathBang}{
+        \bnfpn{ModuleReference}
+        \bnfsp
+        \bnfts{\op{.}}
+        \bnfsp
+        \bnfpn{Path}
+        \bnfor
+        \bnfpn{IdentifierBang}
     } \\
     \bnfprod{ArgumentList}{
         \bnfpn{Expression}
