@@ -46,25 +46,37 @@ A procedure may cause a fizzle or branch, in which case all evaluations are prop
 to the call site, conceptually causing the call to fizzle or branch respectively.
 
 \begin{prooftree}
-    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \block{M,\ \kw{return}\ N}$}
-    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M\op{;}\ N $}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(P_{1\hdots n})\ \block{M,\ \kw{return}\ N}$}
+    \AxiomC{$\Sigma\vdash x_i: \tau_i$}
+    \AxiomC{$x_i = P_i$}
+    \def\extraVskip{3.5pt}
+    \BinaryInfC{$\Gamma,\setof{a_i\given a_i\defby P_i} \vdash M\Rightarrow\Phi$}
+    \UnaryInfC{$\Phi\vdash N : \rho$}
     \LeftLabel{Procedure}
     \ProofLabel{proof:return}
-    \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}=N$}
+    \def\extraVskip{2pt}
+    \BinaryInfC{$\Gamma \vdash p : \texttt{!(}\tau_{1\hdots n}\texttt{)} \rightarrow \rho$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \block{M}$}
-    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M : \top$}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(P_{1\hdots n})\ \block{M}$}
+    \AxiomC{$\Sigma\vdash x_i: \tau_i$}
+    \AxiomC{$x_i = P_i$}
+    \def\extraVskip{3.5pt}
+    \BinaryInfC{$\Gamma,\setof{a_i\given a_i\defby P_i} \vdash M: \top$}
     \LeftLabel{Procedure\textsuperscript{$\top$}}
-    \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}=\kw{unit}$}
+    \def\extraVskip{2pt}
+    \BinaryInfC{$\Gamma \vdash p : \texttt{!(}\tau_{1\hdots n}\texttt{)} \rightarrow \kw{unit}$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\kw{proc}\ p\texttt{!}(x_{1\hdots n})\ \block{M}$}
-    \AxiomC{$\Gamma,x_{1\hdots n} \vdash M : \bot$}
+    \AxiomC{$\kw{proc}\ p\texttt{!}(P_{1\hdots n})\ \block{M}$}
+    \AxiomC{$\Sigma\vdash x_i: \tau_i$}
+    \AxiomC{$x_i = P_i$}
+    \def\extraVskip{3.5pt}
+    \BinaryInfC{$\Gamma,\setof{a_i\given a_i\defby P_i} \vdash M: \top$}
     \LeftLabel{Procedure\textsuperscript{$\bot$}}
-    \BinaryInfC{$\Gamma \vdash p\texttt{!(}x_{1\hdots n}\texttt{)}:\bot$}
+    \BinaryInfC{$\Gamma \vdash p : \texttt{!(}\tau_{1\hdots n}\texttt{)} \rightarrow \bot$}
 \end{prooftree}
 
 \input{sequences.tex}

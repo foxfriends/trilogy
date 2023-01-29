@@ -55,7 +55,7 @@ to the procedure. This is much the same as any function call in any other
 imperative language.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma\vdash p\texttt{!}(x_{1\hdots n}):\top$}
+    \AxiomC{$\Gamma\vdash p : \texttt{!}(x_{1\hdots n})\rightarrow\tau$}
     \AxiomC{$a_i = x_i$}
     \LeftLabel{Procedure Call}
     \BinaryInfC{$\Gamma\vdash p\texttt{!}(a_{1\hdots n}):\top$}

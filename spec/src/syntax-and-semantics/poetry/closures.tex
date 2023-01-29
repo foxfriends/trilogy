@@ -1,0 +1,131 @@
+\subsubsection{Closures}
+
+Closures in \Trilogy{} come in both function closure and procedure closure forms.
+Function closures, I feel, are a very legitimate construct. Procedure closures
+on the other hand are even more definitely breaking the illusion of \Poetry{}'s
+pureness than even including regular procedure calls, but if you squint really
+hard you can almost let it go. Hopefully you can excuse this breach of mathematical
+correctness for the matter of practicality supplied by the ability to define
+procedure closures, and that this does not cause more issues than its worth
+in implementation.
+
+\begin{bnf*}
+    \bnfprod{FnClosure}{
+        \bnfts{\kw{fn}}
+        \bnfsp
+        \bnfpn{ParameterList}
+        \bnfsp
+        \bnfts{.}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{EOL}
+    } \\
+    \bnfprod{DoClosure}{
+        \bnfts{\kw{do}}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfsp
+        \bnfts{)}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{do}}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfsp
+        \bnfts{)}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{EOL}
+    }
+\end{bnf*}
+
+The \kw{fn} desginates a function closure, the \kw{fn} expression evaluating
+to a function as any other function definition, only that this function
+captures bindings from its environment. These captured bindings may escape
+the lifetime of their syntactic scope if the closure escapes that scope.
+
+This function's body is specified as a single expression following the
+parameter list. This expression continues until the first end-of-line that
+allows the next line to parse were the closure ended. Hopefully this is not
+too ambiguous while also making for ergonomic pipelines using the function
+application operator (\op{|>}) with on-the-fly function closures. If a
+function closure is not working as expected, parentheses will solve the
+issue.
+
+As with regular function definitions, \kw{fn} includes support for
+multi-argument functions as a syntax transformation into single argument
+functions returning further single argument functions.
+
+\begin{align*}
+    \texttt{\kw{fn} \$(\$r:pat)+ \$p:pat. \$e:expr} & \Rightarrow \texttt{\kw{fn} \$(\$r)+. \kw{fn} \$p. \$e} %
+\end{align*}
+
+Given that, only the semantics of single argument functions need to be specified.
+
+\begin{prooftree}
+    \AxiomC{$\Sigma\vdash X : \tau$}
+    \AxiomC{$P = X$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P}\vdash E : \rho$}
+    \LeftLabel{Function Closure}
+    \TrinaryInfC{$\Gamma\vdash \kw{fn}\ P\ \texttt{.}\ E : \tau \rightarrow \rho$}
+\end{prooftree}
+
+Procedure closures, desginated by \kw{do}, come in two forms, but work
+similarly. In the form accepting a block, that block is used as the body
+of the procedure, much the same as any regular procedure definition. The
+\kw{return} keyword may be used in this block to return a value, otherwise
+the procedure evaluates to \kw{unit} when called.
+
+The form accepting an expression actually works more like a function, where
+that expression is evaluated and returned automatically. This is particularly
+to cover for the fact that function closures (and indeed functions in general)
+may not be nullary, so to be able to defer a computation, a procedure is a
+fine substitute.
+
+Similarly to function closures, the procedure closure captures bindings from
+its environment, and may allow those captured bindings to escape the lifetime
+of their syntactic scopes if the closure escapes that scope.
+
+In both forms of procedure closure, the first class keyword \kw{return} is rebound to
+this new procedure. To capture a parent procedure's return statement for use in a
+procedure closure, it must first be renamed by assigning it to another variable.
+
+Despite the \kw{do} notation not using an exclamation mark, to eventually call
+this procedure does require the exclamation mark, as with any other procedure call.
+It is only omitted from the \kw{do} notation because it is ugly.
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$\Sigma\vdash X_i : \tau_i$}
+    \AxiomC{$P_i = X_i$}
+    \BinaryInfC{$\Gamma,\setof{a_i\given a_i \defby P_i}\vdash M \Rightarrow \Phi$}
+    \AxiomC{$\Phi\vdash N : \rho$}
+    \def\extraVskip{2pt}
+    \LeftLabel{Procedure Closure}
+    \BinaryInfC{$\Gamma\vdash \kw{do}\texttt{(}\ P_{1\hdots n}\ \texttt{)}\ \block{M\ \op{;}\ \kw{return}\ N} : \texttt{!(} \tau_{1\hdots n} \texttt{)} \rightarrow \rho$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Sigma\vdash X_i : \tau_i$}
+    \AxiomC{$P_i = X_i$}
+    \AxiomC{$\Gamma,\setof{a_i\given a_i \defby P_i}\vdash M : \top$}
+    \LeftLabel{Procedure Closure}
+    \TrinaryInfC{$\Gamma\vdash \kw{do}\texttt{(}\ P_{1\hdots n}\ \texttt{)}\ \block{M} : \texttt{!(} \tau_{1\hdots n} \texttt{)} \rightarrow \kw{unit}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Sigma\vdash X_i : \tau_i$}
+    \AxiomC{$P_i = X_i$}
+    \AxiomC{$\Gamma,\setof{a_i\given a_i \defby P_i}\vdash E : \rho$}
+    \LeftLabel{Procedure Closure}
+    \TrinaryInfC{$\Gamma\vdash \kw{do}\texttt{(}\ P_{1\hdots n}\ \texttt{)}\ E : \texttt{!(} \tau_{1\hdots n} \texttt{)} \rightarrow \rho$}
+\end{prooftree}

@@ -5,8 +5,7 @@ Though this sort of breaks the ``pureness'' of \Poetry{}, I think it's also
 sort of justifiable if you consider the procedure call to actually be syntax
 sugar for a \kw{yield} that corresponds to a handler that calls that procedure
 and resumes with the result. Assume that handler is applied automatically by
-the procedure's definition. This interpretation of the procedure call allows
-for consistency in the lazy evaluation model of \Poetry{}.
+the procedure's definition.
 
 There's no need to define the syntax of a procedure call in this situation,
 as it is exactly the same as the syntax of a procedure call in \Prose{}
@@ -16,7 +15,7 @@ the procedure call's returned value. Honestly, the definition earlier
 could have just had this type to begin with, and ignored it.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma\vdash p\texttt{!}(x_{1\hdots n}):\tau$}
+    \AxiomC{$\Gamma\vdash p : \texttt{!}(x_{1\hdots n})\rightarrow\tau$}
     \AxiomC{$a_i = x_i$}
     \LeftLabel{Procedure Call}
     \BinaryInfC{$\Gamma\vdash p\texttt{!}(a_{1\hdots n}):\tau$}

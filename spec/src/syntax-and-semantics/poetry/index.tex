@@ -17,8 +17,6 @@ of the effect system it is possible to trigger side effects, in a way.
         \bnfpn{PatternList}
         \bnfor
         \bnfpn{Pattern}
-        \bnfor
-        \bnfes
     } \\
     \bnfprod{FunctionBody}{\bnfpn{Expression}}
 \end{bnf*}
@@ -35,30 +33,45 @@ default. In \Trilogy{}, this is defined as a syntax transformation over function
 definitions with multiple parameters into unary functions returning a function
 that accepts the next parameter.
 
+Unsimilarly to Haskell, \Poetry{} is evaluated eagerly. This means that nullary
+(0-argument) functions are pretty useless, so all functions \emph{must} have a
+parameter. Nullary procedures may be a simple alternative in the meantime, where
+the calling of that procedure is explicit, or a function accepting a single
+ignored \kw{unit} parameter, if truly \Poetry{} is preferred.
+
 \begin{align*}
-    \texttt{\$f:id \$(\$r:pat)* \$p:pat = \$e:expr} & \Rightarrow \texttt{\$f \$(\$r)* = \kw{fn} \$p. \$e} %
+    \texttt{\$f:id \$(\$r:pat)+ \$p:pat = \$e:expr} & \Rightarrow \texttt{\$f \$(\$r)+ = \kw{fn} \$p. \$e} %
 \end{align*}
 
-The parameter list may be empty, defining a nullary (0-argument) function. As
-\Poetry{} is lazy, this function will only be evaluated when its result is
-needed, so even a nullary function may, for example, yield an effect which will
-only be performed when it is required. Note that the lazy evaluation of \Poetry{}
-can lead to some code being run in unexpected order, so it is recommended to
-think carefully about whether effects in \Poetry{} are required.
+%% TODO: I really can't decide if it's worth making Poetry lazy. Technically it is
+%% a pretty neat thing to be able to work in lazy code, but practically... I find
+%% it less so. Poetry is meant to be practical.
+%%
+%% This does eliminate the ability to have nullary functions, but I really don't
+%% mind. You can just pass a unit anyway.
 
-Though \Poetry{} is lazy, \Prose{} and \Law{} (except for through Iterators)
-are not. When an expression of \Poetry{} appears in \Prose{} or \Law{},
-as in an assignment or unification, it is evaluated immediately. This implies
-that while \Poetry{} may be used to represent infinite data structures those
-data structures must remain in \Poetry{} or else they will be infinitely
-evaluated, unless converted to Iterator.
+% The parameter list may be empty, defining a nullary (0-argument) function. As
+% \Poetry{} is lazy, this function will only be evaluated when its result is
+% needed, so even a nullary function may, for example, yield an effect which will
+% only be performed when it is required. Note that the lazy evaluation of \Poetry{}
+% can lead to some code being run in unexpected order, so it is recommended to
+% think carefully about whether effects in \Poetry{} are required.
+
+% Though \Poetry{} is lazy, \Prose{} and \Law{} (except for through Iterators)
+% are not. When an expression of \Poetry{} appears in \Prose{} or \Law{},
+% as in an assignment or unification, it is evaluated immediately. This implies
+% that while \Poetry{} may be used to represent infinite data structures those
+% data structures must remain in \Poetry{} or else they will be infinitely
+% evaluated, unless converted to Iterator.
 
 \begin{prooftree}
-    \AxiomC{$f\ P\ \texttt{=}\ E$}
+    \def\defaultHypSeparation{\hskip 0.1in}
+    \AxiomC{$\kw{func}\ f\ P\ \texttt{=}\ E$}
+    \AxiomC{$\Sigma\vdash X : \tau$}
     \AxiomC{$P = X$}
-    \AxiomC{$\Gamma,\setof{a\given a\defby P}\vdash E = v$}
+    \AxiomC{$\Gamma,\setof{a\given a\defby P}\vdash E : \rho $}
     \LeftLabel{Function}
-    \TrinaryInfC{$\Gamma\vdash f(X) = v$}
+    \QuaternaryInfC{$\Gamma\vdash f : \tau \rightarrow \rho$}
 \end{prooftree}
 
 \input{expressions.tex}
@@ -90,3 +103,5 @@ evaluated, unless converted to Iterator.
 \input{first-class-keyword.tex}
 
 \input{precedence.tex}
+
+\input{closures.tex}
