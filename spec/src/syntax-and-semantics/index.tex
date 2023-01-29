@@ -29,8 +29,8 @@ Some are further formalized later.
     is searched. New names bound are bound in $\Phi$ without affecting $\Gamma$.
     Names which are rebound (e.g. in assignment) are rebound in the scope in
     which they are found.
-    \item $P = E$ --- Unifies, via the unification algorithm. Given the pattern
-    $P$ and value $E$, find values for the free variables in $P$ such that
+    \item $P = E$ --- Unifies, via the pattern unification algorithm. Given the
+    pattern $P$ and value $E$, find values for the free variables in $P$ such that
     that $P$ and $E$ represent the same value.
     \item $a := P$ --- Declares, as a name. $P$ is a pattern and $a$ is a name
     bound by that pattern. Patterns often declare more than one name.

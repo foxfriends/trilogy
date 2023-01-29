@@ -122,13 +122,14 @@ Sets come with useful operations union (\op{|}), intersection (\op{\&}),
 add (\op{+}), remove (\op{-}), difference (\op{/}), and symmetric
 difference (\op{\textasciicircum}).
 
-Set literals are written with curly braces and items separated by comma.
+Set literals are written with curly braces and pipes, with items separated by comma.
 In pattern matching, the spread operator may be used to refer to the elements
 not already matched explicitly by the pattern. In Set construction, the
 spread operator is not supported; prefer to use the Set operators instead.
 
 The string representation of a Set is the string representation of
-each of its elements, separated by commas within curly braces.
+each of its elements, separated by commas within curly braces. The pipes
+are omitted in the string representation.
 
 \begin{table}[H]
     \centering
@@ -136,8 +137,8 @@ each of its elements, separated by commas within curly braces.
         \hline
         \textbf{Source} & \textbf{String} \\
         \hline
-        \texttt{\{1, 2, 3\}} & \texttt{\{1, 2, 3\}} \\
-        \texttt{\{"hello", "hello", "world"\}} & \texttt{\{hello, world\}} \\
+        \texttt{\{|1, 2, 3|\}} & \texttt{\{1, 2, 3\}} \\
+        \texttt{\{|"hello", "hello", "world"|\}} & \texttt{\{hello, world\}} \\
         \hline
     \end{tabular}
 \end{table}

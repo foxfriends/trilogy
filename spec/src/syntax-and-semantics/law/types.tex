@@ -1,0 +1,114 @@
+\subsubsection{Types}
+
+Being a dynamically typed language, types in \Trilogy{} are a loose concept,
+and are checked primarily at runtime. They are checked though, unlike some
+dynamically typed languages which have type annotations that are
+ignored at runtime, and only loosely examined statically\footnote{Looking at TypeScript and Python here, to name a few.}.
+
+While type-checking for dynamically typed languages using some crazy
+type systems is something I do find interesting, \Trilogy{} takes a
+conservative approach to type checking, indeed to the point of almost
+being useless. Exploring a fully powerful type system for \Trilogy{}
+is left as an experiment for the future.
+
+\begin{bnf*}
+    \bnfprod{TypeAnnotation}{
+        \bnfts{::}
+        \bnfsp
+        \bnfpn{TypePattern}
+    } \\
+    \bnfprod{TypePattern}{
+        \bnfpn{Literal}
+        \bnfor
+        \bnfpn{PrimitiveType}
+        \bnfor
+        \bnfpn{TupleType}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{StructType}
+        \bnfor
+        \bnfpn{ArrayType}
+        \bnfor
+        \bnfpn{SetType}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{RecordType}
+        \bnfor
+        \bnfpn{Identifier}
+    } \\
+    \bnfprod{PrimitiveType}{
+        \bnfts{Number}
+        \bnfor
+        \bnfts{String}
+        \bnfor
+        \bnfts{Atom}
+        \bnfor
+        \bnfts{Bits}
+        \bnfor
+        \bnfts{Char}
+        \bnfor
+        \bnfts{Bool}
+    } \\
+    \bnfprod{TupleType}{
+        \bnfpn{TypePattern}
+        \bnfsp
+        \bnfts{:}
+        \bnfsp
+        \bnfpn{TypePattern}
+    } \\
+    \bnfprod{StructType}{
+        \bnfpn{Atom}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{TypePattern}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{ArrayType}{
+        \bnfts{Array}
+        \bnfsp
+        \bnfpn{TypePattern}
+    } \\
+    \bnfprod{SetType}{
+        \bnfts{Set}
+        \bnfsp
+        \bnfpn{TypePattern}
+    } \\
+    \bnfprod{RecordType}{
+        \bnfts{Record}
+        \bnfsp
+        \bnfpn{TypePattern}
+        \bnfsp
+        \bnfts{:}
+        \bnfsp
+        \bnfpn{TypePattern}
+    } \\
+\end{bnf*}
+
+\Trilogy{}'s type system includes only a few built-in types, type variables,
+and the option to use values as types. All of these are special cased uses
+of identifiers in type position that just happen to be handled by the parser.
+So lacking is this type system that iterators and semantic types cannot even
+be expressed, as they would require static analysis which is not included
+in the language at this time.
+
+\begin{prooftree}
+    \AxiomC{$P = v$}
+    \AxiomC{$v : \tau$}
+    \LeftLabel{Type Check}
+    \BinaryInfC{$P\ \texttt{::}\ \tau=v$}
+\end{prooftree}
+
+If a type pattern is not satisfied, the unification fails as any other
+failed unification, causing only fizzle. The mechanism by which some
+built in constructs check types and cause runtime type errors is a different
+one; user annotated types do not cause runtime type errors.
+
+There's actually not all that much else that needs to be written about the
+semantics of this type system as type proofs are included in the
+evaluation semantics throughout. Especially given that \Trilogy{}'s
+type system is so underdeveloped, this section remains vague and
+incomplete until a future date.

@@ -1,4 +1,5 @@
 \subsubsection{Literals}
+\label{sec:literals}
 
 Starting easy, the simplest expression is a primitive value.
 
@@ -109,11 +110,11 @@ of the cons operator, rather than a literal form.
         \bnfts{]}
     } \\
     \bnfprod{Set}{
-        \bnfts{\{}
+        \bnfts{\{|}
         \bnfsp
         \bnfpn{CompoundElements}
         \bnfsp
-        \bnfts{\}}
+        \bnfts{|\}}
     } \\
     \bnfprod{CompoundElements}{
         \bnfpn{CompoundElement}
@@ -189,42 +190,42 @@ as if its elements were written in place of the spread.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash X_1 : \tau$}
-    \AxiomC{$\Gamma\vdash \texttt{[}X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{[}X_2\texttt{,}\ \cdots\texttt{,}\ X_n\texttt{]} : \ty{List}\ \tau$}
     \LeftLabel{Array}
-    \BinaryInfC{$\Gamma\vdash\texttt{[}X_1, X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+    \BinaryInfC{$\Gamma\vdash\texttt{[}X_1\texttt{,}\ X_2\texttt{,}\ \cdots\texttt{,}\ X_n\texttt{]} : \ty{List}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash X_1 : \ty{List}\ \tau$}
-    \AxiomC{$\Gamma\vdash \texttt{[}X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{[}X_2\texttt{,}\ \cdots\texttt{,}\ X_n\texttt{]} : \ty{List}\ \tau$}
     \LeftLabel{Array\textsuperscript{\op{..}}}
-    \BinaryInfC{$\Gamma\vdash\texttt{[}\op{..}X_1, X_2, \cdots, X_n\texttt{]} : \ty{List}\ \tau$}
+    \BinaryInfC{$\Gamma\vdash\texttt{[}\op{..}X_1\texttt{,}\ X_2\texttt{,}\ \cdots\texttt{,}\ X_n\texttt{]} : \ty{List}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{}
     \LeftLabel{Set\textsuperscript{$\epsilon$}}
-    \UnaryInfC{$\texttt{\{\}} : \ty{Set}\ \tau$}
+    \UnaryInfC{$\texttt{\{||\}} : \ty{Set}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash X_1 : \tau$}
-    \AxiomC{$\Gamma\vdash \texttt{\{}X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{\{|}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
     \LeftLabel{Set}
-    \BinaryInfC{$\Gamma\vdash\texttt{\{}X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+    \BinaryInfC{$\Gamma\vdash\texttt{\{|}\ X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash X_1 : \ty{Set}\ \tau$}
-    \AxiomC{$\Gamma\vdash \texttt{\{}X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{\{|}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
     \LeftLabel{Set\textsuperscript{\op{..}}}
-    \BinaryInfC{$\Gamma\vdash\texttt{\{}\op{..}X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\texttt{\}} : \ty{Set}\ \tau$}
+    \BinaryInfC{$\Gamma\vdash\texttt{\{|}\ \op{..}X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{}
     \LeftLabel{Record\textsuperscript{$\epsilon$}}
-    \UnaryInfC{$\texttt{\{:\}} : \ty{Record}\ \kappa : \nu$}
+    \UnaryInfC{$\texttt{\{\}} : \ty{Record}\ \kappa : \nu$}
 \end{prooftree}
 
 \begin{prooftree}

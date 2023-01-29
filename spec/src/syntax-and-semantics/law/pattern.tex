@@ -1,0 +1,94 @@
+\subsubsection{Patterns}
+
+Referenced in pretty much every form of unifications seen so far, the pattern is
+the way unifications interact with the built-in data types of \Trilogy{}. Values
+unify with patterns, binding free variables in the pattern with the corresponding
+parts of a value that has the same structure as the pattern expects.
+
+\begin{bnf*}
+    \bnfprod{Pattern}{
+        \bnfpn{SinglePattern}
+        \bnfsp
+        \bnfts{\kw{or}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SinglePattern}
+        \bnfsp
+        \bnfts{\kw{and}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{SinglePattern}
+        \bnfor
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{SinglePattern}{
+        \bnfpn{StructuralPattern}
+        \bnfsp
+        \bnfpn{TypeAnnotation}
+    } \\
+\end{bnf*}
+
+All patterns contain a \emph{binding} portion, and optionally a \emph{non-binding}
+portion as well---currently the only non-binding option is a type annotation,
+reflected in the syntax above by the lack of a $\bnfpn{NonBindingPattern}$
+production.
+
+Since a pattern does not lead to any value or execution on its own, the semantics for
+patterns and their successful binding imply a successful unification, and sometimes
+bind variables.
+
+There are two special forms of patterns, using the \kw{or} and \kw{and} keywords.
+The \kw{and} pattern requires that both of its sub-patterns are satisfied.
+
+\begin{prooftree}
+    \AxiomC{$L = v$}
+    \AxiomC{$R = v$}
+    \LeftLabel{Both}
+    \BinaryInfC{$L\ \kw{and}\ R = v$}
+\end{prooftree}
+
+The \kw{or} pattern requires that only one of its sub-patterns are satisfied.
+In the case that both of patterns match (unlikely in practice, but there are
+some patterns where this is possible) then this pattern may cause a branch.
+
+One special requirement of this pattern not reflected in the syntax or
+semantics is that both sides of the \kw{or} pattern must bind the same
+identifiers. \Trilogy{} does not allow unbound identifiers in expressions,
+so after any pattern unification, all of its identifiers must be bound.
+
+\begin{figure}[H]
+    \centering
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$L = v$}
+            \LeftLabel{Either\textsuperscript{L}}
+            \UnaryInfC{$L\ \kw{or}\ R = v$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$R = v$}
+            \LeftLabel{Either\textsuperscript{R}}
+            \UnaryInfC{$L\ \kw{or}\ R = v$}
+        \end{prooftree}
+    }
+\end{figure}
+
+Meanwhile, the parenthesized pattern is included for grouping purposes,
+typically in conjunction with the \kw{or} and \kw{and} keywords.
+
+\begin{prooftree}
+    \AxiomC{$P = v$}
+    \LeftLabel{Unwrap}
+    \UnaryInfC{$\texttt{(}\ P\ \texttt{)} = v$}
+\end{prooftree}

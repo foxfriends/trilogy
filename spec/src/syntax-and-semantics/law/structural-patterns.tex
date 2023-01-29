@@ -1,0 +1,408 @@
+\subsubsection{Structural Patterns}
+
+Structural patterns are patterns that unify based on the shape or structure of
+some value using a syntax very similar to the value's literal syntax. In fact,
+for the primitive types, the syntax of their structural patterns really are
+the same as their literal syntax, which is covered in \S\ref{sec:literals}.
+For compound types, the syntax is slightly adjusted to account for some of the
+limitations of patterns versus expressions.
+
+\begin{bnf*}
+    \bnfprod{StructuralPattern}{
+        \bnfpn{Primitive}
+        \bnfor
+        \bnfpn{Wildcard}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{NegativePattern}
+        \bnfor
+        \bnfpn{GluePattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{StructPattern}
+        \bnfor
+        \bnfpn{TuplePattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{ArrayPattern}
+        \bnfor
+        \bnfpn{SetPattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{RecordPattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Identifier}
+        \bnfor
+        \bnfpn{PinnedIdentifier}
+    }
+\end{bnf*}
+
+For the primitives, they match if the value represented by the literal
+matches the value represented by the corresponding expression. A proof
+of this matching looks unremarkable.
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{Literal Match}
+    \UnaryInfC{$v = v$}
+\end{prooftree}
+
+Also very unremarkable is the wildcard pattern, which always unifies with any
+value and produces no bindings. This comes in handy for discarding parts of
+values that are not needed.
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{Wildcard Match}
+    \UnaryInfC{$\texttt{\_} = v$}
+\end{prooftree}
+
+As a bit of a special case, \Trilogy{} includes some value matching utilities
+at the pattern level.
+
+\begin{bnf*}
+    \bnfprod{NegativePattern}{
+        \bnfts{\op{-}}
+        \bnfsp
+        \bnfpn{Pattern}
+    }
+\end{bnf*}
+
+For numbers, the \op{-} sign may be used in patterns to match a negative number.
+This is included largely as a concession for not including negative number
+literals in the language, but has the nice property that it may be used on
+other patterns as well, particularly identifiers or pinned identifiers, to
+match the negation of those values.
+
+\begin{prooftree}
+    \AxiomC{$v : \ty{Number}$}
+    \AxiomC{$P = \op{-}\ v$}
+    \LeftLabel{Negative Match}
+    \BinaryInfC{$\op{-}\ P = v$}
+\end{prooftree}
+
+For strings, the glue operator (\op{<>}) can be used in patterns to match
+a literal prefix or suffix (or both). The literal must be a prefix or
+suffix though, a literal ``middle'' portion is not permitted.
+
+\begin{bnf*}
+    \bnfprod{GluePattern}{
+        \bnfpn{String}
+        \bnfsp
+        \bnfts{\op{<>}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\op{<>}}
+        \bnfsp
+        \bnfpn{String}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{String}
+        \bnfsp
+        \bnfts{\op{<>}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\op{<>}}
+        \bnfsp
+        \bnfpn{String}
+    }
+\end{bnf*}
+
+Treat the single-sided glue patterns as if they had an empty string
+glued on the other side.
+
+\begin{prooftree}
+    \AxiomC{$v = \alpha P \omega : \ty{String}$}
+    \LeftLabel{Glue Match}
+    \UnaryInfC{$\alpha\ \op{<>}\ P\ \op{<>}\ \omega = v$}
+\end{prooftree}
+
+Compound types have patterns based on their literal syntax as well.
+Unification occurs recursively, succeeding if the nested unifications
+succeed.
+
+\begin{bnf*}
+    \bnfprod{StructPattern}{
+        \bnfpn{Atom}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{)}
+    } \\
+    \bnfprod{TuplePattern}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\op{:}}
+        \bnfsp
+        \bnfpn{Pattern}
+    } \\
+\end{bnf*}
+
+Structs and tuples are easy, they simply unify their one and two values with
+the two patterns.
+
+The tuple pattern is special in that it can also be used to unify against
+an iterator, in which case the iterator is automatically stepped forwards
+so that the unification is working entirely on tuples. This may make it
+appear as though the pattern has caused the iterator to take a step, but it
+is actually more accurately that the iterator was stepped through as part
+of the evaluation of the value with which the pattern is being unified.
+
+\begin{prooftree}
+    \AxiomC{$P = v$}
+    \LeftLabel{Struct Match}
+    \UnaryInfC{$\texttt{'}l\texttt{(}\ P\ \texttt{)} = \texttt{'}l\texttt{(}\ v \ \texttt{)}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$L = x$}
+    \AxiomC{$R = y$}
+    \LeftLabel{Tuple Match}
+    \BinaryInfC{$L\ \op{:}\ R = x\ \op{:}\ y$}
+\end{prooftree}
+
+Array patterns may include exactly one ``rest'' pattern, which is used to
+contain any values not explicitly included in the pattern, allowing for
+patterns to match variable length arrays. This complicates the grammar
+significantly.
+
+\begin{bnf*}
+    \bnfprod{ArrayPattern}{
+        \bnfts{[}
+        \bnfsp
+        \bnfpn{ArrayContents}
+        \bnfsp
+        \bnfts{]}
+    } \\
+    \bnfprod{ArrayContents}{
+        \bnfpn{PatternListN}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{RestPattern}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{PatternListN}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{RestPattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{RestPattern}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{RestPattern}
+        \bnfor
+        \bnfpn{PatternList}
+    } \\
+    \bnfprod{RestPattern}{
+        \bnfts{..}
+        \bnfsp
+        \bnfpn{Pattern}
+    } \\
+    \bnfprod{PatternListN}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{PatternListN}
+        \bnfor
+        \bnfpn{Pattern}
+    }
+\end{bnf*}
+
+Semantically, array elements are matched pairwise with the element patterns
+of the array pattern, starting from the ends. After all explicitly listed
+patterns have been unified successfully, the rest pattern (if any) is assigned
+to an array containing the remaining unmatched elements of the value, or an
+empty array if there were none more.
+
+\begin{prooftree}
+    \AxiomC{$v : \ty{Array}\ \tau$}
+    \AxiomC{$R = v$}
+    \LeftLabel{Array Rest}
+    \BinaryInfC{$\texttt{[}\texttt{..}R\texttt{]} = v$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$v = \texttt{[}X_1,X_2,\cdots,X_n\texttt{]}$}
+    \AxiomC{$P = X_1$}
+    \AxiomC{$R = \texttt{[}X_2,\cdots,X_n\texttt{]}$}
+    \LeftLabel{Array Prefix}
+    \TrinaryInfC{$\texttt{[}P\texttt{,}\ \texttt{..}R\texttt{]} = v$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$v = \texttt{[}X_1,\cdots,X_{n-1},X_n\texttt{]}$}
+    \AxiomC{$P = X_n$}
+    \AxiomC{$R = \texttt{[}X_1,\cdots,X_{n-1}\texttt{]}$}
+    \LeftLabel{Array Suffix}
+    \TrinaryInfC{$\texttt{[}\texttt{..}R\texttt{,}\ P\texttt{]} = v$}
+\end{prooftree}
+
+Like arrays, set patterns may also contain a single rest pattern, but since sets
+are unordered, this rest pattern is required to be at the end of the set pattern.
+A trailing comma is not permitted after the rest pattern, as no elements may follow.
+
+\begin{bnf*}
+    \bnfprod{SetPattern}{
+        \bnfts{\{|}
+        \bnfsp
+        \bnfpn{SetContents}
+        \bnfsp
+        \bnfts{|\}}
+    } \\
+    \bnfprod{SetContents}{
+        \bnfpn{PatternListN}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{RestPattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{RestPattern}
+        \bnfor
+        \bnfpn{PatternList}
+    }
+\end{bnf*}
+
+Unifying the elements of set patterns is a bit tricky, as there is no requirement
+as to which element each pattern corresponds to. To get around this complexity for
+now, as set unification has been proven to be NP-complete\cite{setunif}, we simply
+forbid set unification patterns to include patterns which are not single-valued.
+This forbidding is not handled in the parser, but by a later pass, so is not reflected
+in the grammar.
+
+Single valued patterns include literal patterns, pinned identifiers, and compound
+patterns whose sub-patterns consist entirely of single valued patterns.
+
+\begin{prooftree}
+    \AxiomC{$x \in v$}
+    \AxiomC{$x = P_1$}
+    \AxiomC{$\texttt{\{|}\ P_2\texttt{,}\ \cdots\texttt{,}\ P_n\texttt{,}\ \ \texttt{..}R\ \texttt{|\}} = v\setminus\setof{x}$}
+    \LeftLabel{Set Match}
+    \TrinaryInfC{$\texttt{\{|}\ P_1\texttt{,}\ P_2\texttt{,}\ \cdots\texttt{,}\ P_n\texttt{,}\ \texttt{..}R\ \texttt{|\}} = v$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$v : \ty{Set}\ \tau$}
+    \AxiomC{$R = v$}
+    \LeftLabel{Set Rest}
+    \BinaryInfC{$\texttt{\{|}\ \texttt{..}R\ \texttt{|\}} = v$}
+\end{prooftree}
+
+Record patterns simultaneously match keys and values for each entry in
+the record. As with sets, though a record may contain a single rest pattern,
+that rest pattern must come at the end and may not have a trailing comma.
+
+\begin{bnf*}
+    \bnfprod{RecordPattern}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{RecordContents}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod{RecordContents}{
+        \bnfpn{KeyValueListN}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{RestPattern}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{RestPattern}
+        \bnfor
+        \bnfpn{KeyValueList}
+    } \\
+    \bnfprod{KeyValueList}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{:}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{KeyValueList}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{:}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{KeyValueListN}{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{:}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{,}
+        \bnfsp
+        \bnfpn{KeyValueListN}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{:}
+        \bnfsp
+        \bnfpn{Pattern}
+    }
+\end{bnf*}
+
+As records (ignoring values) are the same as sets, the same problem applies for
+unification, so the patterns for the keys of a record must be single valued patterns.
+The patterns associated with those keys may be any pattern, making it possible to
+extract a value at a key from a record, which is mostly what you would want to do
+with record patterns anyway.
+
+\begin{prooftree}
+    \AxiomC{$k : v \in r$}
+    \AxiomC{$x = K_1$}
+    \AxiomC{$v = V_1$}
+    \noLine
+    \TrinaryInfC{$\texttt{\{}\ K_2:V_2\texttt{,}\ \cdots\texttt{,}\ K_n:V_n\texttt{,}\ \ \texttt{..}R\ \texttt{\}} = r\setminus\setof{k:v}$}
+    \LeftLabel{Record Match}
+    \UnaryInfC{$\texttt{\{}\ K_1:V_1\texttt{,}\ K_2:V_2\texttt{,}\ \cdots\texttt{,}\ K_n:V_n\texttt{,}\ \texttt{..}R\ \texttt{\}} = r$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$v : \ty{Record}\ \kappa\ : \tau$}
+    \AxiomC{$R = r$}
+    \LeftLabel{Record Rest}
+    \BinaryInfC{$\texttt{\{}\ \texttt{..}R\ \texttt{\}} = r$}
+\end{prooftree}

@@ -34,7 +34,7 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
         \bnfts{]}
     } \\
     \bnfprod{SetComprehension}{
-        \bnfts{\{}
+        \bnfts{\{|}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
@@ -42,7 +42,7 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
         \bnfsp
         \bnfpn{Query}
         \bnfsp
-        \bnfts{\}}
+        \bnfts{|\}}
     } \\
     \bnfprod{RecordComprehension}{
         \bnfts{\{}
@@ -95,7 +95,7 @@ filtering, iterating, and generating all with a familiar syntax.
     \AxiomC{$U = Q$}
     \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash E : \tau$}
     \LeftLabel{Set Comprehension}
-    \TrinaryInfC{$\Gamma\vdash \texttt{\{}\ E\ \kw{for}\ Q\ \texttt{\}} : \ty{Set}\ \tau$}
+    \TrinaryInfC{$\Gamma\vdash \texttt{\{|}\ E\ \kw{for}\ Q\ \texttt{|\}} : \ty{Set}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
