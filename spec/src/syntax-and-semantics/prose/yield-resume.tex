@@ -1,4 +1,5 @@
 \subsubsection{Yield and Resume}
+\label{sec:prose-resume}
 
 The \kw{yield} statement, however simple in appearance, is one of the most
 semantically complex statements in all of \Trilogy{}, as it provides direct
@@ -8,16 +9,15 @@ flow structure.
 The \kw{resume} statement is the response to a \kw{yield}, providing the value
 that the \kw{yield} keyword evaluates to (when used in an expression). The
 \kw{resume} statement is available only in an effect handler, and is syntactically
-invalid when not within an effect handler. In the case of nested effect handlers,
-the \kw{resume} keyword refers to the innermost handler's continuation. This is
-much like \kw{break} or \kw{continue} on loops.
+invalid when not within an effect handler.
 
-The \kw{resume} keyword is a first-class keyword, and so follows the now familiar
-rules of first-class keywords. When used in value position, the \kw{resume} keyword
-becomes a unary function.
+In the case of nested effect handlers, the \kw{resume} keyword refers to the
+innermost handler's continuation. This is much like \kw{break} or \kw{continue}
+on loops. \kw{resume} is a first class keyword (\S\ref{sec:first-class-keyword})
+to enable resuming a parent effect handler from a child one.
 
-In either case, the \kw{resume} keyword can be considered to represent the delimited
-continuation of the \kw{yield} statement that is performing the current effect, until the
+The \kw{resume} keyword can be considered to represent the delimited continuation of
+the \kw{yield} statement that is performing the current effect, until the
 expresson to which the handler for the current \kw{resume} is attached.
 
 While the \kw{yield} statement requires a value (describing the intended effect), the

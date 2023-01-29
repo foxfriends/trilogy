@@ -1,0 +1,33 @@
+\subsubsection{End}
+
+The \kw{end} keyword can be used in \Poetry{}, with much the same
+behaviour as in \Prose{}: called without a value it triggers a fizzle,
+with a value it ends the program using that value as the exit code.
+See \S\ref{sec:prose-end} for slightly more detail, but not really.
+
+\begin{bnf*}
+    \bnfprod{End}{
+        \bnfts{\kw{end}}
+        \bnfor
+        \bnfts{\kw{end}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+In fact, the syntax and semantics are exactly the same. There is truly no
+reason why this needs to be distinct from the statement form, but that might
+just be a coincidence so it remains a distinct piece of syntax for no reason
+other than formality.
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{End}
+    \UnaryInfC{$\Gamma\vdash\kw{end}\ : \bot$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash N:\top$}
+    \LeftLabel{End}
+    \UnaryInfC{$\Gamma\vdash\kw{end}\ N : \bot$}
+\end{prooftree}

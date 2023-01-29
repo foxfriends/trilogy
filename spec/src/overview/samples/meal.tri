@@ -18,7 +18,7 @@ proc main!() {
     
     let mut meal = []
     while true {
-        let item = readline!() when 'EOF cancel break
+        let item = readline!() when 'EOF cancel { break }
         if food(^item, _) {
             meal[length meal] = item
         } else {

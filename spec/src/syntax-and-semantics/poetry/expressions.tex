@@ -6,7 +6,7 @@ is made up of expressions, there are a lot of cases.
 
 Though the expression grammar does include binary operators and other binary keywords
 \Trilogy{} does not encode precedence as part of the grammar but instead resolves that
-in a later pass in the interpreter.
+in a later pass in the interpreter (\S\ref{sec:precedence}).
 
 \begin{bnf*}
     \bnfprod{Expression}{
@@ -39,24 +39,30 @@ in a later pass in the interpreter.
         \bnfor
         \bnfpn{UnaryOp}
         \bnfor
-        \bnfpn{Let}
-        \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Let}
+        \bnfor
         \bnfpn{IfElse}
         \bnfor
         \bnfpn{Match}
         \bnfor
         \bnfpn{Is}
         \bnfor
+        \bnfpn{End}
+        \bnfor
+    } \\
+    \bnfmore{
         \bnfpn{Resume}
         \bnfor
         \bnfpn{Return}
         \bnfor
+        \bnfpn{Break}
+        \bnfor
+        \bnfpn{Continue}
+        \bnfor
     } \\
     \bnfmore{
-        \bnfpn{End}
-        \bnfor
         \bnfpn{FnClosure}
         \bnfor
         \bnfpn{DoClosure}

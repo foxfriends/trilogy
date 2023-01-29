@@ -9,7 +9,10 @@ As a bit of a special case, the built-in operators may be referenced as if they
 were functions by wrapping them in parentheses. This allows operators to be passed
 as values and applied as if they were functions to their arguments, occasionally
 useful in some functional compositions. The operators themselves are specified
-in \S\ref{sec:unaryop} and \S\ref{sec:binop}
+in \S\ref{sec:binop} and \S\ref{sec:unaryop}.
+
+It is here also that first class keywords are converted into values.
+First class keywords are described in \S\ref{sec:first-class-keyword}.
 
 \begin{bnf*}
     \bnfprod{Reference}{
@@ -34,6 +37,14 @@ in \S\ref{sec:unaryop} and \S\ref{sec:binop}
         \bnfpn{BinaryOperator}
         \bnfsp
         \bnfts{)}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{FirstClassKeyword}
+        \bnfsp
+        \bnfts{)}
     }
 \end{bnf*}
 
@@ -48,5 +59,28 @@ this is not an infinitely recursive deduction.
     \UnaryInfC{$\Gamma\vdash x : \tau$}
 \end{prooftree}
 
-% TODO: for completeness, include semantics of each parenthesized operator? Or
-% is that just a pain...
+For brevity, the semantics of the operator and keyword references are condensed
+into this more symbolic form. Repeating the same tree for every operator would
+be a real pain for everyone.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \AxiomC{$\Gamma\vdash \langle \text{UnaryOperator} \rangle\ E : \rho$}
+    \LeftLabel{Reference}
+    \BinaryInfC{$\Gamma\vdash \texttt{(}\ \langle \text{UnaryOperator} \rangle\ \texttt{)}\ : \tau \rightarrow \rho$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash L : \tau$}
+    \AxiomC{$\Gamma\vdash R : \rho$}
+    \AxiomC{$\Gamma\vdash L\ \langle \text{BinaryOperator} \rangle\ R : \phi$}
+    \LeftLabel{Reference}
+    \TrinaryInfC{$\Gamma\vdash \texttt{(}\ \langle \text{BinaryOperator} \rangle\ \texttt{)}\ : \tau \rightarrow \rho \rightarrow \phi$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \AxiomC{$\Gamma\vdash \langle \text{FirstClassKeyword} \rangle\ E : \rho$}
+    \LeftLabel{Reference}
+    \BinaryInfC{$\Gamma\vdash \texttt{(}\ \langle \text{FirstClassKeyword} \rangle\ \texttt{)}\ : \tau \rightarrow \rho$}
+\end{prooftree}

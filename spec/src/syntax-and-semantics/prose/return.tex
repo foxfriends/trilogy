@@ -9,19 +9,9 @@ A \kw{return} statement with no value is assumed to return \kw{unit}, the same a
 the \kw{return} statement was omitted entirely and execution ran off the end of the
 procedure.
 
-Also similar to \kw{break} and \kw{continue}, the \kw{return} keyword is a first-class
+Also similar to \kw{break} and \kw{continue}, the \kw{return} keyword is a first class
 keyword, allowing it to be assigned to a variable within a procedure and later passed
-around to other parts of the code. Unlike \kw{break} and \kw{continue}, when used as
-a first-class keyword, \kw{return} becomes a unary function which represents the continuation
-of the call to the current procedure. This is a realization of something like the operator
-\textbf{J}, described by Landin\cite{j}.
-
-When called as a function with a value, a first-class \kw{return} causes the procedure
-it is bound to to return. Called from within the function, this allows for an early
-exit. If the \kw{return} keyword escapes the function (e.g. if \kw{return} is
-returned) and is called from outside the function, this causes the original function
-call to return a second time. \textbf{J} has been shown to be equivalent to
-\texttt{call/cc} seen in Scheme\cite{defint}, and behaves as such in \Trilogy{}.
+around to other parts of the code (\S\ref{sec:first-class-keyword}).
 
 \begin{bnf*}
     \bnfprod{SReturn}{
@@ -42,6 +32,3 @@ to a procedure was already covered as part of the semantics of procedure definit
     \LeftLabel{Return}
     \UnaryInfC{$\Gamma\vdash\kw{return}\ N : \bot$}
 \end{prooftree}
-
-Semantics for \kw{return} used as a first-class keyword in function position are
-a challenge to be handled later.

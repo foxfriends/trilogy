@@ -1,4 +1,5 @@
 \subsubsection{Break and Continue}
+\label{sec:break-continue}
 
 The statements \kw{break} and \kw{continue} may be used in loops to control iteration.
 The \kw{break} statement will exit the loop immediately, skipping all further iteration,
@@ -6,19 +7,10 @@ whereas the \kw{continue} statement will end the current iteration and move on t
 next, without executing any further code. This applies for both \kw{for} and \kw{while}
 loops.
 
-Unlike in other languages, \Trilogy{} does not have labelled statements. Instead, to break
-out of the outer loop from within a nested loop, \Trilogy{} supports \emph{first-class keywords}.
-The \kw{break} or \kw{continue} keywords, when not used in statement form, are treated as
-nullary procedures, meaning they can be assigned to variables and later called as any
-other procedure.
-
-These keywords are tied syntactically to nearest enclosing loop, so when
-invoked from an inner loop, the captured \kw{break} or \kw{continue}'s original loop is
-the one that is affected.
-
-Of course, grammatically that case is covered later, as part of the expression grammar.
-Here are only listed the syntax of the \kw{break} and \kw{continue} statements, which are
-trivial.
+You might note that these keywords do not accept any label, nor does \Trilogy{} even
+have labelled statements. That does not prevent us from breaking out of a parent loop
+from a child loop, instead \Trilogy{} supports \emph{first class keywords}
+(\S\ref{sec:first-class-keyword}) for this purpose.
 
 \begin{bnf*}
     \bnfprod{SBreak}{\bnfts{\kw{break}}} \\
@@ -26,8 +18,7 @@ trivial.
 \end{bnf*}
 
 A \kw{break} or \kw{continue} statement on its own does not evaluate to anything, so
-their semantics are uninteresting. When captured in a variable or closure, the semantics
-are unchanged, only the syntax is adjusted to disambiguate.
+their semantics are uninteresting.
 
 \begin{figure}[H]
     \centering
@@ -71,12 +62,3 @@ the correct containing loop.
     \LeftLabel{Continue}
     \UnaryInfC{$\Gamma \vdash \block{M\ \op{;}\ \kw{continue}} : \top$}
 \end{prooftree}
-
-It is worth noting, however, that if either the \kw{break} or \kw{continue} keyword escapes the
-loop it was bound to and is invoked outside of the loop, the program is to be considered invalid.
-Syntactically this may be hard to enforce, so instead it is enforced as a runtime invariant.
-
-Rather than fizzling, the expected behaviour in this situation is the immediate end of the
-program as an ``execution failure''. This fact is not included in any proof of semantics,
-and is instead defined only as a safeguard against undefined behaviour until more nuanced
-options may be explored at a later time.

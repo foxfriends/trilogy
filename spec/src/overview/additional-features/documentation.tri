@@ -14,7 +14,7 @@ module ImportantStuff {
 proc main!() {
     while true {
         let inputNumber = Int readline!()
-            when 'EOF cancel break  # done
+            when 'EOF cancel { break }  # done
             when 'NAN cancel #- default when invalid: -# 0
         println!(double inputNumber)
     }

@@ -36,7 +36,7 @@ definitions with multiple parameters into unary functions returning a function
 that accepts the next parameter.
 
 \begin{align*}
-    \texttt{\$f:id \$(\$r:pat)* \$p:pat = \$e:expr} & \Rightarrow \texttt{\$f \$(\$r)* = \kw{fn} \$p = \$e} %
+    \texttt{\$f:id \$(\$r:pat)* \$p:pat = \$e:expr} & \Rightarrow \texttt{\$f \$(\$r)* = \kw{fn} \$p. \$e} %
 \end{align*}
 
 The parameter list may be empty, defining a nullary (0-argument) function. As
@@ -84,5 +84,9 @@ evaluated, unless converted to Iterator.
 \input{match.tex}
 
 \input{is.tex}
+
+\input{end.tex}
+
+\input{first-class-keyword.tex}
 
 \input{precedence.tex}
