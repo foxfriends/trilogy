@@ -53,8 +53,15 @@ Some are further formalized later.
     be of a particular type. This is treated similarly to $\top$ in terms of
     execution continuing, possibly more than once, but we have additional
     information about the type of the value that the expression $X$ evaluated to.
-    \item $X \vartriangle E$ --- Yields, as an effect. The expression $X$ causes
-    an effect $E$ to be yielded. That effect may be handled later.
+    \item $X \vartriangle \eta$ --- Yields, as an effect. The expression $X$ causes
+    an effect $\eta$ to be yielded. That effect will be handled later.
+    \item $P\ \triangleleft\ B$ --- Inverts with, as a handler. A construct that is
+    held in scope, when an effect matching $P$ is yielded, $B$ is used as a handler.
+    \item $X\ \triangledown\ \tau$ --- Resumes with. The expression $X$ causes
+    the recently yielded effect to resume with a value of type $\tau$.
+    \item $X\ \triangleright\ \tau$ --- Cancels to. The expression $X$ causes the
+    continuation of the recently yielded effect to be cancelled, resuming execution
+    from its limit, which evaluates to a value of type $\tau$.
     \item $\text{addr}(X)$ --- Address of, as an instance. The address of the value
     of the evaluated value of $X$ is used, rather than the actual value of $X$
     itself. Values of reference type have such addresses, values of structural type

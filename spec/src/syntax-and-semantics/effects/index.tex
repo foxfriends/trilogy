@@ -43,6 +43,16 @@ handlers.
         \bnfsp
         \bnfpn{Pattern}
         \bnfsp
+        \bnfts{\kw{resume}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{when}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
         \bnfts{\kw{cancel}}
         \bnfsp
         \bnfpn{Expression}
@@ -145,8 +155,9 @@ or statement on which the handler was attached. The expression following the
 \kw{cancel} is used as the evaluated value of the expression; in the case of a
 block, the value is \kw{unit}.
 
-A \kw{resume} handler will respond with the evaluation of th expression following
+A \kw{resume} handler will respond with the evaluation of the expression following
 the keyword. The \kw{yield} that performed the effect will evaluate to that value.
+If a block is used instead of an expression, the \kw{yield} evaluates to \kw{unit}.
 
 The \kw{invert} handler is the most powerful, and is the one that binds the
 first-class keyword \kw{resume} to the current effect handler. The block or expression
@@ -167,3 +178,62 @@ the end without \kw{cancel}, the value is \kw{unit}. Of course, \kw{cancel} itse
 is also a first class keyword that can be captured to get the unbounded continuation
 following the end of the original expression to be passed along to other code, if
 so desired.
+
+As you can see, the \kw{invert} form holds the most power, while the \kw{resume}
+and \kw{cancel} forms are just special cases, the following syntax transformation
+formalizes them so that we only need to specify the semantics of \kw{invert}.
+
+\begin{align*}
+    & \texttt{\kw{when} \$p:pat \kw{resume} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \kw{resume} \$e \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{resume} \$block} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \$b; \kw{cancel} \kw{resume} \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{cancel} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \$e \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{cancel} \$b:block} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \$b; \kw{cancel} \}} \\ %
+\end{align*}
+
+Beginning with the \kw{when} itself, this keyword adds an effect handler to the scope
+of the expression or statement it is attached to. That expression or statement now
+evaluates to either its original result or the cancellation value of the handler that
+matches a yielded effect.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma,P \triangleleft B \vdash E : \tau$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash B \triangleright \tau$}
+    \LeftLabel{When}
+    \BinaryInfC{$\Gamma\vdash E\ \kw{when}\ P\ \kw{invert}\ B : \tau$}
+\end{prooftree}
+
+The \kw{cancel} keyword provides that cancellation value.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \LeftLabel{Cancel}
+    \UnaryInfC{$\Gamma\vdash \kw{cancel}\ E\triangleright\tau$}
+\end{prooftree}
+
+Within the expression, the \kw{yield} keyword yields a value as an effect to be
+performed by the first matching handler.
+
+\begin{prooftree}
+    \AxiomC{$P\triangleleft B \in \Gamma$}
+    \AxiomC{$P = \eta$}
+    \AxiomC{$\Gamma,\setof{a\given a \defby P}\vdash B\ \triangledown\ \tau$}
+    \AxiomC{$\Gamma:>\Phi$}
+    \LeftLabel{Yield}
+    \QuaternaryInfC{$\Phi\vdash\vartriangle \eta\ : \tau$}
+\end{prooftree}
+
+The behaviour and final value of the $\vartriangle\eta$ form depends on the
+behaviour of the handler that $\eta$ is handled by. When the handler uses
+the keyword \kw{resume}, it evaluates to the value that was \kw{resume} was
+applied to.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \LeftLabel{Resume}
+    \UnaryInfC{$\Gamma\vdash \kw{resume}\ E\ \triangledown\ \tau$}
+\end{prooftree}
+
+Though all of these keywords can be used in both expression and statement
+position, the semantics are the same, so won't be repeated; the only difference
+is that in statement position, all the values are lost and the effect system
+acts as pure control flow.
