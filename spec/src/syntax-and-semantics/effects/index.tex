@@ -36,5 +36,63 @@ handlers.
         \bnfts{\kw{resume}}
         \bnfsp
         \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{when}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{cancel}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{when}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{cancel}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{when}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{invert}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{given}}
+        \bnfsp
+        \bnfpn{RuleHead}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{given}}
+        \bnfsp
+        \bnfpn{RuleHead}
+        \bnfsp
+        \bnfts{\op{<-}}
+        \bnfsp
+        \bnfpn{RuleBody}
     }
 \end{bnf*}
+
+Effect handlers come in two varieties: the \kw{when} form for a functional
+or imperative effect handler; and the \kw{given} form for a logical effect
+handler, or dynamic rule, which takes the place of both closures and effects
+in \Law{} due to its vastly different syntax and semantics that do not work
+smoothly with traditional effects.
+
+It is worth noting that dynamic rules are not necessarily here to stay, as
+they may be a hack given my relative lack of experience with both practical
+logic programming and effect systems. In particular, there are ways to both
+implement both higher-order predicates\cite{hologic} as well as effect
+handlers in logic languages\cite{prologeffects}.

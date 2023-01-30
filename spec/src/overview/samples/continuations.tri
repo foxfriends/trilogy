@@ -11,7 +11,7 @@ proc allowAlso!(word, body) {
 }
 
 proc allowMany!(words, body) {
-    return body!() when 'getAllowed invert (any resume words)
+    return body!() when 'getAllowed invert (any (resume) words)
 }
 
 proc main!() {
