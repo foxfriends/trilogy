@@ -1,0 +1,66 @@
+\subsubsection{Bindings}
+
+The final and most fundamental part of any pattern is the binding. Binding
+patterns are what defines all variables in \Trilogy{}, and allow values to
+be passed from one place to another.
+
+Bindings by default are immutable---once defined, they cannot be changed.
+The mutable binding, denoted with \kw{mut} is used to explicitly mark a
+binding as reassignable. Of course, the only language in which assignment
+is possible is \Prose{}, so it's not all that likely to use a mutable binding
+in any other situation.
+
+\begin{bnf*}
+    \bnfprod{Binding}{
+        \bnfpn{Identifier}
+        \bnfor
+        \bnfts{\kw{mut}}
+        \bnfsp
+        \bnfpn{Identifier}
+    }
+\end{bnf*}
+
+A binding will unify with any value, but if the same identifier is used
+multiple times in a single pattern, a few restrictions must be followed.
+
+First, an identifier must be consistently marked as mutable or immutable
+throughout the pattern. If there is any inconsistency, it is considered
+a parse error.
+
+Second, once an identifier has been bound to a value, all other references
+to that identifier will simply be matched as if pinned. While for structural
+types this is not much of an issue, it is important to consider the implications
+of this rule on reference types. Since reference types are mutable containers
+even when declared via an immutable binding, a mutation to the value through
+this binding will only affect one of the two bindings. This may be more easily
+visualized through example:
+
+\begin{lstlisting}[language=Trilogy]
+    let a = [1, 2]
+    let b = [1, 2]
+    let x : x = a : b
+    x push= 3
+    print!($"${a} | ${b}")
+\end{lstlisting} %
+
+In the statement \tri{let x : x = a : b}, first \texttt{x} will be bound with
+\texttt{a}, then unified structurally with be \texttt{b} as if pinned; equivalently
+\tri{let x : ^x = a : b}. After \tri{x push= 3}, the final \fn{print} will
+result in \texttt{[1, 2, 3] | [1, 2]}.
+
+To help prevent such ambiguous situations, it is recommended that each
+identifier be used unbound only once and be explicitly pinned in all
+other locations, when possible. This also helps reduce the opportunity
+to have inconsistent mutability. Unfortunately, it may not always be
+possible if your data is of less certain structure, or when dealing with
+non-deterministic bindings as is often the case in \Law{}.
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{}
+    \LeftLabel{Binding Unification}
+    \UnaryInfC{$I = v$}
+    \def\extraVskip{3.5pt}
+    \LeftLabel{Binding Definition}
+    \UnaryInfC{$I := v$}
+\end{prooftree}

@@ -37,9 +37,9 @@ limitations of patterns versus expressions.
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{Identifier}
-        \bnfor
         \bnfpn{PinnedIdentifier}
+        \bnfor
+        \bnfpn{Binding}
     }
 \end{bnf*}
 
@@ -405,4 +405,24 @@ with record patterns anyway.
     \AxiomC{$R = r$}
     \LeftLabel{Record Rest}
     \BinaryInfC{$\texttt{\{}\ \texttt{..}R\ \texttt{\}} = r$}
+\end{prooftree}
+
+A pinned identifier provides a way to create dynamic patterns: the value of the
+pinned identifier is used as if it were a literal pattern. This idea could be
+extended to arbitrary pinned expressions in future, but for now just pinned
+identifiers will suffice.
+
+\begin{bnf*}
+    \bnfprod{PinnedIdentifier}{
+        \bnfts{\textasciicircum}
+        \bnfsp
+        \bnfpn{Identifier}
+    }
+\end{bnf*}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash I = x$}
+    \AxiomC{$x = v$}
+    \LeftLabel{Pinned Match}
+    \BinaryInfC{$\Gamma\vdash\texttt{\textasciicircum}I = v$}
 \end{prooftree}

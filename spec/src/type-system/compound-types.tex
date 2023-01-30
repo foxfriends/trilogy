@@ -92,9 +92,6 @@ to flatten one Array into the new one. In Array decconstruction, the spread
 operator may be used \emph{at most once} to refer to the rest of the elements
 not already matched explicitly by the pattern.
 
-Typical array operations include direct access using the indexing operator,
-push (\texttt{+}), and concatenation or glue (\texttt{<>}).
-
 The string representation of an Array is simply the string representation of
 each of its elements, separated by commas within square brackets.
 
@@ -117,10 +114,6 @@ A Set is an unordered collection of values containing no duplicates. Though
 values of any type may be contained in a Set, duplicates are compared as if
 by the structural equality operator (\op{eq}). The Set type is a structural
 and reference type. In type annotation, the Set type is written \ty{Set T}
-
-Sets come with useful operations union (\op{|}), intersection (\op{\&}),
-add (\op{+}), remove (\op{-}), difference (\op{/}), and symmetric
-difference (\op{\textasciicircum}).
 
 Set literals are written with curly braces and pipes, with items separated by comma.
 In pattern matching, the spread operator may be used to refer to the elements
@@ -157,7 +150,7 @@ to specify specific value types for different key types, e.g.
 
 The main operation of a Record is the indexing operator. The keys of a
 Record may be any value; like with Sets, the keys are compared as if by
-the structural equality operator (\op{==})
+the structural equality operator (\op{==}).
 
 A Record literal is written as comma separated \texttt{key: value} pairs
 within curly braces. In Record construction, the spread operator (\op{..})
