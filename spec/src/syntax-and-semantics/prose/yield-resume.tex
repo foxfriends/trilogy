@@ -1,4 +1,4 @@
-\subsubsection{Yield and Resume}
+\subsubsection{Yield, Resume and Cancel}
 \label{sec:prose-resume}
 
 The \kw{yield} statement, however simple in appearance, is one of the most
@@ -11,10 +11,15 @@ that the \kw{yield} keyword evaluates to (when used in an expression). The
 \kw{resume} statement is available only in an effect handler, and is syntactically
 invalid when not within an effect handler.
 
-In the case of nested effect handlers, the \kw{resume} keyword refers to the
+The \kw{cancel} statement is also used in response to a \kw{yield}, providing
+the value that the expression on which the handler is attached evaluates to
+(when it is an expression). The \kw{cancel} statement is available only in an
+effect handler, and is syntactically invalid when not within an effect handler.
+
+In the case of nested effect handlers, the \kw{resume} and \kw{cancel} keywords refer to the
 innermost handler's continuation. This is much like \kw{break} or \kw{continue}
-on loops. \kw{resume} is a first class keyword (\S\ref{sec:first-class-keyword})
-to enable resuming a parent effect handler from a child one.
+on loops. \kw{resume} and \kw{cancel} are first class keywords (\S\ref{sec:first-class-keyword})
+to enable resuming or cancelling a parent effect handler from a child one.
 
 The \kw{resume} keyword can be considered to represent the delimited continuation of
 the \kw{yield} statement that is performing the current effect, until the
@@ -36,8 +41,16 @@ is performing the effect evaluates to \kw{unit}.
         \bnfts{\kw{resume}}
         \bnfsp
         \bnfpn{Expression}
+    } \\
+    \bnfprod{SCancel}{
+        \bnfts{\kw{cancel}}
+        \bnfor
+        \bnfts{\kw{cancel}}
+        \bnfsp
+        \bnfpn{Expression}
     }
 \end{bnf*}
 
-While the syntax of yield and resume are easy to specify at this time, the semantics
-will be left for later, when we look at the effect system as a whole in \S\ref{sec:effects}.
+While the syntax of \kw{yield}, \kw{resume} and \kw{cancel} are easy to specify at
+this time, the semantics will be left for later, when we look at the effect system
+as a whole in \S\ref{sec:effects}.

@@ -6,7 +6,7 @@ proc allowOne!(word, body) {
 
 proc allowAlso!(word, body) {
     return body!() when 'getAllowed invert {
-        resume word or resume yield 'getAllowed
+        cancel resume word or resume yield 'getAllowed
     }
 }
 

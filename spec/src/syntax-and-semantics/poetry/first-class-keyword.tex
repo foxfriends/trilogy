@@ -1,12 +1,12 @@
 \subsubsection{First Class Keywords}
 \label{sec:first-class-keyword}
 
-The four keywords \kw{resume}, \kw{return}, \kw{break}, and \kw{continue} are
+The five keywords \kw{resume}, \kw{cancel}, \kw{return}, \kw{break}, and \kw{continue} are
 considered ``first class keywords'', meaning they may be used in expressions,
 stored in variables, and passed to functions to be called later.
 
 These four keywords are bound syntactically to their respective structures:
-\kw{resume} to the nearest enclosing effect handler, \kw{break} and \kw{continue}
+\kw{resume} and \kw{cancel} to the nearest enclosing effect handler, \kw{break} and \kw{continue}
 to the nearest enclosing loop, and \kw{return} to the nearest enclosing procedure.
 When used in an expression, no matter how deeply nested in other structures or even
 closures, they continue to refer to these scopes (though do note that a new \kw{return}
@@ -20,6 +20,8 @@ continues to refer to the structure that syntactically enclosed it.
     \bnfprod{FirstClassKeyword}{
         \bnfts{\kw{resume}}
         \bnfor
+        \bnfts{\kw{cancel}}
+        \bnfor
         \bnfts{\kw{return}}
         \bnfor
         \bnfts{\kw{break}}
@@ -28,6 +30,11 @@ continues to refer to the structure that syntactically enclosed it.
     } \\
     \bnfprod{Resume}{
         \bnfts{\kw{resume}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{Cancel}{
+        \bnfts{\kw{cancel}}
         \bnfsp
         \bnfpn{Expression}
     } \\
@@ -57,8 +64,8 @@ in this situation to acknowledge that the value will not be received.
 The value supplied to the \kw{return} keyword is used as the value that the function
 it is bound to returns when called, as it would be when used regularly as a statement.
 
-Semantically, none of these are particularly interesting, though \kw{resume}, being
-part of the effect system and notably harder to define semantics for, is once again
+Semantically, none of these are particularly interesting, though \kw{resume} and \kw{cancel}, being
+part of the effect system and notably harder to define semantics for, are once again
 left for \S\ref{sec:effects}.
 
 \begin{prooftree}

@@ -53,15 +53,14 @@ may actually just \emph{be} a function, and indeed when written as a type annota
 is written the same as a function (e.g. \texttt{T -> U}).
 
 The difference is mostly one of implementation, as a continuation is not constructed in
-the same way as a function, but can only be acquired through an effect handler in the
-form of the \kw{resume} keyword which, though technically a keyword, works much like a
-function in that it can be captured by closures or passed to another function as a
-parameter.
+the same way as a function, but can only be acquired by reference to a first class keyword.
 
-Continuations are applied much like functions, and evaluate to some value just as a
+Continuations are applied much like functions, and may evaluate to some value just as a
 function application does.
 
-The string representation of a continuation is the literal string \texttt{<resume>}.
+The string representation of a continuation depends on which keyword was captured to
+reify that continuation, but is one of the literal strings \texttt{<resume>}, \texttt{<cancel>},
+\texttt{<break>}, \texttt{<continue>}, or \texttt{<return>}.
 
 \subsubsection{Modules and Module Functions}
 

@@ -65,6 +65,16 @@ handlers.
         \bnfsp
         \bnfts{\kw{invert}}
         \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{when}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{invert}}
+        \bnfsp
         \bnfpn{Block}
         \bnfor
     } \\
@@ -85,14 +95,75 @@ handlers.
     }
 \end{bnf*}
 
-Effect handlers come in two varieties: the \kw{when} form for a functional
-or imperative effect handler; and the \kw{given} form for a logical effect
-handler, or dynamic rule, which takes the place of both closures and effects
-in \Law{} due to its vastly different syntax and semantics that do not work
-smoothly with traditional effects.
+Effect handlers come in two varieties: the \kw{when} form for functional
+or imperative effect handlers; and the \kw{given} form for dynamic rules,
+which take the place of both closures and predicate-level effects in \Law{}
+(\Poetry{}'s \kw{yield} expression may be used in expressions in \Law{}
+in the conventional effect system way).
 
 It is worth noting that dynamic rules are not necessarily here to stay, as
 they may be a hack given my relative lack of experience with both practical
 logic programming and effect systems. In particular, there are ways to both
 implement both higher-order predicates\cite{hologic} as well as effect
-handlers in logic languages\cite{prologeffects}.
+handlers in logic languages\cite{prologeffects}. Most likely they aren't really
+meant to be part of the effect system at all and I have just smashed its syntax
+into the effect handler syntax because it was convenient. This constrained
+version of \texttt{assertz/1} is likely a good idea though, so it will make
+it into the first version of \Trilogy{}.
+
+In fact, to get it out of the way, the semantics of the \kw{given} clause
+will be discussed first, as they are basically exactly like rule definitions,
+only limited to the scope of one expression or block rather than the entire
+program.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma, R(P_{1\hdots n}) \Rightarrow \Phi\vdash E : \tau$}
+    \LeftLabel{Given}
+    \UnaryInfC{$E\ \kw{given}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{)} : \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \def\extraVskip{3.5pt}
+    \AxiomC{$A_i = P_i$}
+    \AxiomC{$\Gamma,\setof{a \given a \defby P_i}\vdash B \Rightarrow \top$}
+    \BinaryInfC{$\Gamma,R(P_{1\hdots n}) \Rightarrow \Phi \vdash E : \tau$}
+    \LeftLabel{Given}
+    \UnaryInfC{$E\ \kw{given}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{)}\ \op{<-}\ B : \tau$}
+\end{prooftree}
+
+Effects are similar in that they install a contextual handler around a piece
+of code. When an effect is yielded, the ``nearest'' handler with a matching pattern
+will be used to handle that effect. The nearest handler in a chain of them on one
+expression is the first handler in the chain, meanwhile the nearest handler when
+nested is the one least scopes upwards from the point of the \kw{yield}.
+
+The three keywords \kw{resume}, \kw{cancel}, and \kw{invert} describe how the
+handler responds to the effect.
+
+A \kw{cancel} handler will not respond, instead aborting the entire expression
+or statement on which the handler was attached. The expression following the
+\kw{cancel} is used as the evaluated value of the expression; in the case of a
+block, the value is \kw{unit}.
+
+A \kw{resume} handler will respond with the evaluation of th expression following
+the keyword. The \kw{yield} that performed the effect will evaluate to that value.
+
+The \kw{invert} handler is the most powerful, and is the one that binds the
+first-class keyword \kw{resume} to the current effect handler. The block or expression
+following the \kw{invert} keyword is run in response to the effect, and may use \kw{resume} to
+respond to the \kw{yield}, possibly more than one time.
+
+The \kw{resume} in this situation is a bounded continuation that ranges from the
+\kw{yield} expression that is performing the effect until the expression onto
+which the handler is attached. When applied, this continuation runs until it reaches
+its bound and then the value that the last expression evaluates to is used as the
+value of the \kw{resume} application.
+
+Only when the effect handler's body is finished executing does the original
+expression finally evaluate. In the case that the body is an expression, the
+final value of that expression is used. In the case of a block, the \kw{cancel}
+keyword is used to denote the value of that evaluation. If the block runs off
+the end without \kw{cancel}, the value is \kw{unit}. Of course, \kw{cancel} itself
+is also a first class keyword that can be captured to get the unbounded continuation
+following the end of the original expression to be passed along to other code, if
+so desired.

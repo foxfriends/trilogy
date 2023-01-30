@@ -2,7 +2,7 @@ proc collect!(body) {
     let mut collection = []
     body!() when 'next(value) invert {
         collection push= value
-        resume unit
+        resume
     }
     return collection
 }
@@ -21,7 +21,7 @@ proc map!(transform, body) {
 
 proc reverse!(body) {
     return body!() when event invert {
-        resume unit
+        resume
         yield event
     }
 }
