@@ -6,6 +6,10 @@ any pattern so long as it does not introduce new bindings. The pattern may only
 use previously bound names. The assignment statement updates the values of the
 bindings in the pattern.
 
+The left-hand side may also be a member access expression (\S\ref{sec:member-access}),
+in which case the member in the collection is updated in-place but otherwise the
+assignment works as any other normal.
+
 Function assignment is a special syntax for applying a function to a value and
 then simultaneously reassigning that value with the result of the function; a
 generalization of operator assignment (e.g. \op{+=}) to any function\footnote{A
@@ -22,7 +26,7 @@ intuitive way: the left hand identifer is used as the left hand side of the oper
 
 \begin{bnf*}
     \bnfprod{SAssignment}{
-        \bnfpn{PatternAssignment}
+        \bnfpn{Assignment}
         \bnfor
         \bnfpn{FunctionAssignment}
         \bnfor
@@ -30,26 +34,31 @@ intuitive way: the left hand identifer is used as the left hand side of the oper
     \bnfmore{
         \bnfpn{OperatorAssignment}
     } \\
-    \bnfprod{PatternAssignment}{
-        \bnfpn{Pattern}
+    \bnfprod{Assignment}{
+        \bnfpn{LValue}
         \bnfsp
         \bnfts{\op{=}}
         \bnfsp
         \bnfpn{Expression}
     } \\
     \bnfprod{FunctionAssignment}{
-        \bnfpn{Identifier}
+        \bnfpn{LValue}
         \bnfsp
         \bnfts{IdentifierEq}
         \bnfsp
         \bnfpn{ApplicationList}
     } \\
     \bnfprod{OperatorAssignment}{
-        \bnfpn{Identifier}
+        \bnfpn{LValue}
         \bnfsp
         \bnfpn{OperatorEq}
         \bnfsp
         \bnfpn{Expression}
+    } \\
+    \bnfprod{LValue}{
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfpn{MemberAccess}
     } \\
     \bnfprod{OperatorEq}{
         \bnfts{+=}\bnfor
@@ -71,12 +80,32 @@ intuitive way: the left hand identifer is used as the left hand side of the oper
     }
 \end{bnf*}
 
+Semantically, the assignment statement evaluates its value and then updates
+the binding in the current context. Assignment in this way is the only way
+a binding in a scope is modified (other operations typically generate a new scope
+that extends from the previous, introducing new bindings). In particular, the
+update of the binding updates it in the scope that it was defined, not in the
+latest extending scope, therefore making it possible to update the value of a
+variable defined outside of a block such that the modification persists to be
+seen outside of that block.
+
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash y$}
     \AxiomC{$P = y$}
-    \AxiomC{$\Gamma, \setof{a\given a \defby P} \extends \Phi$}
+    \AxiomC{$a \defby P$}
     \LeftLabel{Assignment}
-    \TrinaryInfC{$\Gamma\vdash P\ \op{=}\ y \Rightarrow \Phi$}
+    \TrinaryInfC{$\Gamma\vdash P\ \op{=}\ y \Rightarrow \Gamma[a\mapsto y]$}
+\end{prooftree}
+
+For a member access assignment, this update simply happens not just within
+a scope but within the value itself as well.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash v$}
+    \AxiomC{$\Gamma\vdash E = x$}
+    \AxiomC{$\Gamma\vdash y$}
+    \LeftLabel{Assignment}
+    \TrinaryInfC{$\Gamma\vdash v\ \texttt{.[}\ E\ \texttt{]}\ \op{=}\ y \Rightarrow \Gamma[v\mapsto v[x\mapsto y]]$}
 \end{prooftree}
 
 Rather than defining the exact semantics of function or operator assignment,

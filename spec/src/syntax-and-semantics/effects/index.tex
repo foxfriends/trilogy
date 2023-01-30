@@ -2,18 +2,39 @@
 \label{sec:effects}
 
 By no means is \Trilogy{} the first language to implement an effect system;
-much of what is presented here is based on, and cross checked against, existing
-research\cite{eff}.
+much of what is presented here is inspired by, and cross checked against,
+existing research on effects\cite{eff}.
 
-Sadly, mainstream languages featuring a full fledged first class effect system
-are\dots none? At least none I have ever come across. Most languages with an
+Sadly, mainstream languages featuring a full-fledged first class effect system
+are\dots{} none? At least none I have ever come across. Most languages with an
 effect system are experimental or research based, and appear far from practical
-to me.
-
-While I can't really claim that \Trilogy{} is much better on being ``practical''
+to me. While I can't really claim that \Trilogy{} is much better on being ``practical''
 and not ``experimental'', it does aim to take a more user and productivity first
 approach to implementing effects than other research languages.
 
 \Trilogy{} includes effects as its core advanced control flow mechanism because
 I believe it to be the most concretely conceptualized of the equivalent competing
-models, namely monads or delimited control\cite{effmondel}.
+models: monads and delimited control\cite{effmondel}.
+
+Now, with a complete lack of true expertise, I attempt to specify the effect
+system of \Trilogy{}, beginning by finally addressing the syntax of effect
+handlers.
+
+\begin{bnf*}
+    \bnfprod{EffectHandlers}{
+        \bnfpn{EffectHandler}
+        \bnfsp
+        \bnfpn{EffectHandlers}
+        \bnfor
+        \bnfpn{EffectHandler}
+    } \\
+    \bnfprod{EffectHandler}{
+        \bnfts{\kw{when}}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{\kw{resume}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}

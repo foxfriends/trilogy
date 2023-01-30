@@ -1,7 +1,8 @@
 proc collect!(body) {
     let mut collection = []
-    body!() when 'next(value) resume {
-        collection.[length collection] = value
+    body!() when 'next(value) invert {
+        collection push= value
+        resume unit
     }
     return collection
 }
