@@ -175,13 +175,12 @@ parameters, so such function modules may only be defined as a local submodule
 within some existing module.
 
 Modules defined as external modules via the \kw{module}-\kw{at} construct
-\todo{Define and link module resolution algorithm.}
 are resolved as documents located via the canonical absolute URL designated
 by the (potentially relative) path \texttt{String} in rule~\ref{bnf:module-at}.
 If two external module definitions paths resolve to the same canonical absolute
 URL, those two modules will be considered identical, despite being ``defined''
 in two places in the source code. The full details of the path resolution
-algorithm are defined later.
+algorithm are defined in \S\ref{sec:module-resolution}.
 
 \begin{bnf}
     \bnfprod{ModuleDefinition}{

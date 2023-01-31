@@ -77,3 +77,94 @@ Alternatively, the program may be ended at any time by using the \kw{end} keywor
 While the \kw{end} keyword with no argument ends the current execution (as a fizzle),
 an \kw{end} with a value exit code value ends the program with that value. Again, if
 the value is not a valid exit code value, it is a runtime type error.
+
+\subsection{Module Resolution}
+\label{sec:module-resolution}
+
+The ability to define external modules is one of practical concern. Though it
+would technically be possible to write your entire program in one file,
+it simply wouldn't be a good time. External modules in \Trilogy{} are
+referenced by strings, and the ``official'' method by which those strings
+are resolved into the modules they are meant to represent is described here.
+Alternative module resolution algorithms may be implemented as extensions by
+user code in the host language.
+
+Strings designating modules should come in one of a few forms: relative paths,
+absolute paths, or absolute URLs. Given that, there are two phases to the module
+resolution algorithm: first relative and absolute paths are resolved to absolute
+URLs, then those absolute URLs are resolved to module.
+
+An absolute path begins with a \texttt{/} character, and is resolved to an absolute
+URL as follows:
+
+\begin{enumerate}
+    \item The schema and authority of URL to the current \Trilogy{} file is prepended
+    to the path.
+    \begin{itemize}
+        \item For files on the local system, this would be \texttt{file://}.
+        \item For files located at a remote URL, these values are taken from that URL.
+    \end{itemize}
+    \item The path is \emph{normalized}.
+\end{enumerate}
+
+\noindent
+A relative path begins with a \texttt{.} character, and is resolved to an absolute
+URL as follows:
+
+\begin{enumerate}
+    \item The scheme, authority, and path up to and including its final \texttt{/} character
+    are prepended to the relative path.
+    \begin{itemize}
+        \item For files on the local system, the scheme and authority are \texttt{file://}.
+        \item For files located at a remote URL, the scheme, authority, and path taken
+        from that URL.
+    \end{itemize}
+    \item The path is \emph{normalized}.
+\end{enumerate}
+
+\noindent
+Normalization is performed as follows:
+
+\begin{enumerate}
+    \item Any empty path segments (\texttt{//}) are replaced with \texttt{/}
+    \item Any useless path segments (\texttt{/./}) are replaced with \texttt{/}
+    \item For any ``parent'' path segments following a named path segment
+    (e.g. \texttt{/folder/../}), replace the two segments together with \texttt{/}
+    \item If the final URL begins with \texttt{/../}, the path is marked invalid and
+    the referenced module cannot be resolved.
+\end{enumerate}
+
+The resulting URL is now the absolute URL that is used to locate the module being
+resolved. This is also the URL that is used to further resolve external modules
+referenced by the resolved module. The file's contents are then retrieved depending
+on its scheme. At this time, the following schemes are supported:
+
+\begin{description}
+    \item[\texttt{file}] the file is loaded from the current file system using
+    the operating system's native means. Symbolic links should be resolved, but
+    the module is still considered to be located at the original URL rather than
+    the URL that the link pointed to.
+    \item[\texttt{http} or \texttt{https}] the file is loaded by
+    making an HTTP or HTTPS \texttt{GET} request (respectively) to the URL, as
+    would be sent by following standard cURL command:
+
+    \lstinputlisting[language=sh]{get-curl.sh}
+
+    This request must respond with a response code of \texttt{200}, and the
+    body of the response must contain the \Trilogy{} source code.
+
+    It is the responsibility of the server hosting these paths that the requests
+    are handled in an appropriate manner and that further external modules referenced
+    in those files are resolvable.
+\end{description}
+
+In any case, the expected result is that the contents of the specified \Trilogy{}
+file are retrieved as a UTF-8 encoded text file. If this is not the case for any
+reason (invalid file contents, insufficient file system permissions, failed HTTP
+request, etc.), then the module cannot not be resolved and the program is treated
+as invalid.
+
+Within a single invocation of the \Trilogy{} interpreter, any given module should
+only be resolved once. If two paths in the program resolve to the same absolute
+URL, those two modules are identical, as if aliases of each other. A reference to
+such a module in the source code by any path is exactly equivalent.
