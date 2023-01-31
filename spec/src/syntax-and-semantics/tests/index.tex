@@ -1,0 +1,31 @@
+\subsection{Tests}
+\label{sec:tests}
+
+There is one last form of definition available in \Trilogy{}, the \kw{test}
+definition, used for defining tests (as in unit tests). Though tests are
+always parsed (and must parse successfully) they are ignored when \Trilogy{}
+is not run in test mode.
+
+\begin{bnf*}
+    \bnfprod{Test}{
+        \bnfts{\kw{test}}
+        \bnfsp
+        \bnfpn{String}
+        \bnfsp
+        \bnfpn{Block}
+    }
+\end{bnf*}
+
+A \kw{test} declaration includes a string, the test's name, and a block, the
+test's body. The name is meaningless to the program, but is printed in the
+test runner's output for you to identify. Tests with duplicate names are permitted,
+but recommended against because it leads to confusion.
+
+The body of the test is a block which is run much like a procedure, only it
+does not have parameters, and may not be referenced by other code. If execution
+runs off the end of the block successfully, the test is considered successful.
+If execution fails due to fizzling or a runtime error, the test is considered
+a failure.
+
+Since tests have no semantic meaning to a program, no specification of semantics
+is required.

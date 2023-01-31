@@ -154,7 +154,13 @@ the file. It is optional to implement rule~\ref{bnf:bom}.
         \bnfpn{FunctionDefinition}\bnfor
         \bnfpn{RuleDefinition}\bnfor
     } \\
-    \bnfmore*{\bnfpn{Import}\bnfor\bnfpn{Export}}
+    \bnfmore*{
+        \bnfpn{Import}
+        \bnfor
+        \bnfpn{Export}
+        \bnfor
+        \bnfpn{Test}
+    }
 \end{bnf}
 
 \subsubsection{Modules}
@@ -385,3 +391,5 @@ not have the same name.
 \subimport{poetry/}{index.tex}
 
 \subimport{effects/}{index.tex}
+
+\subimport{tests/}{index.tex}
