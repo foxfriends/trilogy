@@ -1,0 +1,75 @@
+\subsubsection{Templates}
+
+Templates are strings into which other expressions are evaluated and then inserted.
+That is, templates are \Trilogy{}'s version of string interpolation.
+
+Templates are not just for string interpolation, however, as they may be \emph{tagged},
+allowing them to run user-defined code instead of simple string concatenation,
+resulting in non-string results. This idea comes right out of Javascript. A tagged
+template is a regular (bare) template followed directly by an identifier, the tag.
+
+The wonky looking template tokens from the scanner pay off here, making parsing
+relatively easy for templates.
+
+\begin{bnf*}
+    \bnfprod{Template}{
+        \bnfpn{BareTemplate}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfor
+        \bnfpn{BareTemplate}
+    } \\
+    \bnfprod{BareTemplate}{
+        \bnfpn{TemplateStart}
+        \bnfsp
+        \bnfpn{TemplateBody}
+        \bnfsp
+        \bnfpn{TemplateEnd}
+    } \\
+    \bnfprod{TemplateBody}{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{TemplateBody}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{TemplateMiddle}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+The semantics are quite different depending on whether the template was tagged
+or not. In the untagged case, a template evaluates to a string by evaluating each
+inner expression and converting it to its string representation, then concatenating
+those strings as if with glue.
+
+Unfortunately, templates are a bit hard to represent formally, so excuse these wonky
+proofs and do your best to interpret them sanely.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = v$}
+    \AxiomC{$\Gamma\vdash T = \omega$}
+    \AxiomC{$\Gamma\vdash S = \sigma\ \op{<>}\ \text{str}(v)\ \op{<>}\ \omega$}
+    \LeftLabel{Template}
+    \TrinaryInfC{$\Gamma\vdash \sigma\ E\ T = S$}
+\end{prooftree}
+
+A tagged template, on the other hand, does not stringify anything. Instead, the
+string fragments and the evaluated values are both passed as the parameters to
+the function denoted by the tag. This tag function should accept two parameters,
+the first the array of string fragments, the second the array of the evaluated
+values.
+
+\begin{prooftree}
+    \def\defaultHypSeparation{\hskip 0.1in}
+    \AxiomC{$\Gamma\vdash E_i = v_i$}
+    \AxiomC{$\Gamma\vdash f : \ty{List String} \rightarrow \ty{List}\ \tau \rightarrow \rho$}
+    \UnaryInfC{$\Gamma\vdash f\ \texttt{[}\sigma_0\texttt{,}\ \sigma_1\texttt{,}\ \cdots\texttt{,}\ \sigma_n\texttt{]}\ \texttt{[}v_1\texttt{,}\ \cdots\texttt{,}\ v_n\texttt{]} : \rho$}
+    \LeftLabel{Tagged Template}
+    \BinaryInfC{$\Gamma\vdash \sigma_0\ (E_i\ \sigma_i)^*\ f : \rho$}
+\end{prooftree}

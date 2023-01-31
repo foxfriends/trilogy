@@ -8,7 +8,7 @@ func guessingGame goal =
     1 + guessingGame goal
 
 proc main!() {
-    let guesses = guessingGame random!(10bits)
+    let guesses = guessingGame random!(10)
         when 'guess resume Int readline!()
         when 'high  resume println!("Too high")
         when 'low   resume println!("Too low")
