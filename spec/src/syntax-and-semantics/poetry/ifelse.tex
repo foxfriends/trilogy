@@ -1,0 +1,45 @@
+\subsubsection{Conditionals}
+
+\Poetry{}'s take on the conditional uses slightly modified syntax when
+compared to that of \Prose{}. Rather than using blocks as the bodies of
+the branches, the bodies are expressions. To separate the condition from
+the body, the \kw{then} is used.
+
+Also worth noting is that there must always be an \kw{else} clause, as
+the expression must always evaluate to some value.
+
+\begin{bnf*}
+    \bnfprod{IfElse}{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+This rigid form makes for a relatively simple semantics. Similar to the
+conditional statement, the condition is an expression that must evaluate
+to a Boolean value. When \kw{true}, the \kw{then} block is evaluated.
+Whe \kw{false}, the \kw{else} block is evaluated. When not a Boolean value,
+then it is considered a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = \kw{true}$}
+    \AxiomC{$\Gamma\vdash T : \tau$}
+    \LeftLabel{If}
+    \BinaryInfC{$\Gamma\vdash \kw{if}\ E\ \kw{then}\ T\ \kw{else}\ F : \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = \kw{false}$}
+    \AxiomC{$\Gamma\vdash F : \tau$}
+    \LeftLabel{Else}
+    \BinaryInfC{$\Gamma\vdash \kw{if}\ E\ \kw{then}\ T\ \kw{else}\ F : \tau$}
+\end{prooftree}
