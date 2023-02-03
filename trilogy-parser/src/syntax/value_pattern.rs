@@ -19,7 +19,7 @@ pub enum ValuePattern {
     Record(Box<RecordPattern>),
     Pinned(Box<PinnedPattern>),
     Binding(Box<BindingPattern>),
-    Parenthesized(Box<Pattern>),
+    Parenthesized(Box<ParenthesizedPattern>),
 }
 
 #[derive(Clone, Debug)]
@@ -102,4 +102,11 @@ pub enum Mut {
 pub struct BindingPattern {
     pub mutable: Option<Mut>,
     pub identifier: Identifier,
+}
+
+#[derive(Clone, Debug)]
+pub struct ParenthesizedPattern {
+    start: Token,
+    pub pattern: Pattern,
+    end: Token,
 }

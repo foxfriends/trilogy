@@ -2,16 +2,16 @@ use super::*;
 
 #[derive(Clone, Debug)]
 pub struct Pattern {
-    pub conjunction: PatternConjunction,
-}
-
-#[derive(Clone, Debug)]
-pub struct PatternConjunction {
-    pub disjunctions: Vec<PatternDisjunction>,
+    pub disjunction: PatternDisjunction,
 }
 
 #[derive(Clone, Debug)]
 pub struct PatternDisjunction {
+    pub conjunctions: Vec<PatternConjunction>,
+}
+
+#[derive(Clone, Debug)]
+pub struct PatternConjunction {
     pub patterns: Vec<SinglePattern>,
 }
 
