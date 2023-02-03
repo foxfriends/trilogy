@@ -35,6 +35,12 @@ limitations of patterns versus expressions.
     \bnfmore{
         \bnfpn{RecordPattern}
         \bnfor
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{Pattern}
+        \bnfsp
+        \bnfts{)}
+        \bnfor
     } \\
     \bnfmore{
         \bnfpn{PinnedIdentifier}
@@ -70,7 +76,7 @@ at the pattern level.
     \bnfprod{NegativePattern}{
         \bnfts{\op{-}}
         \bnfsp
-        \bnfpn{Pattern}
+        \bnfpn{StructuralPattern}
     }
 \end{bnf*}
 
@@ -97,7 +103,7 @@ suffix though, a literal ``middle'' portion is not permitted.
         \bnfsp
         \bnfts{\op{<>}}
         \bnfsp
-        \bnfpn{Pattern}
+        \bnfpn{StructuralPattern}
         \bnfsp
         \bnfts{\op{<>}}
         \bnfsp
@@ -109,9 +115,11 @@ suffix though, a literal ``middle'' portion is not permitted.
         \bnfsp
         \bnfts{\op{<>}}
         \bnfsp
-        \bnfpn{Pattern}
+        \bnfpn{StructuralPattern}
         \bnfor
-        \bnfpn{Pattern}
+    } \\
+    \bnfmore{
+        \bnfpn{StructuralPattern}
         \bnfsp
         \bnfts{\op{<>}}
         \bnfsp
@@ -143,11 +151,11 @@ succeed.
         \bnfts{)}
     } \\
     \bnfprod{TuplePattern}{
-        \bnfpn{Pattern}
+        \bnfpn{StructuralPattern}
         \bnfsp
         \bnfts{\op{:}}
         \bnfsp
-        \bnfpn{Pattern}
+        \bnfpn{StructuralPattern}
     } \\
 \end{bnf*}
 

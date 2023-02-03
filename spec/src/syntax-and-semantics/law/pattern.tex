@@ -24,24 +24,22 @@ parts of a value that has the same structure as the pattern expects.
     } \\
     \bnfmore{
         \bnfpn{SinglePattern}
-        \bnfor
-        \bnfts{(}
-        \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{)}
     } \\
     \bnfprod{SinglePattern}{
         \bnfpn{StructuralPattern}
         \bnfsp
         \bnfpn{TypeAnnotation}
+        \bnfor
     } \\
+    \bnfmore{
+        \bnfpn{StructuralPattern}
+    }
 \end{bnf*}
 
-All patterns contain a \emph{binding} portion, and optionally a \emph{non-binding}
-portion as well---currently the only non-binding option is a type annotation,
-reflected in the syntax above by the lack of a $\bnfpn{NonBindingPattern}$
-production.
+All patterns contain a \emph{structural} portion, and optionally a \emph{type}
+portion as well. The structural portion checks the structure of the data with
+the ability to bind parts of that data to identifiers, while the type portion
+allows describing a domain in which the expected value of a pattern should lie.
 
 Since a pattern does not lead to any value or execution on its own, the semantics for
 patterns and their successful binding imply a successful unification, and sometimes
@@ -85,7 +83,9 @@ so after any pattern unification, all of its identifiers must be bound.
 \end{figure}
 
 Meanwhile, the parenthesized pattern is included for grouping purposes,
-typically in conjunction with the \kw{or} and \kw{and} keywords.
+typically in conjunction with the \kw{or} and \kw{and} keywords. The
+\kw{and} keyword has higher precedence than \kw{or}, so to represent
+\tri{(A or B) and (C or D)} requires the parentheses.
 
 \begin{prooftree}
     \AxiomC{$P = v$}

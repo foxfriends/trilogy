@@ -396,6 +396,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "trilogy-parser"
+version = "0.1.0"
+dependencies = [
+ "source-span",
+ "trilogy-scanner",
+]
+
+[[package]]
 name = "trilogy-scanner"
 version = "0.1.0"
 dependencies = [
