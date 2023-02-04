@@ -2,8 +2,7 @@ use super::*;
 use trilogy_scanner::Token;
 
 #[derive(Clone, Debug)]
-pub struct LetExpression {
+pub struct YieldStatement {
     start: Token,
-    pub unification: Query,
-    pub body: Expression,
+    pub expression: Expression,
 }

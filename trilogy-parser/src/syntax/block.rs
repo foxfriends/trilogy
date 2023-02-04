@@ -6,4 +6,5 @@ pub struct Block {
     start: Token,
     pub statements: Vec<Statement>,
     end: Token,
+    pub handlers: Vec<Handler>,
 }

@@ -2,8 +2,8 @@ use super::*;
 use trilogy_scanner::Token;
 
 #[derive(Clone, Debug)]
-pub struct LetExpression {
+pub struct ParenthesizedExpression {
     start: Token,
-    pub unification: Query,
-    pub body: Expression,
+    pub pattern: Expression,
+    end: Token,
 }

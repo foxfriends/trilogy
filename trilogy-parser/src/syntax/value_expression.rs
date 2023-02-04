@@ -20,7 +20,7 @@ pub enum ValueExpression {
     MemberAccess(Box<MemberAccess>),
     Keyword(Box<KeywordReference>),
     Application(Box<Application>),
-    Call(Box<Call>),
+    Call(Box<CallExpression>),
     Binary(Box<BinaryOperation>),
     Unary(Box<UnaryOperation>),
     Let(Box<LetExpression>),
@@ -36,4 +36,5 @@ pub enum ValueExpression {
     Fn(Box<FnExpression>),
     Do(Box<DoExpression>),
     Template(Box<Template>),
+    Parenthesized(Box<ParenthesizedExpression>),
 }
