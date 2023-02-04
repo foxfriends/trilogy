@@ -12,34 +12,3 @@ pub enum Unification {
     True(Box<Token>),
     False(Box<Token>),
 }
-
-#[derive(Clone, Debug)]
-pub struct DirectUnification {
-    pub pattern: Pattern,
-    pub expression: Expression,
-}
-
-#[derive(Clone, Debug)]
-pub struct ElementUnification {
-    pub pattern: Pattern,
-    pub expression: Expression,
-}
-
-#[derive(Clone, Debug)]
-pub struct BooleanUnification {
-    start: Token,
-    pub expression: Expression,
-}
-
-#[derive(Clone, Debug)]
-pub struct NotUnification {
-    start: Token,
-    pub query: Unification,
-}
-
-#[derive(Clone, Debug)]
-pub struct ParenthesizedQuery {
-    start: Token,
-    pub query: Query,
-    end: Token,
-}
