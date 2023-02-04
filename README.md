@@ -29,7 +29,12 @@ As you can see, progress at this time is limited:
     - https://homepages.inf.ed.ac.uk/slindley/papers/effmondel-jfp.pdf
     - https://caml.inria.fr/pub/papers/xleroy-applicative_functors-popl95.pdf
     - https://doc.rust-lang.org/reference/
-- [ ] Design the language (In Progress)
+- [x] Design the language: Check out the [spec](./spec/)!
 - [ ] Read the [book](https://craftinginterpreters.com/) (In Progress)
-- [ ] Specify the language
-- [ ] Start the project
+- [ ] Specify the language (In progress)
+- [x] Start the project:
+    - [x] Scanning
+    - [ ] Parsing (In progress)
+    - [ ] Weeding
+    - [ ] Name resolution
+    - [ ] ???
