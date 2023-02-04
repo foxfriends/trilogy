@@ -20,6 +20,8 @@ Starting easy, the simplest expression is a primitive value.
         \bnfpn{String}
         \bnfor
         \bnfpn{Character}
+        \bnfor
+        \bnfpn{Bits}
     }
 \end{bnf*}
 
@@ -75,6 +77,13 @@ For completeness, some trivial specifications:
             \AxiomC{}
             \LeftLabel{Character}
             \UnaryInfC{$\langle\text{Character}\rangle : \ty{Char}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.4\linewidth}{
+        \begin{prooftree}
+            \AxiomC{}
+            \LeftLabel{Bits}
+            \UnaryInfC{$\langle\text{Bits}\rangle : \ty{Bits}$}
         \end{prooftree}
     }
 \end{figure}

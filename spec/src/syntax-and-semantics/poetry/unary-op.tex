@@ -13,9 +13,12 @@ ones like \texttt{++}, and we prefer \texttt{+= 1} in general these days).
         \bnfpn{Expression}
     } \\
     \bnfprod{UnaryOperator}{
-        \bnfts{\kw{not}}
-        \bnfor
         \bnfts{\op{-}}
+        \bnfor
+        \bnfpn{OnlyUnaryOperator}
+    } \\
+    \bnfprod{OnlyUnaryOperator}{
+        \bnfts{\kw{not}}
         \bnfor
         \bnfts{\op{\textasciitilde}}
         \bnfor

@@ -14,7 +14,7 @@ just never liked the way that \texttt{let}\dots\texttt{in} becomes indented.}.
     \bnfprod{Let}{
         \bnfts{\kw{let}}
         \bnfsp
-        \bnfpn{Unification}
+        \bnfpn{Query}
         \bnfsp
         \bnfpn{EOL}
         \bnfsp
@@ -26,8 +26,8 @@ In a \kw{let} expression, the body is evaluated with the newly introduced bindin
 and the whole expression evaluates to the result of that body's evaluation.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma\vdash U \Rightarrow \Phi$}
+    \AxiomC{$\Gamma\vdash Q \Rightarrow \Phi$}
     \AxiomC{$\Phi\vdash B : \tau$}
     \LeftLabel{Let}
-    \BinaryInfC{$\Gamma\vdash \kw{let}\ U\ B : \tau$}
+    \BinaryInfC{$\Gamma\vdash \kw{let}\ Q\ B : \tau$}
 \end{prooftree}

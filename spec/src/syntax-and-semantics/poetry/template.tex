@@ -22,24 +22,20 @@ relatively easy for templates.
     \bnfprod{BareTemplate}{
         \bnfpn{TemplateStart}
         \bnfsp
-        \bnfpn{TemplateBody}
-        \bnfsp
-        \bnfpn{TemplateEnd}
+        \bnfpn{TemplateMore}
     } \\
-    \bnfprod{TemplateBody}{
+    \bnfprod{TemplateMore}{
         \bnfpn{Expression}
         \bnfsp
-        \bnfpn{TemplateBody}
+        \bnfpn{TemplateMiddle}
         \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{TemplateMore}
         \bnfor
     } \\
     \bnfmore{
         \bnfpn{Expression}
         \bnfsp
-        \bnfpn{TemplateMiddle}
-        \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{TemplateEnd}
     }
 \end{bnf*}
 

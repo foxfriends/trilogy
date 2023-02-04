@@ -10,7 +10,7 @@ which is determinisitic, and so control flow will progress intuitively.
     \bnfprod{SLet}{
         \bnfts{\kw{let}}
         \bnfsp
-        \bnfpn{Unification}
+        \bnfpn{Query}
     } \\
 \end{bnf*}
 
@@ -19,12 +19,12 @@ in the source code until the end of the nearest explicit scope (e.g. the end of 
 The bindings declared in this statement are available within that scope.
 
 What is more unique to \Trilogy{} is the branching and fizzling capability of the
-\kw{let} statement when provided a unification via a more complex rule of \Law{}.
+\kw{let} statement when provided a query via a more complex rule of \Law{}.
 Depending on how many possible bindings there are for the provided rule, a \kw{let}
 statement may lead to multiple executions of the program running in parallel, or none.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash U \Rightarrow \Phi$}
+    \AxiomC{$\Gamma \vdash Q \Rightarrow \Phi$}
     \LeftLabel{Branch}
-    \UnaryInfC{$\Gamma \vdash \kw{let}\ U \Rightarrow \Phi$}
+    \UnaryInfC{$\Gamma \vdash \kw{let}\ Q \Rightarrow \Phi$}
 \end{prooftree}

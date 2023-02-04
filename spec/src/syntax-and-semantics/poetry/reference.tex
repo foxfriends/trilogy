@@ -11,6 +11,10 @@ as values and applied as if they were functions to their arguments, occasionally
 useful in some functional compositions. The operators themselves are specified
 in \S\ref{sec:binop} and \S\ref{sec:unaryop}.
 
+The one odd bit here is that the \op{-} symbol is always referenced as the
+subtraction operator, and never the unary negation operator. Unary negation
+can be constructed from subtraction by pre-supplying the zero as in \tri{((-) 0)}.
+
 It is here also that first class keywords are converted into values.
 First class keywords are described in \S\ref{sec:first-class-keyword}.
 
@@ -28,7 +32,7 @@ First class keywords are described in \S\ref{sec:first-class-keyword}.
     \bnfmore{
         \bnfts{(}
         \bnfsp
-        \bnfpn{UnaryOperator}
+        \bnfpn{OnlyUnaryOperator}
         \bnfsp
         \bnfts{)}
         \bnfor
