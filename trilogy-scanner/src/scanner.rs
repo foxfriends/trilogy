@@ -15,6 +15,7 @@ pub struct Scanner<'a> {
     chars: PeekMoreIterator<Chars<'a>>,
     span: Span,
     is_started: bool,
+    is_first_character: bool,
     is_finished: bool,
     nesting: Vec<char>,
 }
@@ -67,6 +68,7 @@ impl<'a> Scanner<'a> {
             chars: source.chars().peekmore(),
             span: Span::default(),
             is_started: false,
+            is_first_character: true,
             is_finished: false,
             nesting: vec![],
         }
@@ -468,7 +470,9 @@ impl Iterator for Scanner<'_> {
             return None;
         }
         // Skip whitespaces in between tokens when there was more than one in a row
-        while self.expect(" \t\r").is_some() {}
+        while self.expect(" \t\r").is_some() {
+            self.is_first_character = false;
+        }
         self.span.clear();
         if self.peek().is_none() {
             self.is_finished = true;
@@ -485,7 +489,7 @@ impl Iterator for Scanner<'_> {
         // Might be interesting to see how the Javascript parser handles
         // it, but I kinda suspect it is similar...
         let token = match self.consume().unwrap() {
-            '\u{FEFF}' => self.make_token(ByteOrderMark),
+            '\u{FEFF}' if self.is_first_character => self.make_token(ByteOrderMark),
             ch @ ('_' | 'a'..='z' | 'A'..='Z') => self.identifier_or_keyword(ch),
             '\'' => self.char_or_atom(),
             '#' => self.comment(),
@@ -649,6 +653,7 @@ impl Iterator for Scanner<'_> {
             '~' => self.make_token(OpTilde),
             _ => self.make_error("Unexpected character found in input"),
         };
+        self.is_first_character = false;
         if token.token_type == TemplateEnd && self.context('$') {
             self.nesting.pop();
         }

@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = []
+lax = []
 
 [dependencies]
 trilogy-scanner = { path = "../trilogy-scanner/" }
 source-span = "2.7.0"
+peekmore = { version = "1.0.0", features = ["smallvec"] }

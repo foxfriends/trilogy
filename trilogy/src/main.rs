@@ -1,15 +1,19 @@
-use clap::{Parser, Subcommand};
+use clap::Parser as _;
 use std::path::PathBuf;
+use trilogy_parser::Parser;
 use trilogy_scanner::Scanner;
 
+#[cfg(feature = "dev")]
+mod dev;
+
 /// Trilogy Programming Language
-#[derive(Parser, Clone, Debug)]
+#[derive(clap::Parser, Clone, Debug)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
 }
 
-#[derive(Subcommand, Clone, Debug)]
+#[derive(clap::Subcommand, Clone, Debug)]
 enum Command {
     /// Start up the interactive Trilogy REPL.
     Repl,
@@ -29,6 +33,10 @@ enum Command {
     Fmt { files: Vec<PathBuf> },
     /// Run the Trilogy language server.
     Lsp { files: Vec<PathBuf> },
+    /// Commands for assistance when developing Trilogy.
+    #[cfg(feature = "dev")]
+    #[command(subcommand)]
+    Dev(dev::Command),
 }
 
 fn main() -> std::io::Result<()> {
@@ -38,9 +46,13 @@ fn main() -> std::io::Result<()> {
         Command::Run { file } => {
             let contents = std::fs::read_to_string(file)?;
             let scanner = Scanner::new(&contents);
-            for token in scanner {
-                println!("{token:?}");
-            }
+            let parser = Parser::new(scanner);
+            let ast = parser.parse();
+            println!("{:#?}", ast.ast);
+        }
+        #[cfg(feature = "dev")]
+        Command::Dev(dev_command) => {
+            dev::run(dev_command)?;
         }
         _ => unimplemented!("This feature is not yet built"),
     }

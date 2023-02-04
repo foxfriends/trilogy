@@ -11,4 +11,5 @@ pub enum Unification {
     Lookup(Box<Lookup>),
     True(Box<Token>),
     False(Box<Token>),
+    SyntaxError(Box<SyntaxError>),
 }

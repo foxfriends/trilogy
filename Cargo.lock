@@ -392,6 +392,7 @@ name = "trilogy"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "trilogy-parser",
  "trilogy-scanner",
 ]
 
@@ -399,6 +400,7 @@ dependencies = [
 name = "trilogy-parser"
 version = "0.1.0"
 dependencies = [
+ "peekmore",
  "source-span",
  "trilogy-scanner",
 ]

@@ -37,4 +37,5 @@ pub enum ValueExpression {
     Do(Box<DoExpression>),
     Template(Box<Template>),
     Parenthesized(Box<ParenthesizedExpression>),
+    SyntaxError(Box<SyntaxError>),
 }
