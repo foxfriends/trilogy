@@ -6,7 +6,7 @@ a "specification"; most of the complex semantics and practical runtime semantics
 are still very vague, only the theoretical semantics are documented.
 
 Use [Tectonic][] to compile the document, or visit the latest [workflow run][] to
-find the pre-compiled document in the artifatcs.
+find the pre-compiled document in the artifacts.
 
 [workflow run]: https://github.com/foxfriends/trilogy/actions/workflows/spec.yaml
 [Tectonic]: https://tectonic-typesetting.github.io/en-US/
