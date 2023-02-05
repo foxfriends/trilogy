@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Parser, Spanned};
+use crate::{Parser, Spanned, TokenPattern};
 use trilogy_scanner::TokenType::*;
 
 #[derive(Clone, Debug)]
@@ -22,40 +22,70 @@ pub struct Definition {
 }
 
 impl Definition {
-    pub(crate) fn try_parse(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
+    fn parse_until(
+        parser: &mut Parser,
+        until_pattern: impl TokenPattern,
+    ) -> SyntaxResult<Option<Self>> {
         let documentation = Documentation::parse_outer(parser);
+
         let token = parser.peek();
-        match token.token_type {
-            EndOfFile if documentation.is_some() => {
+        if until_pattern.matches(token) {
+            if let Some(documentation) = documentation {
                 let error = SyntaxError::new(
-                    documentation.as_ref().unwrap().span(),
+                    documentation.span(),
                     "outer documentation comment must precede the item it documents",
                 );
                 parser.error(error.clone());
-                Err(error)
+                return Err(error);
+            } else {
+                return Ok(None);
             }
-            EndOfFile => Ok(None),
+        }
+
+        let item = match token.token_type {
             KwModule => {
-                let _head = ModuleHead::parse(parser)?;
+                let head = ModuleHead::parse(parser)?;
                 let token = parser.peek();
                 match token.token_type {
-                    KwAt => todo!(),   // Ok(Some(ExternalModuleDefinition::parse(parser, head)?)),
-                    OBrace => todo!(), // Ok(Some(ModuleDefinition::parse(parser, head)?)),
+                    KwAt => DefinitionItem::ExternalModule(Box::new(
+                        ExternalModuleDefinition::parse(parser, head)?,
+                    )),
+                    OBrace => {
+                        DefinitionItem::Module(Box::new(ModuleDefinition::parse(parser, head)?))
+                    }
                     _ => {
                         let error = SyntaxError::new(
                             token.span,
                             "expected `at` for an external module, or { for a local module",
                         );
                         parser.error(error.clone());
-                        Err(error)
+                        return Err(error);
                     }
                 }
             }
+            KwImport => todo!(),
+            KwExport => todo!(),
+            KwFunc => todo!(),
+            KwProc => todo!(),
+            KwTest => todo!(),
+            KwRule => todo!(),
             _ => {
-                let error = SyntaxError::new(token.span, "unexpected token at top level");
+                let error = SyntaxError::new(token.span, "unexpected token in module body");
                 parser.error(error.clone());
-                Err(error)
+                return Err(error);
             }
-        }
+        };
+        Ok(Some(Self {
+            documentation,
+            item,
+        }))
+    }
+
+    pub(crate) fn parse_in_document(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
+        Self::parse_until(parser, EndOfFile)
+    }
+
+    pub(crate) fn parse_in_module(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
+        Self::parse_until(parser, [EndOfFile, CBrace])
     }
 }

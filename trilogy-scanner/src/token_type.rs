@@ -90,6 +90,7 @@ pub enum TokenType {
     Atom,
     Numeric,
     String,
+    DollarString,
     TemplateStart,
     TemplateContinue,
     TemplateEnd,

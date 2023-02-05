@@ -1,5 +1,5 @@
 use crate::syntax::{Document, SyntaxError};
-use crate::Spanned;
+use crate::{Spanned, TokenPattern};
 use std::iter::Peekable;
 use trilogy_scanner::{Scanner, Token, TokenType};
 
@@ -15,23 +15,6 @@ pub struct Parse {
     pub ast: Document,
     pub warnings: Vec<SyntaxError>,
     pub errors: Vec<SyntaxError>,
-}
-
-pub(crate) trait TokenPattern {
-    fn matches(&self, token: &Token) -> bool;
-}
-
-impl TokenPattern for TokenType {
-    fn matches(&self, token: &Token) -> bool {
-        token.token_type == *self
-    }
-}
-
-impl<const N: usize> TokenPattern for [TokenType; N] {
-    fn matches(&self, token: &Token) -> bool {
-        self.iter()
-            .any(|token_type| token.token_type == *token_type)
-    }
 }
 
 impl<'src> Parser<'src> {
@@ -61,7 +44,6 @@ impl Parser<'_> {
         self.warnings.push(warning);
     }
 
-    #[cfg_attr(feature = "lax", allow(dead_code))]
     pub(crate) fn error(&mut self, error: SyntaxError) {
         self.errors.push(error);
     }

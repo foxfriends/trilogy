@@ -497,7 +497,7 @@ impl Iterator for Scanner<'_> {
             // Feels slightly irresponsible to put side effects into a guard...
             // but it's been done all over this file. Apologies to reader.
             '$' if self.expect(|ch| ch == '"').is_some() => {
-                self.string_or_template(Some(TemplateStart), String)
+                self.string_or_template(Some(TemplateStart), DollarString)
             }
             '$' if self.expect(|ch| ch == '(').is_some() => {
                 self.nesting.push('(');

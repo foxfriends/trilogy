@@ -23,7 +23,7 @@ impl Document {
         }
     }
 
-    pub(crate) fn synchronize(parser: &mut Parser) {
+    fn synchronize(parser: &mut Parser) {
         parser.synchronize([
             DocOuter, KwModule, KwFunc, KwProc, KwRule, KwImport, KwExport, EndOfFile,
         ]);
@@ -44,7 +44,7 @@ impl Document {
 
         let mut definitions = vec![];
         loop {
-            match Definition::try_parse(parser) {
+            match Definition::parse_in_document(parser) {
                 Ok(Some(definition)) => definitions.push(definition),
                 Ok(None) => break,
                 Err(..) => Document::synchronize(parser),
