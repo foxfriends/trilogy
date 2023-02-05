@@ -42,17 +42,15 @@ impl Document {
         }
 
         if parser.expect(EndOfLine).is_none() {
-            #[cfg(feature = "lax")]
-            parser.warn(SyntaxError::new_spanless(
+            let syntax_error = SyntaxError::new_spanless(
                 "The document does not end with a new-line character.".to_owned(),
-            ));
+            );
+
+            #[cfg(feature = "lax")]
+            parser.warn(syntax_error);
 
             #[cfg(not(feature = "lax"))]
-            definitions.push(Definition::syntax_error(parser.error(
-                SyntaxError::new_spanless(
-                    "The document does not end with a new-line character.".to_owned(),
-                ),
-            )));
+            definitions.push(Definition::syntax_error(parser.error(syntax_error)));
         }
 
         parser

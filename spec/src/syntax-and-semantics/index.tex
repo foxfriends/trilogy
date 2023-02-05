@@ -90,10 +90,6 @@ The required end of line rule is formalized as follows:
         \bnfts{EndOfLine}\bnfor
         \bnfts{CommentLine}\bnfor
         \bnfts{CommentBlock}\bnfor
-    } \\
-    \bnfmore{
-        \bnfts{DocInner}\bnfor
-        \bnfts{DocOuter}
     }
 \end{bnf*}
 
@@ -113,10 +109,19 @@ a line break.
 A byte order mark \emph{may} be accepted (with warning) at the start of
 the file. It is optional to implement rule~\ref{bnf:bom}.
 
+Interestingly, since documentation comments have specfic meaning in relation
+to defined items, they are only permitted in some locations and are included
+in the resulting syntax tree. These comments have no meaning to the program
+as it runs, but may be used by other tools which are likely to be based on the
+syntax tree, so having the documentation inside is simply useful.
+
 \begin{bnf}
     \bnfprod*{Document}{
         \bnfpn{Preamble}
         \bnfsp
+        \bnfpn{InnerDocumentation}
+    } \\
+    \bnfmore{
         \bnfpn{Definitions}
         \bnfsp
         \bnfpn{Postamble}
@@ -137,6 +142,13 @@ the file. It is optional to implement rule~\ref{bnf:bom}.
         \bnfor
     } \\
     \bnfmore{\label{bnf:finaleol}\bnfts{EndOfFile}} \\
+    \bnfprod*{InnerDocumentation}{
+        \bnfpn{DocInner}
+        \bnfsp
+        \bnfpn{InnerDocumentation}
+        \bnfor
+        \bnfes
+    } \\
     \bnfprod*{Definitions}{
         \bnfpn{Definition}
         \bnfsp
@@ -147,6 +159,18 @@ the file. It is optional to implement rule~\ref{bnf:bom}.
         \bnfpn{Definition}
     } \\
     \bnfprod*{Definition}{
+        \bnfpn{OuterDocumentation}
+        \bnfsp
+        \bnfpn{DefinitionItem}
+    } \\
+    \bnfprod*{OuterDocumentation}{
+        \bnfpn{DocOuter}
+        \bnfsp
+        \bnfpn{OuterDocumentation}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod*{DefinitionItem}{
         \bnfpn{ModuleDefinition}\bnfor
         \bnfpn{ProcedureDefinition}\bnfor
     } \\
