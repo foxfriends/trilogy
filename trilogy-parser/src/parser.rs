@@ -122,6 +122,7 @@ impl Parser<'_> {
         Ok(self.next())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn check(&mut self, pattern: impl TokenPattern) -> Option<&Token> {
         let token = self.peek();
         if pattern.matches(token) {

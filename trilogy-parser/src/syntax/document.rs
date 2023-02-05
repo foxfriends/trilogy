@@ -49,9 +49,6 @@ impl Document {
                 Ok(None) => break,
                 Err(..) => Document::synchronize(parser),
             }
-            if parser.check(EndOfFile).is_some() {
-                break;
-            }
         }
 
         if !parser.is_line_start() {

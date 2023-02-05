@@ -14,13 +14,9 @@ impl Documentation {
     fn parse(parser: &mut Parser, token_type: TokenType) -> Option<Self> {
         let mut tokens = vec![];
 
-        loop {
-            let Ok(token) = parser.expect(token_type) else {
-                break;
-            };
+        while let Ok(token) = parser.expect(token_type) {
             tokens.push(token);
         }
-
         if tokens.is_empty() {
             return None;
         }

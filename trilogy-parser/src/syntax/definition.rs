@@ -64,7 +64,7 @@ impl Definition {
                 }
             }
             KwImport => todo!(),
-            KwExport => todo!(),
+            KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
             KwFunc => todo!(),
             KwProc => todo!(),
             KwTest => todo!(),

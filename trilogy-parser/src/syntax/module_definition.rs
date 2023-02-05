@@ -26,9 +26,6 @@ impl ModuleDefinition {
                 Ok(None) => break,
                 Err(..) => ModuleDefinition::synchronize(parser),
             }
-            if parser.check(CBrace).is_some() {
-                break;
-            }
         }
 
         let end = parser.expect(CBrace).map_err(|token| {
