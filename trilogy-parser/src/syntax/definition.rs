@@ -22,35 +22,40 @@ pub struct Definition {
 }
 
 impl Definition {
-    pub(crate) fn parse(parser: &mut Parser) -> Option<Self> {
-        loop {
-            let documentation = Documentation::parse_outer(parser);
-            match parser.peek().token_type {
-                EndOfFile => {
-                    // As a fun coincidence, the end of file is only
-                    // an error if there was documentation. Otherwise,
-                    // it's just the end of the file, no more definitions.
-                    parser.error(SyntaxError::new(
-                        documentation?.span(),
-                        "Documentation must be accompanied by the item that it documents."
-                            .to_owned(),
-                    ));
-                }
-                KwModule => {}
-                _ => {
-                    // Any unexpected character we can just start collecting to report
-                    // all in one big chunk when a valid definition item token (or end
-                    // of file) is found.
-                    //
-                    // Documentation before such invalid characters is discarded, likely
-                    // the error is caused by a missing comment marker or a typo in one
-                    // of the definition item tokens, so the documentation would have
-                    // applied successfully.
-                    parser.discard();
-                    continue;
+    pub(crate) fn try_parse(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
+        let documentation = Documentation::parse_outer(parser);
+        let token = parser.peek();
+        match token.token_type {
+            EndOfFile if documentation.is_some() => {
+                let error = SyntaxError::new(
+                    documentation.as_ref().unwrap().span(),
+                    "outer documentation comment must precede the item it documents",
+                );
+                parser.error(error.clone());
+                Err(error)
+            }
+            EndOfFile => Ok(None),
+            KwModule => {
+                let _head = ModuleHead::parse(parser)?;
+                let token = parser.peek();
+                match token.token_type {
+                    KwAt => todo!(),   // Ok(Some(ExternalModuleDefinition::parse(parser, head)?)),
+                    OBrace => todo!(), // Ok(Some(ModuleDefinition::parse(parser, head)?)),
+                    _ => {
+                        let error = SyntaxError::new(
+                            token.span,
+                            "expected `at` for an external module, or { for a local module",
+                        );
+                        parser.error(error.clone());
+                        Err(error)
+                    }
                 }
             }
-            break None;
+            _ => {
+                let error = SyntaxError::new(token.span, "unexpected token at top level");
+                parser.error(error.clone());
+                Err(error)
+            }
         }
     }
 }

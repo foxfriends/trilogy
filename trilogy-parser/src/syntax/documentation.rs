@@ -15,8 +15,7 @@ impl Documentation {
         let mut tokens = vec![];
 
         loop {
-            parser.chomp();
-            let Some(token) = parser.expect(token_type) else {
+            let Ok(token) = parser.expect(token_type) else {
                 break;
             };
             tokens.push(token);

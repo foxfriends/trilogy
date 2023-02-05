@@ -18,16 +18,22 @@ impl Document {
         if let Some(token) = parser.expect(ByteOrderMark) {
             parser.warn(SyntaxError::new(
                 vec![token],
-                "The file contains a byte-order mark.".to_owned(),
+                "The file contains a byte-order mark.",
             ));
         }
+    }
+
+    pub(crate) fn synchronize(parser: &mut Parser) {
+        parser.synchronize([
+            DocOuter, KwModule, KwFunc, KwProc, KwRule, KwImport, KwExport, EndOfFile,
+        ]);
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> Self {
         Document::preamble(parser);
 
         // Special case for the empty file rule
-        if parser.expect(EndOfFile).is_some() {
+        if parser.expect(EndOfFile).is_ok() {
             return Self {
                 documentation: None,
                 definitions: vec![],
@@ -37,22 +43,26 @@ impl Document {
         let documentation = Documentation::parse_inner(parser);
 
         let mut definitions = vec![];
-        while let Some(definition) = Definition::parse(parser) {
-            definitions.push(definition);
+        loop {
+            match Definition::try_parse(parser) {
+                Ok(Some(definition)) => definitions.push(definition),
+                Ok(None) => break,
+                Err(..) => Document::synchronize(parser),
+            }
+            if parser.check(EndOfFile).is_some() {
+                break;
+            }
         }
-
-        if parser.check(EndOfFile).is_none() {}
-        parser.chomp();
 
         if !parser.is_line_start() {
             #[cfg(feature = "lax")]
             parser.warn(SyntaxError::new_spanless(
-                "The document does not end with a new-line character.".to_owned(),
+                "The document does not end with a new-line character.",
             ));
 
             #[cfg(not(feature = "lax"))]
             parser.error(SyntaxError::new_spanless(
-                "No new line found at end of file.".to_owned(),
+                "No new line found at end of file.",
             ));
         }
 

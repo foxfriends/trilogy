@@ -5,11 +5,20 @@ pub(crate) trait Spanned {
     fn span(&self) -> Span;
 }
 
-impl Spanned for Vec<Token> {
+impl<S> Spanned for Vec<S>
+where
+    S: Spanned,
+{
     fn span(&self) -> Span {
         self.iter()
-            .map(|token| token.span)
+            .map(|el| el.span())
             .reduce(|lhs, rhs| lhs.union(rhs))
-            .expect("Don't call Spanned::span() on an empty Vec<Token>")
+            .expect("Don't call Spanned::span() on an empty Vec<S>")
+    }
+}
+
+impl Spanned for Token {
+    fn span(&self) -> Span {
+        self.span
     }
 }

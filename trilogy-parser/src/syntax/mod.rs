@@ -189,7 +189,7 @@ pub use statement::Statement;
 pub use string_literal::StringLiteral;
 pub use struct_literal::StructLiteral;
 pub use struct_pattern::StructPattern;
-pub use syntax_error::SyntaxError;
+pub use syntax_error::{SyntaxError, SyntaxResult};
 pub use template::{Template, TemplateSegment};
 pub use test_definition::TestDefinition;
 pub use tuple_pattern::TuplePattern;

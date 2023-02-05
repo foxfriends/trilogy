@@ -4,6 +4,6 @@ use trilogy_scanner::Token;
 #[derive(Clone, Debug)]
 pub struct ExternalModuleDefinition {
     start: Token,
-    pub name: Identifier,
+    pub head: ModuleHead,
     pub locator: StringLiteral,
 }

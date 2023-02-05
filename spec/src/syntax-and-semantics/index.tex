@@ -225,27 +225,24 @@ algorithm are defined in \S\ref{sec:module-resolution}.
     \bnfmore*{
         \bnfts{\kw{module}}
         \bnfsp
+        \bnfpn{ModuleHead}
+        \bnfsp
         \bnfts{\{}
         \bnfsp
         \bnfpn{Definitions}
         \bnfsp
         \bnfts{\}}
-        \bnfor
     } \\
-    \bnfmore*{
-        \bnfts{\kw{module}}
+    \bnfprod*{ModuleHead}{
+        \bnfpn{Identifier}
         \bnfsp
         \bnfts{(}
         \bnfsp
         \bnfpn{ModuleParameters}
         \bnfsp
         \bnfts{)}
-        \bnfsp
-        \bnfts{\{}
-        \bnfsp
-        \bnfpn{Definitions}
-        \bnfsp
-        \bnfts{\}}
+        \bnfor
+        \bnfpn{Identifier}
     } \\
     \bnfprod*{ModuleParameters}{
         \bnfpn{Identifier}

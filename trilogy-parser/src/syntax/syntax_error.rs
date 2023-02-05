@@ -10,17 +10,19 @@ pub struct SyntaxError {
 }
 
 impl SyntaxError {
-    pub(crate) fn new(span: Span, message: String) -> Self {
+    pub(crate) fn new(span: Span, message: impl std::fmt::Display) -> Self {
         Self {
             span: Some(span),
-            message,
+            message: message.to_string(),
         }
     }
 
-    pub(crate) fn new_spanless(message: String) -> Self {
+    pub(crate) fn new_spanless(message: impl std::fmt::Display) -> Self {
         Self {
             span: None,
-            message,
+            message: message.to_string(),
         }
     }
 }
+
+pub type SyntaxResult<T> = Result<T, SyntaxError>;

@@ -7,31 +7,30 @@ pub struct Parser<'src> {
     source: Peekable<Scanner<'src>>,
     warnings: Vec<SyntaxError>,
     errors: Vec<SyntaxError>,
-    discarded_tokens: Vec<Token>,
     is_line_ended: bool,
     is_line_start: bool,
 }
 
-pub struct ParseResult {
+pub struct Parse {
     pub ast: Document,
     pub warnings: Vec<SyntaxError>,
     pub errors: Vec<SyntaxError>,
 }
 
 pub(crate) trait TokenPattern {
-    fn matches(self, token: &Token) -> bool;
+    fn matches(&self, token: &Token) -> bool;
 }
 
 impl TokenPattern for TokenType {
-    fn matches(self, token: &Token) -> bool {
-        token.token_type == self
+    fn matches(&self, token: &Token) -> bool {
+        token.token_type == *self
     }
 }
 
 impl<const N: usize> TokenPattern for [TokenType; N] {
-    fn matches(self, token: &Token) -> bool {
-        self.into_iter()
-            .any(|token_type| token.token_type == token_type)
+    fn matches(&self, token: &Token) -> bool {
+        self.iter()
+            .any(|token_type| token.token_type == *token_type)
     }
 }
 
@@ -41,15 +40,14 @@ impl<'src> Parser<'src> {
             source: source.peekable(),
             errors: vec![],
             warnings: vec![],
-            discarded_tokens: vec![],
             is_line_ended: true,
             is_line_start: true,
         }
     }
 
-    pub fn parse(mut self) -> ParseResult {
+    pub fn parse(mut self) -> Parse {
         let ast = Document::parse(&mut self);
-        ParseResult {
+        Parse {
             ast,
             warnings: self.warnings,
             errors: self.errors,
@@ -64,16 +62,45 @@ impl Parser<'_> {
     }
 
     #[cfg_attr(feature = "lax", allow(dead_code))]
-    pub(crate) fn error(&mut self, error: SyntaxError) -> SyntaxError {
-        self.errors.push(error.clone());
-        error
+    pub(crate) fn error(&mut self, error: SyntaxError) {
+        self.errors.push(error);
+    }
+
+    fn chomp(&mut self) {
+        let mut invalid_tokens = vec![];
+        loop {
+            let token = self.source.peek().expect("Peeked too many tokens");
+            if [
+                TokenType::EndOfLine,
+                TokenType::CommentBlock,
+                TokenType::CommentLine,
+                TokenType::CommentInline,
+            ]
+            .matches(token)
+            {
+                self.next();
+                continue;
+            }
+            if TokenType::Error.matches(token) {
+                invalid_tokens.push(self.next());
+                continue;
+            }
+            break;
+        }
+        if !invalid_tokens.is_empty() {
+            self.error(SyntaxError::new(
+                invalid_tokens.span(),
+                "invalid characters in input",
+            ));
+        }
     }
 
     fn next(&mut self) -> Token {
         // Technically probably shouldn't unwrap here but if we consume the EndOfFile
         // it has to be at the end, at which point we consume no more, so this should
         // be safe.
-        let token = self.source.next().expect("Consumed too many times");
+        let token = self.source.next().expect("Consumed too many tokens");
+
         #[rustfmt::skip] {
             use TokenType::*;
             // Different types of whitespace imply that we are truly at the start of a line
@@ -94,57 +121,23 @@ impl Parser<'_> {
         token
     }
 
-    pub(crate) fn consume(&mut self) -> Token {
-        self.flush();
-        self.next()
-    }
-
-    fn flush(&mut self) -> Option<SyntaxError> {
-        if self.discarded_tokens.is_empty() {
-            return None;
-        }
-        Some(self.error(SyntaxError::new(
-            self.discarded_tokens.span(),
-            "Unexpected tokens in input.".to_owned(),
-        )))
-    }
-
-    pub(crate) fn discard(&mut self) {
-        let token = self.next();
-        self.discarded_tokens.push(token);
-    }
-
     pub(crate) fn peek(&mut self) -> &Token {
-        // Same logic as the consume... If we peek EndOfFile, don't consume it, then
-        // this will be ok.
-        self.source
-            .peek()
-            .expect("Peeked after consuming too many times")
+        self.chomp();
+        self.source.peek().unwrap()
     }
 
-    pub(crate) fn expect(&mut self, pattern: impl TokenPattern) -> Option<Token> {
-        let token = self.peek();
-        if pattern.matches(token) {
-            Some(self.consume())
-        } else {
-            None
-        }
-    }
-
-    pub(crate) fn chomp(&mut self) {
-        while self
-            .check([
-                TokenType::EndOfLine,
-                TokenType::CommentBlock,
-                TokenType::CommentLine,
-                TokenType::CommentInline,
-            ])
-            .is_some()
-        {
-            // Chomping whitespace does not typically change the panic state,
-            // so don't consume here.
+    pub(crate) fn synchronize(&mut self, pattern: impl TokenPattern) {
+        while !pattern.matches(self.peek()) {
             self.next();
         }
+    }
+
+    pub(crate) fn expect(&mut self, pattern: impl TokenPattern) -> Result<Token, Token> {
+        let token = self.peek();
+        if !pattern.matches(token) {
+            return Err(token.clone());
+        }
+        Ok(self.next())
     }
 
     pub(crate) fn check(&mut self, pattern: impl TokenPattern) -> Option<&Token> {

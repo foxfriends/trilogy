@@ -9,7 +9,11 @@ use num::{rational::BigRational, Complex};
 pub enum TokenValue {
     Char(char),
     String(String),
-    Number(Complex<BigRational>),
+    // Complex<BigRational> is kind of large, so Box just to make clippy quiet for now.
+    // Will require some tuning probably... Maybe storing integers/real numbers in
+    // smaller data types since they are the most common types of numbers anyway
+    // might be worthwhile.
+    Number(Box<Complex<BigRational>>),
     Bits(BitVec),
 }
 
@@ -42,7 +46,7 @@ impl From<&'static str> for TokenValue {
 
 impl From<Complex<BigRational>> for TokenValue {
     fn from(value: Complex<BigRational>) -> Self {
-        Self::Number(value)
+        Self::Number(Box::new(value))
     }
 }
 
