@@ -102,9 +102,9 @@ too require being placed on a separate line from any previous definition.
 The top level of a \Trilogy{} file is not considered to be written in any
 of the sublanguages. This section of the program may only contain definitions.
 
-A \Trilogy{} document \emph{should} end with a final line break,
-but files without such a final line break may be accepted (with warning).
-It is optional to implement rule~\ref{bnf:finaleol}.
+A \Trilogy{} document \emph{should} end with a final line break, but files
+without such a final line break may be accepted (with warning). This line break
+is not represented in the grammar, but should be checked nonetheless.
 
 As a notable exception, rule~\ref{bnf:empty} indicates that a truly empty
 file \emph{is} accepted, regardless of the fact that it does not end with
@@ -139,13 +139,7 @@ syntax tree, so having the documentation inside is simply useful.
         \bnfsp
         \bnfts{ByteOrderMark}
     } \\
-    \bnfprod*{Postamble}{
-        \bnfts{EndOfLine}
-        \bnfsp
-        \bnfts{EndOfFile}
-        \bnfor
-    } \\
-    \bnfmore{\label{bnf:finaleol}\bnfts{EndOfFile}} \\
+    \bnfprod*{Postamble}{\bnfts{EndOfFile}} \\
     \bnfprod*{InnerDocumentation}{
         \bnfpn{DocInner}
         \bnfsp

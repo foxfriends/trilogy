@@ -1,5 +1,9 @@
-use crate::Parser;
-use trilogy_scanner::{Token, TokenType::*};
+use crate::{Parser, Spanned};
+use source_span::Span;
+use trilogy_scanner::{
+    Token,
+    TokenType::{self, DocInner, DocOuter},
+};
 
 #[derive(Clone, Debug)]
 pub struct Documentation {
@@ -7,12 +11,12 @@ pub struct Documentation {
 }
 
 impl Documentation {
-    pub(crate) fn parse_inner(parser: &mut Parser) -> Option<Self> {
+    fn parse(parser: &mut Parser, token_type: TokenType) -> Option<Self> {
         let mut tokens = vec![];
 
         loop {
             parser.chomp();
-            let Some(token) = parser.expect(DocInner) else {
+            let Some(token) = parser.expect(token_type) else {
                 break;
             };
             tokens.push(token);
@@ -23,5 +27,19 @@ impl Documentation {
         }
 
         Some(Self { tokens })
+    }
+
+    pub(crate) fn parse_inner(parser: &mut Parser) -> Option<Self> {
+        Self::parse(parser, DocInner)
+    }
+
+    pub(crate) fn parse_outer(parser: &mut Parser) -> Option<Self> {
+        Self::parse(parser, DocOuter)
+    }
+}
+
+impl Spanned for Documentation {
+    fn span(&self) -> Span {
+        self.tokens.span()
     }
 }

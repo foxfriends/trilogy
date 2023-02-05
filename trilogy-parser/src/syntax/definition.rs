@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::TokenType::*;
 
 #[derive(Clone, Debug)]
@@ -13,7 +13,6 @@ pub enum DefinitionItem {
     ModuleImport(Box<ModuleImportDefinition>),
     Export(Box<ExportDefinition>),
     Test(Box<TestDefinition>),
-    SyntaxError(Box<SyntaxError>),
 }
 
 #[derive(Clone, Debug)]
@@ -23,17 +22,35 @@ pub struct Definition {
 }
 
 impl Definition {
-    pub(crate) fn syntax_error(error: SyntaxError) -> Self {
-        Self {
-            documentation: None,
-            item: DefinitionItem::SyntaxError(Box::new(error)),
-        }
-    }
-
     pub(crate) fn parse(parser: &mut Parser) -> Option<Self> {
-        if parser.check(EndOfFile).is_some() {
-            return None;
+        loop {
+            let documentation = Documentation::parse_outer(parser);
+            match parser.peek().token_type {
+                EndOfFile => {
+                    // As a fun coincidence, the end of file is only
+                    // an error if there was documentation. Otherwise,
+                    // it's just the end of the file, no more definitions.
+                    parser.error(SyntaxError::new(
+                        documentation?.span(),
+                        "Documentation must be accompanied by the item that it documents."
+                            .to_owned(),
+                    ));
+                }
+                KwModule => {}
+                _ => {
+                    // Any unexpected character we can just start collecting to report
+                    // all in one big chunk when a valid definition item token (or end
+                    // of file) is found.
+                    //
+                    // Documentation before such invalid characters is discarded, likely
+                    // the error is caused by a missing comment marker or a typo in one
+                    // of the definition item tokens, so the documentation would have
+                    // applied successfully.
+                    parser.discard();
+                    continue;
+                }
+            }
+            break None;
         }
-        todo!()
     }
 }

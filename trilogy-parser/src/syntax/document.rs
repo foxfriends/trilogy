@@ -41,16 +41,19 @@ impl Document {
             definitions.push(definition);
         }
 
-        if parser.expect(EndOfLine).is_none() {
-            let syntax_error = SyntaxError::new_spanless(
-                "The document does not end with a new-line character.".to_owned(),
-            );
+        if parser.check(EndOfFile).is_none() {}
+        parser.chomp();
 
+        if !parser.is_line_start() {
             #[cfg(feature = "lax")]
-            parser.warn(syntax_error);
+            parser.warn(SyntaxError::new_spanless(
+                "The document does not end with a new-line character.".to_owned(),
+            ));
 
             #[cfg(not(feature = "lax"))]
-            definitions.push(Definition::syntax_error(parser.error(syntax_error)));
+            parser.error(SyntaxError::new_spanless(
+                "No new line found at end of file.".to_owned(),
+            ));
         }
 
         parser
