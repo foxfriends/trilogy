@@ -260,7 +260,7 @@ algorithm are defined in \S\ref{sec:module-resolution}.
     \bnfprod*{Import}{
         \bnfts{\kw{import}}
         \bnfsp
-        \bnfpn{ModuleReference}
+        \bnfpn{ModulePath}
         \bnfsp
         \bnfts{\kw{as}}
         \bnfsp
@@ -274,7 +274,7 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfsp
         \bnfts{\kw{from}}
         \bnfsp
-        \bnfpn{ModuleReference}
+        \bnfpn{ModulePath}
     } \\
     \bnfprod*{Export}{
         \bnfts{\kw{export}}
@@ -300,6 +300,17 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfts{\kw{as}}
         \bnfsp
         \bnfpn{Identifier}
+    } \\
+    \bnfprod*{ModulePath}{
+        \bnfpn{ModuleReference}
+        \bnfsp
+        \bnfts{\op{.}}
+        \bnfsp
+        \bnfpn{ModulePath}
+        \bnfor
+    } \\
+    \bnfmore*{
+        \bnfpn{ModuleReference}
     } \\
     \bnfprod*{ModuleReference}{
         \bnfpn{Identifier}

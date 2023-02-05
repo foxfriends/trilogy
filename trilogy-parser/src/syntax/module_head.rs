@@ -9,13 +9,6 @@ pub struct ModuleHead {
     pub parameters: Option<ModuleParameters>,
 }
 
-#[derive(Clone, Debug)]
-pub struct ModuleParameters {
-    start: Token,
-    pub parameters: Vec<Identifier>,
-    end: Token,
-}
-
 impl ModuleHead {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let start = parser
@@ -29,6 +22,13 @@ impl ModuleHead {
             parameters,
         })
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ModuleParameters {
+    start: Token,
+    pub parameters: Vec<Identifier>,
+    end: Token,
 }
 
 impl ModuleParameters {
