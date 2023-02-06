@@ -84,8 +84,8 @@ impl Definition {
                 }
             }
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
-            KwRule => todo!(),
-            KwProc => todo!(),
+            KwRule => DefinitionItem::Rule(Box::new(RuleDefinition::parse(parser)?)),
+            KwProc => DefinitionItem::Procedure(Box::new(ProcedureDefinition::parse(parser)?)),
             KwFunc => todo!(),
             KwTest => DefinitionItem::Test(Box::new(TestDefinition::parse(parser)?)),
             _ => {
