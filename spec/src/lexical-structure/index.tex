@@ -28,20 +28,19 @@ a trailing new line by implying the existence of one, and emitting a
 warning.
 
 \subsection{Keywords}
+\FloatBarrier
 
-Keywords in \Trilogy{} have different meanings in the different
-sub-languages, but \emph{all} keywords are considered ``reserved''
-words in all contexts. That is, they may only be used as keywords,
-even in sub-languages which do not have a use for that keyword.
-Usage as variable or function identifiers, module names, or as
-bare record keys is prohibited.
+Keywords in \Trilogy{} (listed in Table~\ref{tab:keywords}) have
+different meanings in the different sub-languages, but \emph{all}
+keywords are considered ``reserved'' words in all contexts. That
+is, they may only be used as keywords, even in sub-languages which
+do not have a use for that keyword. Usage as variable or function
+identifiers, module names, or as bare record keys is prohibited.
 
-The keywords are as follows:
-
-\begin{table}[H]
+\begin{table}[h]
 \parbox[t]{0.45\linewidth}{
     \centering
-    \begin{tabular}[t]{|ll|}
+    \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
@@ -71,7 +70,7 @@ The keywords are as follows:
 \hfill
 \parbox[t]{0.45\linewidth}{
     \centering
-    \begin{tabular}[t]{|ll|}
+    \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
@@ -97,21 +96,24 @@ The keywords are as follows:
         \hline
     \end{tabular}
 }
+\caption{\label{tab:keywords}\Trilogy{} Keywords}
 \end{table}
 
+\FloatBarrier
 \subsection{Reserved Words}
+\FloatBarrier
 
-Some additional words are reserved for future usage, following the
-same usage restrictions as keywords. This list is intentionally
-very restrictive (who knows what ill advised feature I might add
-to this language next) and will be relaxed over time as features
+Some additional words (Table~\ref{tab:reservedwords}) are reserved for
+future usage, following the same usage restrictions as keywords. This
+list is intentionally very restrictive (who knows what ill advised feature
+I might add to this language next) and will be relaxed over time as features
 are ruled out or implemented as library code. Notably, this includes
 most keywords I can think of from other languages.
 
-\begin{table}[H]
+\begin{table}[h]
 \parbox[t]{0.45\linewidth}{
     \centering
-    \begin{tabular}[t]{|ll|}
+    \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
@@ -139,7 +141,7 @@ most keywords I can think of from other languages.
 \hfill
 \parbox[t]{0.45\linewidth}{
     \centering
-    \begin{tabular}[t]{|ll|}
+    \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Keyword} \\
         \hline
@@ -165,8 +167,10 @@ most keywords I can think of from other languages.
         \hline
     \end{tabular}
 }
+\caption{\label{tab:reservedwords}\Trilogy{} Reserved Words}
 \end{table}
 
+\FloatBarrier
 \subsection{Identifiers}
 
 Identifiers in \Trilogy{} are currently restricted to US-ASCII characters,
@@ -313,16 +317,16 @@ single (non-single-quote) character, or a single escape sequence.
 
 \subsubsection{Escape Sequences}
 \label{sec:escapesequences}
+\FloatBarrier
 
 Within character and string literals, escape sequences may be used to denote
 special characters, typically ones that would otherwise be hard to physically
-type or print and read.
+type or print and read. Valid escape sequences and their meanings are listed
+in Table~\ref{tab:escape}.
 
-Valid escape sequences and their meanings are listed here:
-
-\begin{table}[H]
+\begin{table}[h]
     \centering
-\begin{tabular}[c]{|ll|}
+\begin{tabular}[c]{ll}
     \hline
     \textbf{Code} & \textbf{Usage} \\
     \hline
@@ -338,11 +342,13 @@ Valid escape sequences and their meanings are listed here:
     \texttt{\textbackslash u\{7FFF\}} & Unicode escape sequence \\
     \hline
 \end{tabular}
+\caption{\label{tab:escape}Escape Sequences}
 \end{table}
 
 Escape sequences in both strings and characters are resolved by the lexer
 and replaced before the tokens are handed off to further passes.
 
+\FloatBarrier
 \subsection{Bits Literals}
 
 \Trilogy{} supports a specific type for arbitrary binary strings, distinct
@@ -433,17 +439,18 @@ block comments have two different token types.
 \end{bnf*}
 
 \subsection{Punctuation}
+\FloatBarrier
 
-Punctuation includes symbols and operators that treated as whole tokens when encountered
-on their own.
+Punctuation, listed in Table~\ref{tab:operators}, includes symbols and operators that
+treated as whole tokens when encountered on their own.
 
 Keep in mind the slash (\texttt{/}) also appears as part of rational number literals, so
 will not be exclusively identified as an individual token.
 
-\begin{table}[H]
+\begin{table}[h]
 \parbox[t]{0.45\linewidth}{
     \centering
-    \begin{tabular}[t]{|ll|}
+    \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Symbol} \\
         \hline
@@ -482,7 +489,7 @@ will not be exclusively identified as an individual token.
 \hfill
 \parbox[t]{0.45\linewidth}{
     \centering
-    \begin{tabular}[t]{|ll|}
+    \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Symbol} \\
         \hline
@@ -512,14 +519,15 @@ will not be exclusively identified as an individual token.
         \hline
     \end{tabular}
 }
+\caption{\label{tab:operators}Operators and Punctuation}
 \end{table}
 
 \subsection{Delimeters}
 
-Delimiters typically surround other pieces of code, and must come in
-matched opening-closing pairs.
+Delimiters, listed in Table~\ref{tab:delimiters} typically surround other
+pieces of code, and must come in matched opening-closing pairs.
 
-\begin{table}[H]
+\begin{table}[h]
     \centering
     \begin{tabular}[t]{|ll|ll|}
         \hline
@@ -532,8 +540,10 @@ matched opening-closing pairs.
         \texttt{DollarOParen} & \texttt{\$(} & & \\
         \hline
     \end{tabular}
+    \caption{\label{tab:delimiters}Delimiters}
 \end{table}
 
+\FloatBarrier
 \subsection{Shebang}
 
 A \Trilogy{} file may optionally begin with a

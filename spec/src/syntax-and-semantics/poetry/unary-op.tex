@@ -1,10 +1,11 @@
 \subsubsection{Unary Operation}
 \label{sec:unaryop}
+\FloatBarrier
 
 There are a few unary operators in \Poetry{}, all of which are prefix operators.
-There are no postfix operators in \Trilogy{}, as they end up being a parsing
-nightmare for little value (the only commonly seen postfix operators are
-ones like \texttt{++}, and we prefer \texttt{+= 1} in general these days).
+There are no unary postfix operators in \Trilogy{}, as they tend to add little
+value (the only commonly seen unary postfix operators are ones like \texttt{++},
+and we prefer \texttt{+= 1} in general these days).
 
 \begin{bnf*}
     \bnfprod{UnaryOp}{
@@ -26,18 +27,20 @@ ones like \texttt{++}, and we prefer \texttt{+= 1} in general these days).
     }
 \end{bnf*}
 
-It turns out, even prefix unary operators cause some parsing ambiguity, particularly
+It turns out, even prefix unary operators cause some parsing ambiguity, for example
 when it comes to application of a function to a negative number. To resolve this
-ambiguity, we simply declare unary operators to be the last choice when parsing;
+ambiguity, we simply declare unary operators to be the last choice when parsing:
 only if there is no other interpretation of the expression but the interpretation
-where the operator is used as a unary operator will it be a interpreted unary operation.
+where the operator is used as a unary operator will it be interpreted as a unary
+operation.
 
-To illustrate that point, the following table summarizes some syntax and a
+To illustrate that point, the Table~\ref{tab:ops} summarizes some syntax and a
 less ambiguous ``formal'' representation. The formal representation is actually
 valid \Trilogy{} code as well, showing that \Trilogy{} could be used like a Lisp
-if you really wanted to.
+if you really wanted to. Some of these rules may make make more sense once you
+have read the section on precedence (\S\ref{sec:precedence}).
 
-\begin{table}[H]
+\begin{table}[h]
     \centering
     \begin{tabular}{lll}
         \hline
@@ -50,7 +53,17 @@ if you really wanted to.
         \tri{x (not) true} & \tri{((x (not)) true))} & \tri{(not)} is a reference \\
         \tri{x + - 5} & \tri{((+) x ((-) 5))} & One of two operators is unary \\
         \hline
+        \tri{x} & \multirow{2}{*}{\tri{((,) x ((-) 5))}} & Line break is typically \\
+        \tri{(- 5)} & & considered as sequencing \\
+        \hline
+        \tri{x} & \multirow{2}{*}{\tri{((,) x ((-) 5))}} & Application does not \\
+        \tri{(-) 5} & & span across lines\\
+        \hline
+        \tri{x} & \multirow{2}{*}{\tri{((-) x 5)}} & Infix takes precedence \\
+        \tri{- 5} & & even over multiple lines \\
+        \hline
     \end{tabular}
+    \caption{\label{tab:ops}Operator Parsing}
 \end{table}
 
 The \kw{not} operator is used to perform Boolean negation. \texttt{\kw{not}~\kw{true}}
@@ -101,3 +114,5 @@ convenience. This operator works similarly to how the \kw{yield} statement of \P
 works, but the returned value is accessible. It may return more or less than once if
 the effect handler resumes more or less that once. Though it would be nice to explain
 it now, once again leave the detailed explanation to \S\ref{sec:effects}.
+
+\FloatBarrier

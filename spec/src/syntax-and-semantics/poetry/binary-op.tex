@@ -264,6 +264,7 @@ rather than logical or mathematical purity.
     \TrinaryInfC{$\Gamma\vdash A\ \op{===}\ B = \kw{false}$}
 \end{prooftree}
 
+\FloatBarrier
 The ordered comparison operators work on any two values of the same type. Not
 all types are orderable, however, in which case the comparison returns \kw{unit}
 to indicate that an order cannot be determined. This \kw{unit} result is distinct
@@ -274,14 +275,14 @@ which cause a runtime type error; where those situations have no clear path forw
 the ``unorderable'' option in this case is more flexible and does not make any
 assumptions about the behaviour of a program.
 
-Rather than defining the proof trees for every comparable type, this table summarizes
+Rather than defining the proof trees for every comparable type, Table~\ref{tab:ordering} summarizes
 orderings, and is referred to as $\text{cmp}(A \square B)$ in the proof trees below. Note
 that in lexicographical order, elements are compared before the lengths of the sequences;
 if one value is a prefix of the other, the prefix value is less than the longer value.
 In the fallible lexicographical order, if any element-wise comparison is unorderable, the
 whole result is treated unorderable.
 
-\begin{table}[H]
+\begin{table}[h]
     \centering
     \begin{tabular}{ll}
         \hline
@@ -307,6 +308,7 @@ whole result is treated unorderable.
         Mismatched types       & Unorderable \\
         \hline
     \end{tabular}
+    \caption{\label{tab:ordering}Natural Orderings}
 \end{table}
 
 \footnotetext{\label{foot:ord}Such ordering may be added at a later date, if
@@ -340,6 +342,8 @@ found it to be useful however.}
     \LeftLabel{Greater Than Or Equal To}
     \BinaryInfC{$\Gamma\vdash A\ \op{>=}\ B = \text{cmp}(A \geq B)$}
 \end{prooftree}
+
+\FloatBarrier
 
 The bitwise operators work only on values of Bits type, with the exception
 of the shift operators which expect the right-hand operand to be an integer.
