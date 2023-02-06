@@ -1,7 +1,7 @@
 use super::*;
 use crate::Parser;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct Query {
     pub disjunction: Vec<QueryDisjunction>,
 }

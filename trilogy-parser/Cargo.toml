@@ -9,6 +9,7 @@ default = []
 lax = []
 
 [dependencies]
+trilogy-parser-derive = { path = "../trilogy-parser-derive/" }
 trilogy-scanner = { path = "../trilogy-scanner/" }
 source-span = "2.7.0"
 peekmore = { version = "1.0.0", features = ["smallvec"] }

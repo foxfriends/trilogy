@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct Application {
     pub function: Expression,
     pub argument: Expression,

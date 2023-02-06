@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType};
 
 #[derive(Clone, Debug)]
@@ -24,7 +24,16 @@ impl ModuleHead {
     }
 }
 
-#[derive(Clone, Debug)]
+impl Spanned for ModuleHead {
+    fn span(&self) -> source_span::Span {
+        match &self.parameters {
+            None => self.start.span.union(self.name.span()),
+            Some(parameters) => self.start.span.union(parameters.span()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Spanned)]
 pub struct ModuleParameters {
     start: Token,
     pub parameters: Vec<Identifier>,

@@ -402,7 +402,16 @@ version = "0.1.0"
 dependencies = [
  "peekmore",
  "source-span",
+ "trilogy-parser-derive",
  "trilogy-scanner",
+]
+
+[[package]]
+name = "trilogy-parser-derive"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]

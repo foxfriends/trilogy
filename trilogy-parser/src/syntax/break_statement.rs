@@ -1,6 +1,6 @@
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct BreakStatement {
     token: Token,
 }

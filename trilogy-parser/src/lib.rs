@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate trilogy_parser_derive;
+
 mod parser;
 pub mod syntax;
 

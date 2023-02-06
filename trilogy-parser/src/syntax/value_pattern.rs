@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub enum ValuePattern {
     Number(Box<NumberLiteral>),
     Character(Box<CharacterLiteral>),

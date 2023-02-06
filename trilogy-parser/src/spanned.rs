@@ -17,6 +17,15 @@ where
     }
 }
 
+impl<S> Spanned for Box<S>
+where
+    S: Spanned,
+{
+    fn span(&self) -> Span {
+        (**self).span()
+    }
+}
+
 impl Spanned for Token {
     fn span(&self) -> Span {
         self.span

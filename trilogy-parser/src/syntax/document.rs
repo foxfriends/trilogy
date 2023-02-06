@@ -1,16 +1,31 @@
 use super::*;
-use crate::Parser;
-use trilogy_scanner::TokenType::*;
+use crate::{Parser, Spanned};
+use source_span::Span;
+use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug)]
 pub struct Document {
+    start: Token,
     pub documentation: Option<Documentation>,
     pub definitions: Vec<Definition>,
+    end: Token,
+}
+
+impl Spanned for Document {
+    fn span(&self) -> Span {
+        self.start.span.union(self.end.span())
+    }
 }
 
 impl Document {
-    fn preamble(parser: &mut Parser) {
-        parser
+    fn synchronize(parser: &mut Parser) {
+        parser.synchronize([
+            DocOuter, KwModule, KwFunc, KwProc, KwRule, KwImport, KwExport, EndOfFile,
+        ]);
+    }
+
+    pub(crate) fn parse(parser: &mut Parser) -> Self {
+        let start = parser
             .expect(StartOfFile)
             .expect("The file better have a beginning... otherwise something is very wrong.");
 
@@ -21,22 +36,14 @@ impl Document {
                 "The file contains a byte-order mark.",
             ));
         }
-    }
-
-    fn synchronize(parser: &mut Parser) {
-        parser.synchronize([
-            DocOuter, KwModule, KwFunc, KwProc, KwRule, KwImport, KwExport, EndOfFile,
-        ]);
-    }
-
-    pub(crate) fn parse(parser: &mut Parser) -> Self {
-        Document::preamble(parser);
 
         // Special case for the empty file rule
-        if parser.expect(EndOfFile).is_ok() {
+        if let Ok(end) = parser.expect(EndOfFile) {
             return Self {
+                start,
                 documentation: None,
                 definitions: vec![],
+                end,
             };
         }
 
@@ -63,13 +70,15 @@ impl Document {
             ));
         }
 
-        parser
+        let end = parser
             .expect(EndOfFile)
             .expect("The file better have an end... otherwise something is very wrong.");
 
         Self {
+            start,
             documentation,
             definitions,
+            end,
         }
     }
 }

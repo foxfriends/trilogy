@@ -64,9 +64,6 @@ impl ModuleArguments {
 
 impl Spanned for ModuleArguments {
     fn span(&self) -> Span {
-        self.start
-            .span
-            .union(self.arguments.span())
-            .union(self.end.span)
+        self.start.span.union(self.end.span)
     }
 }

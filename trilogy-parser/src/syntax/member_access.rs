@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct MemberAccess {
     pub path: Path,
     // Identifiers at the beginning of `segments` are fluid,
@@ -8,7 +8,7 @@ pub struct MemberAccess {
     pub segments: Vec<Member>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub enum Member {
     Static(Box<Identifier>),
     Dynamic(Box<Expression>),

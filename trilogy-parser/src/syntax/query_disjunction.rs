@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct QueryDisjunction {
     pub implications: Vec<QueryImplication>,
 }

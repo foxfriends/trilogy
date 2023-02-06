@@ -1,7 +1,7 @@
 use super::*;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct NegativePattern {
     start: Token,
     pub pattern: ValuePattern,

@@ -1,7 +1,7 @@
 use super::*;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct ArrayComprehension {
     start: Token,
     pub expression: Expression,

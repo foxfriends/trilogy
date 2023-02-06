@@ -1,9 +1,8 @@
 use super::*;
 use crate::{Parser, Spanned};
-use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Spanned)]
 pub struct Identifier {
     token: Token,
 }
@@ -29,11 +28,5 @@ impl TryFrom<ModuleReference> for Identifier {
                 "identifiers may not have arguments",
             ))
         }
-    }
-}
-
-impl Spanned for Identifier {
-    fn span(&self) -> Span {
-        self.token.span
     }
 }

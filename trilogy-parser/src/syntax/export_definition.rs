@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct ExportDefinition {
     start: Token,
     pub names: Vec<Identifier>,

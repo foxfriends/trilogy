@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct AtomLiteral {
     token: Token,
 }

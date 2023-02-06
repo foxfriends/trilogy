@@ -1,7 +1,7 @@
 use super::*;
 use crate::Parser;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct Pattern {
     pub disjunction: PatternDisjunction,
 }

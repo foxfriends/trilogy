@@ -1,3 +1,4 @@
+use crate::Spanned;
 use source_span::Span;
 
 /// Not a real AST node, but a stand-in when a section of the code fails
@@ -5,21 +6,27 @@ use source_span::Span;
 /// errors.
 #[derive(Clone, Debug)]
 pub struct SyntaxError {
-    span: Option<Span>,
+    span: Span,
     message: String,
+}
+
+impl Spanned for SyntaxError {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl SyntaxError {
     pub(crate) fn new(span: Span, message: impl std::fmt::Display) -> Self {
         Self {
-            span: Some(span),
+            span,
             message: message.to_string(),
         }
     }
 
     pub(crate) fn new_spanless(message: impl std::fmt::Display) -> Self {
         Self {
-            span: None,
+            span: Span::default(),
             message: message.to_string(),
         }
     }

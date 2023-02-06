@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub enum Handler {
     Given(Box<GivenHandler>),
     When(Box<WhenHandler>),

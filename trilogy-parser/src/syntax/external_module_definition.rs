@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::TokenType;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub struct ExternalModuleDefinition {
     pub head: ModuleHead,
     pub locator: StringLiteral,

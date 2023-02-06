@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub enum Statement {
     Let(Box<LetStatement>),
     Assignment(Box<AssignmentStatement>),

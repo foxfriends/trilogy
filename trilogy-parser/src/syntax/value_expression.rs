@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::TokenType;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub enum ValueExpression {
     Number(Box<NumberLiteral>),
     Character(Box<CharacterLiteral>),

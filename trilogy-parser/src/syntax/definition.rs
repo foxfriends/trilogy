@@ -1,8 +1,9 @@
 use super::*;
 use crate::{Parser, Spanned, TokenPattern};
+use source_span::Span;
 use trilogy_scanner::TokenType::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Spanned)]
 pub enum DefinitionItem {
     Module(Box<ModuleDefinition>),
     ExternalModule(Box<ExternalModuleDefinition>),
@@ -106,5 +107,14 @@ impl Definition {
 
     pub(crate) fn parse_in_module(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
         Self::parse_until(parser, [EndOfFile, CBrace])
+    }
+}
+
+impl Spanned for Definition {
+    fn span(&self) -> Span {
+        match &self.documentation {
+            Some(documentation) => documentation.span().union(self.item.span()),
+            None => self.item.span(),
+        }
     }
 }
