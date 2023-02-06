@@ -22,11 +22,9 @@ impl ImportDefinition {
             }
             names.push(Identifier::parse(parser)?);
         }
-        parser.expect(TokenType::KwFrom).map_err(|token| {
-            let error = SyntaxError::new(token.span, "expected keyword `from`");
-            parser.error(error.clone());
-            error
-        })?;
+        parser
+            .expect(TokenType::KwFrom)
+            .map_err(|token| parser.expected(token, "expected keyword `from`"))?;
         let module = ModulePath::parse(parser)?;
         Ok(Self {
             start,

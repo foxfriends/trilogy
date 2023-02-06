@@ -29,9 +29,7 @@ impl ModuleDefinition {
         }
 
         let end = parser.expect(CBrace).map_err(|token| {
-            let error = SyntaxError::new(token.span, "expected } to end a local module definition");
-            parser.error(error.clone());
-            error
+            parser.expected(token, "expected } to end a local module definition")
         })?;
 
         Ok(Self {

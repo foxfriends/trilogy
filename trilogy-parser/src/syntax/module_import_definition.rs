@@ -16,11 +16,9 @@ impl ModuleImportDefinition {
         first: ModuleReference,
     ) -> SyntaxResult<Self> {
         let module = ModulePath::parse_rest(parser, first)?;
-        parser.expect(TokenType::KwAs).map_err(|token| {
-            let error = SyntaxError::new(token.span, "expected keyword `as`");
-            parser.error(error.clone());
-            error
-        })?;
+        parser
+            .expect(TokenType::KwAs)
+            .map_err(|token| parser.expected(token, "expected keyword `as`"))?;
         let name = Identifier::parse(parser)?;
         Ok(Self {
             start,

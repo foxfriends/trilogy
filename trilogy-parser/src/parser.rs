@@ -48,6 +48,16 @@ impl Parser<'_> {
         self.errors.push(error);
     }
 
+    pub(crate) fn expected(
+        &mut self,
+        token: Token,
+        message: impl std::fmt::Display,
+    ) -> SyntaxError {
+        let error = SyntaxError::new(token.span, message);
+        self.error(error.clone());
+        error
+    }
+
     fn chomp(&mut self) {
         let mut invalid_tokens = vec![];
         loop {

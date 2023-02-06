@@ -10,11 +10,9 @@ pub struct Identifier {
 
 impl Identifier {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let token = parser.expect(TokenType::Identifier).map_err(|token| {
-            let error = SyntaxError::new(token.span, "expected identifier");
-            parser.error(error.clone());
-            error
-        })?;
+        let token = parser
+            .expect(TokenType::Identifier)
+            .map_err(|token| parser.expected(token, "expected identifier"))?;
         Ok(Self { token })
     }
 }

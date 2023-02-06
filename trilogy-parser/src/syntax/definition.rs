@@ -84,10 +84,10 @@ impl Definition {
                 }
             }
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
-            KwFunc => todo!(),
-            KwProc => todo!(),
-            KwTest => todo!(),
             KwRule => todo!(),
+            KwProc => todo!(),
+            KwFunc => todo!(),
+            KwTest => DefinitionItem::Test(Box::new(TestDefinition::parse(parser)?)),
             _ => {
                 let error = SyntaxError::new(token.span, "unexpected token in module body");
                 parser.error(error.clone());
