@@ -1,9 +1,27 @@
 use super::*;
-use trilogy_scanner::Token;
+use crate::Parser;
+use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug)]
 pub struct ParenthesizedExpression {
     start: Token,
-    pub pattern: Expression,
+    pub expression: Expression,
     end: Token,
+}
+
+impl ParenthesizedExpression {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let start = parser
+            .expect(OParen)
+            .map_err(|token| parser.expected(token, "expected `(`"))?;
+        let expression = Expression::parse(parser)?;
+        let end = parser
+            .expect(OParen)
+            .map_err(|token| parser.expected(token, "expected `)`"))?;
+        Ok(Self {
+            start,
+            expression,
+            end,
+        })
+    }
 }

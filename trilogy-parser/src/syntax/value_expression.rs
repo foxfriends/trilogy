@@ -1,4 +1,6 @@
 use super::*;
+use crate::Parser;
+use trilogy_scanner::TokenType;
 
 #[derive(Clone, Debug)]
 pub enum ValueExpression {
@@ -38,4 +40,34 @@ pub enum ValueExpression {
     Template(Box<Template>),
     Parenthesized(Box<ParenthesizedExpression>),
     SyntaxError(Box<SyntaxError>),
+}
+
+impl ValueExpression {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        use TokenType::*;
+        let token = parser.peek();
+
+        match token.token_type {
+            Numeric => Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?))),
+            String => Ok(Self::String(Box::new(StringLiteral::parse(parser)?))),
+            Bits => Ok(Self::Bits(Box::new(BitsLiteral::parse(parser)?))),
+            KwTrue | KwFalse => Ok(Self::Boolean(Box::new(BooleanLiteral::parse(parser)?))),
+            Atom => {
+                let atom = AtomLiteral::parse(parser)?;
+                if parser.check(OParen).is_some() {
+                    Ok(Self::Struct(Box::new(StructLiteral::parse(parser, atom)?)))
+                } else {
+                    Ok(Self::Atom(Box::new(atom)))
+                }
+            }
+            Character => Ok(Self::Character(Box::new(CharacterLiteral::parse(parser)?))),
+            KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
+            OParen => Ok(Self::Parenthesized(Box::new(
+                ParenthesizedExpression::parse(parser)?,
+            ))),
+            _ => {
+                todo!("Most expressions are not supported yet")
+            }
+        }
+    }
 }

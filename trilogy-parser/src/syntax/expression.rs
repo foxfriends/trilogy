@@ -8,7 +8,11 @@ pub struct Expression {
 }
 
 impl Expression {
-    pub(crate) fn parse(_parser: &mut Parser) -> SyntaxResult<Self> {
-        todo!()
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let expression = ValueExpression::parse(parser)?;
+        Ok(Self {
+            expression,
+            handlers: vec![],
+        })
     }
 }
