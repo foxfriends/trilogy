@@ -78,14 +78,30 @@ enum Precedence {
 impl ValueExpression {
     fn parse_follow(
         parser: &mut Parser,
-        _precedence: Precedence,
-        _lhs: ValueExpression,
+        precedence: Precedence,
+        lhs: ValueExpression,
     ) -> SyntaxResult<Result<Self, Self>> {
         use TokenType::*;
         let token = parser.peek();
         match token.token_type {
-            KwAnd => todo!(),
-            KwOr => todo!(),
+            KwAnd if precedence >= Precedence::And => {
+                let op = parser.expect(KwAnd).unwrap();
+                let rhs = ValueExpression::parse_precedence(parser, Precedence::And)?;
+                Ok(Ok(ValueExpression::Binary(Box::new(BinaryOperation {
+                    lhs: lhs.into(),
+                    operator: BinaryOperator::And(op),
+                    rhs: rhs.into(),
+                }))))
+            }
+            KwOr if precedence >= Precedence::Or => {
+                let op = parser.expect(KwOr).unwrap();
+                let rhs = ValueExpression::parse_precedence(parser, Precedence::Or)?;
+                Ok(Ok(ValueExpression::Binary(Box::new(BinaryOperation {
+                    lhs: lhs.into(),
+                    operator: BinaryOperator::Or(op),
+                    rhs: rhs.into(),
+                }))))
+            }
             OpPlus => todo!(),
             OpMinus => todo!(),
             OpStar => todo!(),
@@ -115,9 +131,8 @@ impl ValueExpression {
             KwWhen => todo!(),
             KwGiven => todo!(),
             OpColonColon => todo!(),
-            _ => {
-                todo!("Most expressions are not supported yet")
-            }
+            // If nothing matched, it must be the end of the expression
+            _ => Ok(Err(lhs)),
         }
     }
 
@@ -164,9 +179,10 @@ impl ValueExpression {
             OParen => Ok(Self::Parenthesized(Box::new(
                 ParenthesizedExpression::parse(parser)?,
             ))),
-            _ => {
-                todo!("Most expressions are not supported yet")
-            }
+            _ => Err(SyntaxError::new(
+                token.span,
+                "Unexpected token in expression",
+            )),
         }
     }
 

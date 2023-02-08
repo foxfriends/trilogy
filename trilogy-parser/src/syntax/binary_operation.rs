@@ -5,7 +5,7 @@ use trilogy_scanner::Token;
 pub struct BinaryOperation {
     pub lhs: Expression,
     pub operator: BinaryOperator,
-    pub rns: Expression,
+    pub rhs: Expression,
 }
 
 #[derive(Clone, Debug, Spanned)]

@@ -16,3 +16,12 @@ impl Expression {
         })
     }
 }
+
+impl From<ValueExpression> for Expression {
+    fn from(expression: ValueExpression) -> Self {
+        Self {
+            expression,
+            handlers: vec![],
+        }
+    }
+}
