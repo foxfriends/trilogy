@@ -11,7 +11,7 @@ module OrdList(Ord) {
     func empty = 'ordered(unit)
 
     func insert v 'ordered(x : xs) =
-        if Ord.cmp(v, x) == 'lt then 'ordered(v : x : xs)
+        if Ord::cmp v x == 'lt then 'ordered(v : x : xs)
         else let 'ordered(oxs) = insert v xs
             'ordered(x : oxs)
 
@@ -31,5 +31,5 @@ proc main!() {
     let list = [1, 3, 2, 6, 4]
     let ordered = collectInto!(OrdIntList, list)
     let reverseOrdered = collectInto!(ReverseIntList, list)
-    OrdList.print!(reverseOrdered)
+    OrdList::print!(reverseOrdered)
 }

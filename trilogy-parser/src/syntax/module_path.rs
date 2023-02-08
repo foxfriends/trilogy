@@ -11,7 +11,7 @@ impl ModulePath {
     pub(crate) fn parse_rest(parser: &mut Parser, first: ModuleReference) -> SyntaxResult<Self> {
         let mut modules = vec![first];
         loop {
-            if parser.expect(OpDot).is_err() {
+            if parser.expect(OpColonColon).is_err() {
                 break;
             }
             modules.push(ModuleReference::parse(parser)?);
