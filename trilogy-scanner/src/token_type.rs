@@ -99,6 +99,7 @@ pub enum TokenType {
 
     // Whitespace
     EndOfLine,
+    Space,
 
     // Comments
     CommentInline,
@@ -128,10 +129,12 @@ pub enum TokenType {
     OpShrEq,
     OpShlEq,
     OpAt,
+    OpQuestion,
     OpDot,
     OpDotDot,
     OpComma,
     OpColon,
+    OpColonColon,
     OpLeftArrow,
     OpSemi,
     OpPlus,

@@ -9,6 +9,7 @@ pub struct Parser<'src> {
     errors: Vec<SyntaxError>,
     is_line_ended: bool,
     is_line_start: bool,
+    is_spaced: bool,
 }
 
 pub struct Parse {
@@ -25,6 +26,7 @@ impl<'src> Parser<'src> {
             warnings: vec![],
             is_line_ended: true,
             is_line_start: true,
+            is_spaced: false,
         }
     }
 
@@ -67,6 +69,7 @@ impl Parser<'_> {
                 TokenType::CommentBlock,
                 TokenType::CommentLine,
                 TokenType::CommentInline,
+                TokenType::Space,
             ]
             .matches(token)
             {
@@ -109,6 +112,7 @@ impl Parser<'_> {
             // maybe I don't need both of these flags.
             self.is_line_ended = [EndOfLine, CommentLine, DocInner, DocOuter, CommentBlock, ByteOrderMark, StartOfFile].matches(&token);
             self.is_line_start = [EndOfLine, CommentLine, DocInner, DocOuter, ByteOrderMark, StartOfFile].matches(&token);
+            self.is_spaced = [EndOfLine, CommentLine, DocInner, DocOuter, CommentInline, CommentBlock, Space].matches(&token);
         };
         token
     }
@@ -132,7 +136,6 @@ impl Parser<'_> {
         Ok(self.next())
     }
 
-    #[allow(dead_code)]
     pub(crate) fn check(&mut self, pattern: impl TokenPattern) -> Option<&Token> {
         let token = self.peek();
         if pattern.matches(token) {
@@ -149,5 +152,10 @@ impl Parser<'_> {
     #[allow(dead_code)]
     pub(crate) fn is_line_ended(&self) -> bool {
         self.is_line_ended
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn is_spaced(&self) -> bool {
+        self.is_spaced
     }
 }

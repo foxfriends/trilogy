@@ -76,10 +76,49 @@ enum Precedence {
 }
 
 impl ValueExpression {
-    fn parse_postfix(_parser: &mut Parser, _precedence: Precedence) -> SyntaxResult<Self> {
-        // I know the spec says this language doesn't have postfix operators,
-        // but apparently it does.
-        todo!()
+    fn parse_follow(
+        parser: &mut Parser,
+        _precedence: Precedence,
+        _lhs: ValueExpression,
+    ) -> SyntaxResult<Result<Self, Self>> {
+        use TokenType::*;
+        let token = parser.peek();
+        match token.token_type {
+            KwAnd => todo!(),
+            KwOr => todo!(),
+            OpPlus => todo!(),
+            OpMinus => todo!(),
+            OpStar => todo!(),
+            OpSlash => todo!(),
+            OpPercent => todo!(),
+            OpSlashSlash => todo!(),
+            OpStarStar => todo!(),
+            OpLt => todo!(),
+            OpGt => todo!(),
+            OpAmp => todo!(),
+            OpPipe => todo!(),
+            OpCaret => todo!(),
+            OpTilde => todo!(),
+            OpShr => todo!(),
+            OpShl => todo!(),
+            OpAt => todo!(),
+            OpDot => todo!(),
+            OpComma => todo!(),
+            OpColon => todo!(),
+            OpLeftArrow => todo!(),
+            OpSemi => todo!(),
+            OpLtLt => todo!(),
+            OpGtGt => todo!(),
+            OpPipeGt => todo!(),
+            OpLtPipe => todo!(),
+            OpGlue => todo!(),
+            KwWhen => todo!(),
+            KwGiven => todo!(),
+            OpColonColon => todo!(),
+            _ => {
+                todo!("Most expressions are not supported yet")
+            }
+        }
     }
 
     fn parse_prefix(parser: &mut Parser, _precedence: Precedence) -> SyntaxResult<Self> {
@@ -105,9 +144,9 @@ impl ValueExpression {
             OBrace => todo!("Record + Comp"),
             DollarOParen => todo!("Iter Comp"),
             KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
-            KwNot => todo!("Unary"),
-            OpMinus => todo!("Unary"),
-            OpTilde => todo!("Unary"),
+            KwNot => todo!("Unary Not"),
+            OpMinus => todo!("Unary Minus"),
+            OpTilde => todo!("Unary Invert"),
             KwIf => todo!("Conditional"),
             KwMatch => todo!("Match"),
             KwEnd => todo!("End"),
@@ -117,6 +156,11 @@ impl ValueExpression {
             KwContinue => todo!("Continue"),
             KwCancel => todo!("Cancel"),
             KwYield => todo!("Yield"),
+            Identifier => todo!("Variable"),
+            IdentifierBang => todo!("Procedure call"),
+            KwFn => todo!("Fn expression"),
+            KwDo => todo!("Do expression"),
+            TemplateStart => todo!("Template"),
             OParen => Ok(Self::Parenthesized(Box::new(
                 ParenthesizedExpression::parse(parser)?,
             ))),
@@ -131,20 +175,11 @@ impl ValueExpression {
     }
 
     fn parse_precedence(parser: &mut Parser, precedence: Precedence) -> SyntaxResult<Self> {
-        let _lhs = Self::parse_prefix(parser, precedence)?;
-        use TokenType::*;
-        let token = parser.peek();
-
-        match token.token_type {
-            // infix
-            OpDot => todo!("Member Access"),
-
-            KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
-            OParen => Ok(Self::Parenthesized(Box::new(
-                ParenthesizedExpression::parse(parser)?,
-            ))),
-            _ => {
-                todo!("Most expressions are not supported yet")
+        let mut expr = Self::parse_prefix(parser, precedence)?;
+        loop {
+            match Self::parse_follow(parser, precedence, expr)? {
+                Ok(updated) => expr = updated,
+                Err(expr) => return Ok(expr),
             }
         }
     }

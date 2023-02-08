@@ -469,9 +469,14 @@ impl Iterator for Scanner<'_> {
         if self.is_finished {
             return None;
         }
-        // Skip whitespaces in between tokens when there was more than one in a row
-        while self.expect(" \t\r").is_some() {
+        // Skip carriage returns entirely, they don't count as "whitespace"
+        while self.expect("\r").is_some() {
             self.is_first_character = false;
+        }
+        // Emit one space token for each contiguous block of spaces and tabs
+        if self.expect(" \t").is_some() {
+            while self.expect(" \t").is_some() {}
+            return Some(self.make_token(Space));
         }
         self.span.clear();
         if self.peek().is_none() {
@@ -563,6 +568,8 @@ impl Iterator for Scanner<'_> {
             '.' if self.expect('.').is_some() => self.make_token(OpDotDot),
             '.' => self.make_token(OpDot),
 
+            '?' => self.make_token(OpQuestion),
+
             '/' if self.expect('/').is_some() => {
                 if self.expect('=').is_some() {
                     self.make_token(OpSlashSlashEq)
@@ -573,6 +580,7 @@ impl Iterator for Scanner<'_> {
             '/' if self.expect('=').is_some() => self.make_token(OpSlashEq),
             '/' => self.make_token(OpSlash),
 
+            ':' if self.expect(':').is_some() => self.make_token(OpColonColon),
             ':' => self.make_token(OpColon),
             ';' => self.make_token(OpSemi),
 

@@ -371,13 +371,38 @@ as a separator.
 
 \subsection{Whitespace}
 
-\Trilogy{} aims to be (mostly) a ``free-form'' language, meaning that
-whitespace holds no special meaning. The only exception to this rule
-is when line breaks may lead to differing results, the specifics of which
-are detailed later.
+While \Trilogy{} is a mostly free-form language; indentation levels do not affect
+the meaning of the code. Whitespace does remain signficant in a few places, slightly
+more intrusively than in some other languages. In particular, certain parts of the
+code may be parsed differently depending on whether the tokens were flush, spaced, or
+on separate lines. For this reason, spaces, tabs, and line feeds are emitted by the
+scanner as distinct tokens.
 
-Otherwise, all whitespace may be treated equally, though the only supported
-whitespaces at this time are the four ASCII whitespace characters listed:
+\begin{bnf*}
+    \bnfprod{Space}{
+        \bnfts{U+0009}
+        \bnfsp
+        \bnfpn{Space}
+        \bnfor
+        \bnfts{U+0020}
+        \bnfsp
+        \bnfpn{Space}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{U+0009}
+        \bnfor
+        \bnfts{U+0020}
+    } \\
+    \bnfprod{EndOfLine}{\bnfts{U+000A}}
+\end{bnf*}
+
+The carriage return character is permitted in the source file, so as to support both
+LF and CRLF style line endings, but is not treated as whitespace. A carriage return
+anywhere except directly beside it's corresponding line feed is unlikely.
+
+Specifically, the four whitespace characters permitted in \Trilogy{} source code
+are the following:
 
 \begin{itemize}
     \item \texttt{U+0009} (tab \texttt{'\textbackslash t'})
@@ -385,15 +410,6 @@ whitespaces at this time are the four ASCII whitespace characters listed:
     \item \texttt{U+000D} (carriage return \texttt{'\textbackslash r'})
     \item \texttt{U+0020} (space \texttt{' '})
 \end{itemize}
-
-For the purposes of ending lines, the only valid whitespace character is
-\texttt{U+000A} (line feed \texttt{'\textbackslash n'}).
-\texttt{U+000D} (carriage return \texttt{'\textbackslash r'}) is ignored,
-as with any other whitespace, for any purpose other than separating tokens.
-
-When \texttt{U+000A} (line feed \texttt{'\textbackslash n'}) is encountered
-in the source code (other than within a string literal), the token
-\texttt{EndOfLine} is emitted. No other whitespace constitutes a token.
 
 \subsection{Comments}
 
@@ -476,13 +492,12 @@ will not be exclusively identified as an individual token.
         \texttt{OpShrEq} & \op{\textasciitilde>=} \\
         \texttt{OpShlEq} & \op{<\textasciitilde=} \\
         \hline
-        \texttt{OpAt} & \op{@} \\
-        \texttt{OpDot} & \op{.} \\
-        \texttt{OpDotDot} & \op{..} \\
-        \texttt{OpComma} & \op{,} \\
-        \texttt{OpColon} & \op{:} \\
-        \texttt{OpSemi} & \op{;} \\
-        \texttt{OpTurnstile} & \op{<-} \\
+        \texttt{OpLtLt} & \op{<<} \\
+        \texttt{OpGtGt} & \op{>>} \\
+        \texttt{OpLtLtEq} & \op{<<=} \\
+        \texttt{OpGtGtEq} & \op{>>=} \\
+        \texttt{OpPipeGt} & \op{|>} \\
+        \texttt{OpLtPipe} & \op{<|} \\
         \hline
     \end{tabular}
 }
@@ -509,13 +524,19 @@ will not be exclusively identified as an individual token.
         \texttt{OpPercentEq} & \op{\%=} \\
         \texttt{OpStarStarEq} & \op{**=} \\
         \hline
-        \texttt{OpLtLt} & \op{<<} \\
-        \texttt{OpGtGt} & \op{>>} \\
-        \texttt{OpPipeGt} & \op{|>} \\
-        \texttt{OpLtPipe} & \op{<|} \\
-        \hline
         \texttt{OpGlue} & \op{<>} \\
         \texttt{OpGlueEq} & \op{<>=} \\
+        \hline
+        \texttt{OpDot} & \op{.} \\
+        \texttt{OpDotDot} & \op{..} \\
+        \texttt{OpComma} & \op{,} \\
+        \texttt{OpColon} & \op{:} \\
+        \texttt{OpColonColon} & \op{::} \\
+        \texttt{OpSemi} & \op{;} \\
+        \texttt{OpTurnstile} & \op{<-} \\
+        \hline
+        \texttt{OpAt} & \op{@} \\
+        \texttt{OpQuestion} & \op{?} \\
         \hline
     \end{tabular}
 }
@@ -529,7 +550,7 @@ pieces of code, and must come in matched opening-closing pairs.
 
 \begin{table}[h]
     \centering
-    \begin{tabular}[t]{|ll|ll|}
+    \begin{tabular}[t]{llll}
         \hline
         \textbf{Token Type} & \textbf{Symbol}& \textbf{Token Type} & \textbf{Symbol} \\
         \hline
