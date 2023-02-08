@@ -1,5 +1,5 @@
 use crate::syntax::{Document, SyntaxError};
-use crate::{Spanned, TokenPattern};
+use crate::{Parse, Spanned, TokenPattern};
 use std::iter::Peekable;
 use trilogy_scanner::{Scanner, Token, TokenType};
 
@@ -10,12 +10,6 @@ pub struct Parser<'src> {
     is_line_ended: bool,
     is_line_start: bool,
     is_spaced: bool,
-}
-
-pub struct Parse {
-    pub ast: Document,
-    pub warnings: Vec<SyntaxError>,
-    pub errors: Vec<SyntaxError>,
 }
 
 impl<'src> Parser<'src> {

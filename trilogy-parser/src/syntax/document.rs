@@ -1,5 +1,9 @@
 use super::*;
-use crate::{Parser, Spanned};
+use crate::{
+    format::{PrettyPrint, PrettyPrinted, PrettyPrinter},
+    Parser, Spanned,
+};
+use pretty::DocAllocator;
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
@@ -80,5 +84,22 @@ impl Document {
             definitions,
             end,
         }
+    }
+}
+
+impl<'a> PrettyPrint<'a> for Document {
+    fn pretty_print(&self, allocator: &'a PrettyPrinter) -> PrettyPrinted<'a> {
+        let docs = self
+            .documentation
+            .iter()
+            .map(|doc| doc.pretty_print(allocator))
+            .chain(
+                self.definitions
+                    .iter()
+                    .map(|def| def.pretty_print(allocator)),
+            );
+        allocator
+            .intersperse(docs, allocator.hardline().append(allocator.hardline()))
+            .append(allocator.hardline())
     }
 }

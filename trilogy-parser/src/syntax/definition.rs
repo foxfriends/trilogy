@@ -1,5 +1,9 @@
 use super::*;
-use crate::{Parser, Spanned, TokenPattern};
+use crate::{
+    format::{PrettyPrint, PrettyPrinted, PrettyPrinter},
+    Parser, Spanned, TokenPattern,
+};
+use pretty::DocAllocator;
 use source_span::Span;
 use trilogy_scanner::TokenType::*;
 
@@ -116,5 +120,11 @@ impl Spanned for Definition {
             Some(documentation) => documentation.span().union(self.item.span()),
             None => self.item.span(),
         }
+    }
+}
+
+impl<'a> PrettyPrint<'a> for Definition {
+    fn pretty_print(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a> {
+        printer.nil()
     }
 }

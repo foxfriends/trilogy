@@ -24,16 +24,16 @@ pub fn run(command: Command) -> std::io::Result<()> {
             let contents = std::fs::read_to_string(file)?;
             let scanner = Scanner::new(&contents);
             let parser = Parser::new(scanner);
-            let result = parser.parse();
-            println!("{:#?}", result.ast);
+            let parse = parser.parse();
+            println!("{:#?}", parse.ast());
 
-            if !result.warnings.is_empty() {
-                println!("Encountered {} warnings:", result.warnings.len());
-                println!("{:#?}", result.warnings);
+            if parse.has_warnings() {
+                println!("Encountered {} warnings:", parse.warnings().len());
+                println!("{:#?}", parse.warnings());
             }
-            if !result.errors.is_empty() {
-                println!("Encountered {} errors:", result.errors.len());
-                println!("{:#?}", result.errors);
+            if parse.has_errors() {
+                println!("Encountered {} errors:", parse.errors().len());
+                println!("{:#?}", parse.errors());
             }
         }
     }
