@@ -25,7 +25,7 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
     \bnfprod{ArrayComprehension}{
         \bnfts{[}
         \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{Expr}
         \bnfsp
         \bnfts{\kw{for}}
         \bnfsp
@@ -36,7 +36,7 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
     \bnfprod{SetComprehension}{
         \bnfts{\{|}
         \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{Expr}
         \bnfsp
         \bnfts{\kw{for}}
         \bnfsp
@@ -47,11 +47,11 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
     \bnfprod{RecordComprehension}{
         \bnfts{\{}
         \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{Expr}
         \bnfsp
         \bnfts{:}
         \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{Expr}
         \bnfsp
         \bnfts{\kw{for}}
         \bnfsp
@@ -62,7 +62,7 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
     \bnfprod{IteratorComprehension}{
         \bnfts{\$(} %
         \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{Expr}
         \bnfsp
         \bnfsp
         \bnfts{\kw{for}}

@@ -111,6 +111,13 @@ which take the place of both closures and predicate-level effects in \Law{}
 (\Poetry{}'s \kw{yield} expression may be used in expressions in \Law{}
 in the conventional effect system way).
 
+Further broken down, the \kw{when} form allows the body to be either an expression
+or a block. Though not encoded in the grammar at all, note that the block
+option is only permitted in procedures. Encountered in a function, the block
+will be reported as a syntax error. For specification and parsing purposes, however
+it is easier to leave it like it is; the grammar will be unambiguous either way,
+it's mostly just for logical consistency that this is forbidden.
+
 It is worth noting that dynamic rules are not necessarily here to stay, as
 they may be a hack given my relative lack of experience with both practical
 logic programming and effect systems. In particular, there are ways to both

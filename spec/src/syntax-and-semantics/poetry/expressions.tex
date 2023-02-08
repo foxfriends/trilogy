@@ -8,6 +8,15 @@ Though the expression grammar does include binary operators and other binary key
 \Trilogy{} does not encode precedence as part of the grammar but instead resolves that
 in a later pass in the interpreter (\S\ref{sec:precedence}).
 
+Finally, note that there are two expression-like productions in the grammar:
+$\bnfpn{Expression}$ and $\bnfpn{Expr}$, the difference being that the first
+is a full expression including effect handlers directly, while the second is
+a more traditional value expression. Effect handlers in \Trilogy{} really
+could be supplied on any expression, at any time, but since they have a tendency
+to be large, and in terms of precedence do not mean much intuitively, it is
+generally required to parenthesize effect handlers, if it might be at all
+ambiguous.
+
 \begin{bnf*}
     \bnfprod{Expression}{
         \bnfpn{Expr}
