@@ -43,11 +43,12 @@ pub enum ValueExpression {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
-enum Precedence {
+pub(crate) enum Precedence {
     Primary,
+    Path,
     Access,
-    Unary,
     Call,
+    Unary,
     Application,
     Compose,
     RCompose,
@@ -84,19 +85,22 @@ impl ValueExpression {
         use TokenType::*;
         let token = parser.peek();
         match token.token_type {
-            KwAnd if precedence >= Precedence::And => {
+            OpColonColon if precedence <= Precedence::Path => todo!("Module path"),
+            OParen if precedence <= Precedence::Path => todo!("Module params"),
+            OpDot if precedence <= Precedence::Access => todo!(),
+            KwAnd if precedence <= Precedence::And => {
                 let op = parser.expect(KwAnd).unwrap();
-                let rhs = ValueExpression::parse_precedence(parser, Precedence::And)?;
-                Ok(Ok(ValueExpression::Binary(Box::new(BinaryOperation {
+                let rhs = Self::parse_precedence(parser, Precedence::And)?;
+                Ok(Ok(Self::Binary(Box::new(BinaryOperation {
                     lhs: lhs.into(),
                     operator: BinaryOperator::And(op),
                     rhs: rhs.into(),
                 }))))
             }
-            KwOr if precedence >= Precedence::Or => {
+            KwOr if precedence <= Precedence::Or => {
                 let op = parser.expect(KwOr).unwrap();
-                let rhs = ValueExpression::parse_precedence(parser, Precedence::Or)?;
-                Ok(Ok(ValueExpression::Binary(Box::new(BinaryOperation {
+                let rhs = Self::parse_precedence(parser, Precedence::Or)?;
+                Ok(Ok(Self::Binary(Box::new(BinaryOperation {
                     lhs: lhs.into(),
                     operator: BinaryOperator::Or(op),
                     rhs: rhs.into(),
@@ -117,11 +121,7 @@ impl ValueExpression {
             OpTilde => todo!(),
             OpShr => todo!(),
             OpShl => todo!(),
-            OpAt => todo!(),
-            OpDot => todo!(),
-            OpComma => todo!(),
             OpColon => todo!(),
-            OpLeftArrow => todo!(),
             OpSemi => todo!(),
             OpLtLt => todo!(),
             OpGtGt => todo!(),
@@ -130,17 +130,15 @@ impl ValueExpression {
             OpGlue => todo!(),
             KwWhen => todo!(),
             KwGiven => todo!(),
-            OpColonColon => todo!(),
             // If nothing matched, it must be the end of the expression
             _ => Ok(Err(lhs)),
         }
     }
 
-    fn parse_prefix(parser: &mut Parser, _precedence: Precedence) -> SyntaxResult<Self> {
+    fn parse_prefix(parser: &mut Parser) -> SyntaxResult<Self> {
         use TokenType::*;
         let token = parser.peek();
         match token.token_type {
-            // prefix
             Numeric => Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?))),
             String => Ok(Self::String(Box::new(StringLiteral::parse(parser)?))),
             Bits => Ok(Self::Bits(Box::new(BitsLiteral::parse(parser)?))),
@@ -154,14 +152,14 @@ impl ValueExpression {
                 }
             }
             Character => Ok(Self::Character(Box::new(CharacterLiteral::parse(parser)?))),
+            KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
             OBrack => todo!("Array + Comp"),
             OBracePipe => todo!("Set + Comp"),
             OBrace => todo!("Record + Comp"),
             DollarOParen => todo!("Iter Comp"),
-            KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
-            KwNot => todo!("Unary Not"),
-            OpMinus => todo!("Unary Minus"),
-            OpTilde => todo!("Unary Invert"),
+            KwNot | OpMinus | OpTilde | KwYield => {
+                Ok(Self::Unary(Box::new(UnaryOperation::parse(parser)?)))
+            }
             KwIf => todo!("Conditional"),
             KwMatch => todo!("Match"),
             KwEnd => todo!("End"),
@@ -170,7 +168,6 @@ impl ValueExpression {
             KwBreak => todo!("Break"),
             KwContinue => todo!("Continue"),
             KwCancel => todo!("Cancel"),
-            KwYield => todo!("Yield"),
             Identifier => todo!("Variable"),
             IdentifierBang => todo!("Procedure call"),
             KwFn => todo!("Fn expression"),
@@ -186,12 +183,11 @@ impl ValueExpression {
         }
     }
 
-    fn parse_infix(_parser: &mut Parser, _precedence: Precedence) -> SyntaxResult<Self> {
-        todo!()
-    }
-
-    fn parse_precedence(parser: &mut Parser, precedence: Precedence) -> SyntaxResult<Self> {
-        let mut expr = Self::parse_prefix(parser, precedence)?;
+    pub(crate) fn parse_precedence(
+        parser: &mut Parser,
+        precedence: Precedence,
+    ) -> SyntaxResult<Self> {
+        let mut expr = Self::parse_prefix(parser)?;
         loop {
             match Self::parse_follow(parser, precedence, expr)? {
                 Ok(updated) => expr = updated,

@@ -8,6 +8,20 @@ pub struct BinaryOperation {
     pub rhs: Expression,
 }
 
+impl BinaryOperation {
+    pub(crate) fn new(
+        lhs: impl Into<Expression>,
+        operator: BinaryOperator,
+        rhs: impl Into<Expression>,
+    ) -> Self {
+        Self {
+            lhs: lhs.into(),
+            operator,
+            rhs: rhs.into(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum BinaryOperator {
     And(Token),
