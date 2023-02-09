@@ -1,13 +1,13 @@
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct KeywordReference {
     start: Token,
     pub keyword: Keyword,
     end: Token,
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Keyword {
     And(Token),
     Or(Token),

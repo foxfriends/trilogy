@@ -1,14 +1,14 @@
 use super::*;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct BinaryOperation {
     pub lhs: Expression,
     pub operator: BinaryOperator,
     pub rhs: Expression,
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum BinaryOperator {
     And(Token),
     Or(Token),

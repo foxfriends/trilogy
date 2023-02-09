@@ -3,7 +3,7 @@ use crate::Spanned;
 use source_span::Span;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct RecordPattern {
     start: Token,
     pub elements: Vec<(Pattern, Pattern)>,

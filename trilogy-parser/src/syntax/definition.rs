@@ -7,7 +7,7 @@ use pretty::DocAllocator;
 use source_span::Span;
 use trilogy_scanner::TokenType::*;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum DefinitionItem {
     Module(Box<ModuleDefinition>),
     ExternalModule(Box<ExternalModuleDefinition>),
@@ -20,7 +20,7 @@ pub enum DefinitionItem {
     Test(Box<TestDefinition>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Definition {
     pub documentation: Option<Documentation>,
     pub item: DefinitionItem,

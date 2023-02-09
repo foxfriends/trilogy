@@ -3,7 +3,7 @@ use crate::Spanned;
 use source_span::Span;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct IfStatement {
     pub branches: Vec<IfBranch>,
     pub if_false: Option<Block>,
@@ -18,7 +18,7 @@ impl Spanned for IfStatement {
     }
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct IfBranch {
     start: Token,
     pub condition: Expression,

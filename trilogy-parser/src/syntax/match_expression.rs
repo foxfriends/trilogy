@@ -3,14 +3,14 @@ use crate::Spanned;
 use source_span::Span;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct MatchExpression {
     start: Token,
     pub expression: Expression,
     pub cases: Vec<MatchExpressionCase>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct MatchExpressionCase {
     start: Token,
     pub pattern: Option<Pattern>,

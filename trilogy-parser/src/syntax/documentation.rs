@@ -8,7 +8,7 @@ use trilogy_scanner::{
     TokenType::{self, DocInner, DocOuter},
 };
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct Documentation {
     tokens: Vec<Token>,
 }

@@ -1,7 +1,7 @@
 use super::*;
 use crate::Parser;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct Expression {
     pub expression: ValueExpression,
     pub handlers: Vec<Handler>,

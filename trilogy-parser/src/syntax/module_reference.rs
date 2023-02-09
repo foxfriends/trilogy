@@ -3,7 +3,7 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModuleReference {
     pub name: Identifier,
     pub arguments: Option<ModuleArguments>,
@@ -26,7 +26,7 @@ impl Spanned for ModuleReference {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModuleArguments {
     start: Token,
     pub arguments: Vec<ModuleReference>,

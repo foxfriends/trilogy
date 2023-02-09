@@ -57,9 +57,9 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
                     let name = &variant.ident;
                     match &variant.fields {
                         Fields::Named(FieldsNamed { named, .. }) => {
-                            let names = named.iter().map(|field| {
-                                format_ident!("field{}", field.ident.as_ref().unwrap())
-                            });
+                            let names = named
+                                .iter()
+                                .map(|field| format_ident!("{}", field.ident.as_ref().unwrap()));
                             let include = named.iter().enumerate().map(|(i, field)| {
                                 let name = field.ident.as_ref().unwrap();
                                 if i == 0 {

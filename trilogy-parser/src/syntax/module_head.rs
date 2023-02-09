@@ -2,7 +2,7 @@ use super::*;
 use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModuleHead {
     start: Token,
     pub name: Identifier,
@@ -33,7 +33,7 @@ impl Spanned for ModuleHead {
     }
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ModuleParameters {
     start: Token,
     pub parameters: Vec<Identifier>,

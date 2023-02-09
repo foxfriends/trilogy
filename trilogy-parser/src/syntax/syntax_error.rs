@@ -4,7 +4,7 @@ use source_span::Span;
 /// Not a real AST node, but a stand-in when a section of the code fails
 /// to parse. Nodes which support recovery provide a case to hold syntax
 /// errors.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SyntaxError {
     span: Span,
     message: String,

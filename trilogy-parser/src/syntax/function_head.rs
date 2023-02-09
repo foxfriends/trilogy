@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::TokenType;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct FunctionHead {
     pub name: Identifier,
     pub parameters: Vec<Pattern>,

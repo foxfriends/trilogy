@@ -3,7 +3,7 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct RuleDefinition {
     start: Token,
     pub head: RuleHead,

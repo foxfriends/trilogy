@@ -1,7 +1,7 @@
 use super::*;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Unification {
     Direct(Box<DirectUnification>),
     Element(Box<ElementUnification>),

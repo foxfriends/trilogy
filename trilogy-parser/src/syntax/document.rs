@@ -7,7 +7,7 @@ use pretty::DocAllocator;
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Document {
     start: Token,
     pub documentation: Option<Documentation>,

@@ -1,20 +1,20 @@
 use super::*;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct AssignmentStatement {
     pub lhs: LValue,
     pub strategy: AssignmentStrategy,
     pub rhs: Expression,
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum LValue {
     Pattern(Box<Pattern>),
     Member(Box<MemberAccess>),
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum AssignmentStrategy {
     Direct(Token),
     Function(Identifier),

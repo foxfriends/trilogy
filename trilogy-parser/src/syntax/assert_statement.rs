@@ -3,7 +3,7 @@ use crate::spanned::Spanned;
 use source_span::Span;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct AssertStatement {
     start: Token,
     pub message: Option<Expression>,

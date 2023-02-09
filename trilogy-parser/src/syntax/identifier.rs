@@ -2,7 +2,7 @@ use super::*;
 use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Eq, PartialEq, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct Identifier {
     token: Token,
 }

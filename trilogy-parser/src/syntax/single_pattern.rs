@@ -2,7 +2,7 @@ use super::*;
 use crate::Spanned;
 use source_span::Span;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SinglePattern {
     pub value_pattern: ValuePattern,
     pub type_pattern: Option<TypePattern>,

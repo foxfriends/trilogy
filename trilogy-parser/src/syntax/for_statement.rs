@@ -3,7 +3,7 @@ use crate::Spanned;
 use source_span::Span;
 use trilogy_scanner::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ForStatement {
     pub branches: Vec<ForStatementBranch>,
     pub else_block: Option<Block>,
@@ -18,7 +18,7 @@ impl Spanned for ForStatement {
     }
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ForStatementBranch {
     start: Token,
     pub query: Query,

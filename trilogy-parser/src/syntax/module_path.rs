@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::TokenType::*;
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ModulePath {
     pub modules: Vec<ModuleReference>,
 }
