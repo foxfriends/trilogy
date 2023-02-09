@@ -130,6 +130,11 @@ impl Parser<'_> {
         Ok(self.next())
     }
 
+    pub(crate) fn consume(&mut self) -> Token {
+        self.chomp();
+        self.next()
+    }
+
     pub(crate) fn check(&mut self, pattern: impl TokenPattern) -> Option<&Token> {
         let token = self.peek();
         if pattern.matches(token) {

@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::TokenType;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -77,6 +77,13 @@ pub(crate) enum Precedence {
 }
 
 impl ValueExpression {
+    fn binary(parser: &mut Parser, lhs: ValueExpression) -> SyntaxResult<Result<Self, Self>> {
+        BinaryOperation::parse(parser, lhs)
+            .map(Box::new)
+            .map(Self::Binary)
+            .map(Ok)
+    }
+
     fn parse_follow(
         parser: &mut Parser,
         precedence: Precedence,
@@ -85,19 +92,11 @@ impl ValueExpression {
         use TokenType::*;
         let token = parser.peek();
         match token.token_type {
-            OpColonColon if precedence <= Precedence::Path => todo!("Module path"),
-            OParen if precedence <= Precedence::Path => todo!("Module params"),
-            OpDot if precedence <= Precedence::Access => todo!(),
-            KwAnd if precedence <= Precedence::And => {
-                let op = parser.expect(KwAnd).unwrap();
-                let rhs = Self::parse_precedence(parser, Precedence::And)?;
-                Ok(Ok(Self::Binary(Box::new(BinaryOperation {
-                    lhs: lhs.into(),
-                    operator: BinaryOperator::And(op),
-                    rhs: rhs.into(),
-                }))))
-            }
-            KwOr if precedence <= Precedence::Or => {
+            OpColonColon if precedence < Precedence::Path => todo!("Module path"),
+            OParen if precedence < Precedence::Path => todo!("Module params"),
+            OpDot if precedence < Precedence::Access => todo!(),
+            KwAnd if precedence < Precedence::And => Self::binary(parser, lhs),
+            KwOr if precedence < Precedence::Or => {
                 let op = parser.expect(KwOr).unwrap();
                 let rhs = Self::parse_precedence(parser, Precedence::Or)?;
                 Ok(Ok(Self::Binary(Box::new(BinaryOperation {
@@ -106,28 +105,46 @@ impl ValueExpression {
                     rhs: rhs.into(),
                 }))))
             }
-            OpPlus => todo!(),
-            OpMinus => todo!(),
-            OpStar => todo!(),
-            OpSlash => todo!(),
-            OpPercent => todo!(),
-            OpSlashSlash => todo!(),
-            OpStarStar => todo!(),
-            OpLt => todo!(),
-            OpGt => todo!(),
-            OpAmp => todo!(),
-            OpPipe => todo!(),
-            OpCaret => todo!(),
-            OpTilde => todo!(),
-            OpShr => todo!(),
-            OpShl => todo!(),
-            OpColon => todo!(),
-            OpSemi => todo!(),
-            OpLtLt => todo!(),
-            OpGtGt => todo!(),
-            OpPipeGt => todo!(),
-            OpLtPipe => todo!(),
-            OpGlue => todo!(),
+            OpPlus | OpMinus if precedence < Precedence::Term => Self::binary(parser, lhs),
+            OpStar | OpSlash | OpPercent | OpSlashSlash if precedence < Precedence::Factor => {
+                Self::binary(parser, lhs)
+            }
+            OpStarStar if precedence <= Precedence::Exponent => Self::binary(parser, lhs),
+            OpLt | OpGt | OpGtEq | OpGtEq if precedence == Precedence::Comparison => {
+                let expr = Self::binary(parser, lhs);
+                if let Ok(Ok(expr)) = &expr {
+                    parser.error(SyntaxError::new(
+                        expr.span(),
+                        "comparison operators cannot be chained, use parentheses to disambiguate",
+                    ));
+                }
+                expr
+            }
+            OpLt | OpGt | OpGtEq | OpGtEq if precedence < Precedence::Comparison => {
+                Self::binary(parser, lhs)
+            }
+            OpEqEq | OpEqEqEq if precedence == Precedence::Equality => {
+                let expr = Self::binary(parser, lhs);
+                if let Ok(Ok(expr)) = &expr {
+                    parser.error(SyntaxError::new(
+                        expr.span(),
+                        "comparison operators cannot be chained, use parentheses to disambiguate",
+                    ));
+                }
+                expr
+            }
+            OpEqEq | OpEqEqEq if precedence < Precedence::Equality => Self::binary(parser, lhs),
+            OpAmp if precedence < Precedence::BitwiseAnd => Self::binary(parser, lhs),
+            OpPipe if precedence < Precedence::BitwiseOr => Self::binary(parser, lhs),
+            OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
+            OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
+            OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
+            OpSemi if precedence < Precedence::Sequence => Self::binary(parser, lhs),
+            OpLtLt if precedence < Precedence::Compose => Self::binary(parser, lhs),
+            OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
+            OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
+            OpLtPipe if precedence <= Precedence::RPipe => Self::binary(parser, lhs),
+            OpGlue if precedence <= Precedence::Glue => Self::binary(parser, lhs),
             KwWhen => todo!(),
             KwGiven => todo!(),
             // If nothing matched, it must be the end of the expression
