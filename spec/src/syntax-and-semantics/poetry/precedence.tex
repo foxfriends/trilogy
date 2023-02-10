@@ -36,10 +36,6 @@ are included in the table.
 Listed also is associativity, when relevant: left to right, right to left, or indeterminate.
 If associativity is indeterminate, explicit disambiguation with parentheses is required.
 
-% TODO: come back to this table, it'll be easier to feel out what
-% is natural when the language is running. There are probably some
-% operators missing.
-
 \begin{table}[h]
     \centering
     \begin{tabular}{ll}
@@ -48,7 +44,7 @@ If associativity is indeterminate, explicit disambiguation with parentheses is r
         \hline
         Paths\quad\op{::} & Left to right \\
         Member access\quad\op{.}\quad\op{.[]} & Left to right \\
-        Procedure call\quad\op{!()} & \\
+        Procedure call\quad\op{!()} & Left to right \\
         Unary\quad\kw{not}\quad\op{-}\quad\op{\textasciitilde} & \\
         Rule check\quad\kw{is} & \\
         Function application & Left to right \\

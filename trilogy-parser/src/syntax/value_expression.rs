@@ -176,7 +176,10 @@ impl ValueExpression {
             OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
             OpLtPipe if precedence <= Precedence::RPipe => Self::binary(parser, lhs),
-            OpGlue if precedence <= Precedence::Glue => Self::binary(parser, lhs),
+            OpGlue if precedence < Precedence::Glue => Self::binary(parser, lhs),
+            BangOParen if precedence < Precedence::Call => Ok(Ok(Self::Call(Box::new(
+                CallExpression::parse(parser, lhs)?,
+            )))),
             // A function application never spans across two lines. Furthermore,
             // the application requires a space, as without a space it is considered
             // a module reference or a rule application.
@@ -230,7 +233,6 @@ impl ValueExpression {
             Identifier => Ok(Self::Reference(Box::new(
                 super::Identifier::parse(parser)?.into(),
             ))),
-            // IdentifierBang => Ok(Self::Call(Box::new(CallExpression::parse(parser))?)),
             KwFn => todo!("Fn expression"),
             KwDo => todo!("Do expression"),
             TemplateStart => todo!("Template"),
