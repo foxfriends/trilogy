@@ -7,7 +7,6 @@ pub struct Parser<'src> {
     source: Peekable<Scanner<'src>>,
     warnings: Vec<SyntaxError>,
     errors: Vec<SyntaxError>,
-    is_line_ended: bool,
     is_line_start: bool,
     is_spaced: bool,
 }
@@ -18,7 +17,6 @@ impl<'src> Parser<'src> {
             source: source.peekable(),
             errors: vec![],
             warnings: vec![],
-            is_line_ended: true,
             is_line_start: true,
             is_spaced: false,
         }
@@ -104,8 +102,7 @@ impl Parser<'_> {
             //
             // That said, cases where line endings and startings are needed are uncertain,
             // maybe I don't need both of these flags.
-            self.is_line_ended = [EndOfLine, CommentLine, DocInner, DocOuter, CommentBlock, ByteOrderMark, StartOfFile].matches(&token);
-            self.is_line_start = [EndOfLine, CommentLine, DocInner, DocOuter, ByteOrderMark, StartOfFile].matches(&token);
+            self.is_line_start = [EndOfLine, CommentLine, DocInner, DocOuter, ByteOrderMark, StartOfFile].matches(&token) || self.is_line_start && [CommentInline, Space].matches(&token);
             self.is_spaced = [EndOfLine, CommentLine, DocInner, DocOuter, CommentInline, CommentBlock, Space].matches(&token);
         };
         token
@@ -148,12 +145,6 @@ impl Parser<'_> {
         self.is_line_start
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn is_line_ended(&self) -> bool {
-        self.is_line_ended
-    }
-
-    #[allow(dead_code)]
     pub(crate) fn is_spaced(&self) -> bool {
         self.is_spaced
     }
