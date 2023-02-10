@@ -175,12 +175,9 @@ most keywords I can think of from other languages.
 
 Identifiers in \Trilogy{} are currently restricted to US-ASCII characters,
 with the intent being to support Unicode identifiers (including Emoji) in
-a later edition.
-
-Additionally, there are two other types of identifiers that are used in
-special cases, those ending with an exclamation mark (\texttt{!}) used as
-procedure names, and those ending with an equal sign (\texttt{=}) for
-functions when used as an operator.
+a later edition. As a special case, an identifier ending with an equal
+sign (\texttt{=}) is parsed as a single token for functions when used
+in assignment operator position.
 
 An additional restriction: the single underscore (\texttt{\_}) is never an
 identifier, and is instead classified separately.
@@ -188,7 +185,6 @@ identifier, and is instead classified separately.
 \begin{bnf*}
     \bnfprod{Discard}{\bnfts{\_}}\\
     \bnfprod{IdentifierEq}{\bnfpn{id}\bnfsp\bnfts{=}}\\
-    \bnfprod{IdentifierBang}{\bnfpn{Identifier}\bnfsp\bnfts{!}}\\
     \bnfprod{Identifier}{\bnfpn{id}\quad\bnftd{excluding keywords}}\\
     \bnfprod{id}{\bnfts{[a-zA-Z\_][a-zA-Z0-9\_]*}} \\
 \end{bnf*}
@@ -558,7 +554,8 @@ pieces of code, and must come in matched opening-closing pairs.
         \texttt{OBracePipe} & \texttt{\{|}& \texttt{CBracePipe} & \texttt{|\}} \\
         \texttt{OBrack} & \texttt{[} & \texttt{CBrack} & \texttt{]} \\
         \texttt{OParen} & \texttt{(} & \texttt{CParen} & \texttt{)} \\
-        \texttt{DollarOParen} & \texttt{\$(} & & \\
+        \texttt{DollarOParen} & \texttt{\$(} & & \\ %
+        \texttt{BangOParen} & \texttt{!(} & & \\
         \hline
     \end{tabular}
     \caption{\label{tab:delimiters}Delimiters}

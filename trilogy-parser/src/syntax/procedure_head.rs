@@ -13,8 +13,8 @@ impl ProcedureHead {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let name = Identifier::parse(parser)?;
         parser
-            .expect(TokenType::OParen)
-            .map_err(|token| parser.expected(token, "expected `(`"))?;
+            .expect(TokenType::BangOParen)
+            .map_err(|token| parser.expected(token, "expected `!(`"))?;
         let mut parameters = vec![];
         loop {
             if let Ok(end) = parser.expect(TokenType::CParen) {

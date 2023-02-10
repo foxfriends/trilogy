@@ -127,9 +127,6 @@ impl<'a> Scanner<'a> {
 
     fn identifier_or_keyword(&mut self, starts_with: char) -> Token {
         let identifier = self.identifier(starts_with.into());
-        if self.expect('!').is_some() {
-            return self.make_token(IdentifierBang).with_value(identifier);
-        }
         if self.expect('=').is_some() {
             return self.make_token(IdentifierEq).with_value(identifier);
         }
@@ -507,6 +504,10 @@ impl Iterator for Scanner<'_> {
             '$' if self.expect(|ch| ch == '(').is_some() => {
                 self.nesting.push('(');
                 self.make_token(DollarOParen)
+            }
+            '!' if self.expect(|ch| ch == '(').is_some() => {
+                self.nesting.push('(');
+                self.make_token(BangOParen)
             }
             '{' if self.expect('|').is_some() => {
                 self.nesting.push('|');

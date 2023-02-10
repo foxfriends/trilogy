@@ -83,7 +83,6 @@ pub enum TokenType {
     // Identifiers
     Discard,
     IdentifierEq,
-    IdentifierBang,
     Identifier,
 
     // Literals
@@ -166,6 +165,7 @@ pub enum TokenType {
     OBracePipe,
     CBracePipe,
     DollarOParen,
+    BangOParen,
     OParen,
     CParen,
     OBrack,
