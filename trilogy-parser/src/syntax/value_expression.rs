@@ -91,13 +91,38 @@ impl ValueExpression {
         lhs: ValueExpression,
     ) -> SyntaxResult<Result<Self, Self>> {
         use TokenType::*;
+        // Unfortunate interaction of borrowing rules, have to check this before peeking.
+        let is_line_start = parser.is_line_start();
+        let is_spaced = parser.is_spaced();
         let token = parser.peek();
         match token.token_type {
             OpColonColon if precedence < Precedence::Path => match lhs {
                 Self::Reference(prefix) => {
                     Ok(Ok(Self::Reference(Box::new(prefix.parse_extend(parser)?))))
                 }
-                _ => unreachable!("The precedence rules suggest that this can never happen"),
+                _ => {
+                    let error = SyntaxError::new(
+                        lhs.span().union(token.span),
+                        "modules paths may not contain arbitrary expressions",
+                    );
+                    parser.error(error.clone());
+                    Err(error)
+                }
+            },
+            OParen if precedence <= Precedence::Path && !is_spaced => match lhs {
+                Self::Reference(prefix) if prefix.modules.last().unwrap().arguments.is_some() => {
+                    Ok(Ok(Self::Reference(Box::new(
+                        prefix.parse_arguments(parser)?,
+                    ))))
+                }
+                _ => {
+                    let error = SyntaxError::new(
+                        lhs.span().union(token.span),
+                        "a space must separate a function from its arguments",
+                    );
+                    parser.error(error.clone());
+                    Err(error)
+                }
             },
             OpDot if precedence < Precedence::Access => Ok(Ok(Self::MemberAccess(Box::new(
                 MemberAccess::parse(parser, lhs)?,
@@ -152,6 +177,16 @@ impl ValueExpression {
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
             OpLtPipe if precedence <= Precedence::RPipe => Self::binary(parser, lhs),
             OpGlue if precedence <= Precedence::Glue => Self::binary(parser, lhs),
+            // A function application never spans across two lines. Furthermore,
+            // the application requires a space, as without a space it is considered
+            // a module reference or a rule application.
+            OParen | Identifier
+                if precedence < Precedence::Application && !is_line_start && is_spaced =>
+            {
+                Ok(Ok(Self::Application(Box::new(Application::parse(
+                    parser, lhs,
+                )?))))
+            }
             KwWhen => todo!(),
             KwGiven => todo!(),
             // If nothing matched, it must be the end of the expression
@@ -192,8 +227,10 @@ impl ValueExpression {
             KwBreak => todo!("Break"),
             KwContinue => todo!("Continue"),
             KwCancel => todo!("Cancel"),
-            Identifier => todo!("Variable"),
-            IdentifierBang => todo!("Procedure call"),
+            Identifier => Ok(Self::Reference(Box::new(
+                super::Identifier::parse(parser)?.into(),
+            ))),
+            // IdentifierBang => Ok(Self::Call(Box::new(CallExpression::parse(parser))?)),
             KwFn => todo!("Fn expression"),
             KwDo => todo!("Do expression"),
             TemplateStart => todo!("Template"),
