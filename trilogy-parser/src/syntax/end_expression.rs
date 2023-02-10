@@ -1,19 +1,15 @@
 use super::*;
-use crate::Spanned;
-use source_span::Span;
-use trilogy_scanner::Token;
+use crate::Parser;
+use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct EndExpression {
     start: Token,
-    pub expression: Option<Expression>,
 }
 
-impl Spanned for EndExpression {
-    fn span(&self) -> Span {
-        match &self.expression {
-            None => self.start.span,
-            Some(expression) => self.start.span.union(expression.span()),
-        }
+impl EndExpression {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let start = parser.expect(KwEnd).expect("Caller should have found this");
+        Ok(Self { start })
     }
 }

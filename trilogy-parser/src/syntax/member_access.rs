@@ -15,11 +15,9 @@ impl MemberAccess {
             .expect("Caller should have found this");
         let member = if parser.expect(TokenType::OBrack).is_ok() {
             let expression = Expression::parse(parser)?;
-            parser.expect(TokenType::CBrack).map_err(|token| {
-                let error = SyntaxError::new(token.span, "expected `]`");
-                parser.error(error.clone());
-                error
-            })?;
+            parser
+                .expect(TokenType::CBrack)
+                .map_err(|token| parser.expected(token, "expected `]`"))?;
             Member::Dynamic(Box::new(expression))
         } else {
             Member::Static(Box::new(Identifier::parse(parser)?))

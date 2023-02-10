@@ -1,23 +1,13 @@
 \subsubsection{End}
 \label{sec:prose-end}
 
-The last execution ending statement is the \kw{end} statement, of which the only
-purpose is to explicitly end an execution.
-
-The \kw{end} statement may be bare, or be provided a single value. In the case of
-a bare \kw{end} statement, the execution is simply stopped, the same as any fizzle.
-
-Meanwhile, provided a value, the program is treated to have been completed and
-the value is used as the exit code, as if that value were returned from \kw{main}.
-See the section on Exit Codes (\S\ref{sec:exitcode}) for more details.
+The \kw{end} statement is another simple execution ending statement, of which the only
+purpose is to explicitly end an execution. Upon executing an \kw{end} statement, the
+execution immediately fizzles.
 
 \begin{bnf*}
     \bnfprod{SEnd}{
         \bnfts{\kw{end}}
-        \bnfor
-        \bnfts{\kw{end}}
-        \bnfsp
-        \bnfpn{Expression}
     }
 \end{bnf*}
 
@@ -28,10 +18,4 @@ ending statements.
     \AxiomC{}
     \LeftLabel{End}
     \UnaryInfC{$\Gamma\vdash\kw{end}\ : \bot$}
-\end{prooftree}
-
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash N:\top$}
-    \LeftLabel{End}
-    \UnaryInfC{$\Gamma\vdash\kw{end}\ N : \bot$}
 \end{prooftree}

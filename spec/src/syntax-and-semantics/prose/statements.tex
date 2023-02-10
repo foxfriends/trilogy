@@ -35,24 +35,26 @@ until later.
         \bnfor
         \bnfpn{SEnd}
         \bnfor
-        \bnfpn{SYield}
+        \bnfpn{Exit}
         \bnfor
-        \bnfpn{SResume}
+        \bnfpn{SYield}
         \bnfor
     } \\
     \bnfmore{
+        \bnfpn{SResume}
+        \bnfor
         \bnfpn{SCancel}
         \bnfor
         \bnfpn{SProcedureCall}
         \bnfor
+    } \\
+    \bnfmore{
         \bnfts{(}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
         \bnfts{)}
         \bnfor
-    } \\
-    \bnfmore{
         \bnfpn{Block}
         \bnfor
         \bnfpn{SAssert}

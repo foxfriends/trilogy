@@ -1,0 +1,19 @@
+\subsubsection{Exit}
+
+The \kw{exit} keyword can be also used in \Poetry{}, again with the same
+semantics as in \Prose{}. Upon execution, the program is ended with the
+result of the provided expression used as the exit code.
+
+\begin{bnf*}
+    \bnfprod{Exit}{
+        \bnfts{\kw{exit}}
+        \bnfsp
+        \bnfpn{Expr}
+    }
+\end{bnf*}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash N:\top$}
+    \LeftLabel{Exit}
+    \UnaryInfC{$\Gamma\vdash\kw{end}\ N : \bot$}
+\end{prooftree}

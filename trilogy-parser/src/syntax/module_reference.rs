@@ -82,11 +82,9 @@ impl ModuleArguments {
                 continue;
             }
         }
-        let end = parser.expect(TokenType::CParen).map_err(|token| {
-            let error = SyntaxError::new(token.span, "expected `,` or `)` in argument list");
-            parser.error(error.clone());
-            error
-        })?;
+        let end = parser
+            .expect(TokenType::CParen)
+            .map_err(|token| parser.expected(token, "expected `,` or `)` in argument list"))?;
         Ok(Self {
             start,
             arguments,

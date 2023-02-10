@@ -31,6 +31,7 @@ pub enum ValueExpression {
     Match(Box<MatchExpression>),
     Is(Box<IsExpression>),
     End(Box<EndExpression>),
+    Exit(Box<ExitExpression>),
     Resume(Box<ResumeExpression>),
     Cancel(Box<CancelExpression>),
     Return(Box<ReturnExpression>),
@@ -226,9 +227,10 @@ impl ValueExpression {
             KwNot | OpMinus | OpTilde | KwYield => {
                 Ok(Self::Unary(Box::new(UnaryOperation::parse(parser)?)))
             }
-            KwIf => todo!("Conditional"),
+            KwIf => Ok(Self::IfElse(Box::new(IfElseExpression::parse(parser)?))),
             KwMatch => todo!("Match"),
-            KwEnd => todo!("End"),
+            KwEnd => Ok(Self::End(Box::new(EndExpression::parse(parser)?))),
+            KwExit => todo!("Exit"),
             KwReturn => todo!("Return"),
             KwResume => todo!("Resume"),
             KwBreak => todo!("Break"),

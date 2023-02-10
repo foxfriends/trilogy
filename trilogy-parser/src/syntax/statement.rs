@@ -14,6 +14,7 @@ pub enum Statement {
     Cancel(Box<CancelStatement>),
     Return(Box<ReturnStatement>),
     End(Box<EndStatement>),
+    Exit(Box<ExitStatement>),
     Yield(Box<YieldStatement>),
     Call(Box<CallStatement>),
     Expression(Box<ParenthesizedExpression>),
