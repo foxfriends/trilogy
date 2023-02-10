@@ -89,6 +89,7 @@ impl ValueExpression {
         parser: &mut Parser,
         precedence: Precedence,
         lhs: ValueExpression,
+        accept_comma: bool,
     ) -> SyntaxResult<Result<Self, Self>> {
         use TokenType::*;
         // Unfortunate interaction of borrowing rules, have to check this before peeking.
@@ -190,6 +191,9 @@ impl ValueExpression {
                     parser, lhs,
                 )?))))
             }
+            OpComma if precedence < Precedence::Sequence && accept_comma => {
+                Self::binary(parser, lhs)
+            }
             KwWhen => todo!(),
             KwGiven => todo!(),
             // If nothing matched, it must be the end of the expression
@@ -246,17 +250,29 @@ impl ValueExpression {
         }
     }
 
-    pub(crate) fn parse_precedence(
+    fn parse_precedence_inner(
         parser: &mut Parser,
         precedence: Precedence,
+        accept_comma: bool,
     ) -> SyntaxResult<Self> {
         let mut expr = Self::parse_prefix(parser)?;
         loop {
-            match Self::parse_follow(parser, precedence, expr)? {
+            match Self::parse_follow(parser, precedence, expr, accept_comma)? {
                 Ok(updated) => expr = updated,
                 Err(expr) => return Ok(expr),
             }
         }
+    }
+
+    pub(crate) fn parse_precedence(
+        parser: &mut Parser,
+        precedence: Precedence,
+    ) -> SyntaxResult<Self> {
+        Self::parse_precedence_inner(parser, precedence, true)
+    }
+
+    pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Self> {
+        Self::parse_precedence_inner(parser, Precedence::Primary, false)
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {

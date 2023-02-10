@@ -22,7 +22,7 @@ impl CallExpression {
             if parser.check(CParen).is_some() {
                 break;
             }
-            arguments.push(ValueExpression::parse(parser)?.into());
+            arguments.push(ValueExpression::parse_parameter_list(parser)?.into());
             if parser.expect(OpComma).is_ok() {
                 continue;
             }
