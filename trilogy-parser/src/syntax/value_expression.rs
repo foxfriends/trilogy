@@ -20,6 +20,7 @@ pub enum ValueExpression {
     RecordComprehension(Box<RecordComprehension>),
     IteratorComprehension(Box<IteratorComprehension>),
     MemberAccess(Box<MemberAccess>),
+    Reference(Box<ModulePath>),
     Keyword(Box<KeywordReference>),
     Application(Box<Application>),
     Call(Box<CallExpression>),
@@ -92,9 +93,15 @@ impl ValueExpression {
         use TokenType::*;
         let token = parser.peek();
         match token.token_type {
-            OpColonColon if precedence < Precedence::Path => todo!("Module path"),
-            OParen if precedence < Precedence::Path => todo!("Module params"),
-            OpDot if precedence < Precedence::Access => todo!(),
+            OpColonColon if precedence < Precedence::Path => match lhs {
+                Self::Reference(prefix) => {
+                    Ok(Ok(Self::Reference(Box::new(prefix.parse_extend(parser)?))))
+                }
+                _ => unreachable!("The precedence rules suggest that this can never happen"),
+            },
+            OpDot if precedence < Precedence::Access => Ok(Ok(Self::MemberAccess(Box::new(
+                MemberAccess::parse(parser, lhs)?,
+            )))),
             KwAnd if precedence < Precedence::And => Self::binary(parser, lhs),
             KwOr if precedence < Precedence::Or => {
                 let op = parser.expect(KwOr).unwrap();
@@ -128,7 +135,7 @@ impl ValueExpression {
                 if let Ok(Ok(expr)) = &expr {
                     parser.error(SyntaxError::new(
                         expr.span(),
-                        "comparison operators cannot be chained, use parentheses to disambiguate",
+                        "equality operators cannot be chained, use parentheses to disambiguate",
                     ));
                 }
                 expr

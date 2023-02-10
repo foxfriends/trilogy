@@ -23,4 +23,9 @@ impl ModulePath {
         let first = ModuleReference::parse(parser)?;
         Self::parse_rest(parser, first)
     }
+
+    pub(crate) fn parse_extend(mut self, parser: &mut Parser) -> SyntaxResult<Self> {
+        self.modules.push(ModuleReference::parse(parser)?);
+        Ok(self)
+    }
 }
