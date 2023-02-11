@@ -193,8 +193,6 @@ impl Expression {
             OpComma if precedence < Precedence::Sequence && accept_comma => {
                 Self::binary(parser, lhs)
             }
-            KwWhen => todo!(),
-            KwGiven => todo!(),
             // If nothing matched, it must be the end of the expression
             _ => Ok(Err(lhs)),
         }
