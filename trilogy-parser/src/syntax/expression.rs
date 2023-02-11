@@ -239,7 +239,7 @@ impl Expression {
             KwWith => Ok(Self::Handled(Box::new(HandledExpression::parse(parser)?))),
             KwFn => Ok(Self::Fn(Box::new(FnExpression::parse(parser)?))),
             KwDo => Ok(Self::Do(Box::new(DoExpression::parse(parser)?))),
-            TemplateStart => todo!("Template"),
+            DollarString | TemplateStart => Ok(Self::Template(Box::new(Template::parse(parser)?))),
             OParen => Ok(Self::Parenthesized(Box::new(
                 ParenthesizedExpression::parse(parser)?,
             ))),
