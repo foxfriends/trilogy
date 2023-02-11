@@ -12,10 +12,7 @@ impl UnaryOperation {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let operator = UnaryOperator::parse(parser);
         let operand = Expression::parse_precedence(parser, operator.precedence())?;
-        Ok(Self {
-            operator,
-            operand,
-        })
+        Ok(Self { operator, operand })
     }
 }
 

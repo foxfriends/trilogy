@@ -14,9 +14,6 @@ impl ExitExpression {
             .expect(KwExit)
             .expect("Caller should have found this");
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
-        Ok(Self {
-            start,
-            expression,
-        })
+        Ok(Self { start, expression })
     }
 }
