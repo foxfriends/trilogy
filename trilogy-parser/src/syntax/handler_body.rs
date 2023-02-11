@@ -1,4 +1,4 @@
-use super::*;
+use super::{expression::Precedence, *};
 use crate::Parser;
 use trilogy_scanner::TokenType::*;
 
@@ -13,7 +13,10 @@ impl HandlerBody {
         if parser.check(OBrace).is_ok() {
             Ok(Self::Block(Box::new(Block::parse(parser)?)))
         } else {
-            Ok(Self::Expression(Box::new(Expression::parse(parser)?)))
+            Ok(Self::Expression(Box::new(Expression::parse_precedence(
+                parser,
+                Precedence::Continuation,
+            )?)))
         }
     }
 }

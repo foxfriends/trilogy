@@ -1,7 +1,7 @@
 use super::*;
-use crate::spanned::Spanned;
+use crate::{Parser, Spanned};
 use source_span::Span;
-use trilogy_scanner::Token;
+use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct WhenHandler {
@@ -9,6 +9,28 @@ pub struct WhenHandler {
     pub pattern: Pattern,
     pub strategy: HandlerStrategy,
     pub body: Option<HandlerBody>,
+}
+
+impl WhenHandler {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let start = parser
+            .expect(KwWhen)
+            .expect("Caller should have found this");
+        let pattern = Pattern::parse(parser)?;
+        let strategy = HandlerStrategy::parse(parser)?;
+        let body = if !matches!(strategy, HandlerStrategy::Yield(..)) {
+            Some(HandlerBody::parse(parser)?)
+        } else {
+            None
+        };
+
+        Ok(Self {
+            start,
+            pattern,
+            strategy,
+            body,
+        })
+    }
 }
 
 impl Spanned for WhenHandler {
