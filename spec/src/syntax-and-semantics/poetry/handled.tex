@@ -1,0 +1,23 @@
+\subsubsection{Handled Expressions}
+
+Much like handled blocks in \Prose{}, a handled expression is how \Poetry{}
+allows effects to be handled, and uses the \kw{with} keyword as well.
+
+\begin{bnf*}
+    \bnfprod{Handled}{
+        \bnfts{\kw{with}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{EffectHandlers}
+    }
+\end{bnf*}
+
+Once again, the semantics of the effect system are left for \S\ref{sec:effects}.
+The semantics of the \kw{with} expression itself are very simple:
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \LeftLabel{With}
+    \UnaryInfC{$\Gamma\vdash \kw{when}\ E : \tau$}
+\end{prooftree}

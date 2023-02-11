@@ -2,7 +2,7 @@ proc main!() {
     let target = random!(10)
     let mut guesses = 0
     while true {
-        let guess = Int readline!()
+        let guess = with Int readline!()
             when 'EOF cancel {
                 println!("You give up? Then you lose.")
                 end 1
@@ -11,6 +11,7 @@ proc main!() {
                 println!("That's not a valid integer")
                 continue
             }
+            else yield
         guesses += 1
         if guess > target {
             println!("Too high")

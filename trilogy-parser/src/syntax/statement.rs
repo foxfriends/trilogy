@@ -19,6 +19,7 @@ pub enum Statement {
     Call(Box<CallStatement>),
     Expression(Box<ParenthesizedExpression>),
     Assert(Box<AssertStatement>),
+    Handled(Box<HandledBlock>),
     Block(Box<Block>),
     SyntaxError(Box<SyntaxError>),
 }

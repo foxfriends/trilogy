@@ -1,9 +1,11 @@
 proc collect!(body) {
     let mut collection = []
-    body!() when 'next(value) invert {
-        collection push= value
-        resume
-    }
+    with body!()
+        when 'next(value) invert {
+            collection push= value
+            resume
+        }
+        else yield
     return collection
 }
 
@@ -16,14 +18,18 @@ proc hello!() {
 }
 
 proc map!(transform, body) {
-    return body!() when event resume yield transform event
+    return with body!()
+        when event resume yield transform event
+        else yield
 }
 
 proc reverse!(body) {
-    return body!() when event invert {
-        resume
-        yield event
-    }
+    return with body!()
+        when event invert {
+            resume
+            yield event
+        }
+        else yield
 }
 
 proc main!() {

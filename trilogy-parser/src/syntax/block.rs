@@ -7,7 +7,6 @@ pub struct Block {
     start: Token,
     pub statements: Vec<Statement>,
     end: Token,
-    pub handlers: Vec<Handler>,
 }
 
 impl Block {
@@ -24,7 +23,6 @@ impl Block {
             start,
             statements: vec![],
             end,
-            handlers: vec![],
         })
     }
 }

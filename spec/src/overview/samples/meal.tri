@@ -15,10 +15,10 @@ proc main!() {
     for food(item, _) {
         println!($"${item}")
     }
-    
+
     let mut meal = []
     while true {
-        let item = readline!() when 'EOF cancel { break }
+        let item = with readline!() when 'EOF cancel { break } else yield
         if food(^item, _) {
             meal[length meal] = item
         } else {

@@ -1,4 +1,4 @@
-use super::{value_expression::Precedence, *};
+use super::{expression::Precedence, *};
 use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
@@ -17,7 +17,7 @@ impl MatchExpression {
             .expect(KwMatch)
             .expect("Caller should have found this");
 
-        let expression = ValueExpression::parse(parser)?;
+        let expression = Expression::parse(parser)?;
 
         let mut cases = vec![];
         loop {
@@ -37,13 +37,13 @@ impl MatchExpression {
         parser.expect(KwElse).map_err(|token| {
             parser.expected(token, "expected `else` case to end a `match` expression")
         })?;
-        let no_match = ValueExpression::parse_precedence(parser, Precedence::Continuation)?;
+        let no_match = Expression::parse_precedence(parser, Precedence::Continuation)?;
 
         Ok(Self {
             start,
-            expression: expression.into(),
+            expression,
             cases,
-            no_match: no_match.into(),
+            no_match,
         })
     }
 }
@@ -69,13 +69,13 @@ impl MatchExpressionCase {
         let guard = parser
             .expect(KwIf)
             .ok()
-            .map(|_| ValueExpression::parse(parser))
+            .map(|_| Expression::parse(parser))
             .transpose()?
             .map(Into::into);
         parser.expect(KwThen).map_err(|token| {
             parser.expected(token, "expected `then` to mark the body of a `case`")
         })?;
-        let body = ValueExpression::parse(parser)?.into();
+        let body = Expression::parse(parser)?;
         Ok(Self {
             start,
             pattern,

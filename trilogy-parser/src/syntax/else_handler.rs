@@ -4,14 +4,14 @@ use source_span::Span;
 use trilogy_scanner::Token;
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
-pub struct WhenHandler {
+pub struct ElseHandler {
     start: Token,
-    pub pattern: Pattern,
+    pub identifier: Option<Identifier>,
     pub strategy: HandlerStrategy,
     pub body: Option<HandlerBody>,
 }
 
-impl Spanned for WhenHandler {
+impl Spanned for ElseHandler {
     fn span(&self) -> Span {
         match &self.body {
             None => self.start.span.union(self.strategy.span()),

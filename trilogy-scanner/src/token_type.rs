@@ -43,6 +43,7 @@ pub enum TokenType {
     KwUse,
     KwWhen,
     KwWhile,
+    KwWith,
     KwYield,
 
     // Reserved Words
@@ -80,7 +81,6 @@ pub enum TokenType {
     KwUntil,
     KwVar,
     KwWhere,
-    KwWith,
 
     // Identifiers
     Discard,

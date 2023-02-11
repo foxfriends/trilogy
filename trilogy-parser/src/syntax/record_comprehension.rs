@@ -5,7 +5,7 @@ use trilogy_scanner::Token;
 pub struct RecordComprehension {
     start: Token,
     pub key_expression: Expression,
-    pub value_expression: Expression,
+    pub expression: Expression,
     pub query: Query,
     end: Token,
 }

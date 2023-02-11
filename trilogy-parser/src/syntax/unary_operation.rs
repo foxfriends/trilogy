@@ -1,4 +1,4 @@
-use super::{value_expression::Precedence, *};
+use super::{expression::Precedence, *};
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType::*};
 
@@ -11,10 +11,10 @@ pub struct UnaryOperation {
 impl UnaryOperation {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let operator = UnaryOperator::parse(parser);
-        let operand = ValueExpression::parse_precedence(parser, operator.precedence())?;
+        let operand = Expression::parse_precedence(parser, operator.precedence())?;
         Ok(Self {
             operator,
-            operand: operand.into(),
+            operand,
         })
     }
 }

@@ -1,17 +1,23 @@
 func isAllowed word = word == yield 'getAllowed
 
 proc allowOne!(word, body) {
-    return body!() when 'getAllowed resume word
+    return with body!()
+        when 'getAllowed resume word
+        else yield
 }
 
 proc allowAlso!(word, body) {
-    return body!() when 'getAllowed invert {
-        cancel resume word or resume yield 'getAllowed
-    }
+    return with body!()
+        when 'getAllowed invert {
+            cancel resume word or resume yield 'getAllowed
+        }
+        else yield
 }
 
 proc allowMany!(words, body) {
-    return body!() when 'getAllowed invert (any (resume) words)
+    return with body!()
+        when 'getAllowed invert (any (resume) words)
+        else yield
 }
 
 proc main!() {

@@ -1,17 +1,19 @@
 proc readsum!() {
     let mut sum = 0
     while true {
-        let line = readline() when 'EOF cancel { break }
-        sum += Int line when 'NAN cancel yield line
+        let line = with readline() else cancel { break }
+        sum += with Int line
+            when 'NAN cancel yield line
+            else yield
     }
     return sum
 }
 
 proc main!() {
-    let sum = readsum!()
+    let sum = with readsum!()
         when "One"   resume 1
         when "Two"   resume 2
         when "Three" resume 3
-        when _       resume 0
+        else         resume 0
     println!($"The sum is ${sum}")
 }

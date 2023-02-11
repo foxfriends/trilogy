@@ -1,4 +1,4 @@
-use super::{value_expression::Precedence, *};
+use super::{expression::Precedence, *};
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType::*};
 
@@ -26,11 +26,11 @@ impl BinaryOperation {
 impl BinaryOperation {
     pub(crate) fn parse(parser: &mut Parser, lhs: impl Into<Expression>) -> SyntaxResult<Self> {
         let operator = BinaryOperator::parse(parser);
-        let rhs = ValueExpression::parse_precedence(parser, operator.precedence())?;
+        let rhs = Expression::parse_precedence(parser, operator.precedence())?;
         Ok(BinaryOperation {
             lhs: lhs.into(),
             operator,
-            rhs: rhs.into(),
+            rhs,
         })
     }
 }

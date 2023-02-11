@@ -1,0 +1,23 @@
+\subsubsection{Handled Blocks}
+
+As a language with effects, \Prose{} allows attaching effect handlers to code
+in the form of handled blocks. Such handled blocks are marked with \kw{with}.
+
+\begin{bnf*}
+    \bnfprod{SHandled}{
+        \bnfts{\kw{with}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfpn{EffectHandlers}
+    }
+\end{bnf*}
+
+The detailed semantics of the effect system are covered in \S\ref{sec:effects}.
+Meanwhile semantics of the \kw{with} block are the same as any other block.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash B: \top$}
+    \LeftLabel{With}
+    \UnaryInfC{$\Gamma\vdash \kw{with}\ B : \top$}
+\end{prooftree}

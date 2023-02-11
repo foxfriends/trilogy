@@ -57,6 +57,8 @@ until later.
         \bnfor
         \bnfpn{Block}
         \bnfor
+        \bnfpn{SHandled}
+        \bnfor
         \bnfpn{SAssert}
     } \\
     \bnfprod{Block}{
@@ -65,14 +67,6 @@ until later.
         \bnfpn{Sequence}
         \bnfsp
         \bnfts{\}}
-        \bnfor
-        \bnfts{\{}
-        \bnfsp
-        \bnfpn{Sequence}
-        \bnfsp
-        \bnfts{\}}
-        \bnfsp
-        \bnfpn{EffectHandlers}
     }
 \end{bnf*}
 
@@ -98,7 +92,3 @@ the end of the block.
     \LeftLabel{Unnest}
     \BinaryInfC{$\Gamma \vdash \block{M} : \top$}
 \end{prooftree}
-
-In addition to being a scope barrier, blocks serve as anchor points onto
-which effect handlers may be attached. The semantics of effect handlers
-will be addressed in \S\ref{sec:effects}.

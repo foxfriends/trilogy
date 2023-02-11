@@ -26,16 +26,26 @@ handlers.
         \bnfsp
         \bnfpn{EffectHandlers}
         \bnfor
-        \bnfpn{EffectHandler}
+    } \\
+    \bnfmore{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfpn{Handler}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Handler}
     } \\
     \bnfprod{EffectHandler}{
         \bnfts{\kw{when}}
         \bnfsp
         \bnfpn{Pattern}
         \bnfsp
-        \bnfts{\kw{resume}}
-        \bnfsp
-        \bnfpn{Expr}
+        \bnfpn{Handler}
         \bnfor
     } \\
     \bnfmore{
@@ -43,49 +53,11 @@ handlers.
         \bnfsp
         \bnfpn{Pattern}
         \bnfsp
-        \bnfts{\kw{resume}}
+        \bnfts{\kw{if}}
         \bnfsp
-        \bnfpn{Block}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{when}}
+        \bnfpn{Expression}
         \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{\kw{cancel}}
-        \bnfsp
-        \bnfpn{Expr}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{when}}
-        \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{\kw{cancel}}
-        \bnfsp
-        \bnfpn{Block}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{when}}
-        \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{\kw{invert}}
-        \bnfsp
-        \bnfpn{Expr}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{when}}
-        \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{\kw{invert}}
-        \bnfsp
-        \bnfpn{Block}
+        \bnfpn{Handler}
         \bnfor
     } \\
     \bnfmore{
@@ -102,6 +74,37 @@ handlers.
         \bnfts{\op{<-}}
         \bnfsp
         \bnfpn{RuleBody}
+    } \\
+    \bnfprod{Handler}{
+        \bnfts{\kw{resume}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfts{\kw{resume}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{cancel}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfts{\kw{cancel}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{invert}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfts{\kw{invert}}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+        \bnfts{\kw{yield}}
     }
 \end{bnf*}
 
@@ -109,14 +112,10 @@ Effect handlers come in two varieties: the \kw{when} form for functional
 or imperative effect handlers; and the \kw{given} form for dynamic rules,
 which take the place of both closures and predicate-level effects in \Law{}
 (\Poetry{}'s \kw{yield} expression may be used in expressions in \Law{}
-in the conventional effect system way).
-
-Further broken down, the \kw{when} form allows the body to be either an expression
-or a block. Though not encoded in the grammar at all, note that the block
-option is only permitted in procedures. Encountered in a function, the block
-will be reported as a syntax error. For specification and parsing purposes, however
-it is easier to leave it like it is; the grammar will be unambiguous either way,
-it's mostly just for logical consistency that this is forbidden.
+in the conventional effect system way). At the end of a chain of handlers,
+the \kw{else} clause is included to describe what to do in the case of no
+handler matching; the default choice should be \kw{else yield}, but in some
+situations there may be reason to do otherwise.
 
 It is worth noting that dynamic rules are not necessarily here to stay, as
 they may be a hack given my relative lack of experience with both practical
@@ -128,7 +127,7 @@ into the effect handler syntax because it was convenient. This constrained
 version of \texttt{assertz/1} is likely a good idea though, so it will make
 it into the first version of \Trilogy{}.
 
-In fact, to get it out of the way, the semantics of the \kw{given} clause
+To get it out of the way, the semantics of the \kw{given} clause
 will be discussed first, as they are basically exactly like rule definitions,
 only limited to the scope of one expression or block rather than the entire
 program.
@@ -150,32 +149,36 @@ program.
 
 Effects are similar in that they install a contextual handler around a piece
 of code. When an effect is yielded, the ``nearest'' handler with a matching pattern
-will be used to handle that effect. The nearest handler in a chain of them on one
-expression is the first handler in the chain, meanwhile the nearest handler when
-nested is the one least scopes upwards from the point of the \kw{yield}.
+and guard will be used to handle that effect. The nearest handler in a chain of them
+on one expression is the first handler in the chain, meanwhile the nearest handler when
+nested is the one least scopes away from the point of the \kw{yield}.
 
 The three keywords \kw{resume}, \kw{cancel}, and \kw{invert} describe how the
-handler responds to the effect.
+handler responds to the effect. The \kw{yield} keyword may also be used on a
+handler to denote that no handling is done, and the effect is simply re-yielded
+to a handler in the parent scope (a re-yielded effect never gets handled by another
+handler on the same chain).
 
 A \kw{cancel} handler will not respond, instead aborting the entire expression
-or statement on which the handler was attached. The expression following the
-\kw{cancel} is used as the evaluated value of the expression; in the case of a
-block, the value is \kw{unit}.
+or statement on which the handler was attached, as if the \kw{with} keyword evaluated
+to the value that \kw{cancel} was supplied. In the case of a handled block, the value
+is lost.
 
 A \kw{resume} handler will respond with the evaluation of the expression following
 the keyword. The \kw{yield} that performed the effect will evaluate to that value.
 If a block is used instead of an expression, the \kw{yield} evaluates to \kw{unit}.
 
 The \kw{invert} handler is the most powerful, and is the one that binds the
-first-class keyword \kw{resume} to the current effect handler. The block or expression
-following the \kw{invert} keyword is run in response to the effect, and may use \kw{resume} to
-respond to the \kw{yield}, possibly more than one time.
+first-class keywords \kw{resume} and \kw{cancel} to the current effect handler.
+The block or expression following the \kw{invert} keyword is run in response to
+the effect, and may use \kw{resume} or \kw{cancel} to respond to the \kw{yield},
+possibly multiple times.
 
 The \kw{resume} in this situation is a bounded continuation that ranges from the
-\kw{yield} expression that is performing the effect until the expression onto
-which the handler is attached. When applied, this continuation runs until it reaches
-its bound and then the value that the last expression evaluates to is used as the
-value of the \kw{resume} application.
+\kw{yield} expression that is performing the effect until the \kw{with} keyword
+of the expression onto which the handler is attached. When applied, this continuation
+runs until it reaches its bound and then the value that the last expression evaluates
+to is used as the value of the \kw{resume} application.
 
 Only when the effect handler's body is finished executing does the original
 expression finally evaluate. In the case that the body is an expression, the
@@ -186,15 +189,24 @@ is also a first class keyword that can be captured to get the unbounded continua
 following the end of the original expression to be passed along to other code, if
 so desired.
 
-As you can see, the \kw{invert} form holds the most power, while the \kw{resume}
+In any case, though the grammar appears to permit blocks and expressions interchangeably,
+blocks are only permitted inside procedures and will be reported as a syntax error if found
+in a function definition (including a \kw{fn} closure). This rule may be relaxed at a later
+time.
+
+As you can see, the \kw{invert} form holds the most power, while the \kw{yield}, \kw{resume}
 and \kw{cancel} forms are just special cases, the following syntax transformation
 formalizes them so that we only need to specify the semantics of \kw{invert}.
+Included as well is the transformation for the \kw{else} clause.
 
 \begin{align*}
     & \texttt{\kw{when} \$p:pat \kw{resume} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \kw{resume} \$e \}} \\ %
     & \texttt{\kw{when} \$p:pat \kw{resume} \$block} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \$b; \kw{cancel} \kw{resume} \}} \\ %
     & \texttt{\kw{when} \$p:pat \kw{cancel} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \$e \}} \\ %
     & \texttt{\kw{when} \$p:pat \kw{cancel} \$b:block} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \$b; \kw{cancel} \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{yield}} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{resume} \kw{yield} \$p \}} \\ %
+    & \texttt{\kw{else} \$n:ident \$h:handler} \Rightarrow \texttt{\kw{when} \$n \$h} \\ %
+    & \texttt{\kw{else} \$h:handler} \Rightarrow \texttt{\kw{else} \_ \$h} \\ %
 \end{align*}
 
 Beginning with the \kw{when} itself, this keyword adds an effect handler to the scope
