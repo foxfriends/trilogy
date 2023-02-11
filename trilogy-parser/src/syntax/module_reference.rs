@@ -63,7 +63,7 @@ impl ModuleArguments {
         // There may be no space between a module and its arguments, as a space
         // is used in function application; a parenthesized parameter to a function
         // may otherwise be ambiguous. A bit of a hack, but I think we'll survive.
-        if parser.check(TokenType::OParen).is_none() || parser.is_spaced() {
+        if parser.check(TokenType::OParen).is_ok() || parser.is_spaced() {
             return Ok(None);
         }
         ModuleArguments::force_parse(parser).map(Some)
@@ -74,7 +74,7 @@ impl ModuleArguments {
 
         let mut arguments = vec![];
         loop {
-            if parser.check(TokenType::CParen).is_some() {
+            if parser.check(TokenType::CParen).is_ok() {
                 break;
             }
             arguments.push(ModuleReference::parse(parser)?);

@@ -47,7 +47,7 @@ impl ModuleParameters {
         };
         let mut parameters = vec![];
         loop {
-            if parser.check(TokenType::CParen).is_some() {
+            if parser.check(TokenType::CParen).is_ok() {
                 break;
             }
             parameters.push(Identifier::parse(parser)?);

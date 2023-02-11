@@ -76,7 +76,7 @@ impl Definition {
                 //
                 // Parse one of those, then check the next token to determine the way forward.
                 let first = ModuleReference::parse(parser)?;
-                if parser.check([KwAs, OpDot]).is_some() {
+                if parser.check([KwAs, OpDot]).is_ok() {
                     DefinitionItem::ModuleImport(Box::new(ModuleImportDefinition::parse(
                         parser, start, first,
                     )?))

@@ -17,7 +17,7 @@ impl RuleHead {
             .map_err(|token| parser.expected(token, "expected `(`"))?;
         let mut parameters = vec![];
         loop {
-            if parser.check(TokenType::CParen).is_some() {
+            if parser.check(TokenType::CParen).is_ok() {
                 break;
             }
             parameters.push(Pattern::parse(parser)?);

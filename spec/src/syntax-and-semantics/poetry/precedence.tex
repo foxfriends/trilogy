@@ -65,15 +65,18 @@ If associativity is indeterminate, explicit disambiguation with parentheses is r
         \kw{or} & Left to right \\
         \op{|>} & Left to right \\
         \op{<|} & Right to left \\
-        \kw{let} & Right to left \\
-        \kw{if}\ \kw{then}\ \kw{else} & Right to left \\
-        \kw{match}\ \kw{case}\ \kw{then} & Right to left \\
-        \kw{yield}\quad\kw{resume} & \\
-        \op{,} & Left to right \\
-        Handlers\quad\kw{when}\quad\kw{given} & Left to right \\
         \hline
+        \kw{if}\ \kw{then}\ \kw{else} & \\
+        \kw{match}\ \kw{case}\ \kw{then}\ \kw{else} & \\
+        \kw{yield}\quad\kw{resume} & \\
         \kw{end}\quad\kw{exit}\quad\kw{return} & \\
         \kw{cancel}\quad\kw{break}\quad\kw{continue} & \\
+        \kw{do}\texttt{()}\quad\kw{fn}\op{.} & \\
+        \hline
+        \kw{let}\ \op{,} & Right to left \\
+        \op{,} & Right to left \\
+        \hline
+        \kw{when}\quad\kw{given} & Left to right \\
         \hline
     \end{tabular}
     \caption{\label{tab:prec}Expression Precedence}

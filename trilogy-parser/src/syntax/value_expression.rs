@@ -69,12 +69,9 @@ pub(crate) enum Precedence {
     Or,
     Pipe,
     RPipe,
-    Handler,
-    Conditional,
-    Match,
-    Yield,
-    Sequence,
     Continuation,
+    Sequence,
+    Handler,
     None,
 }
 
@@ -212,7 +209,7 @@ impl ValueExpression {
             KwTrue | KwFalse => Ok(Self::Boolean(Box::new(BooleanLiteral::parse(parser)?))),
             Atom => {
                 let atom = AtomLiteral::parse(parser)?;
-                if parser.check(OParen).is_some() {
+                if parser.check(OParen).is_ok() {
                     Ok(Self::Struct(Box::new(StructLiteral::parse(parser, atom)?)))
                 } else {
                     Ok(Self::Atom(Box::new(atom)))
@@ -228,7 +225,7 @@ impl ValueExpression {
                 Ok(Self::Unary(Box::new(UnaryOperation::parse(parser)?)))
             }
             KwIf => Ok(Self::IfElse(Box::new(IfElseExpression::parse(parser)?))),
-            KwMatch => todo!("Match"),
+            KwMatch => Ok(Self::Match(Box::new(MatchExpression::parse(parser)?))),
             KwEnd => Ok(Self::End(Box::new(EndExpression::parse(parser)?))),
             KwExit => Ok(Self::Exit(Box::new(ExitExpression::parse(parser)?))),
             KwReturn => Ok(Self::Return(Box::new(ReturnExpression::parse(parser)?))),

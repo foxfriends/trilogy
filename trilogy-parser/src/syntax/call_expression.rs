@@ -19,7 +19,7 @@ impl CallExpression {
             .expect("Caller should have found this");
         let mut arguments = vec![];
         loop {
-            if parser.check(CParen).is_some() {
+            if parser.check(CParen).is_ok() {
                 break;
             }
             arguments.push(ValueExpression::parse_parameter_list(parser)?.into());

@@ -49,14 +49,6 @@ to a function as any other function definition, only that this function
 captures bindings from its environment. These captured bindings may escape
 the lifetime of their syntactic scope if the closure escapes that scope.
 
-This function's body is specified as a single expression following the
-parameter list. This expression continues until the first end-of-line that
-allows the next line to parse were the closure ended. Hopefully this is not
-too ambiguous while also making for ergonomic pipelines using the function
-application operator (\op{|>}) with on-the-fly function closures. If a
-function closure is not working as expected, parentheses will solve the
-issue.
-
 As with regular function definitions, \kw{fn} includes support for
 multi-argument functions as a syntax transformation into single argument
 functions returning further single argument functions.
@@ -84,7 +76,7 @@ the procedure evaluates to \kw{unit} when called.
 The form accepting an expression actually works more like a function, where
 that expression is evaluated and returned automatically. This is particularly
 to cover for the fact that function closures (and indeed functions in general)
-may not be nullary, so to be able to defer a computation, a procedure is a
+may not be nullary so, to be able to defer a computation, a procedure is a
 fine substitute.
 
 Similarly to function closures, the procedure closure captures bindings from

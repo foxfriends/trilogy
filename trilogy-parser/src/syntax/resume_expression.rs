@@ -13,7 +13,7 @@ impl ResumeExpression {
         let start = parser
             .expect(KwResume)
             .expect("Caller should have found this");
-        let expression = ValueExpression::parse_precedence(parser, Precedence::Yield)?;
+        let expression = ValueExpression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
             start,
             expression: expression.into(),

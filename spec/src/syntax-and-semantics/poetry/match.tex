@@ -5,6 +5,10 @@ branch associated with the first unification that succeeds. This is much
 like the \kw{match} statement of \Prose{} but the branches hold expressions
 instead of blocks.
 
+As all expressions are required to evaluate to some value, the \kw{match}
+expression requires a specific \kw{else} clause to be run in the situation
+that no \kw{case} was selected.
+
 \begin{bnf*}
     \bnfprod{Match}{
         \bnfts{\kw{match}}
@@ -12,6 +16,10 @@ instead of blocks.
         \bnfpn{Expr}
         \bnfsp
         \bnfpn{Cases}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Expr}
     } \\
     \bnfprod{Cases}{
         \bnfpn{Case}\bnfsp\bnfpn{Cases}\bnfor\bnfpn{Case}
@@ -66,6 +74,14 @@ evaluation of the \kw{match} expression as a whole.
     \TrinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{case}\ P\ \kw{if}\ C\ \kw{then}\ B : \tau$}
 \end{prooftree}
 
+\vskip 0.5em
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E$}
+    \AxiomC{$\Gamma\vdash B : \tau$}
+    \LeftLabel{No Match}
+    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{else}\ B : \tau$}
+\end{prooftree}
+
 \begin{prooftree}
     \def\extraVskip{3.5pt}
     \AxiomC{$\Gamma \vdash E$}
@@ -77,6 +93,8 @@ evaluation of the \kw{match} expression as a whole.
     \insertBetweenHyps{\hskip -12pt}
     \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n : \tau$}
 \end{prooftree}
+
+\vskip 0.5em
 
 \begin{prooftree}
     \def\extraVskip{3.5pt}

@@ -17,7 +17,7 @@ impl ImportDefinition {
     ) -> SyntaxResult<Self> {
         let mut names = vec![first];
         while parser.expect(TokenType::OpComma).is_ok() {
-            if parser.check(TokenType::KwFrom).is_some() {
+            if parser.check(TokenType::KwFrom).is_ok() {
                 break;
             }
             names.push(Identifier::parse(parser)?);

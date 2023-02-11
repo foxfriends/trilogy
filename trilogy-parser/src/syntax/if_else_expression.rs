@@ -24,7 +24,7 @@ impl IfElseExpression {
                 "expected `else`; an if expression always requires an else clause",
             )
         })?;
-        let when_false = ValueExpression::parse_precedence(parser, Precedence::Conditional)?;
+        let when_false = ValueExpression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
             start,
             condition: condition.into(),

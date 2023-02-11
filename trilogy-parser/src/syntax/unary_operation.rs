@@ -43,7 +43,7 @@ impl UnaryOperator {
 
     fn precedence(&self) -> Precedence {
         if matches!(self, Self::Yield(..)) {
-            Precedence::Yield
+            Precedence::Continuation
         } else {
             Precedence::Unary
         }
