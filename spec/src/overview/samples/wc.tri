@@ -22,7 +22,9 @@ func flatMap f [x : xs] = concat (f x) (flatMap f xs)
 proc readlines!() {
     let mut array = []
     while true {
-        let line = with readline!() when 'EOF cancel { break } else yield
+        let line = with readline!()
+            when 'EOF cancel { break }
+            else yield
         array.[length array] = line
     }
     return array
