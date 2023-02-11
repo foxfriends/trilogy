@@ -58,6 +58,7 @@ If associativity is indeterminate, explicit disambiguation with parentheses is r
         \op{\textasciicircum} & Left to right \\
         \op{|} & Left to right \\
         \op{<>} & Left to right \\
+        \op{:} & Right to left \\
         \op{<=}\quad\op{>=}\quad\op{<}\quad\op{>} & Indeterminate \\
         \op{==}\quad\op{===} & Indeterminate \\
         \kw{and} & Left to right \\
@@ -67,12 +68,11 @@ If associativity is indeterminate, explicit disambiguation with parentheses is r
         \kw{let} & Right to left \\
         \kw{if}\ \kw{then}\ \kw{else} & Right to left \\
         \kw{match}\ \kw{case}\ \kw{then} & Right to left \\
-        \kw{yield} & \\
-        \op{:} & Right to left \\
+        \kw{yield}\quad\kw{resume} & \\
         \op{,} & Left to right \\
         Handlers\quad\kw{when}\quad\kw{given} & Left to right \\
         \hline
-        \kw{end}\quad\kw{exit}\quad\kw{return}\quad\kw{resume} & \\
+        \kw{end}\quad\kw{exit}\quad\kw{return} & \\
         \kw{cancel}\quad\kw{break}\quad\kw{continue} & \\
         \hline
     \end{tabular}
