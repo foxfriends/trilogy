@@ -216,9 +216,45 @@ impl Expression {
             }
             Character => Ok(Self::Character(Box::new(CharacterLiteral::parse(parser)?))),
             KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
-            OBrack => todo!("Array + Comp"),
-            OBracePipe => todo!("Set + Comp"),
-            OBrace => todo!("Record + Comp"),
+            OBrack => {
+                let start = parser.expect(OBrack).unwrap();
+                match ArrayElement::parse(parser)? {
+                    ArrayElement::Element(expression) if parser.expect(KwFor).is_ok() => {
+                        Ok(Self::ArrayComprehension(Box::new(
+                            ArrayComprehension::parse_rest(parser, start, expression)?,
+                        )))
+                    }
+                    element => Ok(Self::Array(Box::new(ArrayLiteral::parse_rest(
+                        parser, start, element,
+                    )?))),
+                }
+            }
+            OBracePipe => {
+                let start = parser.expect(OBracePipe).unwrap();
+                match SetElement::parse(parser)? {
+                    SetElement::Element(expression) if parser.expect(KwFor).is_ok() => {
+                        Ok(Self::SetComprehension(Box::new(
+                            SetComprehension::parse_rest(parser, start, expression)?,
+                        )))
+                    }
+                    element => Ok(Self::Set(Box::new(SetLiteral::parse_rest(
+                        parser, start, element,
+                    )?))),
+                }
+            }
+            OBrace => {
+                let start = parser.expect(OBrace).unwrap();
+                match RecordElement::parse(parser)? {
+                    RecordElement::Element(key, value) if parser.expect(KwFor).is_ok() => {
+                        Ok(Self::RecordComprehension(Box::new(
+                            RecordComprehension::parse_rest(parser, start, key, value)?,
+                        )))
+                    }
+                    element => Ok(Self::Record(Box::new(RecordLiteral::parse_rest(
+                        parser, start, element,
+                    )?))),
+                }
+            }
             DollarOParen => todo!("Iter Comp"),
             KwNot | OpMinus | OpTilde | KwYield => {
                 Ok(Self::Unary(Box::new(UnaryOperation::parse(parser)?)))

@@ -1,5 +1,6 @@
 use super::*;
-use trilogy_scanner::Token;
+use crate::Parser;
+use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct SetComprehension {
@@ -7,4 +8,23 @@ pub struct SetComprehension {
     pub expression: Expression,
     pub query: Query,
     end: Token,
+}
+
+impl SetComprehension {
+    pub(crate) fn parse_rest(
+        parser: &mut Parser,
+        start: Token,
+        expression: Expression,
+    ) -> SyntaxResult<Self> {
+        let query = Query::parse(parser)?;
+        let end = parser
+            .expect(CBracePipe)
+            .map_err(|token| parser.expected(token, "expected `|}` to end set comprehension"))?;
+        Ok(Self {
+            start,
+            expression,
+            query,
+            end,
+        })
+    }
 }
