@@ -237,8 +237,8 @@ impl Expression {
                 super::Identifier::parse(parser)?.into(),
             ))),
             KwWith => Ok(Self::Handled(Box::new(HandledExpression::parse(parser)?))),
-            KwFn => todo!("Fn expression"),
-            KwDo => todo!("Do expression"),
+            KwFn => Ok(Self::Fn(Box::new(FnExpression::parse(parser)?))),
+            KwDo => Ok(Self::Do(Box::new(DoExpression::parse(parser)?))),
             TemplateStart => todo!("Template"),
             OParen => Ok(Self::Parenthesized(Box::new(
                 ParenthesizedExpression::parse(parser)?,
