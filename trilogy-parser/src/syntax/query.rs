@@ -55,28 +55,39 @@ impl Query {
             KwPass => Ok(Self::Pass(Box::new(parser.expect(KwPass).unwrap()))),
             KwEnd => Ok(Self::End(Box::new(parser.expect(KwEnd).unwrap()))),
             KwIs => Ok(Self::Is(Box::new(BooleanQuery::parse(parser)?))),
-            OParen => Ok(Self::Parenthesized(Box::new(ParenthesizedQuery::parse(
-                parser,
-            )?))),
+            // Since a query may start with a pattern, and a pattern might be parenthesized,
+            // it's a bit trickier. We'll try to parse a query first, and if it fails, then
+            // it's a query that starts with a pattern. Once the pattern is parsed, we can
+            // check if the parentheses are ended there, or if there's an `=` or `in`, which
+            // would indicate that it's actually a query
+            OParen => match ParenthesizedQuery::parse_or_pattern(parser)? {
+                Ok(query) => Ok(Self::Parenthesized(Box::new(query))),
+                Err(pattern) => Self::unification(parser, pattern),
+            },
             KwNot => Ok(Self::Not(Box::new(NotQuery::parse(parser)?))),
             _ => {
                 // Patterns could look like a lot of things, we'll just let the
                 // pattern parser handle the errors
                 let pattern = Pattern::parse(parser)?;
-                let token = parser.peek();
-                match token.token_type {
-                    OpEq => Ok(Self::Direct(Box::new(DirectUnification::parse(
-                        parser, pattern,
-                    )?))),
-                    KwIn => Ok(Self::Element(Box::new(ElementUnification::parse(
-                        parser, pattern,
-                    )?))),
-                    _ => {
-                        let error = SyntaxError::new(token.span, "unexpected token in query");
-                        parser.error(error.clone());
-                        Err(error)
-                    }
-                }
+                Self::unification(parser, pattern)
+            }
+        }
+    }
+
+    fn unification(parser: &mut Parser, pattern: Pattern) -> SyntaxResult<Self> {
+        use TokenType::*;
+        let token = parser.peek();
+        match token.token_type {
+            OpEq => Ok(Self::Direct(Box::new(DirectUnification::parse(
+                parser, pattern,
+            )?))),
+            KwIn => Ok(Self::Element(Box::new(ElementUnification::parse(
+                parser, pattern,
+            )?))),
+            _ => {
+                let error = SyntaxError::new(token.span, "unexpected token in query");
+                parser.error(error.clone());
+                Err(error)
             }
         }
     }
@@ -85,11 +96,19 @@ impl Query {
         parser: &mut Parser,
         precedence: Precedence,
     ) -> SyntaxResult<Self> {
-        let mut expr = Self::parse_prefix(parser)?;
+        let lhs = Self::parse_prefix(parser)?;
+        Self::parse_precedence_followers(parser, precedence, lhs)
+    }
+
+    pub(crate) fn parse_precedence_followers(
+        parser: &mut Parser,
+        precedence: Precedence,
+        mut lhs: Query,
+    ) -> SyntaxResult<Self> {
         loop {
-            match Self::parse_follow(parser, precedence, expr)? {
-                Ok(updated) => expr = updated,
-                Err(expr) => return Ok(expr),
+            match Self::parse_follow(parser, precedence, lhs)? {
+                Ok(updated) => lhs = updated,
+                Err(query) => return Ok(query),
             }
         }
     }
@@ -98,7 +117,37 @@ impl Query {
         Self::parse_precedence(parser, Precedence::None)
     }
 
-    pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence(parser, Precedence::None)
+    pub(crate) fn parse_or_pattern_parenthesized(
+        parser: &mut Parser,
+    ) -> SyntaxResult<Result<Self, Pattern>> {
+        use TokenType::*;
+        if parser
+            .check([KwIf, KwPass, KwEnd, KwIs, KwNot, OParen])
+            .is_ok()
+        {
+            // Definitely a query
+            Self::parse_precedence(parser, Precedence::None).map(Ok)
+        } else if parser.check(OParen).is_ok() {
+            // Nested again!
+            Ok(ParenthesizedQuery::parse_or_pattern(parser)?
+                .map(|query| Self::Parenthesized(Box::new(query))))
+        } else {
+            // Starts with a pattern, but might be a unification
+            let pattern = Pattern::parse(parser)?;
+            if parser.check(CParen).is_ok() {
+                // Some parentheses have ended, the caller is going to be expecting to handle
+                // that.
+                Ok(Err(pattern))
+            } else {
+                // This pattern is part of a unification, so let's finish that unification, and then
+                // carry on with the rest of a query until the parentheses are finally closed.
+                let unification = Self::unification(parser, pattern)?;
+                Ok(Ok(Self::parse_precedence_followers(
+                    parser,
+                    Precedence::None,
+                    unification,
+                )?))
+            }
+        }
     }
 }

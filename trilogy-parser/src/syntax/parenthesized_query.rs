@@ -10,14 +10,20 @@ pub struct ParenthesizedQuery {
 }
 
 impl ParenthesizedQuery {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
         let start = parser
             .expect(OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;
-        let query = Query::parse_or_pattern(parser)?;
-        let end = parser
-            .expect(CParen)
-            .map_err(|token| parser.expected(token, "expected `)`"))?;
-        Ok(Self { start, query, end })
+        match Query::parse_or_pattern_parenthesized(parser)? {
+            Ok(query) => {
+                let end = parser
+                    .expect(CParen)
+                    .map_err(|token| parser.expected(token, "expected `)`"))?;
+                Ok(Ok(Self { start, query, end }))
+            }
+            Err(pattern) => Ok(Err(Pattern::Parenthesized(Box::new(
+                ParenthesizedPattern::finish(parser, start, pattern)?,
+            )))),
+        }
     }
 }
