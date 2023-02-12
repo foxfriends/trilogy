@@ -283,7 +283,7 @@ impl Expression {
             ))),
             _ => Err(SyntaxError::new(
                 token.span,
-                "Unexpected token in expression",
+                "unexpected token in expression",
             )),
         }
     }

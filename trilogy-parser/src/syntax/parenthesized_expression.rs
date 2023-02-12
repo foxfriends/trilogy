@@ -16,7 +16,7 @@ impl ParenthesizedExpression {
             .map_err(|token| parser.expected(token, "expected `(`"))?;
         let expression = Expression::parse(parser)?;
         let end = parser
-            .expect(OParen)
+            .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `)`"))?;
         Ok(Self {
             start,

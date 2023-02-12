@@ -5,13 +5,13 @@ logical operations.
 
 \begin{bnf*}
     \bnfprod{Query}{
-        \bnfpn{Unification}
+        \bnfpn{Query}
         \bnfsp
         \bnfts{\kw{and}}
         \bnfsp
         \bnfpn{Query}
         \bnfor
-        \bnfpn{Unification}
+        \bnfpn{Query}
         \bnfsp
         \bnfts{\kw{or}}
         \bnfsp
@@ -21,7 +21,7 @@ logical operations.
     \bnfmore{
         \bnfts{\kw{if}}
         \bnfsp
-        \bnfpn{Unification}
+        \bnfpn{Query}
         \bnfsp
         \bnfts{\kw{then}}
         \bnfsp
