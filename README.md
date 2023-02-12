@@ -29,6 +29,8 @@ As you can see, progress at this time is limited:
     - https://homepages.inf.ed.ac.uk/slindley/papers/effmondel-jfp.pdf
     - https://caml.inria.fr/pub/papers/xleroy-applicative_functors-popl95.pdf
     - https://doc.rust-lang.org/reference/
+    - https://github.com/HigherOrderCO/HVM
+    - https://www.sciencedirect.com/science/article/pii/S0890540197926432/pdf?md5=30965cec6dd7605a865bbec4076f65e4&pid=1-s2.0-S0890540197926432-main.pdf
 - [x] Design the language: Check out the [spec](./spec/)!
 - [ ] Read the [book](https://craftinginterpreters.com/) (In Progress)
 - [ ] Specify the language (In progress)
