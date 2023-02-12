@@ -255,7 +255,9 @@ impl Expression {
                     )?))),
                 }
             }
-            DollarOParen => todo!("Iter Comp"),
+            DollarOParen => Ok(Self::IteratorComprehension(Box::new(
+                IteratorComprehension::parse(parser)?,
+            ))),
             KwNot | OpMinus | OpTilde | KwYield => {
                 Ok(Self::Unary(Box::new(UnaryOperation::parse(parser)?)))
             }
