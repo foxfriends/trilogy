@@ -32,6 +32,7 @@ pub enum TokenType {
     KwNext,
     KwNot,
     KwOr,
+    KwPass,
     KwProc,
     KwResume,
     KwReturn,

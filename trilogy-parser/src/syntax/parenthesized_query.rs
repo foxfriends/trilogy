@@ -14,7 +14,7 @@ impl ParenthesizedQuery {
         let start = parser
             .expect(OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;
-        let query = Query::parse(parser)?;
+        let query = Query::parse_or_pattern(parser)?;
         let end = parser
             .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `)`"))?;

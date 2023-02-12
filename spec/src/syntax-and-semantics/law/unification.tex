@@ -32,9 +32,9 @@ unification of values and patterns.
         \bnfor
     } \\
     \bnfmore{
-        \bnfts{\kw{true}}
+        \bnfts{\kw{pass}}
         \bnfor
-        \bnfts{\kw{false}}
+        \bnfts{\kw{end}}
         \bnfor
         \bnfts{\kw{is}}
         \bnfsp
@@ -89,11 +89,9 @@ persisting afterwards.
     \UnaryInfC{$\Gamma\vdash \texttt{(}\ P\ \texttt{)} \Rightarrow \Phi$}
 \end{prooftree}
 
-The two keywords \kw{true} and \kw{false} may be used as a unification on
-their own as well. \kw{true} is treated as a unification that succeeds once,
-while \kw{false} is treated as a unification that never succeeds. Though
-the symbol used is the same, \kw{true} and \kw{false} are not to be interpreted
-as Boolean values in this situation.
+The two keywords \kw{pass} and \kw{end} may be used as a unification on
+their own as well. \kw{pass} is treated as a unification that succeeds once,
+while \kw{end} is treated as a unification that never succeeds.
 
 \begin{figure}[H]
     \centering
@@ -101,23 +99,22 @@ as Boolean values in this situation.
         \begin{prooftree}
             \AxiomC{}
             \LeftLabel{$\top$}
-            \UnaryInfC{$\Gamma \vdash \kw{true} : \top$}
+            \UnaryInfC{$\Gamma \vdash \kw{pass} : \top$}
         \end{prooftree}
     }
     \parbox[t]{0.3\linewidth}{
         \begin{prooftree}
             \AxiomC{}
             \LeftLabel{$\bot$}
-            \UnaryInfC{$\Gamma \vdash \kw{false} : \bot$}
+            \UnaryInfC{$\Gamma \vdash \kw{end} : \bot$}
         \end{prooftree}
     }
 \end{figure}
 
 The keyword \kw{is} may be used to evaluate an expression and convert its Boolean
-result into logical success or failure, equivalent to the \kw{true} and \kw{false}
-keywords above. As this type of unification includes an expression, it is not
-reversible. If the expression does not evaluate to a Boolean value, it is treated
-as a runtime type error. No bindings are created in this form.
+result into logical success or failure. As this form of unification includes an
+expression, it is not reversible. If the expression does not evaluate to a Boolean
+value, it is treated as a runtime type error. No bindings are created in this form.
 
 \begin{figure}[H]
     \centering

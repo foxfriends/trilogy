@@ -10,8 +10,8 @@ pub enum Query {
     Direct(Box<DirectUnification>),
     Element(Box<ElementUnification>),
     Parenthesized(Box<ParenthesizedQuery>),
-    True(Box<Token>),
-    False(Box<Token>),
+    Pass(Box<Token>),
+    End(Box<Token>),
     Is(Box<BooleanQuery>),
     Not(Box<NotQuery>),
 }
@@ -52,8 +52,8 @@ impl Query {
             KwIf => Ok(Self::Implication(Box::new(QueryImplication::parse(
                 parser,
             )?))),
-            KwTrue => Ok(Self::True(Box::new(parser.expect(KwTrue).unwrap()))),
-            KwFalse => Ok(Self::False(Box::new(parser.expect(KwFalse).unwrap()))),
+            KwPass => Ok(Self::Pass(Box::new(parser.expect(KwPass).unwrap()))),
+            KwEnd => Ok(Self::End(Box::new(parser.expect(KwEnd).unwrap()))),
             KwIs => Ok(Self::Is(Box::new(BooleanQuery::parse(parser)?))),
             OParen => Ok(Self::Parenthesized(Box::new(ParenthesizedQuery::parse(
                 parser,
@@ -91,6 +91,10 @@ impl Query {
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        Self::parse_precedence(parser, Precedence::Primary)
+    }
+
+    pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence(parser, Precedence::Primary)
     }
 }

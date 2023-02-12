@@ -86,6 +86,7 @@ impl Token {
             "not" => TokenType::KwNot,
             "oper" => TokenType::KwOper,
             "or" => TokenType::KwOr,
+            "pass" => TokenType::KwPass,
             "prec" => TokenType::KwPrec,
             "proc" => TokenType::KwProc,
             "protocol" => TokenType::KwProtocol,

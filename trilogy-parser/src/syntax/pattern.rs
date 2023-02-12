@@ -1,5 +1,6 @@
 use super::*;
 use crate::Parser;
+use trilogy_scanner::TokenType;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Pattern {
@@ -26,8 +27,62 @@ pub enum Pattern {
     Parenthesized(Box<ParenthesizedPattern>),
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+pub(crate) enum Precedence {
+    Primary,
+    Conjunction,
+    Disjunction,
+    Negative,
+    Glue,
+    Cons,
+    Type,
+    None,
+}
+
 impl Pattern {
-    pub(crate) fn parse(_parser: &mut Parser) -> SyntaxResult<Self> {
-        todo!()
+    fn parse_follow(
+        parser: &mut Parser,
+        precedence: Precedence,
+        lhs: Pattern,
+    ) -> SyntaxResult<Result<Self, Self>> {
+        use TokenType::*;
+        let token = parser.peek();
+        match token.token_type {
+            KwAnd if precedence < Precedence::Conjunction => Ok(Ok(Self::Conjunction(Box::new(
+                PatternConjunction::parse(parser, lhs)?,
+            )))),
+            KwOr if precedence < Precedence::Disjunction => Ok(Ok(Self::Disjunction(Box::new(
+                PatternDisjunction::parse(parser, lhs)?,
+            )))),
+            _ => Ok(Err(lhs)),
+        }
+    }
+
+    fn parse_prefix(parser: &mut Parser) -> SyntaxResult<Self> {
+        use TokenType::*;
+        let token = parser.peek();
+        match token.token_type {
+            OParen => Ok(Self::Parenthesized(Box::new(ParenthesizedPattern::parse(
+                parser,
+            )?))),
+            _ => Err(SyntaxError::new(token.span, "unexpected token in pattern")),
+        }
+    }
+
+    pub(crate) fn parse_precedence(
+        parser: &mut Parser,
+        precedence: Precedence,
+    ) -> SyntaxResult<Self> {
+        let mut expr = Self::parse_prefix(parser)?;
+        loop {
+            match Self::parse_follow(parser, precedence, expr)? {
+                Ok(updated) => expr = updated,
+                Err(expr) => return Ok(expr),
+            }
+        }
+    }
+
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        Self::parse_precedence(parser, Precedence::Primary)
     }
 }
