@@ -10,6 +10,14 @@ pub struct RecordLiteral {
 }
 
 impl RecordLiteral {
+    pub(crate) fn new_empty(start: Token, end: Token) -> Self {
+        Self {
+            start,
+            elements: vec![],
+            end,
+        }
+    }
+
     pub(crate) fn parse_rest(
         parser: &mut Parser,
         start: Token,

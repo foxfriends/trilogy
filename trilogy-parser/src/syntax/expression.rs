@@ -218,6 +218,9 @@ impl Expression {
             KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
             OBrack => {
                 let start = parser.expect(OBrack).unwrap();
+                if let Ok(end) = parser.expect(CBrack) {
+                    return Ok(Self::Array(Box::new(ArrayLiteral::new_empty(start, end))));
+                }
                 match ArrayElement::parse(parser)? {
                     ArrayElement::Element(expression) if parser.expect(KwFor).is_ok() => {
                         Ok(Self::ArrayComprehension(Box::new(
@@ -231,6 +234,9 @@ impl Expression {
             }
             OBracePipe => {
                 let start = parser.expect(OBracePipe).unwrap();
+                if let Ok(end) = parser.expect(CBracePipe) {
+                    return Ok(Self::Set(Box::new(SetLiteral::new_empty(start, end))));
+                }
                 match SetElement::parse(parser)? {
                     SetElement::Element(expression) if parser.expect(KwFor).is_ok() => {
                         Ok(Self::SetComprehension(Box::new(
@@ -244,6 +250,9 @@ impl Expression {
             }
             OBrace => {
                 let start = parser.expect(OBrace).unwrap();
+                if let Ok(end) = parser.expect(CBrace) {
+                    return Ok(Self::Record(Box::new(RecordLiteral::new_empty(start, end))));
+                }
                 match RecordElement::parse(parser)? {
                     RecordElement::Element(key, value) if parser.expect(KwFor).is_ok() => {
                         Ok(Self::RecordComprehension(Box::new(
