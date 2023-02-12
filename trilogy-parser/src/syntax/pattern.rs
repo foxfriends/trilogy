@@ -85,6 +85,9 @@ impl Pattern {
             )?))),
             OpMinus => Ok(Self::Negative(Box::new(NegativePattern::parse(parser)?))),
             OpCaret => Ok(Self::Pinned(Box::new(PinnedPattern::parse(parser)?))),
+            OBrack => todo!(),
+            OBracePipe => todo!(),
+            OBrace => todo!(),
             _ => Err(SyntaxError::new(token.span, "unexpected token in pattern")),
         }
     }
