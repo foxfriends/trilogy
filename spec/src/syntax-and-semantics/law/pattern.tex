@@ -7,7 +7,7 @@ parts of a value that has the same structure as the pattern expects.
 
 \begin{bnf*}
     \bnfprod{Pattern}{
-        \bnfpn{SinglePattern}
+        \bnfpn{Pattern}
         \bnfsp
         \bnfts{\kw{or}}
         \bnfsp
@@ -15,7 +15,7 @@ parts of a value that has the same structure as the pattern expects.
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{SinglePattern}
+        \bnfpn{Pattern}
         \bnfsp
         \bnfts{\kw{and}}
         \bnfsp
@@ -23,17 +23,8 @@ parts of a value that has the same structure as the pattern expects.
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{SinglePattern}
-    } \\
-    \bnfprod{SinglePattern}{
         \bnfpn{StructuralPattern}
-        \bnfsp
-        \bnfpn{TypeAnnotation}
-        \bnfor
     } \\
-    \bnfmore{
-        \bnfpn{StructuralPattern}
-    }
 \end{bnf*}
 
 All patterns contain a \emph{structural} portion, and optionally a \emph{type}

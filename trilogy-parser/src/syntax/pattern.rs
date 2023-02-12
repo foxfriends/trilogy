@@ -6,7 +6,6 @@ use trilogy_scanner::TokenType;
 pub enum Pattern {
     Conjunction(Box<PatternConjunction>),
     Disjunction(Box<PatternDisjunction>),
-    Typed(Box<TypedPattern>),
     Number(Box<NumberLiteral>),
     Character(Box<CharacterLiteral>),
     String(Box<StringLiteral>),
@@ -30,12 +29,11 @@ pub enum Pattern {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub(crate) enum Precedence {
     Primary,
-    Conjunction,
-    Disjunction,
-    Negative,
+    Unary,
     Glue,
     Cons,
-    Type,
+    Conjunction,
+    Disjunction,
     None,
 }
 
@@ -54,6 +52,12 @@ impl Pattern {
             KwOr if precedence < Precedence::Disjunction => Ok(Ok(Self::Disjunction(Box::new(
                 PatternDisjunction::parse(parser, lhs)?,
             )))),
+            OpGlue if precedence < Precedence::Glue => {
+                Ok(Ok(Self::Glue(Box::new(GluePattern::parse(parser, lhs)?))))
+            }
+            OpColon if precedence <= Precedence::Cons => {
+                Ok(Ok(Self::Tuple(Box::new(TuplePattern::parse(parser, lhs)?))))
+            }
             _ => Ok(Err(lhs)),
         }
     }
@@ -62,9 +66,25 @@ impl Pattern {
         use TokenType::*;
         let token = parser.peek();
         match token.token_type {
+            Numeric => Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?))),
+            String => Ok(Self::String(Box::new(StringLiteral::parse(parser)?))),
+            Bits => Ok(Self::Bits(Box::new(BitsLiteral::parse(parser)?))),
+            KwTrue | KwFalse => Ok(Self::Boolean(Box::new(BooleanLiteral::parse(parser)?))),
+            Atom => {
+                let atom = AtomLiteral::parse(parser)?;
+                if parser.check(OParen).is_ok() {
+                    Ok(Self::Struct(Box::new(StructPattern::parse(parser, atom)?)))
+                } else {
+                    Ok(Self::Atom(Box::new(atom)))
+                }
+            }
+            Character => Ok(Self::Character(Box::new(CharacterLiteral::parse(parser)?))),
+            KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
             OParen => Ok(Self::Parenthesized(Box::new(ParenthesizedPattern::parse(
                 parser,
             )?))),
+            OpMinus => Ok(Self::Negative(Box::new(NegativePattern::parse(parser)?))),
+            OpCaret => Ok(Self::Pinned(Box::new(PinnedPattern::parse(parser)?))),
             _ => Err(SyntaxError::new(token.span, "unexpected token in pattern")),
         }
     }
