@@ -1,4 +1,5 @@
 use super::*;
+use crate::Parser;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Statement {
@@ -22,4 +23,10 @@ pub enum Statement {
     Handled(Box<HandledBlock>),
     Block(Box<Block>),
     SyntaxError(Box<SyntaxError>),
+}
+
+impl Statement {
+    pub(crate) fn parse(_parser: &mut Parser) -> SyntaxResult<Self> {
+        todo!()
+    }
 }

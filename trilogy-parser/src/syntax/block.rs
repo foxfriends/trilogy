@@ -15,13 +15,27 @@ impl Block {
             .expect(OBrace)
             .map_err(|token| parser.expected(token, "expected `{`"))?;
 
-        let end = parser
-            .expect(CBrace)
-            .map_err(|token| parser.expected(token, "expected `}` to end block"))?;
+        let mut statements = vec![];
+        let mut first = true;
+        let end = loop {
+            if let Ok(end) = parser.expect(CBrace) {
+                break end;
+            }
+            if !first && parser.expect(OpSemi).is_err() && !parser.is_line_start() {
+                let token = parser.peek();
+                let error = SyntaxError::new(
+                    token.span,
+                    "expected `;` or line break to separate statements",
+                );
+                parser.error(error);
+            }
+            statements.push(Statement::parse(parser)?);
+            first = false;
+        };
 
         Ok(Self {
             start,
-            statements: vec![],
+            statements,
             end,
         })
     }
