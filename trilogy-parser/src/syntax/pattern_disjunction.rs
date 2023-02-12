@@ -2,5 +2,6 @@ use super::*;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct PatternDisjunction {
-    pub conjunctions: Vec<PatternConjunction>,
+    pub lhs: Pattern,
+    pub rhs: Pattern,
 }

@@ -4,6 +4,6 @@ use trilogy_scanner::Token;
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct StructPattern {
     pub atom: AtomLiteral,
-    pub pattern: ValuePattern,
+    pub pattern: Pattern,
     end: Token,
 }
