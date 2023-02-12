@@ -13,6 +13,8 @@ pub enum Command {
         file: PathBuf,
         #[arg(short, long, default_value = "80")]
         width: usize,
+        #[arg(short, long)]
+        verbose: bool,
     },
 }
 
@@ -25,17 +27,26 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 println!("{token:?}");
             }
         }
-        Command::Parse { file, width } => {
+        Command::Parse {
+            file,
+            width,
+            verbose,
+        } => {
             let contents = std::fs::read_to_string(file)?;
             let scanner = Scanner::new(&contents);
             let parser = Parser::new(scanner);
             let parse = parser.parse();
-            let allocator = RcAllocator;
-            let doc = parse
-                .ast()
-                .pretty_print_sexpr(&allocator)
-                .append(allocator.hardline());
-            doc.render(width, &mut std::io::stdout())?;
+
+            if verbose {
+                println!("{:#?}", parse.ast());
+            } else {
+                let allocator = RcAllocator;
+                let doc = parse
+                    .ast()
+                    .pretty_print_sexpr(&allocator)
+                    .append(allocator.hardline());
+                doc.render(width, &mut std::io::stdout())?;
+            }
 
             if parse.has_warnings() {
                 println!("Encountered {} warnings:", parse.warnings().len());

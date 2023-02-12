@@ -18,12 +18,12 @@ pub enum Query {
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub(crate) enum Precedence {
-    Primary,
-    Conjunction,
-    Implication,
-    Disjunction,
-    Not,
     None,
+    Not,
+    Disjunction,
+    Implication,
+    Conjunction,
+    Primary,
 }
 
 impl Query {
@@ -71,7 +71,11 @@ impl Query {
                     KwIn => Ok(Self::Element(Box::new(ElementUnification::parse(
                         parser, pattern,
                     )?))),
-                    _ => Err(SyntaxError::new(token.span, "unexpected token in query")),
+                    _ => {
+                        let error = SyntaxError::new(token.span, "unexpected token in query");
+                        parser.error(error.clone());
+                        Err(error)
+                    }
                 }
             }
         }
@@ -91,10 +95,10 @@ impl Query {
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence(parser, Precedence::Primary)
+        Self::parse_precedence(parser, Precedence::None)
     }
 
     pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence(parser, Precedence::Primary)
+        Self::parse_precedence(parser, Precedence::None)
     }
 }

@@ -29,10 +29,14 @@ where
     P: PrettyPrintSExpr<'a>,
 {
     fn pretty_print_sexpr(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a> {
-        printer.intersperse(
-            self.iter().map(|node| node.pretty_print_sexpr(printer)),
-            printer.line(),
-        )
+        printer
+            .intersperse(
+                self.iter().map(|node| node.pretty_print_sexpr(printer)),
+                printer.line(),
+            )
+            .nest(2)
+            .group()
+            .brackets()
     }
 }
 

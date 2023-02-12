@@ -1,6 +1,6 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::TokenType;
+use trilogy_scanner::{Token, TokenType};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Pattern {
@@ -13,7 +13,7 @@ pub enum Pattern {
     Boolean(Box<BooleanLiteral>),
     Unit(Box<UnitLiteral>),
     Atom(Box<AtomLiteral>),
-    Wildcard(Box<WildcardPattern>),
+    Wildcard(Box<Token>),
     Negative(Box<NegativePattern>),
     Glue(Box<GluePattern>),
     Struct(Box<StructPattern>),
@@ -28,13 +28,13 @@ pub enum Pattern {
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub(crate) enum Precedence {
-    Primary,
-    Unary,
-    Glue,
-    Cons,
-    Conjunction,
-    Disjunction,
     None,
+    Disjunction,
+    Conjunction,
+    Cons,
+    Glue,
+    Unary,
+    Primary,
 }
 
 impl Pattern {
@@ -88,7 +88,13 @@ impl Pattern {
             OBrack => todo!(),
             OBracePipe => todo!(),
             OBrace => todo!(),
-            _ => Err(SyntaxError::new(token.span, "unexpected token in pattern")),
+            Discard => Ok(Self::Wildcard(Box::new(parser.expect(Discard).unwrap()))),
+            KwMut | Identifier => Ok(Self::Binding(Box::new(BindingPattern::parse(parser)?))),
+            _ => {
+                let error = SyntaxError::new(token.span, "unexpected token in pattern");
+                parser.error(error.clone());
+                Err(error)
+            }
         }
     }
 
@@ -106,6 +112,6 @@ impl Pattern {
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence(parser, Precedence::Primary)
+        Self::parse_precedence(parser, Precedence::None)
     }
 }

@@ -46,34 +46,34 @@ pub enum Expression {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+#[repr(u8)]
 pub(crate) enum Precedence {
-    Primary,
-    Path,
-    Access,
-    Call,
-    Unary,
-    Application,
-    Compose,
-    RCompose,
-    Exponent,
-    Factor,
-    Term,
-    BitwiseAnd,
-    BitwiseShift,
-    BitwiseXor,
-    BitwiseOr,
-    Glue,
-    Cons,
-    Comparison,
-    Equality,
-    And,
-    Or,
-    Pipe,
-    RPipe,
-    Continuation,
-    Sequence,
-    Handler,
     None,
+    Sequence,
+    Continuation,
+    RPipe,
+    Pipe,
+    Or,
+    And,
+    Equality,
+    Comparison,
+    Cons,
+    Glue,
+    BitwiseOr,
+    BitwiseXor,
+    BitwiseShift,
+    BitwiseAnd,
+    Term,
+    Factor,
+    Exponent,
+    RCompose,
+    Compose,
+    Application,
+    Unary,
+    Call,
+    Access,
+    Path,
+    Primary,
 }
 
 impl Expression {
@@ -281,10 +281,11 @@ impl Expression {
             OParen => Ok(Self::Parenthesized(Box::new(
                 ParenthesizedExpression::parse(parser)?,
             ))),
-            _ => Err(SyntaxError::new(
-                token.span,
-                "unexpected token in expression",
-            )),
+            _ => {
+                let error = SyntaxError::new(token.span, "unexpected token in expression");
+                parser.error(error.clone());
+                Err(error)
+            }
         }
     }
 
@@ -310,10 +311,10 @@ impl Expression {
     }
 
     pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, Precedence::Primary, false)
+        Self::parse_precedence_inner(parser, Precedence::None, false)
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence(parser, Precedence::Primary)
+        Self::parse_precedence(parser, Precedence::None)
     }
 }

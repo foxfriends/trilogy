@@ -107,7 +107,6 @@ mod unary_operation;
 mod unit_literal;
 mod when_handler;
 mod while_statement;
-mod wildcard_pattern;
 mod yield_statement;
 
 pub use application::Application;
@@ -217,5 +216,4 @@ pub use unary_operation::{UnaryOperation, UnaryOperator};
 pub use unit_literal::UnitLiteral;
 pub use when_handler::WhenHandler;
 pub use while_statement::WhileStatement;
-pub use wildcard_pattern::WildcardPattern;
 pub use yield_statement::YieldStatement;

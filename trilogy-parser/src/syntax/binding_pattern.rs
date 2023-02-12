@@ -1,11 +1,22 @@
 use super::*;
-use crate::Spanned;
+use crate::{Parser, Spanned};
 use source_span::Span;
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct BindingPattern {
     pub mutable: MutModifier,
     pub identifier: Identifier,
+}
+
+impl BindingPattern {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let mutable = MutModifier::parse(parser);
+        let identifier = Identifier::parse(parser)?;
+        Ok(Self {
+            mutable,
+            identifier,
+        })
+    }
 }
 
 impl Spanned for BindingPattern {
