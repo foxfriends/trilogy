@@ -10,10 +10,7 @@ pub struct CallExpression {
 }
 
 impl CallExpression {
-    pub(crate) fn parse(
-        parser: &mut Parser,
-        procedure: Expression,
-    ) -> SyntaxResult<Self> {
+    pub(crate) fn parse(parser: &mut Parser, procedure: Expression) -> SyntaxResult<Self> {
         parser
             .expect_bang_oparen()
             .map_err(|token| parser.expected(token, "expected `!(` in procedure call"))?;
