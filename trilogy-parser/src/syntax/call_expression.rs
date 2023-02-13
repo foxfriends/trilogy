@@ -12,7 +12,7 @@ pub struct CallExpression {
 impl CallExpression {
     pub(crate) fn parse(
         parser: &mut Parser,
-        procedure: impl Into<Expression>,
+        procedure: Expression,
     ) -> SyntaxResult<Self> {
         parser
             .expect_bang_oparen()
@@ -31,7 +31,7 @@ impl CallExpression {
             .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `,` or `)` in argument list"))?;
         Ok(Self {
-            procedure: procedure.into(),
+            procedure,
             arguments,
             end,
         })

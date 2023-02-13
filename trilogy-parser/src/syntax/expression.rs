@@ -157,7 +157,9 @@ impl Expression {
                 }
                 expr
             }
-            OpEqEq | OpEqEqEq if precedence < Precedence::Equality => Self::binary(parser, lhs),
+            OpBangEq | OpBangEqEq | OpEqEq | OpEqEqEq if precedence < Precedence::Equality => {
+                Self::binary(parser, lhs)
+            }
             OpAmp if precedence < Precedence::BitwiseAnd => Self::binary(parser, lhs),
             OpPipe if precedence < Precedence::BitwiseOr => Self::binary(parser, lhs),
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
@@ -172,18 +174,24 @@ impl Expression {
             OpBang if precedence < Precedence::Call => Ok(Ok(Self::Call(Box::new(
                 CallExpression::parse(parser, lhs)?,
             )))),
+            OpComma if precedence < Precedence::Sequence && accept_comma => {
+                Self::binary(parser, lhs)
+            }
             // A function application never spans across two lines. Furthermore,
-            // the application requires a space, as without a space it is considered
-            // a module reference or a rule application.
-            OParen | Identifier
+            // the application requires a space, even when the parse would be
+            // otherwise unambiguous.
+            //
+            // Sadly, the list of things that can follow, for an application, is
+            // anything prefix (except `-`) so this becomes a very long list.
+            Numeric | String | Bits | KwTrue | KwFalse | Atom | Character | KwUnit | OBrack
+            | OBracePipe | OBrace | DollarOParen | OpBang | OpTilde | KwYield | KwIf | KwMatch
+            | KwEnd | KwExit | KwReturn | KwResume | KwBreak | KwContinue | KwCancel | KwLet
+            | Identifier | KwWith | KwFn | KwDo | DollarString | TemplateStart | OParen
                 if precedence < Precedence::Application && !is_line_start && is_spaced =>
             {
                 Ok(Ok(Self::Application(Box::new(Application::parse(
                     parser, lhs,
                 )?))))
-            }
-            OpComma if precedence < Precedence::Sequence && accept_comma => {
-                Self::binary(parser, lhs)
             }
             // If nothing matched, it must be the end of the expression
             _ => Ok(Err(lhs)),

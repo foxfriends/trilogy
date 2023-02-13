@@ -8,10 +8,10 @@ pub struct Application {
 }
 
 impl Application {
-    pub(crate) fn parse(parser: &mut Parser, lhs: impl Into<Expression>) -> SyntaxResult<Self> {
+    pub(crate) fn parse(parser: &mut Parser, lhs: Expression) -> SyntaxResult<Self> {
         let argument = Expression::parse_precedence(parser, Precedence::Application)?;
         Ok(Self {
-            function: lhs.into(),
+            function: lhs,
             argument,
         })
     }

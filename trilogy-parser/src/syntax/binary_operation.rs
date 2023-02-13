@@ -47,7 +47,9 @@ pub enum BinaryOperator {
     Power(Token),
     IntDivide(Token),
     StructuralEquality(Token),
+    StructuralInequality(Token),
     ReferenceEquality(Token),
+    ReferenceInequality(Token),
     Lt(Token),
     Gt(Token),
     Leq(Token),
@@ -80,7 +82,9 @@ impl BinaryOperator {
             OpPercent => Self::Remainder(token),
             OpStarStar => Self::Power(token),
             OpEqEq => Self::StructuralEquality(token),
+            OpBangEq => Self::StructuralInequality(token),
             OpEqEqEq => Self::ReferenceEquality(token),
+            OpBangEqEq => Self::ReferenceInequality(token),
             OpLt => Self::Lt(token),
             OpGt => Self::Gt(token),
             OpLtEq => Self::Leq(token),
@@ -111,9 +115,10 @@ impl BinaryOperator {
             | BinaryOperator::IntDivide(..)
             | BinaryOperator::Remainder(..) => Precedence::Factor,
             BinaryOperator::Power(..) => Precedence::Exponent,
-            BinaryOperator::StructuralEquality(..) | BinaryOperator::ReferenceEquality(..) => {
-                Precedence::Equality
-            }
+            BinaryOperator::StructuralEquality(..)
+            | BinaryOperator::ReferenceEquality(..)
+            | BinaryOperator::StructuralInequality(..)
+            | BinaryOperator::ReferenceInequality(..) => Precedence::Equality,
             BinaryOperator::Lt(..)
             | BinaryOperator::Gt(..)
             | BinaryOperator::Geq(..)

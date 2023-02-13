@@ -9,7 +9,7 @@ pub struct MemberAccess {
 }
 
 impl MemberAccess {
-    pub(crate) fn parse(parser: &mut Parser, lhs: impl Into<Expression>) -> SyntaxResult<Self> {
+    pub(crate) fn parse(parser: &mut Parser, lhs: Expression) -> SyntaxResult<Self> {
         parser
             .expect(TokenType::OpDot)
             .expect("Caller should have found this");
@@ -23,7 +23,7 @@ impl MemberAccess {
             Member::Static(Box::new(Identifier::parse(parser)?))
         };
         Ok(Self {
-            container: lhs.into(),
+            container: lhs,
             member,
         })
     }
