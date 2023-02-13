@@ -15,8 +15,8 @@ impl CallExpression {
         procedure: impl Into<Expression>,
     ) -> SyntaxResult<Self> {
         parser
-            .expect(BangOParen)
-            .expect("Caller should have found this");
+            .expect_bang_oparen()
+            .map_err(|token| parser.expected(token, "expected `!(` in procedure call"))?;
         let mut arguments = vec![];
         loop {
             if parser.check(CParen).is_ok() {

@@ -471,9 +471,17 @@ will not be exclusively identified as an individual token.
         \texttt{OpLt} & \op{<} \\
         \texttt{OpGt} & \op{>} \\
         \texttt{OpEqEq} & \op{==} \\
+        \texttt{OpBangEq} & \op{!=} \\
         \texttt{OpEqEqEq} & \op{===} \\
+        \texttt{OpBangEqEq} & \op{!==} \\
         \texttt{OpLtEq} & \op{<=} \\
         \texttt{OpGtEq} & \op{>=} \\
+        \hline
+        \texttt{OpBang} & \op{!} \\
+        \texttt{OpAmpAmp} & \op{\&\&} \\
+        \texttt{OpPipePipe} & \op{||} \\
+        \texttt{OpAmpAmpEq} & \op{\&\&=} \\
+        \texttt{OpPipePipeEq} & \op{||=} \\
         \hline
         \texttt{OpAmp} & \op{\&} \\
         \texttt{OpPipe} & \op{|} \\
@@ -489,12 +497,8 @@ will not be exclusively identified as an individual token.
         \texttt{OpShrEq} & \op{\textasciitilde>=} \\
         \texttt{OpShlEq} & \op{<\textasciitilde=} \\
         \hline
-        \texttt{OpLtLt} & \op{<<} \\
-        \texttt{OpGtGt} & \op{>>} \\
-        \texttt{OpLtLtEq} & \op{<<=} \\
-        \texttt{OpGtGtEq} & \op{>>=} \\
-        \texttt{OpPipeGt} & \op{|>} \\
-        \texttt{OpLtPipe} & \op{<|} \\
+        \texttt{OpAt} & \op{@} \\
+        \texttt{OpQuestion} & \op{?} \\
         \hline
     \end{tabular}
 }
@@ -504,6 +508,9 @@ will not be exclusively identified as an individual token.
     \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Symbol} \\
+        \hline
+        \texttt{OpGlue} & \op{<>} \\
+        \texttt{OpGlueEq} & \op{<>=} \\
         \hline
         \texttt{OpPlus} & \op{+} \\
         \texttt{OpMinus} & \op{-} \\
@@ -521,9 +528,6 @@ will not be exclusively identified as an individual token.
         \texttt{OpPercentEq} & \op{\%=} \\
         \texttt{OpStarStarEq} & \op{**=} \\
         \hline
-        \texttt{OpGlue} & \op{<>} \\
-        \texttt{OpGlueEq} & \op{<>=} \\
-        \hline
         \texttt{OpDot} & \op{.} \\
         \texttt{OpDotDot} & \op{..} \\
         \texttt{OpComma} & \op{,} \\
@@ -532,8 +536,12 @@ will not be exclusively identified as an individual token.
         \texttt{OpSemi} & \op{;} \\
         \texttt{OpTurnstile} & \op{<-} \\
         \hline
-        \texttt{OpAt} & \op{@} \\
-        \texttt{OpQuestion} & \op{?} \\
+        \texttt{OpLtLt} & \op{<<} \\
+        \texttt{OpGtGt} & \op{>>} \\
+        \texttt{OpLtLtEq} & \op{<<=} \\
+        \texttt{OpGtGtEq} & \op{>>=} \\
+        \texttt{OpPipeGt} & \op{|>} \\
+        \texttt{OpLtPipe} & \op{<|} \\
         \hline
     \end{tabular}
 }
@@ -556,13 +564,11 @@ pieces of code, and must come in matched opening-closing pairs.
         \texttt{OBrack} & \texttt{[} & \texttt{CBrack} & \texttt{]} \\
         \texttt{OParen} & \texttt{(} & \texttt{CParen} & \texttt{)} \\
         \texttt{DollarOParen} & \texttt{\$(} & & \\ %
-        \texttt{BangOParen} & \texttt{!(} & & \\
         \hline
     \end{tabular}
     \caption{\label{tab:delimiters}Delimiters}
 \end{table}
 
-\FloatBarrier
 \subsection{Shebang}
 
 A \Trilogy{} file may optionally begin with a
@@ -574,3 +580,5 @@ Conveniently, this matches standard comment syntax. Inconveniently, it is not
 likely that it is meant to be interpreted as a doc comment. Conveniently,
 we don't care, and so it is up to the documentation generator to detect and
 hide a shebang from generated documentation if so desired.
+
+\FloatBarrier

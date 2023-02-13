@@ -70,8 +70,8 @@ impl BinaryOperator {
     fn parse(parser: &mut Parser) -> Self {
         let token = parser.consume();
         match token.token_type {
-            KwAnd => Self::And(token),
-            KwOr => Self::Or(token),
+            OpAmpAmp => Self::And(token),
+            OpPipePipe => Self::Or(token),
             OpPlus => Self::Add(token),
             OpMinus => Self::Subtract(token),
             OpStar => Self::Multiply(token),

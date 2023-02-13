@@ -127,16 +127,8 @@ impl Expression {
             OpDot if precedence < Precedence::Access => Ok(Ok(Self::MemberAccess(Box::new(
                 MemberAccess::parse(parser, lhs)?,
             )))),
-            KwAnd if precedence < Precedence::And => Self::binary(parser, lhs),
-            KwOr if precedence < Precedence::Or => {
-                let op = parser.expect(KwOr).unwrap();
-                let rhs = Self::parse_precedence(parser, Precedence::Or)?;
-                Ok(Ok(Self::Binary(Box::new(BinaryOperation {
-                    lhs,
-                    operator: BinaryOperator::Or(op),
-                    rhs,
-                }))))
-            }
+            OpAmpAmp if precedence < Precedence::And => Self::binary(parser, lhs),
+            OpPipePipe if precedence < Precedence::Or => Self::binary(parser, lhs),
             OpPlus | OpMinus if precedence < Precedence::Term => Self::binary(parser, lhs),
             OpStar | OpSlash | OpPercent | OpSlashSlash if precedence < Precedence::Factor => {
                 Self::binary(parser, lhs)
@@ -177,7 +169,7 @@ impl Expression {
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
             OpLtPipe if precedence <= Precedence::RPipe => Self::binary(parser, lhs),
             OpGlue if precedence < Precedence::Glue => Self::binary(parser, lhs),
-            BangOParen if precedence < Precedence::Call => Ok(Ok(Self::Call(Box::new(
+            OpBang if precedence < Precedence::Call => Ok(Ok(Self::Call(Box::new(
                 CallExpression::parse(parser, lhs)?,
             )))),
             // A function application never spans across two lines. Furthermore,
@@ -267,7 +259,7 @@ impl Expression {
             DollarOParen => Ok(Self::IteratorComprehension(Box::new(
                 IteratorComprehension::parse(parser)?,
             ))),
-            KwNot | OpMinus | OpTilde | KwYield => {
+            OpBang | OpMinus | OpTilde | KwYield => {
                 Ok(Self::Unary(Box::new(UnaryOperation::parse(parser)?)))
             }
             KwIf => Ok(Self::IfElse(Box::new(IfElseExpression::parse(parser)?))),
@@ -287,6 +279,7 @@ impl Expression {
             KwFn => Ok(Self::Fn(Box::new(FnExpression::parse(parser)?))),
             KwDo => Ok(Self::Do(Box::new(DoExpression::parse(parser)?))),
             DollarString | TemplateStart => Ok(Self::Template(Box::new(Template::parse(parser)?))),
+            // TODO: may be a keyword reference!
             OParen => Ok(Self::Parenthesized(Box::new(
                 ParenthesizedExpression::parse(parser)?,
             ))),

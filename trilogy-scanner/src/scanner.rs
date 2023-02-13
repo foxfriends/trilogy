@@ -498,17 +498,21 @@ impl Iterator for Scanner<'_> {
             '"' => self.string_or_template(None, String),
             // Feels slightly irresponsible to put side effects into a guard...
             // but it's been done all over this file. Apologies to reader.
-            '$' if self.expect(|ch| ch == '"').is_some() => {
+            '$' if self.expect('"').is_some() => {
                 self.string_or_template(Some(TemplateStart), DollarString)
             }
-            '$' if self.expect(|ch| ch == '(').is_some() => {
+            '$' if self.expect('(').is_some() => {
                 self.nesting.push('(');
                 self.make_token(DollarOParen)
             }
-            '!' if self.expect(|ch| ch == '(').is_some() => {
-                self.nesting.push('(');
-                self.make_token(BangOParen)
+            '!' if self.expect('=').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpBangEqEq)
+                } else {
+                    self.make_token(OpBangEq)
+                }
             }
+            '!' => self.make_token(OpBang),
             '{' if self.expect('|').is_some() => {
                 self.nesting.push('|');
                 self.make_token(OBracePipe)
@@ -635,6 +639,13 @@ impl Iterator for Scanner<'_> {
             '%' if self.expect('=').is_some() => self.make_token(OpPercentEq),
             '%' => self.make_token(OpPercent),
 
+            '&' if self.expect('&').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpAmpAmpEq)
+                } else {
+                    self.make_token(OpAmpAmp)
+                }
+            }
             '&' if self.expect('=').is_some() => self.make_token(OpAmpEq),
             '&' => self.make_token(OpAmp),
 
@@ -646,6 +657,13 @@ impl Iterator for Scanner<'_> {
                     self.nesting.pop();
                 }
                 self.make_token(CBracePipe)
+            }
+            '|' if self.expect('|').is_some() => {
+                if self.expect('=').is_some() {
+                    self.make_token(OpPipePipeEq)
+                } else {
+                    self.make_token(OpPipePipe)
+                }
             }
             '|' if self.expect('=').is_some() => self.make_token(OpPipeEq),
             '|' if self.expect('>').is_some() => self.make_token(OpPipeGt),

@@ -1,10 +1,10 @@
 use crate::syntax::{Document, SyntaxError};
 use crate::{Parse, Spanned, TokenPattern};
-use std::iter::Peekable;
+use peekmore::{PeekMore, PeekMoreIterator};
 use trilogy_scanner::{Scanner, Token, TokenType};
 
 pub struct Parser<'src> {
-    source: Peekable<Scanner<'src>>,
+    source: PeekMoreIterator<Scanner<'src>>,
     warnings: Vec<SyntaxError>,
     errors: Vec<SyntaxError>,
     is_line_start: bool,
@@ -14,7 +14,7 @@ pub struct Parser<'src> {
 impl<'src> Parser<'src> {
     pub fn new(source: Scanner<'src>) -> Self {
         Self {
-            source: source.peekable(),
+            source: source.peekmore(),
             errors: vec![],
             warnings: vec![],
             is_line_start: true,
@@ -106,6 +106,22 @@ impl Parser<'_> {
             self.is_spaced = [EndOfLine, CommentLine, DocInner, DocOuter, CommentInline, CommentBlock, Space].matches(&token);
         };
         token
+    }
+
+    pub(crate) fn expect_bang_oparen(&mut self) -> Result<(Token, Token), Token> {
+        use TokenType::*;
+        // Though tokenized as two tokens, this is kind of treated as one token in some cases,
+        // requiring `!(` to be unspaced in procedure calls. Since whitespace is a token, this
+        // a low-level peekmore after the high-level peek will sufficiently detect this.
+        let next = self.peek().clone();
+        let after = self.source.peek_nth(1);
+        if next.token_type == OpBang && after.unwrap().token_type == OParen {
+            let bang = self.expect(OpBang).unwrap();
+            let oparen = self.expect(OParen).unwrap();
+            Ok((bang, oparen))
+        } else {
+            Err(next)
+        }
     }
 
     pub(crate) fn peek(&mut self) -> &Token {

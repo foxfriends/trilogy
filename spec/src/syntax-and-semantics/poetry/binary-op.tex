@@ -14,9 +14,9 @@ handled by the syntax tree but by another pass afterwards (\S\ref{sec:precedence
         \bnfpn{Expression}
     } \\
     \bnfprod{BinaryOperator}{
-        \bnfts{\kw{and}}
+        \bnfts{\op{\&\&}}
         \bnfor
-        \bnfts{\kw{or}}
+        \bnfts{\op{||}}
         \bnfor
         \bnfts{\op{+}}
         \bnfor
@@ -83,7 +83,7 @@ we are working with the primitive types, there's nothing we can do but to
 define these things as internal magic, and so I guess it does require
 specification somewhere.
 
-Starting with the Boolean operators \kw{and} and \kw{or}, these are the typical
+Starting with the Boolean operators \op{\&\&} and \op{||}, these are the typical
 ones with behaviour that hardly needs explaining, and are short circuiting. If
 one of the operands to either of these operators is evaluated and does not result
 in a Boolean value, this is a runtime type error (if it does not get evaluated
@@ -92,41 +92,41 @@ due to short circuiting, the type error never happens).
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \kw{false}$}
     \LeftLabel{And}
-    \UnaryInfC{$\Gamma\vdash A\ \kw{and}\ B = \kw{false}$}
+    \UnaryInfC{$\Gamma\vdash A\ \op{\&\&}\ B = \kw{false}$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \kw{true}$}
     \AxiomC{$\Gamma\vdash B = \kw{false}$}
     \LeftLabel{And}
-    \BinaryInfC{$\Gamma\vdash A\ \kw{and}\ B = \kw{false}$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\&\&}\ B = \kw{false}$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \kw{true}$}
     \AxiomC{$\Gamma\vdash B = \kw{true}$}
     \LeftLabel{And}
-    \BinaryInfC{$\Gamma\vdash A\ \kw{and}\ B = \kw{true}$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\&\&}\ B = \kw{true}$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \kw{true}$}
     \LeftLabel{Or}
-    \UnaryInfC{$\Gamma\vdash A\ \kw{or}\ B = \kw{true}$}
+    \UnaryInfC{$\Gamma\vdash A\ \op{||}\ B = \kw{true}$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \kw{false}$}
     \AxiomC{$\Gamma\vdash B = \kw{true}$}
     \LeftLabel{Or}
-    \BinaryInfC{$\Gamma\vdash A\ \kw{or}\ B = \kw{true}$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{||}\ B = \kw{true}$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \kw{false}$}
     \AxiomC{$\Gamma\vdash B = \kw{false}$}
     \LeftLabel{Or}
-    \BinaryInfC{$\Gamma\vdash A\ \kw{or}\ B = \kw{false}$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{||}\ B = \kw{false}$}
 \end{prooftree}
 
 The mathematical operators are next, and as you might expect they work

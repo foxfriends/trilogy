@@ -27,10 +27,10 @@ pub enum UnaryOperator {
 impl UnaryOperator {
     fn parse(parser: &mut Parser) -> Self {
         let token = parser
-            .expect([KwNot, OpMinus, OpTilde, KwYield])
+            .expect([OpBang, OpMinus, OpTilde, KwYield])
             .expect("Caller should have found one of these");
         match token.token_type {
-            KwNot => Self::Not(token),
+            OpBang => Self::Not(token),
             OpMinus => Self::Negate(token),
             OpTilde => Self::Invert(token),
             KwYield => Self::Yield(token),
