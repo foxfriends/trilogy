@@ -42,7 +42,6 @@ pub enum Expression {
     Template(Box<Template>),
     Handled(Box<HandledExpression>),
     Parenthesized(Box<ParenthesizedExpression>),
-    SyntaxError(Box<SyntaxError>),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
