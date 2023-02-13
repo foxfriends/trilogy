@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -112,5 +112,28 @@ impl Pattern {
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence(parser, Precedence::None)
+    }
+}
+
+impl TryFrom<ModuleReference> for Pattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: ModuleReference) -> Result<Self, Self::Error> {
+        match value {
+            ModuleReference {
+                name,
+                arguments: None,
+            } => Ok(Pattern::Binding(Box::new(BindingPattern {
+                mutable: MutModifier::Not,
+                identifier: name,
+            }))),
+            // NOTE: maybe these actually can be used in patterns... otherwise there's no
+            // way to extract the type out of a module reference? Makes a pretty good case
+            // for generic types and generic extraction... but maybe a problem for later.
+            _ => Err(SyntaxError::new(
+                value.span(),
+                "a module reference cannot be used as a pattern",
+            )),
+        }
     }
 }

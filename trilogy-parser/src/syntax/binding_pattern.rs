@@ -17,6 +17,10 @@ impl BindingPattern {
             identifier,
         })
     }
+
+    pub(crate) fn is_immutable(&self) -> bool {
+        matches!(self.mutable, MutModifier::Not)
+    }
 }
 
 impl Spanned for BindingPattern {

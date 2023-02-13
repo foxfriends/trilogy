@@ -10,10 +10,21 @@ pub struct ModuleReference {
 }
 
 impl ModuleReference {
+    pub(crate) fn new(name: Identifier, arguments: Option<ModuleArguments>) -> Self {
+        Self { name, arguments }
+    }
+
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let name = Identifier::parse(parser)?;
         let arguments = ModuleArguments::parse(parser)?;
         Ok(Self { name, arguments })
+    }
+
+    pub(crate) fn parse_or_pattern(_parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
+        // TODO: are module references actually patterns too? or is this the way to go.
+        // Might even be *easier* to just parse patterns and attempt to coerce into
+        // module references when necessary, then we get more interesting "generics" too
+        todo!()
     }
 
     pub(crate) fn parse_arguments(mut self, parser: &mut Parser) -> SyntaxResult<Self> {
@@ -59,6 +70,14 @@ pub struct ModuleArguments {
 }
 
 impl ModuleArguments {
+    pub(crate) fn new(start: Token, arguments: Vec<ModuleReference>, end: Token) -> Self {
+        Self {
+            start,
+            arguments,
+            end,
+        }
+    }
+
     fn parse(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
         // There may be no space between a module and its arguments, as a space
         // is used in function application; a parenthesized parameter to a function
@@ -73,18 +92,18 @@ impl ModuleArguments {
         let start = parser.expect(TokenType::OParen).unwrap();
 
         let mut arguments = vec![];
-        loop {
-            if parser.check(TokenType::CParen).is_ok() {
-                break;
+        let end = loop {
+            if let Ok(end) = parser.expect(TokenType::CParen) {
+                break end;
             }
             arguments.push(ModuleReference::parse(parser)?);
             if parser.expect(TokenType::OpComma).is_ok() {
                 continue;
             }
-        }
-        let end = parser
-            .expect(TokenType::CParen)
-            .map_err(|token| parser.expected(token, "expected `,` or `)` in argument list"))?;
+            break parser
+                .expect(TokenType::CParen)
+                .map_err(|token| parser.expected(token, "expected `,` or `)` in argument list"))?;
+        };
         Ok(Self {
             start,
             arguments,

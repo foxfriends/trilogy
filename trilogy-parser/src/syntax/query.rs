@@ -10,6 +10,7 @@ pub enum Query {
     Direct(Box<DirectUnification>),
     Element(Box<ElementUnification>),
     Parenthesized(Box<ParenthesizedQuery>),
+    Lookup(Box<Lookup>),
     Pass(Box<Token>),
     End(Box<Token>),
     Is(Box<BooleanQuery>),
@@ -64,6 +65,17 @@ impl Query {
                 Err(pattern) => Self::unification(parser, pattern),
             },
             KwNot => Ok(Self::Not(Box::new(NotQuery::parse(parser)?))),
+            Identifier => {
+                // When it's an identifier, we have to check if it's actually
+                // a lookup, or really just a simple identifier pattern, by
+                // peeking an extra token.
+                if parser.predict([OParen, OpColonColon]) {
+                    Ok(Self::Lookup(Box::new(Lookup::parse(parser)?)))
+                } else {
+                    let pattern = Pattern::parse(parser)?;
+                    Self::unification(parser, pattern)
+                }
+            }
             _ => {
                 // Patterns could look like a lot of things, we'll just let the
                 // pattern parser handle the errors

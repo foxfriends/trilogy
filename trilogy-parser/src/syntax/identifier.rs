@@ -30,3 +30,14 @@ impl TryFrom<ModuleReference> for Identifier {
         }
     }
 }
+
+impl TryFrom<Pattern> for Identifier {
+    type Error = Pattern;
+
+    fn try_from(value: Pattern) -> Result<Self, Pattern> {
+        match value {
+            Pattern::Binding(binding) if binding.is_immutable() => Ok(binding.identifier),
+            _ => Err(value),
+        }
+    }
+}
