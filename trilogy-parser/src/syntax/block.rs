@@ -21,7 +21,7 @@ impl Block {
             if let Ok(end) = parser.expect(CBrace) {
                 break end;
             }
-            if !first && parser.expect(OpSemi).is_err() && !parser.is_line_start() {
+            if !first && parser.expect(OpSemi).is_err() && !parser.is_line_start {
                 let token = parser.peek();
                 let error = SyntaxError::new(
                     token.span,

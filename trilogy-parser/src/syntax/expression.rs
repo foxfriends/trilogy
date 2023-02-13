@@ -91,10 +91,15 @@ impl Expression {
         accept_comma: bool,
     ) -> SyntaxResult<Result<Self, Self>> {
         use TokenType::*;
-        // Unfortunate interaction of borrowing rules, have to check this before peeking.
-        let is_line_start = parser.is_line_start();
-        let is_spaced = parser.is_spaced();
-        let token = parser.peek();
+
+        // A bit of strangeness here because `peek()` takes a mutable reference,
+        // so we can't use the fields afterwards... but we need their value after
+        // and I'd really rather not clone every token of every expression, so
+        // instead we peek first, then do a force peek after (to skip an extra chomp).
+        parser.peek();
+        let is_spaced = parser.is_spaced;
+        let is_line_start = parser.is_line_start;
+        let token = parser.force_peek();
         match token.token_type {
             OpColonColon if precedence < Precedence::Path => match lhs {
                 Self::Reference(prefix) => {
@@ -287,10 +292,12 @@ impl Expression {
             KwFn => Ok(Self::Fn(Box::new(FnExpression::parse(parser)?))),
             KwDo => Ok(Self::Do(Box::new(DoExpression::parse(parser)?))),
             DollarString | TemplateStart => Ok(Self::Template(Box::new(Template::parse(parser)?))),
-            // TODO: may be a keyword reference!
-            OParen => Ok(Self::Parenthesized(Box::new(
-                ParenthesizedExpression::parse(parser)?,
-            ))),
+            OParen => match KeywordReference::try_parse(parser) {
+                Some(keyword) => Ok(Self::Keyword(Box::new(keyword))),
+                None => Ok(Self::Parenthesized(Box::new(
+                    ParenthesizedExpression::parse(parser)?,
+                ))),
+            },
             _ => {
                 let error = SyntaxError::new(token.span, "unexpected token in expression");
                 parser.error(error.clone());

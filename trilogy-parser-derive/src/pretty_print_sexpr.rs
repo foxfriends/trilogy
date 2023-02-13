@@ -72,7 +72,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
                         }
                         Fields::Unit => quote! {
                             Self::#variant_name => {
-                                printer.nil()
+                                printer.nil().parens()
                             }
                         },
                     }

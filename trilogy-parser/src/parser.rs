@@ -7,8 +7,8 @@ pub struct Parser<'src> {
     source: PeekMoreIterator<Scanner<'src>>,
     warnings: Vec<SyntaxError>,
     errors: Vec<SyntaxError>,
-    is_line_start: bool,
-    is_spaced: bool,
+    pub(crate) is_line_start: bool,
+    pub(crate) is_spaced: bool,
 }
 
 impl<'src> Parser<'src> {
@@ -82,6 +82,29 @@ impl Parser<'_> {
         }
     }
 
+    fn peek_chomp(&mut self) {
+        loop {
+            let Some(token) = self.source.peek() else { return };
+            if token.token_type == TokenType::EndOfFile {
+                return;
+            }
+            if [
+                TokenType::EndOfLine,
+                TokenType::CommentBlock,
+                TokenType::CommentLine,
+                TokenType::CommentInline,
+                TokenType::Space,
+                TokenType::Error,
+            ]
+            .matches(token)
+            {
+                self.source.advance_cursor();
+                continue;
+            }
+            break;
+        }
+    }
+
     fn next(&mut self) -> Token {
         // Technically probably shouldn't unwrap here but if we consume the EndOfFile
         // it has to be at the end, at which point we consume no more, so this should
@@ -108,6 +131,16 @@ impl Parser<'_> {
         token
     }
 
+    fn peek_next(&mut self) -> Option<Token> {
+        // Technically probably shouldn't unwrap here but if we consume the EndOfFile
+        // it has to be at the end, at which point we consume no more, so this should
+        // be safe.
+        self.peek_chomp();
+        let peeked = self.source.peek().cloned();
+        self.source.advance_cursor();
+        peeked
+    }
+
     pub(crate) fn expect_bang_oparen(&mut self) -> Result<(Token, Token), Token> {
         use TokenType::*;
         // Though tokenized as two tokens, this is kind of treated as one token in some cases,
@@ -127,6 +160,17 @@ impl Parser<'_> {
     pub(crate) fn peek(&mut self) -> &Token {
         self.chomp();
         self.source.peek().unwrap()
+    }
+
+    pub(crate) fn force_peek(&mut self) -> &Token {
+        self.source.peek().unwrap()
+    }
+
+    pub(crate) fn peekn(&mut self, n: usize) -> Option<Vec<Token>> {
+        self.chomp();
+        let tokens = (0..n).map(|_| self.peek_next()).collect::<Option<Vec<_>>>();
+        self.source.reset_cursor();
+        tokens
     }
 
     pub(crate) fn synchronize(&mut self, pattern: impl TokenPattern) {
@@ -155,13 +199,5 @@ impl Parser<'_> {
         } else {
             Err(token)
         }
-    }
-
-    pub(crate) fn is_line_start(&self) -> bool {
-        self.is_line_start
-    }
-
-    pub(crate) fn is_spaced(&self) -> bool {
-        self.is_spaced
     }
 }

@@ -62,7 +62,7 @@ impl Document {
             }
         }
 
-        if !parser.is_line_start() {
+        if !parser.is_line_start {
             #[cfg(feature = "lax")]
             parser.warn(SyntaxError::new_spanless(
                 "The document does not end with a new-line character.",
