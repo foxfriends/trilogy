@@ -23,7 +23,6 @@ pub(crate) enum Precedence {
     Disjunction,
     Implication,
     Conjunction,
-    Primary,
 }
 
 impl Query {

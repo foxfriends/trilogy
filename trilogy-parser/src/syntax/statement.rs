@@ -44,6 +44,7 @@ impl Statement {
             KwExit => Ok(Self::Exit(Box::new(ExitStatement::parse(parser)?))),
             KwYield => Ok(Self::Yield(Box::new(YieldStatement::parse(parser)?))),
             KwAssert => Ok(Self::Assert(Box::new(AssertStatement::parse(parser)?))),
+            KwWhen => Ok(Self::Handled(Box::new(HandledBlock::parse(parser)?))),
             OBrace => Ok(Self::Block(Box::new(Block::parse(parser)?))),
             _ => {
                 // TODO: this is probably going to be come expression statement/assignment/call,

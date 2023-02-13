@@ -72,7 +72,6 @@ pub(crate) enum Precedence {
     Call,
     Access,
     Path,
-    Primary,
 }
 
 impl Expression {

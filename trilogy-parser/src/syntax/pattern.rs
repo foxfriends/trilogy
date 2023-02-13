@@ -34,7 +34,6 @@ pub(crate) enum Precedence {
     Cons,
     Glue,
     Unary,
-    Primary,
 }
 
 impl Pattern {

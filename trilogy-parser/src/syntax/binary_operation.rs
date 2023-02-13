@@ -10,20 +10,6 @@ pub struct BinaryOperation {
 }
 
 impl BinaryOperation {
-    pub(crate) fn new(
-        lhs: impl Into<Expression>,
-        operator: BinaryOperator,
-        rhs: impl Into<Expression>,
-    ) -> Self {
-        Self {
-            lhs: lhs.into(),
-            operator,
-            rhs: rhs.into(),
-        }
-    }
-}
-
-impl BinaryOperation {
     pub(crate) fn parse(parser: &mut Parser, lhs: impl Into<Expression>) -> SyntaxResult<Self> {
         let operator = BinaryOperator::parse(parser);
         let rhs = Expression::parse_precedence(parser, operator.precedence())?;

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod application;
 mod array_comprehension;
 mod array_literal;

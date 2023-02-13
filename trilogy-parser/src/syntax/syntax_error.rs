@@ -7,6 +7,8 @@ use source_span::Span;
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SyntaxError {
     span: Span,
+    #[allow(dead_code)]
+    // for now this is used by Debug
     message: String,
 }
 
