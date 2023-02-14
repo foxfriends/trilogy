@@ -23,6 +23,7 @@ impl BinaryOperation {
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum BinaryOperator {
+    Access(Token),
     And(Token),
     Or(Token),
     Add(Token),
@@ -58,6 +59,7 @@ impl BinaryOperator {
     fn parse(parser: &mut Parser) -> Self {
         let token = parser.consume();
         match token.token_type {
+            OpDot => Self::Access(token),
             OpAmpAmp => Self::And(token),
             OpPipePipe => Self::Or(token),
             OpPlus => Self::Add(token),
@@ -93,6 +95,7 @@ impl BinaryOperator {
 
     fn precedence(&self) -> Precedence {
         match self {
+            BinaryOperator::Access(..) => Precedence::Access,
             BinaryOperator::And(..) => Precedence::And,
             BinaryOperator::Or(..) => Precedence::Or,
             BinaryOperator::Add(..) | BinaryOperator::Subtract(..) => Precedence::Term,

@@ -19,7 +19,6 @@ pub enum Expression {
     SetComprehension(Box<SetComprehension>),
     RecordComprehension(Box<RecordComprehension>),
     IteratorComprehension(Box<IteratorComprehension>),
-    MemberAccess(Box<MemberAccess>),
     Reference(Box<ModulePath>),
     Keyword(Box<KeywordReference>),
     Application(Box<Application>),
@@ -127,9 +126,7 @@ impl Expression {
                     Err(error)
                 }
             },
-            OpDot if precedence < Precedence::Access => Ok(Ok(Self::MemberAccess(Box::new(
-                MemberAccess::parse(parser, lhs)?,
-            )))),
+            OpDot if precedence < Precedence::Access => Self::binary(parser, lhs),
             OpAmpAmp if precedence < Precedence::And => Self::binary(parser, lhs),
             OpPipePipe if precedence < Precedence::Or => Self::binary(parser, lhs),
             OpPlus | OpMinus if precedence < Precedence::Term => Self::binary(parser, lhs),

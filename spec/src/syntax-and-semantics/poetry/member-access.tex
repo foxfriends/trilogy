@@ -2,8 +2,9 @@
 \label{sec:member-access}
 
 Some values contain other values within them, and those values are accessed using
-the member access syntax. There are a few variations on this syntax, allowing for
-some flexibility the structure of your data.
+the member access syntax. Though this uses the \op{.} operator, as seen in many
+other languages, in \Trilogy{} that \op{.} truly is just an operator: the value on
+the right side is interpreted as an expression like any other.
 
 \begin{bnf*}
     \bnfprod{MemberAccess}{
@@ -11,32 +12,16 @@ some flexibility the structure of your data.
         \bnfsp
         \bnfts{\op{.}}
         \bnfsp
-        \bnfpn{Identifier}
+        \bnfpn{Expression}
         \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfts{\op{.[}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfts{]}
     }
 \end{bnf*}
 
-The only form of particular relevance is the second, as the first can be
-transformed by interpreting the identifier as an atom and passing that
-in the brackets:
+The left expression is the ``container'' expression, whiel the right is the
+``member'' expression. The exact semantics of this operator depends on the
+type of the container expression.
 
-\begin{align*}
-    \texttt{\$c:expr . \$i:id} & \Rightarrow \texttt{\$c .[ ' \$i ]} %
-\end{align*}
-
-After that, the way the lookup works depends on the type of the expression
-on the left.
-
-For Arrays, the expression in the brackets must evaluate to an integer
+For Arrays, the member expression must evaluate to an integer
 which is the index of the element to access, starting from 0 at the left.
 If the index is an integer but is not within the bounds of the array,
 \val{'MIA} is yielded instead. Meanwhile, if the index expression is
@@ -47,7 +32,7 @@ not an integer, it is considered a runtime type error.
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
     \AxiomC{$0 \leq i < |\sigma|$}
     \LeftLabel{Array Access}
-    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} : \tau$}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i : \tau$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -55,10 +40,10 @@ not an integer, it is considered a runtime type error.
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
     \AxiomC{$i < 0 \lor |\sigma| < i$}
     \LeftLabel{Array MIA}
-    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i \vartriangle \val{'MIA}$}
 \end{prooftree}
 
-For Strings, similar to arrays, the expression in the brackets must evaluate
+For Strings, similar to arrays, the member expression must evaluate
 to an integer which is the index of the Character to access, starting from 0
 at the left. If the index is an integer but is not within the bounds of the
 string, \val{'MIA} is yielded instead. Meanwhile, if the index expression
@@ -69,7 +54,7 @@ is not an integer, it is considered a runtime type error.
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
     \AxiomC{$0 \leq i < |\sigma|$}
     \LeftLabel{String Access}
-    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} : \ty{Char}$}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i : \ty{Char}$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -77,7 +62,7 @@ is not an integer, it is considered a runtime type error.
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
     \AxiomC{$i < 0 \lor |\sigma| < i$}
     \LeftLabel{String MIA}
-    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i \vartriangle \val{'MIA}$}
 \end{prooftree}
 
 For Bits, the expression again must evaluate to an integer, which
@@ -92,7 +77,7 @@ are treated as \kw{false}.
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
     \AxiomC{$0 \leq i$}
     \LeftLabel{Bits Access}
-    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} : \ty{Bool}$}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i : \ty{Bool}$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -100,10 +85,10 @@ are treated as \kw{false}.
     \AxiomC{$\Gamma\vdash i : \ty{Integer}$}
     \AxiomC{$i < 0$}
     \LeftLabel{Bits MIA}
-    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ i\ \texttt{]} \vartriangle \val{'MIA}$}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i \vartriangle \val{'MIA}$}
 \end{prooftree}
 
-For Records, the expression in the brackets may be any value which is
+For Records, the member expression may be any value which is
 the key of the element to access. If the key is not found in the
 record, \val{'MIA} is yielded. Any value is valid as a record key,
 so there are no runtime type errors for record access.
@@ -112,7 +97,7 @@ so there are no runtime type errors for record access.
     \AxiomC{$\Gamma\vdash E : \ty{Record}\ \kappa:\nu$}
     \AxiomC{$\Gamma\vdash k : \kappa$}
     \LeftLabel{Record Access}
-    \BinaryInfC{$\Gamma\vdash E\ \texttt{.[}\ k\ \texttt{]} : \nu$}
+    \BinaryInfC{$\Gamma\vdash E\ \texttt{.}\ k : \nu$}
 \end{prooftree}
 
 If the value on the left is of any other type, it is a runtime type error;

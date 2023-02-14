@@ -3,15 +3,9 @@ use trilogy_scanner::Token;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct AssignmentStatement {
-    pub lhs: LValue,
+    pub lhs: Expression,
     pub strategy: AssignmentStrategy,
     pub rhs: Expression,
-}
-
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
-pub enum LValue {
-    Pattern(Box<Pattern>),
-    Member(Box<MemberAccess>),
 }
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]

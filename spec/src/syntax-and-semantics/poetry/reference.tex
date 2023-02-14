@@ -9,7 +9,9 @@ As a bit of a special case, the built-in operators may be referenced as if they
 were functions by wrapping them in parentheses. This allows operators to be passed
 as values and applied as if they were functions to their arguments, occasionally
 useful in some functional compositions. The operators themselves are specified
-in \S\ref{sec:binop} and \S\ref{sec:unaryop}.
+in \S\ref{sec:binop} and \S\ref{sec:unaryop} (the member access operator is included
+as well, but since it is described separately in \S\ref{sec:member-access}, it is
+also listed separately here).
 
 The one odd bit here is that the \op{-} symbol is always referenced as the
 subtraction operator, and never the unary negation operator. Unary negation
@@ -44,6 +46,12 @@ First class keywords are described in \S\ref{sec:first-class-keyword}.
         \bnfor
     } \\
     \bnfmore{
+        \bnfts{(}
+        \bnfsp
+        \bnfts{.}
+        \bnfsp
+        \bnfts{)}
+        \bnfor
         \bnfts{(}
         \bnfsp
         \bnfpn{FirstClassKeyword}

@@ -25,7 +25,7 @@ proc readlines!() {
         let line = with readline!()
             when 'EOF cancel { break }
             else yield
-        array.[length array] = line
+        array.(length array) = line
     }
     return array
 }
