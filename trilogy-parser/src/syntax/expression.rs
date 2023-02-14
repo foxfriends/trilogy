@@ -191,7 +191,7 @@ impl Expression {
             //
             // Sadly, the list of things that can follow, for an application, is
             // anything prefix (except `-`) so this becomes a very long list.
-            _ if Expression::PREFIX.matches(&token)
+            _ if Expression::PREFIX.matches(token)
                 && precedence < Precedence::Application
                 && !is_line_start
                 && is_spaced =>
