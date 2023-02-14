@@ -236,24 +236,12 @@ algorithm are defined in \S\ref{sec:module-resolution}.
     \bnfprod*{ModuleHead}{
         \bnfpn{Identifier}
         \bnfsp
-        \bnfts{(}
-        \bnfsp
         \bnfpn{ModuleParameters}
-        \bnfsp
-        \bnfts{)}
-        \bnfor
-        \bnfpn{Identifier}
     } \\
     \bnfprod*{ModuleParameters}{
         \bnfpn{Identifier}
         \bnfsp
-        \bnfts{,}
-        \bnfsp
         \bnfpn{ModuleParameters}
-        \bnfor
-    } \\
-    \bnfmore*{
-        \bnfpn{Identifier}
         \bnfor
         \bnfes
     } \\
@@ -313,26 +301,16 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfpn{ModuleReference}
     } \\
     \bnfprod*{ModuleReference}{
-        \bnfpn{Identifier}
-        \bnfor
-        \bnfpn{Identifier}
+        \bnfts{@}
         \bnfsp
-        \bnfts{(}
+        \bnfpn{Identifier}
         \bnfsp
         \bnfpn{ModuleArguments}
-        \bnfsp
-        \bnfts{)}
     } \\
     \bnfprod*{ModuleArguments}{
-        \bnfpn{ModuleReference}
-        \bnfsp
-        \bnfts{,}
+        \bnfpn{Expression}
         \bnfsp
         \bnfpn{ModuleArguments}
-        \bnfor
-    } \\
-    \bnfmore*{
-        \bnfpn{ModuleReference}
         \bnfor
         \bnfes
     }
@@ -352,25 +330,25 @@ externally also may not access members of the module in which they are declared.
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0.1in}
     \AxiomC{$\Gamma,m_{1\hdots n},\Phi \vdash p$}
-    \AxiomC{$\kw{module}\ m\ (m_{1\hdots n})\ \block{K}$}
+    \AxiomC{$\kw{module}\ m\ m_{1\hdots n}\ \block{K}$}
     \AxiomC{$K \Rightarrow \kw{export}\ p$}
     \LeftLabel{Local Module}
-    \TrinaryInfC{$\Gamma \vdash m\texttt{.}p$}
+    \TrinaryInfC{$\Gamma \vdash m\ \op{::}\ p$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Phi \vdash p$}
     \AxiomC{$\kw{module}\ m\ \kw{at}\ \sigma$}
-    \AxiomC{$\text{read}(\sigma) \Rightarrow \kw{export}\ p$ }
+    \AxiomC{$\text{read}(\sigma) \Rightarrow \kw{export}\ p$}
     \LeftLabel{External Module}
-    \TrinaryInfC{$\Gamma \vdash m\texttt{.}p$}
+    \TrinaryInfC{$\Gamma \vdash m\ \op{::}\ p$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash m.p$}
     \AxiomC{$\kw{import}\ m\ \kw{as}\ n$}
     \LeftLabel{Import As}
-    \BinaryInfC{$\Gamma \vdash n\texttt{.}p$}
+    \BinaryInfC{$\Gamma \vdash n\ \op{::}\ p$}
 \end{prooftree}
 
 \begin{prooftree}

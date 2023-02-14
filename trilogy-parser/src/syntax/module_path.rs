@@ -24,22 +24,23 @@ impl ModulePath {
         Self::parse_rest(parser, first)
     }
 
-    pub(crate) fn parse_extend(mut self, parser: &mut Parser) -> SyntaxResult<Self> {
-        self.modules.push(ModuleReference::parse(parser)?);
-        Ok(self)
-    }
-
-    pub(crate) fn parse_arguments(mut self, parser: &mut Parser) -> SyntaxResult<Self> {
-        let last = self.modules.pop().unwrap();
-        self.modules.push(last.parse_arguments(parser)?);
-        Ok(self)
-    }
-}
-
-impl From<Identifier> for ModulePath {
-    fn from(value: Identifier) -> Self {
-        Self {
-            modules: vec![value.into()],
+    pub(crate) fn parse_or_path(parser: &mut Parser) -> SyntaxResult<Result<Self, Path>> {
+        let mut modules = vec![ModuleReference::parse(parser)?];
+        loop {
+            if parser.expect(TokenType::OpColonColon).is_err() {
+                break;
+            }
+            if parser.check(TokenType::OpAt).is_ok() {
+                modules.push(ModuleReference::parse(parser)?);
+            } else {
+                let module = Self { modules };
+                let member = Identifier::parse(parser)?;
+                return Ok(Err(Path {
+                    module: Some(module),
+                    member,
+                }));
+            }
         }
+        Ok(Ok(Self { modules }))
     }
 }

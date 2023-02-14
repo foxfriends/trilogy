@@ -70,22 +70,12 @@ impl Definition {
             }
             KwImport => {
                 let start = parser.expect(KwImport).unwrap();
-
-                // Module reference is conveniently a superset of identifier, which is the first
-                // bit of a list of identifiers.
-                //
-                // Parse one of those, then check the next token to determine the way forward.
-                let first = ModuleReference::parse(parser)?;
-                if parser.check([KwAs, OpDot]).is_ok() {
+                if parser.check(OpAt).is_ok() {
                     DefinitionItem::ModuleImport(Box::new(ModuleImportDefinition::parse(
-                        parser, start, first,
+                        parser, start,
                     )?))
                 } else {
-                    DefinitionItem::Import(Box::new(ImportDefinition::parse(
-                        parser,
-                        start,
-                        first.try_into()?,
-                    )?))
+                    DefinitionItem::Import(Box::new(ImportDefinition::parse(parser, start)?))
                 }
             }
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),

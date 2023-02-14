@@ -1,6 +1,6 @@
 use super::*;
-use crate::{Parser, Spanned};
-use trilogy_scanner::TokenType;
+use crate::{token_pattern::TokenPattern, Parser, Spanned};
+use trilogy_scanner::TokenType::{self, *};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Expression {
@@ -19,7 +19,7 @@ pub enum Expression {
     SetComprehension(Box<SetComprehension>),
     RecordComprehension(Box<RecordComprehension>),
     IteratorComprehension(Box<IteratorComprehension>),
-    Reference(Box<ModulePath>),
+    Reference(Box<Path>),
     Keyword(Box<KeywordReference>),
     Application(Box<Application>),
     Call(Box<CallExpression>),
@@ -41,6 +41,8 @@ pub enum Expression {
     Template(Box<Template>),
     Handled(Box<HandledExpression>),
     Parenthesized(Box<ParenthesizedExpression>),
+    Module(Box<ModulePath>),
+    Path(Box<Path>),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -66,14 +68,50 @@ pub(crate) enum Precedence {
     Exponent,
     RCompose,
     Compose,
+    Path,
     Application,
     Unary,
     Call,
     Access,
-    Path,
 }
 
 impl Expression {
+    pub(crate) const PREFIX: [TokenType; 33] = [
+        Numeric,
+        String,
+        Bits,
+        KwTrue,
+        KwFalse,
+        Atom,
+        Character,
+        KwUnit,
+        OBrack,
+        OBracePipe,
+        OBrace,
+        DollarOParen,
+        OpBang,
+        OpTilde,
+        KwYield,
+        KwIf,
+        KwMatch,
+        KwEnd,
+        KwExit,
+        KwReturn,
+        KwResume,
+        KwBreak,
+        KwContinue,
+        KwCancel,
+        KwLet,
+        Identifier,
+        KwWith,
+        KwFn,
+        KwDo,
+        DollarString,
+        TemplateStart,
+        OParen,
+        OpAt,
+    ];
+
     fn binary(parser: &mut Parser, lhs: Expression) -> SyntaxResult<Result<Self, Self>> {
         BinaryOperation::parse(parser, lhs)
             .map(Box::new)
@@ -87,8 +125,6 @@ impl Expression {
         lhs: Expression,
         accept_comma: bool,
     ) -> SyntaxResult<Result<Self, Self>> {
-        use TokenType::*;
-
         // A bit of strangeness here because `peek()` takes a mutable reference,
         // so we can't use the fields afterwards... but we need their value after
         // and I'd really rather not clone every token of every expression, so
@@ -98,34 +134,6 @@ impl Expression {
         let is_line_start = parser.is_line_start;
         let token = parser.force_peek();
         match token.token_type {
-            OpColonColon if precedence < Precedence::Path => match lhs {
-                Self::Reference(prefix) => {
-                    Ok(Ok(Self::Reference(Box::new(prefix.parse_extend(parser)?))))
-                }
-                _ => {
-                    let error = SyntaxError::new(
-                        lhs.span().union(token.span),
-                        "modules paths may not contain arbitrary expressions",
-                    );
-                    parser.error(error.clone());
-                    Err(error)
-                }
-            },
-            OParen if precedence <= Precedence::Path && !is_spaced => match lhs {
-                Self::Reference(prefix) if prefix.modules.last().unwrap().arguments.is_some() => {
-                    Ok(Ok(Self::Reference(Box::new(
-                        prefix.parse_arguments(parser)?,
-                    ))))
-                }
-                _ => {
-                    let error = SyntaxError::new(
-                        lhs.span().union(token.span),
-                        "a space must separate a function from its arguments",
-                    );
-                    parser.error(error.clone());
-                    Err(error)
-                }
-            },
             OpDot if precedence < Precedence::Access => Self::binary(parser, lhs),
             OpAmpAmp if precedence < Precedence::And => Self::binary(parser, lhs),
             OpPipePipe if precedence < Precedence::Or => Self::binary(parser, lhs),
@@ -183,11 +191,10 @@ impl Expression {
             //
             // Sadly, the list of things that can follow, for an application, is
             // anything prefix (except `-`) so this becomes a very long list.
-            Numeric | String | Bits | KwTrue | KwFalse | Atom | Character | KwUnit | OBrack
-            | OBracePipe | OBrace | DollarOParen | OpBang | OpTilde | KwYield | KwIf | KwMatch
-            | KwEnd | KwExit | KwReturn | KwResume | KwBreak | KwContinue | KwCancel | KwLet
-            | Identifier | KwWith | KwFn | KwDo | DollarString | TemplateStart | OParen
-                if precedence < Precedence::Application && !is_line_start && is_spaced =>
+            _ if Expression::PREFIX.matches(&token)
+                && precedence < Precedence::Application
+                && !is_line_start
+                && is_spaced =>
             {
                 Ok(Ok(Self::Application(Box::new(Application::parse(
                     parser, lhs,
@@ -199,7 +206,6 @@ impl Expression {
     }
 
     fn parse_prefix(parser: &mut Parser) -> SyntaxResult<Self> {
-        use TokenType::*;
         let token = parser.peek();
         match token.token_type {
             Numeric => Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?))),
@@ -293,10 +299,28 @@ impl Expression {
                     ParenthesizedExpression::parse(parser)?,
                 ))),
             },
+            OpAt => match ModulePath::parse_or_path(parser)? {
+                Ok(module) => Ok(Self::Module(Box::new(module))),
+                Err(path) => Ok(Self::Path(Box::new(path))),
+            },
             _ => {
                 let error = SyntaxError::new(token.span, "unexpected token in expression");
                 parser.error(error.clone());
                 Err(error)
+            }
+        }
+    }
+
+    pub(crate) fn parse_suffix(
+        parser: &mut Parser,
+        precedence: Precedence,
+        accept_comma: bool,
+        mut expr: Expression,
+    ) -> SyntaxResult<Self> {
+        loop {
+            match Self::parse_follow(parser, precedence, expr, accept_comma)? {
+                Ok(updated) => expr = updated,
+                Err(expr) => return Ok(expr),
             }
         }
     }
@@ -306,13 +330,8 @@ impl Expression {
         precedence: Precedence,
         accept_comma: bool,
     ) -> SyntaxResult<Self> {
-        let mut expr = Self::parse_prefix(parser)?;
-        loop {
-            match Self::parse_follow(parser, precedence, expr, accept_comma)? {
-                Ok(updated) => expr = updated,
-                Err(expr) => return Ok(expr),
-            }
-        }
+        let expr = Self::parse_prefix(parser)?;
+        Self::parse_suffix(parser, precedence, accept_comma, expr)
     }
 
     pub(crate) fn parse_precedence(

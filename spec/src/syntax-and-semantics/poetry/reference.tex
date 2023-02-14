@@ -23,15 +23,7 @@ First class keywords are described in \S\ref{sec:first-class-keyword}.
 \begin{bnf*}
     \bnfprod{Reference}{
         \bnfpn{Path}
-        \bnfsp
-        \bnfts{::}
-        \bnfsp
-        \bnfpn{Identifier}
         \bnfor
-        \bnfpn{Identifier}
-        \bnfor
-    } \\
-    \bnfmore{
         \bnfts{(}
         \bnfsp
         \bnfpn{OnlyUnaryOperator}
@@ -40,7 +32,7 @@ First class keywords are described in \S\ref{sec:first-class-keyword}.
         \bnfor
         \bnfts{(}
         \bnfsp
-        \bnfpn{BinaryOperator}
+        \bnfts{.}
         \bnfsp
         \bnfts{)}
         \bnfor
@@ -48,7 +40,7 @@ First class keywords are described in \S\ref{sec:first-class-keyword}.
     \bnfmore{
         \bnfts{(}
         \bnfsp
-        \bnfts{.}
+        \bnfpn{BinaryOperator}
         \bnfsp
         \bnfts{)}
         \bnfor

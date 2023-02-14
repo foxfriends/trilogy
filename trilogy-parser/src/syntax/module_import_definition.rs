@@ -10,12 +10,8 @@ pub struct ModuleImportDefinition {
 }
 
 impl ModuleImportDefinition {
-    pub(crate) fn parse(
-        parser: &mut Parser,
-        start: Token,
-        first: ModuleReference,
-    ) -> SyntaxResult<Self> {
-        let module = ModulePath::parse_rest(parser, first)?;
+    pub(crate) fn parse(parser: &mut Parser, start: Token) -> SyntaxResult<Self> {
+        let module = ModulePath::parse(parser)?;
         parser
             .expect(TokenType::KwAs)
             .map_err(|token| parser.expected(token, "expected keyword `as`"))?;

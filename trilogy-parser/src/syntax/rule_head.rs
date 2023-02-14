@@ -16,18 +16,18 @@ impl RuleHead {
             .expect(TokenType::OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;
         let mut parameters = vec![];
-        loop {
-            if parser.check(TokenType::CParen).is_ok() {
-                break;
+        let end = loop {
+            if let Ok(end) = parser.expect(TokenType::CParen) {
+                break end;
             }
             parameters.push(Pattern::parse(parser)?);
             if parser.expect(TokenType::OpComma).is_ok() {
                 continue;
             }
-        }
-        let end = parser
-            .expect(TokenType::CParen)
-            .map_err(|token| parser.expected(token, "expected `,` or `)` in parameter list"))?;
+            break parser.expect(TokenType::CParen).map_err(|token| {
+                parser.expected(token, "expected `,` or `)` in parameter list")
+            })?;
+        };
         Ok(Self {
             name,
             parameters,

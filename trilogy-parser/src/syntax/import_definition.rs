@@ -10,17 +10,17 @@ pub struct ImportDefinition {
 }
 
 impl ImportDefinition {
-    pub(crate) fn parse(
-        parser: &mut Parser,
-        start: Token,
-        first: Identifier,
-    ) -> SyntaxResult<Self> {
-        let mut names = vec![first];
-        while parser.expect(TokenType::OpComma).is_ok() {
+    pub(crate) fn parse(parser: &mut Parser, start: Token) -> SyntaxResult<Self> {
+        let mut names = vec![];
+        loop {
             if parser.check(TokenType::KwFrom).is_ok() {
                 break;
             }
             names.push(Identifier::parse(parser)?);
+            if parser.expect(TokenType::OpComma).is_ok() {
+                continue;
+            }
+            break;
         }
         parser
             .expect(TokenType::KwFrom)

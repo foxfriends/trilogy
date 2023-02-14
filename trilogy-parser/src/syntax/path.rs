@@ -1,16 +1,44 @@
 use super::*;
+use crate::{spanned::Spanned, Parser};
+use source_span::Span;
+use trilogy_scanner::TokenType;
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Path {
-    pub modules: Vec<ModuleReference>,
-    pub identifier: Identifier,
+    pub module: Option<ModulePath>,
+    pub member: Identifier,
 }
 
 impl Path {
-    pub(crate) fn new(modules: Vec<ModuleReference>, identifier: Identifier) -> Self {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let module = parser
+            .check(TokenType::OpAt)
+            .ok()
+            .map(|_| ())
+            .map(|_| ModulePath::parse(parser))
+            .transpose()?;
+        parser
+            .expect(TokenType::OpColonColon)
+            .expect("a path must end with an identifier");
+        let member = Identifier::parse(parser)?;
+        Ok(Self { module, member })
+    }
+}
+
+impl Spanned for Path {
+    fn span(&self) -> Span {
+        match &self.module {
+            Some(module) => module.span().union(self.member.span()),
+            None => self.member.span(),
+        }
+    }
+}
+
+impl From<Identifier> for Path {
+    fn from(member: Identifier) -> Self {
         Self {
-            modules,
-            identifier,
+            module: None,
+            member,
         }
     }
 }

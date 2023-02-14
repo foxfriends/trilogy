@@ -1,119 +1,32 @@
-use super::*;
-use crate::{Parser, Spanned};
-use source_span::Span;
+use super::{expression::Precedence, *};
+use crate::Parser;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ModuleReference {
+    start: Token,
     pub name: Identifier,
-    pub arguments: Option<ModuleArguments>,
+    pub arguments: Vec<Expression>,
 }
 
 impl ModuleReference {
-    pub(crate) fn new(name: Identifier, arguments: Option<ModuleArguments>) -> Self {
-        Self { name, arguments }
-    }
-
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let start = parser
+            .expect(TokenType::OpAt)
+            .map_err(|token| parser.expected(token, "expected `@` in module reference"))?;
         let name = Identifier::parse(parser)?;
-        let arguments = ModuleArguments::parse(parser)?;
-        Ok(Self { name, arguments })
-    }
 
-    pub(crate) fn parse_or_pattern(_parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
-        // TODO: are module references actually patterns too? or is this the way to go.
-        // Might even be *easier* to just parse patterns and attempt to coerce into
-        // module references when necessary, then we get more interesting "generics" too
-        todo!()
-    }
-
-    pub(crate) fn parse_arguments(mut self, parser: &mut Parser) -> SyntaxResult<Self> {
-        parser
-            .check(TokenType::OParen)
-            .expect("caller should have found this");
-        let valid = !parser.is_spaced;
-        let arguments = ModuleArguments::force_parse(parser)?;
-        if !valid {
-            parser.error(SyntaxError::new(
-                self.span().union(arguments.span()),
-                "module arguments may not be spaced",
-            ));
-        }
-        self.arguments = Some(arguments);
-        Ok(self)
-    }
-}
-
-impl Spanned for ModuleReference {
-    fn span(&self) -> Span {
-        match &self.arguments {
-            Some(arguments) => self.name.span().union(arguments.span()),
-            None => self.name.span(),
-        }
-    }
-}
-
-impl From<Identifier> for ModuleReference {
-    fn from(name: Identifier) -> Self {
-        Self {
-            name,
-            arguments: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PrettyPrintSExpr)]
-pub struct ModuleArguments {
-    start: Token,
-    pub arguments: Vec<ModuleReference>,
-    end: Token,
-}
-
-impl ModuleArguments {
-    pub(crate) fn new(start: Token, arguments: Vec<ModuleReference>, end: Token) -> Self {
-        Self {
-            start,
-            arguments,
-            end,
-        }
-    }
-
-    fn parse(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
-        // There may be no space between a module and its arguments, as a space
-        // is used in function application; a parenthesized parameter to a function
-        // may otherwise be ambiguous. A bit of a hack, but I think we'll survive.
-        if parser.check(TokenType::OParen).is_ok() || parser.is_spaced {
-            return Ok(None);
-        }
-        ModuleArguments::force_parse(parser).map(Some)
-    }
-
-    fn force_parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser.expect(TokenType::OParen).unwrap();
-
+        // Same logic as with a regular application, module references are like
+        // a weird hard-coded application situation, in path precedence.
         let mut arguments = vec![];
-        let end = loop {
-            if let Ok(end) = parser.expect(TokenType::CParen) {
-                break end;
-            }
-            arguments.push(ModuleReference::parse(parser)?);
-            if parser.expect(TokenType::OpComma).is_ok() {
-                continue;
-            }
-            break parser
-                .expect(TokenType::CParen)
-                .map_err(|token| parser.expected(token, "expected `,` or `)` in argument list"))?;
-        };
+        while parser.check(Expression::PREFIX).is_ok() && parser.is_spaced {
+            arguments.push(Expression::parse_precedence(parser, Precedence::Path)?);
+        }
+
         Ok(Self {
             start,
+            name,
             arguments,
-            end,
         })
-    }
-}
-
-impl Spanned for ModuleArguments {
-    fn span(&self) -> Span {
-        self.start.span.union(self.end.span)
     }
 }
