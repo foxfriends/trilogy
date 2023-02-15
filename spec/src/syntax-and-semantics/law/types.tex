@@ -11,101 +11,86 @@ and are checked primarily at runtime. They are checked though, unlike some
 dynamically typed languages which have type annotations that are
 ignored at runtime, and only loosely examined statically\footnote{Looking at TypeScript and Python here, to name a few.}.
 
-While type-checking for dynamically typed languages using some crazy
-type systems is something I do find interesting, \Trilogy{} takes a
-conservative approach to type checking, indeed to the point of almost
-being useless. Exploring a fully powerful type system for \Trilogy{}
-is left as an experiment for the future.
+In \Trilogy{}, types are defined using \Law{} via a combination of a pattern
+and a query. The pattern describes the shape of the type, and the query
+enforces certain rules about how that type's fields are related. \Trilogy{},
+however, remains a fully dynamically typed language: there are no ``constructors''
+or ``methods'' for these types, only regular functions that construct or act on
+values that satisfy these types.
 
 \begin{bnf*}
-    \bnfprod{TypeAnnotation}{
-        \bnfts{::}
+    \bnfprod{TypeDefinition}{
+        \bnfpn{TypeHead}
         \bnfsp
-        \bnfpn{TypePattern}
+        \bnfts{\kw{is}}
+        \bnfsp
+        \bnfpn{TypeBody}
     } \\
-    \bnfprod{TypePattern}{
-        \bnfpn{Literal}
-        \bnfor
-        \bnfpn{PrimitiveType}
-        \bnfor
-        \bnfpn{TupleType}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{StructType}
-        \bnfor
-        \bnfpn{ArrayType}
-        \bnfor
-        \bnfpn{SetType}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{RecordType}
-        \bnfor
+    \bnfprod{TypeHead}{
+        \bnfts{\kw{type}}
+        \bnfsp
         \bnfpn{Identifier}
-    } \\
-    \bnfprod{PrimitiveType}{
-        \bnfts{Number}
-        \bnfor
-        \bnfts{String}
-        \bnfor
-        \bnfts{Atom}
-        \bnfor
-        \bnfts{Bits}
-        \bnfor
-        \bnfts{Char}
-        \bnfor
-        \bnfts{Bool}
-    } \\
-    \bnfprod{TupleType}{
-        \bnfpn{TypePattern}
         \bnfsp
-        \bnfts{:}
-        \bnfsp
-        \bnfpn{TypePattern}
+        \bnfpn{TypeArguments}
     } \\
-    \bnfprod{StructType}{
-        \bnfpn{Atom}
+    \bnfprod{TypeBody}{
+        \bnfpn{Pattern}
+        \bnfor
+        \bnfpn{Pattern}
         \bnfsp
+        \bnfts{\kw{where}}
+        \bnfsp
+        \bnfpn{Query}
+    } \\
+    \bnfprod{TypeArguments}{
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfpn{TypeArguments}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{Type}{
+        \bnfpn{Identifier}
+        \bnfor
+        \bnfpn{Type}
+        \bnfsp
+        \bnfpn{Type}
+        \bnfor
         \bnfts{(}
         \bnfsp
-        \bnfpn{TypePattern}
+        \bnfpn{Type}
         \bnfsp
         \bnfts{)}
     } \\
-    \bnfprod{ArrayType}{
-        \bnfts{Array}
+    \bnfprod{TypePattern}{
+        \bnfts{\kw{is}}
         \bnfsp
-        \bnfpn{TypePattern}
-    } \\
-    \bnfprod{SetType}{
-        \bnfts{Set}
-        \bnfsp
-        \bnfpn{TypePattern}
-    } \\
-    \bnfprod{RecordType}{
-        \bnfts{Record}
-        \bnfsp
-        \bnfpn{TypePattern}
-        \bnfsp
-        \bnfts{:}
-        \bnfsp
-        \bnfpn{TypePattern}
-    } \\
+        \bnfpn{Type}
+    }
 \end{bnf*}
 
-\Trilogy{}'s type system includes only a few built-in types, type variables,
-and the option to use values as types. All of these are special cased uses
-of identifiers in type position that just happen to be handled by the parser.
-So lacking is this type system that iterators and semantic types cannot even
-be expressed, as they would require static analysis which is not included
-in the language at this time.
+As these types only work on values with shapes, notably function types and
+other values of ``semantic'' types cannot be described directly. This is largely
+a side effect of the language being dynamically typed; with little to no type
+information held statically during compilation, there is no way to ensure that
+the types are accurate when checking a function.
+
+Future versions of \Trilogy{} (or maybe, just future projects) will explore the
+opportunity to check these types statically at compilation time.
+
+\begin{prooftree}
+    \AxiomC{$\kw{type}\ \tau\ \kw{is}\ P\ \kw{where}\ Q$}
+    \AxiomC{$\Gamma\vdash X = P$}
+    \UnaryInfC{$\Gamma,\setof{x \given x \defby P}\vdash Q : \top$}
+    \LeftLabel{Type Definition}
+    \BinaryInfC{$\Gamma\vdash X : \tau$}
+\end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$P = v$}
     \AxiomC{$v : \tau$}
     \LeftLabel{Type Check}
-    \BinaryInfC{$P\ \texttt{::}\ \tau=v$}
+    \BinaryInfC{$P\ \kw{is}\ \tau=v$}
 \end{prooftree}
 
 If a type pattern is not satisfied, the unification fails as any other
@@ -115,6 +100,4 @@ one; user annotated types do not cause runtime type errors.
 
 There's actually not all that much else that needs to be written about the
 semantics of this type system as type proofs are included in the
-evaluation semantics throughout. Especially given that \Trilogy{}'s
-type system is so underdeveloped, this section remains vague and
-incomplete until a future date.
+evaluation semantics throughout.
