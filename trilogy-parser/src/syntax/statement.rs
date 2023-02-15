@@ -5,7 +5,7 @@ use trilogy_scanner::TokenType;
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Statement {
     Let(Box<LetStatement>),
-    Assignment(Box<AssignmentStatement>),
+    Assignment(Box<AssignmentStatement>), // TODO
     If(Box<IfStatement>),
     Match(Box<MatchStatement>),
     While(Box<WhileStatement>),
@@ -47,7 +47,7 @@ impl Statement {
             KwWhen => Ok(Self::Handled(Box::new(HandledBlock::parse(parser)?))),
             OBrace => Ok(Self::Block(Box::new(Block::parse(parser)?))),
             _ => {
-                // TODO: this is probably going to be come expression statement/assignment/call,
+                // TODO: this is probably going to become expression statement/assignment/call,
                 // why do I require them parenthesized? Just let any unambiguous expressions be used.
                 let error = SyntaxError::new(token.span, "unexpected token in statement");
                 parser.error(error.clone());
