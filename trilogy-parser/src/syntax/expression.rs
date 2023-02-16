@@ -46,7 +46,6 @@ pub enum Expression {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
-#[repr(u8)]
 pub(crate) enum Precedence {
     None,
     Sequence,
@@ -73,6 +72,13 @@ pub(crate) enum Precedence {
     Unary,
     Call,
     Access,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+enum Context {
+    Record,
+    ParameterList,
+    Default,
 }
 
 impl Expression {
@@ -123,7 +129,7 @@ impl Expression {
         parser: &mut Parser,
         precedence: Precedence,
         lhs: Expression,
-        accept_comma: bool,
+        context: Context,
     ) -> SyntaxResult<Result<Self, Self>> {
         // A bit of strangeness here because `peek()` takes a mutable reference,
         // so we can't use the fields afterwards... but we need their value after
@@ -172,7 +178,9 @@ impl Expression {
             OpPipe if precedence < Precedence::BitwiseOr => Self::binary(parser, lhs),
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
             OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
-            OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
+            OpColon if precedence <= Precedence::Cons && context != Context::Record => {
+                Self::binary(parser, lhs)
+            }
             OpSemi if precedence < Precedence::Sequence => Self::binary(parser, lhs),
             OpLtLt if precedence < Precedence::Compose => Self::binary(parser, lhs),
             OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
@@ -182,7 +190,7 @@ impl Expression {
             OpBang if precedence < Precedence::Call => Ok(Ok(Self::Call(Box::new(
                 CallExpression::parse(parser, lhs)?,
             )))),
-            OpComma if precedence < Precedence::Sequence && accept_comma => {
+            OpComma if precedence < Precedence::Sequence && context == Context::Default => {
                 Self::binary(parser, lhs)
             }
             // A function application never spans across two lines. Furthermore,
@@ -311,14 +319,14 @@ impl Expression {
         }
     }
 
-    pub(crate) fn parse_suffix(
+    fn parse_suffix(
         parser: &mut Parser,
         precedence: Precedence,
-        accept_comma: bool,
+        context: Context,
         mut expr: Expression,
     ) -> SyntaxResult<Self> {
         loop {
-            match Self::parse_follow(parser, precedence, expr, accept_comma)? {
+            match Self::parse_follow(parser, precedence, expr, context)? {
                 Ok(updated) => expr = updated,
                 Err(expr) => return Ok(expr),
             }
@@ -328,21 +336,25 @@ impl Expression {
     fn parse_precedence_inner(
         parser: &mut Parser,
         precedence: Precedence,
-        accept_comma: bool,
+        context: Context,
     ) -> SyntaxResult<Self> {
         let expr = Self::parse_prefix(parser)?;
-        Self::parse_suffix(parser, precedence, accept_comma, expr)
+        Self::parse_suffix(parser, precedence, context, expr)
     }
 
     pub(crate) fn parse_precedence(
         parser: &mut Parser,
         precedence: Precedence,
     ) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, precedence, true)
+        Self::parse_precedence_inner(parser, precedence, Context::Default)
     }
 
     pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, Precedence::None, false)
+        Self::parse_precedence_inner(parser, Precedence::None, Context::ParameterList)
+    }
+
+    pub(crate) fn parse_record(parser: &mut Parser) -> SyntaxResult<Self> {
+        Self::parse_precedence_inner(parser, Precedence::None, Context::Record)
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {

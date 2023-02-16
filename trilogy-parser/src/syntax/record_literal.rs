@@ -24,7 +24,16 @@ impl RecordLiteral {
         first: RecordElement,
     ) -> SyntaxResult<Self> {
         let mut elements = vec![first];
+        parser.expect(OpComma).map_err(|token| {
+            parser.expected(
+                token,
+                "expected `}` to end or `,` to continue record literal",
+            )
+        })?;
         let end = loop {
+            if let Ok(end) = parser.expect(CBrace) {
+                break end;
+            };
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -33,16 +42,16 @@ impl RecordLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            let token = parser.expect([CBrace, OpComma]).map_err(|token| {
+            elements.push(RecordElement::parse(parser)?);
+            if let Ok(end) = parser.expect(CBrace) {
+                break end;
+            };
+            parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,
                     "expected `}` to end or `,` to continue record literal",
                 )
             })?;
-            if token.token_type == CBracePipe {
-                break token;
-            }
-            elements.push(RecordElement::parse(parser)?);
         };
         Ok(Self {
             start,
@@ -64,7 +73,7 @@ impl RecordElement {
             let expression = Expression::parse_parameter_list(parser)?;
             Ok(Self::Spread(spread, expression))
         } else {
-            let key = Expression::parse_parameter_list(parser)?;
+            let key = Expression::parse_record(parser)?;
             parser.expect(OpColon).map_err(|token| {
                 parser.expected(token, "expected `:` in key value pair of record literal")
             })?;

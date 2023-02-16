@@ -24,7 +24,16 @@ impl ArrayLiteral {
         first: ArrayElement,
     ) -> SyntaxResult<Self> {
         let mut elements = vec![first];
+        parser.expect(OpComma).map_err(|token| {
+            parser.expected(
+                token,
+                "expected `]` to end or `,` to continue array literal",
+            )
+        })?;
         let end = loop {
+            if let Ok(end) = parser.expect(CBrack) {
+                break end;
+            };
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -33,16 +42,16 @@ impl ArrayLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            let token = parser.expect([CBrack, OpComma]).map_err(|token| {
+            elements.push(ArrayElement::parse(parser)?);
+            if let Ok(end) = parser.expect(CBrack) {
+                break end;
+            };
+            parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,
                     "expected `]` to end or `,` to continue array literal",
                 )
             })?;
-            if token.token_type == CBrack {
-                break token;
-            }
-            elements.push(ArrayElement::parse(parser)?);
         };
         Ok(Self {
             start,

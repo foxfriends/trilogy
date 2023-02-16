@@ -24,7 +24,13 @@ impl SetLiteral {
         first: SetElement,
     ) -> SyntaxResult<Self> {
         let mut elements = vec![first];
+        parser.expect(OpComma).map_err(|token| {
+            parser.expected(token, "expected `|}` to end or `,` to continue set literal")
+        })?;
         let end = loop {
+            if let Ok(end) = parser.expect(CBracePipe) {
+                break end;
+            };
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -33,13 +39,13 @@ impl SetLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            let token = parser.expect([CBracePipe, OpComma]).map_err(|token| {
+            elements.push(SetElement::parse(parser)?);
+            if let Ok(end) = parser.expect(CBracePipe) {
+                break end;
+            };
+            parser.expect(OpComma).map_err(|token| {
                 parser.expected(token, "expected `|}` to end or `,` to continue set literal")
             })?;
-            if token.token_type == CBracePipe {
-                break token;
-            }
-            elements.push(SetElement::parse(parser)?);
         };
         Ok(Self {
             start,

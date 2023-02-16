@@ -548,7 +548,7 @@ impl Iterator for Scanner<'_> {
                 if self.context('[') {
                     self.nesting.pop();
                 }
-                self.make_token(CParen)
+                self.make_token(CBrack)
             }
             '\n' => self.make_token(EndOfLine),
             ch @ '0'..='9' => self.numeric(ch),
