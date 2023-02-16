@@ -224,9 +224,6 @@ impl<'a> Scanner<'a> {
                 }
                 '#' if self.expect('-').is_some() => {
                     depth += 1;
-                    if depth == 0 {
-                        break;
-                    }
                     contents.push_str("#-"); // correction
                 }
                 _ => contents.push(ch),
@@ -288,9 +285,6 @@ impl<'a> Scanner<'a> {
         let mut value = String::new();
         while let Some(ch) = self.expect('0'..'9') {
             value.push(ch);
-        }
-        if value.is_empty() {
-            value.push('0');
         }
         let num = BigInt::from_str_radix(&value, 10).unwrap();
         if num == BigInt::zero() {

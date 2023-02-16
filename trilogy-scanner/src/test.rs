@@ -144,6 +144,7 @@ test_tokenize!(discard => "_" = [Discard]);
 test_tokenize!(underscore_ident => "_abc" = [Identifier]);
 
 test_tokenize!(identifier => "hello_world" = [Identifier]);
+test_tokenize!(identifier_upper => "HELLO_world" = [Identifier]);
 test_tokenize!(identifier_num => "hello123" = [Identifier]);
 test_tokenize!(identifiers => "hello world" = [Identifier Space Identifier]);
 test_tokenize!(partial_keyword => "an" = [Identifier]);
@@ -286,12 +287,18 @@ test_tokenize!(no_rational_complex => "1i5/1i3" = [Error Identifier]);
 test_tokenize!(complex_no_prefix => "i123" = [Identifier]);
 test_tokenize!(no_float_rational => "0.5/1.3" = [Numeric OpSlash Numeric]);
 
+test_tokenize!(no_float_start_dot => ".5" = [OpDot Numeric]);
+test_tokenize!(no_float_end_dot => "5." = [Numeric OpDot]);
+
 test_tokenize!(bits_bin => "0bb01" = [Bits]);
 test_tokenize!(bits_hex => "0xb0123456789abcdef" = [Bits]);
 test_tokenize!(bits_hex_upper => "0xb0123456789ABCDEF" = [Bits]);
 test_tokenize!(bits_oct => "0ob01234567" = [Bits]);
 test_tokenize!(no_bits_float => "0bb1.1" = [Bits OpDot Numeric]);
 test_tokenize!(no_bits_rational => "0bb01/1" = [Bits OpSlash Numeric]);
+test_tokenize!(no_bits_rational_denom => "1/0bb01" = [Error]);
+test_tokenize!(no_bits_complex => "0bb01i1" = [Error Identifier]);
+test_tokenize!(no_bits_complex_imaginary => "1i0bb01" = [Error]);
 
 test_tokenize!(atom => "'hello" = [Atom]);
 test_tokenize!(atom_short => "'h" = [Atom]);
@@ -366,6 +373,8 @@ test_tokenize!(comment_eof => "# hello" = [CommentLine]);
 test_tokenize!(comment_inline => "#- Hello -#world" = [CommentInline Identifier]);
 test_tokenize!(comment_block => "#- He\nllo -#" = [CommentBlock]);
 test_tokenize!(comment_nested => "#- H #- i -# H -#" = [CommentInline]);
+test_tokenize!(comment_fake_nested => "#- - # -#" = [CommentInline]);
+test_tokenize!(comment_in_comment => "# #- -\n# -#" = [CommentLine CommentLine]);
 test_tokenize!(doc_comment_inner => "#! Hello\n" = [DocInner]);
 test_tokenize!(doc_comment_outer => "## Hello\n" = [DocOuter]);
 
@@ -403,5 +412,8 @@ test_tokenize!(kw_unless => "unless" = [KwUnless]);
 test_tokenize!(kw_until => "until" = [KwUntil]);
 test_tokenize!(kw_var => "var" = [KwVar]);
 test_tokenize!(kw_where => "where" = [KwWhere]);
+
+test_tokenize!(invalid_nesting => "(]" = [OParen CBrack]);
+test_tokenize!(invalid_char => "`" = [Error]);
 
 test_tokenize!(byte_order_mark => "\u{feff}" = [ByteOrderMark]);
