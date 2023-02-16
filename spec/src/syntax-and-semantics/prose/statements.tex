@@ -35,7 +35,7 @@ until later.
         \bnfor
         \bnfpn{SEnd}
         \bnfor
-        \bnfpn{Exit}
+        \bnfpn{SExit}
         \bnfor
         \bnfpn{SYield}
         \bnfor
@@ -45,21 +45,15 @@ until later.
         \bnfor
         \bnfpn{SCancel}
         \bnfor
-        \bnfpn{SProcedureCall}
+        \bnfpn{SHandled}
         \bnfor
     } \\
     \bnfmore{
-        \bnfts{(}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfts{)}
+        \bnfpn{SAssert}
         \bnfor
         \bnfpn{Block}
         \bnfor
-        \bnfpn{SHandled}
-        \bnfor
-        \bnfpn{SAssert}
+        \bnfpn{Expression}
     } \\
     \bnfprod{Block}{
         \bnfts{\{}
@@ -70,16 +64,19 @@ until later.
     }
 \end{bnf*}
 
-Evaluating an expressions as a statement is allowed, but is typically
-recommended against. In particular cases, however, it may be necessary,
-so wrapping the expression in parentheses will allow this. Bare expressions
-are not permitted, except for procedure calls which are allowed by special
-case of the statement syntax.
+While expressions may be written in statement position, do note that a statement
+beginning with a keyword that may also start a statement is always parsed as a
+statement. For example, a \kw{match} written in \Prose{} is always a \kw{match}
+statement, and never a \kw{match} expression. The purpose of the expression
+statement is to permit procedure calls and other such side-effecting expressions.
+Used in this way, an expression's value is lost. Additionally, since an expression
+cannot affect scope outside of itself, no changes to the evaluation context are
+possible.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma \vdash M : \top$}
-    \LeftLabel{Unwrap}
-    \UnaryInfC{$\Gamma \vdash \texttt{(}\ M\ \texttt{)} : \top$}
+    \AxiomC{$\Gamma\vdash E : \tau$}
+    \LeftLabel{Expression}
+    \UnaryInfC{$\Gamma\vdash E : \top$}
 \end{prooftree}
 
 Blocks may be used in any situation statements are allowed, and act as

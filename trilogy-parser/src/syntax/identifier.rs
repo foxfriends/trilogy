@@ -14,6 +14,13 @@ impl Identifier {
             .map_err(|token| parser.expected(token, "expected identifier"))?;
         Ok(Self { token })
     }
+
+    pub(crate) fn parse_eq(parser: &mut Parser) -> SyntaxResult<Self> {
+        let token = parser
+            .expect(TokenType::IdentifierEq)
+            .map_err(|token| parser.expected(token, "expected assignment identifier"))?;
+        Ok(Self { token })
+    }
 }
 
 impl TryFrom<Pattern> for Identifier {

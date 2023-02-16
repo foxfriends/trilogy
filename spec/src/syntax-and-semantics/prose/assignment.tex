@@ -1,25 +1,35 @@
 \subsubsection{Assignment}
 
-Variables (specifically, mutable bindings) may be assigned to. Similar to
-declaration via \kw{let}, the left-hand side of standard assignment may be
-any pattern so long as it does not introduce new bindings. The pattern may only
-use previously bound names. The assignment statement updates the values of the
-bindings in the pattern.
+Variables (specifically, mutable bindings) as well as members of containers
+may be assigned to. Syntactically, the left hand side of the assignment
+statement must either:
 
-The left-hand side may also be a member access expression (\S\ref{sec:member-access}),
-in which case the member in the collection is updated in-place but otherwise the
-assignment works as any other normal.
+\begin{itemize}
+    \item Be able to be parsed both as a pattern (\S\ref{sec:patterns}) and an expression (\S\ref{sec:expressions})
+    \item End with a member access operation (\S\ref{sec:member-access})
+\end{itemize}
+
+As that is an inconvenience to write out grammatically, and also an inconvenience
+to have to implement, note that the syntax for expressions is superset of that
+of patterns, so the left hand side of an assignment is parsed as an expression, and
+the validity of this expression as an assignment target is detected separately.
 
 Function assignment is a special syntax for applying a function to a value and
 then simultaneously reassigning that value with the result of the function; a
 generalization of operator assignment (e.g. \op{+=}) to any function\footnote{A
 generalization which I cannot take credit for as I was inspired to it by
 \href{https://github.com/betaveros/noulith}{Noulith}, the same project
-which inspired me to attempt \Trilogy{} at all.}. In this form
-of assignment, the left-hand side of the assignment operator is a single identifier,
-and the right side is the arguments to apply to the function being used as the
-assignment operator. The left hand side is then applied as the last argument to
-the function.
+which inspired me to attempt \Trilogy{} at all.}. In this form of assignment,
+the right side is a list of arguments to apply to the function being used as
+the assignment operator. The left hand side is then applied as the last argument
+to the function before being re-assigned.
+
+In terms of precedence, these arguments are parsed as if in any other function
+application, meaning that most complex expressions will require explicit
+parenthesization. Additionally, as expressions do not typically span multiple lines,
+these arguments must also fit on one line or do strange things to ensure a specific
+parsing. It is generally not recommended to use this syntax for any heavy lifting, it
+is merely intended as syntax sugar for quick one-liners.
 
 Regular operator assignment (\op{+=}, \op{-=}, etc.) is supported as well, in the
 intuitive way: the left hand identifer is used as the left hand side of the operator.
@@ -35,30 +45,25 @@ intuitive way: the left hand identifer is used as the left hand side of the oper
         \bnfpn{OperatorAssignment}
     } \\
     \bnfprod{Assignment}{
-        \bnfpn{LValue}
+        \bnfpn{Expression}
         \bnfsp
         \bnfts{\op{=}}
         \bnfsp
         \bnfpn{Expression}
     } \\
     \bnfprod{FunctionAssignment}{
-        \bnfpn{LValue}
+        \bnfpn{Expression}
         \bnfsp
-        \bnfts{IdentifierEq}
+        \bnfpn{IdentifierEq}
         \bnfsp
         \bnfpn{ApplicationList}
     } \\
     \bnfprod{OperatorAssignment}{
-        \bnfpn{LValue}
+        \bnfpn{Expression}
         \bnfsp
         \bnfpn{OperatorEq}
         \bnfsp
         \bnfpn{Expression}
-    } \\
-    \bnfprod{LValue}{
-        \bnfpn{Pattern}
-        \bnfor
-        \bnfpn{MemberAccess}
     } \\
     \bnfprod{OperatorEq}{
         \bnfts{+=}\bnfor
@@ -68,16 +73,20 @@ intuitive way: the left hand identifer is used as the left hand side of the oper
         \bnfts{\%=}\bnfor
         \bnfts{**=}\bnfor
         \bnfts{//=}\bnfor
-        \bnfts{<>=}\bnfor
     } \\
     \bnfmore{
+        \bnfts{<>=}\bnfor
+        \bnfts{:=}\bnfor
         \bnfts{|=}\bnfor
         \bnfts{\&=}\bnfor
         \bnfts{\textasciicircum=}\bnfor
         \bnfts{<\textasciitilde=}\bnfor
         \bnfts{\textasciitilde>=}\bnfor
+    } \\
+    \bnfmore{
         \bnfts{<<=}\bnfor
-        \bnfts{>>=}
+        \bnfts{>>=}\bnfor
+        \bnfts{.=}
     }
 \end{bnf*}
 
@@ -114,6 +123,6 @@ instead understand those by syntax transformation, and use the same assignment
 semantics as normal:
 
 \begin{align*}
-    \texttt{\$x:id \$fn:id= \$(\$a:expr)+} &\Rightarrow \texttt{\$x = \$f \$(\$a)+ \$x} \\ %
-    \texttt{\$x:id \$op:op= \$a:expr} & \Rightarrow \texttt{\$x = \$x \$op \$a} \\ %
+    \texttt{\$x:expr \$fn:expr= \$(\$a:expr)+} &\Rightarrow \texttt{\$x = \$fn \$(\$a)+ \$x} \\ %
+    \texttt{\$x:expr \$op:op= \$a:expr} & \Rightarrow \texttt{\$x = \$x \$op \$a} \\ %
 \end{align*}

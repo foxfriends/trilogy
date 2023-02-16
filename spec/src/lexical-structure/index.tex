@@ -460,6 +460,9 @@ treated as whole tokens when encountered on their own.
 Keep in mind the slash (\texttt{/}) also appears as part of rational number literals, so
 will not be exclusively identified as an individual token.
 
+Not all tokenized punctuation marks are used; a few are reserved for future, or tokenized
+only to produce clearer error messages.
+
 \begin{table}[h]
 \parbox[t]{0.45\linewidth}{
     \centering
@@ -493,12 +496,16 @@ will not be exclusively identified as an individual token.
         \texttt{OpAmpEq} & \op{\&=} \\
         \texttt{OpPipeEq} & \op{|=} \\
         \texttt{OpCaretEq} & \op{\textasciicircum=} \\
-        \texttt{OpTildeEq} & \op{\textasciitilde=} \\
         \texttt{OpShrEq} & \op{\textasciitilde>=} \\
         \texttt{OpShlEq} & \op{<\textasciitilde=} \\
         \hline
+        \texttt{OpGlue} & \op{<>} \\
+        \texttt{OpGlueEq} & \op{<>=} \\
+        \texttt{OpColon} & \op{:} \\
+        \texttt{OpColonEq} & \op{:=} \\
+        \hline
         \texttt{OpAt} & \op{@} \\
-        \texttt{OpQuestion} & \op{?} \\
+        \texttt{OpColonColon} & \op{::} \\
         \hline
     \end{tabular}
 }
@@ -508,9 +515,6 @@ will not be exclusively identified as an individual token.
     \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Symbol} \\
-        \hline
-        \texttt{OpGlue} & \op{<>} \\
-        \texttt{OpGlueEq} & \op{<>=} \\
         \hline
         \texttt{OpPlus} & \op{+} \\
         \texttt{OpMinus} & \op{-} \\
@@ -529,12 +533,11 @@ will not be exclusively identified as an individual token.
         \texttt{OpStarStarEq} & \op{**=} \\
         \hline
         \texttt{OpDot} & \op{.} \\
+        \texttt{OpDotEq} & \op{.=} \\
         \texttt{OpDotDot} & \op{..} \\
         \texttt{OpComma} & \op{,} \\
-        \texttt{OpColon} & \op{:} \\
-        \texttt{OpColonColon} & \op{::} \\
         \texttt{OpSemi} & \op{;} \\
-        \texttt{OpTurnstile} & \op{<-} \\
+        \texttt{OpLeftArrow} & \op{<-} \\
         \hline
         \texttt{OpLtLt} & \op{<<} \\
         \texttt{OpGtGt} & \op{>>} \\
@@ -542,6 +545,11 @@ will not be exclusively identified as an individual token.
         \texttt{OpGtGtEq} & \op{>>=} \\
         \texttt{OpPipeGt} & \op{|>} \\
         \texttt{OpLtPipe} & \op{<|} \\
+        \hline
+        \texttt{OpQuestion} & \op{?} \\
+        \texttt{OpTildeEq} & \op{\textasciitilde=} \\
+        \texttt{OpRightArrow} & \op{->} \\
+        \texttt{OpFatArrow} & \op{=>} \\
         \hline
     \end{tabular}
 }

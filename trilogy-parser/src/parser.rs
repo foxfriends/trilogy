@@ -52,7 +52,7 @@ impl Parser<'_> {
         error
     }
 
-    fn chomp(&mut self) {
+    pub(crate) fn chomp(&mut self) {
         let mut invalid_tokens = vec![];
         loop {
             let token = self.source.peek().expect("Peeked too many tokens");

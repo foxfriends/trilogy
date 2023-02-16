@@ -1,11 +1,12 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::TokenType;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Statement {
     Let(Box<LetStatement>),
-    Assignment(Box<AssignmentStatement>), // TODO
+    Assignment(Box<AssignmentStatement>),
+    FunctionAssignment(Box<FunctionAssignment>),
     If(Box<IfStatement>),
     Match(Box<MatchStatement>),
     While(Box<WhileStatement>),
@@ -18,8 +19,7 @@ pub enum Statement {
     End(Box<EndStatement>),
     Exit(Box<ExitStatement>),
     Yield(Box<YieldStatement>),
-    Call(Box<CallStatement>),    // TODO
-    Expression(Box<Expression>), // TODO
+    Expression(Box<Expression>),
     Assert(Box<AssertStatement>),
     Handled(Box<HandledBlock>),
     Block(Box<Block>),
@@ -47,11 +47,33 @@ impl Statement {
             KwWhen => Ok(Self::Handled(Box::new(HandledBlock::parse(parser)?))),
             OBrace => Ok(Self::Block(Box::new(Block::parse(parser)?))),
             _ => {
-                // TODO: this is probably going to become expression statement/assignment/call,
-                // why do I require them parenthesized? Just let any unambiguous expressions be used.
-                let error = SyntaxError::new(token.span, "unexpected token in statement");
-                parser.error(error.clone());
-                Err(error)
+                let expression = Expression::parse(parser)?;
+                if parser.check(IdentifierEq).is_ok() {
+                    if !expression.is_lvalue() {
+                        parser.error(SyntaxError::new(
+                            expression.span(),
+                            "cannot assign to an expression that is not a valid assignment target",
+                        ));
+                    }
+                    Ok(Self::FunctionAssignment(Box::new(
+                        FunctionAssignment::parse(parser, expression)?,
+                    )))
+                } else if parser
+                    .check(AssignmentStatement::ASSIGNMENT_OPERATOR)
+                    .is_ok()
+                {
+                    if !expression.is_lvalue() {
+                        parser.error(SyntaxError::new(
+                            expression.span(),
+                            "cannot assign to an expression that is not a valid assignment target",
+                        ));
+                    }
+                    Ok(Self::Assignment(Box::new(AssignmentStatement::parse(
+                        parser, expression,
+                    )?)))
+                } else {
+                    Ok(Self::Expression(Box::new(expression)))
+                }
             }
         }
     }

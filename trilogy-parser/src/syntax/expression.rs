@@ -348,4 +348,67 @@ impl Expression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence(parser, Precedence::None)
     }
+
+    pub(crate) fn is_lvalue(&self) -> bool {
+        match self {
+            Self::Binary(op) if matches!(op.operator, BinaryOperator::Access(..)) => true,
+            _ => self.is_pattern(),
+        }
+    }
+
+    pub(crate) fn is_pattern(&self) -> bool {
+        match self {
+            Self::Reference(path) if path.module.is_none() => true,
+            Self::Atom(..) => true,
+            Self::Number(..) => true,
+            Self::Boolean(..) => true,
+            Self::Unit(..) => true,
+            Self::Bits(..) => true,
+            Self::String(..) => true,
+            Self::Character(..) => true,
+            Self::Unary(op) if matches!(op.operator, UnaryOperator::Negate(..)) => {
+                op.operand.is_pattern()
+            }
+            Self::Binary(op)
+                if matches!(
+                    op.operator,
+                    BinaryOperator::Glue(..) | BinaryOperator::Cons(..)
+                ) =>
+            {
+                op.lhs.is_pattern() && op.rhs.is_pattern()
+            }
+            Self::Struct(inner) => inner.value.is_pattern(),
+            Self::Array(array) => {
+                array.elements.iter().all(|element| match element {
+                    ArrayElement::Element(element) => element.is_pattern(),
+                    ArrayElement::Spread(_, element) => element.is_pattern(),
+                }) && array
+                    .elements
+                    .iter()
+                    .filter(|element| matches!(element, ArrayElement::Spread(..)))
+                    .count()
+                    <= 1
+            }
+            Self::Set(set) => set.elements.iter().all(|element| match element {
+                SetElement::Element(element) => element.is_pattern(),
+                SetElement::Spread(_, spread)
+                    if std::ptr::eq(element, set.elements.last().unwrap()) =>
+                {
+                    spread.is_pattern()
+                }
+                _ => false,
+            }),
+            Self::Record(record) => record.elements.iter().all(|element| match element {
+                RecordElement::Element(key, value) => key.is_pattern() && value.is_pattern(),
+                RecordElement::Spread(_, spread)
+                    if std::ptr::eq(element, record.elements.last().unwrap()) =>
+                {
+                    spread.is_pattern()
+                }
+                _ => false,
+            }),
+            Self::Parenthesized(paren) => paren.expression.is_pattern(),
+            _ => false,
+        }
+    }
 }

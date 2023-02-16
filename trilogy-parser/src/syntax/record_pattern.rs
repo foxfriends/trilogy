@@ -49,7 +49,7 @@ impl RecordPattern {
             let Ok(end) = parser.expect(CBrace) else {
                 let error = SyntaxError::new(
                     comma.span,
-                    "a rest (`..`) element must end a record literal",
+                    "a rest (`..`) element must end a record pattern",
                 );
                 parser.error(error.clone());
                 return Err(error);

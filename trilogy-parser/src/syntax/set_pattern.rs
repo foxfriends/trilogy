@@ -41,7 +41,7 @@ impl SetPattern {
             let Ok(end) = parser.expect(CBracePipe) else {
                 let error = SyntaxError::new(
                     comma.span,
-                    "a rest (`..`) element must end a set literal",
+                    "a rest (`..`) element must end a set pattern",
                 );
                 parser.error(error.clone());
                 return Err(error);
