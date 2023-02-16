@@ -74,6 +74,7 @@ pub(crate) enum Precedence {
     Access,
 }
 
+// TODO: this feels like a hack still, why?. And do I have to repeat it for patterns?
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 enum Context {
     Record,
@@ -148,7 +149,7 @@ impl Expression {
                 Self::binary(parser, lhs)
             }
             OpStarStar if precedence <= Precedence::Exponent => Self::binary(parser, lhs),
-            OpLt | OpGt | OpGtEq | OpGtEq if precedence == Precedence::Comparison => {
+            OpLt | OpGt | OpLtEq | OpGtEq if precedence == Precedence::Comparison => {
                 let expr = Self::binary(parser, lhs);
                 if let Ok(Ok(expr)) = &expr {
                     parser.error(SyntaxError::new(
@@ -158,7 +159,7 @@ impl Expression {
                 }
                 expr
             }
-            OpLt | OpGt | OpGtEq | OpGtEq if precedence < Precedence::Comparison => {
+            OpLt | OpGt | OpLtEq | OpGtEq if precedence < Precedence::Comparison => {
                 Self::binary(parser, lhs)
             }
             OpEqEq | OpEqEqEq if precedence == Precedence::Equality => {
