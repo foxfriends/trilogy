@@ -170,9 +170,8 @@ pub enum TokenType {
     OpGlue,
     OpGlueEq,
     OpTildeEq,
-
-    // Unused punctuation
     OpAt,
+
     OpQuestion,
 
     // Delimiters

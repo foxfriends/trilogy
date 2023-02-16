@@ -4,7 +4,7 @@ use bitvec::vec::BitVec;
 use num::{BigInt, BigRational, Complex, Num, Zero};
 use peekmore::{PeekMore, PeekMoreIterator};
 use source_span::{DefaultMetrics, Span};
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 use std::str::Chars;
 use std::string::String;
 
@@ -31,6 +31,12 @@ impl CharPattern for char {
 }
 
 impl CharPattern for Range<char> {
+    fn check(&self, ch: char) -> bool {
+        self.contains(&ch)
+    }
+}
+
+impl CharPattern for RangeInclusive<char> {
     fn check(&self, ch: char) -> bool {
         self.contains(&ch)
     }
@@ -149,8 +155,8 @@ impl<'a> Scanner<'a> {
     }
 
     fn ascii_escape_sequence(&mut self) -> Option<char> {
-        let a = self.expect(|ch: char| ch.is_ascii_alphanumeric())?;
-        let b = self.expect(|ch: char| ch.is_ascii_alphanumeric())?;
+        let a = self.expect(|ch: char| ch.is_ascii_hexdigit())?;
+        let b = self.expect(|ch: char| ch.is_ascii_hexdigit())?;
         char::from_u32(hex_to_u32(a) << 4 & hex_to_u32(b))
     }
 
@@ -193,6 +199,9 @@ impl<'a> Scanner<'a> {
         };
         if self.expect('\'').is_some() {
             return self.make_token(Character).with_value(ch);
+        }
+        if !is_identifier(ch) {
+            return self.make_error("Invalid character in atom literal");
         }
         self.make_token(Atom).with_value(self.identifier(ch.into()))
     }
@@ -267,10 +276,8 @@ impl<'a> Scanner<'a> {
             if ch == '\\' {
                 ch = match self.escape_sequence() {
                     Ok(ch) => ch,
-                    Err(message) => {
-                        return self.make_error(message);
-                    }
-                }
+                    Err(message) => return self.make_error(message),
+                };
             }
             content.push(ch)
         }
@@ -294,7 +301,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn decimal(&mut self, mut value: String) -> BigInt {
-        while let Some(ch) = self.expect('0'..'9') {
+        while let Some(ch) = self.expect('0'..='9') {
             value.push(ch);
         }
         BigInt::from_str_radix(&value, 10).unwrap()
@@ -302,7 +309,7 @@ impl<'a> Scanner<'a> {
 
     fn binary(&mut self) -> BigInt {
         let mut value = String::new();
-        while let Some(ch) = self.expect('0'..'1') {
+        while let Some(ch) = self.expect('0'..='1') {
             value.push(ch);
         }
         BigInt::from_str_radix(&value, 2).unwrap()
@@ -310,7 +317,7 @@ impl<'a> Scanner<'a> {
 
     fn octal(&mut self) -> BigInt {
         let mut value = String::new();
-        while let Some(ch) = self.expect('0'..'7') {
+        while let Some(ch) = self.expect('0'..='7') {
             value.push(ch);
         }
         BigInt::from_str_radix(&value, 8).unwrap()
@@ -326,7 +333,7 @@ impl<'a> Scanner<'a> {
 
     fn bits_binary(&mut self) -> BitVec {
         let mut value = BitVec::new();
-        while let Some(ch) = self.expect('0'..'1') {
+        while let Some(ch) = self.expect('0'..='1') {
             value.push(ch == '1');
         }
         value
@@ -334,7 +341,7 @@ impl<'a> Scanner<'a> {
 
     fn bits_octal(&mut self) -> BitVec {
         let mut value = BitVec::new();
-        while let Some(ch) = self.expect('0'..'7') {
+        while let Some(ch) = self.expect('0'..='7') {
             value.push(hex_to_u32(ch) & 0b100 > 0);
             value.push(hex_to_u32(ch) & 0b010 > 0);
             value.push(hex_to_u32(ch) & 0b001 > 0);
@@ -405,6 +412,11 @@ impl<'a> Scanner<'a> {
                 self.expect('/').unwrap();
                 let first = self.consume().unwrap();
                 let denominator = self.integer(first)?;
+                if denominator.is_zero() {
+                    return Err(Box::new(
+                        self.make_error("The denominator of a rational literal may not be 0"),
+                    ));
+                }
                 Ok(BitsOrNumber::Number(BigRational::new(
                     numerator,
                     denominator,
@@ -446,11 +458,15 @@ impl<'a> Scanner<'a> {
     }
 
     fn numeric(&mut self, starts_with: char) -> Token {
-        match self.complex_or_bits(starts_with) {
+        let token = match self.complex_or_bits(starts_with) {
             Ok(BitsOrNumber::Number(number)) => self.make_token(Numeric).with_value(number),
             Ok(BitsOrNumber::Bits(bits)) => self.make_token(Bits).with_value(bits),
-            Err(error) => *error,
+            Err(error) => return *error,
+        };
+        if self.peek().map(|ch| ch.is_ascii_alphanumeric()).unwrap_or(false) {
+            return self.make_error("numeric literal may not have trailing characters");
         }
+        token
     }
 }
 
