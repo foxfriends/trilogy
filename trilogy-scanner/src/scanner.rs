@@ -463,7 +463,11 @@ impl<'a> Scanner<'a> {
             Ok(BitsOrNumber::Bits(bits)) => self.make_token(Bits).with_value(bits),
             Err(error) => return *error,
         };
-        if self.peek().map(|ch| ch.is_ascii_alphanumeric()).unwrap_or(false) {
+        if self
+            .peek()
+            .map(|ch| ch.is_ascii_alphanumeric())
+            .unwrap_or(false)
+        {
             return self.make_error("numeric literal may not have trailing characters");
         }
         token
