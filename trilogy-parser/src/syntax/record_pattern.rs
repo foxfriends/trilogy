@@ -26,10 +26,10 @@ impl RecordPattern {
                 break Some(Pattern::parse(parser)?);
             }
             let key = Pattern::parse(parser)?;
-            parser.expect(OpColon).map_err(|token| {
+            parser.expect(OpFatArrow).map_err(|token| {
                 parser.expected(
                     token,
-                    "expected `:` to separate key and value of record element pattern",
+                    "expected `=>` to separate key and value of record element pattern",
                 )
             })?;
             let value = Pattern::parse(parser)?;

@@ -74,10 +74,8 @@ pub(crate) enum Precedence {
     Access,
 }
 
-// TODO: this feels like a hack still, why?. And do I have to repeat it for patterns?
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 enum Context {
-    Record,
     ParameterList,
     Default,
 }
@@ -179,9 +177,7 @@ impl Expression {
             OpPipe if precedence < Precedence::BitwiseOr => Self::binary(parser, lhs),
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
             OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
-            OpColon if precedence <= Precedence::Cons && context != Context::Record => {
-                Self::binary(parser, lhs)
-            }
+            OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
             OpSemi if precedence < Precedence::Sequence => Self::binary(parser, lhs),
             OpLtLt if precedence < Precedence::Compose => Self::binary(parser, lhs),
             OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
@@ -352,10 +348,6 @@ impl Expression {
 
     pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence_inner(parser, Precedence::None, Context::ParameterList)
-    }
-
-    pub(crate) fn parse_record(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, Precedence::None, Context::Record)
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {

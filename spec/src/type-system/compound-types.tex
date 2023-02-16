@@ -143,10 +143,7 @@ a dictionary, map, or object. Record keys are unique. The Record type is a
 structural and reference type.
 
 In type annotation, the record type is written \ty{Record K V} where keys of
-type \ty{K} refer to values of type \ty{V}. As a special case, combining
-multiple Record types using the type product operator (\op{\&}) allows a Record
-to specify specific value types for different key types, e.g.
-\ty{Record K V \& Record L W}.
+type \ty{K} refer to values of type \ty{V}.
 
 The main operation of a Record is the indexing operator. The keys of a
 Record may be any value; like with Sets, the keys are compared as if by
@@ -162,7 +159,7 @@ Though Records are unordered, keys specified ``later'' in the source file
 (whether literally or via a spread) take precedence over keys specified
 earlier.
 
-The string representation of a Record is its stringified \texttt{key: value}
+The string representation of a Record is its stringified \texttt{key => value}
 pairs in curly braces.
 
 \begin{table}[H]
@@ -171,8 +168,8 @@ pairs in curly braces.
         \hline
         \textbf{Source} & \textbf{String} \\
         \hline
-        \texttt{\{1: "one", 2: "two"\}} & \texttt{\{1: one, 2: two\}} \\
-        \texttt{\{"hello": 1, "hello": 2, "world": 3\}} & \texttt{\{hello: 2, world: 3\}} \\
+        \texttt{\{1 => "one", 2 => "two"\}} & \texttt{\{1 => one, 2 => two\}} \\
+        \texttt{\{"a" => 1, "a" => 2, "b" => 3\}} & \texttt{\{a => 2, b => 3\}} \\
         \hline
     \end{tabular}
 \end{table}

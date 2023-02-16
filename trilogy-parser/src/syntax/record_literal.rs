@@ -73,9 +73,9 @@ impl RecordElement {
             let expression = Expression::parse_parameter_list(parser)?;
             Ok(Self::Spread(spread, expression))
         } else {
-            let key = Expression::parse_record(parser)?;
-            parser.expect(OpColon).map_err(|token| {
-                parser.expected(token, "expected `:` in key value pair of record literal")
+            let key = Expression::parse_parameter_list(parser)?;
+            parser.expect(OpFatArrow).map_err(|token| {
+                parser.expected(token, "expected `=>` in key value pair of record literal")
             })?;
             let value = Expression::parse_parameter_list(parser)?;
             Ok(Self::Element(key, value))

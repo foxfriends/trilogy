@@ -49,7 +49,7 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
-        \bnfts{:}
+        \bnfts{\op{=>}}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
@@ -103,7 +103,7 @@ filtering, iterating, and generating all with a familiar syntax.
     \AxiomC{$U = Q$}
     \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash K : \kappa, V : \nu$}
     \LeftLabel{Record Comprehension}
-    \TrinaryInfC{$\Gamma\vdash \texttt{\{}\ K\ \texttt{:}\ V\ \kw{for}\ Q\ \texttt{\}} : \ty{Record}\ \kappa:\nu$}
+    \TrinaryInfC{$\Gamma\vdash \texttt{\{}\ K\ \texttt{=>}\ V\ \kw{for}\ Q\ \texttt{\}} : \ty{Record}\ \kappa\ \nu$}
 \end{prooftree}
 
 \begin{prooftree}

@@ -399,17 +399,17 @@ extract a value at a key from a record, which is mostly what you would want to d
 with record patterns anyway.
 
 \begin{prooftree}
-    \AxiomC{$k : v \in r$}
+    \AxiomC{$k\ \texttt{=>}\ v \in r$}
     \AxiomC{$x = K_1$}
     \AxiomC{$v = V_1$}
     \noLine
-    \TrinaryInfC{$\texttt{\{}\ K_2:V_2\texttt{,}\ \cdots\texttt{,}\ K_n:V_n\texttt{,}\ \ \texttt{..}R\ \texttt{\}} = r\setminus\setof{k:v}$}
+    \TrinaryInfC{$\texttt{\{}\ K_2\ \texttt{=>}\ V_2\texttt{,}\ \cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{,}\ \ \texttt{..}R\ \texttt{\}} = r\setminus\setof{k\ \texttt{=>}\ v}$}
     \LeftLabel{Record Match}
-    \UnaryInfC{$\texttt{\{}\ K_1:V_1\texttt{,}\ K_2:V_2\texttt{,}\ \cdots\texttt{,}\ K_n:V_n\texttt{,}\ \texttt{..}R\ \texttt{\}} = r$}
+    \UnaryInfC{$\texttt{\{}\ K_1\ \texttt{=>}\ V_1\texttt{,}\ K_2\ \texttt{=>}\ V_2\texttt{,}\ \cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{,}\ \texttt{..}R\ \texttt{\}} = r$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$v : \ty{Record}\ \kappa\ : \tau$}
+    \AxiomC{$v : \ty{Record}\ \kappa\ \tau$}
     \AxiomC{$R = r$}
     \LeftLabel{Record Rest}
     \BinaryInfC{$\texttt{\{}\ \texttt{..}R\ \texttt{\}} = r$}

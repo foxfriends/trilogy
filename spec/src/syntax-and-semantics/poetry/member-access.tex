@@ -94,7 +94,7 @@ record, \val{'MIA} is yielded. Any value is valid as a record key,
 so there are no runtime type errors for record access.
 
 \begin{prooftree}
-    \AxiomC{$\Gamma\vdash E : \ty{Record}\ \kappa:\nu$}
+    \AxiomC{$\Gamma\vdash E : \ty{Record}\ \kappa\ \nu$}
     \AxiomC{$\Gamma\vdash k : \kappa$}
     \LeftLabel{Record Access}
     \BinaryInfC{$\Gamma\vdash E\ \texttt{.}\ k : \nu$}
