@@ -28,3 +28,18 @@ impl ArrayComprehension {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(arraycomp_simple: "[x for x in array]" => Expression::parse => "(Expression::ArrayComprehension (ArrayComprehension _ _))");
+    test_parse!(arraycomp_complex: "[x:y for lookup(x) and another(y)]" => Expression::parse => "(Expression::ArrayComprehension (ArrayComprehension _ _))");
+    test_parse!(arraycomp_parenthesized_commas: "[(x, y) for lookup(x, y)]" => Expression::parse => "(Expression::ArrayComprehension (ArrayComprehension _ _))");
+
+    test_parse_error!(no_arraycomp_commas: "[x, y for lookup(x, y)]" => Expression::parse => "only one element may precede the `for` keyword in a comprehension");
+    test_parse_error!(arraycomp_end: "[x for x in array" => Expression::parse => "expected `]` to end array comprehension");
+
+    test_parse_error!(arraycomp_invalid_query: "[x for y]" => Expression::parse);
+    test_parse_error!(arraycomp_invalid_expr: "[() for x in y]" => Expression::parse);
+}

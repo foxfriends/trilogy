@@ -7,8 +7,6 @@ use source_span::Span;
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SyntaxError {
     span: Span,
-    #[allow(dead_code)]
-    // for now this is used by Debug
     message: String,
 }
 
@@ -31,6 +29,10 @@ impl SyntaxError {
             span: Span::default(),
             message: message.to_string(),
         }
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 

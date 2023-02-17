@@ -35,6 +35,10 @@ impl ArrayLiteral {
             if let Ok(end) = parser.expect(CBrack) {
                 break end;
             };
+            elements.push(ArrayElement::parse(parser)?);
+            if let Ok(end) = parser.expect(CBrack) {
+                break end;
+            };
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -43,10 +47,6 @@ impl ArrayLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            elements.push(ArrayElement::parse(parser)?);
-            if let Ok(end) = parser.expect(CBrack) {
-                break end;
-            };
             parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,

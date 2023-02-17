@@ -17,9 +17,11 @@ impl Path {
             .map(|_| ())
             .map(|_| ModulePath::parse(parser))
             .transpose()?;
-        parser
-            .expect(TokenType::OpColonColon)
-            .expect("a path must end with an identifier");
+        if module.is_some() {
+            parser
+                .expect(TokenType::OpColonColon)
+                .expect("a path must end with an identifier");
+        }
         let member = Identifier::parse(parser)?;
         Ok(Self { module, member })
     }
