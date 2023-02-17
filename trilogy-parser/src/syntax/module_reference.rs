@@ -1,12 +1,23 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModuleReference {
     start: Token,
     pub name: Identifier,
     pub arguments: Vec<Expression>,
+}
+
+impl Spanned for ModuleReference {
+    fn span(&self) -> Span {
+        self.start.span.union(if self.arguments.is_empty() {
+            self.name.span()
+        } else {
+            self.arguments.span()
+        })
+    }
 }
 
 impl ModuleReference {

@@ -1,12 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Block {
     start: Token,
     pub statements: Vec<Statement>,
     end: Token,
+}
+
+impl Spanned for Block {
+    fn span(&self) -> Span {
+        self.start.span.union(self.end.span)
+    }
 }
 
 impl Block {

@@ -1,12 +1,23 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct HandledBlock {
     start: Token,
     pub block: Block,
     pub handlers: Vec<Handler>,
+}
+
+impl Spanned for HandledBlock {
+    fn span(&self) -> Span {
+        self.start.span.union(if self.handlers.is_empty() {
+            self.block.span()
+        } else {
+            self.handlers.span()
+        })
+    }
 }
 
 impl HandledBlock {

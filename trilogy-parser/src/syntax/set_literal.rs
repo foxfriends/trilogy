@@ -1,12 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SetLiteral {
     start: Token,
     pub elements: Vec<SetElement>,
     end: Token,
+}
+
+impl Spanned for SetLiteral {
+    fn span(&self) -> Span {
+        self.start.span.union(self.end.span)
+    }
 }
 
 impl SetLiteral {

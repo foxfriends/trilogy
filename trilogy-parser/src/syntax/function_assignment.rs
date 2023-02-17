@@ -1,11 +1,22 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct FunctionAssignment {
     pub lhs: Expression,
     pub function: Identifier,
     pub arguments: Vec<Expression>,
+}
+
+impl Spanned for FunctionAssignment {
+    fn span(&self) -> Span {
+        self.lhs.span().union(if self.arguments.is_empty() {
+            self.function.span()
+        } else {
+            self.arguments.span()
+        })
+    }
 }
 
 impl FunctionAssignment {

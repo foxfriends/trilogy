@@ -1,12 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct CallExpression {
     pub procedure: Expression,
     pub arguments: Vec<Expression>,
     end: Token,
+}
+
+impl Spanned for CallExpression {
+    fn span(&self) -> Span {
+        self.procedure.span().union(self.end.span)
+    }
 }
 
 impl CallExpression {

@@ -1,12 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Lookup {
     pub path: Path,
     pub patterns: Vec<Pattern>,
     end: Token,
+}
+
+impl Spanned for Lookup {
+    fn span(&self) -> Span {
+        self.path.span().union(self.end.span)
+    }
 }
 
 impl Lookup {

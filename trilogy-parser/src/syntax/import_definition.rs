@@ -1,12 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ImportDefinition {
     start: Token,
     pub names: Vec<Identifier>,
     pub module: ModulePath,
+}
+
+impl Spanned for ImportDefinition {
+    fn span(&self) -> Span {
+        self.start.span.union(self.module.span())
+    }
 }
 
 impl ImportDefinition {

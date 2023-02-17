@@ -1,12 +1,19 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct FnExpression {
     start: Token,
     pub parameters: Vec<Pattern>,
     pub body: Expression,
+}
+
+impl Spanned for FnExpression {
+    fn span(&self) -> Span {
+        self.start.span.union(self.body.span())
+    }
 }
 
 impl FnExpression {

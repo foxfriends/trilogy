@@ -1,12 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ProcedureHead {
     pub name: Identifier,
     pub parameters: Vec<Pattern>,
     end: Token,
+}
+
+impl Spanned for ProcedureHead {
+    fn span(&self) -> Span {
+        self.name.span().union(self.end.span)
+    }
 }
 
 impl ProcedureHead {

@@ -1,8 +1,9 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayLiteral {
     start: Token,
     pub elements: Vec<ArrayElement>,
@@ -58,6 +59,12 @@ impl ArrayLiteral {
             elements,
             end,
         })
+    }
+}
+
+impl Spanned for ArrayLiteral {
+    fn span(&self) -> Span {
+        self.start.span.union(self.end.span)
     }
 }
 

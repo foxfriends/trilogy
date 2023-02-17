@@ -36,7 +36,8 @@ As you can see, progress at this time is limited:
 - [ ] Specify the language (In progress)
 - [x] Start the project:
     - [x] Scanning
-    - [ ] Parsing (In progress)
+    - [x] Parsing
+    - [ ] Testing
     - [ ] Weeding
     - [ ] Name resolution
     - [ ] ???

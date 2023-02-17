@@ -1,11 +1,22 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ExportDefinition {
     start: Token,
     pub names: Vec<Identifier>,
+}
+
+impl Spanned for ExportDefinition {
+    fn span(&self) -> Span {
+        if self.names.is_empty() {
+            self.start.span
+        } else {
+            self.start.span.union(self.names.span())
+        }
+    }
 }
 
 impl ExportDefinition {

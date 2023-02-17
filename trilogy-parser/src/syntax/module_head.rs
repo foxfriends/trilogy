@@ -1,12 +1,23 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModuleHead {
     start: Token,
     pub name: Identifier,
     pub parameters: Vec<Identifier>,
+}
+
+impl Spanned for ModuleHead {
+    fn span(&self) -> Span {
+        self.start.span.union(if self.parameters.is_empty() {
+            self.name.span()
+        } else {
+            self.parameters.span()
+        })
+    }
 }
 
 impl ModuleHead {
