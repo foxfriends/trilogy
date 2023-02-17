@@ -25,13 +25,21 @@ impl ArrayLiteral {
         first: ArrayElement,
     ) -> SyntaxResult<Self> {
         let mut elements = vec![first];
-        parser.expect(OpComma).map_err(|token| {
-            parser.expected(
-                token,
-                "expected `]` to end or `,` to continue array literal",
-            )
-        })?;
+        if let Ok(end) = parser.expect(CBrack) {
+            return Ok(Self {
+                start,
+                elements,
+                end,
+            });
+        }
+
         let end = loop {
+            parser.expect(OpComma).map_err(|token| {
+                parser.expected(
+                    token,
+                    "expected `]` to end or `,` to continue array literal",
+                )
+            })?;
             if let Ok(end) = parser.expect(CBrack) {
                 break end;
             };
@@ -47,12 +55,6 @@ impl ArrayLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            parser.expect(OpComma).map_err(|token| {
-                parser.expected(
-                    token,
-                    "expected `]` to end or `,` to continue array literal",
-                )
-            })?;
         };
         Ok(Self {
             start,
@@ -83,4 +85,23 @@ impl ArrayElement {
             Some(spread) => Ok(Self::Spread(spread, expression)),
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(arraylit_empty: "[]" => Expression::parse => "(Expression::Array (ArrayLiteral []))");
+    test_parse!(arraylit_one: "[1]" => Expression::parse => "(Expression::Array (ArrayLiteral [_]))");
+    test_parse!(arraylit_one_tc: "[1, ]" => Expression::parse => "(Expression::Array (ArrayLiteral [_]))");
+    test_parse!(arraylit_many: "[1, 2, 3]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
+    test_parse!(arraylit_many_tc: "[1, 2, 3, ]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
+    test_parse!(arraylit_nested: "[[1, 2], [3, 4], [5, 6]]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
+    test_parse!(arraylit_no_comma: "[f 2]" => Expression::parse => "(Expression::Array (ArrayLiteral [(_ (Expression::Application _))]))");
+
+    test_parse_error!(arraylit_empty_tc: "[,]" => Expression::parse);
+    test_parse_error!(arraylit_missing_item: "[1,,]" => Expression::parse);
+    test_parse_error!(arraylit_missing_end: "[1,2," => Expression::parse);
+    test_parse_error!(arraylit_incomplete: "[1, 2" => Expression::parse => "expected `]` to end or `,` to continue array literal");
+    test_parse_error!(arraylit_mismatched: "[1, 2)" => Expression::parse => "expected `]` to end or `,` to continue array literal");
 }
