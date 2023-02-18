@@ -44,7 +44,7 @@ impl<'a> SExpr<'a> {
     fn new(iter: &mut impl Iterator<Item = &'a str>) -> Self {
         let mut container = vec![];
         loop {
-            match iter.next().unwrap() {
+            match iter.next().expect("mismatched parentheses in s-expr") {
                 "_" => container.push(Self::Wildcard),
                 "(" => container.push(Self::new(iter)),
                 ")" => return Self::Container(container),
@@ -109,12 +109,8 @@ macro_rules! test_parse_error {
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = Parser::new(scanner);
             $parser.expect(StartOfFile).unwrap();
-            let result = $parse;
-            if result.is_ok() && $parser.errors.is_empty() {
-                assert!($parser.expect(EndOfFile).is_err());
-            } else {
-                assert_eq!($parser.errors.first().unwrap().message(), $error);
-            }
+            let _ = $parse;
+            assert_eq!($parser.errors.first().expect("parse should have reported an error message").message(), $error);
         }
     };
 

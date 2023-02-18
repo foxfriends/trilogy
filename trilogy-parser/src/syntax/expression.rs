@@ -178,7 +178,6 @@ impl Expression {
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
             OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
             OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
-            OpSemi if precedence < Precedence::Sequence => Self::binary(parser, lhs),
             OpLtLt if precedence < Precedence::Compose => Self::binary(parser, lhs),
             OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
