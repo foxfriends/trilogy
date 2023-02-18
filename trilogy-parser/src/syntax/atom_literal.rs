@@ -15,3 +15,11 @@ impl AtomLiteral {
         Ok(Self { token })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(atom: "'hello" => AtomLiteral::parse => "(AtomLiteral)");
+    test_parse_error!(not_atom: "hello" => AtomLiteral::parse => "expected atom literal");
+}
