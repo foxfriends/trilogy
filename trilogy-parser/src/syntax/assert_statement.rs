@@ -35,3 +35,15 @@ impl Spanned for AssertStatement {
         self.start.span.union(self.assertion.span())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(assert_true: "assert true" => AssertStatement::parse => "(AssertStatement () (Expression::Boolean _))");
+    test_parse!(assert_expression: "assert if x then false else true" => AssertStatement::parse => "(AssertStatement () (Expression::IfElse _))");
+    test_parse!(assert_with_message: "assert \"message\" as true" => AssertStatement::parse => "(AssertStatement (Expression::String _) (Expression::Boolean _))");
+    test_parse!(assert_commas: "assert a, b, c" => AssertStatement::parse => "(AssertStatement () (Expression::Binary _))");
+    test_parse_error!(assert_without_expr: "assert" => AssertStatement::parse);
+    test_parse_error!(assert_invalid_expr: "assert + 5" => AssertStatement::parse);
+}

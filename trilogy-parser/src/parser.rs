@@ -6,6 +6,9 @@ use trilogy_scanner::{Scanner, Token, TokenType};
 pub struct Parser<'src> {
     source: PeekMoreIterator<Scanner<'src>>,
     warnings: Vec<SyntaxError>,
+    #[cfg(test)] // expose this thing to the test framework only
+    pub(crate) errors: Vec<SyntaxError>,
+    #[cfg(not(test))]
     errors: Vec<SyntaxError>,
     pub(crate) is_line_start: bool,
     pub(crate) is_spaced: bool,

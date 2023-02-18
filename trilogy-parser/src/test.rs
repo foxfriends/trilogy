@@ -108,8 +108,8 @@ macro_rules! test_parse_error {
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = Parser::new(scanner);
             $parser.expect(StartOfFile).unwrap();
-            let error = $parse.unwrap_err();
-            assert_eq!(error.message(), $error);
+            _ = $parse;
+            assert_eq!($parser.errors.first().unwrap().message(), $error);
         }
     };
 
@@ -121,7 +121,8 @@ macro_rules! test_parse_error {
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = Parser::new(scanner);
             $parser.expect(StartOfFile).unwrap();
-            assert!($parse.is_err());
+            _ = $parse;
+            assert!(!$parser.errors.is_empty());
         }
     };
 }
