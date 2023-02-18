@@ -90,6 +90,7 @@ macro_rules! test_parse {
             let parsed = crate::test::normalize_sexpr(&sexpr);
             let expected = crate::test::normalize_sexpr($sexp);
             $parser.expect(EndOfFile).unwrap();
+            assert!($parser.errors.is_empty());
             assert_eq!(parsed.split_ascii_whitespace().collect::<crate::test::SExpr>(), expected.split_ascii_whitespace().collect::<crate::test::SExpr>());
         }
     };
@@ -108,8 +109,12 @@ macro_rules! test_parse_error {
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = Parser::new(scanner);
             $parser.expect(StartOfFile).unwrap();
-            _ = $parse;
-            assert_eq!($parser.errors.first().unwrap().message(), $error);
+            let result = $parse;
+            if result.is_ok() && $parser.errors.is_empty() {
+                assert!($parser.expect(EndOfFile).is_err());
+            } else {
+                assert_eq!($parser.errors.first().unwrap().message(), $error);
+            }
         }
     };
 
@@ -121,8 +126,12 @@ macro_rules! test_parse_error {
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = Parser::new(scanner);
             $parser.expect(StartOfFile).unwrap();
-            _ = $parse;
-            assert!(!$parser.errors.is_empty());
+            let result = $parse;
+            if result.is_ok() && $parser.errors.is_empty() {
+                assert!($parser.expect(EndOfFile).is_err());
+            } else {
+                assert!(!$parser.errors.is_empty());
+            }
         }
     };
 }

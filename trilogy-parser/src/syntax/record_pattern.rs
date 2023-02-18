@@ -68,7 +68,7 @@ impl RecordPattern {
 
         let end = parser
             .expect(CBrace)
-            .map_err(|token| parser.expected(token, "expected `|}` to end record pattern"))?;
+            .map_err(|token| parser.expected(token, "expected `}` to end record pattern"))?;
 
         Ok(Self {
             start,

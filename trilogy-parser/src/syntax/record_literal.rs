@@ -31,6 +31,13 @@ impl RecordLiteral {
         first: RecordElement,
     ) -> SyntaxResult<Self> {
         let mut elements = vec![first];
+        if let Ok(end) = parser.expect(CBrace) {
+            return Ok(Self {
+                start,
+                elements,
+                end,
+            });
+        };
         parser.expect(OpComma).map_err(|token| {
             parser.expected(
                 token,
