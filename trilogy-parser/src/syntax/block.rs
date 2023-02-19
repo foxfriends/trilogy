@@ -23,21 +23,22 @@ impl Block {
             .map_err(|token| parser.expected(token, "expected `{`"))?;
 
         let mut statements = vec![];
-        let mut first = true;
         let end = loop {
             if let Ok(end) = parser.expect(CBrace) {
                 break end;
             }
-            if !first && parser.expect(OpSemi).is_err() && !parser.is_line_start {
+            statements.push(Statement::parse(parser)?);
+            if let Ok(end) = parser.expect(CBrace) {
+                break end;
+            }
+            if parser.expect(OpSemi).is_err() && !parser.is_line_start {
                 let token = parser.peek();
                 let error = SyntaxError::new(
                     token.span,
-                    "expected `;` or line break to separate statements",
+                    "expected end of block, or `;` or line break to separate statements",
                 );
                 parser.error(error);
             }
-            statements.push(Statement::parse(parser)?);
-            first = false;
         };
 
         Ok(Self {
@@ -46,4 +47,29 @@ impl Block {
             end,
         })
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(block_empty: "{}" => Block::parse => "(Block ())");
+    test_parse!(block_single: "{ let x = 5 }" => Block::parse => "(Block [(Statement::Let _)])");
+    test_parse!(block_single_semi: "{ let x = 5; }" => Block::parse => "(Block [(Statement::Let _)])");
+    test_parse!(block_single_lines: "{
+        let x = 5;
+    }" => Block::parse => "(Block [(Statement::Let _)])");
+    test_parse!(block_semis: "{ let x = 5; return x * 2; }" => Block::parse => "(Block [(Statement::Let _) (Statement::Return _)])");
+    test_parse!(block_end_no_semi: "{ let x = 5; return x * 2 }" => Block::parse => "(Block [(Statement::Let _) (Statement::Return _)])");
+    test_parse!(block_lines: "{
+        let x = 5
+        return x * 2
+    }" => Block::parse => "(Block [(Statement::Let _) (Statement::Return _)])");
+    test_parse!(block_lines_and_semis: "{
+        let x = 5;
+        return x * 2;
+    }" => Block::parse => "(Block [(Statement::Let _) (Statement::Return _)])");
+    test_parse_error!(block_no_breaks: "{ end end }" => Block::parse => "expected end of block, or `;` or line break to separate statements");
+    test_parse_error!(block_no_close: "{ end " => Block::parse => "expected end of block, or `;` or line break to separate statements");
+    test_parse_error!(block_no_braces: "end; end" => Block::parse => "expected `{`");
 }

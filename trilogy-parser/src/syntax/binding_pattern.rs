@@ -31,3 +31,25 @@ impl Spanned for BindingPattern {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(binding_immutable: "hello" => BindingPattern::parse => "(BindingPattern () (Identifier))");
+    test_parse!(binding_mutable: "mut hello" => BindingPattern::parse => "(BindingPattern (MutModifier::Mut _) (Identifier))");
+    test_parse_error!(binding_not_name: "mut 'hello" => BindingPattern::parse => "expected identifier");
+    test_parse_error!(binding_multiple: "mut hello, world" => BindingPattern::parse);
+
+    #[test]
+    fn test_is_immutable() {
+        let binding = parse!("hello" => BindingPattern::parse);
+        assert!(binding.is_immutable());
+    }
+
+    #[test]
+    fn test_is_mutable() {
+        let binding = parse!("mut hello" => BindingPattern::parse);
+        assert!(!binding.is_immutable());
+    }
+}

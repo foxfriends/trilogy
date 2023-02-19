@@ -97,6 +97,22 @@ macro_rules! test_parse {
 }
 
 #[macro_export]
+macro_rules! parse {
+    ($src:literal => $path:path) => {{
+        use crate::Parser;
+        use trilogy_scanner::TokenType::*;
+        let scanner = trilogy_scanner::Scanner::new($src);
+        let mut parser = Parser::new(scanner);
+        parser.expect(StartOfFile).unwrap();
+        let parse = $path(&mut parser).unwrap();
+        parser
+            .expect(EndOfFile)
+            .expect("whole source should be parsed");
+        parse
+    }};
+}
+
+#[macro_export]
 macro_rules! test_parse_error {
     ($name:ident : $src:literal => $path:path => $error:literal) => { test_parse_error!($name : $src |parser| $path(&mut parser) => $error); };
     ($name:ident : $src:literal => $path:path) => { test_parse_error!($name : $src |parser| $path(&mut parser)); };
