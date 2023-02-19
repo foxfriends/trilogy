@@ -15,3 +15,12 @@ impl BooleanLiteral {
         Ok(Self { token })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(bool_true: "true" => BooleanLiteral::parse => "(BooleanLiteral)");
+    test_parse!(bool_false: "false" => BooleanLiteral::parse => "(BooleanLiteral)");
+    test_parse_error!(not_bool: "unit" => BooleanLiteral::parse => "expected boolean literal");
+}
