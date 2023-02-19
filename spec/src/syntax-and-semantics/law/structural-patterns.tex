@@ -279,11 +279,11 @@ A trailing comma is not permitted after the rest pattern, as no elements may fol
 
 \begin{bnf*}
     \bnfprod{SetPattern}{
-        \bnfts{\{|}
+        \bnfts{[|}
         \bnfsp
         \bnfpn{SetContents}
         \bnfsp
-        \bnfts{|\}}
+        \bnfts{|]}
     } \\
     \bnfprod{SetContents}{
         \bnfpn{PatternListN}
@@ -313,16 +313,16 @@ patterns whose sub-patterns consist entirely of single valued patterns.
 \begin{prooftree}
     \AxiomC{$x \in v$}
     \AxiomC{$x = P_1$}
-    \AxiomC{$\texttt{\{|}\ P_2\texttt{,}\ \cdots\texttt{,}\ P_n\texttt{,}\ \ \texttt{..}R\ \texttt{|\}} = v\setminus\setof{x}$}
+    \AxiomC{$\texttt{[|}\ P_2\texttt{,}\ \cdots\texttt{,}\ P_n\texttt{,}\ \ \texttt{..}R\ \texttt{|]} = v\setminus\setof{x}$}
     \LeftLabel{Set Match}
-    \TrinaryInfC{$\texttt{\{|}\ P_1\texttt{,}\ P_2\texttt{,}\ \cdots\texttt{,}\ P_n\texttt{,}\ \texttt{..}R\ \texttt{|\}} = v$}
+    \TrinaryInfC{$\texttt{[|}\ P_1\texttt{,}\ P_2\texttt{,}\ \cdots\texttt{,}\ P_n\texttt{,}\ \texttt{..}R\ \texttt{|]} = v$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$v : \ty{Set}\ \tau$}
     \AxiomC{$R = v$}
     \LeftLabel{Set Rest}
-    \BinaryInfC{$\texttt{\{|}\ \texttt{..}R\ \texttt{|\}} = v$}
+    \BinaryInfC{$\texttt{[|}\ \texttt{..}R\ \texttt{|]} = v$}
 \end{prooftree}
 
 Record patterns simultaneously match keys and values for each entry in

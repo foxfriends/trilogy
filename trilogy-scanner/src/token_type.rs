@@ -177,8 +177,8 @@ pub enum TokenType {
     // Delimiters
     OBrace,
     CBrace,
-    OBracePipe,
-    CBracePipe,
+    OBrackPipe,
+    CBrackPipe,
     DollarOParen,
     OParen,
     CParen,

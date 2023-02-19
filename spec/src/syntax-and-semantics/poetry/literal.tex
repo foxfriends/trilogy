@@ -119,11 +119,11 @@ of the cons operator, rather than a literal form.
         \bnfts{]}
     } \\
     \bnfprod{Set}{
-        \bnfts{\{|}
+        \bnfts{[|}
         \bnfsp
         \bnfpn{CompoundElements}
         \bnfsp
-        \bnfts{|\}}
+        \bnfts{|]}
     } \\
     \bnfprod{CompoundElements}{
         \bnfpn{CompoundElement}
@@ -214,21 +214,21 @@ as if its elements were written in place of the spread.
 \begin{prooftree}
     \AxiomC{}
     \LeftLabel{Set\textsuperscript{$\epsilon$}}
-    \UnaryInfC{$\texttt{\{||\}} : \ty{Set}\ \tau$}
+    \UnaryInfC{$\texttt{[||]} : \ty{Set}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash X_1 : \tau$}
-    \AxiomC{$\Gamma\vdash \texttt{\{|}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{[|}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|]} : \ty{Set}\ \tau$}
     \LeftLabel{Set}
-    \BinaryInfC{$\Gamma\vdash\texttt{\{|}\ X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
+    \BinaryInfC{$\Gamma\vdash\texttt{[|}\ X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|]} : \ty{Set}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash X_1 : \ty{Set}\ \tau$}
-    \AxiomC{$\Gamma\vdash \texttt{\{|}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
+    \AxiomC{$\Gamma\vdash \texttt{[|}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|]} : \ty{Set}\ \tau$}
     \LeftLabel{Set\textsuperscript{\op{..}}}
-    \BinaryInfC{$\Gamma\vdash\texttt{\{|}\ \op{..}X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|\}} : \ty{Set}\ \tau$}
+    \BinaryInfC{$\Gamma\vdash\texttt{[|}\ \op{..}X_1\ \texttt{,}\ X_2\ \texttt{,}\cdots\texttt{,}\ X_n\ \texttt{|]} : \ty{Set}\ \tau$}
 \end{prooftree}
 
 \begin{prooftree}

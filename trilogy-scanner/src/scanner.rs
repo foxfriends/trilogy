@@ -527,10 +527,6 @@ impl Iterator for Scanner<'_> {
                 }
             }
             '!' => self.make_token(OpBang),
-            '{' if self.expect('|').is_some() => {
-                self.nesting.push('|');
-                self.make_token(OBracePipe)
-            }
             '{' => {
                 self.nesting.push('{');
                 self.make_token(OBrace)
@@ -553,6 +549,10 @@ impl Iterator for Scanner<'_> {
                     self.nesting.pop();
                 }
                 self.make_token(CParen)
+            }
+            '[' if self.expect('|').is_some() => {
+                self.nesting.push('|');
+                self.make_token(OBrackPipe)
             }
             '[' => {
                 self.nesting.push('[');
@@ -671,11 +671,11 @@ impl Iterator for Scanner<'_> {
             '^' if self.expect('=').is_some() => self.make_token(OpCaretEq),
             '^' => self.make_token(OpCaret),
 
-            '|' if self.expect('}').is_some() => {
+            '|' if self.expect(']').is_some() => {
                 if self.context('|') {
                     self.nesting.pop();
                 }
-                self.make_token(CBracePipe)
+                self.make_token(CBrackPipe)
             }
             '|' if self.expect('|').is_some() => {
                 if self.expect('=').is_some() {

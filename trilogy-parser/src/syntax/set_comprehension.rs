@@ -18,8 +18,8 @@ impl SetComprehension {
     ) -> SyntaxResult<Self> {
         let query = Query::parse(parser)?;
         let end = parser
-            .expect(CBracePipe)
-            .map_err(|token| parser.expected(token, "expected `|}` to end set comprehension"))?;
+            .expect(CBrackPipe)
+            .map_err(|token| parser.expected(token, "expected `|]` to end set comprehension"))?;
         Ok(Self {
             start,
             expression,

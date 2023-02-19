@@ -14,19 +14,19 @@ pub struct SetPattern {
 impl SetPattern {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let start = parser
-            .expect(OBracePipe)
+            .expect(OBrackPipe)
             .expect("Caller should have found this");
 
         let mut elements = vec![];
         let rest = loop {
-            if parser.check(CBracePipe).is_ok() {
+            if parser.check(CBrackPipe).is_ok() {
                 break None;
             };
             if parser.expect(OpDotDot).is_ok() {
                 break Some(Pattern::parse(parser)?);
             }
             elements.push(Pattern::parse(parser)?);
-            if parser.check(CBracePipe).is_ok() {
+            if parser.check(CBrackPipe).is_ok() {
                 break None;
             };
             parser.expect(OpComma).map_err(|token| {
@@ -38,7 +38,7 @@ impl SetPattern {
         // and report an appropriate error. One of few attempts at smart error
         // handling in this parser so far!
         if let Ok(comma) = parser.expect(OpComma) {
-            let Ok(end) = parser.expect(CBracePipe) else {
+            let Ok(end) = parser.expect(CBrackPipe) else {
                 let error = SyntaxError::new(
                     comma.span,
                     "a rest (`..`) element must end a set pattern",
@@ -59,8 +59,8 @@ impl SetPattern {
         }
 
         let end = parser
-            .expect(CBracePipe)
-            .map_err(|token| parser.expected(token, "expected `|}` to end set pattern"))?;
+            .expect(CBrackPipe)
+            .map_err(|token| parser.expected(token, "expected `|]` to end set pattern"))?;
 
         Ok(Self {
             start,

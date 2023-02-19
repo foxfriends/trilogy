@@ -31,7 +31,7 @@ impl SetLiteral {
         first: SetElement,
     ) -> SyntaxResult<Self> {
         let mut elements = vec![first];
-        if let Ok(end) = parser.expect(CBracePipe) {
+        if let Ok(end) = parser.expect(CBrackPipe) {
             return Ok(Self {
                 start,
                 elements,
@@ -40,9 +40,9 @@ impl SetLiteral {
         };
         let end = loop {
             parser.expect(OpComma).map_err(|token| {
-                parser.expected(token, "expected `|}` to end or `,` to continue set literal")
+                parser.expected(token, "expected `|]` to end or `,` to continue set literal")
             })?;
-            if let Ok(end) = parser.expect(CBracePipe) {
+            if let Ok(end) = parser.expect(CBrackPipe) {
                 break end;
             };
             elements.push(SetElement::parse(parser)?);
@@ -54,7 +54,7 @@ impl SetLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            if let Ok(end) = parser.expect(CBracePipe) {
+            if let Ok(end) = parser.expect(CBrackPipe) {
                 break end;
             };
         };

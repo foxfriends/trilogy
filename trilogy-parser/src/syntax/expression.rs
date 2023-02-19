@@ -91,7 +91,7 @@ impl Expression {
         Character,
         KwUnit,
         OBrack,
-        OBracePipe,
+        OBrackPipe,
         OBrace,
         DollarOParen,
         OpBang,
@@ -242,9 +242,9 @@ impl Expression {
                     )?))),
                 }
             }
-            OBracePipe => {
-                let start = parser.expect(OBracePipe).unwrap();
-                if let Ok(end) = parser.expect(CBracePipe) {
+            OBrackPipe => {
+                let start = parser.expect(OBrackPipe).unwrap();
+                if let Ok(end) = parser.expect(CBrackPipe) {
                     return Ok(Self::Set(Box::new(SetLiteral::new_empty(start, end))));
                 }
                 match SetElement::parse(parser)? {

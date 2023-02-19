@@ -140,10 +140,10 @@ mod test {
     test_parse!(assignment_left_record_spread: "({ \"a\" => b, ..c }) = {}" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");
     test_parse_error!(assignment_left_record_spread_not_last: "({ ..c, \"a\" => b }) = {}" => Statement::parse => "cannot assign to an expression that is not a valid assignment target");
     test_parse_error!(assignment_left_record_spread_multi: "({ ..a, ..c }) = {}" => Statement::parse => "cannot assign to an expression that is not a valid assignment target");
-    test_parse!(assignment_left_set: "{| a, b |} = {||}" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");
-    test_parse!(assignment_left_set_spread: "{| \"a\", ..c |} = {||}" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");
-    test_parse_error!(assignment_left_set_spread_not_last: "{| ..c, \"a\" |} = {||}" => Statement::parse => "cannot assign to an expression that is not a valid assignment target");
-    test_parse_error!(assignment_left_set_spread_multi: "{| ..a, ..c |} = {||}" => Statement::parse => "cannot assign to an expression that is not a valid assignment target");
+    test_parse!(assignment_left_set: "[| a, b |] = [||]" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");
+    test_parse!(assignment_left_set_spread: "[| \"a\", ..c |] = [||]" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");
+    test_parse_error!(assignment_left_set_spread_not_last: "[| ..c, \"a\" |] = [||]" => Statement::parse => "cannot assign to an expression that is not a valid assignment target");
+    test_parse_error!(assignment_left_set_spread_multi: "[| ..a, ..c |] = [||]" => Statement::parse => "cannot assign to an expression that is not a valid assignment target");
     test_parse!(assignment_left_glue: "\"hello \" <> world = 7" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");
     test_parse!(assignment_left_neg: "-world = 7" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");
     test_parse!(assignment_left_cons: "hello : world = 7" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Direct _) _))");

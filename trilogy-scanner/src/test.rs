@@ -357,8 +357,8 @@ test_tokenize!(obrack => "[" = [OBrack]);
 test_tokenize!(cbrack => "]" = [CBrack]);
 test_tokenize!(obrace => "{" = [OBrace]);
 test_tokenize!(cbrace => "}" = [CBrace]);
-test_tokenize!(obracepipe => "{|" = [OBracePipe]);
-test_tokenize!(cbracepipe => "|}" = [CBracePipe]);
+test_tokenize!(obrackpipe => "[|" = [OBrackPipe]);
+test_tokenize!(cbrackpipe => "|]" = [CBrackPipe]);
 
 test_tokenize!(onespace => " " = [Space]);
 test_tokenize!(manyspaces => "    " = [Space]);
