@@ -61,7 +61,7 @@ impl Definition {
                     _ => {
                         let error = SyntaxError::new(
                             token.span,
-                            "expected `at` for an external module, or { for a local module",
+                            "expected `at` for an external module, or `{` for a local module",
                         );
                         parser.error(error.clone());
                         return Err(error);
@@ -83,6 +83,14 @@ impl Definition {
             KwProc => DefinitionItem::Procedure(Box::new(ProcedureDefinition::parse(parser)?)),
             KwFunc => DefinitionItem::Function(Box::new(FunctionDefinition::parse(parser)?)),
             KwTest => DefinitionItem::Test(Box::new(TestDefinition::parse(parser)?)),
+            DocInner => {
+                let error = SyntaxError::new(
+                    token.span,
+                    "inner documentation is only supported at the top of a document",
+                );
+                parser.error(error.clone());
+                return Err(error);
+            }
             _ => {
                 let error = SyntaxError::new(token.span, "unexpected token in module body");
                 parser.error(error.clone());
@@ -117,4 +125,42 @@ impl<'a> PrettyPrint<'a> for Definition {
     fn pretty_print(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a> {
         printer.nil()
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(def_proc: "proc hello!() {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Procedure _))");
+    test_parse!(def_proc_in_module: "proc hello!() {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Procedure _))");
+    test_parse!(def_func: "func hello x = x" => Definition::parse_in_document => "(Definition () (DefinitionItem::Function _))");
+    test_parse!(def_func_in_module: "func hello x = x" => Definition::parse_in_module => "(Definition () (DefinitionItem::Function _))");
+    test_parse!(def_fact: "rule hello(a, b)" => Definition::parse_in_document => "(Definition () (DefinitionItem::Rule _))");
+    test_parse!(def_rule: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_document => "(Definition () (DefinitionItem::Rule _))");
+    test_parse!(def_fact_in_module: "rule hello(a, b)" => Definition::parse_in_module => "(Definition () (DefinitionItem::Rule _))");
+    test_parse!(def_rule_in_module: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_module => "(Definition () (DefinitionItem::Rule _))");
+    test_parse!(def_module: "module X {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Module _))");
+    test_parse!(def_module_in_module: "module X {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Module _))");
+    test_parse!(def_external_module: "module X at \"./hello.tri\"" => Definition::parse_in_document => "(Definition () (DefinitionItem::ExternalModule _))");
+    test_parse!(def_external_module_in_module: "module X at \"./hello.tri\"" => Definition::parse_in_module => "(Definition () (DefinitionItem::ExternalModule _))");
+    test_parse_error!(def_module_invalid: "module X" => Definition::parse_in_document => "expected `at` for an external module, or `{` for a local module");
+    test_parse_error!(def_module_invalid_in_module: "module X" => Definition::parse_in_module => "expected `at` for an external module, or `{` for a local module");
+    test_parse!(def_export: "export a, b, c" => Definition::parse_in_document => "(Definition () (DefinitionItem::Export _))");
+    test_parse!(def_import: "import a, b, c from @X" => Definition::parse_in_document => "(Definition () (DefinitionItem::Import _))");
+    test_parse!(def_export_in_module: "export a, b, c" => Definition::parse_in_module => "(Definition () (DefinitionItem::Export _))");
+    test_parse!(def_import_in_module: "import a, b, c from @X" => Definition::parse_in_module => "(Definition () (DefinitionItem::Import _))");
+    test_parse!(def_import_as: "import @X a b as Xab" => Definition::parse_in_document => "(Definition () (DefinitionItem::ModuleImport _))");
+    test_parse!(def_import_as_in_module: "import @X a b as Xab" => Definition::parse_in_module => "(Definition () (DefinitionItem::ModuleImport _))");
+    test_parse!(def_test: "test \"hello\" {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Test _))");
+    test_parse!(def_test_in_module: "test \"hello\" {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Test _))");
+    test_parse!(def_documented: "## Hello this is a module\nmodule A {}" => Definition::parse_in_document => "(Definition (Documentation) (DefinitionItem::Module _))");
+    test_parse!(def_documented_in_module: "## Hello this is a module\nmodule A {}" => Definition::parse_in_module => "(Definition (Documentation) (DefinitionItem::Module _))");
+    test_parse!(def_nothing: "" => Definition::parse_in_document => "()");
+    test_parse!(def_nothing_in_module: "" => Definition::parse_in_module => "()");
+    test_parse_error!(def_documented_nothing: "## Hello this is a doc for nothing" => Definition::parse_in_document => "outer documentation comment must precede the item it documents");
+    test_parse_error!(def_documented_nothing_in_module: "## Hello this is a doc for nothing" => Definition::parse_in_module => "outer documentation comment must precede the item it documents");
+    test_parse_error!(def_documented_inner: "#! Hello this is a module\nmodule A {}" => Definition::parse_in_document => "inner documentation is only supported at the top of a document");
+    test_parse_error!(def_documented_inner_in_module: "#! Hello this is a module\nmodule A {}" => Definition::parse_in_module => "inner documentation is only supported at the top of a document");
+    test_parse_error!(def_no_keyword: "hello x = y" => Definition::parse_in_document => "unexpected token in module body");
+    test_parse_error!(def_no_keyword_in_module: "hello x = y" => Definition::parse_in_module => "unexpected token in module body");
 }
