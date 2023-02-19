@@ -15,3 +15,11 @@ impl ContinueStatement {
         Ok(Self { token })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(continuestmt_empty: "continue" => ContinueStatement::parse => "(ContinueStatement)");
+    test_parse_error!(continuestmt_value: "continue unit" => ContinueStatement::parse);
+}

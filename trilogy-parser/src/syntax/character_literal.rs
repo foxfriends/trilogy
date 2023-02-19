@@ -15,3 +15,11 @@ impl CharacterLiteral {
         Ok(Self { token })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(char_lit: "'h'" => CharacterLiteral::parse => "(CharacterLiteral)");
+    test_parse_error!(not_char_lit: "\"h\"" => CharacterLiteral::parse => "expected character literal");
+}

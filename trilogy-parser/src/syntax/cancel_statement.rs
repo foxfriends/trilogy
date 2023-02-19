@@ -14,17 +14,12 @@ impl CancelStatement {
         let start = parser
             .expect(TokenType::KwCancel)
             .expect("Caller should have found this");
-        if parser.check(TokenType::OpSemi).is_ok() || parser.is_line_start {
-            return Ok(Self {
-                start,
-                expression: None,
-            });
-        }
-        let expression = Expression::parse(parser)?;
-        Ok(Self {
-            start,
-            expression: Some(expression),
-        })
+        let expression = if parser.check(Expression::PREFIX).is_ok() && !parser.is_line_start {
+            Some(Expression::parse(parser)?)
+        } else {
+            None
+        };
+        Ok(Self { start, expression })
     }
 }
 
@@ -35,4 +30,14 @@ impl Spanned for CancelStatement {
             Some(expression) => self.start.span.union(expression.span()),
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(cancelstmt_empty: "cancel" => CancelStatement::parse => "(CancelStatement ())");
+    test_parse!(cancelstmt_value: "cancel unit" => CancelStatement::parse => "(CancelStatement (Expression::Unit _))");
+    test_parse_error!(cancelstmt_invalid_expr: "cancel {}" => CancelStatement::parse);
+    test_parse_error!(cancelstmt_line_break: "cancel\nunit" => CancelStatement::parse);
 }

@@ -15,3 +15,11 @@ impl BreakStatement {
         Ok(Self { token })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(breakstmt_empty: "break" => BreakStatement::parse => "(BreakStatement)");
+    test_parse_error!(breakstmt_value: "break unit" => BreakStatement::parse);
+}

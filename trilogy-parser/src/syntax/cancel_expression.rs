@@ -17,3 +17,12 @@ impl CancelExpression {
         Ok(Self { start, expression })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(cancelexpr_unit: "cancel unit" => CancelExpression::parse => "(CancelExpression _)");
+    test_parse!(cancelexpr_value: "cancel true" => CancelExpression::parse => "(CancelExpression _)");
+    test_parse_error!(cancelexpr_empty: "cancel" => CancelExpression::parse);
+}

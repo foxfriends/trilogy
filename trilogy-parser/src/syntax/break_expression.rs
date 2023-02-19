@@ -17,3 +17,12 @@ impl BreakExpression {
         Ok(Self { start, expression })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(breakexpr_unit: "break unit" => BreakExpression::parse => "(BreakExpression _)");
+    test_parse!(breakexpr_value: "break true" => BreakExpression::parse => "(BreakExpression _)");
+    test_parse_error!(breakexpr_empty: "break" => BreakExpression::parse);
+}
