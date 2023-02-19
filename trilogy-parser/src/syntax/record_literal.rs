@@ -38,16 +38,17 @@ impl RecordLiteral {
                 end,
             });
         };
-        parser.expect(OpComma).map_err(|token| {
-            parser.expected(
-                token,
-                "expected `}` to end or `,` to continue record literal",
-            )
-        })?;
         let end = loop {
+            parser.expect(OpComma).map_err(|token| {
+                parser.expected(
+                    token,
+                    "expected `}` to end or `,` to continue record literal",
+                )
+            })?;
             if let Ok(end) = parser.expect(CBrace) {
                 break end;
             };
+            elements.push(RecordElement::parse(parser)?);
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -56,16 +57,9 @@ impl RecordLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            elements.push(RecordElement::parse(parser)?);
             if let Ok(end) = parser.expect(CBrace) {
                 break end;
             };
-            parser.expect(OpComma).map_err(|token| {
-                parser.expected(
-                    token,
-                    "expected `}` to end or `,` to continue record literal",
-                )
-            })?;
         };
         Ok(Self {
             start,

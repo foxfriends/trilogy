@@ -44,9 +44,6 @@ impl ArrayLiteral {
                 break end;
             };
             elements.push(ArrayElement::parse(parser)?);
-            if let Ok(end) = parser.expect(CBrack) {
-                break end;
-            };
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -55,6 +52,9 @@ impl ArrayLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
+            if let Ok(end) = parser.expect(CBrack) {
+                break end;
+            };
         };
         Ok(Self {
             start,
@@ -98,6 +98,7 @@ mod test {
     test_parse!(arraylit_many_tc: "[1, 2, 3, ]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
     test_parse!(arraylit_nested: "[[1, 2], [3, 4], [5, 6]]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
     test_parse!(arraylit_no_comma: "[f 2]" => Expression::parse => "(Expression::Array (ArrayLiteral [(_ (Expression::Application _))]))");
+    test_parse!(arraylit_spread: "[..a, b]" => Expression::parse => "(Expression::Array (ArrayLiteral [(ArrayElement::Spread _ _) (ArrayElement::Element _)]))");
 
     test_parse_error!(arraylit_empty_tc: "[,]" => Expression::parse);
     test_parse_error!(arraylit_missing_item: "[1,,]" => Expression::parse);
