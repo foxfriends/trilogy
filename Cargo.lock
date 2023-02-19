@@ -460,6 +460,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "trilogy-vm"
+version = "0.1.0"
+dependencies = [
+ "bitvec",
+ "num",
+]
+
+[[package]]
 name = "typed-arena"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

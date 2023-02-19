@@ -112,7 +112,7 @@ each of its elements, separated by commas within square brackets.
 
 A Set is an unordered collection of values containing no duplicates. Though
 values of any type may be contained in a Set, duplicates are compared as if
-by the structural equality operator (\op{eq}). The Set type is a structural
+by the referential equality operator (\op{eq}). The Set type is a structural
 and reference type. In type annotation, the Set type is written \ty{Set T}
 
 Set literals are written with brackets and pipes, with items separated by comma.
@@ -147,7 +147,7 @@ type \ty{K} refer to values of type \ty{V}.
 
 The main operation of a Record is the indexing operator. The keys of a
 Record may be any value; like with Sets, the keys are compared as if by
-the structural equality operator (\op{==}).
+the referential equality operator (\op{==}).
 
 A Record literal is written as comma separated \texttt{key: value} pairs
 within curly braces and pipes. In Record construction, the spread operator (\op{..})

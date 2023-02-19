@@ -4,4 +4,5 @@ members = [
     "trilogy-scanner",
     "trilogy-parser",
     "trilogy-parser-derive",
+    "trilogy-vm",
 ]
