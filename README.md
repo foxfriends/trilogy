@@ -38,6 +38,9 @@ As you can see, progress at this time is limited:
     - [x] Scanning
     - [x] Parsing
     - [ ] Testing (In progress)
-    - [ ] Weeding
+    - [ ] Syntactic analysis
     - [ ] Name resolution
-    - [ ] ???
+    - [ ] Semantic structure
+    - [ ] Semantic analysis
+    - [ ] Bytecode generation
+    - [ ] Virtual machine
