@@ -86,7 +86,7 @@ impl Pattern {
             OpCaret => Ok(Self::Pinned(Box::new(PinnedPattern::parse(parser)?))),
             OBrack => Ok(Self::Array(Box::new(ArrayPattern::parse(parser)?))),
             OBrackPipe => Ok(Self::Set(Box::new(SetPattern::parse(parser)?))),
-            OBrace => Ok(Self::Record(Box::new(RecordPattern::parse(parser)?))),
+            OBracePipe => Ok(Self::Record(Box::new(RecordPattern::parse(parser)?))),
             Discard => Ok(Self::Wildcard(Box::new(parser.expect(Discard).unwrap()))),
             KwMut | Identifier => Ok(Self::Binding(Box::new(BindingPattern::parse(parser)?))),
             _ => {

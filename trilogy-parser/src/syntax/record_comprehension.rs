@@ -20,8 +20,8 @@ impl RecordComprehension {
     ) -> SyntaxResult<Self> {
         let query = Query::parse(parser)?;
         let end = parser
-            .expect(CBrace)
-            .map_err(|token| parser.expected(token, "expected `}` to end record comprehension"))?;
+            .expect(CBracePipe)
+            .map_err(|token| parser.expected(token, "expected `|}` to end record comprehension"))?;
         Ok(Self {
             start,
             key_expression,

@@ -34,8 +34,8 @@ Keywords in \Trilogy{} (listed in Table~\ref{tab:keywords}) have
 different meanings in the different sub-languages, but \emph{all}
 keywords are considered ``reserved'' words in all contexts. That
 is, they may only be used as keywords, even in sub-languages which
-do not have a use for that keyword. Usage as variable or function
-identifiers, module names, or as bare record keys is prohibited.
+do not have a use for that keyword. Usage as identifiers in any
+situation are prohibited.
 
 \begin{table}[h]
 \parbox[t]{0.45\linewidth}{
@@ -568,6 +568,7 @@ pieces of code, and must come in matched opening-closing pairs.
         \textbf{Token Type} & \textbf{Symbol}& \textbf{Token Type} & \textbf{Symbol} \\
         \hline
         \texttt{OBrace} & \texttt{\{}& \texttt{CBrace} & \texttt{\}} \\
+        \texttt{OBracePipe} & \texttt{\{|}& \texttt{CBracePipe} & \texttt{|\}} \\
         \texttt{OBrack} & \texttt{[} & \texttt{CBrack} & \texttt{]} \\
         \texttt{OBrackPipe} & \texttt{[|}& \texttt{CBrackPipe} & \texttt{|]} \\
         \texttt{OParen} & \texttt{(} & \texttt{CParen} & \texttt{)} \\

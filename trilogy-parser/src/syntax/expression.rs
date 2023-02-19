@@ -258,9 +258,9 @@ impl Expression {
                     )?))),
                 }
             }
-            OBrace => {
-                let start = parser.expect(OBrace).unwrap();
-                if let Ok(end) = parser.expect(CBrace) {
+            OBracePipe => {
+                let start = parser.expect(OBracePipe).unwrap();
+                if let Ok(end) = parser.expect(CBracePipe) {
                     return Ok(Self::Record(Box::new(RecordLiteral::new_empty(start, end))));
                 }
                 match RecordElement::parse(parser)? {

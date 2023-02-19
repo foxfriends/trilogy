@@ -146,11 +146,11 @@ of the cons operator, rather than a literal form.
         \bnfpn{Expression}
     } \\
     \bnfprod{Record}{
-        \bnfts{\{}
+        \bnfts{\{|}
         \bnfsp
         \bnfpn{KeyValueElements}
         \bnfsp
-        \bnfts{\}}
+        \bnfts{|\}}
     } \\
     \bnfprod{KeyValueElements}{
         \bnfpn{KeyValueElement}
@@ -234,22 +234,22 @@ as if its elements were written in place of the spread.
 \begin{prooftree}
     \AxiomC{}
     \LeftLabel{Record\textsuperscript{$\epsilon$}}
-    \UnaryInfC{$\texttt{\{\}} : \ty{Record}\ \kappa\ \nu$}
+    \UnaryInfC{$\texttt{\{||\}} : \ty{Record}\ \kappa\ \nu$}
 \end{prooftree}
 
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0in}
     \AxiomC{$\Gamma\vdash K_1 : \kappa$}
     \AxiomC{$\Gamma\vdash V_1 : \nu$}
-    \AxiomC{$\Gamma\vdash \texttt{\{}K_2:V_2\ \texttt{,}\cdots\texttt{,}\ K_n:V_n\texttt{\}} : \ty{Record}\ \kappa\ \nu$}
+    \AxiomC{$\Gamma\vdash \texttt{\{|}K_2:V_2\ \texttt{,}\cdots\texttt{,}\ K_n:V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
     \LeftLabel{Record}
-    \TrinaryInfC{$\Gamma\vdash\texttt{\{}K_1\ \texttt{=>}\ V_1\ \texttt{,}\ K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{\}} : \ty{Record}\ \kappa\ \nu$}
+    \TrinaryInfC{$\Gamma\vdash\texttt{\{|}K_1\ \texttt{=>}\ V_1\ \texttt{,}\ K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
 \end{prooftree}
 
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0in}
     \AxiomC{$\Gamma\vdash X : \ty{Record}\ \kappa\ \nu$}
-    \AxiomC{$\Gamma\vdash \texttt{\{}K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{\}} : \ty{Record}\ \kappa\ \nu$}
+    \AxiomC{$\Gamma\vdash \texttt{\{|}K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
     \LeftLabel{Record\textsuperscript{\op{..}}}
-    \BinaryInfC{$\Gamma\vdash\texttt{\{}\op{..}X\ \texttt{,}\ K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{\}} : \ty{Record}\ \kappa\ \nu$}
+    \BinaryInfC{$\Gamma\vdash\texttt{\{|}\op{..}X\ \texttt{,}\ K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
 \end{prooftree}

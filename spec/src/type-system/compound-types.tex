@@ -115,7 +115,7 @@ values of any type may be contained in a Set, duplicates are compared as if
 by the structural equality operator (\op{eq}). The Set type is a structural
 and reference type. In type annotation, the Set type is written \ty{Set T}
 
-Set literals are written with curly braces and pipes, with items separated by comma.
+Set literals are written with brackets and pipes, with items separated by comma.
 In pattern matching, the spread operator may be used to refer to the elements
 not already matched explicitly by the pattern. In Set construction, the
 spread operator is not supported; prefer to use the Set operators instead.
@@ -150,7 +150,7 @@ Record may be any value; like with Sets, the keys are compared as if by
 the structural equality operator (\op{==}).
 
 A Record literal is written as comma separated \texttt{key: value} pairs
-within curly braces. In Record construction, the spread operator (\op{..})
+within curly braces and pipes. In Record construction, the spread operator (\op{..})
 may be used to combine two or more Records. In pattern matching, the spread
 operator may be used once to refer to the rest of the entries not already
 matched explicitly by the pattern.
@@ -160,7 +160,7 @@ Though Records are unordered, keys specified ``later'' in the source file
 earlier.
 
 The string representation of a Record is its stringified \texttt{key => value}
-pairs in curly braces.
+pairs in curly braces. The pipes are omitted in the string representation.
 
 \begin{table}[H]
     \centering
@@ -168,8 +168,8 @@ pairs in curly braces.
         \hline
         \textbf{Source} & \textbf{String} \\
         \hline
-        \texttt{\{1 => "one", 2 => "two"\}} & \texttt{\{1 => one, 2 => two\}} \\
-        \texttt{\{"a" => 1, "a" => 2, "b" => 3\}} & \texttt{\{a => 2, b => 3\}} \\
+        \texttt{\{|1 => "one", 2 => "two"|\}} & \texttt{\{1 => one, 2 => two\}} \\
+        \texttt{\{|"a" => 1, "a" => 2, "b" => 3|\}} & \texttt{\{a => 2, b => 3\}} \\
         \hline
     \end{tabular}
 \end{table}

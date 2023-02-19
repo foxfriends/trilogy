@@ -331,11 +331,11 @@ that rest pattern must come at the end and may not have a trailing comma.
 
 \begin{bnf*}
     \bnfprod{RecordPattern}{
-        \bnfts{\{}
+        \bnfts{\{|}
         \bnfsp
         \bnfpn{RecordContents}
         \bnfsp
-        \bnfts{\}}
+        \bnfts{|\}}
     } \\
     \bnfprod{RecordContents}{
         \bnfpn{KeyValueListN}
@@ -403,16 +403,16 @@ with record patterns anyway.
     \AxiomC{$x = K_1$}
     \AxiomC{$v = V_1$}
     \noLine
-    \TrinaryInfC{$\texttt{\{}\ K_2\ \texttt{=>}\ V_2\texttt{,}\ \cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{,}\ \ \texttt{..}R\ \texttt{\}} = r\setminus\setof{k\ \texttt{=>}\ v}$}
+    \TrinaryInfC{$\texttt{\{|}\ K_2\ \texttt{=>}\ V_2\texttt{,}\ \cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{,}\ \ \texttt{..}R\ \texttt{|\}} = r\setminus\setof{k\ \texttt{=>}\ v}$}
     \LeftLabel{Record Match}
-    \UnaryInfC{$\texttt{\{}\ K_1\ \texttt{=>}\ V_1\texttt{,}\ K_2\ \texttt{=>}\ V_2\texttt{,}\ \cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{,}\ \texttt{..}R\ \texttt{\}} = r$}
+    \UnaryInfC{$\texttt{\{|}\ K_1\ \texttt{=>}\ V_1\texttt{,}\ K_2\ \texttt{=>}\ V_2\texttt{,}\ \cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{,}\ \texttt{..}R\ \texttt{|\}} = r$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$v : \ty{Record}\ \kappa\ \tau$}
     \AxiomC{$R = r$}
     \LeftLabel{Record Rest}
-    \BinaryInfC{$\texttt{\{}\ \texttt{..}R\ \texttt{\}} = r$}
+    \BinaryInfC{$\texttt{\{|}\ \texttt{..}R\ \texttt{|\}} = r$}
 \end{prooftree}
 
 A pinned identifier provides a way to create dynamic patterns: the value of the

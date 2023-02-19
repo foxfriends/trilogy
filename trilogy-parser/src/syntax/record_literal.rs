@@ -31,7 +31,7 @@ impl RecordLiteral {
         first: RecordElement,
     ) -> SyntaxResult<Self> {
         let mut elements = vec![first];
-        if let Ok(end) = parser.expect(CBrace) {
+        if let Ok(end) = parser.expect(CBracePipe) {
             return Ok(Self {
                 start,
                 elements,
@@ -42,10 +42,10 @@ impl RecordLiteral {
             parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,
-                    "expected `}` to end or `,` to continue record literal",
+                    "expected `|}` to end or `,` to continue record literal",
                 )
             })?;
-            if let Ok(end) = parser.expect(CBrace) {
+            if let Ok(end) = parser.expect(CBracePipe) {
                 break end;
             };
             elements.push(RecordElement::parse(parser)?);
@@ -57,7 +57,7 @@ impl RecordLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            if let Ok(end) = parser.expect(CBrace) {
+            if let Ok(end) = parser.expect(CBracePipe) {
                 break end;
             };
         };

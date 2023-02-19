@@ -14,12 +14,12 @@ pub struct RecordPattern {
 impl RecordPattern {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let start = parser
-            .expect(OBrace)
+            .expect(OBracePipe)
             .expect("Caller should have found this");
 
         let mut elements = vec![];
         let rest = loop {
-            if parser.check(CBrace).is_ok() {
+            if parser.check(CBracePipe).is_ok() {
                 break None;
             };
             if parser.expect(OpDotDot).is_ok() {
@@ -34,7 +34,7 @@ impl RecordPattern {
             })?;
             let value = Pattern::parse(parser)?;
             elements.push((key, value));
-            if parser.check(CBrace).is_ok() {
+            if parser.check(CBracePipe).is_ok() {
                 break None;
             };
             parser.expect(OpComma).map_err(|token| {
@@ -46,7 +46,7 @@ impl RecordPattern {
         // and report an appropriate error. One of few attempts at smart error
         // handling in this parser so far!
         if let Ok(comma) = parser.expect(OpComma) {
-            let Ok(end) = parser.expect(CBrace) else {
+            let Ok(end) = parser.expect(CBracePipe) else {
                 let error = SyntaxError::new(
                     comma.span,
                     "a rest (`..`) element must end a record pattern",
@@ -67,8 +67,8 @@ impl RecordPattern {
         }
 
         let end = parser
-            .expect(CBrace)
-            .map_err(|token| parser.expected(token, "expected `}` to end record pattern"))?;
+            .expect(CBracePipe)
+            .map_err(|token| parser.expected(token, "expected `|}` to end record pattern"))?;
 
         Ok(Self {
             start,

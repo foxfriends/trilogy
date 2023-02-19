@@ -177,13 +177,15 @@ pub enum TokenType {
     // Delimiters
     OBrace,
     CBrace,
-    OBrackPipe,
-    CBrackPipe,
-    DollarOParen,
-    OParen,
-    CParen,
+    OBracePipe,
+    CBracePipe,
     OBrack,
     CBrack,
+    OBrackPipe,
+    CBrackPipe,
+    OParen,
+    CParen,
+    DollarOParen,
 
     // Special markers
     StartOfFile,

@@ -527,6 +527,10 @@ impl Iterator for Scanner<'_> {
                 }
             }
             '!' => self.make_token(OpBang),
+            '{' if self.expect('|').is_some() => {
+                self.nesting.push('/'); // using this arbitrarily as a sentinel for these, since | is taken
+                self.make_token(OBracePipe)
+            }
             '{' => {
                 self.nesting.push('{');
                 self.make_token(OBrace)
@@ -676,6 +680,12 @@ impl Iterator for Scanner<'_> {
                     self.nesting.pop();
                 }
                 self.make_token(CBrackPipe)
+            }
+            '|' if self.expect('}').is_some() => {
+                if self.context('/') {
+                    self.nesting.pop();
+                }
+                self.make_token(CBracePipe)
             }
             '|' if self.expect('|').is_some() => {
                 if self.expect('=').is_some() {
