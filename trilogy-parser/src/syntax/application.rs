@@ -25,6 +25,7 @@ mod test {
     test_parse!(not_application_unary_minus: "hello - b" => Expression::parse => "(Expression::Binary _)");
     test_parse!(application_unary_negate: "hello ~b" => Expression::parse => "(Expression::Application (Application _ (Expression::Unary _)))");
     test_parse!(application_keyword: "hello if x then 3 else 4" => Expression::parse => "(Expression::Application (Application _ (Expression::IfElse _)))");
+    test_parse!(application_of_number: "3 4 5" => Expression::parse => "(Expression::Application (Application _ _))");
     test_parse!(application_binop: "hello a + world" => Expression::parse => "
         (Expression::Binary
           (BinaryOperation
