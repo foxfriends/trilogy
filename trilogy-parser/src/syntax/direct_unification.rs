@@ -18,3 +18,15 @@ impl DirectUnification {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(direct_keyword: "x = 5" => Query::parse => "(Query::Direct (DirectUnification _ _))");
+    test_parse!(direct_pattern: "5 = 5" => Query::parse => "(Query::Direct (DirectUnification _ _))");
+    test_parse!(direct_collection: "[..a] = [1, 2, 3]" => Query::parse => "(Query::Direct (DirectUnification _ _))");
+    test_parse_error!(direct_no_op_eq: "[..a] += [1, 2, 3]" => Query::parse);
+    test_parse_error!(direct_no_expr: "a b = 123" => Query::parse);
+    test_parse_error!(direct_invalid_expr: "a = {}" => Query::parse);
+}
