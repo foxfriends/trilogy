@@ -18,3 +18,14 @@ impl ElementUnification {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(element_keyword: "x in []" => Query::parse => "(Query::Element (ElementUnification _ _))");
+    test_parse!(element_pattern: "5 in [5]" => Query::parse => "(Query::Element (ElementUnification _ _))");
+    test_parse!(element_collection: "[..a] in [[], [1]]" => Query::parse => "(Query::Element (ElementUnification _ _))");
+    test_parse_error!(element_no_expr: "a b in 123" => Query::parse);
+    test_parse_error!(element_invalid_expr: "a in {}" => Query::parse);
+}
