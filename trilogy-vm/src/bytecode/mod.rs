@@ -38,8 +38,10 @@ pub enum Instruction {
     Compose,
     // Control flow
     Return,
+    Invert,
     Jump,
     CondJump,
     Branch,
     Fizzle,
+    Exit,
 }

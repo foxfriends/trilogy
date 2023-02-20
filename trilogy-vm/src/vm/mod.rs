@@ -1,7 +1,9 @@
-mod continuation;
+mod error;
+mod execution;
 mod program;
 mod virtual_machine;
 
-use continuation::Continuation;
+pub use error::Error;
+use execution::Execution;
 pub use program::Program;
 pub use virtual_machine::VirtualMachine;

@@ -1,3 +1,5 @@
+use std::ops::{Add, Div, Mul, Rem, Sub};
+
 use super::{Array, Atom, Bits, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -42,6 +44,61 @@ impl StructuralEq for Value {
             (Self::Record(lhs), Self::Record(rhs)) => StructuralEq::eq(lhs, rhs),
             (Self::Set(lhs), Self::Set(rhs)) => StructuralEq::eq(lhs, rhs),
             _ => self == other,
+        }
+    }
+}
+
+impl Add for Value {
+    type Output = Result<Value, ()>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs + rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Sub for Value {
+    type Output = Result<Value, ()>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs - rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Mul for Value {
+    type Output = Result<Value, ()>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs * rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Div for Value {
+    type Output = Result<Value, ()>;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs / rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Rem for Value {
+    type Output = Result<Value, ()>;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs % rhs)),
+            _ => Err(()),
         }
     }
 }
