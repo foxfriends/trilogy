@@ -32,7 +32,7 @@ As you can see, progress at this time is limited:
     - https://github.com/HigherOrderCO/HVM
     - https://www.sciencedirect.com/science/article/pii/S0890540197926432/pdf?md5=30965cec6dd7605a865bbec4076f65e4&pid=1-s2.0-S0890540197926432-main.pdf
 - [x] Design the language: Check out the [spec](./spec/)!
-- [ ] Read the [book](https://craftinginterpreters.com/) (In Progress)
+- [x] Read the [book](https://craftinginterpreters.com/)
 - [ ] Specify the language (In progress)
 - [x] Start the project:
     - [x] Scanning
