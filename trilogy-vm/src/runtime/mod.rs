@@ -1,6 +1,8 @@
 mod array;
 mod atom;
+mod bits;
 mod eq;
+mod number;
 mod record;
 mod set;
 mod r#struct;
@@ -9,9 +11,11 @@ mod value;
 
 pub use array::Array;
 pub use atom::Atom;
+pub use bits::Bits;
 pub use eq::{ReferentialEq, StructuralEq};
+pub use number::Number;
 pub use r#struct::Struct;
 pub use record::Record;
 pub use set::Set;
 pub use tuple::Tuple;
-pub use value::{Bits, Number, Value};
+pub use value::Value;

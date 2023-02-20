@@ -1,9 +1,4 @@
-use super::{Array, Atom, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple};
-use bitvec::vec::BitVec;
-use num::{BigRational, Complex};
-
-pub type Number = Complex<BigRational>;
-pub type Bits = BitVec;
+use super::{Array, Atom, Bits, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum Value {
@@ -11,14 +6,14 @@ pub enum Value {
     Bool(bool),
     Char(char),
     String(String),
-    Number(Box<Number>),
+    Number(Number),
     Bits(Bits),
     Atom(Atom),
-    Struct(Box<Struct>),
-    Tuple(Box<Tuple>),
-    Array(Box<Array>),
-    Set(Box<Set>),
-    Record(Box<Record>),
+    Struct(Struct),
+    Tuple(Tuple),
+    Array(Array),
+    Set(Set),
+    Record(Record),
 
     // TODO: these will require some thought
     Iterator,
@@ -32,9 +27,9 @@ pub enum Value {
 impl ReferentialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Array(lhs), Self::Array(rhs)) => ReferentialEq::eq(&**lhs, &**rhs),
-            (Self::Record(lhs), Self::Record(rhs)) => ReferentialEq::eq(&**lhs, &**rhs),
-            (Self::Set(lhs), Self::Set(rhs)) => ReferentialEq::eq(&**lhs, &**rhs),
+            (Self::Array(lhs), Self::Array(rhs)) => ReferentialEq::eq(lhs, rhs),
+            (Self::Record(lhs), Self::Record(rhs)) => ReferentialEq::eq(lhs, rhs),
+            (Self::Set(lhs), Self::Set(rhs)) => ReferentialEq::eq(lhs, rhs),
             _ => self == other,
         }
     }
@@ -43,9 +38,9 @@ impl ReferentialEq for Value {
 impl StructuralEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Array(lhs), Self::Array(rhs)) => StructuralEq::eq(&**lhs, &**rhs),
-            (Self::Record(lhs), Self::Record(rhs)) => StructuralEq::eq(&**lhs, &**rhs),
-            (Self::Set(lhs), Self::Set(rhs)) => StructuralEq::eq(&**lhs, &**rhs),
+            (Self::Array(lhs), Self::Array(rhs)) => StructuralEq::eq(lhs, rhs),
+            (Self::Record(lhs), Self::Record(rhs)) => StructuralEq::eq(lhs, rhs),
+            (Self::Set(lhs), Self::Set(rhs)) => StructuralEq::eq(lhs, rhs),
             _ => self == other,
         }
     }
