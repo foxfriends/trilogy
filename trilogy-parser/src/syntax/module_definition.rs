@@ -37,14 +37,12 @@ impl ModuleDefinition {
             }
         }
 
-        if parser.check(CBrace).is_ok() {
-            if !parser.is_line_start {
-                let error = SyntaxError::new(
-                    parser.peek().span,
-                    "definition in module must end with a line break",
-                );
-                parser.error(error);
-            }
+        if parser.check(CBrace).is_ok() && !parser.is_line_start {
+            let error = SyntaxError::new(
+                parser.peek().span,
+                "definition in module must end with a line break",
+            );
+            parser.error(error);
         }
 
         let end = parser.expect(CBrace).map_err(|token| {
