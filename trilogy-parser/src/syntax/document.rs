@@ -31,14 +31,24 @@ impl Document {
     pub(crate) fn parse(parser: &mut Parser) -> Self {
         let start = parser
             .expect(StartOfFile)
-            .expect("The file better have a beginning... otherwise something is very wrong.");
+            .expect("input should start with `StartOfFile`");
 
-        #[cfg(feature = "lax")]
-        if let Some(token) = parser.expect(ByteOrderMark) {
-            parser.warn(SyntaxError::new(
-                vec![token],
-                "The file contains a byte-order mark.",
-            ));
+        if let Ok(token) = parser.expect(ByteOrderMark) {
+            #[cfg(feature = "lax")]
+            {
+                parser.warn(SyntaxError::new(
+                    token.span,
+                    "the file contains a byte-order mark",
+                ));
+            }
+
+            #[cfg(not(feature = "lax"))]
+            {
+                parser.error(SyntaxError::new(
+                    token.span,
+                    "the file contains a byte-order mark",
+                ));
+            }
         }
 
         // Special case for the empty file rule
@@ -65,18 +75,18 @@ impl Document {
         if !parser.is_line_start {
             #[cfg(feature = "lax")]
             parser.warn(SyntaxError::new_spanless(
-                "The document does not end with a new-line character.",
+                "the document does not end with a new-line character",
             ));
 
             #[cfg(not(feature = "lax"))]
             parser.error(SyntaxError::new_spanless(
-                "No new line found at end of file.",
+                "no new line found at end of file",
             ));
         }
 
         let end = parser
             .expect(EndOfFile)
-            .expect("The file better have an end... otherwise something is very wrong.");
+            .expect("input should end with `EndOfFile`");
 
         Self {
             start,
@@ -101,5 +111,43 @@ impl<'a> PrettyPrint<'a> for Document {
         allocator
             .intersperse(docs, allocator.hardline().append(allocator.hardline()))
             .append(allocator.hardline())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse_whole!(document_empty: "" => Document::parse => "(Document () [])");
+    test_parse_whole!(document_empty_newline: "\n" => Document::parse => "(Document () [])");
+
+    test_parse_whole_error!(document_empty_bom: "\u{feff}" => Document::parse => "the file contains a byte-order mark");
+    test_parse_whole_error!(document_empty_bom_newline: "\u{feff}\n" => Document::parse => "the file contains a byte-order mark");
+
+    test_parse_whole!(document_documented: "#! hello\n#! world" => Document::parse => "(Document (Documentation) [])");
+    test_parse_whole!(document_documented_with_def: "#! hello\n#! world\n\n## Hello\nfunc f x = x\n" => Document::parse => "(Document (Documentation) [(Definition (Documentation) _)])");
+
+    test_parse_whole_error!(document_no_final_newline: "func f x = x" => Document::parse => "no new line found at end of file");
+
+    test_parse_whole!(document_multiple_defs: "func f x = x\nfunc f y = y\nfunc g x = x\n" => Document::parse => "(Document () [(Definition () _) (Definition () _) (Definition () _)])");
+    test_parse_whole_error!(document_defs_no_newline: "func f x = x func f y = y\n" => Document::parse => "definitions must be separated by line breaks");
+
+    test_parse_whole!(document_module_empty: "module A {}\n" => Document::parse => "(Document () [(Definition () _)])");
+    test_parse_whole!(document_module_nested: "module A {\n    module B { }\n}\n" => Document::parse => "(Document () [(Definition () _)])");
+
+    test_parse_whole_error!(document_module_no_end_newline: "module A {\n    module B { }}\n" => Document::parse => "definition in module must end with a line break");
+    test_parse_whole_error!(document_module_no_start_newline: "module A {module B { }}\n" => Document::parse => "definitions must be separated by line breaks");
+
+    #[test]
+    #[rustfmt::skip]
+    fn document_error_recovery() {
+        use crate::Parser;
+        use trilogy_scanner::Scanner;
+
+        let scanner = Scanner::new("func f = y\nfunc f x = x\n");
+        let mut parser = Parser::new(scanner);
+        let parse = Document::parse(&mut parser);
+        assert_eq!(parse.definitions.len(), 1, "expected one definition to succeed");
+        assert_eq!(parser.errors.len(), 1, "expected one definition to fail");
     }
 }

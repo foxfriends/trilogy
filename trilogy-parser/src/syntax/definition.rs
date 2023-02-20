@@ -33,8 +33,9 @@ impl Definition {
     ) -> SyntaxResult<Option<Self>> {
         let documentation = Documentation::parse_outer(parser);
 
-        let token = parser.peek();
-        if until_pattern.matches(token) {
+        parser.peek();
+        let is_line_start = parser.is_line_start;
+        if until_pattern.matches(parser.peek()) {
             if let Some(documentation) = documentation {
                 let error = SyntaxError::new(
                     documentation.span(),
@@ -47,6 +48,15 @@ impl Definition {
             }
         }
 
+        if !is_line_start {
+            let error = SyntaxError::new(
+                parser.peek().span,
+                "definitions must be separated by line breaks",
+            );
+            parser.error(error);
+        }
+
+        let token = parser.peek();
         let item = match token.token_type {
             KwModule => {
                 let head = ModuleHead::parse(parser)?;

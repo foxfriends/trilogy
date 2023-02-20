@@ -147,3 +147,56 @@ macro_rules! test_parse_error {
         }
     };
 }
+
+// Special for testing Document, which takes the start/end into account.
+// Maybe a sign that Document should be wrapped by something else...
+
+#[macro_export]
+macro_rules! test_parse_whole {
+    ($name:ident : $src:literal => $path:path => $sexp:literal) => { test_parse_whole!($name : $src |parser| $path(&mut parser) => $sexp); };
+
+    ($name:ident : $src:literal |$parser:ident| $parse:expr => $sexp:literal) => {
+        #[test]
+        fn $name() {
+            use crate::{Parser, PrettyPrintSExpr};
+            let scanner = trilogy_scanner::Scanner::new($src);
+            let mut $parser = Parser::new(scanner);
+            let parse = $parse;
+            let mut allocator = pretty::RcAllocator;
+            let sexpr = format!("{}", parse.pretty_print_sexpr(&mut allocator).pretty(100));
+            let parsed = crate::test::normalize_sexpr(&sexpr);
+            let expected = crate::test::normalize_sexpr($sexp);
+            assert!($parser.errors.is_empty());
+            assert_eq!(parsed.split_ascii_whitespace().collect::<crate::test::SExpr>(), expected.split_ascii_whitespace().collect::<crate::test::SExpr>());
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! test_parse_whole_error {
+    ($name:ident : $src:literal => $path:path => $error:literal) => { test_parse_whole_error!($name : $src |parser| $path(&mut parser) => $error); };
+    ($name:ident : $src:literal => $path:path) => { test_parse_whole_error!($name : $src |parser| $path(&mut parser)); };
+
+    ($name:ident : $src:literal |$parser:ident| $parse:expr => $error:literal) => {
+        #[test]
+        fn $name() {
+            use crate::Parser;
+            let scanner = trilogy_scanner::Scanner::new($src);
+            let mut $parser = Parser::new(scanner);
+            $parse;
+            assert_eq!($parser.errors.first().expect("parse should have reported an error message").message(), $error);
+        }
+    };
+
+    ($name:ident : $src:literal |$parser:ident| $parse:expr) => {
+        #[test]
+        fn $name() {
+            use crate::Parser;
+            use trilogy_scanner::TokenType::*;
+            let scanner = trilogy_scanner::Scanner::new($src);
+            let mut $parser = Parser::new(scanner);
+            $parse;
+            assert!(!$parser.errors.is_empty());
+        }
+    };
+}

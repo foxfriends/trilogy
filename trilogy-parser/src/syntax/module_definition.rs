@@ -19,12 +19,31 @@ impl ModuleDefinition {
     pub(crate) fn parse(parser: &mut Parser, head: ModuleHead) -> SyntaxResult<Self> {
         parser.expect(OBrace).expect("Caller should find `{`.");
 
+        if let Ok(end) = parser.expect(CBrace) {
+            // empty module may be single line
+            return Ok(Self {
+                head,
+                definitions: vec![],
+                end,
+            });
+        }
+
         let mut definitions = vec![];
         loop {
             match Definition::parse_in_module(parser) {
                 Ok(Some(definition)) => definitions.push(definition),
                 Ok(None) => break,
                 Err(..) => ModuleDefinition::synchronize(parser),
+            }
+        }
+
+        if parser.check(CBrace).is_ok() {
+            if !parser.is_line_start {
+                let error = SyntaxError::new(
+                    parser.peek().span,
+                    "definition in module must end with a line break",
+                );
+                parser.error(error);
             }
         }
 
