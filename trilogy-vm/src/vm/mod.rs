@@ -1,6 +1,7 @@
-use crate::cactus::Cactus;
+mod continuation;
+mod program;
+mod virtual_machine;
 
-#[derive(Clone, Debug)]
-pub struct VirtualMachine {
-    cactus: Cactus<()>,
-}
+use continuation::Continuation;
+pub use program::Program;
+pub use virtual_machine::VirtualMachine;
