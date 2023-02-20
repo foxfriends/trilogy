@@ -60,3 +60,16 @@ impl<'a> PrettyPrint<'a> for Documentation {
         printer.intersperse(lines, printer.hardline())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(documentation_inner: "#! hello\n" => Documentation::parse_inner => "(Documentation)");
+    test_parse!(documentation_inner_multiline: "#! hello\n#! world\n" => Documentation::parse_inner => "(Documentation)");
+    test_parse!(documentation_inner_gaps: "#! hello\n\n#! world\n" => Documentation::parse_inner => "(Documentation)");
+
+    test_parse!(documentation_outer: "## hello\n" => Documentation::parse_outer => "(Documentation)");
+    test_parse!(documentation_outer_multiline: "## hello\n## world\n" => Documentation::parse_outer => "(Documentation)");
+    test_parse!(documentation_outer_gaps: "## hello\n\n## world\n" => Documentation::parse_outer => "(Documentation)");
+}
