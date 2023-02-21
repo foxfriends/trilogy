@@ -428,20 +428,38 @@ mod test {
           (Expression::Binary (BinaryOperation (Expression::Unary _) (BinaryOperator::And _) _))
           (BinaryOperator::Or _)
           (Expression::Binary (BinaryOperation _ (BinaryOperator::And _) (Expression::Unary _)))))");
-    test_parse!(expr_prec_arithmetic: "- 1 / 2 + 3 - 4 * 5" => Expression::parse => "
+    test_parse!(expr_prec_arithmetic: "- 1 / 2 + 3 ** e - 4 * 5" => Expression::parse => "
       (Expression::Binary
         (BinaryOperation
           (Expression::Binary
             (BinaryOperation
               (Expression::Binary (BinaryOperation (Expression::Unary _) (BinaryOperator::Divide _) _))
               (BinaryOperator::Add _)
-              _))
+              (Expression::Binary (BinaryOperation _ (BinaryOperator::Power _) _))))
           (BinaryOperator::Subtract _)
           (Expression::Binary
             (BinaryOperation
               _
               (BinaryOperator::Multiply _)
               _))))");
+    test_parse!(expr_prec_factor: "1 / 2 % 3 // 4 * 5" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Binary
+                    (BinaryOperation
+                      _
+                      (BinaryOperator::Divide _)
+                      _))
+                  (BinaryOperator::Remainder _)
+                  _))
+              (BinaryOperator::IntDivide _)
+              _))
+          (BinaryOperator::Multiply _)
+          _))");
     test_parse!(expr_prec_bitwise: "~x & y <~ 4 | x ^ y ~> 3" => Expression::parse => "
       (Expression::Binary
         (BinaryOperation
