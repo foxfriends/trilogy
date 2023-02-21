@@ -186,7 +186,7 @@ impl Expression {
             OpBang if precedence < Precedence::Call && !is_spaced => Ok(Ok(Self::Call(Box::new(
                 CallExpression::parse(parser, lhs)?,
             )))),
-            OpComma if precedence < Precedence::Sequence && context == Context::Default => {
+            OpComma if precedence <= Precedence::Sequence && context == Context::Default => {
                 Self::binary(parser, lhs)
             }
             // A function application never spans across two lines. Furthermore,
@@ -621,4 +621,17 @@ mod test {
         (Application
           (Expression::Reference _)
           (Expression::Reference _)))");
+    test_parse!(expr_let_seq: "b * 2, let a = b, a * 2, b * 2" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary _)
+          (BinaryOperator::Sequence _)
+          (Expression::Let
+            (LetExpression
+              (Query::Direct _)
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Binary _)
+                  (BinaryOperator::Sequence _)
+                  (Expression::Binary _)))))))");
 }

@@ -16,7 +16,7 @@ impl LetExpression {
         parser
             .expect(OpComma)
             .map_err(|token| parser.expected(token, "expected `,` to follow `let` expression"))?;
-        let body = Expression::parse_precedence(parser, Precedence::Continuation)?;
+        let body = Expression::parse_precedence(parser, Precedence::Sequence)?;
         Ok(Self { start, query, body })
     }
 }
