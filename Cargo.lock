@@ -450,6 +450,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "trilogy-resolver"
+version = "0.1.0"
+
+[[package]]
 name = "trilogy-scanner"
 version = "0.1.0"
 dependencies = [
