@@ -1,15 +1,15 @@
-use crate::syntax::{Document, SyntaxError};
+use crate::syntax::{Amble, SyntaxError};
 
 #[derive(Clone, Debug)]
-pub struct Parse {
-    pub(crate) ast: Document,
+pub struct Parse<T> {
+    pub(crate) ast: Amble<T>,
     pub(crate) warnings: Vec<SyntaxError>,
     pub(crate) errors: Vec<SyntaxError>,
 }
 
-impl Parse {
-    pub fn ast(&self) -> &Document {
-        &self.ast
+impl<T> Parse<T> {
+    pub fn ast(&self) -> &T {
+        &self.ast.content
     }
 
     pub fn has_errors(&self) -> bool {

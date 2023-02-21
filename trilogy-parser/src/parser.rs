@@ -1,4 +1,4 @@
-use crate::syntax::{Document, SyntaxError};
+use crate::syntax::{Amble, Document, SyntaxError};
 use crate::{Parse, Spanned, TokenPattern};
 use peekmore::{PeekMore, PeekMoreIterator};
 use trilogy_scanner::{Scanner, Token, TokenType};
@@ -25,8 +25,8 @@ impl<'src> Parser<'src> {
         }
     }
 
-    pub fn parse(mut self) -> Parse {
-        let ast = Document::parse(&mut self);
+    pub fn parse(mut self) -> Parse<Document> {
+        let ast = Amble::<Document>::parse(&mut self);
         Parse {
             ast,
             warnings: self.warnings,

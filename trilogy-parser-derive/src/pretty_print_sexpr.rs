@@ -6,6 +6,8 @@ use syn::{
 
 pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
     let name = &ast.ident;
+    let generics = &ast.generics;
+    let generic_params = ast.generics.params.iter();
     match &ast.data {
         Data::Struct(DataStruct { fields, .. }) => {
             let fields: Vec<_> = match fields {
@@ -25,7 +27,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
             };
             let name_str = format!("{name}");
             quote! {
-                impl<'a> crate::PrettyPrintSExpr<'a> for #name {
+                impl<'a, #(#generic_params: crate::PrettyPrintSExpr<'a>, )*> crate::PrettyPrintSExpr<'a> for #name #generics {
                     fn pretty_print_sexpr(&self, printer: &'a crate::PrettyPrinter) -> crate::PrettyPrinted<'a> {
                         use pretty::DocAllocator;
                         let doc = printer.text(#name_str);
@@ -79,7 +81,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
                 })
                 .collect();
             quote! {
-                impl<'a> crate::PrettyPrintSExpr<'a> for #name {
+                impl<'a, #(#generic_params: crate::PrettyPrintSExpr<'a>, )*> crate::PrettyPrintSExpr<'a> for #name #generics {
                     fn pretty_print_sexpr(&self, printer: &'a crate::PrettyPrinter) -> crate::PrettyPrinted<'a> {
                         use pretty::DocAllocator;
                         match self {

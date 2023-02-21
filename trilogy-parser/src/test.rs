@@ -74,7 +74,7 @@ pub(crate) fn normalize_sexpr(expr: &str) -> String {
 
 #[macro_export]
 macro_rules! test_parse {
-    ($name:ident : $src:literal => $path:path => $sexp:literal) => { test_parse!($name : $src |parser| $path(&mut parser) => $sexp); };
+    ($name:ident : $src:literal => $path:path => $sexp:literal) => { test_parse!($name : $src |parser| $path(&mut parser).unwrap() => $sexp); };
 
     ($name:ident : $src:literal |$parser:ident| $parse:expr => $sexp:literal) => {
         #[test]
@@ -84,7 +84,7 @@ macro_rules! test_parse {
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = Parser::new(scanner);
             $parser.expect(StartOfFile).unwrap();
-            let parse = $parse.unwrap();
+            let parse = $parse;
             let mut allocator = pretty::RcAllocator;
             let sexpr = format!("{}", parse.pretty_print_sexpr(&mut allocator).pretty(100));
             let parsed = crate::test::normalize_sexpr(&sexpr);

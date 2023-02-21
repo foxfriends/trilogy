@@ -4,6 +4,13 @@ use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUn
 
 pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
     let name = &ast.ident;
+    let generics = &ast.generics;
+    let generic_params = if ast.generics.lt_token.is_some() {
+        let params = ast.generics.params.iter();
+        quote! { <#(#params: crate::Spanned),*> }
+    } else {
+        quote!()
+    };
     match &ast.data {
         Data::Struct(DataStruct { fields, .. }) => {
             let include: Vec<_> = match fields {
@@ -41,7 +48,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
                 Fields::Unit => unimplemented!("unit structs are not used"),
             };
             quote! {
-                impl crate::Spanned for #name {
+                impl #generic_params crate::Spanned for #name #generics {
                     fn span(&self) -> source_span::Span {
                         #(#include)*
                         span
@@ -108,7 +115,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
                 })
                 .collect();
             quote! {
-                impl crate::Spanned for #name {
+                impl #generic_params crate::Spanned for #name #generics {
                     fn span(&self) -> source_span::Span {
                         match self {
                             #(#variants)*
