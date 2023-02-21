@@ -14,17 +14,12 @@ impl ReturnStatement {
         let start = parser
             .expect(TokenType::KwReturn)
             .expect("Caller should have found this");
-        if parser.check(TokenType::OpSemi).is_ok() || parser.is_line_start {
-            return Ok(Self {
-                start,
-                expression: None,
-            });
-        }
-        let expression = Expression::parse(parser)?;
-        Ok(Self {
-            start,
-            expression: Some(expression),
-        })
+        let expression = if parser.check(Expression::PREFIX).is_ok() && !parser.is_line_start {
+            Some(Expression::parse(parser)?)
+        } else {
+            None
+        };
+        Ok(Self { start, expression })
     }
 }
 
