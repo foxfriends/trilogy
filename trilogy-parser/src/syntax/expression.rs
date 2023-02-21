@@ -585,4 +585,36 @@ mod test {
                       (Expression::Number _)))
                   (BinaryOperator::Cons _)
                   (Expression::String _)))))))");
+
+    test_parse!(expr_prec_call: "a + b!() + c!()" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Reference _)
+              (BinaryOperator::Add _)
+              (Expression::Call _)))
+          (BinaryOperator::Add _)
+          (Expression::Call _)))");
+
+    test_parse!(expr_prec_access: "a.1!() + b.'hello 3" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Call
+            (CallExpression
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Reference _)
+                  (BinaryOperator::Access _)
+                  (Expression::Number _)))
+              []))
+          (BinaryOperator::Add _)
+          (Expression::Application
+            (Application
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Reference _)
+                  (BinaryOperator::Access _)
+                  (Expression::Atom _)))
+              (Expression::Number _)))))");
 }
