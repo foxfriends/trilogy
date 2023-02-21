@@ -13,3 +13,11 @@ impl EndExpression {
         Ok(Self { token })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(endexpr_empty: "end" => EndExpression::parse => "(EndExpression)");
+    test_parse_error!(endexpr_value: "end unit" => EndExpression::parse);
+}

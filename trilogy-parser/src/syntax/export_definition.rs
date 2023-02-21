@@ -32,3 +32,13 @@ impl ExportDefinition {
         Ok(Self { start, names })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(export_single: "export x" => ExportDefinition::parse => "(ExportDefinition [_])");
+    test_parse!(export_many: "export x, y, z" => ExportDefinition::parse => "(ExportDefinition [_ _ _])");
+    test_parse_error!(export_not_ident: "export x y" => ExportDefinition::parse);
+    test_parse_error!(export_none: "export" => ExportDefinition::parse);
+}

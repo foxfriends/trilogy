@@ -21,7 +21,7 @@ impl ElseHandler {
             .expect("Caller should have found this");
 
         let identifier = if parser.check(TokenType::Identifier).is_ok() {
-            Some(Identifier::parse(parser)?)
+            Some(Identifier::parse(parser).unwrap())
         } else {
             None
         };
@@ -49,4 +49,19 @@ impl Spanned for ElseHandler {
             Some(body) => self.start.span.union(body.span()),
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(elsehandler_yield: "else yield" => ElseHandler::parse => "(ElseHandler () (HandlerStrategy::Yield _) ())");
+    test_parse!(elsehandler_resume_without_id: "else resume 3" => ElseHandler::parse => "(ElseHandler () (HandlerStrategy::Resume _) (HandlerBody::Expression _))");
+    test_parse!(elsehandler_resume_with_id: "else x resume x" => ElseHandler::parse => "(ElseHandler (Identifier) (HandlerStrategy::Resume _) (HandlerBody::Expression _))");
+    test_parse!(elsehandler_cancel_without_id: "else cancel 3" => ElseHandler::parse => "(ElseHandler () (HandlerStrategy::Cancel _) (HandlerBody::Expression _))");
+    test_parse!(elsehandler_cancel_with_id: "else x cancel x" => ElseHandler::parse => "(ElseHandler (Identifier) (HandlerStrategy::Cancel _) (HandlerBody::Expression _))");
+    test_parse!(elsehandler_invert_without_id: "else invert 3" => ElseHandler::parse => "(ElseHandler () (HandlerStrategy::Invert _) (HandlerBody::Expression _))");
+    test_parse!(elsehandler_invert_with_id: "else x invert x" => ElseHandler::parse => "(ElseHandler (Identifier) (HandlerStrategy::Invert _) (HandlerBody::Expression _))");
+    test_parse_error!(elsehandler_invalid_body: "else invert { exit }" => ElseHandler::parse);
+    test_parse_error!(elsehandler_not_identifier: "else (x) invert { exit }" => ElseHandler::parse);
 }

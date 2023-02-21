@@ -17,3 +17,12 @@ impl ExitStatement {
         Ok(Self { start, expression })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(exitstmt_unit: "exit unit" => ExitStatement::parse => "(ExitStatement _)");
+    test_parse!(exitstmt_value: "exit true" => ExitStatement::parse => "(ExitStatement _)");
+    test_parse_error!(exitstmt_empty: "exit" => ExitStatement::parse);
+}

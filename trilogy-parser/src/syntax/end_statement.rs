@@ -15,3 +15,11 @@ impl EndStatement {
         Ok(Self { token })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(endstmt_empty: "end" => EndStatement::parse => "(EndStatement)");
+    test_parse_error!(endstmt_value: "end unit" => EndStatement::parse);
+}
