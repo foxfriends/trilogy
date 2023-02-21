@@ -81,7 +81,7 @@ enum Context {
 }
 
 impl Expression {
-    pub(crate) const PREFIX: [TokenType; 33] = [
+    pub(crate) const PREFIX: [TokenType; 34] = [
         Numeric,
         String,
         Bits,
@@ -98,6 +98,7 @@ impl Expression {
         OpTilde,
         KwYield,
         KwIf,
+        KwIs,
         KwMatch,
         KwEnd,
         KwExit,
