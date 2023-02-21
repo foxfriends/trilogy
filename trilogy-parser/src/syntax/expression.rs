@@ -307,6 +307,7 @@ impl Expression {
                 Ok(module) => Ok(Self::Module(Box::new(module))),
                 Err(path) => Ok(Self::Path(Box::new(path))),
             },
+            KwIs => Ok(Self::Is(Box::new(IsExpression::parse(parser)?))),
             _ => {
                 let error = SyntaxError::new(token.span, "unexpected token in expression");
                 parser.error(error.clone());
@@ -543,4 +544,21 @@ mod test {
           (Expression::Reference _)
           (BinaryOperator::RPipe _)
           (Expression::Reference _)))");
+
+    test_parse!(expr_is: "true && is check(y) and also(z) && false" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Boolean _)
+              (BinaryOperator::And _)
+              (Expression::Is _)))
+          (BinaryOperator::And _)
+          (Expression::Boolean _)))");
+    test_parse!(expr_is_prec: "false || is x = y && z" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Boolean _)
+          (BinaryOperator::Or _)
+          (Expression::Is _)))");
 }
