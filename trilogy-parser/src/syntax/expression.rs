@@ -562,4 +562,27 @@ mod test {
           (Expression::Boolean _)
           (BinaryOperator::Or _)
           (Expression::Is _)))");
+
+    test_parse!(expr_prec_glue_cons: "\"hello\" : \"hello\" <> \"world\" : 3 + 3 : \"world\"" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::String _)
+          (BinaryOperator::Cons _)
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::String _)
+                  (BinaryOperator::Glue _)
+                  (Expression::String _)))
+              (BinaryOperator::Cons _)
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Binary
+                    (BinaryOperation
+                      (Expression::Number _)
+                      (BinaryOperator::Add _)
+                      (Expression::Number _)))
+                  (BinaryOperator::Cons _)
+                  (Expression::String _)))))))");
 }
