@@ -50,8 +50,8 @@ pub(crate) enum Precedence {
     None,
     Sequence,
     Continuation,
-    RPipe,
     Pipe,
+    RPipe,
     Or,
     And,
     Equality,
@@ -65,8 +65,8 @@ pub(crate) enum Precedence {
     Term,
     Factor,
     Exponent,
-    RCompose,
     Compose,
+    RCompose,
     Path,
     Application,
     Unary,
@@ -178,10 +178,10 @@ impl Expression {
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
             OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
             OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
-            OpLtLt if precedence < Precedence::Compose => Self::binary(parser, lhs),
-            OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
+            OpGtGt if precedence < Precedence::Compose => Self::binary(parser, lhs),
+            OpLtLt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
-            OpLtPipe if precedence <= Precedence::RPipe => Self::binary(parser, lhs),
+            OpLtPipe if precedence < Precedence::RPipe => Self::binary(parser, lhs),
             OpGlue if precedence < Precedence::Glue => Self::binary(parser, lhs),
             OpBang if precedence < Precedence::Call && !is_spaced => Ok(Ok(Self::Call(Box::new(
                 CallExpression::parse(parser, lhs)?,
@@ -415,4 +415,132 @@ impl Expression {
             _ => false,
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(expr_prec_boolean: "!true && false || true && !false" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary (BinaryOperation (Expression::Unary _) (BinaryOperator::And _) _))
+          (BinaryOperator::Or _)
+          (Expression::Binary (BinaryOperation _ (BinaryOperator::And _) (Expression::Unary _)))))");
+    test_parse!(expr_prec_arithmetic: "- 1 / 2 + 3 - 4 * 5" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Binary (BinaryOperation (Expression::Unary _) (BinaryOperator::Divide _) _))
+              (BinaryOperator::Add _)
+              _))
+          (BinaryOperator::Subtract _)
+          (Expression::Binary
+            (BinaryOperation
+              _
+              (BinaryOperator::Multiply _)
+              _))))");
+    test_parse!(expr_prec_bitwise: "~x & y <~ 4 | x ^ y ~> 3" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Binary (BinaryOperation (Expression::Unary _) (BinaryOperator::BitwiseAnd _) _))
+              (BinaryOperator::LeftShift _)
+              _))
+          (BinaryOperator::BitwiseOr _)
+          (Expression::Binary
+            (BinaryOperation
+              _
+              (BinaryOperator::BitwiseXor _)
+              (Expression::Binary
+                (BinaryOperation
+                  _
+                  (BinaryOperator::RightShift _)
+                  _))))))");
+    test_parse!(expr_prec_app_pipe: "f x |> map (fn y. 2 * y) |> print" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Application _)
+              (BinaryOperator::Pipe _)
+              (Expression::Application _)))
+          (BinaryOperator::Pipe _)
+          (Expression::Reference _)))");
+    test_parse!(expr_prec_pipe_rpipe: "x |> f <| g <| y |> h" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Reference _)
+              (BinaryOperator::Pipe _)
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Binary
+                    (BinaryOperation
+                      (Expression::Reference _)
+                      (BinaryOperator::RPipe _)
+                      (Expression::Reference _)))
+                  (BinaryOperator::RPipe _)
+                  (Expression::Reference _)))))
+          (BinaryOperator::Pipe _)
+          (Expression::Reference _)))");
+    test_parse!(expr_prec_compose_rcompose: "x >> f << g << y >> h" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Reference _)
+              (BinaryOperator::Compose _)
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Binary
+                    (BinaryOperation
+                      (Expression::Reference _)
+                      (BinaryOperator::RCompose _)
+                      (Expression::Reference _)))
+                  (BinaryOperator::RCompose _)
+                  (Expression::Reference _)))))
+          (BinaryOperator::Compose _)
+          (Expression::Reference _)))");
+    test_parse!(expr_prec_application: "x - f y + f y <| -z" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Binary
+                (BinaryOperation
+                  (Expression::Reference _)
+                  (BinaryOperator::Subtract _)
+                  (Expression::Application _)))
+              (BinaryOperator::Add _)
+              (Expression::Application _)))
+          (BinaryOperator::RPipe _)
+          (Expression::Unary _)))");
+    test_parse!(expr_prec_if_else: "if true then 5 + 6 else 7 + 8" => Expression::parse => "
+      (Expression::IfElse
+        (IfElseExpression
+          (Expression::Boolean _)
+          (Expression::Binary _)
+          (Expression::Binary _)))");
+
+    test_parse_error!(expr_eq_without_parens: "x == y == z" => Expression::parse => "equality operators cannot be chained, use parentheses to disambiguate");
+    test_parse_error!(expr_cmp_without_parens: "x <= y <= z" => Expression::parse => "comparison operators cannot be chained, use parentheses to disambiguate");
+    test_parse!(expr_prec_cmp_eq: "x < y == y > z" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Binary _)
+          (BinaryOperator::StructuralEquality _)
+          (Expression::Binary _)))");
+
+    test_parse_error!(expr_multiline_application: "f\nx" => Expression::parse);
+    test_parse_error!(expr_application_no_space: "f(x)" => Expression::parse);
+    test_parse!(expr_multiline_operators: "f\n<| x" => Expression::parse => "
+      (Expression::Binary
+        (BinaryOperation
+          (Expression::Reference _)
+          (BinaryOperator::RPipe _)
+          (Expression::Reference _)))");
 }
