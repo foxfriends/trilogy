@@ -42,7 +42,6 @@ pub enum Expression {
     Handled(Box<HandledExpression>),
     Parenthesized(Box<ParenthesizedExpression>),
     Module(Box<ModulePath>),
-    Path(Box<Path>),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -306,7 +305,7 @@ impl Expression {
             },
             OpAt => match ModulePath::parse_or_path(parser)? {
                 Ok(module) => Ok(Self::Module(Box::new(module))),
-                Err(path) => Ok(Self::Path(Box::new(path))),
+                Err(path) => Ok(Self::Reference(Box::new(path))),
             },
             KwIs => Ok(Self::Is(Box::new(IsExpression::parse(parser)?))),
             _ => {
@@ -617,4 +616,9 @@ mod test {
                   (BinaryOperator::Access _)
                   (Expression::Atom _)))
               (Expression::Number _)))))");
+    test_parse!(expr_prec_paths: "@a b::@c d::e f" => Expression::parse => "
+      (Expression::Application
+        (Application
+          (Expression::Reference _)
+          (Expression::Reference _)))");
 }
