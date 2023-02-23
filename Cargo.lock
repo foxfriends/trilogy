@@ -1063,6 +1063,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "trilogy-ir"
+version = "0.1.0"
+dependencies = [
+ "source-span",
+ "trilogy-loader",
+ "trilogy-parser",
+]
+
+[[package]]
 name = "trilogy-loader"
 version = "0.1.0"
 dependencies = [
