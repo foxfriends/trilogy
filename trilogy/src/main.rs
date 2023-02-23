@@ -57,7 +57,7 @@ fn main() -> std::io::Result<()> {
         Command::Run { file } => {
             let loader = Loader::new(file);
             let binder = loader.load().unwrap();
-            for (_, module) in binder.modules() {
+            for module in binder.modules().values() {
                 println!("{:#?}", module);
             }
         }

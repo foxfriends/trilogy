@@ -28,8 +28,8 @@ impl AsRef<Url> for Location {
     }
 }
 
-impl Into<Url> for Location {
-    fn into(self) -> Url {
-        self.0
+impl From<Location> for Url {
+    fn from(location: Location) -> Url {
+        location.0
     }
 }

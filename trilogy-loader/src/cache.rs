@@ -57,7 +57,7 @@ impl Cache for FileSystemCache {
     }
 
     fn save(&self, location: &Location, source: &str) -> Result<(), Self::Error> {
-        fs::write(&self.cache_path(location), &source)
+        fs::write(self.cache_path(location), source)
     }
 }
 

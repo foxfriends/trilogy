@@ -17,13 +17,13 @@ impl Module {
         Self { location, contents }
     }
 
-    pub(crate) fn imported_modules<'a>(&'a self) -> impl Iterator<Item = Location> + 'a {
+    pub(crate) fn imported_modules(&self) -> impl Iterator<Item = Location> + '_ {
         fn module_imported_modules(module_def: &ModuleDefinition) -> Vec<&str> {
             module_def
                 .definitions
                 .iter()
                 .flat_map(|def| match &def.item {
-                    DefinitionItem::Module(module_def) => module_imported_modules(&module_def),
+                    DefinitionItem::Module(module_def) => module_imported_modules(module_def),
                     DefinitionItem::ExternalModule(module_def) => vec![module_def.locator.as_ref()],
                     _ => vec![],
                 })
@@ -35,7 +35,7 @@ impl Module {
             .definitions
             .iter()
             .flat_map(|def| match &def.item {
-                DefinitionItem::Module(module_def) => module_imported_modules(&module_def),
+                DefinitionItem::Module(module_def) => module_imported_modules(module_def),
                 DefinitionItem::ExternalModule(module_def) => vec![module_def.locator.as_ref()],
                 _ => vec![],
             })

@@ -51,15 +51,15 @@ where
     }
 
     fn load_source(&mut self, location: &Location) -> Result<String, crate::Error> {
-        if self.cache.has(&location) {
-            return Ok(self.cache.load(&location).map_err(Error::cache)?);
+        if self.cache.has(location) {
+            return self.cache.load(location).map_err(Error::cache);
         }
         let url = location.as_ref();
         match url.scheme() {
             "file" => Ok(fs::read_to_string(url.path()).map_err(Error::inaccessible)?),
             "http" | "https" => {
                 let source = self.download(url)?;
-                self.cache.save(&location, &source).map_err(Error::cache)?;
+                self.cache.save(location, &source).map_err(Error::cache)?;
                 Ok(source)
             }
             _ => Err(Error::from(ErrorKind::InvalidLocation)),
@@ -71,7 +71,7 @@ where
         self.request(location);
         while let Some(location) = self.module_queue.pop_front() {
             let url = location.as_ref();
-            if self.modules.contains_key(&url) {
+            if self.modules.contains_key(url) {
                 continue;
             };
             let source = self.load_source(&location)?;
