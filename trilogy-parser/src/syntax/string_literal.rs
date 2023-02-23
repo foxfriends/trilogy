@@ -15,3 +15,9 @@ impl StringLiteral {
         Ok(Self { token })
     }
 }
+
+impl AsRef<str> for StringLiteral {
+    fn as_ref(&self) -> &str {
+        self.token.value.as_ref().unwrap().as_str().unwrap()
+    }
+}

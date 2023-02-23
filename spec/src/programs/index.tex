@@ -94,12 +94,13 @@ absolute paths, or absolute URLs. Given that, there are two phases to the module
 resolution algorithm: first relative and absolute paths are resolved to absolute
 URLs, then those absolute URLs are resolved to module.
 
-An absolute path begins with a \texttt{/} character, and is resolved to an absolute
+An absolute path begins with a \texttt{/} character, or the sequence \texttt{file:///}
+indicating an absolute URL with its scheme included, and is resolved to an absolute
 URL as follows:
 
 \begin{enumerate}
     \item The schema and authority of URL to the current \Trilogy{} file is prepended
-    to the path.
+    to the path (replacing any existing scheme if present).
     \begin{itemize}
         \item For files on the local system, this would be \texttt{file://}.
         \item For files located at a remote URL, these values are taken from that URL.

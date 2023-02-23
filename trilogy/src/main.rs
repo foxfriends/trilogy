@@ -1,6 +1,7 @@
 use clap::Parser as _;
 use pretty::RcAllocator;
 use std::path::PathBuf;
+use trilogy_loader::Loader;
 use trilogy_parser::{Parser, PrettyPrint};
 use trilogy_scanner::Scanner;
 
@@ -54,11 +55,11 @@ fn main() -> std::io::Result<()> {
 
     match args.command {
         Command::Run { file } => {
-            let contents = std::fs::read_to_string(file)?;
-            let scanner = Scanner::new(&contents);
-            let parser = Parser::new(scanner);
-            let parse = parser.parse();
-            println!("{:#?}", parse.ast());
+            let loader = Loader::new(file);
+            let binder = loader.load().unwrap();
+            for (_, module) in binder.modules() {
+                println!("{:#?}", module);
+            }
         }
         Command::Fmt { files, write } => {
             if files.is_empty() {
