@@ -1,6 +1,5 @@
-use std::ops::{Add, Div, Mul, Rem, Sub};
-
 use super::{Array, Atom, Bits, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple};
+use std::ops::{Add, Div, Mul, Rem, Sub};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum Value {
@@ -18,12 +17,15 @@ pub enum Value {
     Record(Record),
 
     // TODO: these will require some thought
-    Iterator,
     Function,
     Procedure,
     Rule,
     Module,
     Continuation,
+
+    // Due to unification, any value may or may not be fully instantiated.
+    // Patterns at runtime are just values with holes.
+    Hole,
 }
 
 impl ReferentialEq for Value {

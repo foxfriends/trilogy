@@ -72,26 +72,44 @@ pub struct Test {
 
 pub struct Rename {
     span: Span,
-    item: Evaluation,
+    item: Pattern,
     is_exported: bool,
 }
 
-pub struct Code {}
-
-pub enum Step {
-    Unify(Box<Unification>),
-    Lookup(Box<Lookup>),
-    Eval(Box<Evaluation>),
+pub enum Code {
+    Unif(Unification),
+    Eval(Evaluation),
+    Flow(ControlFlow),
 }
 
 pub struct Unification {
     span: Span,
-}
-
-pub struct Lookup {
-    span: Span,
+    pattern: Pattern,
 }
 
 pub struct Evaluation {
     span: Span,
+    expression: Expression,
 }
+
+pub struct ConstantEvaluation {
+    span: Span,
+    expression: Expression,
+}
+
+pub enum ControlFlow {
+    Block(Vec<Code>),
+    // `for` and `while`
+    Loop(Vec<Branch>),
+    // `if` and `match
+    Branch(Vec<Branch>),
+}
+
+pub struct Branch {
+    condition: Vec<Code>,
+    body: Vec<Code>,
+}
+
+// TODO: IR version of these big boys.
+pub enum Expression {}
+pub enum Pattern {}
