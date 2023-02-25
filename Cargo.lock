@@ -1063,7 +1063,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "trilogy-ir"
+name = "trilogy-lexical-ir"
 version = "0.1.0"
 dependencies = [
  "source-span",
