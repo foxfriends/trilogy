@@ -1,6 +1,9 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::{Token, TokenType};
+use trilogy_scanner::{
+    Token,
+    TokenType::{self, *},
+};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Pattern {
@@ -37,12 +40,16 @@ pub(crate) enum Precedence {
 }
 
 impl Pattern {
+    pub(crate) const PREFIX: [TokenType; 17] = [
+        Numeric, String, Bits, KwTrue, KwFalse, Atom, Character, KwUnit, OParen, OpMinus, OpCaret,
+        OBrack, OBrackPipe, OBracePipe, Discard, Identifier, KwMut,
+    ];
+
     fn parse_follow(
         parser: &mut Parser,
         precedence: Precedence,
         lhs: Pattern,
     ) -> SyntaxResult<Result<Self, Self>> {
-        use TokenType::*;
         let token = parser.peek();
         match token.token_type {
             KwAnd if precedence < Precedence::Conjunction => Ok(Ok(Self::Conjunction(Box::new(
@@ -62,7 +69,6 @@ impl Pattern {
     }
 
     fn parse_prefix(parser: &mut Parser) -> SyntaxResult<Self> {
-        use TokenType::*;
         let token = parser.peek();
         match token.token_type {
             Numeric => Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?))),

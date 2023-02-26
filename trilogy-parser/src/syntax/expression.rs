@@ -91,7 +91,7 @@ impl Expression {
         KwUnit,
         OBrack,
         OBrackPipe,
-        OBrace,
+        OBracePipe,
         DollarOParen,
         OpBang,
         OpTilde,
@@ -309,7 +309,10 @@ impl Expression {
             },
             KwIs => Ok(Self::Is(Box::new(IsExpression::parse(parser)?))),
             _ => {
-                let error = SyntaxError::new(token.span, "unexpected token in expression");
+                let error = SyntaxError::new(
+                    token.span,
+                    format!("unexpected token {:?} in expression", token.token_type),
+                );
                 parser.error(error.clone());
                 Err(error)
             }
