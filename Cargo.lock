@@ -1066,6 +1066,8 @@ dependencies = [
 name = "trilogy-lexical-ir"
 version = "0.1.0"
 dependencies = [
+ "bitvec",
+ "num",
  "source-span",
  "trilogy-loader",
  "trilogy-parser",
