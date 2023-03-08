@@ -6,10 +6,17 @@ use std::sync::Arc;
 pub struct Identifier {
     definition: Option<Span>,
     name: Option<String>,
+    is_mutable: bool,
 }
 
 #[derive(Clone, Debug)]
 pub struct Id(Arc<Identifier>);
+
+impl Id {
+    fn is_mutable(&self) -> bool {
+        self.0.is_mutable
+    }
+}
 
 impl Eq for Id {}
 impl PartialEq for Id {

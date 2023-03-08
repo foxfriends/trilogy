@@ -3,8 +3,8 @@ use source_span::Span;
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum ExplicitStrategy {
-    In,
     Equal,
+    In,
 }
 
 #[derive(Clone, Debug)]
