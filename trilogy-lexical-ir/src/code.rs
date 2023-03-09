@@ -2,12 +2,8 @@ use super::*;
 
 #[derive(Clone, Debug)]
 pub enum Code {
-    Assignment(Box<Assignment>),
-    Explicit(Box<Explicit>),
-    Implicit(Box<Implicit>),
+    Modification(Box<Assignment>),
     Evaluation(Box<Evaluation>),
-    Loop(Vec<Branch>),
-    Branch(Vec<Branch>),
-    Handle(Vec<Branch>),
+    Direction(Vec<Direction>),
     Scope(Box<Scope>),
 }

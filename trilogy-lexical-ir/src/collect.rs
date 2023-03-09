@@ -5,16 +5,15 @@ use source_span::Span;
 pub struct Collect {
     span: Span,
     strategy: CollectStrategy,
-    query: Vec<Code>,
     body: Vec<Code>,
+    direction: Direction,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum CollectStrategy {
-    Scalar,
-    Array,
+    Void,   // For loop
+    Scalar, // Existence
+    Array,  // Comprehension
     Record,
     Set,
-    List,
-    Sequence,
 }

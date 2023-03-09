@@ -12,6 +12,7 @@ pub enum Operation {
     Character(char),
     Atom(String),
     Wildcard,
+    Mapping(Box<BinaryOperation>),
     Add(Box<BinaryOperation>),
     Subtract(Box<BinaryOperation>),
     Multiply(Box<BinaryOperation>),
@@ -35,6 +36,8 @@ pub enum Operation {
     Compose(Box<BinaryOperation>),
     Apply(Box<BinaryOperation>),
     Call(Box<Call>),
+    Select(Vec<BinaryOperation>),
+    Branch(Box<Direction>),
     Collect(Box<Collect>),
 }
 

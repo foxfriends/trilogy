@@ -1,13 +1,12 @@
 #![allow(dead_code)] // this is all just planning anyway
 
 mod assignment;
-mod branch;
 mod code;
 mod collect;
+mod direction;
 mod evaluation;
 mod explicit;
 mod id;
-mod implicit;
 mod item;
 mod item_key;
 mod lvalue;
@@ -19,13 +18,12 @@ mod scope;
 mod test;
 
 pub use assignment::Assignment;
-pub use branch::Branch;
 pub use code::Code;
 pub use collect::Collect;
+pub use direction::Direction;
 pub use evaluation::Evaluation;
 pub use explicit::Explicit;
 pub use id::Id;
-pub use implicit::Implicit;
 pub use item::Item;
 pub use item_key::{ItemClass, ItemKey};
 pub use lvalue::LValue;
