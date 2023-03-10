@@ -23,6 +23,18 @@ impl Identifier {
     }
 }
 
+impl AsRef<str> for Identifier {
+    fn as_ref(&self) -> &str {
+        self.token.value.as_ref().unwrap().as_str().unwrap()
+    }
+}
+
+impl Into<String> for Identifier {
+    fn into(self) -> String {
+        self.token.value.unwrap().try_into().unwrap()
+    }
+}
+
 impl TryFrom<Pattern> for Identifier {
     type Error = Pattern;
 

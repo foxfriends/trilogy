@@ -32,6 +32,17 @@ impl From<String> for TokenValue {
     }
 }
 
+impl TryFrom<TokenValue> for String {
+    type Error = ();
+
+    fn try_from(value: TokenValue) -> Result<Self, ()> {
+        match value {
+            TokenValue::String(value) => Ok(value),
+            _ => Err(()),
+        }
+    }
+}
+
 impl From<char> for TokenValue {
     fn from(value: char) -> Self {
         Self::Char(value)

@@ -1,7 +1,10 @@
 use source_span::Span;
 
 #[derive(Clone, Debug)]
-pub struct LexicalError {
-    span: Span,
-    message: String,
+pub enum LexicalError {
+    ExportedMultipleTimes {
+        original: Span,
+        duplicate: Span,
+        name: String,
+    },
 }
