@@ -5,4 +5,5 @@ use source_span::Span;
 pub struct Scope {
     pub span: Span,
     pub code: Vec<Code>,
+    pub handler: Vec<Code>,
 }

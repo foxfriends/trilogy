@@ -20,6 +20,14 @@ pub enum Value {
     Character(char),
     Atom(String),
     Wildcard,
+    It,
+    Yield(Box<Evaluation>),
+    Resume(Box<Evaluation>),
+    Cancel(Box<Evaluation>),
+    Break(Box<Evaluation>),
+    Continue(Box<Evaluation>),
+    Return(Box<Evaluation>),
+    Exit(Box<Evaluation>),
     Mapping(Box<BinaryOperation>),
     Add(Box<BinaryOperation>),
     Subtract(Box<BinaryOperation>),
@@ -44,6 +52,7 @@ pub enum Value {
     Compose(Box<BinaryOperation>),
     Apply(Box<BinaryOperation>),
     Call(Box<Call>),
+    Cond(Vec<Cond>),
     Branch(Box<Direction>),
     Collect(Box<Collect>),
 }
@@ -58,4 +67,10 @@ pub struct BinaryOperation {
 pub struct Call {
     pub func: Evaluation,
     pub args: Vec<Evaluation>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Cond {
+    pub cond: Vec<Code>,
+    pub body: Vec<Code>,
 }
