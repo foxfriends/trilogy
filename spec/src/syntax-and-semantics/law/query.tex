@@ -99,8 +99,8 @@ Meanwhile the \kw{else} keyword acts as a means of providing a true alternative.
 In contrast to \kw{or}, only one sub-query of an \kw{else} will be chosen, the
 first if it has any results, otherwise the second.
 
-The precedence of \kw{else} is the same as \kw{or}, requiring parentheses to
-disambiguate.
+The precedence of \kw{else} is the same as \kw{or}, where the two are each left
+associative.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}

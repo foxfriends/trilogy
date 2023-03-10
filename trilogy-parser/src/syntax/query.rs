@@ -7,6 +7,7 @@ pub enum Query {
     Disjunction(Box<QueryDisjunction>),
     Conjunction(Box<QueryConjunction>),
     Implication(Box<QueryImplication>),
+    Alternative(Box<QueryAlternative>),
     Direct(Box<DirectUnification>),
     Element(Box<ElementUnification>),
     Parenthesized(Box<ParenthesizedQuery>),
@@ -40,6 +41,9 @@ impl Query {
             )))),
             KwOr if precedence < Precedence::Disjunction => Ok(Ok(Self::Disjunction(Box::new(
                 QueryDisjunction::parse(parser, lhs)?,
+            )))),
+            KwElse if precedence < Precedence::Disjunction => Ok(Ok(Self::Alternative(Box::new(
+                QueryAlternative::parse(parser, lhs)?,
             )))),
             _ => Ok(Err(lhs)),
         }
