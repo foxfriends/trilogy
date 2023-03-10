@@ -27,6 +27,14 @@ logical operations.
         \bnfsp
         \bnfpn{Query}
         \bnfor
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfor
+    } \\
+    \bnfmore{
         \bnfpn{Unification}
     }
 \end{bnf*}
@@ -46,7 +54,8 @@ source code order, as if they were connected by \kw{or}.
     \BinaryInfC{$\Gamma\vdash P\ \kw{and}\ Q\Rightarrow\Sigma$}
 \end{prooftree}
 
-Conjunction is straight forward, and will be the connective used in most situations.
+Conjunction is straight forward, acting much like sequencing in other languages,
+and will likely be the connective used in most situations.
 
 \begin{center}
     \parbox[t]{0.45\linewidth}{
@@ -75,6 +84,26 @@ is equivalent to \tri{(A and B) or (C and D)}.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}
+    \LeftLabel{Alternative\textsuperscript{L}}
+    \UnaryInfC{$\Gamma\vdash P\ \kw{else}\ Q\Rightarrow\Phi$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash P : \bot$}
+    \AxiomC{$\Gamma\vdash Q\Rightarrow\Phi$}
+    \LeftLabel{Alternative\textsuperscript{R}}
+    \BinaryInfC{$\Gamma\vdash P\ \kw{else}\ Q\Rightarrow\Phi$}
+\end{prooftree}
+
+Meanwhile the \kw{else} keyword acts as a means of providing a true alternative.
+In contrast to \kw{or}, only one sub-query of an \kw{else} will be chosen, the
+first if it has any results, otherwise the second.
+
+The precedence of \kw{else} is the same as \kw{or}, requiring parentheses to
+disambiguate.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash P\Rightarrow\Phi$}
     \AxiomC{$\Phi\vdash Q\Rightarrow\Sigma$}
     \LeftLabel{Implication\textsuperscript{$\top$}}
     \BinaryInfC{$\Gamma\vdash \kw{if}\ P\ \kw{then}\ Q\Rightarrow\Sigma$}
@@ -87,10 +116,12 @@ is equivalent to \tri{(A and B) or (C and D)}.
 \end{prooftree}
 
 Implication is also a bit tricky to use correctly, particular as it is most likely
-to be used in conjunction with \kw{or} in order to set up conditional branches.
-With multiple \kw{if}s connected together with \kw{or}, all matching branches
-will be chosen, rather than the first matching branch as the \kw{if} statement
-of most languages would work.
+to be used in conjunction with \kw{or} or \kw{else} in order to set up conditional
+branches.
+
+With multiple \kw{if}s connected together with \kw{or}, all matching branches will
+be chosen, rather than the first matching branch, while with \kw{else} it works
+somewhat similarly to how you might expect in the ``regular'' way.
 
 The precedence of \kw{if} is between that of \kw{and} and \kw{or} such that
 
