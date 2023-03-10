@@ -3,10 +3,10 @@ use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Collect {
-    span: Span,
-    strategy: CollectStrategy,
-    body: Vec<Code>,
-    direction: Direction,
+    pub span: Span,
+    pub strategy: CollectStrategy,
+    pub body: Vec<Code>,
+    pub direction: Direction,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]

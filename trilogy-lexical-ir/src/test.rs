@@ -3,6 +3,6 @@ use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Test {
-    span: Span,
-    code: Code,
+    pub span: Span,
+    pub code: Code,
 }

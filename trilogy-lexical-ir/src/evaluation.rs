@@ -5,8 +5,8 @@ use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Evaluation {
-    span: Span,
-    value: Value,
+    pub span: Span,
+    pub value: Value,
 }
 
 #[derive(Clone, Debug)]
@@ -50,12 +50,12 @@ pub enum Value {
 
 #[derive(Clone, Debug)]
 pub struct BinaryOperation {
-    lhs: Evaluation,
-    rhs: Evaluation,
+    pub lhs: Evaluation,
+    pub rhs: Evaluation,
 }
 
 #[derive(Clone, Debug)]
 pub struct Call {
-    func: Evaluation,
-    args: Vec<Evaluation>,
+    pub func: Evaluation,
+    pub args: Vec<Evaluation>,
 }

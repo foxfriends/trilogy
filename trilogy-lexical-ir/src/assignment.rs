@@ -3,7 +3,7 @@ use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Assignment {
-    span: Span,
-    lvalue: LValue,
-    rvalue: Evaluation,
+    pub span: Span,
+    pub lvalue: LValue,
+    pub rvalue: Evaluation,
 }

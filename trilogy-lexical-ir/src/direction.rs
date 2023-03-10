@@ -3,8 +3,8 @@ use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Direction {
-    span: Span,
-    body: Step,
+    pub span: Span,
+    pub body: Step,
 }
 
 #[derive(Clone, Debug)]
