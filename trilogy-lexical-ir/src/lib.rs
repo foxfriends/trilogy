@@ -1,31 +1,10 @@
 #![allow(dead_code)] // this is all just planning anyway
 
-mod assignment;
-mod code;
-mod collect;
-mod direction;
-mod evaluation;
-mod id;
-mod item;
-mod item_key;
-mod lvalue;
-mod module;
-mod reference;
-mod rename;
-mod scope;
-mod test;
+mod analysis;
+mod analyzer;
+pub mod ir;
+mod lexical_error;
 
-pub use assignment::Assignment;
-pub use code::Code;
-pub use collect::Collect;
-pub use direction::{Direction, Step};
-pub use evaluation::{BinaryOperation, Call, Evaluation, Value};
-pub use id::Id;
-pub use item::Item;
-pub use item_key::{ItemClass, ItemKey};
-pub use lvalue::LValue;
-pub use module::Module;
-pub use reference::Reference;
-pub use rename::Rename;
-pub use scope::Scope;
-pub use test::Test;
+pub use analysis::Analysis;
+pub use analyzer::Analyzer;
+pub use lexical_error::LexicalError;

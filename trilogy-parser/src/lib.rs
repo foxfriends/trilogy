@@ -17,5 +17,5 @@ mod format;
 mod spanned;
 mod token_pattern;
 pub use format::{PrettyPrint, PrettyPrintSExpr, PrettyPrinted, PrettyPrinter};
-pub(crate) use spanned::Spanned;
+pub use spanned::Spanned;
 pub(crate) use token_pattern::TokenPattern;

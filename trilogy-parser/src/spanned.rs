@@ -1,7 +1,7 @@
 use source_span::Span;
 use trilogy_scanner::Token;
 
-pub(crate) trait Spanned {
+pub trait Spanned {
     fn span(&self) -> Span;
 }
 

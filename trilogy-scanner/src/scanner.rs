@@ -283,7 +283,7 @@ impl<'a> Scanner<'a> {
 
     fn fractional(&mut self) -> BigRational {
         let mut value = String::new();
-        while let Some(ch) = self.expect('0'..'9') {
+        while let Some(ch) = self.expect('0'..='9') {
             value.push(ch);
         }
         let num = BigInt::from_str_radix(&value, 10).unwrap();
@@ -402,7 +402,7 @@ impl<'a> Scanner<'a> {
             Numberlike::Bits(bits) => return Ok(BitsOrNumber::Bits(bits)),
         };
         match self.peek() {
-            Some('/') if self.predict('0'..'9') => {
+            Some('/') if self.predict('0'..='9') => {
                 self.expect('/').unwrap();
                 let first = self.consume().unwrap();
                 let denominator = self.integer(first)?;
@@ -416,7 +416,7 @@ impl<'a> Scanner<'a> {
                     denominator,
                 )))
             }
-            Some('.') if can_be_float && self.predict('0'..'9') => {
+            Some('.') if can_be_float && self.predict('0'..='9') => {
                 self.expect('.').unwrap();
                 let number = self.fractional();
                 Ok(BitsOrNumber::Number(BigRational::from(numerator) + number))
@@ -434,7 +434,7 @@ impl<'a> Scanner<'a> {
             BitsOrNumber::Bits(bits) => return Ok(BitsOrNumber::Bits(bits)),
         };
         let imaginary = match self.peek() {
-            Some('i') if self.predict('0'..'9') => {
+            Some('i') if self.predict('0'..='9') => {
                 self.consume().unwrap();
                 let first = self.consume().unwrap();
                 match self.rational_or_float_or_bits(first)? {
