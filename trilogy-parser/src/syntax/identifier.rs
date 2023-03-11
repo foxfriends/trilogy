@@ -29,9 +29,9 @@ impl AsRef<str> for Identifier {
     }
 }
 
-impl Into<String> for Identifier {
-    fn into(self) -> String {
-        self.token.value.unwrap().try_into().unwrap()
+impl From<Identifier> for String {
+    fn from(identifier: Identifier) -> String {
+        identifier.token.value.unwrap().try_into().unwrap()
     }
 }
 
