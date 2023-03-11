@@ -20,7 +20,7 @@ pub enum Id {
 }
 
 impl Id {
-    pub(crate) fn new_immutable(identifier: &Identifier) -> Self {
+    pub fn new_immutable(identifier: &Identifier) -> Self {
         Self::Id(Arc::new(Definition {
             span: identifier.span(),
             name: identifier.as_ref().to_owned(),
@@ -28,7 +28,7 @@ impl Id {
         }))
     }
 
-    pub(crate) fn new_mutable(identifier: &Identifier) -> Self {
+    pub fn new_mutable(identifier: &Identifier) -> Self {
         Self::Id(Arc::new(Definition {
             span: identifier.span(),
             name: identifier.as_ref().to_owned(),
@@ -36,25 +36,23 @@ impl Id {
         }))
     }
 
-    pub(crate) fn new_item(key: ItemKey) -> Self {
+    pub fn new_item(key: ItemKey) -> Self {
         Self::Item(key)
     }
 
-    pub(crate) fn new_closure(span: Span) -> Self {
+    pub fn new_closure(span: Span) -> Self {
         Self::Closure(Arc::new(span))
     }
 
-    pub(crate) fn name(&self) -> Option<&str> {
+    pub fn name(&self) -> Option<&str> {
         match self {
             Self::Id(def) => Some(&def.name),
             Self::Item(key) => Some(&key.name),
             _ => None,
         }
     }
-}
 
-impl Id {
-    fn is_mutable(&self) -> bool {
+    pub fn is_mutable(&self) -> bool {
         match self {
             Id::Id(ident) => ident.is_mutable,
             _ => false,

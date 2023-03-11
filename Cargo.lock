@@ -1063,13 +1063,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "trilogy-analyzer"
+version = "0.1.0"
+dependencies = [
+ "bitvec",
+ "num",
+ "source-span",
+ "trilogy-lexical-ir",
+ "trilogy-parser",
+]
+
+[[package]]
 name = "trilogy-lexical-ir"
 version = "0.1.0"
 dependencies = [
  "bitvec",
  "num",
  "source-span",
- "trilogy-loader",
  "trilogy-parser",
 ]
 
@@ -1100,14 +1110,6 @@ version = "0.1.0"
 dependencies = [
  "quote",
  "syn",
-]
-
-[[package]]
-name = "trilogy-resolver"
-version = "0.1.0"
-dependencies = [
- "trilogy-parser",
- "trilogy-scanner",
 ]
 
 [[package]]

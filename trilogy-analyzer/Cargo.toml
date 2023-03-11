@@ -1,5 +1,5 @@
 [package]
-name = "trilogy-resolver"
+name = "trilogy-analyzer"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 trilogy-parser = { path = "../trilogy-parser/" }
-trilogy-scanner = { path = "../trilogy-scanner/" }
+trilogy-lexical-ir = { path = "../trilogy-lexical-ir/" }
+source-span = "2.7.0"
+bitvec = "1.0.1"
+num = "0.4.0"

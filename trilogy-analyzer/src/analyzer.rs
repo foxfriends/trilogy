@@ -1,4 +1,3 @@
-use crate::ir::Module;
 use crate::{Analysis, LexicalError};
 use trilogy_parser::syntax::Document;
 
@@ -13,7 +12,7 @@ impl Analyzer {
     }
 
     pub fn analyze(mut self, document: Document) -> Analysis {
-        let module = Module::analyze(&mut self, document);
+        let module = crate::analyze::analyze_module(&mut self, document);
 
         Analysis {
             module,

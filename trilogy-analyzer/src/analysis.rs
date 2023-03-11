@@ -1,4 +1,5 @@
-use crate::ir::Module;
+use trilogy_lexical_ir::Module;
+
 use crate::LexicalError;
 
 #[derive(Clone, Debug)]
