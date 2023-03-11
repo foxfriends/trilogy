@@ -55,6 +55,8 @@ pub enum Value {
     Cond(Vec<Cond>),
     Branch(Box<Direction>),
     Collect(Box<Collect>),
+    Module(Box<Reference>),
+    ModuleAccess(Box<BinaryOperation>),
 }
 
 #[derive(Clone, Debug)]

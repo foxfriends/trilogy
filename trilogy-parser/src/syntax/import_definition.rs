@@ -6,7 +6,7 @@ use trilogy_scanner::{Token, TokenType};
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ImportDefinition {
     start: Token,
-    pub names: Vec<Identifier>,
+    pub names: Vec<Alias>,
     pub module: ModulePath,
 }
 
@@ -23,7 +23,7 @@ impl ImportDefinition {
             if parser.check(TokenType::KwFrom).is_ok() {
                 break;
             }
-            names.push(Identifier::parse(parser)?);
+            names.push(Alias::parse(parser)?);
             if parser.expect(TokenType::OpComma).is_ok() {
                 continue;
             }

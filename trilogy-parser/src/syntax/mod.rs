@@ -1,3 +1,4 @@
+mod alias;
 mod amble;
 mod application;
 mod array_comprehension;
@@ -108,6 +109,7 @@ mod when_handler;
 mod while_statement;
 mod yield_statement;
 
+pub use alias::Alias;
 pub(crate) use amble::Amble;
 pub use application::Application;
 pub use array_comprehension::ArrayComprehension;
