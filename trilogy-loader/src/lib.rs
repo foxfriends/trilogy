@@ -4,6 +4,7 @@ mod error;
 mod loader;
 mod location;
 mod module;
+mod wip_binder;
 
 pub use binder::Binder;
 pub use cache::Cache;

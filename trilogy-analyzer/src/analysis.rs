@@ -4,8 +4,8 @@ use crate::LexicalError;
 
 #[derive(Clone, Debug)]
 pub struct Analysis {
-    pub(crate) module: Module,
-    pub(crate) errors: Vec<LexicalError>,
+    pub module: Module,
+    pub errors: Vec<LexicalError>,
 }
 
 impl Analysis {
@@ -15,9 +15,5 @@ impl Analysis {
 
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
-    }
-
-    pub fn errors(&self) -> &[LexicalError] {
-        &self.errors
     }
 }

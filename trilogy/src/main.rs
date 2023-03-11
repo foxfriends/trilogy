@@ -50,6 +50,12 @@ enum Command {
     Dev(dev::Command),
 }
 
+fn print_errors(errors: impl IntoIterator<Item = impl std::fmt::Debug>) {
+    for error in errors {
+        eprintln!("{error:#?}");
+    }
+}
+
 fn main() -> std::io::Result<()> {
     let args = Cli::parse();
 
@@ -57,8 +63,11 @@ fn main() -> std::io::Result<()> {
         Command::Run { file } => {
             let loader = Loader::new(file);
             let binder = loader.load().unwrap();
-            for module in binder.modules().values() {
-                println!("{:#?}", module);
+            match binder.analyze() {
+                Ok(analyzed) => {
+                    println!("{:?}", analyzed);
+                }
+                Err(errors) => print_errors(errors),
             }
         }
         Command::Fmt { files, write } => {
@@ -72,12 +81,7 @@ fn main() -> std::io::Result<()> {
                     let doc = parse.ast().pretty_print(&RcAllocator);
                     doc.render(100, &mut std::io::stdout())?;
                 } else {
-                    for error in parse.errors() {
-                        eprintln!("{error:#?}");
-                    }
-                    for error in parse.errors() {
-                        eprintln!("{error:#?}");
-                    }
+                    print_errors(parse.errors());
                     std::process::exit(1);
                 }
             } else if files.len() == 1 && !write {
@@ -89,12 +93,7 @@ fn main() -> std::io::Result<()> {
                     let doc = parse.ast().pretty_print(&RcAllocator);
                     doc.render(100, &mut std::io::stdout())?;
                 } else {
-                    for error in parse.errors() {
-                        eprintln!("{error:#?}");
-                    }
-                    for error in parse.errors() {
-                        eprintln!("{error:#?}");
-                    }
+                    print_errors(parse.errors());
                     std::process::exit(1);
                 }
             } else {
@@ -108,12 +107,7 @@ fn main() -> std::io::Result<()> {
                         let doc = parse.ast().pretty_print(&RcAllocator);
                         doc.render(100, &mut std::fs::File::create(&file)?)?;
                     } else {
-                        for error in parse.errors() {
-                            eprintln!("{error:#?}");
-                        }
-                        for error in parse.errors() {
-                            eprintln!("{error:#?}");
-                        }
+                        print_errors(parse.errors());
                         all_success = false;
                     }
                 }

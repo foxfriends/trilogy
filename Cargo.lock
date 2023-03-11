@@ -1088,6 +1088,8 @@ name = "trilogy-loader"
 version = "0.1.0"
 dependencies = [
  "reqwest",
+ "trilogy-analyzer",
+ "trilogy-lexical-ir",
  "trilogy-parser",
  "trilogy-scanner",
  "url",

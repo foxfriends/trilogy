@@ -12,6 +12,10 @@ impl<T> Parse<T> {
         &self.ast.content
     }
 
+    pub fn into_ast(self) -> T {
+        self.ast.content
+    }
+
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }

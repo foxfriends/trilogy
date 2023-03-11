@@ -1,7 +1,9 @@
 use crate::cache::{Cache, NoopCache};
-use crate::{binder::WipBinder, location::Location, Binder};
-use crate::{Error, ErrorKind};
+use crate::wip_binder::WipBinder;
+use crate::{Binder, Error, ErrorKind, Location};
 use std::path::PathBuf;
+use trilogy_parser::syntax::Document;
+use trilogy_parser::Parse;
 
 pub struct Loader<C> {
     base_path: PathBuf,
@@ -41,7 +43,7 @@ where
     ///
     /// **Actually, that's just the plan... Right now, the result is actually the whole
     /// result.** We'll get around to error handling eventually.
-    pub fn load(self) -> crate::Result<Binder> {
+    pub fn load(self) -> crate::Result<Binder<Parse<Document>>> {
         let absolute_path = std::env::current_dir()
             .map_err(|error| Error::new(ErrorKind::Inaccessible, error))?
             .join(&self.base_path);

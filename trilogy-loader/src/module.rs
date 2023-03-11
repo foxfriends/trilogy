@@ -4,12 +4,12 @@ use trilogy_parser::{Parse, Parser};
 use trilogy_scanner::Scanner;
 
 #[derive(Clone, Debug)]
-pub struct Module {
-    location: Location,
-    contents: Parse<Document>,
+pub struct Module<T> {
+    pub(crate) location: Location,
+    pub(crate) contents: T,
 }
 
-impl Module {
+impl Module<Parse<Document>> {
     pub(crate) fn new(location: Location, source: &str) -> Self {
         let scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
@@ -40,5 +40,17 @@ impl Module {
                 _ => vec![],
             })
             .map(|import| self.location.relative(import))
+    }
+}
+
+impl<T> Module<T> {
+    pub(crate) fn upgrade<F, U>(self, mut upgrader: F) -> Module<U>
+    where
+        F: FnMut(T) -> U,
+    {
+        Module {
+            location: self.location,
+            contents: upgrader(self.contents),
+        }
     }
 }
