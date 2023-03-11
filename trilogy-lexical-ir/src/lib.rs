@@ -1,4 +1,4 @@
-#![allow(dead_code)] // this is all just planning anyway
+#![allow(dead_code)]
 
 mod analysis;
 mod analyzer;

@@ -7,4 +7,9 @@ pub enum LexicalError {
         duplicate: Span,
         name: String,
     },
+    ConflictingDefinition {
+        name: String,
+        original: Span,
+        conflict: Span,
+    },
 }
