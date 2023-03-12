@@ -2,7 +2,10 @@ use super::*;
 use crate::{Analyzer, LexicalError};
 use source_span::Span;
 use std::collections::HashMap;
-use trilogy_lexical_ir::{EitherModule, Export, ExternalModule, Id, Item, ItemKey, Module};
+use trilogy_lexical_ir::{
+    BinaryOperation, EitherModule, Evaluation, Export, ExternalModule, Id, Item, ItemKey, Module,
+    Value,
+};
 use trilogy_parser::syntax::{
     Alias, Definition, DefinitionItem, FunctionDefinition, ModuleDefinition, ProcedureDefinition,
     RuleDefinition,
@@ -15,7 +18,7 @@ pub(crate) fn analyze_definitions(
     definitions: Vec<Definition>,
 ) -> Module {
     let imported_modules = HashMap::new();
-    let imported_items = HashMap::new();
+    let mut imported_items = HashMap::new();
     let mut submodules: HashMap<ItemKey, EitherModule> = HashMap::new();
     let mut items: HashMap<ItemKey, Vec<Item>> = HashMap::new();
     let mut tests = vec![];
@@ -43,7 +46,30 @@ pub(crate) fn analyze_definitions(
                     exported_items.insert(export.name.clone(), export);
                 }
             }
-            DefinitionItem::Import(_import) => {}
+            DefinitionItem::Import(import) => {
+                let span = import.span();
+                let module_ref = analyze_module_path(analyzer, import.module);
+                for name in import.names {
+                    let (from, to) = match name {
+                        Alias::Same(ref name) => (name.clone(), name),
+                        Alias::Rename(from, ref to) => (from, to),
+                    };
+                    let id = analyzer.scope().find(to.as_ref()).unwrap();
+                    imported_items.insert(
+                        id,
+                        Evaluation {
+                            span,
+                            value: Value::Access(Box::new(BinaryOperation {
+                                lhs: module_ref.clone(),
+                                rhs: Evaluation {
+                                    span: from.span(),
+                                    value: Value::DynamicResolve(from.into()),
+                                },
+                            })),
+                        },
+                    );
+                }
+            }
             DefinitionItem::ModuleImport(_module) => {}
             DefinitionItem::Module(module) => {
                 let key = module_key(&module);

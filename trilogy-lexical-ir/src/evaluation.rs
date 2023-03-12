@@ -11,6 +11,7 @@ pub struct Evaluation {
 
 #[derive(Clone, Debug)]
 pub enum Value {
+    DynamicResolve(String),
     Declaration(Box<Reference>),
     Reference(Box<Reference>),
     Dereference(Box<Reference>),
