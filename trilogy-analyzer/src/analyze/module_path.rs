@@ -20,7 +20,7 @@ pub(super) fn analyze_module_path(analyzer: &mut Analyzer, module_path: ModulePa
     modules.fold(module, |evaluation, module_reference| {
         let module_function = Evaluation {
             span: module_reference.span(),
-            value: Value::ModuleAccess(Box::new(BinaryOperation::new(
+            value: Value::AccessModule(Box::new(BinaryOperation::new(
                 evaluation,
                 static_resolve(module_reference.name),
             ))),
@@ -33,9 +33,7 @@ pub(super) fn analyze_module_path(analyzer: &mut Analyzer, module_path: ModulePa
                 let expression = analyze_poetry(analyzer, argument);
                 Evaluation {
                     span,
-                    value: Value::ModuleApplication(Box::new(BinaryOperation::new(
-                        func, expression,
-                    ))),
+                    value: Value::ApplyModule(Box::new(BinaryOperation::new(func, expression))),
                 }
             })
     })

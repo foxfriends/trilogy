@@ -57,8 +57,8 @@ pub enum Value {
     Branch(Box<Direction>),
     Collect(Box<Collect>),
     StaticResolve(String),
-    ModuleApplication(Box<BinaryOperation>),
-    ModuleAccess(Box<BinaryOperation>),
+    ApplyModule(Box<BinaryOperation>),
+    AccessModule(Box<BinaryOperation>),
 }
 
 #[derive(Clone, Debug)]

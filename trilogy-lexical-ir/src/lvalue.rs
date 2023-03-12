@@ -2,8 +2,11 @@ use super::*;
 use source_span::Span;
 
 #[derive(Clone, Debug)]
-pub struct LValue {
-    pub span: Span,
-    pub container: Evaluation,
-    pub property: Evaluation,
+pub enum LValue {
+    Member {
+        span: Span,
+        container: Evaluation,
+        property: Evaluation,
+    },
+    Rebind(Reference),
 }

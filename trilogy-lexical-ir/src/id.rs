@@ -16,7 +16,7 @@ pub struct Definition {
 pub enum Id {
     Id(Arc<Definition>),
     Item(ItemKey),
-    Closure(Arc<Span>),
+    Temporary(Arc<Span>),
 }
 
 impl Id {
@@ -40,8 +40,8 @@ impl Id {
         Self::Item(key)
     }
 
-    pub fn new_closure(span: Span) -> Self {
-        Self::Closure(Arc::new(span))
+    pub fn new_temporary(span: Span) -> Self {
+        Self::Temporary(Arc::new(span))
     }
 
     pub fn name(&self) -> Option<&str> {
@@ -66,7 +66,7 @@ impl PartialEq for Id {
         match (&self, &other) {
             (Id::Id(lhs), Id::Id(rhs)) => Arc::ptr_eq(lhs, rhs),
             (Id::Item(lhs), Id::Item(rhs)) => lhs == rhs,
-            (Id::Closure(lhs), Id::Closure(rhs)) => Arc::ptr_eq(lhs, rhs),
+            (Id::Temporary(lhs), Id::Temporary(rhs)) => Arc::ptr_eq(lhs, rhs),
             _ => false,
         }
     }
@@ -77,7 +77,7 @@ impl Hash for Id {
         match self {
             Id::Id(def) => Arc::as_ptr(def).hash(state),
             Id::Item(item) => item.hash(state),
-            Id::Closure(span) => Arc::as_ptr(span).hash(state),
+            Id::Temporary(span) => Arc::as_ptr(span).hash(state),
         }
     }
 }

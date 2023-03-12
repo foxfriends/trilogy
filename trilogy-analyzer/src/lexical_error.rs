@@ -12,4 +12,8 @@ pub enum LexicalError {
         original: Span,
         conflict: Span,
     },
+    UnresolvedIdentifier {
+        span: Span,
+        name: String,
+    },
 }
