@@ -4,6 +4,6 @@ use super::*;
 pub enum Code {
     Modification(Box<Assignment>),
     Evaluation(Box<Evaluation>),
-    Direction(Vec<Direction>),
+    Direction(Box<Direction>),
     Scope(Box<Scope>),
 }
