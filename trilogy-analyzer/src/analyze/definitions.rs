@@ -2,7 +2,7 @@ use super::*;
 use crate::{Analyzer, LexicalError};
 use source_span::Span;
 use std::collections::HashMap;
-use trilogy_lexical_ir::{Export, Id, Item, ItemKey, Module};
+use trilogy_lexical_ir::{EitherModule, Export, ExternalModule, Id, Item, ItemKey, Module};
 use trilogy_parser::syntax::{
     Alias, Definition, DefinitionItem, FunctionDefinition, ModuleDefinition, ProcedureDefinition,
     RuleDefinition,
@@ -16,7 +16,7 @@ pub(crate) fn analyze_definitions(
 ) -> Module {
     let imported_modules = HashMap::new();
     let imported_items = HashMap::new();
-    let mut submodules: HashMap<ItemKey, Module> = HashMap::new();
+    let mut submodules: HashMap<ItemKey, EitherModule> = HashMap::new();
     let mut items: HashMap<ItemKey, Vec<Item>> = HashMap::new();
     let mut tests = vec![];
     let mut exported_items: HashMap<String, Export> = HashMap::new();
@@ -50,15 +50,24 @@ pub(crate) fn analyze_definitions(
                 if let Some(previous) = submodules.get(&key) {
                     analyzer.error(LexicalError::ConflictingDefinition {
                         name: key.name,
-                        original: previous.span,
+                        original: previous.span(),
                         conflict: module.span(),
                     });
                     continue;
                 }
                 let item = analyze_module(analyzer, *module);
-                submodules.insert(key, item);
+                submodules.insert(key, EitherModule::Internal(Box::new(item)));
             }
-            DefinitionItem::ExternalModule(_module) => {}
+            DefinitionItem::ExternalModule(module) => {
+                let key = ItemKey::new_module(&module.head.name, 0);
+                submodules.insert(
+                    key,
+                    EitherModule::External(Box::new(ExternalModule {
+                        span: module.span(),
+                        locator: module.locator.into(),
+                    })),
+                );
+            }
             DefinitionItem::Function(func) => {
                 let key = func_key(&func);
                 let item = analyze_func(analyzer, *func);

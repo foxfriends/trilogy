@@ -24,7 +24,7 @@ pub use id::Id;
 pub use item::Item;
 pub use item_key::{ItemClass, ItemKey};
 pub use lvalue::LValue;
-pub use module::Module;
+pub use module::{EitherModule, ExternalModule, Module};
 pub use reference::Reference;
 pub use rename::Rename;
 pub use scope::Scope;
