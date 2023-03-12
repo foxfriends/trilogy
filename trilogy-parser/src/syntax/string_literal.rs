@@ -21,3 +21,9 @@ impl AsRef<str> for StringLiteral {
         self.token.value.as_ref().unwrap().as_str().unwrap()
     }
 }
+
+impl From<StringLiteral> for String {
+    fn from(literal: StringLiteral) -> String {
+        literal.token.value.unwrap().try_into().unwrap()
+    }
+}
