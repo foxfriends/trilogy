@@ -17,7 +17,7 @@ pub(crate) fn analyze_definitions(
     span: Span,
     definitions: Vec<Definition>,
 ) -> Module {
-    let imported_modules = HashMap::new();
+    let mut imported_modules = HashMap::new();
     let mut imported_items = HashMap::new();
     let mut submodules: HashMap<ItemKey, EitherModule> = HashMap::new();
     let mut items: HashMap<ItemKey, Vec<Item>> = HashMap::new();
@@ -70,7 +70,11 @@ pub(crate) fn analyze_definitions(
                     );
                 }
             }
-            DefinitionItem::ModuleImport(_module) => {}
+            DefinitionItem::ModuleImport(import) => {
+                let module = analyze_module_path(analyzer, import.module);
+                let id = analyzer.scope().find(import.name.as_ref()).unwrap();
+                imported_modules.insert(id, module);
+            }
             DefinitionItem::Module(module) => {
                 let key = module_key(&module);
                 if let Some(previous) = submodules.get(&key) {
