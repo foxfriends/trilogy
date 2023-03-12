@@ -63,7 +63,7 @@ pub(crate) fn analyze_definitions(
                                 lhs: module_ref.clone(),
                                 rhs: Evaluation {
                                     span: from.span(),
-                                    value: Value::DynamicResolve(from.into()),
+                                    value: Value::StaticResolve(from.into()),
                                 },
                             })),
                         },

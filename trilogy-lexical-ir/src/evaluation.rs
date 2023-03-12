@@ -11,10 +11,10 @@ pub struct Evaluation {
 
 #[derive(Clone, Debug)]
 pub enum Value {
-    DynamicResolve(String),
     Declaration(Box<Reference>),
     Reference(Box<Reference>),
     Dereference(Box<Reference>),
+    Parameter(usize),
     Number(Box<Complex<BigRational>>),
     Bits(BitVec),
     String(String),
@@ -56,7 +56,8 @@ pub enum Value {
     Cond(Vec<Cond>),
     Branch(Box<Direction>),
     Collect(Box<Collect>),
-    Module(Box<Reference>),
+    StaticResolve(String),
+    ModuleApplication(Box<BinaryOperation>),
     ModuleAccess(Box<BinaryOperation>),
 }
 
@@ -64,6 +65,12 @@ pub enum Value {
 pub struct BinaryOperation {
     pub lhs: Evaluation,
     pub rhs: Evaluation,
+}
+
+impl BinaryOperation {
+    pub fn new(lhs: Evaluation, rhs: Evaluation) -> Self {
+        Self { lhs, rhs }
+    }
 }
 
 #[derive(Clone, Debug)]
