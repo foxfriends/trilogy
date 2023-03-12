@@ -41,3 +41,19 @@ impl Spanned for GivenHandler {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(given_fact: "given hello(1)" => GivenHandler::parse => "(GivenHandler (RuleHead _ [_]) ())");
+    test_parse!(given_fact_multiparam: "given hello(1, 2, 3)" => GivenHandler::parse => "(GivenHandler (RuleHead _ [_ _ _]) ())");
+    test_parse!(given_fact_noparam: "given hello()" => GivenHandler::parse => "(GivenHandler (RuleHead _ []) ())");
+    test_parse!(given_rule: "given hello(a) <- is a > 0" => GivenHandler::parse => "(GivenHandler (RuleHead _ [_]) (Query::Is _))");
+    test_parse!(given_rule_multiparam: "given hello(a, b) <- lhs(a) and rhs(b)" => GivenHandler::parse => "(GivenHandler (RuleHead _ [_ _]) (Query::Conjunction _))");
+    test_parse!(given_rule_noparam: "given hello() <- what()" => GivenHandler::parse => "(GivenHandler (RuleHead _ []) (Query::Lookup _))");
+    test_parse_error!(given_fact_invalid_pattern: "given hello(2 * n, n)" => GivenHandler::parse);
+    test_parse_error!(given_rule_invalid_pattern: "given hello(2 * n, x) <- x = n / 2" => GivenHandler::parse);
+    test_parse_error!(given_rule_invalid_body: "given hello(n, x) <- {}" => GivenHandler::parse);
+    test_parse_error!(given_rule_invalid_separator: "given hello(n, x) => is x < n" => GivenHandler::parse);
+}
