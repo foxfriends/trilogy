@@ -16,7 +16,7 @@ pub(crate) fn analyze_definitions(
 ) -> Module {
     let imported_modules = HashMap::new();
     let imported_items = HashMap::new();
-    let mut submodules = HashMap::new();
+    let mut submodules: HashMap<ItemKey, Module> = HashMap::new();
     let mut items: HashMap<ItemKey, Vec<Item>> = HashMap::new();
     let mut tests = vec![];
     let mut exported_items: HashMap<String, Export> = HashMap::new();
@@ -47,6 +47,14 @@ pub(crate) fn analyze_definitions(
             DefinitionItem::ModuleImport(_module) => {}
             DefinitionItem::Module(module) => {
                 let key = module_key(&module);
+                if let Some(previous) = submodules.get(&key) {
+                    analyzer.error(LexicalError::ConflictingDefinition {
+                        name: key.name,
+                        original: previous.span,
+                        conflict: module.span(),
+                    });
+                    continue;
+                }
                 let item = analyze_module(analyzer, *module);
                 submodules.insert(key, item);
             }
@@ -58,6 +66,14 @@ pub(crate) fn analyze_definitions(
             }
             DefinitionItem::Procedure(proc) => {
                 let key = proc_key(&proc);
+                if let Some(previous) = items.get(&key).and_then(|vec| vec.first()) {
+                    analyzer.error(LexicalError::ConflictingDefinition {
+                        name: key.name,
+                        original: previous.span,
+                        conflict: proc.span(),
+                    });
+                    continue;
+                }
                 let item = analyze_proc(analyzer, *proc);
                 items.entry(key).or_default().push(item);
             }
