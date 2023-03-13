@@ -6,6 +6,13 @@ use trilogy_parser::Spanned;
 
 pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -> Vec<Code> {
     let mut steps: Vec<Code> = vec![];
+
+    macro_rules! push {
+        ($val:expr) => {
+            steps.push($val.into())
+        };
+    }
+
     match statement {
         Statement::Assert(assertion) => {
             let whole_span = assertion.span();
@@ -19,33 +26,27 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
                     .unwrap(), // TODO: don't unwrap, and put in a default
             ))
             .at(whole_span);
-            steps.push(Step::selection(condition, violation).at(span).into());
+            push!(Step::selection(condition, violation).at(span));
         }
-        Statement::Block(block) => steps.push(analyze_prose(analyzer, *block)),
+        Statement::Block(block) => push!(analyze_prose(analyzer, *block)),
         Statement::Expression(expression) => {
-            steps.push(analyze_poetry(analyzer, *expression).into())
+            push!(analyze_poetry(analyzer, *expression))
         }
-        Statement::Assignment(assignment) => steps.push(
-            Assignment::new(
-                assignment.span(),
-                analyze_lvalue(analyzer, assignment.lhs),
-                analyze_poetry(analyzer, assignment.rhs),
-            )
-            .into(),
-        ),
+        Statement::Assignment(assignment) => push!(Assignment::new(
+            assignment.span(),
+            analyze_lvalue(analyzer, assignment.lhs),
+            analyze_poetry(analyzer, assignment.rhs),
+        )),
         Statement::End(end_statement) => {
-            steps.push(Step::Contradiction.at(end_statement.span()).into())
+            push!(Step::Contradiction.at(end_statement.span()))
         }
         Statement::Exit(exit_statement) => {
             let span = exit_statement.span();
-            steps.push(
-                Step::violation(Violation::Exit(analyze_poetry(
-                    analyzer,
-                    exit_statement.expression,
-                )))
-                .at(span)
-                .into(),
-            )
+            push!(Step::violation(Violation::Exit(analyze_poetry(
+                analyzer,
+                exit_statement.expression,
+            )))
+            .at(span))
         }
         Statement::FunctionAssignment(assignment) => {
             let span = assignment.span();
@@ -73,7 +74,7 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
                     let rvalue =
                         Value::apply(rvalue, Value::dereference(reference.clone()).at(span))
                             .at(span);
-                    steps.push(Assignment::new(span, LValue::Rebind(reference), rvalue).into());
+                    push!(Assignment::new(span, LValue::Rebind(reference), rvalue));
                 }
                 // Fancy assignment to a member expression is a bit harder, as we don't
                 // want to double-evaluate either portion.
@@ -86,24 +87,18 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
                     let property_id = Reference::temp(property.span);
                     // Assign container to temporary
                     let container_span = container.span;
-                    steps.push(
-                        Step::unification(
-                            Value::declaration(container_id.clone()).at(container.span),
-                            container,
-                        )
-                        .at(container_span)
-                        .into(),
-                    );
+                    push!(Step::unification(
+                        Value::declaration(container_id.clone()).at(container.span),
+                        container,
+                    )
+                    .at(container_span));
                     // Assign property to temporary
                     let property_span = property.span;
-                    steps.push(
-                        Step::unification(
-                            Value::declaration(property_id.clone()).at(property.span),
-                            property,
-                        )
-                        .at(property_span)
-                        .into(),
-                    );
+                    push!(Step::unification(
+                        Value::declaration(property_id.clone()).at(property.span),
+                        property,
+                    )
+                    .at(property_span));
                     let container_ref = Value::dereference(container_id).at(container_span);
                     let property_ref = Value::dereference(property_id).at(property_span);
                     let access =
@@ -111,7 +106,7 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
                     let rvalue = Value::apply(rvalue, access).at(span);
                     // Assign into pre-evaluated version of lvalue.
                     let lvalue = LValue::member(span, container_ref, property_ref);
-                    steps.push(Assignment::new(span, lvalue, rvalue).into());
+                    push!(Assignment::new(span, lvalue, rvalue));
                 }
             }
         }
