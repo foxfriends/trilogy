@@ -7,3 +7,13 @@ pub struct Assignment {
     pub lvalue: LValue,
     pub rvalue: Evaluation,
 }
+
+impl Assignment {
+    pub fn new(span: Span, lvalue: LValue, rvalue: Evaluation) -> Self {
+        Self {
+            span,
+            lvalue,
+            rvalue,
+        }
+    }
+}

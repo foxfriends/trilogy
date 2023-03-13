@@ -8,6 +8,18 @@ pub enum EitherModule {
     External(Box<ExternalModule>),
 }
 
+impl From<ExternalModule> for EitherModule {
+    fn from(value: ExternalModule) -> Self {
+        Self::External(Box::new(value))
+    }
+}
+
+impl From<Module> for EitherModule {
+    fn from(value: Module) -> Self {
+        Self::Internal(Box::new(value))
+    }
+}
+
 impl EitherModule {
     pub fn span(&self) -> Span {
         match self {

@@ -10,3 +10,13 @@ pub enum LValue {
     },
     Rebind(Reference),
 }
+
+impl LValue {
+    pub fn member(span: Span, container: Evaluation, property: Evaluation) -> Self {
+        Self::Member {
+            span,
+            container,
+            property,
+        }
+    }
+}

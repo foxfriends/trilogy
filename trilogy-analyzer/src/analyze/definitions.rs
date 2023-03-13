@@ -2,10 +2,7 @@ use super::*;
 use crate::{Analyzer, LexicalError};
 use source_span::Span;
 use std::collections::HashMap;
-use trilogy_lexical_ir::{
-    BinaryOperation, EitherModule, Evaluation, Export, ExternalModule, Id, Item, ItemKey, Module,
-    Value,
-};
+use trilogy_lexical_ir::{EitherModule, Export, ExternalModule, Id, Item, ItemKey, Module, Value};
 use trilogy_parser::syntax::{
     Alias, Definition, DefinitionItem, FunctionDefinition, ModuleDefinition, ProcedureDefinition,
     RuleDefinition,
@@ -33,7 +30,7 @@ pub(crate) fn analyze_definitions(
                 for identifier in export_definition.names {
                     let export = Export {
                         span: identifier.span(),
-                        name: identifier.as_ref().to_owned(),
+                        name: identifier.into(),
                     };
                     if exported_items.contains_key(&export.name) {
                         analyzer.error(LexicalError::ExportedMultipleTimes {
@@ -57,16 +54,11 @@ pub(crate) fn analyze_definitions(
                     let id = analyzer.scope().find(to.as_ref()).unwrap();
                     imported_items.insert(
                         id,
-                        Evaluation {
-                            span,
-                            value: Value::Access(Box::new(BinaryOperation {
-                                lhs: module_ref.clone(),
-                                rhs: Evaluation {
-                                    span: from.span(),
-                                    value: Value::StaticResolve(from.into()),
-                                },
-                            })),
-                        },
+                        Value::access(module_ref.clone(), {
+                            let span = from.span();
+                            Value::static_resolve(from).at(span)
+                        })
+                        .at(span),
                     );
                 }
             }
@@ -86,16 +78,16 @@ pub(crate) fn analyze_definitions(
                     continue;
                 }
                 let item = analyze_module(analyzer, *module);
-                submodules.insert(key, EitherModule::Internal(Box::new(item)));
+                submodules.insert(key, EitherModule::from(item));
             }
             DefinitionItem::ExternalModule(module) => {
                 let key = ItemKey::new_module(&module.head.name, 0);
                 submodules.insert(
                     key,
-                    EitherModule::External(Box::new(ExternalModule {
+                    EitherModule::from(ExternalModule {
                         span: module.span(),
                         locator: module.locator.into(),
-                    })),
+                    }),
                 );
             }
             DefinitionItem::Function(func) => {
