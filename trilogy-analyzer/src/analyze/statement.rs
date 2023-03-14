@@ -1,7 +1,7 @@
 use super::*;
 use crate::{Analyzer, LexicalError};
 use trilogy_lexical_ir::{Assignment, Code, LValue, Reference, Step, Value, Violation};
-use trilogy_parser::syntax::Statement;
+use trilogy_parser::syntax::{AssignmentStrategy, Statement};
 use trilogy_parser::Spanned;
 
 pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -> Vec<Code> {
@@ -32,11 +32,15 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
         Statement::Expression(expression) => {
             push!(analyze_poetry(analyzer, *expression))
         }
-        Statement::Assignment(assignment) => push!(Assignment::new(
-            assignment.span(),
-            analyze_lvalue(analyzer, assignment.lhs),
-            analyze_poetry(analyzer, assignment.rhs),
-        )),
+        Statement::Assignment(assignment)
+            if matches!(assignment.strategy, AssignmentStrategy::Direct(..)) =>
+        {
+            push!(Assignment::new(
+                assignment.span(),
+                analyze_lvalue(analyzer, assignment.lhs),
+                analyze_poetry(analyzer, assignment.rhs),
+            ))
+        }
         Statement::End(end_statement) => {
             push!(Step::Contradiction.at(end_statement.span()))
         }
