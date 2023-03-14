@@ -28,10 +28,7 @@ pub(crate) fn analyze_definitions(
         match def.item {
             DefinitionItem::Export(export_definition) => {
                 for identifier in export_definition.names {
-                    let export = Export {
-                        span: identifier.span(),
-                        name: identifier.into(),
-                    };
+                    let export = Export::new(identifier.span(), identifier.into());
                     if exported_items.contains_key(&export.name) {
                         analyzer.error(LexicalError::ExportedMultipleTimes {
                             original: exported_items.get(&export.name).unwrap().span,
@@ -78,16 +75,13 @@ pub(crate) fn analyze_definitions(
                     continue;
                 }
                 let item = analyze_module(analyzer, *module);
-                submodules.insert(key, EitherModule::from(item));
+                submodules.insert(key, item.into());
             }
             DefinitionItem::ExternalModule(module) => {
                 let key = ItemKey::new_module(&module.head.name, 0);
                 submodules.insert(
                     key,
-                    EitherModule::from(ExternalModule {
-                        span: module.span(),
-                        locator: module.locator.into(),
-                    }),
+                    ExternalModule::new(module.span(), module.locator.into()).into(),
                 );
             }
             DefinitionItem::Function(func) => {

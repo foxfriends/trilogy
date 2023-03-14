@@ -45,3 +45,9 @@ pub struct ExternalModule {
     pub span: Span,
     pub locator: String,
 }
+
+impl ExternalModule {
+    pub fn new(span: Span, locator: String) -> Self {
+        Self { span, locator }
+    }
+}
