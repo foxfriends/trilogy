@@ -1,6 +1,6 @@
 use super::*;
 use crate::Analyzer;
-use trilogy_lexical_ir::{Assignment, Code, Step, Value, Violation};
+use trilogy_lexical_ir::{Assignment, Code, Cond, Step, Value, Violation};
 use trilogy_parser::syntax::{AssignmentStrategy, Statement};
 use trilogy_parser::Spanned;
 
@@ -70,7 +70,13 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
             };
             vec![Value::r#return(evaluation).at(span).into()]
         }
-        Statement::While(..) => todo!(),
+        Statement::While(while_statement) => {
+            let span = while_statement.span();
+            let condition = analyze_poetry(analyzer, while_statement.condition);
+            let body = analyze_prose(analyzer, while_statement.body);
+            let cond = Cond::new_loop(vec![condition.into()], vec![body]);
+            vec![Value::cond(vec![cond]).at(span).into()]
+        }
         Statement::Yield(yield_statement) => {
             let span = yield_statement.span();
             let evaluation = analyze_poetry(analyzer, yield_statement.expression);
