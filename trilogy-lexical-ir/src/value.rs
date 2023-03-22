@@ -126,6 +126,10 @@ impl Value {
         Self::Atom(string)
     }
 
+    pub fn cond(conds: Vec<Cond>) -> Self {
+        Self::Cond(conds)
+    }
+
     pub fn at(self, span: Span) -> Evaluation {
         Evaluation { span, value: self }
     }

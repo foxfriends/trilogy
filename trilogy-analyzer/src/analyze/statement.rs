@@ -40,7 +40,7 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
             analyze_function_assignment(analyzer, *assignment)
         }
         Statement::Handled(..) => todo!(),
-        Statement::If(..) => todo!(),
+        Statement::If(if_statement) => analyze_if_statement(analyzer, *if_statement),
         Statement::Let(..) => todo!(),
         Statement::Match(..) => todo!(),
         Statement::Resume(..) => todo!(),
