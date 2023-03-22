@@ -7,8 +7,6 @@ use trilogy_parser::Spanned;
 pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -> Vec<Code> {
     match statement {
         Statement::Assert(assertion) => analyze_assert_statement(analyzer, *assertion),
-        Statement::Block(block) => vec![analyze_prose(analyzer, *block)],
-        Statement::Expression(expression) => vec![analyze_poetry(analyzer, *expression).into()],
         Statement::Assignment(assignment)
             if matches!(assignment.strategy, AssignmentStrategy::Direct(..)) =>
         {
@@ -19,6 +17,11 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
             )
             .into()]
         }
+        Statement::Assignment(_assignment) => todo!(),
+        Statement::Block(block) => vec![analyze_prose(analyzer, *block)],
+        Statement::Break(..) => todo!(),
+        Statement::Cancel(..) => todo!(),
+        Statement::Continue(..) => todo!(),
         Statement::End(end_statement) => {
             vec![Step::Contradiction.at(end_statement.span()).into()]
         }
@@ -31,9 +34,18 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
             .at(span)
             .into()]
         }
+        Statement::Expression(expression) => vec![analyze_poetry(analyzer, *expression).into()],
+        Statement::For(..) => todo!(),
         Statement::FunctionAssignment(assignment) => {
             analyze_function_assignment(analyzer, *assignment)
         }
-        _ => todo!(),
+        Statement::Handled(..) => todo!(),
+        Statement::If(..) => todo!(),
+        Statement::Let(..) => todo!(),
+        Statement::Match(..) => todo!(),
+        Statement::Resume(..) => todo!(),
+        Statement::Return(..) => todo!(),
+        Statement::While(..) => todo!(),
+        Statement::Yield(..) => todo!(),
     }
 }
