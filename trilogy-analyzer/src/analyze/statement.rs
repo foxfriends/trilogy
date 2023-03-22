@@ -53,7 +53,7 @@ pub(super) fn analyze_statement(analyzer: &mut Analyzer, statement: Statement) -
         Statement::Handled(..) => todo!(),
         Statement::If(if_statement) => analyze_if_statement(analyzer, *if_statement),
         Statement::Let(..) => todo!(),
-        Statement::Match(..) => todo!(),
+        Statement::Match(match_statement) => analyze_match_statement(analyzer, *match_statement),
         Statement::Resume(resume) => {
             let span = resume.span();
             let evaluation = match resume.expression {
