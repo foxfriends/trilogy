@@ -1059,8 +1059,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "trilogy-fir"
+name = "trilogy-ir"
 version = "0.1.0"
+dependencies = [
+ "bitvec",
+ "num",
+ "source-span",
+]
 
 [[package]]
 name = "trilogy-loader"
