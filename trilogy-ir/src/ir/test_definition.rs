@@ -1,9 +1,15 @@
 use super::*;
-use source_span::Span;
+use crate::Analyzer;
+use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
 pub struct TestDefinition {
-    span: Span,
     pub name: StringLiteral,
     pub body: Expression,
+}
+
+impl TestDefinition {
+    pub(super) fn convert(_analyzer: &mut Analyzer, _ast: syntax::TestDefinition) -> Self {
+        todo!()
+    }
 }

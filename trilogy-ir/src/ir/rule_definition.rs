@@ -1,9 +1,16 @@
 use super::*;
-use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct RuleDefinition {
-    span: Span,
-    pub parameters: Vec<Pattern>,
-    pub body: Query,
+    pub name: Identifier,
+    pub overloads: Vec<Rule>,
+}
+
+impl RuleDefinition {
+    pub(super) fn declare(name: Identifier) -> Self {
+        Self {
+            name,
+            overloads: vec![],
+        }
+    }
 }

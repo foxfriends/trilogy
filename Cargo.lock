@@ -1065,6 +1065,7 @@ dependencies = [
  "bitvec",
  "num",
  "source-span",
+ "trilogy-parser",
 ]
 
 [[package]]
@@ -1072,6 +1073,7 @@ name = "trilogy-loader"
 version = "0.1.0"
 dependencies = [
  "reqwest",
+ "trilogy-ir",
  "trilogy-parser",
  "trilogy-scanner",
  "url",

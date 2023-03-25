@@ -1,9 +1,16 @@
 use super::*;
-use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct FunctionDefinition {
-    span: Span,
-    pub parameters: Vec<Pattern>,
-    pub body: Expression,
+    pub name: Identifier,
+    pub overloads: Vec<Function>,
+}
+
+impl FunctionDefinition {
+    pub(super) fn declare(name: Identifier) -> Self {
+        Self {
+            name,
+            overloads: vec![],
+        }
+    }
 }

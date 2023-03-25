@@ -2,8 +2,8 @@ use super::*;
 use source_span::Span;
 
 #[derive(Clone, Debug)]
-pub struct DoExpression {
+pub struct Rule {
     span: Span,
     pub parameters: Vec<Pattern>,
-    pub body: Expression,
+    pub body: Query,
 }

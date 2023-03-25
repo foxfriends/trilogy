@@ -1,5 +1,5 @@
-use source_span::Span;
 use super::*;
+use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct ArrayComprehension {

@@ -8,6 +8,5 @@ use source_span::Span;
 pub struct GivenHandler {
     span: Span,
     pub name: Identifier,
-    pub parameters: Vec<Pattern>,
-    pub body: Query,
+    pub rule: Rule,
 }

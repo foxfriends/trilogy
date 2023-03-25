@@ -1,5 +1,6 @@
 use crate::Module;
 use std::collections::HashMap;
+use trilogy_ir::{ir, Analyzer, Error};
 use trilogy_parser::syntax::Document;
 use trilogy_parser::Parse;
 use url::Url;
@@ -10,12 +11,16 @@ pub struct Binder<T> {
 }
 
 impl Binder<Parse<Document>> {
-    pub fn analyze(self) -> Result<Binder<()>, Vec<()>> {
+    pub fn analyze(self) -> Result<Binder<ir::Module>, Vec<Error>> {
+        let mut errors = vec![];
         let mut updated = HashMap::new();
         for (url, module) in self.modules {
             let upgraded = module.upgrade(|contents| {
-                let _ast = contents.into_ast();
-                todo!()
+                let ast = contents.into_ast();
+                let mut analyzer = Analyzer::new();
+                let module = analyzer.analyze(ast);
+                errors.extend(analyzer.errors());
+                module
             });
             updated.insert(url, upgraded);
         }

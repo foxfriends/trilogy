@@ -9,4 +9,5 @@ edition = "2021"
 reqwest = { version = "0.11.14", features = ["blocking"] }
 trilogy-scanner = { path = "../trilogy-scanner/" }
 trilogy-parser = { path = "../trilogy-parser/" }
+trilogy-ir = { path = "../trilogy-ir/" }
 url = "2.3.1"
