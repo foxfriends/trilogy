@@ -1,22 +1,35 @@
 use super::*;
-use crate::Parser;
-use trilogy_scanner::TokenType;
+use crate::{Parser, Spanned};
+use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModulePath {
-    pub modules: Vec<ModuleReference>,
+    pub first: ModuleReference,
+    pub modules: Vec<(Token, ModuleReference)>,
+}
+
+impl Spanned for ModulePath {
+    fn span(&self) -> source_span::Span {
+        if self.modules.is_empty() {
+            self.first.span()
+        } else {
+            self.first
+                .span()
+                .union(self.modules.last().unwrap().1.span())
+        }
+    }
 }
 
 impl ModulePath {
     pub(crate) fn parse_rest(parser: &mut Parser, first: ModuleReference) -> SyntaxResult<Self> {
-        let mut modules = vec![first];
+        let mut modules = vec![];
         loop {
-            if parser.expect(TokenType::OpColonColon).is_err() {
+            let Ok(token) = parser.expect(TokenType::OpColonColon) else {
                 break;
-            }
-            modules.push(ModuleReference::parse(parser)?);
+            };
+            modules.push((token, ModuleReference::parse(parser)?));
         }
-        Ok(Self { modules })
+        Ok(Self { first, modules })
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
@@ -25,15 +38,16 @@ impl ModulePath {
     }
 
     pub(crate) fn parse_or_path(parser: &mut Parser) -> SyntaxResult<Result<Self, Path>> {
-        let mut modules = vec![ModuleReference::parse(parser)?];
+        let first = ModuleReference::parse(parser)?;
+        let mut modules = vec![];
         loop {
-            if parser.expect(TokenType::OpColonColon).is_err() {
+            let Ok(token) = parser.expect(TokenType::OpColonColon) else {
                 break;
-            }
+            };
             if parser.check(TokenType::OpAt).is_ok() {
-                modules.push(ModuleReference::parse(parser)?);
+                modules.push((token, ModuleReference::parse(parser)?));
             } else {
-                let module = Self { modules };
+                let module = Self { first, modules };
                 let member = Identifier::parse(parser)?;
                 return Ok(Err(Path {
                     module: Some(module),
@@ -41,6 +55,6 @@ impl ModulePath {
                 }));
             }
         }
-        Ok(Ok(Self { modules }))
+        Ok(Ok(Self { first, modules }))
     }
 }

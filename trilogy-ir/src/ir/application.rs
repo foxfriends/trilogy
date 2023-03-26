@@ -1,9 +1,13 @@
 use super::*;
-use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Application {
-    span: Span,
     pub function: Expression,
     pub argument: Expression,
+}
+
+impl Application {
+    pub(super) fn new(function: Expression, argument: Expression) -> Self {
+        Self { function, argument }
+    }
 }

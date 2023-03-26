@@ -7,6 +7,7 @@ use trilogy_scanner::{Token, TokenType};
 pub struct ImportDefinition {
     start: Token,
     pub names: Vec<Alias>,
+    from: Token,
     pub module: ModulePath,
 }
 
@@ -29,14 +30,19 @@ impl ImportDefinition {
             }
             break;
         }
-        parser
+        let from = parser
             .expect(TokenType::KwFrom)
             .map_err(|token| parser.expected(token, "expected keyword `from`"))?;
         let module = ModulePath::parse(parser)?;
         Ok(Self {
             start,
             names,
+            from,
             module,
         })
+    }
+
+    pub fn from_token(&self) -> &Token {
+        &self.from
     }
 }

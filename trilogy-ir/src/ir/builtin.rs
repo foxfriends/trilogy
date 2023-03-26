@@ -4,6 +4,7 @@ pub enum Builtin {
     Not,
     Invert,
     Access,
+    ModuleAccess,
     And,
     Or,
     Add,
