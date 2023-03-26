@@ -42,7 +42,12 @@ impl Definition {
             syntax::DefinitionItem::ExternalModule(..) => todo!(),
             syntax::DefinitionItem::Function(..) => todo!(),
             syntax::DefinitionItem::Import(..) => todo!(),
-            syntax::DefinitionItem::Module(..) => todo!(),
+            syntax::DefinitionItem::Module(ast) => {
+                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(id).unwrap();
+                let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
+                module.module = Some(Module::convert_module(analyzer, *ast));
+            }
             syntax::DefinitionItem::ModuleImport(..) => todo!(),
             syntax::DefinitionItem::Procedure(..) => todo!(),
             syntax::DefinitionItem::Rule(..) => todo!(),

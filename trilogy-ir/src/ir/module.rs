@@ -13,17 +13,28 @@ pub struct Module {
 impl Module {
     pub(crate) fn convert(analyzer: &mut Analyzer, ast: syntax::Document) -> Self {
         let span = ast.span();
-        let mut definitions = ast
-            .definitions
-            .iter()
-            .filter_map(|ast| Definition::declare(analyzer, ast))
-            .collect::<Definitions>();
-        for definition in ast.definitions {
-            Definition::convert_into(analyzer, definition, &mut definitions);
-        }
+        let definitions = Definitions::convert(analyzer, ast.definitions);
         Self {
             span,
             parameters: vec![],
+            definitions,
+        }
+    }
+
+    pub(crate) fn convert_module(analyzer: &mut Analyzer, ast: syntax::ModuleDefinition) -> Self {
+        analyzer.push_scope();
+        let span = ast.span();
+        let parameters: Vec<_> = ast
+            .head
+            .parameters
+            .into_iter()
+            .map(|param| Pattern::binding(analyzer, param))
+            .collect();
+        let definitions = Definitions::convert(analyzer, ast.definitions);
+        analyzer.pop_scope();
+        Self {
+            span,
+            parameters,
             definitions,
         }
     }
