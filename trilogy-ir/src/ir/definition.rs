@@ -39,7 +39,12 @@ impl Definition {
                     }
                 }
             }
-            syntax::DefinitionItem::ExternalModule(..) => todo!(),
+            syntax::DefinitionItem::ExternalModule(ast) => {
+                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(id).unwrap();
+                let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
+                module.module = Some(EitherModule::Reference(ast.locator.into()));
+            }
             syntax::DefinitionItem::Function(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
@@ -68,7 +73,7 @@ impl Definition {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
-                module.module = Some(Module::convert_module(analyzer, *ast));
+                module.module = Some(EitherModule::Module(Module::convert_module(analyzer, *ast)));
             }
             syntax::DefinitionItem::ModuleImport(ast) => {
                 let id = analyzer.declared(ast.name.as_ref()).unwrap();
@@ -103,8 +108,12 @@ impl Definition {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
             syntax::DefinitionItem::ExternalModule(ast) => {
-                Identifier::declare(analyzer, ast.head.name.clone());
-                return vec![];
+                let name = Identifier::declare(analyzer, ast.head.name.clone());
+                Self {
+                    span: ast.span(),
+                    item: DefinitionItem::Module(Box::new(ModuleDefinition::declare(name))),
+                    is_exported: false,
+                }
             }
             syntax::DefinitionItem::Function(ast) => {
                 let span = ast.span();

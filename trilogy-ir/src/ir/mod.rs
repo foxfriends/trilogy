@@ -71,7 +71,7 @@ pub use if_else::IfElse;
 pub use iterator::Iterator;
 pub use lookup::Lookup;
 pub use module::Module;
-use module_definition::ModuleDefinition;
+use module_definition::{EitherModule, ModuleDefinition};
 pub use number_literal::NumberLiteral;
 pub use pack::Pack;
 pub use pattern::Pattern;
