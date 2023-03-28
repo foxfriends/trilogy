@@ -28,6 +28,12 @@ impl Expression {
         Self::sequence(span, sequence)
     }
 
+    pub(super) fn convert_query(analyzer: &mut Analyzer, ast: syntax::Query) -> Self {
+        let span = ast.span();
+        let query = Query::convert(analyzer, ast);
+        Self::query(span, query)
+    }
+
     pub(super) fn convert_module_path(analyzer: &mut Analyzer, ast: syntax::ModulePath) -> Self {
         let value = Self::convert_module_reference(analyzer, ast.first);
         ast.modules.into_iter().fold(value, |module, (token, ast)| {
@@ -78,6 +84,13 @@ impl Expression {
         Self {
             span,
             value: Value::Sequence(sequence),
+        }
+    }
+
+    pub(super) fn query(span: Span, query: Query) -> Self {
+        Self {
+            span,
+            value: Value::Query(Box::new(query)),
         }
     }
 

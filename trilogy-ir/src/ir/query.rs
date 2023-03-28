@@ -1,10 +1,25 @@
 use super::*;
+use crate::Analyzer;
 use source_span::Span;
+use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
 pub struct Query {
     span: Span,
     pub value: Value,
+}
+
+impl Query {
+    pub(super) fn convert(_analyzer: &mut Analyzer, _query: syntax::Query) -> Self {
+        todo!()
+    }
+
+    pub(super) fn pass(span: Span) -> Self {
+        Self {
+            span,
+            value: Value::Pass,
+        }
+    }
 }
 
 // TODO: is there a way to turn queries into expressions too?

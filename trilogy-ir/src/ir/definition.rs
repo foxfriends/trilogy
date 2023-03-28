@@ -83,7 +83,12 @@ impl Definition {
                 let DefinitionItem::Procedure(procedure) = &mut definition.item else { unreachable!() };
                 procedure.overloads.push(Procedure::convert(analyzer, *ast))
             }
-            syntax::DefinitionItem::Rule(..) => todo!(),
+            syntax::DefinitionItem::Rule(ast) => {
+                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(id).unwrap();
+                let DefinitionItem::Rule(rule) = &mut definition.item else { unreachable!() };
+                rule.overloads.push(Rule::convert(analyzer, *ast))
+            }
             syntax::DefinitionItem::Test(ast) => {
                 definitions.push(Definition {
                     span: ast.span(),
