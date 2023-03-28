@@ -38,6 +38,8 @@ pub enum Builtin {
     Array,
     Set,
     Record,
+    Is,
+    For,
     Yield,
     Resume,
     Cancel,
