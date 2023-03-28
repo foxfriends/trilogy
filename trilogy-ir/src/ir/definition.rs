@@ -65,7 +65,13 @@ impl Definition {
                 let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
                 module.module = Some(Module::convert_module(analyzer, *ast));
             }
-            syntax::DefinitionItem::ModuleImport(..) => todo!(),
+            syntax::DefinitionItem::ModuleImport(ast) => {
+                let expression = Expression::convert_module_path(analyzer, ast.module);
+                let id = analyzer.declared(ast.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(id).unwrap();
+                let DefinitionItem::Alias(alias) = &mut definition.item else { unreachable!() };
+                alias.value = Some(expression);
+            }
             syntax::DefinitionItem::Procedure(..) => todo!(),
             syntax::DefinitionItem::Rule(..) => todo!(),
             syntax::DefinitionItem::Test(ast) => {
@@ -78,12 +84,12 @@ impl Definition {
         }
     }
 
-    pub(super) fn declare(analyzer: &mut Analyzer, ast: &syntax::Definition) -> Option<Self> {
+    pub(super) fn declare(analyzer: &mut Analyzer, ast: &syntax::Definition) -> Vec<Self> {
         let def = match &ast.item {
-            syntax::DefinitionItem::Export(..) => return None,
+            syntax::DefinitionItem::Export(..) => return vec![],
             syntax::DefinitionItem::ExternalModule(ast) => {
                 Identifier::declare(analyzer, ast.head.name.clone());
-                return None;
+                return vec![];
             }
             syntax::DefinitionItem::Function(ast) => {
                 let span = ast.span();
@@ -95,17 +101,26 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Import(ast) => {
-                for alias in &ast.names {
-                    match alias {
-                        syntax::Alias::Same(name) => {
-                            Identifier::declare(analyzer, name.clone());
+                return ast
+                    .names
+                    .iter()
+                    .map(|alias| {
+                        let span = alias.span();
+                        let name = match alias {
+                            syntax::Alias::Same(name) => {
+                                Identifier::declare(analyzer, name.clone())
+                            }
+                            syntax::Alias::Rename(_, name) => {
+                                Identifier::declare(analyzer, name.clone())
+                            }
+                        };
+                        Self {
+                            span,
+                            item: DefinitionItem::Alias(Box::new(Alias::declare(name))),
+                            is_exported: false,
                         }
-                        syntax::Alias::Rename(_, name) => {
-                            Identifier::declare(analyzer, name.clone());
-                        }
-                    }
-                }
-                return None;
+                    })
+                    .collect();
             }
             syntax::DefinitionItem::Module(ast) => {
                 let name = Identifier::declare(analyzer, ast.head.name.clone());
@@ -116,8 +131,12 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::ModuleImport(ast) => {
-                Identifier::declare(analyzer, ast.name.clone());
-                return None;
+                let name = Identifier::declare(analyzer, ast.name.clone());
+                Self {
+                    span: ast.span(),
+                    item: DefinitionItem::Alias(Box::new(Alias::declare(name))),
+                    is_exported: false,
+                }
             }
             syntax::DefinitionItem::Procedure(ast) => {
                 let span = ast.span();
@@ -137,9 +156,9 @@ impl Definition {
                     is_exported: false,
                 }
             }
-            syntax::DefinitionItem::Test(..) => return None,
+            syntax::DefinitionItem::Test(..) => return vec![],
         };
 
-        Some(def)
+        vec![def]
     }
 }

@@ -24,7 +24,7 @@ impl Definitions {
     pub(super) fn convert(analyzer: &mut Analyzer, ast: Vec<syntax::Definition>) -> Self {
         let mut definitions = ast
             .iter()
-            .filter_map(|ast| Definition::declare(analyzer, ast))
+            .flat_map(|ast| Definition::declare(analyzer, ast))
             .collect::<Self>();
         for definition in ast {
             Definition::convert_into(analyzer, definition, &mut definitions);
