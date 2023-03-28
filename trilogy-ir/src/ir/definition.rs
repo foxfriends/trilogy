@@ -40,7 +40,12 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::ExternalModule(..) => todo!(),
-            syntax::DefinitionItem::Function(..) => todo!(),
+            syntax::DefinitionItem::Function(ast) => {
+                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(id).unwrap();
+                let DefinitionItem::Function(function) = &mut definition.item else { unreachable!() };
+                function.overloads.push(Function::convert(analyzer, *ast))
+            }
             syntax::DefinitionItem::Import(ast) => {
                 let from_span = ast.from_token().span;
                 let expression = Expression::convert_module_path(analyzer, ast.module);
@@ -66,13 +71,18 @@ impl Definition {
                 module.module = Some(Module::convert_module(analyzer, *ast));
             }
             syntax::DefinitionItem::ModuleImport(ast) => {
-                let expression = Expression::convert_module_path(analyzer, ast.module);
                 let id = analyzer.declared(ast.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Alias(alias) = &mut definition.item else { unreachable!() };
+                let expression = Expression::convert_module_path(analyzer, ast.module);
                 alias.value = Some(expression);
             }
-            syntax::DefinitionItem::Procedure(..) => todo!(),
+            syntax::DefinitionItem::Procedure(ast) => {
+                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(id).unwrap();
+                let DefinitionItem::Procedure(procedure) = &mut definition.item else { unreachable!() };
+                procedure.overloads.push(Procedure::convert(analyzer, *ast))
+            }
             syntax::DefinitionItem::Rule(..) => todo!(),
             syntax::DefinitionItem::Test(ast) => {
                 definitions.push(Definition {

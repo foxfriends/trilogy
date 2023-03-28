@@ -14,6 +14,20 @@ impl Expression {
         todo!()
     }
 
+    pub(super) fn convert_statement(_analyzer: &mut Analyzer, _ast: syntax::Statement) -> Self {
+        todo!()
+    }
+
+    pub(super) fn convert_block(analyzer: &mut Analyzer, ast: syntax::Block) -> Self {
+        let span = ast.span();
+        let sequence = ast
+            .statements
+            .into_iter()
+            .map(|statement| Self::convert_statement(analyzer, statement))
+            .collect();
+        Self::sequence(span, sequence)
+    }
+
     pub(super) fn convert_module_path(analyzer: &mut Analyzer, ast: syntax::ModulePath) -> Self {
         let value = Self::convert_module_reference(analyzer, ast.first);
         ast.modules.into_iter().fold(value, |module, (token, ast)| {
@@ -60,6 +74,13 @@ impl Expression {
         }
     }
 
+    pub(super) fn sequence(span: Span, sequence: Vec<Expression>) -> Self {
+        Self {
+            span,
+            value: Value::Sequence(sequence),
+        }
+    }
+
     pub(super) fn application(span: Span, lhs: Expression, rhs: Expression) -> Self {
         Self {
             span,
@@ -83,7 +104,7 @@ impl Expression {
 pub enum Value {
     Builtin(Builtin),
     Pack(Box<Pack>),
-    Block(Vec<Expression>),
+    Sequence(Vec<Expression>),
     Mapping(Box<(Expression, Expression)>),
     Number(Box<NumberLiteral>),
     Character(Box<CharacterLiteral>),
