@@ -1,9 +1,13 @@
 use super::*;
-use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Let {
-    span: Span,
     pub query: Query,
     pub body: Expression,
+}
+
+impl Let {
+    pub(super) fn new(query: Query, body: Expression) -> Self {
+        Self { query, body }
+    }
 }

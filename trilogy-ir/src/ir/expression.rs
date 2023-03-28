@@ -14,18 +14,75 @@ impl Expression {
         todo!()
     }
 
-    pub(super) fn convert_statement(_analyzer: &mut Analyzer, _ast: syntax::Statement) -> Self {
-        todo!()
-    }
-
     pub(super) fn convert_block(analyzer: &mut Analyzer, ast: syntax::Block) -> Self {
         let span = ast.span();
-        let sequence = ast
-            .statements
-            .into_iter()
-            .map(|statement| Self::convert_statement(analyzer, statement))
-            .collect();
+        let sequence = Self::convert_sequence(analyzer, &mut ast.statements.into_iter());
         Self::sequence(span, sequence)
+    }
+
+    fn convert_sequence(
+        analyzer: &mut Analyzer,
+        statements: &mut impl std::iter::Iterator<Item = syntax::Statement>,
+    ) -> Vec<Self> {
+        let mut sequence = vec![];
+        Self::convert_sequence_into(analyzer, statements, &mut sequence);
+        sequence
+    }
+
+    fn convert_sequence_into(
+        analyzer: &mut Analyzer,
+        statements: &mut impl std::iter::Iterator<Item = syntax::Statement>,
+        sequence: &mut Vec<Self>,
+    ) {
+        let statement = match statements.next() {
+            Some(ast) => Self::convert_statement(analyzer, ast, statements),
+            None => return,
+        };
+        sequence.push(statement);
+        Self::convert_sequence_into(analyzer, statements, sequence);
+    }
+
+    fn convert_statement(
+        analyzer: &mut Analyzer,
+        ast: syntax::Statement,
+        rest: &mut impl std::iter::Iterator<Item = syntax::Statement>,
+    ) -> Self {
+        use syntax::Statement::*;
+        match ast {
+            Let(ast) => {
+                let span = ast.span();
+                let query = Query::convert(analyzer, ast.query);
+                analyzer.push_scope();
+                let body = Self::convert_sequence(analyzer, rest);
+                analyzer.pop_scope();
+                // TODO: Span::default() is not best here, but there's not really a proper span for
+                // this, so what to do?
+                Self::r#let(span, query, Self::sequence(Span::default(), body))
+            }
+            Assignment(..) => todo!(),
+            FunctionAssignment(..) => todo!(),
+            If(..) => todo!(),
+            Match(..) => todo!(),
+            While(..) => todo!(),
+            For(..) => todo!(),
+            Break(..) => todo!(),
+            Continue(..) => todo!(),
+            Resume(..) => todo!(),
+            Cancel(..) => todo!(),
+            Return(..) => todo!(),
+            End(..) => todo!(),
+            Exit(..) => todo!(),
+            Yield(..) => todo!(),
+            Expression(ast) => Self::convert(analyzer, *ast),
+            Assert(..) => todo!(),
+            Handled(..) => todo!(),
+            Block(ast) => {
+                analyzer.push_scope();
+                let block = Self::convert_block(analyzer, *ast);
+                analyzer.pop_scope();
+                block
+            }
+        }
     }
 
     pub(super) fn convert_query(analyzer: &mut Analyzer, ast: syntax::Query) -> Self {
@@ -64,6 +121,13 @@ impl Expression {
                 let span = function.span.union(ast.span());
                 function.apply_to(span, Expression::convert(analyzer, ast))
             })
+    }
+
+    pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
+        Self {
+            span,
+            value: Value::Let(Box::new(Let::new(query, body))),
+        }
     }
 
     pub(super) fn dynamic(identifier: syntax::Identifier) -> Self {
