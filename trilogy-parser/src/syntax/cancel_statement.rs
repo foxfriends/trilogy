@@ -21,6 +21,10 @@ impl CancelStatement {
         };
         Ok(Self { start, expression })
     }
+
+    pub fn cancel_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 impl Spanned for CancelStatement {

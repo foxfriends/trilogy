@@ -21,6 +21,10 @@ impl ResumeStatement {
         };
         Ok(Self { start, expression })
     }
+
+    pub fn resume_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 impl Spanned for ResumeStatement {

@@ -21,6 +21,10 @@ impl ReturnStatement {
         };
         Ok(Self { start, expression })
     }
+
+    pub fn return_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 impl Spanned for ReturnStatement {

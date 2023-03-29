@@ -41,7 +41,6 @@ mod set_pattern;
 mod string_literal;
 mod struct_pattern;
 mod test_definition;
-mod unit_literal;
 mod r#while;
 
 pub use alias::Alias;
@@ -89,4 +88,3 @@ pub use set_pattern::SetPattern;
 pub use string_literal::StringLiteral;
 pub use struct_pattern::StructPattern;
 use test_definition::TestDefinition;
-pub use unit_literal::UnitLiteral;

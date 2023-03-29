@@ -34,7 +34,7 @@ pub enum Value {
     String(Box<StringLiteral>),
     Bits(Box<BitsLiteral>),
     Boolean(Box<BooleanLiteral>),
-    Unit(Box<UnitLiteral>),
+    Unit,
     Atom(Box<AtomLiteral>),
     Negative(Box<Pattern>),
     Glue(Box<GluePattern>),

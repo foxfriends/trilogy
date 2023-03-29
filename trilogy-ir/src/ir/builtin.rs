@@ -46,4 +46,5 @@ pub enum Builtin {
     Return,
     Break,
     Continue,
+    Exit,
 }

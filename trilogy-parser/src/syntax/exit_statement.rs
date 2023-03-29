@@ -16,6 +16,10 @@ impl ExitStatement {
         let expression = Expression::parse(parser)?;
         Ok(Self { start, expression })
     }
+
+    pub fn exit_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 #[cfg(test)]

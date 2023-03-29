@@ -16,4 +16,8 @@ impl YieldStatement {
         let expression = Expression::parse(parser)?;
         Ok(Self { start, expression })
     }
+
+    pub fn yield_token(&self) -> &Token {
+        &self.start
+    }
 }

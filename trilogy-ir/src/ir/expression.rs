@@ -65,16 +65,59 @@ impl Expression {
             Match(..) => todo!(),
             While(..) => todo!(),
             For(..) => todo!(),
-            Break(..) => todo!(),
-            Continue(..) => todo!(),
-            Resume(..) => todo!(),
-            Cancel(..) => todo!(),
-            Return(..) => todo!(),
-            End(..) => todo!(),
-            Exit(..) => todo!(),
-            Yield(..) => todo!(),
+            Break(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.span(), Builtin::Break),
+                Self::unit(ast.span()),
+            ),
+            Continue(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.span(), Builtin::Continue),
+                Self::unit(ast.span()),
+            ),
+            Resume(ast) => {
+                let span = ast.span();
+                Self::application(
+                    span,
+                    Self::builtin(ast.resume_token().span(), Builtin::Resume),
+                    ast.expression
+                        .map(|ast| Self::convert(analyzer, ast))
+                        .unwrap_or_else(|| Self::unit(span)),
+                )
+            }
+            Cancel(ast) => {
+                let span = ast.span();
+                Self::application(
+                    span,
+                    Self::builtin(ast.cancel_token().span(), Builtin::Cancel),
+                    ast.expression
+                        .map(|ast| Self::convert(analyzer, ast))
+                        .unwrap_or_else(|| Self::unit(span)),
+                )
+            }
+            Return(ast) => {
+                let span = ast.span();
+                Self::application(
+                    span,
+                    Self::builtin(ast.return_token().span(), Builtin::Return),
+                    ast.expression
+                        .map(|ast| Self::convert(analyzer, ast))
+                        .unwrap_or_else(|| Self::unit(span)),
+                )
+            }
+            End(ast) => Self::end(ast.span()),
+            Exit(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.exit_token().span(), Builtin::Exit),
+                Self::convert(analyzer, ast.expression),
+            ),
+            Yield(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.yield_token().span(), Builtin::Yield),
+                Self::convert(analyzer, ast.expression),
+            ),
             Expression(ast) => Self::convert(analyzer, *ast),
-            Assert(..) => todo!(),
+            Assert(ast) => Self::assert(ast.span(), crate::ir::Assert::convert(analyzer, *ast)),
             Handled(..) => todo!(),
             Block(ast) => {
                 analyzer.push_scope();
@@ -123,46 +166,47 @@ impl Expression {
             })
     }
 
+    pub(super) fn new(span: Span, value: Value) -> Self {
+        Self { span, value }
+    }
+
     pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
-        Self {
-            span,
-            value: Value::Let(Box::new(Let::new(query, body))),
-        }
+        Self::new(span, Value::Let(Box::new(Let::new(query, body))))
+    }
+
+    pub(super) fn end(span: Span) -> Self {
+        Self::new(span, Value::End)
+    }
+
+    pub(super) fn unit(span: Span) -> Self {
+        Self::new(span, Value::Unit)
     }
 
     pub(super) fn dynamic(identifier: syntax::Identifier) -> Self {
-        Self {
-            span: identifier.span(),
-            value: Value::Dynamic(Box::new(identifier)),
-        }
+        Self::new(identifier.span(), Value::Dynamic(Box::new(identifier)))
     }
 
     pub(super) fn module(span: Span, id: Identifier) -> Self {
-        Self {
-            span,
-            value: Value::Module(Box::new(id)),
-        }
+        Self::new(span, Value::Module(Box::new(id)))
     }
 
     pub(super) fn sequence(span: Span, sequence: Vec<Expression>) -> Self {
-        Self {
-            span,
-            value: Value::Sequence(sequence),
-        }
+        Self::new(span, Value::Sequence(sequence))
     }
 
     pub(super) fn query(span: Span, query: Query) -> Self {
-        Self {
-            span,
-            value: Value::Query(Box::new(query)),
-        }
+        Self::new(span, Value::Query(Box::new(query)))
+    }
+
+    pub(super) fn assert(span: Span, assert: Assert) -> Self {
+        Self::new(span, Value::Assert(Box::new(assert)))
     }
 
     pub(super) fn application(span: Span, lhs: Expression, rhs: Expression) -> Self {
-        Self {
+        Self::new(
             span,
-            value: Value::Application(Box::new(Application::new(lhs, rhs))),
-        }
+            Value::Application(Box::new(Application::new(lhs, rhs))),
+        )
     }
 
     pub(super) fn apply_to(self, span: Span, rhs: Expression) -> Self {
@@ -170,10 +214,7 @@ impl Expression {
     }
 
     pub(super) fn builtin(span: Span, builtin: Builtin) -> Self {
-        Self {
-            span,
-            value: Value::Builtin(builtin),
-        }
+        Self::new(span, Value::Builtin(builtin))
     }
 }
 
@@ -188,7 +229,7 @@ pub enum Value {
     String(Box<StringLiteral>),
     Bits(Box<BitsLiteral>),
     Boolean(Box<BooleanLiteral>),
-    Unit(Box<UnitLiteral>),
+    Unit,
     Atom(Box<AtomLiteral>),
     Query(Box<Query>),
     Iterator(Box<Iterator>),
@@ -204,4 +245,5 @@ pub enum Value {
     Reference(Box<Identifier>),
     Dynamic(Box<syntax::Identifier>),
     Assert(Box<Assert>),
+    End,
 }
