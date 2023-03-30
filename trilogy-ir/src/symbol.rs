@@ -30,6 +30,10 @@ pub(crate) struct SymbolTable {
 }
 
 impl SymbolTable {
+    pub fn invent(&mut self) -> Id {
+        Id::new(String::from("<intermediate value>"))
+    }
+
     pub fn reusable(&mut self, tag: String) -> Id {
         self.symbols
             .entry(tag.clone())

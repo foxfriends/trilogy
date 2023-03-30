@@ -4,11 +4,16 @@ use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
 pub struct Identifier {
-    span: Span,
+    pub span: Span,
     pub id: Id,
 }
 
 impl Identifier {
+    pub(super) fn temporary(analyzer: &mut Analyzer, span: Span) -> Self {
+        let id = analyzer.temporary();
+        Self { span, id }
+    }
+
     pub(crate) fn declare(analyzer: &mut Analyzer, identifier: syntax::Identifier) -> Identifier {
         let span = identifier.span();
         let id = analyzer.declare(identifier.into());

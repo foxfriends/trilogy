@@ -1,9 +1,16 @@
 use super::*;
-use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct DirectUnification {
-    span: Span,
     pub pattern: Pattern,
     pub expression: Expression,
+}
+
+impl DirectUnification {
+    pub(super) fn new(pattern: Pattern, expression: Expression) -> Self {
+        Self {
+            pattern,
+            expression,
+        }
+    }
 }

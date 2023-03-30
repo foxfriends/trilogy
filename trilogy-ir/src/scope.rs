@@ -20,6 +20,10 @@ impl Scope {
         self.symbols.reusable(name)
     }
 
+    pub fn invent(&mut self) -> Id {
+        self.symbols.invent()
+    }
+
     pub fn declared(&mut self, name: &str) -> Option<&Id> {
         self.symbols.reuse(name)
     }

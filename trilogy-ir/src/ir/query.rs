@@ -14,11 +14,16 @@ impl Query {
         todo!()
     }
 
+    pub(super) fn new(span: Span, value: Value) -> Self {
+        Self { span, value }
+    }
+
+    pub(super) fn direct(span: Span, unification: DirectUnification) -> Self {
+        Self::new(span, Value::Direct(Box::new(unification)))
+    }
+
     pub(super) fn pass(span: Span) -> Self {
-        Self {
-            span,
-            value: Value::Pass,
-        }
+        Self::new(span, Value::Pass)
     }
 }
 

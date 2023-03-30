@@ -28,7 +28,7 @@ impl Module {
             .head
             .parameters
             .into_iter()
-            .map(|param| Pattern::binding(analyzer, param))
+            .map(|param| Pattern::convert_binding(analyzer, param))
             .collect();
         let definitions = Definitions::convert(analyzer, ast.definitions);
         analyzer.pop_scope();

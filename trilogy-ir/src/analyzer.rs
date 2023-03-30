@@ -41,6 +41,10 @@ impl Analyzer {
         self.scope.declare(name)
     }
 
+    pub(crate) fn temporary(&mut self) -> Id {
+        self.scope.invent()
+    }
+
     pub(crate) fn declared(&mut self, name: &str) -> Option<&Id> {
         self.scope.declared(name)
     }

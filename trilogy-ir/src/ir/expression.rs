@@ -59,8 +59,8 @@ impl Expression {
                 // this, so what to do?
                 Self::r#let(span, query, Self::sequence(Span::default(), body))
             }
-            Assignment(..) => todo!(),
-            FunctionAssignment(..) => todo!(),
+            Assignment(ast) => crate::ir::Assignment::convert(analyzer, *ast),
+            FunctionAssignment(ast) => crate::ir::Assignment::convert_function(analyzer, *ast),
             If(..) => todo!(),
             Match(..) => todo!(),
             While(..) => todo!(),
@@ -174,6 +174,10 @@ impl Expression {
         Self::new(span, Value::Let(Box::new(Let::new(query, body))))
     }
 
+    pub(super) fn assignment(span: Span, assignment: Assignment) -> Self {
+        Self::new(span, Value::Assignment(Box::new(assignment)))
+    }
+
     pub(super) fn end(span: Span) -> Self {
         Self::new(span, Value::End)
     }
@@ -209,12 +213,20 @@ impl Expression {
         )
     }
 
+    pub(super) fn builtin(span: Span, builtin: Builtin) -> Self {
+        Self::new(span, Value::Builtin(builtin))
+    }
+
+    pub(super) fn reference(span: Span, identifier: Identifier) -> Self {
+        Self::new(span, Value::Reference(Box::new(identifier)))
+    }
+
     pub(super) fn apply_to(self, span: Span, rhs: Expression) -> Self {
         Self::application(span, self, rhs)
     }
 
-    pub(super) fn builtin(span: Span, builtin: Builtin) -> Self {
-        Self::new(span, Value::Builtin(builtin))
+    pub(super) fn in_let(self, span: Span, query: Query) -> Self {
+        Expression::r#let(span, query, self)
     }
 }
 
@@ -223,6 +235,7 @@ pub enum Value {
     Builtin(Builtin),
     Pack(Box<Pack>),
     Sequence(Vec<Expression>),
+    Assignment(Box<Assignment>),
     Mapping(Box<(Expression, Expression)>),
     Number(Box<NumberLiteral>),
     Character(Box<CharacterLiteral>),

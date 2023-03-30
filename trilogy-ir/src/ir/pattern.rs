@@ -14,9 +14,13 @@ impl Pattern {
         todo!()
     }
 
-    pub(super) fn binding(analyzer: &mut Analyzer, ast: syntax::Identifier) -> Self {
+    pub(super) fn convert_binding(analyzer: &mut Analyzer, ast: syntax::Identifier) -> Self {
         let span = ast.span();
         let id = Identifier::declare(analyzer, ast);
+        Self::binding(span, id)
+    }
+
+    pub(super) fn binding(span: Span, id: Identifier) -> Self {
         Self {
             span,
             value: Value::Binding(Box::new(id)),
