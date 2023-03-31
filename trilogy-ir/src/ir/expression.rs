@@ -61,10 +61,10 @@ impl Expression {
             }
             Assignment(ast) => crate::ir::Assignment::convert(analyzer, *ast),
             FunctionAssignment(ast) => crate::ir::Assignment::convert_function(analyzer, *ast),
-            If(..) => todo!(),
-            Match(..) => todo!(),
-            While(..) => todo!(),
-            For(..) => todo!(),
+            If(ast) => IfElse::convert(analyzer, *ast),
+            Match(ast) => crate::ir::Match::convert(analyzer, *ast),
+            While(ast) => crate::ir::While::convert(analyzer, *ast),
+            For(ast) => crate::ir::For::convert(analyzer, *ast),
             Break(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.span(), Builtin::Break),
@@ -170,12 +170,28 @@ impl Expression {
         Self { span, value }
     }
 
+    pub(super) fn boolean(span: Span, value: bool) -> Self {
+        Self::new(span, Value::Boolean(value))
+    }
+
     pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
         Self::new(span, Value::Let(Box::new(Let::new(query, body))))
     }
 
     pub(super) fn assignment(span: Span, assignment: Assignment) -> Self {
         Self::new(span, Value::Assignment(Box::new(assignment)))
+    }
+
+    pub(super) fn if_else(span: Span, if_else: IfElse) -> Self {
+        Self::new(span, Value::IfElse(Box::new(if_else)))
+    }
+
+    pub(super) fn r#while(span: Span, body: While) -> Self {
+        Self::new(span, Value::While(Box::new(body)))
+    }
+
+    pub(super) fn r#match(span: Span, body: Match) -> Self {
+        Self::new(span, Value::Match(Box::new(body)))
     }
 
     pub(super) fn end(span: Span) -> Self {
@@ -238,10 +254,10 @@ pub enum Value {
     Assignment(Box<Assignment>),
     Mapping(Box<(Expression, Expression)>),
     Number(Box<NumberLiteral>),
-    Character(Box<CharacterLiteral>),
-    String(Box<StringLiteral>),
+    Character(char),
+    String(String),
     Bits(Box<BitsLiteral>),
-    Boolean(Box<BooleanLiteral>),
+    Boolean(bool),
     Unit,
     Atom(Box<AtomLiteral>),
     Query(Box<Query>),

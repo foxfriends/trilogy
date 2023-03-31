@@ -80,6 +80,10 @@ impl MatchStatementCase {
             body,
         })
     }
+
+    pub fn case_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 impl Spanned for MatchStatementCase {

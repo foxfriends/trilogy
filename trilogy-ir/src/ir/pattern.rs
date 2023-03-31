@@ -26,6 +26,13 @@ impl Pattern {
             value: Value::Binding(Box::new(id)),
         }
     }
+
+    pub(super) fn wildcard(span: Span) -> Self {
+        Self {
+            span,
+            value: Value::Wildcard,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -34,10 +41,10 @@ pub enum Value {
     Disjunction(Box<(Pattern, Pattern)>),
     Mapping(Box<(Pattern, Pattern)>),
     Number(Box<NumberLiteral>),
-    Character(Box<CharacterLiteral>),
-    String(Box<StringLiteral>),
+    Character(char),
+    String(String),
     Bits(Box<BitsLiteral>),
-    Boolean(Box<BooleanLiteral>),
+    Boolean(bool),
     Unit,
     Atom(Box<AtomLiteral>),
     Negative(Box<Pattern>),

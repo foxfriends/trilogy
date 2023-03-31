@@ -4,7 +4,7 @@ use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
 pub struct TestDefinition {
-    pub name: StringLiteral,
+    pub name: String,
     pub body: Expression,
 }
 
