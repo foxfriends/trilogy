@@ -40,6 +40,10 @@ impl ElseHandler {
             body,
         })
     }
+
+    pub fn else_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 impl Spanned for ElseHandler {

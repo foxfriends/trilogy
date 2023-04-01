@@ -118,7 +118,10 @@ impl Expression {
             ),
             Expression(ast) => Self::convert(analyzer, *ast),
             Assert(ast) => Self::assert(ast.span(), crate::ir::Assert::convert(analyzer, *ast)),
-            Handled(..) => todo!(),
+            Handled(ast) => Self::handled(
+                ast.span(),
+                crate::ir::Handled::convert_block(analyzer, *ast),
+            ),
             Block(ast) => {
                 analyzer.push_scope();
                 let block = Self::convert_block(analyzer, *ast);
@@ -204,6 +207,10 @@ impl Expression {
 
     pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
         Self::new(span, Value::Let(Box::new(Let::new(query, body))))
+    }
+
+    pub(super) fn handled(span: Span, handled: Handled) -> Self {
+        Self::new(span, Value::Handled(Box::new(handled)))
     }
 
     pub(super) fn iterator(span: Span, query: Expression, value: Expression) -> Self {

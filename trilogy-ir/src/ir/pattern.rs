@@ -5,7 +5,7 @@ use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
 pub struct Pattern {
-    span: Span,
+    pub span: Span,
     pub value: Value,
 }
 
@@ -31,6 +31,13 @@ impl Pattern {
         Self {
             span,
             value: Value::Wildcard,
+        }
+    }
+
+    pub(super) fn and(self, span: Span, pattern: Pattern) -> Self {
+        Self {
+            span,
+            value: Value::Conjunction(Box::new((self, pattern))),
         }
     }
 }

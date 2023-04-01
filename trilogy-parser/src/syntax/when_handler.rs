@@ -7,6 +7,7 @@ use trilogy_scanner::{Token, TokenType::*};
 pub struct WhenHandler {
     start: Token,
     pub pattern: Pattern,
+    pub guard: Option<Expression>,
     pub strategy: HandlerStrategy,
     pub body: Option<HandlerBody>,
 }
@@ -17,6 +18,11 @@ impl WhenHandler {
             .expect(KwWhen)
             .expect("Caller should have found this");
         let pattern = Pattern::parse(parser)?;
+        let guard = parser
+            .expect(KwIf)
+            .ok()
+            .map(|_| Expression::parse(parser))
+            .transpose()?;
         let strategy = HandlerStrategy::parse(parser)?;
         let body = if !matches!(strategy, HandlerStrategy::Yield(..)) {
             Some(HandlerBody::parse(parser)?)
@@ -26,6 +32,7 @@ impl WhenHandler {
 
         Ok(Self {
             start,
+            guard,
             pattern,
             strategy,
             body,
