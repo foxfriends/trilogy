@@ -10,6 +10,18 @@ pub struct IfElse {
 }
 
 impl IfElse {
+    pub(super) fn new(
+        condition: Expression,
+        when_true: Expression,
+        when_false: Expression,
+    ) -> Self {
+        Self {
+            condition,
+            when_true,
+            when_false,
+        }
+    }
+
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::IfStatement) -> Expression {
         let span = ast.span();
         let when_false = ast
@@ -23,14 +35,7 @@ impl IfElse {
                 let span = branch.span();
                 let condition = Expression::convert(analyzer, branch.condition);
                 let when_true = Expression::convert_block(analyzer, branch.body);
-                Expression::if_else(
-                    span,
-                    Self {
-                        condition,
-                        when_true,
-                        when_false,
-                    },
-                )
+                Expression::if_else(span, Self::new(condition, when_true, when_false))
             })
     }
 }

@@ -1,9 +1,13 @@
 use super::*;
-use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct Iterator {
-    span: Span,
     pub value: Expression,
     pub query: Expression,
+}
+
+impl Iterator {
+    pub(super) fn new(query: Expression, value: Expression) -> Self {
+        Self { value, query }
+    }
 }

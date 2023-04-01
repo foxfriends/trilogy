@@ -57,6 +57,10 @@ impl ForStatementBranch {
         let body = Block::parse(parser)?;
         Ok(Self { start, query, body })
     }
+
+    pub fn for_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 #[cfg(test)]

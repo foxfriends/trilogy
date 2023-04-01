@@ -64,7 +64,7 @@ impl Expression {
             If(ast) => IfElse::convert(analyzer, *ast),
             Match(ast) => crate::ir::Match::convert(analyzer, *ast),
             While(ast) => crate::ir::While::convert(analyzer, *ast),
-            For(ast) => crate::ir::For::convert(analyzer, *ast),
+            For(ast) => Self::convert_for_statement(analyzer, *ast),
             Break(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.span(), Builtin::Break),
@@ -166,6 +166,34 @@ impl Expression {
             })
     }
 
+    pub(super) fn convert_for_statement(
+        analyzer: &mut Analyzer,
+        ast: syntax::ForStatement,
+    ) -> Self {
+        let else_block = ast
+            .else_block
+            .map(|ast| Expression::convert_block(analyzer, ast));
+
+        else_block
+            .into_iter()
+            .chain(ast.branches.into_iter().rev().map(|branch| {
+                let for_span = branch.for_token().span;
+                let span = branch.span();
+                let query = Expression::convert_query(analyzer, branch.query);
+                let value = Expression::convert_block(analyzer, branch.body);
+                Expression::builtin(for_span, Builtin::For)
+                    .apply_to(span, Expression::iterator(span, query, value))
+            }))
+            .reduce(|if_none, case| {
+                let case_span = case.span;
+                Expression::if_else(
+                    case.span.union(if_none.span),
+                    IfElse::new(case, Expression::boolean(case_span, true), if_none),
+                )
+            })
+            .unwrap()
+    }
+
     pub(super) fn new(span: Span, value: Value) -> Self {
         Self { span, value }
     }
@@ -176,6 +204,10 @@ impl Expression {
 
     pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
         Self::new(span, Value::Let(Box::new(Let::new(query, body))))
+    }
+
+    pub(super) fn iterator(span: Span, query: Expression, value: Expression) -> Self {
+        Self::new(span, Value::Iterator(Box::new(Iterator::new(query, value))))
     }
 
     pub(super) fn assignment(span: Span, assignment: Assignment) -> Self {
