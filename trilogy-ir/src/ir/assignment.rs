@@ -45,19 +45,15 @@ impl Assignment {
                 let receiver_id = Identifier::temporary(analyzer, receiver_span);
                 let receiver_expression = Expression::reference(receiver_span, receiver_id.clone());
                 let receiver_pattern = Pattern::binding(receiver_span, receiver_id);
-                let receiver_query = Query::direct(
-                    receiver_span,
-                    DirectUnification::new(receiver_pattern, receiver),
-                );
+                let receiver_query =
+                    Query::direct(receiver_span, Unification::new(receiver_pattern, receiver));
 
                 let property_span = property.span;
                 let property_id = Identifier::temporary(analyzer, property_span);
                 let property_expression = Expression::reference(property_span, property_id.clone());
                 let property_pattern = Pattern::binding(property_span, property_id);
-                let property_query = Query::direct(
-                    property_span,
-                    DirectUnification::new(property_pattern, property),
-                );
+                let property_query =
+                    Query::direct(property_span, Unification::new(property_pattern, property));
 
                 let lhs = Expression::builtin(access_span, Builtin::Access)
                     .apply_to(access_span.union(receiver_span), receiver_expression)
@@ -111,19 +107,15 @@ impl Assignment {
                 let receiver_id = Identifier::temporary(analyzer, receiver_span);
                 let receiver_expression = Expression::reference(receiver_span, receiver_id.clone());
                 let receiver_pattern = Pattern::binding(receiver_span, receiver_id);
-                let receiver_query = Query::direct(
-                    receiver_span,
-                    DirectUnification::new(receiver_pattern, receiver),
-                );
+                let receiver_query =
+                    Query::direct(receiver_span, Unification::new(receiver_pattern, receiver));
 
                 let property_span = property.span;
                 let property_id = Identifier::temporary(analyzer, property_span);
                 let property_expression = Expression::reference(property_span, property_id.clone());
                 let property_pattern = Pattern::binding(property_span, property_id);
-                let property_query = Query::direct(
-                    property_span,
-                    DirectUnification::new(property_pattern, property),
-                );
+                let property_query =
+                    Query::direct(property_span, Unification::new(property_pattern, property));
 
                 let lhs = Expression::builtin(access_span, Builtin::Access)
                     .apply_to(access_span.union(receiver_span), receiver_expression)

@@ -51,6 +51,7 @@ impl ModulePath {
                 let member = Identifier::parse(parser)?;
                 return Ok(Err(Path {
                     module: Some(module),
+                    join_token: Some(token),
                     member,
                 }));
             }

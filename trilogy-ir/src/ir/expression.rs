@@ -154,6 +154,26 @@ impl Expression {
         })
     }
 
+    pub(super) fn convert_path(analyzer: &mut Analyzer, ast: syntax::Path) -> Self {
+        let span = ast.span();
+        let join_token = ast.join_token().map(|token| token.span);
+        match ast.module {
+            Some(module) => {
+                let module_span = module.span();
+                let join_span = join_token.unwrap();
+                Self::builtin(join_span, Builtin::ModuleAccess)
+                    .apply_to(
+                        module_span.union(join_span),
+                        Self::convert_module_path(analyzer, module),
+                    )
+                    .apply_to(span, Self::dynamic(ast.member))
+            }
+            None => Identifier::declared(analyzer, &ast.member)
+                .map(|identifier| Self::reference(span, identifier))
+                .unwrap_or_else(|| Self::dynamic(ast.member)), // TODO: is dynamic the best way? or error?
+        }
+    }
+
     fn convert_module_reference(analyzer: &mut Analyzer, ast: syntax::ModuleReference) -> Self {
         let id = Identifier::declared(analyzer, &ast.name).unwrap_or_else(|| {
             analyzer.error(Error::UnknownModule {
@@ -169,10 +189,7 @@ impl Expression {
             })
     }
 
-    pub(super) fn convert_for_statement(
-        analyzer: &mut Analyzer,
-        ast: syntax::ForStatement,
-    ) -> Self {
+    fn convert_for_statement(analyzer: &mut Analyzer, ast: syntax::ForStatement) -> Self {
         let else_block = ast
             .else_block
             .map(|ast| Expression::convert_block(analyzer, ast));

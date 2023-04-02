@@ -1,11 +1,12 @@
 use super::*;
 use crate::{spanned::Spanned, Parser};
 use source_span::Span;
-use trilogy_scanner::TokenType;
+use trilogy_scanner::{Token, TokenType};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Path {
     pub module: Option<ModulePath>,
+    pub(super) join_token: Option<Token>,
     pub member: Identifier,
 }
 
@@ -17,13 +18,25 @@ impl Path {
             .map(|_| ())
             .map(|_| ModulePath::parse(parser))
             .transpose()?;
-        if module.is_some() {
-            parser
-                .expect(TokenType::OpColonColon)
-                .expect("a path must end with an identifier");
-        }
+        let join_token = if module.is_some() {
+            Some(
+                parser
+                    .expect(TokenType::OpColonColon)
+                    .expect("a path must end with an identifier"),
+            )
+        } else {
+            None
+        };
         let member = Identifier::parse(parser)?;
-        Ok(Self { module, member })
+        Ok(Self {
+            module,
+            join_token,
+            member,
+        })
+    }
+
+    pub fn join_token(&self) -> Option<&Token> {
+        self.join_token.as_ref()
     }
 }
 
@@ -40,6 +53,7 @@ impl From<Identifier> for Path {
     fn from(member: Identifier) -> Self {
         Self {
             module: None,
+            join_token: None,
             member,
         }
     }
