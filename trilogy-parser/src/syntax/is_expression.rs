@@ -14,4 +14,8 @@ impl IsExpression {
         let query = Query::parse(parser)?;
         Ok(Self { start, query })
     }
+
+    pub fn is_token(&self) -> &Token {
+        &self.start
+    }
 }

@@ -16,6 +16,10 @@ impl CancelExpression {
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self { start, expression })
     }
+
+    pub fn cancel_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 #[cfg(test)]

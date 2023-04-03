@@ -10,8 +10,80 @@ pub struct Expression {
 }
 
 impl Expression {
-    pub(super) fn convert(_analyzer: &mut Analyzer, _ast: syntax::Expression) -> Self {
-        todo!()
+    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Expression) -> Self {
+        use syntax::Expression::*;
+        match ast {
+            Number(ast) => Self::number(ast.span(), crate::ir::Number::convert(*ast)),
+            Character(ast) => Self::character(ast.span(), ast.value()),
+            String(ast) => Self::string(ast.span(), (*ast).as_ref().to_owned()),
+            Bits(..) => todo!(),
+            Boolean(ast) => Self::boolean(ast.span(), ast.value()),
+            Unit(ast) => Self::unit(ast.span()),
+            Atom(..) => todo!(),
+            Struct(..) => todo!(),
+            Array(..) => todo!(),
+            Set(..) => todo!(),
+            Record(..) => todo!(),
+            ArrayComprehension(..) => todo!(),
+            SetComprehension(..) => todo!(),
+            RecordComprehension(..) => todo!(),
+            IteratorComprehension(..) => todo!(),
+            Reference(ast) => Self::convert_path(analyzer, *ast),
+            Keyword(..) => todo!(),
+            Application(ast) => Self::application(
+                ast.span(),
+                Self::convert(analyzer, ast.function),
+                Self::convert(analyzer, ast.argument),
+            ),
+            Call(..) => todo!(),
+            Binary(..) => todo!(),
+            Unary(..) => todo!(),
+            Let(..) => todo!(),
+            IfElse(..) => todo!(),
+            Match(..) => todo!(),
+            Is(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.is_token().span, Builtin::Is),
+                Self::convert_query(analyzer, ast.query),
+            ),
+            End(ast) => Self::end(ast.span()),
+            Exit(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.exit_token().span, Builtin::Exit),
+                Self::convert(analyzer, ast.expression),
+            ),
+            Resume(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.resume_token().span, Builtin::Resume),
+                Self::convert(analyzer, ast.expression),
+            ),
+            Cancel(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.cancel_token().span, Builtin::Cancel),
+                Self::convert(analyzer, ast.expression),
+            ),
+            Return(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.return_token().span, Builtin::Return),
+                Self::convert(analyzer, ast.expression),
+            ),
+            Break(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.break_token().span, Builtin::Break),
+                Self::convert(analyzer, ast.expression),
+            ),
+            Continue(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.continue_token().span, Builtin::Continue),
+                Self::convert(analyzer, ast.expression),
+            ),
+            Fn(..) => todo!(),
+            Do(..) => todo!(),
+            Template(..) => todo!(),
+            Handled(..) => todo!(),
+            Parenthesized(ast) => Self::convert(analyzer, ast.expression),
+            Module(ast) => Self::convert_module_path(analyzer, *ast),
+        }
     }
 
     pub(super) fn convert_block(analyzer: &mut Analyzer, ast: syntax::Block) -> Self {
@@ -79,7 +151,7 @@ impl Expression {
                 let span = ast.span();
                 Self::application(
                     span,
-                    Self::builtin(ast.resume_token().span(), Builtin::Resume),
+                    Self::builtin(ast.resume_token().span, Builtin::Resume),
                     ast.expression
                         .map(|ast| Self::convert(analyzer, ast))
                         .unwrap_or_else(|| Self::unit(span)),
@@ -89,7 +161,7 @@ impl Expression {
                 let span = ast.span();
                 Self::application(
                     span,
-                    Self::builtin(ast.cancel_token().span(), Builtin::Cancel),
+                    Self::builtin(ast.cancel_token().span, Builtin::Cancel),
                     ast.expression
                         .map(|ast| Self::convert(analyzer, ast))
                         .unwrap_or_else(|| Self::unit(span)),
@@ -99,7 +171,7 @@ impl Expression {
                 let span = ast.span();
                 Self::application(
                     span,
-                    Self::builtin(ast.return_token().span(), Builtin::Return),
+                    Self::builtin(ast.return_token().span, Builtin::Return),
                     ast.expression
                         .map(|ast| Self::convert(analyzer, ast))
                         .unwrap_or_else(|| Self::unit(span)),
@@ -108,12 +180,12 @@ impl Expression {
             End(ast) => Self::end(ast.span()),
             Exit(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.exit_token().span(), Builtin::Exit),
+                Self::builtin(ast.exit_token().span, Builtin::Exit),
                 Self::convert(analyzer, ast.expression),
             ),
             Yield(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.yield_token().span(), Builtin::Yield),
+                Self::builtin(ast.yield_token().span, Builtin::Yield),
                 Self::convert(analyzer, ast.expression),
             ),
             Expression(ast) => Self::convert(analyzer, *ast),
@@ -222,6 +294,18 @@ impl Expression {
         Self::new(span, Value::Boolean(value))
     }
 
+    pub(super) fn number(span: Span, value: Number) -> Self {
+        Self::new(span, Value::Number(Box::new(value)))
+    }
+
+    pub(super) fn string(span: Span, value: String) -> Self {
+        Self::new(span, Value::String(value))
+    }
+
+    pub(super) fn character(span: Span, value: char) -> Self {
+        Self::new(span, Value::Character(value))
+    }
+
     pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
         Self::new(span, Value::Let(Box::new(Let::new(query, body))))
     }
@@ -309,7 +393,7 @@ pub enum Value {
     Sequence(Vec<Expression>),
     Assignment(Box<Assignment>),
     Mapping(Box<(Expression, Expression)>),
-    Number(Box<NumberLiteral>),
+    Number(Box<Number>),
     Character(char),
     String(String),
     Bits(Box<BitsLiteral>),

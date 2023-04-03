@@ -47,7 +47,7 @@ pub enum Value {
     Conjunction(Box<(Pattern, Pattern)>),
     Disjunction(Box<(Pattern, Pattern)>),
     Mapping(Box<(Pattern, Pattern)>),
-    Number(Box<NumberLiteral>),
+    Number(Box<Number>),
     Character(char),
     String(String),
     Bits(Box<BitsLiteral>),

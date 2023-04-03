@@ -16,6 +16,10 @@ impl ContinueExpression {
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self { start, expression })
     }
+
+    pub fn continue_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 #[cfg(test)]

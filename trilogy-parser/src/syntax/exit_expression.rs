@@ -16,6 +16,10 @@ impl ExitExpression {
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self { start, expression })
     }
+
+    pub fn exit_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 #[cfg(test)]

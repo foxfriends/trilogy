@@ -1,6 +1,7 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::{Token, TokenType};
+use num::{rational::BigRational, Complex};
+use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct NumberLiteral {
@@ -13,5 +14,10 @@ impl NumberLiteral {
             .expect(TokenType::Numeric)
             .map_err(|token| parser.expected(token, "expected number literal"))?;
         Ok(Self { token })
+    }
+
+    pub fn value(&self) -> Complex<BigRational> {
+        let TokenValue::Number(number) = self.token.value.as_ref().unwrap() else {unreachable!()};
+        *number.clone()
     }
 }

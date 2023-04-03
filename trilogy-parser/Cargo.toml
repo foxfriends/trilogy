@@ -14,3 +14,4 @@ trilogy-scanner = { path = "../trilogy-scanner/" }
 source-span = "2.7.0"
 peekmore = { version = "1.0.0", features = ["smallvec"] }
 pretty = { version = "0.11.3" }
+num = "0.4.0"

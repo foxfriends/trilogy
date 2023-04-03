@@ -16,4 +16,8 @@ impl ResumeExpression {
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self { start, expression })
     }
+
+    pub fn resume_token(&self) -> &Token {
+        &self.start
+    }
 }

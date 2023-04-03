@@ -1,6 +1,6 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::{Token, TokenType};
+use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct CharacterLiteral {
@@ -13,6 +13,11 @@ impl CharacterLiteral {
             .expect(TokenType::Character)
             .map_err(|token| parser.expected(token, "expected character literal"))?;
         Ok(Self { token })
+    }
+
+    pub fn value(&self) -> char {
+        let TokenValue::Char(character) = self.token.value.as_ref().unwrap() else { unreachable!() };
+        *character
     }
 }
 

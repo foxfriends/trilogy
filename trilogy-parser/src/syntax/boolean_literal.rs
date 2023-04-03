@@ -14,6 +14,14 @@ impl BooleanLiteral {
             .map_err(|token| parser.expected(token, "expected boolean literal"))?;
         Ok(Self { token })
     }
+
+    pub fn value(&self) -> bool {
+        match self.token.token_type {
+            TokenType::KwTrue => true,
+            TokenType::KwFalse => false,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[cfg(test)]
