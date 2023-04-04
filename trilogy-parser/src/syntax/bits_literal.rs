@@ -1,6 +1,7 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::{Token, TokenType};
+use bitvec::vec::BitVec;
+use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct BitsLiteral {
@@ -13,6 +14,11 @@ impl BitsLiteral {
             .expect(TokenType::Bits)
             .map_err(|token| parser.expected(token, "expected bits literal"))?;
         Ok(Self { token })
+    }
+
+    pub fn value(&self) -> BitVec {
+        let TokenValue::Bits(bits) = self.token.value.as_ref().unwrap() else { unreachable!() };
+        bits.clone()
     }
 }
 

@@ -1,6 +1,6 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::{Token, TokenType};
+use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct AtomLiteral {
@@ -13,6 +13,11 @@ impl AtomLiteral {
             .expect(TokenType::Atom)
             .map_err(|token| parser.expected(token, "expected atom literal"))?;
         Ok(Self { token })
+    }
+
+    pub fn value(&self) -> String {
+        let TokenValue::String(value) = self.token.value.as_ref().unwrap() else { unreachable!() };
+        value.clone()
     }
 }
 

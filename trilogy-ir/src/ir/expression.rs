@@ -15,12 +15,16 @@ impl Expression {
         match ast {
             Number(ast) => Self::number(ast.span(), crate::ir::Number::convert(*ast)),
             Character(ast) => Self::character(ast.span(), ast.value()),
-            String(ast) => Self::string(ast.span(), (*ast).as_ref().to_owned()),
-            Bits(..) => todo!(),
+            String(ast) => Self::string(ast.span(), ast.value()),
+            Bits(ast) => Self::bits(ast.span(), crate::ir::Bits::convert(*ast)),
             Boolean(ast) => Self::boolean(ast.span(), ast.value()),
             Unit(ast) => Self::unit(ast.span()),
-            Atom(..) => todo!(),
-            Struct(..) => todo!(),
+            Atom(ast) => Self::atom(ast.span(), ast.value()),
+            Struct(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.atom.span(), Builtin::Construct),
+                Self::convert(analyzer, ast.value),
+            ),
             Array(..) => todo!(),
             Set(..) => todo!(),
             Record(..) => todo!(),
@@ -29,7 +33,7 @@ impl Expression {
             RecordComprehension(..) => todo!(),
             IteratorComprehension(..) => todo!(),
             Reference(ast) => Self::convert_path(analyzer, *ast),
-            Keyword(..) => todo!(),
+            Keyword(ast) => Self::builtin(ast.span(), Builtin::convert(*ast)),
             Application(ast) => Self::application(
                 ast.span(),
                 Self::convert(analyzer, ast.function),
@@ -306,6 +310,18 @@ impl Expression {
         Self::new(span, Value::Character(value))
     }
 
+    pub(super) fn bits(span: Span, value: Bits) -> Self {
+        Self::new(span, Value::Bits(value))
+    }
+
+    pub(super) fn atom(span: Span, value: String) -> Self {
+        Self::new(span, Value::Atom(value))
+    }
+
+    pub(super) fn unit(span: Span) -> Self {
+        Self::new(span, Value::Unit)
+    }
+
     pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
         Self::new(span, Value::Let(Box::new(Let::new(query, body))))
     }
@@ -336,10 +352,6 @@ impl Expression {
 
     pub(super) fn end(span: Span) -> Self {
         Self::new(span, Value::End)
-    }
-
-    pub(super) fn unit(span: Span) -> Self {
-        Self::new(span, Value::Unit)
     }
 
     pub(super) fn dynamic(identifier: syntax::Identifier) -> Self {
@@ -396,10 +408,10 @@ pub enum Value {
     Number(Box<Number>),
     Character(char),
     String(String),
-    Bits(Box<BitsLiteral>),
+    Bits(Bits),
     Boolean(bool),
     Unit,
-    Atom(Box<AtomLiteral>),
+    Atom(String),
     Query(Box<Query>),
     Iterator(Box<Iterator>),
     While(Box<While>),
