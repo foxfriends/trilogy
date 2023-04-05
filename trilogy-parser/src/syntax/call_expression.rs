@@ -6,6 +6,7 @@ use trilogy_scanner::{Token, TokenType::*};
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct CallExpression {
     pub procedure: Expression,
+    start: Token,
     pub arguments: Vec<Expression>,
     end: Token,
 }
@@ -18,7 +19,7 @@ impl Spanned for CallExpression {
 
 impl CallExpression {
     pub(crate) fn parse(parser: &mut Parser, procedure: Expression) -> SyntaxResult<Self> {
-        parser.expect_bang_oparen().map_err(|token| {
+        let (_, start) = parser.expect_bang_oparen().map_err(|token| {
             parser.expected(
                 token,
                 "expected `!(` in procedure call, there may not be a space",
@@ -39,9 +40,18 @@ impl CallExpression {
         };
         Ok(Self {
             procedure,
+            start,
             arguments,
             end,
         })
+    }
+
+    pub fn start_token(&self) -> &Token {
+        &self.start
+    }
+
+    pub fn end_token(&self) -> &Token {
+        &self.end
     }
 }
 

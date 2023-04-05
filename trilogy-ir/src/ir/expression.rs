@@ -66,7 +66,18 @@ impl Expression {
                 Self::convert(analyzer, ast.function),
                 Self::convert(analyzer, ast.argument),
             ),
-            Call(..) => todo!(),
+            Call(ast) => {
+                let span = ast.span();
+                let argument_span = ast.start_token().span.union(ast.end_token().span);
+                let proc = Self::convert(analyzer, ast.procedure);
+                let arguments = ast
+                    .arguments
+                    .into_iter()
+                    .map(|ast| Self::convert(analyzer, ast))
+                    .collect::<Pack>();
+                let arguments = Self::pack(argument_span, arguments);
+                Self::application(span, proc, arguments)
+            }
             Binary(..) => todo!(),
             Unary(..) => todo!(),
             Let(..) => todo!(),
