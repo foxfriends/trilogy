@@ -25,9 +25,36 @@ impl Expression {
                 Self::builtin(ast.atom.span(), Builtin::Construct),
                 Self::convert(analyzer, ast.value),
             ),
-            Array(..) => todo!(),
-            Set(..) => todo!(),
-            Record(..) => todo!(),
+            Array(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let elements = ast
+                    .elements
+                    .into_iter()
+                    .map(|element| Element::convert_array(analyzer, element))
+                    .collect::<Pack>();
+                Self::builtin(start_span, Builtin::Array).apply_to(span, Self::pack(span, elements))
+            }
+            Set(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let elements = ast
+                    .elements
+                    .into_iter()
+                    .map(|element| Element::convert_set(analyzer, element))
+                    .collect::<Pack>();
+                Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
+            }
+            Record(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let elements = ast
+                    .elements
+                    .into_iter()
+                    .map(|element| Element::convert_record(analyzer, element))
+                    .collect::<Pack>();
+                Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
+            }
             ArrayComprehension(..) => todo!(),
             SetComprehension(..) => todo!(),
             RecordComprehension(..) => todo!(),
@@ -320,6 +347,14 @@ impl Expression {
 
     pub(super) fn unit(span: Span) -> Self {
         Self::new(span, Value::Unit)
+    }
+
+    pub(super) fn pack(span: Span, pack: Pack) -> Self {
+        Self::new(span, Value::Pack(Box::new(pack)))
+    }
+
+    pub(super) fn mapping(span: Span, key: Expression, value: Expression) -> Self {
+        Self::new(span, Value::Mapping(Box::new((key, value))))
     }
 
     pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {

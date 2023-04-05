@@ -67,6 +67,14 @@ impl RecordLiteral {
             end,
         })
     }
+
+    pub fn start_token(&self) -> &Token {
+        &self.start
+    }
+
+    pub fn end_token(&self) -> &Token {
+        &self.end
+    }
 }
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]

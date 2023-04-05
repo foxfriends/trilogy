@@ -61,7 +61,7 @@ pub use lookup::Lookup;
 pub use module::Module;
 use module_definition::{EitherModule, ModuleDefinition};
 pub use number::Number;
-pub use pack::Pack;
+pub use pack::{Element, Pack};
 pub use pattern::Pattern;
 pub use procedure::Procedure;
 use procedure_definition::ProcedureDefinition;

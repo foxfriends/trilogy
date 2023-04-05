@@ -62,6 +62,14 @@ impl ArrayLiteral {
             end,
         })
     }
+
+    pub fn start_token(&self) -> &Token {
+        &self.start
+    }
+
+    pub fn end_token(&self) -> &Token {
+        &self.end
+    }
 }
 
 impl Spanned for ArrayLiteral {
