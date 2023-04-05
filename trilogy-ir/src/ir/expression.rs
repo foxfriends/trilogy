@@ -55,10 +55,41 @@ impl Expression {
                     .collect::<Pack>();
                 Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
             }
-            ArrayComprehension(..) => todo!(),
-            SetComprehension(..) => todo!(),
-            RecordComprehension(..) => todo!(),
-            IteratorComprehension(..) => todo!(),
+            ArrayComprehension(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let iterator = Self::convert_iterator(analyzer, ast.query, ast.expression);
+                Self::builtin(start_span, Builtin::Array).apply_to(span, iterator)
+            }
+            SetComprehension(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let iterator = Self::convert_iterator(analyzer, ast.query, ast.expression);
+                Self::builtin(start_span, Builtin::Set).apply_to(span, iterator)
+            }
+            RecordComprehension(ast) => {
+                let span = ast.span();
+                let start_span = ast.start_token().span;
+                let iter_span = ast
+                    .query
+                    .span()
+                    .union(ast.key_expression.span())
+                    .union(ast.expression.span());
+                analyzer.push_scope();
+                let query = Self::convert_query(analyzer, ast.query);
+                let key = Self::convert(analyzer, ast.key_expression);
+                let value = Self::convert(analyzer, ast.expression);
+                analyzer.pop_scope();
+                let iterator = Self::iterator(
+                    iter_span,
+                    query,
+                    Self::mapping(key.span.union(value.span), key, value),
+                );
+                Self::builtin(start_span, Builtin::Set).apply_to(span, iterator)
+            }
+            IteratorComprehension(ast) => {
+                Self::convert_iterator(analyzer, ast.query, ast.expression)
+            }
             Reference(ast) => Self::convert_path(analyzer, *ast),
             Keyword(ast) => Self::builtin(ast.span(), Builtin::convert(*ast)),
             Application(ast) => Self::application(
@@ -130,7 +161,9 @@ impl Expression {
 
     pub(super) fn convert_block(analyzer: &mut Analyzer, ast: syntax::Block) -> Self {
         let span = ast.span();
+        analyzer.push_scope();
         let sequence = Self::convert_sequence(analyzer, &mut ast.statements.into_iter());
+        analyzer.pop_scope();
         Self::sequence(span, sequence)
     }
 
@@ -166,9 +199,7 @@ impl Expression {
             Let(ast) => {
                 let span = ast.span();
                 let query = Query::convert(analyzer, ast.query);
-                analyzer.push_scope();
                 let body = Self::convert_sequence(analyzer, rest);
-                analyzer.pop_scope();
                 // TODO: Span::default() is not best here, but there's not really a proper span for
                 // this, so what to do?
                 Self::r#let(span, query, Self::sequence(Span::default(), body))
@@ -236,12 +267,7 @@ impl Expression {
                 ast.span(),
                 crate::ir::Handled::convert_block(analyzer, *ast),
             ),
-            Block(ast) => {
-                analyzer.push_scope();
-                let block = Self::convert_block(analyzer, *ast);
-                analyzer.pop_scope();
-                block
-            }
+            Block(ast) => Self::convert_block(analyzer, *ast),
         }
     }
 
@@ -313,8 +339,10 @@ impl Expression {
             .chain(ast.branches.into_iter().rev().map(|branch| {
                 let for_span = branch.for_token().span;
                 let span = branch.span();
+                analyzer.push_scope();
                 let query = Expression::convert_query(analyzer, branch.query);
                 let value = Expression::convert_block(analyzer, branch.body);
+                analyzer.pop_scope();
                 Expression::builtin(for_span, Builtin::For)
                     .apply_to(span, Expression::iterator(span, query, value))
             }))
@@ -326,6 +354,19 @@ impl Expression {
                 )
             })
             .unwrap()
+    }
+
+    fn convert_iterator(
+        analyzer: &mut Analyzer,
+        query: syntax::Query,
+        expression: syntax::Expression,
+    ) -> Self {
+        let span = query.span().union(expression.span());
+        analyzer.push_scope();
+        let query = Self::convert_query(analyzer, query);
+        let body = Self::convert(analyzer, expression);
+        analyzer.pop_scope();
+        Self::iterator(span, query, body)
     }
 
     pub(super) fn new(span: Span, value: Value) -> Self {

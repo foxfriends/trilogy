@@ -34,6 +34,7 @@ impl Case {
     fn convert(analyzer: &mut Analyzer, ast: syntax::MatchStatementCase) -> Self {
         let case_span = ast.case_token().span;
         let span = ast.span();
+        analyzer.push_scope();
         let pattern = ast
             .pattern
             .map(|ast| Pattern::convert(analyzer, ast))
@@ -43,6 +44,7 @@ impl Case {
             .map(|ast| Expression::convert(analyzer, ast))
             .unwrap_or_else(|| Expression::boolean(case_span, true));
         let body = Expression::convert_block(analyzer, ast.body);
+        analyzer.pop_scope();
         Self {
             span,
             pattern,
