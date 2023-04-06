@@ -111,7 +111,7 @@ impl Expression {
             }
             Binary(..) => todo!(),
             Unary(..) => todo!(),
-            Let(..) => todo!(),
+            Let(ast) => crate::ir::Let::convert(analyzer, *ast),
             IfElse(ast) => crate::ir::IfElse::convert_expression(analyzer, *ast),
             Match(ast) => crate::ir::Match::convert_expression(analyzer, *ast),
             Is(ast) => Self::application(
@@ -153,7 +153,7 @@ impl Expression {
             Fn(..) => todo!(),
             Do(..) => todo!(),
             Template(..) => todo!(),
-            Handled(..) => todo!(),
+            Handled(ast) => crate::ir::Handled::convert_expression(analyzer, *ast),
             Parenthesized(ast) => Self::convert(analyzer, ast.expression),
             Module(ast) => Self::convert_module_path(analyzer, *ast),
         }
@@ -167,7 +167,7 @@ impl Expression {
         Self::sequence(span, sequence)
     }
 
-    fn convert_sequence(
+    pub(super) fn convert_sequence(
         analyzer: &mut Analyzer,
         statements: &mut impl std::iter::Iterator<Item = syntax::Statement>,
     ) -> Vec<Self> {
@@ -196,14 +196,7 @@ impl Expression {
     ) -> Self {
         use syntax::Statement::*;
         match ast {
-            Let(ast) => {
-                let span = ast.span();
-                let query = Query::convert(analyzer, ast.query);
-                let body = Self::convert_sequence(analyzer, rest);
-                // TODO: Span::default() is not best here, but there's not really a proper span for
-                // this, so what to do?
-                Self::r#let(span, query, Self::sequence(Span::default(), body))
-            }
+            Let(ast) => crate::ir::Let::convert_statement(analyzer, *ast, rest),
             Assignment(ast) => crate::ir::Assignment::convert(analyzer, *ast),
             FunctionAssignment(ast) => crate::ir::Assignment::convert_function(analyzer, *ast),
             If(ast) => IfElse::convert_statement(analyzer, *ast),
@@ -263,10 +256,7 @@ impl Expression {
             ),
             Expression(ast) => Self::convert(analyzer, *ast),
             Assert(ast) => Self::assert(ast.span(), crate::ir::Assert::convert(analyzer, *ast)),
-            Handled(ast) => Self::handled(
-                ast.span(),
-                crate::ir::Handled::convert_block(analyzer, *ast),
-            ),
+            Handled(ast) => crate::ir::Handled::convert_block(analyzer, *ast),
             Block(ast) => Self::convert_block(analyzer, *ast),
         }
     }
@@ -409,8 +399,8 @@ impl Expression {
         Self::new(span, Value::Mapping(Box::new((key, value))))
     }
 
-    pub(super) fn r#let(span: Span, query: Query, body: Expression) -> Self {
-        Self::new(span, Value::Let(Box::new(Let::new(query, body))))
+    pub(super) fn r#let(span: Span, body: Let) -> Self {
+        Self::new(span, Value::Let(Box::new(body)))
     }
 
     pub(super) fn handled(span: Span, handled: Handled) -> Self {
@@ -481,7 +471,7 @@ impl Expression {
     }
 
     pub(super) fn in_let(self, span: Span, query: Query) -> Self {
-        Expression::r#let(span, query, self)
+        Expression::r#let(span, Let::new(query, self))
     }
 }
 
