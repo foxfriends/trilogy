@@ -91,7 +91,7 @@ impl Expression {
                 Self::convert_iterator(analyzer, ast.query, ast.expression)
             }
             Reference(ast) => Self::convert_path(analyzer, *ast),
-            Keyword(ast) => Self::builtin(ast.span(), Builtin::convert(*ast)),
+            Keyword(ast) => Builtin::convert(*ast),
             Application(ast) => Self::application(
                 ast.span(),
                 Self::convert(analyzer, ast.function),
@@ -109,21 +109,16 @@ impl Expression {
                 let arguments = Self::pack(argument_span, arguments);
                 Self::application(span, proc, arguments)
             }
-            Binary(..) => todo!(),
+            Binary(ast) => {
+                let span = ast.span();
+                let lhs_span = ast.operator.span().union(ast.lhs.span());
+                let op = Builtin::convert_binary(ast.operator);
+                op.apply_to(lhs_span, Self::convert(analyzer, ast.lhs))
+                    .apply_to(span, Self::convert(analyzer, ast.rhs))
+            }
             Unary(ast) => {
                 let span = ast.span();
-                let op = match ast.operator {
-                    syntax::UnaryOperator::Invert(token) => {
-                        Self::builtin(token.span, Builtin::Invert)
-                    }
-                    syntax::UnaryOperator::Negate(token) => {
-                        Self::builtin(token.span, Builtin::Negate)
-                    }
-                    syntax::UnaryOperator::Not(token) => Self::builtin(token.span, Builtin::Not),
-                    syntax::UnaryOperator::Yield(token) => {
-                        Self::builtin(token.span, Builtin::Yield)
-                    }
-                };
+                let op = Builtin::convert_unary(ast.operator);
                 op.apply_to(span, Self::convert(analyzer, ast.operand))
             }
             Let(ast) => crate::ir::Let::convert(analyzer, *ast),

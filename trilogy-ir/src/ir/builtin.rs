@@ -1,4 +1,5 @@
-use trilogy_parser::syntax;
+use super::*;
+use trilogy_parser::{syntax, Spanned};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Builtin {
@@ -52,8 +53,9 @@ pub enum Builtin {
 }
 
 impl Builtin {
-    pub(super) fn convert(ast: syntax::KeywordReference) -> Self {
-        match ast.keyword {
+    pub(super) fn convert(ast: syntax::KeywordReference) -> Expression {
+        let span = ast.span();
+        let op = match ast.keyword {
             syntax::Keyword::And(..) => Self::And,
             syntax::Keyword::Or(..) => Self::Or,
             syntax::Keyword::Add(..) => Self::Add,
@@ -91,6 +93,55 @@ impl Builtin {
             syntax::Keyword::Return(..) => Self::Return,
             syntax::Keyword::Break(..) => Self::Break,
             syntax::Keyword::Continue(..) => Self::Continue,
-        }
+        };
+        Expression::builtin(span, op)
+    }
+
+    pub(super) fn convert_binary(ast: syntax::BinaryOperator) -> Expression {
+        let span = ast.span();
+        let op = match ast {
+            syntax::BinaryOperator::Access(..) => Self::Access,
+            syntax::BinaryOperator::And(..) => Self::And,
+            syntax::BinaryOperator::Or(..) => Self::Or,
+            syntax::BinaryOperator::Add(..) => Self::Add,
+            syntax::BinaryOperator::Subtract(..) => Self::Subtract,
+            syntax::BinaryOperator::Multiply(..) => Self::Multiply,
+            syntax::BinaryOperator::Divide(..) => Self::Divide,
+            syntax::BinaryOperator::Remainder(..) => Self::Remainder,
+            syntax::BinaryOperator::Power(..) => Self::Power,
+            syntax::BinaryOperator::IntDivide(..) => Self::IntDivide,
+            syntax::BinaryOperator::StructuralEquality(..) => Self::StructuralEquality,
+            syntax::BinaryOperator::StructuralInequality(..) => Self::StructuralInequality,
+            syntax::BinaryOperator::ReferenceEquality(..) => Self::ReferenceEquality,
+            syntax::BinaryOperator::ReferenceInequality(..) => Self::ReferenceInequality,
+            syntax::BinaryOperator::Lt(..) => Self::Lt,
+            syntax::BinaryOperator::Gt(..) => Self::Gt,
+            syntax::BinaryOperator::Leq(..) => Self::Leq,
+            syntax::BinaryOperator::Geq(..) => Self::Geq,
+            syntax::BinaryOperator::BitwiseAnd(..) => Self::BitwiseAnd,
+            syntax::BinaryOperator::BitwiseOr(..) => Self::BitwiseOr,
+            syntax::BinaryOperator::BitwiseXor(..) => Self::BitwiseXor,
+            syntax::BinaryOperator::LeftShift(..) => Self::LeftShift,
+            syntax::BinaryOperator::RightShift(..) => Self::RightShift,
+            syntax::BinaryOperator::Sequence(..) => Self::Sequence,
+            syntax::BinaryOperator::Cons(..) => Self::Cons,
+            syntax::BinaryOperator::Glue(..) => Self::Glue,
+            syntax::BinaryOperator::Compose(..) => Self::Compose,
+            syntax::BinaryOperator::RCompose(..) => Self::RCompose,
+            syntax::BinaryOperator::Pipe(..) => Self::Pipe,
+            syntax::BinaryOperator::RPipe(..) => Self::RPipe,
+        };
+        Expression::builtin(span, op)
+    }
+
+    pub(super) fn convert_unary(ast: syntax::UnaryOperator) -> Expression {
+        let span = ast.span();
+        let op = match ast {
+            syntax::UnaryOperator::Invert(..) => Builtin::Invert,
+            syntax::UnaryOperator::Negate(..) => Builtin::Negate,
+            syntax::UnaryOperator::Not(..) => Builtin::Not,
+            syntax::UnaryOperator::Yield(..) => Builtin::Yield,
+        };
+        Expression::builtin(span, op)
     }
 }
