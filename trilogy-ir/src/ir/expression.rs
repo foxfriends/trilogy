@@ -162,7 +162,60 @@ impl Expression {
             ),
             Fn(..) => todo!(),
             Do(..) => todo!(),
-            Template(..) => todo!(),
+            Template(ast) => {
+                let span = ast.span();
+                let prefix = Self::string(ast.prefix_token().span, ast.prefix());
+                match ast.tag {
+                    Some(tag) => {
+                        let (strings, interpolations) = ast
+                            .segments
+                            .into_iter()
+                            .map(|seg| {
+                                let suffix = Self::string(seg.suffix_token().span, seg.suffix());
+                                let interpolation = Self::convert(analyzer, seg.interpolation);
+                                (interpolation, suffix)
+                            })
+                            .fold(
+                                (vec![prefix], vec![]),
+                                |(mut strings, mut interpolations), (interpolation, suffix)| {
+                                    strings.push(suffix);
+                                    interpolations.push(interpolation);
+                                    (strings, interpolations)
+                                },
+                            );
+
+                        let tag = Identifier::declared(analyzer, &tag)
+                            .map(|tag| Expression::reference(tag.span, tag))
+                            .unwrap_or_else(|| Expression::dynamic(tag)); // TODO: is dynamic the best way? or error?
+                        let strings = Self::builtin(span, Builtin::Array)
+                            .apply_to(span, Self::pack(span, Pack::from_iter(strings)));
+                        let interpolations = Self::builtin(span, Builtin::Array)
+                            .apply_to(span, Self::pack(span, Pack::from_iter(interpolations)));
+                        tag.apply_to(span, strings).apply_to(span, interpolations)
+                    }
+                    None => {
+                        let span = ast.span();
+                        let prefix = Self::string(ast.prefix_token().span, ast.prefix());
+                        ast.segments
+                            .into_iter()
+                            .map(|seg| {
+                                let suffix = Self::string(seg.suffix_token().span, seg.suffix());
+                                let interpolation = Self::convert(analyzer, seg.interpolation);
+                                (interpolation, suffix)
+                            })
+                            .fold(prefix, |expr, (interpolation, suffix)| {
+                                Self::builtin(span, Builtin::Glue)
+                                    .apply_to(
+                                        span,
+                                        Self::builtin(span, Builtin::Glue)
+                                            .apply_to(span, expr)
+                                            .apply_to(span, interpolation),
+                                    )
+                                    .apply_to(span, suffix)
+                            })
+                    }
+                }
+            }
             Handled(ast) => crate::ir::Handled::convert_expression(analyzer, *ast),
             Parenthesized(ast) => Self::convert(analyzer, ast.expression),
             Module(ast) => Self::convert_module_path(analyzer, *ast),
