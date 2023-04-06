@@ -110,7 +110,22 @@ impl Expression {
                 Self::application(span, proc, arguments)
             }
             Binary(..) => todo!(),
-            Unary(..) => todo!(),
+            Unary(ast) => {
+                let span = ast.span();
+                let op = match ast.operator {
+                    syntax::UnaryOperator::Invert(token) => {
+                        Self::builtin(token.span, Builtin::Invert)
+                    }
+                    syntax::UnaryOperator::Negate(token) => {
+                        Self::builtin(token.span, Builtin::Negate)
+                    }
+                    syntax::UnaryOperator::Not(token) => Self::builtin(token.span, Builtin::Not),
+                    syntax::UnaryOperator::Yield(token) => {
+                        Self::builtin(token.span, Builtin::Yield)
+                    }
+                };
+                op.apply_to(span, Self::convert(analyzer, ast.operand))
+            }
             Let(ast) => crate::ir::Let::convert(analyzer, *ast),
             IfElse(ast) => crate::ir::IfElse::convert_expression(analyzer, *ast),
             Match(ast) => crate::ir::Match::convert_expression(analyzer, *ast),
