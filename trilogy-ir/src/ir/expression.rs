@@ -112,8 +112,8 @@ impl Expression {
             Binary(..) => todo!(),
             Unary(..) => todo!(),
             Let(..) => todo!(),
-            IfElse(..) => todo!(),
-            Match(..) => todo!(),
+            IfElse(ast) => crate::ir::IfElse::convert_expression(analyzer, *ast),
+            Match(ast) => crate::ir::Match::convert_expression(analyzer, *ast),
             Is(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.is_token().span, Builtin::Is),
@@ -206,8 +206,8 @@ impl Expression {
             }
             Assignment(ast) => crate::ir::Assignment::convert(analyzer, *ast),
             FunctionAssignment(ast) => crate::ir::Assignment::convert_function(analyzer, *ast),
-            If(ast) => IfElse::convert(analyzer, *ast),
-            Match(ast) => crate::ir::Match::convert(analyzer, *ast),
+            If(ast) => IfElse::convert_statement(analyzer, *ast),
+            Match(ast) => crate::ir::Match::convert_statement(analyzer, *ast),
             While(ast) => crate::ir::While::convert(analyzer, *ast),
             For(ast) => Self::convert_for_statement(analyzer, *ast),
             Break(ast) => Self::application(
