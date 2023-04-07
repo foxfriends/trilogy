@@ -160,8 +160,8 @@ impl Expression {
                 Self::builtin(ast.continue_token().span, Builtin::Continue),
                 Self::convert(analyzer, ast.expression),
             ),
-            Fn(..) => todo!(),
-            Do(..) => todo!(),
+            Fn(ast) => Self::function(ast.span(), Function::convert_fn(analyzer, *ast)),
+            Do(ast) => Self::procedure(ast.span(), Procedure::convert_do(analyzer, *ast)),
             Template(ast) => {
                 let span = ast.span();
                 let prefix = Self::string(ast.prefix_token().span, ast.prefix());
@@ -527,6 +527,14 @@ impl Expression {
 
     pub(super) fn reference(span: Span, identifier: Identifier) -> Self {
         Self::new(span, Value::Reference(Box::new(identifier)))
+    }
+
+    pub(super) fn function(span: Span, function: Function) -> Self {
+        Self::new(span, Value::Fn(Box::new(function)))
+    }
+
+    pub(super) fn procedure(span: Span, procedure: Procedure) -> Self {
+        Self::new(span, Value::Do(Box::new(procedure)))
     }
 
     pub(super) fn apply_to(self, span: Span, rhs: Expression) -> Self {

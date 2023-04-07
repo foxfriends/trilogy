@@ -26,4 +26,22 @@ impl Procedure {
             body,
         }
     }
+
+    pub(super) fn convert_do(analyzer: &mut Analyzer, ast: syntax::DoExpression) -> Self {
+        let span = ast.span();
+        let parameters = ast
+            .parameters
+            .into_iter()
+            .map(|param| Pattern::convert(analyzer, param))
+            .collect();
+        let body = match ast.body {
+            syntax::DoBody::Block(ast) => Expression::convert_block(analyzer, *ast),
+            syntax::DoBody::Expression(ast) => Expression::convert(analyzer, *ast),
+        };
+        Self {
+            span,
+            parameters,
+            body,
+        }
+    }
 }

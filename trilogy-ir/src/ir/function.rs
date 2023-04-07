@@ -26,4 +26,19 @@ impl Function {
             body,
         }
     }
+
+    pub(super) fn convert_fn(analyzer: &mut Analyzer, ast: syntax::FnExpression) -> Self {
+        let span = ast.span();
+        let parameters = ast
+            .parameters
+            .into_iter()
+            .map(|param| Pattern::convert(analyzer, param))
+            .collect();
+        let body = Expression::convert(analyzer, ast.body);
+        Self {
+            span,
+            parameters,
+            body,
+        }
+    }
 }
