@@ -62,7 +62,7 @@ impl FromIterator<Definition> for Definitions {
                         Entry::Occupied(mut slot) => {
                             let def = slot.get_mut();
                             let DefinitionItem::Procedure(def) = &mut def.item else { unreachable!() };
-                            def.overloads.extend(proc.overloads.drain(..))
+                            def.overloads.append(&mut proc.overloads)
                         }
                     }
                 }
@@ -79,7 +79,7 @@ impl FromIterator<Definition> for Definitions {
                         Entry::Occupied(mut slot) => {
                             let def = slot.get_mut();
                             let DefinitionItem::Function(def) = &mut def.item else { unreachable!() };
-                            def.overloads.extend(func.overloads.drain(..))
+                            def.overloads.append(&mut func.overloads)
                         }
                     }
                 }
@@ -96,7 +96,7 @@ impl FromIterator<Definition> for Definitions {
                         Entry::Occupied(mut slot) => {
                             let def = slot.get_mut();
                             let DefinitionItem::Rule(def) = &mut def.item else { unreachable!() };
-                            def.overloads.extend(rule.overloads.drain(..))
+                            def.overloads.append(&mut rule.overloads)
                         }
                     }
                 }
