@@ -162,7 +162,7 @@ impl Expression {
             ),
             Fn(ast) => Self::function(ast.span(), Function::convert_fn(analyzer, *ast)),
             Do(ast) => Self::procedure(ast.span(), Procedure::convert_do(analyzer, *ast)),
-            Template(ast) => Self::convert_template(analyzer, ast),
+            Template(ast) => Self::convert_template(analyzer, *ast),
             Handled(ast) => crate::ir::Handled::convert_expression(analyzer, *ast),
             Parenthesized(ast) => Self::convert(analyzer, ast.expression),
             Module(ast) => Self::convert_module_path(analyzer, *ast),
