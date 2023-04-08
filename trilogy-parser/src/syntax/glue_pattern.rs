@@ -1,20 +1,29 @@
 use super::{pattern::Precedence, *};
 use crate::Parser;
-use trilogy_scanner::TokenType::*;
+use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct GluePattern {
     pub lhs: Pattern,
+    glue_token: Token,
     pub rhs: Pattern,
 }
 
 impl GluePattern {
     pub(crate) fn parse(parser: &mut Parser, lhs: Pattern) -> SyntaxResult<Self> {
-        parser
+        let glue_token = parser
             .expect(OpGlue)
             .expect("Caller should have found this");
         let rhs = Pattern::parse_precedence(parser, Precedence::Glue)?;
-        Ok(Self { lhs, rhs })
+        Ok(Self {
+            lhs,
+            glue_token,
+            rhs,
+        })
+    }
+
+    pub fn glue_token(&self) -> &Token {
+        &self.glue_token
     }
 }
 

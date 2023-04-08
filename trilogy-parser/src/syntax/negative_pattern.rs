@@ -16,4 +16,8 @@ impl NegativePattern {
         let pattern = Pattern::parse_precedence(parser, Precedence::Unary)?;
         Ok(Self { start, pattern })
     }
+
+    pub fn minus_token(&self) -> &Token {
+        &self.start
+    }
 }

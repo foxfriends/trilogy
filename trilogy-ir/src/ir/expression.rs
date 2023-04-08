@@ -277,29 +277,72 @@ impl Expression {
         Self::query(span, query)
     }
 
-    pub(super) fn convert_pattern(_analyzer: &mut Analyzer, ast: syntax::Pattern) -> Self {
+    pub(super) fn convert_pattern(analyzer: &mut Analyzer, ast: syntax::Pattern) -> Self {
         use syntax::Pattern::*;
         match ast {
-            Conjunction(..) => todo!(),
-            Disjunction(..) => todo!(),
-            Number(..) => todo!(),
-            Character(..) => todo!(),
-            String(..) => todo!(),
-            Bits(..) => todo!(),
-            Boolean(..) => todo!(),
-            Unit(..) => todo!(),
-            Atom(..) => todo!(),
-            Wildcard(..) => todo!(),
-            Negative(..) => todo!(),
-            Glue(..) => todo!(),
-            Struct(..) => todo!(),
-            Tuple(..) => todo!(),
+            Conjunction(ast) => Self::conjunction(
+                ast.span(),
+                Self::convert_pattern(analyzer, ast.lhs),
+                Self::convert_pattern(analyzer, ast.rhs),
+            ),
+            Disjunction(ast) => Self::disjunction(
+                ast.span(),
+                Self::convert_pattern(analyzer, ast.lhs),
+                Self::convert_pattern(analyzer, ast.rhs),
+            ),
+            Number(ast) => Self::number(ast.span(), crate::ir::Number::convert(*ast)),
+            Character(ast) => Self::character(ast.span(), ast.value()),
+            String(ast) => Self::string(ast.span(), ast.value()),
+            Bits(ast) => Self::bits(ast.span(), crate::ir::Bits::convert(*ast)),
+            Boolean(ast) => Self::boolean(ast.span(), ast.value()),
+            Unit(ast) => Self::unit(ast.span()),
+            Atom(ast) => Self::atom(ast.span(), ast.value()),
+            Wildcard(ast) => Self::wildcard(ast.span()),
+            Negative(ast) => Self::builtin(ast.minus_token().span, Builtin::Negate)
+                .apply_to(ast.span(), Self::convert_pattern(analyzer, ast.pattern)),
+            Glue(ast) => {
+                let glue_span = ast.glue_token().span;
+                let lhs_span = ast.lhs.span();
+                let span = ast.span();
+                Self::builtin(glue_span, Builtin::Glue)
+                    .apply_to(
+                        lhs_span.union(glue_span),
+                        Self::convert_pattern(analyzer, ast.lhs),
+                    )
+                    .apply_to(span, Self::convert_pattern(analyzer, ast.rhs))
+            }
+            Struct(ast) => Self::application(
+                ast.span(),
+                Self::builtin(ast.atom.span(), Builtin::Construct),
+                Self::convert_pattern(analyzer, ast.pattern),
+            ),
+            Tuple(ast) => {
+                let cons_span = ast.cons_token().span;
+                let lhs_span = ast.lhs.span();
+                let span = ast.span();
+                Self::builtin(cons_span, Builtin::Cons)
+                    .apply_to(
+                        lhs_span.union(cons_span),
+                        Self::convert_pattern(analyzer, ast.lhs),
+                    )
+                    .apply_to(span, Self::convert_pattern(analyzer, ast.rhs))
+            }
             Array(..) => todo!(),
             Set(..) => todo!(),
             Record(..) => todo!(),
-            Pinned(..) => todo!(),
-            Binding(..) => todo!(),
-            Parenthesized(..) => todo!(),
+            Pinned(ast) => Identifier::declared(analyzer, &ast.identifier)
+                .map(|identifier| Self::reference(ast.span(), identifier))
+                .unwrap_or_else(|| {
+                    analyzer.error(Error::UnboundIdentifier {
+                        name: ast.identifier.clone(),
+                    });
+                    // TODO: is dynamic the best way?
+                    Self::dynamic(ast.identifier)
+                }),
+            Binding(ast) => {
+                Self::reference(ast.span(), Identifier::declare(analyzer, ast.identifier))
+            }
+            Parenthesized(ast) => Self::convert_pattern(analyzer, ast.pattern),
         }
     }
 
@@ -336,7 +379,13 @@ impl Expression {
             }
             None => Identifier::declared(analyzer, &ast.member)
                 .map(|identifier| Self::reference(span, identifier))
-                .unwrap_or_else(|| Self::dynamic(ast.member)), // TODO: is dynamic the best way? or error?
+                .unwrap_or_else(|| {
+                    analyzer.error(Error::UnboundIdentifier {
+                        name: ast.member.clone(),
+                    });
+                    // TODO: is dynamic the best way?
+                    Self::dynamic(ast.member)
+                }),
         }
     }
 
@@ -419,7 +468,11 @@ impl Expression {
 
                 let tag = Identifier::declared(analyzer, &tag)
                     .map(|tag| Expression::reference(tag.span, tag))
-                    .unwrap_or_else(|| Expression::dynamic(tag)); // TODO: is dynamic the best way? or error?
+                    .unwrap_or_else(|| {
+                        analyzer.error(Error::UnboundIdentifier { name: tag.clone() });
+                        // TODO: is dynamic the best way?
+                        Self::dynamic(tag)
+                    });
                 let strings = Self::builtin(span, Builtin::Array)
                     .apply_to(span, Self::pack(span, Pack::from_iter(strings)));
                 let interpolations = Self::builtin(span, Builtin::Array)
