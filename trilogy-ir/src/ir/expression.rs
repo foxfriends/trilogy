@@ -327,9 +327,70 @@ impl Expression {
                     )
                     .apply_to(span, Self::convert_pattern(analyzer, ast.rhs))
             }
-            Array(..) => todo!(),
-            Set(..) => todo!(),
-            Record(..) => todo!(),
+            Array(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let mut elements: Pack = ast
+                    .head
+                    .into_iter()
+                    .map(|element| Self::convert_pattern(analyzer, element))
+                    .map(Element::from)
+                    .collect();
+                elements.extend(
+                    ast.rest
+                        .into_iter()
+                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(Element::spread),
+                );
+                elements.extend(
+                    ast.tail
+                        .into_iter()
+                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(Element::from),
+                );
+                Self::builtin(start_span, Builtin::Array).apply_to(span, Self::pack(span, elements))
+            }
+            Set(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let mut elements: Pack = ast
+                    .elements
+                    .into_iter()
+                    .map(|element| Self::convert_pattern(analyzer, element))
+                    .map(Element::from)
+                    .collect();
+                elements.extend(
+                    ast.rest
+                        .into_iter()
+                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(Element::spread),
+                );
+                Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
+            }
+            Record(ast) => {
+                let start_span = ast.start_token().span;
+                let span = ast.span();
+                let mut elements: Pack = ast
+                    .elements
+                    .into_iter()
+                    .map(|(key, value)| {
+                        Self::mapping(
+                            key.span().union(value.span()),
+                            Self::convert_pattern(analyzer, key),
+                            Self::convert_pattern(analyzer, value),
+                        )
+                    })
+                    .map(Element::from)
+                    .collect();
+                elements.extend(
+                    ast.rest
+                        .into_iter()
+                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(Element::spread),
+                );
+                Self::builtin(start_span, Builtin::Record)
+                    .apply_to(span, Self::pack(span, elements))
+            }
             Pinned(ast) => Identifier::declared(analyzer, &ast.identifier)
                 .map(|identifier| Self::reference(ast.span(), identifier))
                 .unwrap_or_else(|| {

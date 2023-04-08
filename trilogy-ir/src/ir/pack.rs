@@ -71,6 +71,13 @@ impl Element {
             }
         }
     }
+
+    pub(super) fn spread(expression: Expression) -> Self {
+        Self {
+            is_spread: true,
+            ..Self::from(expression)
+        }
+    }
 }
 
 impl From<Expression> for Element {
@@ -94,5 +101,11 @@ impl FromIterator<Element> for Pack {
     fn from_iter<T: IntoIterator<Item = Element>>(iter: T) -> Self {
         let values: Vec<_> = iter.into_iter().collect();
         Self { values }
+    }
+}
+
+impl Extend<Element> for Pack {
+    fn extend<T: IntoIterator<Item = Element>>(&mut self, iter: T) {
+        self.values.extend(iter)
     }
 }
