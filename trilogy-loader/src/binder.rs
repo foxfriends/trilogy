@@ -1,7 +1,7 @@
 use crate::Module;
 use std::collections::HashMap;
 use trilogy_ir::{ir, Analyzer, Error};
-use trilogy_parser::syntax::Document;
+use trilogy_parser::syntax::{Document, SyntaxError};
 use trilogy_parser::Parse;
 use url::Url;
 
@@ -11,6 +11,18 @@ pub struct Binder<T> {
 }
 
 impl Binder<Parse<Document>> {
+    pub fn has_errors(&self) -> bool {
+        self.modules
+            .values()
+            .any(|module| module.contents.has_errors())
+    }
+
+    pub fn errors(&self) -> impl Iterator<Item = &SyntaxError> {
+        self.modules
+            .values()
+            .flat_map(|module| module.contents.errors())
+    }
+
     pub fn analyze(self) -> Result<Binder<ir::Module>, Vec<Error>> {
         let mut errors = vec![];
         let mut updated = HashMap::new();

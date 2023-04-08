@@ -63,9 +63,13 @@ fn main() -> std::io::Result<()> {
         Command::Run { file } => {
             let loader = Loader::new(file);
             let binder = loader.load().unwrap();
+            if binder.has_errors() {
+                print_errors(binder.errors());
+                std::process::exit(1);
+            }
             match binder.analyze() {
                 Ok(analyzed) => {
-                    println!("{:?}", analyzed);
+                    println!("{:#?}", analyzed);
                 }
                 Err(errors) => print_errors(errors),
             }
