@@ -33,77 +33,8 @@ impl Definitions {
     }
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Hash)]
-enum ItemType {
-    Proc,
-    Func,
-    Rule,
-}
-
 impl FromIterator<Definition> for Definitions {
     fn from_iter<T: IntoIterator<Item = Definition>>(iter: T) -> Self {
-        use std::collections::hash_map::Entry;
-        use std::collections::HashMap;
-
-        let mut simple = Vec::new();
-        let mut definitions = HashMap::new();
-        for mut definition in iter {
-            match &mut definition.item {
-                DefinitionItem::Procedure(proc) => {
-                    let key = (
-                        ItemType::Proc,
-                        proc.name.id.clone(),
-                        proc.overloads.first().unwrap().parameters.len(),
-                    );
-                    match definitions.entry(key) {
-                        Entry::Vacant(slot) => {
-                            slot.insert(definition);
-                        }
-                        Entry::Occupied(mut slot) => {
-                            let def = slot.get_mut();
-                            let DefinitionItem::Procedure(def) = &mut def.item else { unreachable!() };
-                            def.overloads.append(&mut proc.overloads)
-                        }
-                    }
-                }
-                DefinitionItem::Function(func) => {
-                    let key = (
-                        ItemType::Func,
-                        func.name.id.clone(),
-                        func.overloads.first().unwrap().parameters.len(),
-                    );
-                    match definitions.entry(key) {
-                        Entry::Vacant(slot) => {
-                            slot.insert(definition);
-                        }
-                        Entry::Occupied(mut slot) => {
-                            let def = slot.get_mut();
-                            let DefinitionItem::Function(def) = &mut def.item else { unreachable!() };
-                            def.overloads.append(&mut func.overloads)
-                        }
-                    }
-                }
-                DefinitionItem::Rule(rule) => {
-                    let key = (
-                        ItemType::Rule,
-                        rule.name.id.clone(),
-                        rule.overloads.first().unwrap().parameters.len(),
-                    );
-                    match definitions.entry(key) {
-                        Entry::Vacant(slot) => {
-                            slot.insert(definition);
-                        }
-                        Entry::Occupied(mut slot) => {
-                            let def = slot.get_mut();
-                            let DefinitionItem::Rule(def) = &mut def.item else { unreachable!() };
-                            def.overloads.append(&mut rule.overloads)
-                        }
-                    }
-                }
-                _ => simple.push(definition),
-            }
-        }
-        simple.extend(definitions.into_values());
-        Self(simple)
+        Self(iter.into_iter().collect())
     }
 }
