@@ -5,7 +5,7 @@ use trilogy_parser::syntax;
 #[derive(Clone, Debug)]
 pub struct Lookup {
     pub path: Expression,
-    pub patterns: Vec<Pattern>,
+    pub patterns: Vec<Expression>,
 }
 
 impl Lookup {
@@ -14,7 +14,7 @@ impl Lookup {
         let patterns = ast
             .patterns
             .into_iter()
-            .map(|pat| Pattern::convert(analyzer, pat))
+            .map(|pat| Expression::convert_pattern(analyzer, pat))
             .collect();
         Self { path, patterns }
     }

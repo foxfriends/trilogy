@@ -277,6 +277,32 @@ impl Expression {
         Self::query(span, query)
     }
 
+    pub(super) fn convert_pattern(_analyzer: &mut Analyzer, ast: syntax::Pattern) -> Self {
+        use syntax::Pattern::*;
+        match ast {
+            Conjunction(..) => todo!(),
+            Disjunction(..) => todo!(),
+            Number(..) => todo!(),
+            Character(..) => todo!(),
+            String(..) => todo!(),
+            Bits(..) => todo!(),
+            Boolean(..) => todo!(),
+            Unit(..) => todo!(),
+            Atom(..) => todo!(),
+            Wildcard(..) => todo!(),
+            Negative(..) => todo!(),
+            Glue(..) => todo!(),
+            Struct(..) => todo!(),
+            Tuple(..) => todo!(),
+            Array(..) => todo!(),
+            Set(..) => todo!(),
+            Record(..) => todo!(),
+            Pinned(..) => todo!(),
+            Binding(..) => todo!(),
+            Parenthesized(..) => todo!(),
+        }
+    }
+
     pub(super) fn convert_module_path(analyzer: &mut Analyzer, ast: syntax::ModulePath) -> Self {
         let value = Self::convert_module_reference(analyzer, ast.first);
         ast.modules.into_iter().fold(value, |module, (token, ast)| {
@@ -456,6 +482,10 @@ impl Expression {
         Self::new(span, Value::Unit)
     }
 
+    pub(super) fn wildcard(span: Span) -> Self {
+        Self::new(span, Value::Wildcard)
+    }
+
     pub(super) fn pack(span: Span, pack: Pack) -> Self {
         Self::new(span, Value::Pack(Box::new(pack)))
     }
@@ -546,6 +576,18 @@ impl Expression {
     pub(super) fn in_let(self, span: Span, query: Query) -> Self {
         Expression::r#let(span, Let::new(query, self))
     }
+
+    pub(super) fn and(self, span: Span, other: Expression) -> Self {
+        Expression::conjunction(span, other, self)
+    }
+
+    pub(super) fn conjunction(span: Span, lhs: Expression, rhs: Expression) -> Self {
+        Expression::new(span, Value::Conjunction(Box::new((lhs, rhs))))
+    }
+
+    pub(super) fn disjunction(span: Span, lhs: Expression, rhs: Expression) -> Self {
+        Expression::new(span, Value::Disjunction(Box::new((lhs, rhs))))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -561,6 +603,9 @@ pub enum Value {
     Bits(Bits),
     Boolean(bool),
     Unit,
+    Conjunction(Box<(Expression, Expression)>),
+    Disjunction(Box<(Expression, Expression)>),
+    Wildcard,
     Atom(String),
     Query(Box<Query>),
     Iterator(Box<Iterator>),

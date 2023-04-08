@@ -49,7 +49,7 @@ impl Match {
 #[derive(Clone, Debug)]
 pub struct Case {
     span: Span,
-    pub pattern: Pattern,
+    pub pattern: Expression,
     pub guard: Expression,
     pub body: Expression,
 }
@@ -59,7 +59,7 @@ impl Case {
         Self {
             span: body.span,
             // TODO: would be nice to have the `else` span here
-            pattern: Pattern::wildcard(body.span),
+            pattern: Expression::wildcard(body.span),
             guard: Expression::boolean(body.span, true),
             body,
         }
@@ -71,8 +71,8 @@ impl Case {
         analyzer.push_scope();
         let pattern = ast
             .pattern
-            .map(|ast| Pattern::convert(analyzer, ast))
-            .unwrap_or_else(|| Pattern::wildcard(case_span));
+            .map(|ast| Expression::convert_pattern(analyzer, ast))
+            .unwrap_or_else(|| Expression::wildcard(case_span));
         let guard = ast
             .guard
             .map(|ast| Expression::convert(analyzer, ast))
@@ -93,8 +93,8 @@ impl Case {
         analyzer.push_scope();
         let pattern = ast
             .pattern
-            .map(|ast| Pattern::convert(analyzer, ast))
-            .unwrap_or_else(|| Pattern::wildcard(case_span));
+            .map(|ast| Expression::convert_pattern(analyzer, ast))
+            .unwrap_or_else(|| Expression::wildcard(case_span));
         let guard = ast
             .guard
             .map(|ast| Expression::convert(analyzer, ast))

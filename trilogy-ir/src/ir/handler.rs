@@ -6,7 +6,7 @@ use trilogy_parser::{syntax, Spanned};
 #[derive(Clone, Debug)]
 pub struct Handler {
     pub span: Span,
-    pub pattern: Pattern,
+    pub pattern: Expression,
     pub guard: Expression,
     pub body: Expression,
 }
@@ -18,9 +18,9 @@ impl Handler {
             syntax::Handler::When(handler) => {
                 let span = handler.span();
                 let effect = Identifier::temporary(analyzer, handler.pattern.span());
-                let pattern = Pattern::convert(analyzer, handler.pattern);
+                let pattern = Expression::convert_pattern(analyzer, handler.pattern);
                 let pattern =
-                    Pattern::binding(pattern.span, effect.clone()).and(pattern.span, pattern);
+                    Expression::reference(pattern.span, effect.clone()).and(pattern.span, pattern);
                 let guard = handler
                     .guard
                     .map(|ast| Expression::convert(analyzer, ast))
@@ -67,9 +67,9 @@ impl Handler {
                 let effect = Identifier::temporary(analyzer, else_span);
                 let pattern = handler
                     .identifier
-                    .map(|id| Pattern::binding(id.span(), Identifier::declare(analyzer, id)))
-                    .unwrap_or_else(|| Pattern::wildcard(else_span));
-                let pattern = Pattern::binding(else_span, effect.clone())
+                    .map(|id| Expression::reference(id.span(), Identifier::declare(analyzer, id)))
+                    .unwrap_or_else(|| Expression::wildcard(else_span));
+                let pattern = Expression::reference(else_span, effect.clone())
                     .and(else_span.union(pattern.span), pattern);
                 let guard = Expression::boolean(else_span, true);
                 let body = handler.body.map(|body| match body {

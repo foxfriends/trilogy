@@ -6,7 +6,7 @@ use trilogy_parser::{syntax, Spanned};
 #[derive(Clone, Debug)]
 pub struct Function {
     span: Span,
-    pub parameters: Vec<Pattern>,
+    pub parameters: Vec<Expression>,
     pub body: Expression,
 }
 
@@ -17,7 +17,7 @@ impl Function {
             .head
             .parameters
             .into_iter()
-            .map(|param| Pattern::convert(analyzer, param))
+            .map(|param| Expression::convert_pattern(analyzer, param))
             .collect();
         let body = Expression::convert(analyzer, ast.body);
         Self {
@@ -32,7 +32,7 @@ impl Function {
         let parameters = ast
             .parameters
             .into_iter()
-            .map(|param| Pattern::convert(analyzer, param))
+            .map(|param| Expression::convert_pattern(analyzer, param))
             .collect();
         let body = Expression::convert(analyzer, ast.body);
         Self {
