@@ -48,7 +48,7 @@ impl Match {
 
 #[derive(Clone, Debug)]
 pub struct Case {
-    span: Span,
+    pub span: Span,
     pub pattern: Expression,
     pub guard: Expression,
     pub body: Expression,

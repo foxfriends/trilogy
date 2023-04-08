@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod analyzer;
 mod error;
 pub mod ir;

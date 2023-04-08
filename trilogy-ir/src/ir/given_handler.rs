@@ -6,7 +6,7 @@ use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct GivenHandler {
-    span: Span,
+    pub span: Span,
     pub name: Identifier,
     pub rule: Rule,
 }

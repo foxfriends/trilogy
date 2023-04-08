@@ -5,7 +5,7 @@ use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
 pub struct Module {
-    span: Span,
+    pub span: Span,
     pub parameters: Vec<Expression>,
     pub definitions: Definitions,
 }

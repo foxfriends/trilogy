@@ -5,7 +5,7 @@ use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
 pub struct Query {
-    span: Span,
+    pub span: Span,
     pub value: Value,
 }
 
@@ -34,7 +34,7 @@ impl Query {
                 Self::convert(analyzer, ast.rhs),
             ),
             Direct(ast) => Self::direct(ast.span(), Unification::convert_direct(analyzer, *ast)),
-            Element(ast) => Self::direct(ast.span(), Unification::convert_element(analyzer, *ast)),
+            Element(ast) => Self::element(ast.span(), Unification::convert_element(analyzer, *ast)),
             Parenthesized(ast) => Self::convert(analyzer, ast.query),
             Lookup(ast) => Self::lookup(ast.span(), crate::ir::Lookup::convert(analyzer, *ast)),
             Pass(token) => Self::pass(token.span()),
