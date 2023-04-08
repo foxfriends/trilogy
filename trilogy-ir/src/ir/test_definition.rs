@@ -9,7 +9,10 @@ pub struct TestDefinition {
 }
 
 impl TestDefinition {
-    pub(super) fn convert(_analyzer: &mut Analyzer, _ast: syntax::TestDefinition) -> Self {
-        todo!()
+    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::TestDefinition) -> Self {
+        Self {
+            name: ast.name.value(),
+            body: Expression::convert_block(analyzer, ast.body),
+        }
     }
 }
