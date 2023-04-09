@@ -30,10 +30,12 @@ impl Token {
         self
     }
 
-    pub(crate) fn resolve_keywords(mut self) -> Self {
-        if self.token_type != TokenType::Identifier {
-            return self;
+    pub(crate) fn resolve_keywords(mut self) -> Result<Self, &'static str> {
+        if self.token_type != TokenType::Identifier && self.token_type != TokenType::IdentifierEq {
+            return Ok(self);
         }
+        let is_eq = self.token_type == TokenType::IdentifierEq;
+
         self.token_type = match self.value.as_ref().unwrap().as_str().unwrap() {
             "_" => TokenType::Discard,
             "and" => TokenType::KwAnd,
@@ -115,8 +117,13 @@ impl Token {
             "while" => TokenType::KwWhile,
             "with" => TokenType::KwWith,
             "yield" => TokenType::KwYield,
-            _ => TokenType::Identifier,
+            _ => self.token_type,
         };
-        self
+
+        if is_eq && self.token_type != TokenType::IdentifierEq {
+            return Err("cannot use keyword as an assignment function");
+        }
+
+        Ok(self)
     }
 }

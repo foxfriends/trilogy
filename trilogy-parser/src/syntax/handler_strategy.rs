@@ -30,3 +30,13 @@ impl HandlerStrategy {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(handler_strategy_yield: "yield" => HandlerStrategy::parse => "(HandlerStrategy::Yield _)");
+    test_parse!(handler_strategy_cancel: "cancel" => HandlerStrategy::parse => "(HandlerStrategy::Cancel _)");
+    test_parse!(handler_strategy_invert: "invert" => HandlerStrategy::parse => "(HandlerStrategy::Invert _)");
+    test_parse!(handler_strategy_resume: "resume" => HandlerStrategy::parse => "(HandlerStrategy::Resume _)");
+}

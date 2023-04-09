@@ -19,3 +19,12 @@ impl Handler {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(handler_given: "given hello(1)" => Handler::parse => "(Handler::Given (GivenHandler (RuleHead _ [_]) ()))");
+    test_parse!(handler_when: "when 'NAN resume 5" => Handler::parse => "(Handler::When (WhenHandler _ _ _ _))");
+    test_parse!(handler_else: "else n resume 5" => Handler::parse => "(Handler::Else (ElseHandler _ _ _))");
+}

@@ -45,3 +45,18 @@ impl TryFrom<Pattern> for Identifier {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(identifier_normal: "hello" => Identifier::parse => "(Identifier)");
+    test_parse!(identifier_underscored: "_hello" => Identifier::parse => "(Identifier)");
+    test_parse!(identifier_numbers: "hello123" => Identifier::parse => "(Identifier)");
+    test_parse_error!(identifier_keyword: "for" => Identifier::parse);
+
+    test_parse!(identifiereq_normal: "hello=" => Identifier::parse_eq => "(Identifier)");
+    test_parse!(identifiereq_underscored: "_hello=" => Identifier::parse_eq => "(Identifier)");
+    test_parse!(identifiereq_numbers: "hello123=" => Identifier::parse_eq => "(Identifier)");
+    test_parse_error!(identifiereq_keyword: "for=" => Identifier::parse_eq);
+}

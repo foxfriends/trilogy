@@ -133,12 +133,15 @@ impl<'a> Scanner<'a> {
 
     fn identifier_or_keyword(&mut self, starts_with: char) -> Token {
         let identifier = self.identifier(starts_with.into());
-        if self.expect('=').is_some() {
-            return self.make_token(IdentifierEq).with_value(identifier);
-        }
-        self.make_token(Identifier)
-            .with_value(identifier)
+        let token = if self.expect('=').is_some() {
+            self.make_token(IdentifierEq).with_value(identifier)
+        } else {
+            self.make_token(Identifier).with_value(identifier)
+        };
+
+        token
             .resolve_keywords()
+            .unwrap_or_else(|err| self.make_error(err))
     }
 
     fn unicode_escape_sequence(&mut self) -> Option<char> {
