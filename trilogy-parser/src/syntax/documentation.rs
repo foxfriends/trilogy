@@ -1,12 +1,8 @@
-use crate::{
-    format::{PrettyPrint, PrettyPrinted, PrettyPrinter},
-    Parser,
-};
+use crate::format::{PrettyPrint, PrettyPrinted, PrettyPrinter};
+use crate::Parser;
 use pretty::DocAllocator;
-use trilogy_scanner::{
-    Token,
-    TokenType::{self, DocInner, DocOuter},
-};
+use trilogy_scanner::Token;
+use trilogy_scanner::TokenType::{self, DocInner, DocOuter};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct Documentation {

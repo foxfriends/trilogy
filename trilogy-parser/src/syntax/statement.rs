@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Parser, Spanned};
+use crate::{Parser, PrettyPrint, PrettyPrinted, PrettyPrinter, Spanned};
 use trilogy_scanner::TokenType;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -75,6 +75,32 @@ impl Statement {
                     Ok(Self::Expression(Box::new(expression)))
                 }
             }
+        }
+    }
+}
+
+impl<'a> PrettyPrint<'a> for Statement {
+    fn pretty_print(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a> {
+        match self {
+            Self::Let(..) => todo!(),
+            Self::Assignment(..) => todo!(),
+            Self::FunctionAssignment(..) => todo!(),
+            Self::If(..) => todo!(),
+            Self::Match(..) => todo!(),
+            Self::While(..) => todo!(),
+            Self::For(..) => todo!(),
+            Self::Break(..) => todo!(),
+            Self::Continue(..) => todo!(),
+            Self::Resume(..) => todo!(),
+            Self::Cancel(..) => todo!(),
+            Self::Return(..) => todo!(),
+            Self::End(..) => todo!(),
+            Self::Exit(..) => todo!(),
+            Self::Yield(..) => todo!(),
+            Self::Expression(..) => todo!(),
+            Self::Assert(..) => todo!(),
+            Self::Handled(..) => todo!(),
+            Self::Block(block) => block.pretty_print(printer),
         }
     }
 }
