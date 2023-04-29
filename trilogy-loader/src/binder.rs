@@ -1,4 +1,4 @@
-use crate::Module;
+use crate::{Module, Program};
 use std::collections::HashMap;
 use trilogy_ir::{ir, Analyzer, Error};
 use trilogy_parser::syntax::{Document, SyntaxError};
@@ -37,5 +37,11 @@ impl Binder<Parse<Document>> {
             updated.insert(url, upgraded);
         }
         Ok(Binder { modules: updated })
+    }
+}
+
+impl Binder<ir::Module> {
+    pub fn link(self) -> Result<Program, ()> {
+        Ok(Program {})
     }
 }

@@ -64,12 +64,18 @@ fn main() -> std::io::Result<()> {
                 print_errors(binder.errors());
                 std::process::exit(1);
             }
-            match binder.analyze() {
-                Ok(analyzed) => {
-                    println!("{:#?}", analyzed);
+            let binder = match binder.analyze() {
+                Ok(analyzed) => analyzed,
+                Err(errors) => {
+                    print_errors(errors);
+                    std::process::exit(1);
                 }
-                Err(errors) => print_errors(errors),
-            }
+            };
+            let program = match binder.link() {
+                Ok(program) => program,
+                Err(_errors) => std::process::exit(1),
+            };
+            println!("{:#?}", program);
         }
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
