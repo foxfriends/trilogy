@@ -33,8 +33,11 @@ pub fn run(command: Command) -> std::io::Result<()> {
                     println!("{token:?}");
                     continue;
                 }
-                print!("{}", token.span.to_string().cyan());
-                print!("   {}", format!("{:?}", token.token_type).yellow());
+                print!(
+                    "{}   {}",
+                    token.span.to_string().cyan(),
+                    format!("{:?}", token.token_type).yellow()
+                );
                 match token.token_type {
                     TokenType::Identifier => {
                         let Some(TokenValue::String(value)) = token.value else { unreachable!() };
