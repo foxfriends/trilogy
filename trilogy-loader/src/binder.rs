@@ -1,13 +1,23 @@
-use crate::{Module, Program};
+use crate::{Location, Module, Program};
 use std::collections::HashMap;
 use trilogy_ir::{ir, Analyzer, Error};
 use trilogy_parser::syntax::{Document, SyntaxError};
 use trilogy_parser::Parse;
 use url::Url;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct Binder<T> {
+    entrypoint: Location,
     pub modules: HashMap<Url, Module<T>>,
+}
+
+impl<T> Binder<T> {
+    pub(crate) fn new(entrypoint: Location) -> Self {
+        Self {
+            entrypoint,
+            modules: HashMap::default(),
+        }
+    }
 }
 
 impl Binder<Parse<Document>> {
@@ -36,7 +46,10 @@ impl Binder<Parse<Document>> {
             });
             updated.insert(url, upgraded);
         }
-        Ok(Binder { modules: updated })
+        Ok(Binder {
+            entrypoint: self.entrypoint,
+            modules: updated,
+        })
     }
 }
 

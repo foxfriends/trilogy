@@ -1,7 +1,7 @@
 use crate::location::Location;
 use crate::{Binder, Cache, Error, ErrorKind, Module};
 use reqwest::blocking::Client;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::fs;
 use trilogy_parser::syntax::Document;
 use trilogy_parser::Parse;
@@ -12,7 +12,6 @@ pub(crate) struct WipBinder<'a, E> {
     client: Client,
     cache: &'a dyn Cache<Error = E>,
     module_queue: VecDeque<Location>,
-    modules: HashMap<Url, Module<Parse<Document>>>,
 }
 
 impl<'a, E> WipBinder<'a, E>
@@ -24,7 +23,6 @@ where
             client: Client::default(),
             cache,
             module_queue: VecDeque::default(),
-            modules: HashMap::default(),
         }
     }
 
@@ -59,11 +57,12 @@ where
     }
 
     // TODO: multithreading
-    pub fn load(mut self, location: Location) -> crate::Result<Binder<Parse<Document>>> {
-        self.request(location);
+    pub fn load(mut self, entrypoint: Location) -> crate::Result<Binder<Parse<Document>>> {
+        self.request(entrypoint.clone());
+        let mut binder = Binder::new(entrypoint);
         while let Some(location) = self.module_queue.pop_front() {
             let url = location.as_ref();
-            if self.modules.contains_key(url) {
+            if binder.modules.contains_key(url) {
                 continue;
             };
             let source = self.load_source(&location)?;
@@ -71,10 +70,8 @@ where
             for import in module.imported_modules() {
                 self.request(import);
             }
-            self.modules.insert(location.into(), module);
+            binder.modules.insert(location.into(), module);
         }
-        Ok(Binder {
-            modules: self.modules,
-        })
+        Ok(binder)
     }
 }
