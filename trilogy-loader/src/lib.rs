@@ -1,6 +1,7 @@
 mod binder;
 pub mod cache;
 mod error;
+mod linker;
 mod loader;
 mod location;
 mod module;

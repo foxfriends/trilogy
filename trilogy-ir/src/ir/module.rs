@@ -7,7 +7,7 @@ use trilogy_parser::{syntax, Spanned};
 pub struct Module {
     pub span: Span,
     pub parameters: Vec<Expression>,
-    pub definitions: Definitions,
+    definitions: Definitions,
 }
 
 impl Module {
@@ -37,5 +37,13 @@ impl Module {
             parameters,
             definitions,
         }
+    }
+
+    pub fn definitions(&self) -> &[Definition] {
+        &self.definitions.0
+    }
+
+    pub fn definitions_mut(&mut self) -> &mut [Definition] {
+        &mut self.definitions.0
     }
 }

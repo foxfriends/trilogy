@@ -4,7 +4,7 @@ use super::*;
 use crate::{Analyzer, Id};
 
 #[derive(Clone, Debug)]
-pub struct Definitions(Vec<Definition>);
+pub struct Definitions(pub(crate) Vec<Definition>);
 
 impl Definitions {
     pub(super) fn get_mut(&mut self, id: &Id) -> Option<&mut Definition> {

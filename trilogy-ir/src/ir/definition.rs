@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::*;
 use crate::{Analyzer, Error};
 use source_span::Span;
@@ -73,7 +75,9 @@ impl Definition {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
-                module.module = Some(EitherModule::Module(Module::convert_module(analyzer, *ast)));
+                module.module = Some(EitherModule::Module(Arc::new(Module::convert_module(
+                    analyzer, *ast,
+                ))));
             }
             syntax::DefinitionItem::ModuleImport(ast) => {
                 let id = analyzer.declared(ast.name.as_ref()).unwrap();

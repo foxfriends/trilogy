@@ -1,9 +1,10 @@
 use super::*;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub(super) enum EitherModule {
     Reference(String),
-    Module(Module),
+    Module(Arc<Module>),
 }
 
 #[derive(Clone, Debug)]

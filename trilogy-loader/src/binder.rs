@@ -1,3 +1,4 @@
+use crate::linker::{Linker, LinkerError};
 use crate::{Location, Module, Program};
 use std::collections::HashMap;
 use trilogy_ir::{ir, Analyzer, Error};
@@ -55,8 +56,13 @@ impl Binder<Parse<Document>> {
 
 impl Binder<ir::Module> {
     #[allow(clippy::result_unit_err)]
-    pub fn link(self) -> Result<Program, ()> {
-        let program = Program::new();
-        Ok(program)
+    pub fn link(self) -> Result<Program, Vec<LinkerError>> {
+        let mut linker = Linker::new(self.modules);
+        linker.link_module(self.entrypoint.clone());
+        if linker.has_errors() {
+            Err(linker.into_errors())
+        } else {
+            Ok(Program::new(linker.into_module(self.entrypoint)))
+        }
     }
 }
