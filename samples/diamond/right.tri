@@ -1,0 +1,3 @@
+module diamond at "./diamond.tri"
+
+export diamond

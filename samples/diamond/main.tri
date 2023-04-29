@@ -1,0 +1,7 @@
+module left at "./left.tri"
+module right at "./right.tri"
+
+proc main!() {
+    left.diamond.hello!()
+    right.diamond.hello!()
+}

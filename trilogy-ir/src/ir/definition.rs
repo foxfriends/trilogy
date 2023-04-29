@@ -23,6 +23,13 @@ pub struct Definition {
 }
 
 impl Definition {
+    pub fn as_module_mut(&mut self) -> Option<&mut ModuleDefinition> {
+        match &mut self.item {
+            DefinitionItem::Module(module) => Some(&mut *module),
+            _ => None,
+        }
+    }
+
     pub(super) fn convert_into(
         analyzer: &mut Analyzer,
         ast: syntax::Definition,

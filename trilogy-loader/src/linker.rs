@@ -2,7 +2,7 @@ use crate::{Location, Module};
 use reqwest::Url;
 use std::collections::HashMap;
 use std::sync::Arc;
-use trilogy_ir::ir;
+use trilogy_ir::{ir, Resolver};
 
 pub enum LinkerError {}
 
@@ -26,11 +26,20 @@ impl Linker {
             return;
         }
 
-        let module = self
+        let mut module = self
             .unlinked
             .remove(location.as_ref())
             .expect("all modules should have been successfully located already")
             .contents;
+
+        for definition in module.definitions_mut() {
+            if let Some(module_reference) = definition.as_module_mut() {
+                module_reference.resolve(&mut LinkerResolver {
+                    location: &location,
+                    linker: self,
+                });
+            }
+        }
 
         self.linked.insert(location, Arc::new(module));
     }
@@ -45,5 +54,18 @@ impl Linker {
 
     pub(crate) fn into_module(mut self, location: Location) -> Arc<ir::Module> {
         self.linked.remove(&location).unwrap()
+    }
+}
+
+struct LinkerResolver<'a> {
+    location: &'a Location,
+    linker: &'a mut Linker,
+}
+
+impl Resolver for LinkerResolver<'_> {
+    fn resolve(&mut self, path: &str) -> Arc<ir::Module> {
+        let location = self.location.relative(path);
+        self.linker.link_module(location.clone());
+        self.linker.linked.get(&location).unwrap().clone()
     }
 }

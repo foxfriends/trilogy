@@ -1,0 +1,5 @@
+proc hello!() {
+    print!("Hello world")
+}
+
+export hello
