@@ -8,10 +8,6 @@ pub trait PrettyPrintSExpr<'a> {
     fn pretty_print_sexpr(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a>;
 }
 
-pub trait PrettyPrint<'a> {
-    fn pretty_print(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a>;
-}
-
 impl<'a, P> PrettyPrintSExpr<'a> for Option<P>
 where
     P: PrettyPrintSExpr<'a>,

@@ -1,6 +1,4 @@
-use crate::format::{PrettyPrint, PrettyPrinted, PrettyPrinter};
 use crate::Parser;
-use pretty::DocAllocator;
 use trilogy_scanner::Token;
 use trilogy_scanner::TokenType::{self, DocInner, DocOuter};
 
@@ -29,31 +27,6 @@ impl Documentation {
 
     pub(crate) fn parse_outer(parser: &mut Parser) -> Option<Self> {
         Self::parse(parser, DocOuter)
-    }
-}
-
-impl<'a> PrettyPrint<'a> for Documentation {
-    fn pretty_print(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a> {
-        let lines = self.tokens.iter().map(|token| {
-            let prefix = match token.token_type {
-                DocInner => "#! ",
-                DocOuter => "## ",
-                _ => unreachable!("Documentation has wrong token type"),
-            };
-            printer.text(prefix).append(
-                printer.text(
-                    token
-                        .value
-                        .as_ref()
-                        .unwrap()
-                        .as_str()
-                        .unwrap()
-                        .trim()
-                        .to_owned(),
-                ),
-            )
-        });
-        printer.intersperse(lines, printer.hardline())
     }
 }
 

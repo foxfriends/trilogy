@@ -1,9 +1,6 @@
 use clap::Parser as _;
-use pretty::RcAllocator;
 use std::path::PathBuf;
 use trilogy_loader::Loader;
-use trilogy_parser::{Parser, PrettyPrint};
-use trilogy_scanner::Scanner;
 
 #[cfg(feature = "dev")]
 mod dev;
@@ -72,52 +69,6 @@ fn main() -> std::io::Result<()> {
                     println!("{:#?}", analyzed);
                 }
                 Err(errors) => print_errors(errors),
-            }
-        }
-        Command::Fmt { files, write } => {
-            if files.is_empty() {
-                let mut stdin = std::io::stdin();
-                let contents = std::io::read_to_string(&mut stdin)?;
-                let scanner = Scanner::new(&contents);
-                let parser = Parser::new(scanner);
-                let parse = parser.parse();
-                if !parse.has_errors() {
-                    let doc = parse.ast().pretty_print(&RcAllocator);
-                    doc.render(100, &mut std::io::stdout())?;
-                } else {
-                    print_errors(parse.errors());
-                    std::process::exit(1);
-                }
-            } else if files.len() == 1 && !write {
-                let contents = std::fs::read_to_string(&files[0])?;
-                let scanner = Scanner::new(&contents);
-                let parser = Parser::new(scanner);
-                let parse = parser.parse();
-                if !parse.has_errors() {
-                    let doc = parse.ast().pretty_print(&RcAllocator);
-                    doc.render(100, &mut std::io::stdout())?;
-                } else {
-                    print_errors(parse.errors());
-                    std::process::exit(1);
-                }
-            } else {
-                let mut all_success = true;
-                for file in files {
-                    let contents = std::fs::read_to_string(&file)?;
-                    let scanner = Scanner::new(&contents);
-                    let parser = Parser::new(scanner);
-                    let parse = parser.parse();
-                    if !parse.has_errors() {
-                        let doc = parse.ast().pretty_print(&RcAllocator);
-                        doc.render(100, &mut std::fs::File::create(&file)?)?;
-                    } else {
-                        print_errors(parse.errors());
-                        all_success = false;
-                    }
-                }
-                if !all_success {
-                    std::process::exit(1);
-                }
             }
         }
         #[cfg(feature = "dev")]

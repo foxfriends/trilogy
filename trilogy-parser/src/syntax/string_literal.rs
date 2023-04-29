@@ -1,6 +1,5 @@
 use super::*;
-use crate::{Parser, PrettyPrint, PrettyPrinted, PrettyPrinter};
-use pretty::DocAllocator;
+use crate::Parser;
 use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -31,11 +30,5 @@ impl AsRef<str> for StringLiteral {
 impl From<StringLiteral> for String {
     fn from(literal: StringLiteral) -> String {
         literal.token.value.unwrap().try_into().unwrap()
-    }
-}
-
-impl<'a> PrettyPrint<'a> for StringLiteral {
-    fn pretty_print(&self, printer: &'a PrettyPrinter) -> PrettyPrinted<'a> {
-        printer.text(self.value()).double_quotes()
     }
 }
