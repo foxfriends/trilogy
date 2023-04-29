@@ -41,7 +41,9 @@ impl Binder<Parse<Document>> {
 }
 
 impl Binder<ir::Module> {
+    #[allow(clippy::result_unit_err)]
     pub fn link(self) -> Result<Program, ()> {
-        Ok(Program {})
+        let program = Program::new();
+        Ok(program)
     }
 }
