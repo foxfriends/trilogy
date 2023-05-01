@@ -11,9 +11,9 @@ module LocalModule at "./local_module.tri"
 module ForeignModule at "https://cameldridge.com/module.tri"
 
 proc main!() {
-    let total = LocalModule::getRandomNumber!()
-        + ForeignModule::getRandomNumber!()
-        + HereModule::getRandomNumber!()
+    let total = @LocalModule::getRandomNumber!()
+        + @ForeignModule::getRandomNumber!()
+        + @HereModule::getRandomNumber!()
 
     println!($"total random numbers: ${total}")
 }

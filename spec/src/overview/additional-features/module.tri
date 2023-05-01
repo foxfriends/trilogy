@@ -2,8 +2,8 @@ module Helpers {
     func repeat 0 _ = unit
     func repeat n x = x : repeat (n - 1) x
 
-    func twice = repeat 2
-    func thrice = repeat 3
+    func twice x = repeat 2 x
+    func thrice x = repeat 3 x
 
     proc printEach!(iter) {
         for item in iter {
@@ -14,7 +14,7 @@ module Helpers {
     export twice, thrice, printEach
 }
 
-import twice, thrice, printEach! from Helpers
+import twice, thrice, printEach! from @Helpers
 
 proc main!() {
     let numbers = [1, 2, 3, 4, 5]

@@ -31,10 +31,6 @@ Modules may also take parameters, granted that those parameters can be found
 and applied statically. When doing so, \kw{from} must be used to denote that
 module application and separate it from the final name.
 
-An \kw{import} statement is just a scoping mechanism, so one may be written
-within another declaration, even with parameters, but they will still be
-resolved statically.
-
 This module system is \emph{applicative}; that is, when applied to the same
 (resolved) arguments, a module function will return the exact same module.
 Given the lack of named and structured data types in \Trilogy{}, this is
