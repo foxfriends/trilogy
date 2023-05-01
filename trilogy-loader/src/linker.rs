@@ -2,18 +2,22 @@ use crate::{Location, Module};
 use reqwest::Url;
 use std::collections::HashMap;
 use std::sync::Arc;
-use trilogy_ir::{ir, Resolver};
+use trilogy_ir::{ir, Analyzer, Error as IrError, Resolver};
+use trilogy_parser::{syntax::Document, Parse};
 
-pub enum LinkerError {}
+#[derive(Debug)]
+pub enum LinkerError {
+    Ir(IrError),
+}
 
 pub(crate) struct Linker {
-    unlinked: HashMap<Url, Module<ir::Module>>,
-    linked: HashMap<Location, Arc<ir::Module>>,
+    unlinked: HashMap<Url, Module<Parse<Document>>>,
+    linked: HashMap<Location, Arc<ir::ModuleCell>>,
     errors: Vec<LinkerError>,
 }
 
 impl Linker {
-    pub(crate) fn new(unlinked: HashMap<Url, Module<ir::Module>>) -> Self {
+    pub(crate) fn new(unlinked: HashMap<Url, Module<Parse<Document>>>) -> Self {
         Self {
             unlinked,
             linked: HashMap::new(),
@@ -21,27 +25,27 @@ impl Linker {
         }
     }
 
-    pub(crate) fn link_module(&mut self, location: Location) {
-        if self.linked.contains_key(&location) {
+    pub(crate) fn link_module(&mut self, location: &Location) {
+        if self.linked.contains_key(location) {
             return;
         }
 
-        let mut module = self
+        let module_cell = Arc::<ir::ModuleCell>::default();
+        self.linked.insert(location.clone(), module_cell.clone());
+
+        let module = self
             .unlinked
             .remove(location.as_ref())
             .expect("all modules should have been successfully located already")
             .contents;
-
-        for definition in module.definitions_mut() {
-            if let Some(module_reference) = definition.as_module_mut() {
-                module_reference.resolve(&mut LinkerResolver {
-                    location: &location,
-                    linker: self,
-                });
-            }
-        }
-
-        self.linked.insert(location, Arc::new(module));
+        let mut analyzer = Analyzer::new(LinkerResolver {
+            location,
+            linker: self,
+        });
+        let module = analyzer.analyze(module.into_ast());
+        let errors = analyzer.errors().into_iter().map(LinkerError::Ir);
+        self.errors.extend(errors);
+        module_cell.insert(module);
     }
 
     pub(crate) fn has_errors(&self) -> bool {
@@ -52,8 +56,8 @@ impl Linker {
         self.errors
     }
 
-    pub(crate) fn into_module(mut self, location: Location) -> Arc<ir::Module> {
-        self.linked.remove(&location).unwrap()
+    pub(crate) fn into_module(mut self, location: &Location) -> Arc<ir::ModuleCell> {
+        self.linked.remove(location).unwrap()
     }
 }
 
@@ -63,9 +67,9 @@ struct LinkerResolver<'a> {
 }
 
 impl Resolver for LinkerResolver<'_> {
-    fn resolve(&mut self, path: &str) -> Arc<ir::Module> {
+    fn resolve(&mut self, path: &str) -> Arc<ir::ModuleCell> {
         let location = self.location.relative(path);
-        self.linker.link_module(location.clone());
+        self.linker.link_module(&location);
         self.linker.linked.get(&location).unwrap().clone()
     }
 }

@@ -42,15 +42,3 @@ impl Module<Parse<Document>> {
             .map(|import| self.location.relative(import))
     }
 }
-
-impl<T> Module<T> {
-    pub(crate) fn upgrade<F, U>(self, mut upgrader: F) -> Module<U>
-    where
-        F: FnMut(T) -> U,
-    {
-        Module {
-            location: self.location,
-            contents: upgrader(self.contents),
-        }
-    }
-}

@@ -52,7 +52,7 @@ impl Definition {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
-                module.module = Some(EitherModule::Reference(ast.locator.into()));
+                module.module = analyzer.resolve(ast.locator.as_ref());
             }
             syntax::DefinitionItem::Function(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
@@ -82,9 +82,7 @@ impl Definition {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
-                module.module = Some(EitherModule::Module(Arc::new(Module::convert_module(
-                    analyzer, *ast,
-                ))));
+                module.module = Arc::new(ModuleCell::new(Module::convert_module(analyzer, *ast)));
             }
             syntax::DefinitionItem::ModuleImport(ast) => {
                 let id = analyzer.declared(ast.name.as_ref()).unwrap();

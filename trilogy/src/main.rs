@@ -64,17 +64,14 @@ fn main() -> std::io::Result<()> {
                 print_errors(binder.errors());
                 std::process::exit(1);
             }
-            let binder = match binder.analyze() {
-                Ok(analyzed) => analyzed,
+            let program = match binder.analyze() {
+                Ok(program) => program,
                 Err(errors) => {
                     print_errors(errors);
                     std::process::exit(1);
                 }
             };
-            let program = match binder.link() {
-                Ok(program) => program,
-                Err(_errors) => std::process::exit(1),
-            };
+            // NOTE: programs with circular dependencies are infinite when printed.
             println!("{:#?}", program);
         }
         #[cfg(feature = "dev")]

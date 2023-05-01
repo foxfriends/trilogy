@@ -24,7 +24,9 @@ impl Scope {
         self.symbols.invent()
     }
 
-    pub fn declared(&mut self, name: &str) -> Option<&Id> {
-        self.symbols.reuse(name)
+    pub fn declared(&self, name: &str) -> Option<&Id> {
+        self.symbols
+            .reuse(name)
+            .or_else(|| self.parent.as_ref()?.declared(name))
     }
 }

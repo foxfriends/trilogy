@@ -41,7 +41,7 @@ impl SymbolTable {
             .clone()
     }
 
-    pub fn reuse(&mut self, tag: &str) -> Option<&Id> {
+    pub fn reuse(&self, tag: &str) -> Option<&Id> {
         self.symbols.get(tag)
     }
 }

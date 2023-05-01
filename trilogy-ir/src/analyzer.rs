@@ -1,18 +1,21 @@
-use crate::ir::Module;
+use std::sync::Arc;
+
+use crate::ir::{Module, ModuleCell};
 use crate::scope::Scope;
-use crate::{Error, Id};
+use crate::{Error, Id, Resolver};
 use trilogy_parser::syntax;
 
-#[derive(Debug, Default)]
-pub struct Analyzer {
+pub struct Analyzer<'a> {
     errors: Vec<Error>,
+    resolver: Box<dyn Resolver + 'a>,
     scope: Scope,
 }
 
-impl Analyzer {
-    pub fn new() -> Self {
+impl<'a> Analyzer<'a> {
+    pub fn new<R: Resolver + 'a>(resolver: R) -> Self {
         Self {
             errors: vec![],
+            resolver: Box::new(resolver),
             scope: Scope::default(),
         }
     }
@@ -47,5 +50,9 @@ impl Analyzer {
 
     pub(crate) fn declared(&mut self, name: &str) -> Option<&Id> {
         self.scope.declared(name)
+    }
+
+    pub(crate) fn resolve(&mut self, path: &str) -> Arc<ModuleCell> {
+        self.resolver.resolve(path)
     }
 }
