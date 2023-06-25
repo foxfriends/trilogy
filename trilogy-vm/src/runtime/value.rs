@@ -16,12 +16,11 @@ pub enum Value {
     Set(Set),
     Record(Record),
 
-    // TODO: these will require some thought
-    Function,
-    Procedure,
-    Rule,
-    Module,
-    Continuation,
+    Function(usize),
+    Procedure(usize),
+    Rule(usize),
+    Module(usize),
+    Continuation(usize),
 
     // Due to unification, any value may or may not be fully instantiated.
     // Patterns at runtime are just values with holes.
