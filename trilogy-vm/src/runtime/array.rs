@@ -34,3 +34,26 @@ impl StructuralEq for Array {
         lhs.eq(&*rhs)
     }
 }
+
+impl Array {
+    pub fn get(&self, index: usize) -> Option<Value> {
+        self.0.lock().unwrap().get(index).cloned()
+    }
+
+    pub fn set(&self, index: usize, value: Value) {
+        let mut array = self.0.lock().unwrap();
+        if array.len() <= index {
+            array.resize(index + 1, Value::Unit);
+        }
+        array[index] = value;
+    }
+
+    pub fn remove(&self, index: usize) -> Option<Value> {
+        let mut array = self.0.lock().unwrap();
+        if index <= array.len() {
+            Some(array.remove(index))
+        } else {
+            None
+        }
+    }
+}

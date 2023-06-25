@@ -17,6 +17,7 @@ pub enum Instruction {
     Negate,
     Glue,
     Access,
+    Assign,
     Not,
     And,
     Or,

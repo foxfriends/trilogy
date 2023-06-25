@@ -35,3 +35,17 @@ impl StructuralEq for Record {
         lhs.eq(&*rhs)
     }
 }
+
+impl Record {
+    pub fn get(&self, key: &Value) -> Option<Value> {
+        self.0.lock().unwrap().get(key).cloned()
+    }
+
+    pub fn insert(&self, key: Value, value: Value) -> Option<Value> {
+        self.0.lock().unwrap().insert(key, value)
+    }
+
+    pub fn remove(&self, key: &Value) -> Option<Value> {
+        self.0.lock().unwrap().remove(key)
+    }
+}

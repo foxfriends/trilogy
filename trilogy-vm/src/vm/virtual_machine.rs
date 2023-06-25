@@ -1,3 +1,5 @@
+use num::ToPrimitive;
+
 use super::{Error, Execution, Program};
 use crate::{Instruction, Value};
 use std::collections::VecDeque;
@@ -99,6 +101,102 @@ impl VirtualMachine {
                     let value = ex.cactus.pop().unwrap();
                     self.executions.clear();
                     return Ok(value);
+                }
+                Instruction::And => {
+                    let rhs = ex.cactus.pop().unwrap();
+                    let lhs = ex.cactus.pop().unwrap();
+                    match (lhs, rhs) {
+                        (Value::Bool(lhs), Value::Bool(rhs)) => {
+                            ex.cactus.push(Value::Bool(lhs && rhs))
+                        }
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::Or => {
+                    let rhs = ex.cactus.pop().unwrap();
+                    let lhs = ex.cactus.pop().unwrap();
+                    match (lhs, rhs) {
+                        (Value::Bool(lhs), Value::Bool(rhs)) => {
+                            ex.cactus.push(Value::Bool(lhs || rhs))
+                        }
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::Not => {
+                    let val = ex.cactus.pop().unwrap();
+                    match val {
+                        Value::Bool(val) => ex.cactus.push(Value::Bool(!val)),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::Glue => {
+                    let rhs = ex.cactus.pop().unwrap();
+                    let lhs = ex.cactus.pop().unwrap();
+                    match (lhs, rhs) {
+                        (Value::String(lhs), Value::String(rhs)) => {
+                            ex.cactus.push(Value::String(lhs + &rhs))
+                        }
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::Access => {
+                    let rhs = ex.cactus.pop().unwrap();
+                    let lhs = ex.cactus.pop().unwrap();
+                    match (lhs, rhs) {
+                        (Value::Record(record), rhs) => match record.get(&rhs) {
+                            Some(value) => ex.cactus.push(value),
+                            None => todo!("yield 'MIA"),
+                        },
+                        (Value::String(lhs), Value::Number(rhs)) => {
+                            let ch = rhs
+                                .as_uinteger()
+                                .and_then(|index| index.to_usize())
+                                .and_then(|index| lhs.chars().nth(index));
+                            match ch {
+                                Some(ch) => ex.cactus.push(Value::Char(ch)),
+                                None => todo!("yield 'MIA"),
+                            }
+                        }
+                        (Value::Bits(lhs), Value::Number(rhs)) => {
+                            let val = rhs
+                                .as_uinteger()
+                                .and_then(|index| index.to_usize())
+                                .and_then(|index| lhs.get(index));
+                            match val {
+                                Some(val) => ex.cactus.push(Value::Bool(val)),
+                                None => todo!("yield 'MIA"),
+                            }
+                        }
+                        (Value::Array(lhs), Value::Number(rhs)) => {
+                            let val = rhs
+                                .as_uinteger()
+                                .and_then(|index| index.to_usize())
+                                .and_then(|index| lhs.get(index));
+                            match val {
+                                Some(val) => ex.cactus.push(val),
+                                None => todo!("yield 'MIA"),
+                            }
+                        }
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::Assign => {
+                    let value = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().unwrap();
+                    let lhs = ex.cactus.pop().unwrap();
+                    match (lhs, rhs, value) {
+                        (Value::Record(record), rhs, value) => {
+                            record.insert(rhs, value);
+                        }
+                        (Value::Array(lhs), Value::Number(rhs), value) => {
+                            let index = rhs.as_uinteger().and_then(|index| index.to_usize());
+                            match index {
+                                Some(index) => lhs.set(index, value),
+                                None => todo!("yield 'MIA"),
+                            }
+                        }
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
                 }
                 _ => todo!(),
             }
