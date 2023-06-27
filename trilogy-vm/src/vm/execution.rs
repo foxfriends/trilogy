@@ -1,5 +1,8 @@
 use crate::cactus::Cactus;
 use crate::runtime::Value;
+use crate::Instruction;
+
+use super::Error;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Execution {
@@ -21,5 +24,23 @@ impl Execution {
             cactus: branch,
             ip: self.ip,
         }
+    }
+
+    pub fn read_instruction(&mut self, instructions: &[u8]) -> Result<Instruction, Error> {
+        let instruction = instructions[self.ip]
+            .try_into()
+            .map_err(|_| Error::InternalRuntimeError)?;
+        self.ip += 1;
+        Ok(instruction)
+    }
+
+    pub fn read_offset(&mut self, instructions: &[u8]) -> Result<u32, Error> {
+        let value = u32::from_le_bytes(
+            instructions[self.ip..self.ip + 4]
+                .try_into()
+                .map_err(|_| Error::InternalRuntimeError)?,
+        );
+        self.ip += 4;
+        Ok(value)
     }
 }

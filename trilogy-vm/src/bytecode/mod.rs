@@ -46,3 +46,15 @@ pub enum Instruction {
     Fizzle,
     Exit,
 }
+
+impl TryFrom<u8> for Instruction {
+    type Error = u8;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        if value <= Self::Exit as u8 {
+            Ok(unsafe { std::mem::transmute(value) })
+        } else {
+            Err(value)
+        }
+    }
+}

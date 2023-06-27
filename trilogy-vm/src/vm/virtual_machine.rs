@@ -1,7 +1,7 @@
 use num::ToPrimitive;
 
 use super::{Error, Execution, Program};
-use crate::{Instruction, Value};
+use crate::{runtime::Number, Instruction, Value};
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
@@ -31,107 +31,101 @@ impl VirtualMachine {
         let ep = 0;
         while !self.executions.is_empty() {
             let ex = &mut self.executions[ep];
-            let ip = ex.ip;
-            ex.ip += 1;
-            let instruction = self.program.instructions[ip];
+            let instruction = ex.read_instruction(&self.program.instructions)?;
             match instruction {
+                Instruction::Const => {
+                    let value = ex.read_offset(&self.program.instructions)?;
+                    ex.cactus
+                        .push(self.program.constants[value as usize].clone());
+                }
+                Instruction::Load => {
+                    let offset = ex.read_offset(&self.program.instructions)?;
+                    ex.cactus.push(
+                        ex.cactus
+                            .at(offset as usize)
+                            .cloned()
+                            .ok_or(Error::InternalRuntimeError)?,
+                    );
+                }
+                Instruction::Set => {
+                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let value = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    *ex.cactus
+                        .at_mut(offset as usize)
+                        .ok_or(Error::InternalRuntimeError)? = value;
+                }
+                Instruction::Pop => {
+                    ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                }
                 Instruction::Add => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match lhs + rhs {
                         Ok(val) => ex.cactus.push(val),
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
                 Instruction::Subtract => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match lhs - rhs {
                         Ok(val) => ex.cactus.push(val),
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
                 Instruction::Multiply => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match lhs * rhs {
                         Ok(val) => ex.cactus.push(val),
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
                 Instruction::Divide => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match lhs / rhs {
                         Ok(val) => ex.cactus.push(val),
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
                 Instruction::Remainder => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match lhs % rhs {
                         Ok(val) => ex.cactus.push(val),
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Fizzle => {
-                    // This just ends EVERYTHING
-                    //
-                    // Is there any cleanup that has to be done? Or does Rust's
-                    // RAII cause that cleanup to happen automatically?
-                    //
-                    // I suspect it is automatic.
-                    self.executions.pop_front();
-                }
-                Instruction::Branch => {
-                    // A branch requires two values on the stack; the two branches get the
-                    // different values, respectively.
-                    let right = ex.cactus.pop().unwrap();
-                    let left = ex.cactus.pop().unwrap();
-                    let mut branch = ex.branch();
-                    ex.cactus.push(left);
-                    branch.cactus.push(right);
-                    self.executions.push_back(branch);
-                }
-                Instruction::Exit => {
-                    // When run in embedded mode, the exit value can be any value. The
-                    // interpreter binary can decide how to handle that exit value when
-                    // passing off to the OS.
-                    let value = ex.cactus.pop().unwrap();
-                    self.executions.clear();
-                    return Ok(value);
-                }
-                Instruction::And => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
-                    match (lhs, rhs) {
-                        (Value::Bool(lhs), Value::Bool(rhs)) => {
-                            ex.cactus.push(Value::Bool(lhs && rhs))
+                Instruction::IntDivide => {
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match lhs / rhs {
+                        Ok(Value::Number(val)) => {
+                            ex.cactus
+                                .push(Value::Number(Number::from(val.as_complex().re.floor())));
                         }
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Or => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                Instruction::Power => {
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match (lhs, rhs) {
-                        (Value::Bool(lhs), Value::Bool(rhs)) => {
-                            ex.cactus.push(Value::Bool(lhs || rhs))
-                        }
+                        (Value::Number(..), Value::Number(..)) => todo!("surprisingly hard"),
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Not => {
-                    let val = ex.cactus.pop().unwrap();
-                    match val {
-                        Value::Bool(val) => ex.cactus.push(Value::Bool(!val)),
-                        _ => return Err(Error::RuntimeTypeError),
+                Instruction::Negate => {
+                    let val = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match -val {
+                        Ok(val) => ex.cactus.push(val),
+                        Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
                 Instruction::Glue => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match (lhs, rhs) {
                         (Value::String(lhs), Value::String(rhs)) => {
                             ex.cactus.push(Value::String(lhs + &rhs))
@@ -140,8 +134,8 @@ impl VirtualMachine {
                     }
                 }
                 Instruction::Access => {
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match (lhs, rhs) {
                         (Value::Record(record), rhs) => match record.get(&rhs) {
                             Some(value) => ex.cactus.push(value),
@@ -181,9 +175,9 @@ impl VirtualMachine {
                     }
                 }
                 Instruction::Assign => {
-                    let value = ex.cactus.pop().unwrap();
-                    let rhs = ex.cactus.pop().unwrap();
-                    let lhs = ex.cactus.pop().unwrap();
+                    let value = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     match (lhs, rhs, value) {
                         (Value::Record(record), rhs, value) => {
                             record.insert(rhs, value);
@@ -197,6 +191,60 @@ impl VirtualMachine {
                         }
                         _ => return Err(Error::RuntimeTypeError),
                     }
+                }
+                Instruction::Not => {
+                    let val = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match val {
+                        Value::Bool(val) => ex.cactus.push(Value::Bool(!val)),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::And => {
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match (lhs, rhs) {
+                        (Value::Bool(lhs), Value::Bool(rhs)) => {
+                            ex.cactus.push(Value::Bool(lhs && rhs))
+                        }
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::Or => {
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match (lhs, rhs) {
+                        (Value::Bool(lhs), Value::Bool(rhs)) => {
+                            ex.cactus.push(Value::Bool(lhs || rhs))
+                        }
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::Fizzle => {
+                    // This just ends EVERYTHING
+                    //
+                    // Is there any cleanup that has to be done? Or does Rust's
+                    // RAII cause that cleanup to happen automatically?
+                    //
+                    // I suspect it is automatic.
+                    self.executions.pop_front();
+                }
+                Instruction::Branch => {
+                    // A branch requires two values on the stack; the two branches get the
+                    // different values, respectively.
+                    let right = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let left = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let mut branch = ex.branch();
+                    ex.cactus.push(left);
+                    branch.cactus.push(right);
+                    self.executions.push_back(branch);
+                }
+                Instruction::Exit => {
+                    // When run in embedded mode, the exit value can be any value. The
+                    // interpreter binary can decide how to handle that exit value when
+                    // passing off to the OS.
+                    let value = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    self.executions.clear();
+                    return Ok(value);
                 }
                 _ => todo!(),
             }

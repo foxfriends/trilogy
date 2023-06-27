@@ -1,5 +1,5 @@
 use super::{Array, Atom, Bits, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple};
-use std::ops::{Add, Div, Mul, Rem, Sub};
+use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum Value {
@@ -99,6 +99,17 @@ impl Rem for Value {
     fn rem(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs % rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Neg for Value {
+    type Output = Result<Value, ()>;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Self::Number(val) => Ok(Self::Number(-val)),
             _ => Err(()),
         }
     }

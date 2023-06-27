@@ -72,6 +72,42 @@ impl<T> Cactus<T> {
         *self = child;
         prev_parent
     }
+
+    pub fn at(&self, offset: usize) -> Option<&T> {
+        let len = self.stack.len();
+        if len > offset {
+            self.stack.get(len - offset - 1)
+        } else {
+            self.parent.as_ref()?.at(offset - len)
+        }
+    }
+
+    fn consume_parent(&mut self) -> bool
+    where
+        T: Clone,
+    {
+        if let Some(parent) = self.parent.take() {
+            let mut parent = (*parent.as_ref()).clone();
+            std::mem::swap(self, &mut parent);
+            self.stack.extend(parent.stack);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn at_mut(&mut self, offset: usize) -> Option<&mut T>
+    where
+        T: Clone,
+    {
+        while self.stack.len() <= offset {
+            if !self.consume_parent() {
+                return None;
+            }
+        }
+        let len = self.stack.len();
+        self.stack.get_mut(len - offset - 1)
+    }
 }
 
 #[cfg(test)]
