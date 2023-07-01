@@ -110,11 +110,23 @@ impl Number {
     }
 }
 
-impl<T> From<T> for Number
-where
-    Complex<BigRational>: From<T>,
-{
-    fn from(value: T) -> Self {
-        Self(value.into())
+impl From<usize> for Number {
+    fn from(value: usize) -> Self {
+        Self(Complex::new(
+            BigRational::from(BigInt::from(value)),
+            Zero::zero(),
+        ))
+    }
+}
+
+impl From<Complex<BigRational>> for Number {
+    fn from(value: Complex<BigRational>) -> Self {
+        Self(value)
+    }
+}
+
+impl From<BigRational> for Number {
+    fn from(value: BigRational) -> Self {
+        Self(Complex::new(value, Zero::zero()))
     }
 }

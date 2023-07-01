@@ -39,7 +39,8 @@ pub enum Instruction {
     // Control flow
     Call,
     Return,
-    Invert,
+    Reset,
+    Shift,
     Jump,
     JumpBack,
     CondJump,

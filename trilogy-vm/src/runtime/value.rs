@@ -1,6 +1,8 @@
+use super::{
+    Array, Atom, Bits, Continuation, Number, Procedure, Record, ReferentialEq, Set, Struct,
+    StructuralEq, Tuple,
+};
 use num::ToPrimitive;
-
-use super::{Array, Atom, Bits, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple};
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -17,16 +19,8 @@ pub enum Value {
     Array(Array),
     Set(Set),
     Record(Record),
-
-    Function(usize),
-    Procedure(usize),
-    Rule(usize),
-    Module(usize),
-    Continuation(usize),
-
-    // Due to unification, any value may or may not be fully instantiated.
-    // Patterns at runtime are just values with holes.
-    Hole,
+    Procedure(Procedure),
+    Continuation(Continuation),
 }
 
 impl ReferentialEq for Value {

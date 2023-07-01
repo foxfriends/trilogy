@@ -5,18 +5,37 @@
 //! into something actually useful, but for now, no sense in going for more
 //! than "functioning".
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Cactus<T> {
-    parent: Option<Arc<Cactus<T>>>,
+    parent: Option<Arc<Mutex<Cactus<T>>>>,
+    friend: Option<Arc<Mutex<Cactus<T>>>>, // aka ghost in some notes
     stack: Vec<T>,
+}
+
+impl<T> Eq for Cactus<T> where T: PartialEq {}
+
+impl<T> PartialEq for Cactus<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        if self.stack != other.stack {
+            return false;
+        }
+        match (&self.parent, &other.parent) {
+            (Some(lhs), Some(rhs)) => Arc::ptr_eq(lhs, rhs),
+            _ => false,
+        }
+    }
 }
 
 impl<T> Default for Cactus<T> {
     fn default() -> Self {
         Self {
             parent: None,
+            friend: None,
             stack: vec![],
         }
     }
@@ -37,7 +56,8 @@ impl<T> Cactus<T> {
     {
         while self.stack.is_empty() {
             // TODO: https://doc.rust-lang.org/std/sync/struct.Arc.html#method.unwrap_or_clone
-            *self = (**self.parent.as_ref()?).clone();
+            let new_self = self.parent.as_ref()?.lock().unwrap().clone();
+            *self = new_self;
         }
         self.stack.pop()
     }
@@ -47,68 +67,56 @@ impl<T> Cactus<T> {
     }
 
     pub fn branch(&mut self) -> Self {
-        let arced = Arc::new(std::mem::take(self));
+        let arced = Arc::new(Mutex::new(std::mem::take(self)));
         *self = Self {
             parent: Some(arced.clone()),
+            friend: None,
             stack: vec![],
         };
         Self {
             parent: Some(arced),
+            friend: None,
             stack: vec![],
         }
     }
 
-    pub fn parent(&self) -> Option<Arc<Self>> {
+    pub fn parent(&self) -> Option<Arc<Mutex<Self>>> {
         self.parent.clone()
     }
 
-    pub fn detach(&mut self) -> Option<Arc<Self>> {
+    pub fn detach(&mut self) -> Option<Arc<Mutex<Self>>> {
         self.parent.take()
     }
 
-    pub fn graft(&mut self, mut child: Cactus<T>) -> Option<Arc<Self>> {
-        let parent = Arc::new(std::mem::take(self));
-        let prev_parent = child.parent.replace(parent);
-        *self = child;
-        prev_parent
-    }
-
-    pub fn at(&self, offset: usize) -> Option<&T> {
+    pub fn at(&self, offset: usize) -> Option<T>
+    where
+        T: Clone,
+    {
         let len = self.stack.len();
         if len > offset {
-            self.stack.get(len - offset - 1)
+            self.stack.get(len - offset - 1).cloned()
         } else {
-            self.parent.as_ref()?.at(offset - len)
+            self.parent.as_ref()?.lock().unwrap().at(offset - len)
         }
     }
 
-    fn consume_parent(&mut self) -> bool
-    where
-        T: Clone,
-    {
-        if let Some(parent) = self.parent.take() {
-            let mut parent = (*parent.as_ref()).clone();
-            std::mem::swap(self, &mut parent);
-            self.stack.extend(parent.stack);
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn at_mut(&mut self, offset: usize) -> Option<&mut T>
-    where
-        T: Clone,
-    {
-        while self.stack.len() <= offset {
-            if !self.consume_parent() {
-                return None;
-            }
-        }
+    pub fn replace_at(&mut self, offset: usize, value: T) -> Result<T, OutOfBounds> {
         let len = self.stack.len();
-        self.stack.get_mut(len - offset - 1)
+        if offset < len {
+            Ok(std::mem::replace(
+                self.stack.get_mut(len - offset - 1).unwrap(),
+                value,
+            ))
+        } else if let Some(parent) = self.parent.as_ref() {
+            let mut parent = parent.lock().unwrap();
+            parent.replace_at(offset - len, value)
+        } else {
+            Err(OutOfBounds)
+        }
     }
 }
+
+pub struct OutOfBounds;
 
 #[cfg(test)]
 mod test {
@@ -167,26 +175,10 @@ mod test {
         cactus.push(3);
         let mut branch = cactus.branch();
         branch.push(4);
-        let mut parent = (*branch.detach().unwrap()).clone();
+        let mut parent = branch.detach().unwrap().lock().unwrap().clone();
         assert_eq!(parent.pop(), Some(3));
         assert_eq!(parent.pop(), None);
         assert_eq!(branch.pop(), Some(4));
         assert_eq!(branch.pop(), None);
-    }
-
-    #[test]
-    fn cactus_graft() {
-        let mut cactus = Cactus::new();
-        cactus.push(3);
-        let mut branch = cactus.branch();
-        branch.push(4);
-        cactus.push(5);
-        let mut original_parent = (*cactus.graft(branch).unwrap()).clone();
-        assert_eq!(cactus.pop(), Some(4));
-        assert_eq!(cactus.pop(), Some(5));
-        assert_eq!(cactus.pop(), Some(3));
-        assert_eq!(cactus.pop(), None);
-        assert_eq!(original_parent.pop(), Some(3));
-        assert_eq!(original_parent.pop(), None);
     }
 }
