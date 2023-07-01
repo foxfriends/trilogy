@@ -6,11 +6,13 @@ use std::sync::{Arc, Mutex};
 pub struct Array(Arc<Mutex<Vec<Value>>>);
 
 impl Eq for Array {}
+
 impl PartialEq for Array {
     fn eq(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.0, &other.0)
     }
 }
+
 impl Hash for Array {
     fn hash<H: Hasher>(&self, state: &mut H) {
         Arc::as_ptr(&self.0).hash(state);
@@ -32,6 +34,18 @@ impl StructuralEq for Array {
             return false
         };
         lhs.eq(&*rhs)
+    }
+}
+
+impl PartialOrd for Array {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let Ok(lhs) = self.0.lock() else {
+            return None
+        };
+        let Ok(rhs) = other.0.lock() else {
+            return None
+        };
+        lhs.partial_cmp(&*rhs)
     }
 }
 

@@ -37,6 +37,7 @@ pub enum Instruction {
     RefNeq,
     ValNeq,
     // Control flow
+    Call,
     Return,
     Invert,
     Jump,

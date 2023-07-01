@@ -1,7 +1,8 @@
-use num::ToPrimitive;
-
 use super::{Error, Execution, Program};
-use crate::{runtime::Number, Instruction, Value};
+use crate::{runtime::Number, Instruction, Tuple, Value};
+use crate::{ReferentialEq, StructuralEq};
+use num::ToPrimitive;
+use std::cmp::Ordering;
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
@@ -265,6 +266,71 @@ impl VirtualMachine {
                         Ok(val) => ex.cactus.push(val),
                         _ => return Err(Error::RuntimeTypeError),
                     }
+                }
+                Instruction::Cons => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    ex.cactus.push(Value::Tuple(Tuple::new(lhs, rhs)));
+                }
+                Instruction::Leq => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let cmp = match lhs.partial_cmp(&rhs) {
+                        Some(Ordering::Less | Ordering::Equal) => Value::Bool(true),
+                        Some(Ordering::Greater) => Value::Bool(false),
+                        None => Value::Unit,
+                    };
+                    ex.cactus.push(cmp);
+                }
+                Instruction::Lt => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let cmp = match lhs.partial_cmp(&rhs) {
+                        Some(Ordering::Less) => Value::Bool(true),
+                        Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(false),
+                        None => Value::Unit,
+                    };
+                    ex.cactus.push(cmp);
+                }
+                Instruction::Geq => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let cmp = match lhs.partial_cmp(&rhs) {
+                        Some(Ordering::Less) => Value::Bool(false),
+                        Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(true),
+                        None => Value::Unit,
+                    };
+                    ex.cactus.push(cmp);
+                }
+                Instruction::Gt => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let cmp = match lhs.partial_cmp(&rhs) {
+                        Some(Ordering::Less) | Some(Ordering::Equal) => Value::Bool(false),
+                        Some(Ordering::Greater) => Value::Bool(true),
+                        None => Value::Unit,
+                    };
+                    ex.cactus.push(cmp);
+                }
+                Instruction::RefEq => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    ex.cactus.push(Value::Bool(ReferentialEq::eq(&lhs, &rhs)));
+                }
+                Instruction::ValEq => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    ex.cactus.push(Value::Bool(StructuralEq::eq(&lhs, &rhs)));
+                }
+                Instruction::RefNeq => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    ex.cactus.push(Value::Bool(!ReferentialEq::eq(&lhs, &rhs)));
+                }
+                Instruction::ValNeq => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    ex.cactus.push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
                 }
                 Instruction::Fizzle => {
                     // This just ends EVERYTHING

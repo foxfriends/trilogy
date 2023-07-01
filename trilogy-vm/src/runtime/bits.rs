@@ -2,7 +2,7 @@ use bitvec::order::Lsb0;
 use bitvec::vec::BitVec;
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Bits(BitVec);
 
 impl Bits {
@@ -164,5 +164,19 @@ mod test {
     fn shr() {
         let val = Bits(bitvec![1, 1, 0]);
         assert_eq!(val >> 2, Bits(bitvec![1]))
+    }
+
+    #[test]
+    fn ord_gt() {
+        let lhs = Bits(bitvec![1, 0]);
+        let rhs = Bits(bitvec![0, 1]);
+        assert!(lhs > rhs)
+    }
+
+    #[test]
+    fn ord_lt() {
+        let lhs = Bits(bitvec![0, 1]);
+        let rhs = Bits(bitvec![1, 0]);
+        assert!(lhs < rhs)
     }
 }

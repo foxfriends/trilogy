@@ -175,3 +175,19 @@ impl Shr for Value {
         }
     }
 }
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Self::Number(lhs), Self::Number(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Bool(lhs), Self::Bool(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Char(lhs), Self::Char(rhs)) => lhs.partial_cmp(rhs),
+            (Self::String(lhs), Self::String(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Struct(lhs), Self::Struct(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Bits(lhs), Self::Bits(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Array(lhs), Self::Array(rhs)) => lhs.partial_cmp(rhs),
+            _ => None,
+        }
+    }
+}

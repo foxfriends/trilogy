@@ -52,13 +52,29 @@ impl Neg for Number {
     }
 }
 
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.is_real() && other.is_real() {
+            self.0.re.partial_cmp(&other.0.re)
+        } else if self.is_imaginary() && other.is_imaginary() {
+            self.0.im.partial_cmp(&other.0.im)
+        } else {
+            None
+        }
+    }
+}
+
 impl Number {
     pub fn as_complex(&self) -> Complex<BigRational> {
         self.0.clone()
     }
 
     pub fn is_real(&self) -> bool {
-        self.0.im == BigRational::zero()
+        self.0.im.is_zero()
+    }
+
+    pub fn is_imaginary(&self) -> bool {
+        self.0.re.is_zero() && !self.0.im.is_zero()
     }
 
     pub fn as_real(&self) -> Option<BigRational> {
