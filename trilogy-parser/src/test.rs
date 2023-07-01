@@ -81,16 +81,16 @@ macro_rules! test_parse {
         fn $name() {
             use $crate::PrettyPrintSExpr as _;
             let scanner = trilogy_scanner::Scanner::new($src);
-            let mut $parser = crate::Parser::new(scanner);
+            let mut $parser = $crate::Parser::new(scanner);
             $parser.expect(trilogy_scanner::TokenType::StartOfFile).unwrap();
             let parse = $parse;
-            let mut allocator = pretty::RcAllocator;
+            let allocator = pretty::RcAllocator;
             let sexpr = format!("{}", parse.pretty_print_sexpr(&allocator).pretty(100));
-            let parsed = crate::test::normalize_sexpr(&sexpr);
-            let expected = crate::test::normalize_sexpr($sexp);
+            let parsed = $crate::test::normalize_sexpr(&sexpr);
+            let expected = $crate::test::normalize_sexpr($sexp);
             $parser.expect(trilogy_scanner::TokenType::EndOfFile).unwrap();
             assert!($parser.errors.is_empty());
-            assert_eq!(parsed.split_ascii_whitespace().collect::<crate::test::SExpr>(), expected.split_ascii_whitespace().collect::<crate::test::SExpr>());
+            assert_eq!(parsed.split_ascii_whitespace().collect::<$crate::test::SExpr>(), expected.split_ascii_whitespace().collect::<$crate::test::SExpr>());
         }
     };
 }
@@ -131,7 +131,7 @@ macro_rules! test_parse_error {
         #[test]
         fn $name() {
             let scanner = trilogy_scanner::Scanner::new($src);
-            let mut $parser = crate::Parser::new(scanner);
+            let mut $parser = $crate::Parser::new(scanner);
             $parser.expect(trilogy_scanner::TokenType::StartOfFile).unwrap();
             let result = $parse;
             if result.is_ok() && $parser.errors.is_empty() {
@@ -155,14 +155,14 @@ macro_rules! test_parse_whole {
         fn $name() {
             use $crate::PrettyPrintSExpr as _;
             let scanner = trilogy_scanner::Scanner::new($src);
-            let mut $parser = crate::Parser::new(scanner);
+            let mut $parser = $crate::Parser::new(scanner);
             let parse = $parse;
-            let mut allocator = pretty::RcAllocator;
-            let sexpr = format!("{}", parse.pretty_print_sexpr(&mut allocator).pretty(100));
-            let parsed = crate::test::normalize_sexpr(&sexpr);
-            let expected = crate::test::normalize_sexpr($sexp);
+            let allocator = pretty::RcAllocator;
+            let sexpr = format!("{}", parse.pretty_print_sexpr(&allocator).pretty(100));
+            let parsed = $crate::test::normalize_sexpr(&sexpr);
+            let expected = $crate::test::normalize_sexpr($sexp);
             assert!($parser.errors.is_empty());
-            assert_eq!(parsed.split_ascii_whitespace().collect::<crate::test::SExpr>(), expected.split_ascii_whitespace().collect::<crate::test::SExpr>());
+            assert_eq!(parsed.split_ascii_whitespace().collect::<$crate::test::SExpr>(), expected.split_ascii_whitespace().collect::<$crate::test::SExpr>());
         }
     };
 }
@@ -187,7 +187,7 @@ macro_rules! test_parse_whole_error {
         fn $name() {
             use trilogy_scanner::TokenType::*;
             let scanner = trilogy_scanner::Scanner::new($src);
-            let mut $parser = crate::Parser::new(scanner);
+            let mut $parser = $crate::Parser::new(scanner);
             $parse;
             assert!(!$parser.errors.is_empty());
         }

@@ -37,8 +37,7 @@ impl VirtualMachine {
             match instruction {
                 Instruction::Const => {
                     let value = ex.read_offset(&self.program.instructions)?;
-                    ex.stack
-                        .push(self.program.constants[value].clone());
+                    ex.stack.push(self.program.constants[value].clone());
                 }
                 Instruction::Load => {
                     let offset = ex.read_offset(&self.program.instructions)?;
