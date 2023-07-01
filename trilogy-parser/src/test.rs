@@ -79,13 +79,13 @@ macro_rules! test_parse {
     ($name:ident : $src:literal |$parser:ident| $parse:expr => $sexp:literal) => {
         #[test]
         fn $name() {
-            use crate::PrettyPrintSExpr as _;
+            use $crate::PrettyPrintSExpr as _;
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = crate::Parser::new(scanner);
             $parser.expect(trilogy_scanner::TokenType::StartOfFile).unwrap();
             let parse = $parse;
             let mut allocator = pretty::RcAllocator;
-            let sexpr = format!("{}", parse.pretty_print_sexpr(&mut allocator).pretty(100));
+            let sexpr = format!("{}", parse.pretty_print_sexpr(&allocator).pretty(100));
             let parsed = crate::test::normalize_sexpr(&sexpr);
             let expected = crate::test::normalize_sexpr($sexp);
             $parser.expect(trilogy_scanner::TokenType::EndOfFile).unwrap();
@@ -98,8 +98,8 @@ macro_rules! test_parse {
 #[macro_export]
 macro_rules! parse {
     ($src:literal => $path:path) => {{
-        use crate::Parser;
         use trilogy_scanner::TokenType::*;
+        use $crate::Parser;
         let scanner = trilogy_scanner::Scanner::new($src);
         let mut parser = Parser::new(scanner);
         parser.expect(StartOfFile).unwrap();
@@ -120,7 +120,7 @@ macro_rules! test_parse_error {
         #[test]
         fn $name() {
             let scanner = trilogy_scanner::Scanner::new($src);
-            let mut $parser = crate::Parser::new(scanner);
+            let mut $parser = $crate::Parser::new(scanner);
             $parser.expect(trilogy_scanner::TokenType::StartOfFile).unwrap();
             let _ = $parse;
             assert_eq!($parser.errors.first().expect("parse should have reported an error message").message(), $error);
@@ -153,7 +153,7 @@ macro_rules! test_parse_whole {
     ($name:ident : $src:literal |$parser:ident| $parse:expr => $sexp:literal) => {
         #[test]
         fn $name() {
-            use crate::PrettyPrintSExpr as _;
+            use $crate::PrettyPrintSExpr as _;
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = crate::Parser::new(scanner);
             let parse = $parse;
@@ -176,7 +176,7 @@ macro_rules! test_parse_whole_error {
         #[test]
         fn $name() {
             let scanner = trilogy_scanner::Scanner::new($src);
-            let mut $parser = crate::Parser::new(scanner);
+            let mut $parser = $crate::Parser::new(scanner);
             $parse;
             assert_eq!($parser.errors.first().expect("parse should have reported an error message").message(), $error);
         }

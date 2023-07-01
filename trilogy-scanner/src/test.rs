@@ -143,7 +143,6 @@ macro_rules! test_tokenize {
 #[test]
 fn identifier_eq_keyword_error() {
     let tokens = Scanner::new("for=")
-        .into_iter()
         .map(|token| token.token_type)
         .collect::<Vec<_>>();
     assert_eq!(tokens.as_slice(), [StartOfFile, Error, EndOfFile]);

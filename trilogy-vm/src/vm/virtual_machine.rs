@@ -38,16 +38,16 @@ impl VirtualMachine {
                 Instruction::Const => {
                     let value = ex.read_offset(&self.program.instructions)?;
                     ex.stack
-                        .push(self.program.constants[value as usize].clone());
+                        .push(self.program.constants[value].clone());
                 }
                 Instruction::Load => {
                     let offset = ex.read_offset(&self.program.instructions)?;
-                    ex.stack.push(ex.stack.at(offset as usize)?);
+                    ex.stack.push(ex.stack.at(offset)?);
                 }
                 Instruction::Set => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     let value = ex.stack.pop()?;
-                    ex.stack.replace_at(offset as usize, value)?;
+                    ex.stack.replace_at(offset, value)?;
                 }
                 Instruction::Pop => {
                     ex.stack.pop()?;
@@ -347,28 +347,28 @@ impl VirtualMachine {
                     let jump = ex.read_offset(&self.program.instructions)?;
                     let continuation = ex.current_continuation();
                     ex.stack.push(Value::Continuation(continuation));
-                    ex.ip += jump as usize;
+                    ex.ip += jump;
                 }
                 Instruction::Reset => {
                     // This will act on a ghost if there is one?
                     let jump = ex.read_offset(&self.program.instructions)?;
                     let continuation = ex.current_continuation();
                     ex.stack.push(Value::Continuation(continuation));
-                    ex.ip += jump as usize;
+                    ex.ip += jump;
                 }
                 Instruction::Jump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
-                    ex.ip += dist as usize;
+                    ex.ip += dist;
                 }
                 Instruction::JumpBack => {
                     let dist = ex.read_offset(&self.program.instructions)?;
-                    ex.ip -= dist as usize;
+                    ex.ip -= dist;
                 }
                 Instruction::CondJump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
                     let cond = ex.stack.pop()?;
                     match cond {
-                        Value::Bool(false) => ex.ip += dist as usize,
+                        Value::Bool(false) => ex.ip += dist,
                         Value::Bool(true) => {}
                         _ => return Err(Error::RuntimeTypeError),
                     }
@@ -377,7 +377,7 @@ impl VirtualMachine {
                     let dist = ex.read_offset(&self.program.instructions)?;
                     let cond = ex.stack.pop()?;
                     match cond {
-                        Value::Bool(false) => ex.ip -= dist as usize,
+                        Value::Bool(false) => ex.ip -= dist,
                         Value::Bool(true) => {}
                         _ => return Err(Error::RuntimeTypeError),
                     }
