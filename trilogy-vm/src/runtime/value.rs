@@ -1,5 +1,7 @@
+use num::ToPrimitive;
+
 use super::{Array, Atom, Bits, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple};
-use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
+use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum Value {
@@ -110,6 +112,65 @@ impl Neg for Value {
     fn neg(self) -> Self::Output {
         match self {
             Self::Number(val) => Ok(Self::Number(-val)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl BitAnd for Value {
+    type Output = Result<Value, ()>;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::Bits(lhs & rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl BitOr for Value {
+    type Output = Result<Value, ()>;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::Bits(lhs | rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl BitXor for Value {
+    type Output = Result<Value, ()>;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::Bits(lhs ^ rhs)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Shl for Value {
+    type Output = Result<Value, ()>;
+
+    fn shl(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Bits(lhs), Self::Number(rhs)) if rhs.is_integer() => Ok(Value::Bits(
+                lhs << rhs.as_integer().ok_or(())?.to_usize().ok_or(())?,
+            )),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Shr for Value {
+    type Output = Result<Value, ()>;
+
+    fn shr(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Bits(lhs), Self::Number(rhs)) if rhs.is_integer() => Ok(Value::Bits(
+                lhs >> rhs.as_integer().ok_or(())?.to_usize().ok_or(())?,
+            )),
             _ => Err(()),
         }
     }

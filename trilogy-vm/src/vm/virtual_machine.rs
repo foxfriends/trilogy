@@ -219,6 +219,53 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
+                Instruction::BitwiseAnd => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match lhs & rhs {
+                        Ok(val) => ex.cactus.push(val),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::BitwiseOr => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match lhs | rhs {
+                        Ok(val) => ex.cactus.push(val),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::BitwiseXor => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match lhs ^ rhs {
+                        Ok(val) => ex.cactus.push(val),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::BitwiseNeg => {
+                    let val = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match val {
+                        Value::Bits(val) => ex.cactus.push(Value::Bits(!val)),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::LeftShift => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match lhs << rhs {
+                        Ok(val) => ex.cactus.push(val),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::RightShift => {
+                    let lhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match lhs >> rhs {
+                        Ok(val) => ex.cactus.push(val),
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
                 Instruction::Fizzle => {
                     // This just ends EVERYTHING
                     //

@@ -36,7 +36,6 @@ pub enum Instruction {
     ValEq,
     RefNeq,
     ValNeq,
-    Compose,
     // Control flow
     Return,
     Invert,
