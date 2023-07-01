@@ -332,14 +332,31 @@ impl VirtualMachine {
                     let rhs = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
                     ex.cactus.push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
                 }
-                Instruction::Fizzle => {
-                    // This just ends EVERYTHING
-                    //
-                    // Is there any cleanup that has to be done? Or does Rust's
-                    // RAII cause that cleanup to happen automatically?
-                    //
-                    // I suspect it is automatic.
-                    self.executions.pop_front();
+                Instruction::Jump => {
+                    let dist = ex.read_offset(&self.program.instructions)?;
+                    ex.ip += dist as usize;
+                }
+                Instruction::JumpBack => {
+                    let dist = ex.read_offset(&self.program.instructions)?;
+                    ex.ip -= dist as usize;
+                }
+                Instruction::CondJump => {
+                    let dist = ex.read_offset(&self.program.instructions)?;
+                    let cond = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match cond {
+                        Value::Bool(true) => ex.ip += dist as usize,
+                        Value::Bool(false) => {}
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
+                }
+                Instruction::CondJumpBack => {
+                    let dist = ex.read_offset(&self.program.instructions)?;
+                    let cond = ex.cactus.pop().ok_or(Error::InternalRuntimeError)?;
+                    match cond {
+                        Value::Bool(true) => ex.ip -= dist as usize,
+                        Value::Bool(false) => {}
+                        _ => return Err(Error::RuntimeTypeError),
+                    }
                 }
                 Instruction::Branch => {
                     // A branch requires two values on the stack; the two branches get the
@@ -350,6 +367,15 @@ impl VirtualMachine {
                     ex.cactus.push(left);
                     branch.cactus.push(right);
                     self.executions.push_back(branch);
+                }
+                Instruction::Fizzle => {
+                    // This just ends EVERYTHING
+                    //
+                    // Is there any cleanup that has to be done? Or does Rust's
+                    // RAII cause that cleanup to happen automatically?
+                    //
+                    // I suspect it is automatic.
+                    self.executions.pop_front();
                 }
                 Instruction::Exit => {
                     // When run in embedded mode, the exit value can be any value. The
