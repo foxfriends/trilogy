@@ -349,11 +349,7 @@ impl VirtualMachine {
                     ex.ip += jump;
                 }
                 Instruction::Reset => {
-                    // This will act on a ghost if there is one?
-                    let jump = ex.read_offset(&self.program.instructions)?;
-                    let continuation = ex.current_continuation();
-                    ex.stack.push(Value::Continuation(continuation));
-                    ex.ip += jump;
+                    todo!("do something to the ghost, or not?")
                 }
                 Instruction::Jump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
