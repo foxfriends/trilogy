@@ -3,6 +3,7 @@ use super::{
     Tuple,
 };
 use num::ToPrimitive;
+use std::fmt::{self, Display};
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -182,6 +183,27 @@ impl PartialOrd for Value {
             (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.partial_cmp(rhs),
             (Self::Array(lhs), Self::Array(rhs)) => lhs.partial_cmp(rhs),
             _ => None,
+        }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unit => write!(f, "unit"),
+            Self::Bool(value) => write!(f, "{value}"),
+            Self::Char(value) => write!(f, "{value:?}"), // TODO: officially implement
+            Self::String(value) => write!(f, "{value:?}"), // TODO: officially implement
+            Self::Number(value) => write!(f, "{value}"),
+            Self::Bits(value) => write!(f, "{value}"),
+            Self::Atom(value) => write!(f, "{value}"),
+            Self::Struct(value) => write!(f, "{value}"),
+            Self::Tuple(value) => write!(f, "{value}"),
+            Self::Array(value) => write!(f, "{value}"),
+            Self::Set(value) => write!(f, "{value}"),
+            Self::Record(value) => write!(f, "{value}"),
+            Self::Procedure(offset) => write!(f, "&{offset}"),
+            Self::Continuation(..) => Err(fmt::Error),
         }
     }
 }

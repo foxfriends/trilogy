@@ -1,5 +1,6 @@
 use bitvec::order::Lsb0;
 use bitvec::vec::BitVec;
+use std::fmt::{self, Display};
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -77,6 +78,16 @@ impl Not for Bits {
 
     fn not(self) -> Self::Output {
         Self(!self.0)
+    }
+}
+
+impl Display for Bits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0b")?;
+        for bit in &self.0 {
+            write!(f, "{}", if *bit { 1 } else { 0 })?;
+        }
+        Ok(())
     }
 }
 
@@ -178,5 +189,11 @@ mod test {
         let lhs = Bits(bitvec![0, 1]);
         let rhs = Bits(bitvec![1, 0]);
         assert!(lhs < rhs)
+    }
+
+    #[test]
+    fn display() {
+        let bits = Bits(bitvec![0, 1, 0, 0, 1]);
+        assert_eq!(format!("{bits}"), "0b01001");
     }
 }

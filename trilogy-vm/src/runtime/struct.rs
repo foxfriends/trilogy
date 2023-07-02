@@ -1,4 +1,5 @@
 use super::{Atom, Value};
+use std::fmt::{self, Display};
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Struct {
@@ -13,5 +14,11 @@ impl PartialOrd for Struct {
         } else {
             None
         }
+    }
+}
+
+impl Display for Struct {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}({})", self.name, self.value)
     }
 }

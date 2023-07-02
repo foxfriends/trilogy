@@ -1,6 +1,6 @@
 use super::{Error, Stack};
+use crate::bytecode::OpCode;
 use crate::runtime::Continuation;
-use crate::Instruction;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Execution {
@@ -24,7 +24,7 @@ impl Execution {
         }
     }
 
-    pub fn read_instruction(&mut self, instructions: &[u8]) -> Result<Instruction, Error> {
+    pub fn read_opcode(&mut self, instructions: &[u8]) -> Result<OpCode, Error> {
         let instruction = instructions[self.ip]
             .try_into()
             .map_err(|_| Error::InternalRuntimeError)?;

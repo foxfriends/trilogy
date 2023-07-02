@@ -1,4 +1,5 @@
-use num::{BigInt, BigRational, BigUint, Complex, Zero};
+use num::{BigInt, BigRational, BigUint, Complex, One, Zero};
+use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -128,5 +129,31 @@ impl From<Complex<BigRational>> for Number {
 impl From<BigRational> for Number {
     fn from(value: BigRational) -> Self {
         Self(Complex::new(value, Zero::zero()))
+    }
+}
+
+impl Display for Number {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let num = &self.0;
+
+        // TODO: write it in decimal form when "convenient"
+        // (or maybe based on a format specifier?)
+
+        write!(f, "{}", num.re.numer())?;
+        if !num.re.denom().is_one() {
+            write!(f, "/{}", num.re.denom())?;
+        }
+
+        if !num.im.is_zero() {
+            if num.im < BigRational::zero() {
+                write!(f, " - 0i")?;
+            }
+            write!(f, "{}", num.im.numer())?;
+            if !num.im.denom().is_one() {
+                write!(f, "/{}", num.im.denom())?;
+            }
+        }
+
+        Ok(())
     }
 }

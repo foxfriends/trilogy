@@ -1,7 +1,8 @@
 use super::{Error, Execution, Program};
+use crate::bytecode::OpCode;
 use crate::runtime::Number;
-use crate::{Instruction, Tuple, Value};
 use crate::{ReferentialEq, StructuralEq};
+use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
@@ -33,25 +34,25 @@ impl VirtualMachine {
         let ep = 0;
         while !self.executions.is_empty() {
             let ex = &mut self.executions[ep];
-            let instruction = ex.read_instruction(&self.program.instructions)?;
+            let instruction = ex.read_opcode(&self.program.instructions)?;
             match instruction {
-                Instruction::Const => {
+                OpCode::Const => {
                     let value = ex.read_offset(&self.program.instructions)?;
                     ex.stack.push(self.program.constants[value].clone());
                 }
-                Instruction::Load => {
+                OpCode::Load => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     ex.stack.push(ex.stack.at(offset)?);
                 }
-                Instruction::Set => {
+                OpCode::Set => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     let value = ex.stack.pop()?;
                     ex.stack.replace_at(offset, value)?;
                 }
-                Instruction::Pop => {
+                OpCode::Pop => {
                     ex.stack.pop()?;
                 }
-                Instruction::Add => {
+                OpCode::Add => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match lhs + rhs {
@@ -59,7 +60,7 @@ impl VirtualMachine {
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Subtract => {
+                OpCode::Subtract => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match lhs - rhs {
@@ -67,7 +68,7 @@ impl VirtualMachine {
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Multiply => {
+                OpCode::Multiply => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match lhs * rhs {
@@ -75,7 +76,7 @@ impl VirtualMachine {
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Divide => {
+                OpCode::Divide => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match lhs / rhs {
@@ -83,7 +84,7 @@ impl VirtualMachine {
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Remainder => {
+                OpCode::Remainder => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match lhs % rhs {
@@ -91,7 +92,7 @@ impl VirtualMachine {
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::IntDivide => {
+                OpCode::IntDivide => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match lhs / rhs {
@@ -102,7 +103,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Power => {
+                OpCode::Power => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match (lhs, rhs) {
@@ -110,14 +111,14 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Negate => {
+                OpCode::Negate => {
                     let val = ex.stack.pop()?;
                     match -val {
                         Ok(val) => ex.stack.push(val),
                         Err(..) => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Glue => {
+                OpCode::Glue => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match (lhs, rhs) {
@@ -127,7 +128,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Access => {
+                OpCode::Access => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match (lhs, rhs) {
@@ -168,7 +169,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Assign => {
+                OpCode::Assign => {
                     let value = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
@@ -186,14 +187,14 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Not => {
+                OpCode::Not => {
                     let val = ex.stack.pop()?;
                     match val {
                         Value::Bool(val) => ex.stack.push(Value::Bool(!val)),
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::And => {
+                OpCode::And => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match (lhs, rhs) {
@@ -203,7 +204,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Or => {
+                OpCode::Or => {
                     let rhs = ex.stack.pop()?;
                     let lhs = ex.stack.pop()?;
                     match (lhs, rhs) {
@@ -213,7 +214,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::BitwiseAnd => {
+                OpCode::BitwiseAnd => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     match lhs & rhs {
@@ -221,7 +222,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::BitwiseOr => {
+                OpCode::BitwiseOr => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     match lhs | rhs {
@@ -229,7 +230,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::BitwiseXor => {
+                OpCode::BitwiseXor => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     match lhs ^ rhs {
@@ -237,14 +238,14 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::BitwiseNeg => {
+                OpCode::BitwiseNeg => {
                     let val = ex.stack.pop()?;
                     match val {
                         Value::Bits(val) => ex.stack.push(Value::Bits(!val)),
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::LeftShift => {
+                OpCode::LeftShift => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     match lhs << rhs {
@@ -252,7 +253,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::RightShift => {
+                OpCode::RightShift => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     match lhs >> rhs {
@@ -260,12 +261,12 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Cons => {
+                OpCode::Cons => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     ex.stack.push(Value::Tuple(Tuple::new(lhs, rhs)));
                 }
-                Instruction::Leq => {
+                OpCode::Leq => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
@@ -275,7 +276,7 @@ impl VirtualMachine {
                     };
                     ex.stack.push(cmp);
                 }
-                Instruction::Lt => {
+                OpCode::Lt => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
@@ -285,7 +286,7 @@ impl VirtualMachine {
                     };
                     ex.stack.push(cmp);
                 }
-                Instruction::Geq => {
+                OpCode::Geq => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
@@ -295,7 +296,7 @@ impl VirtualMachine {
                     };
                     ex.stack.push(cmp);
                 }
-                Instruction::Gt => {
+                OpCode::Gt => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
@@ -305,27 +306,27 @@ impl VirtualMachine {
                     };
                     ex.stack.push(cmp);
                 }
-                Instruction::RefEq => {
+                OpCode::RefEq => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     ex.stack.push(Value::Bool(ReferentialEq::eq(&lhs, &rhs)));
                 }
-                Instruction::ValEq => {
+                OpCode::ValEq => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     ex.stack.push(Value::Bool(StructuralEq::eq(&lhs, &rhs)));
                 }
-                Instruction::RefNeq => {
+                OpCode::RefNeq => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     ex.stack.push(Value::Bool(!ReferentialEq::eq(&lhs, &rhs)));
                 }
-                Instruction::ValNeq => {
+                OpCode::ValNeq => {
                     let lhs = ex.stack.pop()?;
                     let rhs = ex.stack.pop()?;
                     ex.stack.push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
                 }
-                Instruction::Call => {
+                OpCode::Call => {
                     let arity = ex.read_offset(&self.program.instructions)?;
                     let callable = ex.stack.replace_with_pointer(arity, ex.ip)?;
                     match callable {
@@ -336,32 +337,32 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Return => {
+                OpCode::Return => {
                     let return_value = ex.stack.pop()?;
                     let return_to = ex.stack.pop_pointer()?;
                     ex.ip = return_to;
                     ex.stack.push(return_value);
                 }
-                Instruction::Shift => {
+                OpCode::Shift => {
                     let jump = ex.read_offset(&self.program.instructions)?;
                     let continuation = ex.current_continuation();
                     ex.stack.push(Value::Continuation(continuation));
                     ex.ip += jump;
                 }
-                Instruction::Reset => {
+                OpCode::Reset => {
                     let return_value = ex.stack.pop()?;
                     ex.reset_continuation()?;
                     ex.stack.push(return_value);
                 }
-                Instruction::Jump => {
+                OpCode::Jump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
                     ex.ip += dist;
                 }
-                Instruction::JumpBack => {
+                OpCode::JumpBack => {
                     let dist = ex.read_offset(&self.program.instructions)?;
                     ex.ip -= dist;
                 }
-                Instruction::CondJump => {
+                OpCode::CondJump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
                     let cond = ex.stack.pop()?;
                     match cond {
@@ -370,7 +371,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::CondJumpBack => {
+                OpCode::CondJumpBack => {
                     let dist = ex.read_offset(&self.program.instructions)?;
                     let cond = ex.stack.pop()?;
                     match cond {
@@ -379,7 +380,7 @@ impl VirtualMachine {
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
-                Instruction::Branch => {
+                OpCode::Branch => {
                     // A branch requires two values on the stack; the two branches get the
                     // different values, respectively.
                     let right = ex.stack.pop()?;
@@ -389,7 +390,7 @@ impl VirtualMachine {
                     branch.stack.push(right);
                     self.executions.push_back(branch);
                 }
-                Instruction::Fizzle => {
+                OpCode::Fizzle => {
                     // This just ends the execution.
                     //
                     // Is there any cleanup that has to be done? Or does Rust's
@@ -398,7 +399,7 @@ impl VirtualMachine {
                     // I suspect it is automatic.
                     self.executions.pop_front();
                 }
-                Instruction::Exit => {
+                OpCode::Exit => {
                     // When run in embedded mode, the exit value can be any value. The
                     // interpreter binary can decide how to handle that exit value when
                     // passing off to the OS.

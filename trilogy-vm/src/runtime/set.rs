@@ -1,6 +1,7 @@
 use super::{ReferentialEq, StructuralEq, Value};
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
+use std::fmt::{self, Display};
+use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug)]
@@ -13,7 +14,7 @@ impl PartialEq for Set {
     }
 }
 impl Hash for Set {
-    fn hash<H: Hasher>(&self, state: &mut H) {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
         Arc::as_ptr(&self.0).hash(state);
     }
 }
@@ -33,5 +34,15 @@ impl StructuralEq for Set {
             return false
         };
         lhs.eq(&*rhs)
+    }
+}
+
+impl Display for Set {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[|")?;
+        for item in &*self.0.lock().unwrap() {
+            write!(f, "{item},")?;
+        }
+        write!(f, "|]")
     }
 }
