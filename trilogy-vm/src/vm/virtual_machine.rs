@@ -329,10 +329,10 @@ impl VirtualMachine {
                     let arity = ex.read_offset(&self.program.instructions)?;
                     let callable = ex.stack.replace_with_pointer(arity, ex.ip)?;
                     match callable {
-                        Value::Continuation(_callable) => {
-                            todo!("something with the stacks here, add a ghost")
+                        Value::Continuation(continuation) => {
+                            ex.call_continuation(continuation, arity)?;
                         }
-                        Value::Procedure(callable) => ex.ip = callable.ip(),
+                        Value::Procedure(ip) => ex.ip = ip,
                         _ => return Err(Error::RuntimeTypeError),
                     }
                 }
@@ -349,7 +349,9 @@ impl VirtualMachine {
                     ex.ip += jump;
                 }
                 Instruction::Reset => {
-                    todo!("do something to the ghost, or not?")
+                    let return_value = ex.stack.pop()?;
+                    ex.reset_continuation()?;
+                    ex.stack.push(return_value);
                 }
                 Instruction::Jump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
