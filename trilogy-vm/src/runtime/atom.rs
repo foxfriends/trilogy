@@ -21,6 +21,6 @@ impl Hash for Atom {
 
 impl Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "'{}", self.0) // TODO: support atoms with unsupported characters
+        write!(f, "'{}", self.0)
     }
 }
