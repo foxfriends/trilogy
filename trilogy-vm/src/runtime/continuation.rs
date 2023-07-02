@@ -3,7 +3,10 @@ use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug)]
-pub struct Continuation {
+pub struct Continuation(Box<InnerContinuation>);
+
+#[derive(Clone, Debug)]
+struct InnerContinuation {
     ip: usize,
     stack: Arc<Mutex<Stack>>,
 }
@@ -12,30 +15,30 @@ impl Eq for Continuation {}
 
 impl PartialEq for Continuation {
     fn eq(&self, other: &Self) -> bool {
-        self.ip == other.ip && Arc::ptr_eq(&self.stack, &other.stack)
+        self.0.ip == other.0.ip && Arc::ptr_eq(&self.0.stack, &other.0.stack)
     }
 }
 
 impl Hash for Continuation {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.ip.hash(state);
-        Arc::as_ptr(&self.stack).hash(state);
+        self.0.ip.hash(state);
+        Arc::as_ptr(&self.0.stack).hash(state);
     }
 }
 
 impl Continuation {
     pub(crate) fn new(ip: usize, stack: Stack) -> Self {
-        Self {
+        Self(Box::new(InnerContinuation {
             ip,
             stack: Arc::new(Mutex::new(stack)),
-        }
+        }))
     }
 
     pub fn ip(&self) -> usize {
-        self.ip
+        self.0.ip
     }
 
     pub fn stack(&self) -> Arc<Mutex<Stack>> {
-        self.stack.clone()
+        self.0.stack.clone()
     }
 }
