@@ -120,7 +120,7 @@ impl<T> Cactus<T> {
             let new_self = self.parent.as_ref()?.lock().unwrap().clone();
             *self = new_self;
         }
-        Some(self.stack.split_off(self.stack.len() - count - 1))
+        Some(self.stack.split_off(self.stack.len() - count))
     }
 
     pub fn attach(&mut self, items: Vec<T>) {

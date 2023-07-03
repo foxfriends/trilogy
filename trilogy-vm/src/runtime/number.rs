@@ -69,6 +69,13 @@ impl PartialOrd for Number {
 }
 
 impl Number {
+    pub fn rational<T>(num: T, den: T) -> Self
+    where
+        Self: From<T>,
+    {
+        Self::from(num) / Self::from(den)
+    }
+
     pub fn as_complex(&self) -> Complex<BigRational> {
         self.0.clone()
     }
@@ -112,16 +119,37 @@ impl Number {
             None
         }
     }
-}
 
-impl From<usize> for Number {
-    fn from(value: usize) -> Self {
-        Self(Complex::new(
-            BigRational::from(BigInt::from(value)),
-            Zero::zero(),
-        ))
+    pub(crate) fn pow(&self, _other: &Self) -> Self {
+        todo!()
     }
 }
+
+macro_rules! from_integer {
+    ($t:ty) => {
+        impl From<$t> for Number {
+            fn from(value: $t) -> Self {
+                Self(Complex::new(
+                    BigRational::from(BigInt::from(value)),
+                    Zero::zero(),
+                ))
+            }
+        }
+    };
+}
+
+from_integer!(usize);
+from_integer!(u8);
+from_integer!(u16);
+from_integer!(u32);
+from_integer!(u64);
+from_integer!(u128);
+from_integer!(isize);
+from_integer!(i8);
+from_integer!(i16);
+from_integer!(i32);
+from_integer!(i64);
+from_integer!(i128);
 
 impl From<Complex<BigRational>> for Number {
     fn from(value: Complex<BigRational>) -> Self {

@@ -1,3 +1,4 @@
+use super::error::ErrorKind;
 use super::{Error, Execution};
 use crate::bytecode::OpCode;
 use crate::runtime::Number;
@@ -38,102 +39,107 @@ impl VirtualMachine {
             match instruction {
                 OpCode::Const => {
                     let value = ex.read_offset(&self.program.instructions)?;
-                    ex.stack.push(self.program.constants[value].clone());
+                    ex.stack_push(self.program.constants[value].clone());
                 }
                 OpCode::Load => {
                     let offset = ex.read_offset(&self.program.instructions)?;
-                    ex.stack.push(ex.stack.at(offset)?);
+                    ex.stack_push(ex.stack_at(offset)?);
                 }
                 OpCode::Set => {
                     let offset = ex.read_offset(&self.program.instructions)?;
-                    let value = ex.stack.pop()?;
-                    ex.stack.replace_at(offset, value)?;
+                    let value = ex.stack_pop()?;
+                    ex.stack_replace_at(offset, value)?;
                 }
                 OpCode::Pop => {
-                    ex.stack.pop()?;
+                    ex.stack_pop()?;
+                }
+                OpCode::Copy => {
+                    let value = ex.stack_at(0)?;
+                    ex.stack_push(value);
                 }
                 OpCode::Add => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs + rhs {
-                        Ok(val) => ex.stack.push(val),
-                        Err(..) => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        Err(..) => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Subtract => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs - rhs {
-                        Ok(val) => ex.stack.push(val),
-                        Err(..) => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        Err(..) => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Multiply => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs * rhs {
-                        Ok(val) => ex.stack.push(val),
-                        Err(..) => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        Err(..) => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Divide => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs / rhs {
-                        Ok(val) => ex.stack.push(val),
-                        Err(..) => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        Err(..) => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Remainder => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs % rhs {
-                        Ok(val) => ex.stack.push(val),
-                        Err(..) => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        Err(..) => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::IntDivide => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs / rhs {
                         Ok(Value::Number(val)) => {
-                            ex.stack
-                                .push(Value::Number(Number::from(val.as_complex().re.floor())));
+                            ex.stack_push(Value::Number(Number::from(val.as_complex().re.floor())));
                         }
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Power => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match (lhs, rhs) {
-                        (Value::Number(..), Value::Number(..)) => todo!("surprisingly hard"),
-                        _ => return Err(Error::RuntimeTypeError),
+                        (Value::Number(lhs), Value::Number(rhs)) => {
+                            ex.stack_push(Value::Number(lhs.pow(&rhs)));
+                        }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Negate => {
-                    let val = ex.stack.pop()?;
+                    let val = ex.stack_pop()?;
                     match -val {
-                        Ok(val) => ex.stack.push(val),
-                        Err(..) => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        Err(..) => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Glue => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match (lhs, rhs) {
                         (Value::String(lhs), Value::String(rhs)) => {
-                            ex.stack.push(Value::String(lhs + &rhs))
+                            ex.stack_push(Value::String(lhs + &rhs))
                         }
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Access => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match (lhs, rhs) {
                         (Value::Record(record), rhs) => match record.get(&rhs) {
-                            Some(value) => ex.stack.push(value),
+                            Some(value) => ex.stack_push(value),
                             None => todo!("yield 'MIA"),
                         },
                         (Value::String(lhs), Value::Number(rhs)) => {
@@ -142,7 +148,7 @@ impl VirtualMachine {
                                 .and_then(|index| index.to_usize())
                                 .and_then(|index| lhs.chars().nth(index));
                             match ch {
-                                Some(ch) => ex.stack.push(Value::Char(ch)),
+                                Some(ch) => ex.stack_push(Value::Char(ch)),
                                 None => todo!("yield 'MIA"),
                             }
                         }
@@ -152,7 +158,7 @@ impl VirtualMachine {
                                 .and_then(|index| index.to_usize())
                                 .and_then(|index| lhs.get(index));
                             match val {
-                                Some(val) => ex.stack.push(Value::Bool(val)),
+                                Some(val) => ex.stack_push(Value::Bool(val)),
                                 None => todo!("yield 'MIA"),
                             }
                         }
@@ -162,17 +168,17 @@ impl VirtualMachine {
                                 .and_then(|index| index.to_usize())
                                 .and_then(|index| lhs.get(index));
                             match val {
-                                Some(val) => ex.stack.push(val),
+                                Some(val) => ex.stack_push(val),
                                 None => todo!("yield 'MIA"),
                             }
                         }
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Assign => {
-                    let value = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let value = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match (lhs, rhs, value) {
                         (Value::Record(record), rhs, value) => {
                             record.insert(rhs, value);
@@ -184,175 +190,175 @@ impl VirtualMachine {
                                 None => todo!("yield 'MIA"),
                             }
                         }
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Not => {
-                    let val = ex.stack.pop()?;
+                    let val = ex.stack_pop()?;
                     match val {
-                        Value::Bool(val) => ex.stack.push(Value::Bool(!val)),
-                        _ => return Err(Error::RuntimeTypeError),
+                        Value::Bool(val) => ex.stack_push(Value::Bool(!val)),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::And => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match (lhs, rhs) {
                         (Value::Bool(lhs), Value::Bool(rhs)) => {
-                            ex.stack.push(Value::Bool(lhs && rhs))
+                            ex.stack_push(Value::Bool(lhs && rhs))
                         }
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Or => {
-                    let rhs = ex.stack.pop()?;
-                    let lhs = ex.stack.pop()?;
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match (lhs, rhs) {
                         (Value::Bool(lhs), Value::Bool(rhs)) => {
-                            ex.stack.push(Value::Bool(lhs || rhs))
+                            ex.stack_push(Value::Bool(lhs || rhs))
                         }
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::BitwiseAnd => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     match lhs & rhs {
-                        Ok(val) => ex.stack.push(val),
-                        _ => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::BitwiseOr => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     match lhs | rhs {
-                        Ok(val) => ex.stack.push(val),
-                        _ => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::BitwiseXor => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     match lhs ^ rhs {
-                        Ok(val) => ex.stack.push(val),
-                        _ => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::BitwiseNeg => {
-                    let val = ex.stack.pop()?;
+                    let val = ex.stack_pop()?;
                     match val {
-                        Value::Bits(val) => ex.stack.push(Value::Bits(!val)),
-                        _ => return Err(Error::RuntimeTypeError),
+                        Value::Bits(val) => ex.stack_push(Value::Bits(!val)),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::LeftShift => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     match lhs << rhs {
-                        Ok(val) => ex.stack.push(val),
-                        _ => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::RightShift => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     match lhs >> rhs {
-                        Ok(val) => ex.stack.push(val),
-                        _ => return Err(Error::RuntimeTypeError),
+                        Ok(val) => ex.stack_push(val),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Cons => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
-                    ex.stack.push(Value::Tuple(Tuple::new(lhs, rhs)));
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
+                    ex.stack_push(Value::Tuple(Tuple::new(lhs, rhs)));
                 }
                 OpCode::Leq => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less | Ordering::Equal) => Value::Bool(true),
                         Some(Ordering::Greater) => Value::Bool(false),
                         None => Value::Unit,
                     };
-                    ex.stack.push(cmp);
+                    ex.stack_push(cmp);
                 }
                 OpCode::Lt => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less) => Value::Bool(true),
                         Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(false),
                         None => Value::Unit,
                     };
-                    ex.stack.push(cmp);
+                    ex.stack_push(cmp);
                 }
                 OpCode::Geq => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less) => Value::Bool(false),
                         Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(true),
                         None => Value::Unit,
                     };
-                    ex.stack.push(cmp);
+                    ex.stack_push(cmp);
                 }
                 OpCode::Gt => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less) | Some(Ordering::Equal) => Value::Bool(false),
                         Some(Ordering::Greater) => Value::Bool(true),
                         None => Value::Unit,
                     };
-                    ex.stack.push(cmp);
+                    ex.stack_push(cmp);
                 }
                 OpCode::RefEq => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
-                    ex.stack.push(Value::Bool(ReferentialEq::eq(&lhs, &rhs)));
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
+                    ex.stack_push(Value::Bool(ReferentialEq::eq(&lhs, &rhs)));
                 }
                 OpCode::ValEq => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
-                    ex.stack.push(Value::Bool(StructuralEq::eq(&lhs, &rhs)));
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
+                    ex.stack_push(Value::Bool(StructuralEq::eq(&lhs, &rhs)));
                 }
                 OpCode::RefNeq => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
-                    ex.stack.push(Value::Bool(!ReferentialEq::eq(&lhs, &rhs)));
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
+                    ex.stack_push(Value::Bool(!ReferentialEq::eq(&lhs, &rhs)));
                 }
                 OpCode::ValNeq => {
-                    let lhs = ex.stack.pop()?;
-                    let rhs = ex.stack.pop()?;
-                    ex.stack.push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
+                    let lhs = ex.stack_pop()?;
+                    let rhs = ex.stack_pop()?;
+                    ex.stack_push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
                 }
                 OpCode::Call => {
                     let arity = ex.read_offset(&self.program.instructions)?;
-                    let callable = ex.stack.replace_with_pointer(arity, ex.ip)?;
+                    let callable = ex.stack_replace_with_pointer(arity, ex.ip)?;
                     match callable {
                         Value::Continuation(continuation) => {
                             ex.call_continuation(continuation, arity)?;
                         }
                         Value::Procedure(ip) => ex.ip = ip,
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Return => {
-                    let return_value = ex.stack.pop()?;
-                    let return_to = ex.stack.pop_pointer()?;
+                    let return_value = ex.stack_pop()?;
+                    let return_to = ex.stack_pop_pointer()?;
                     ex.ip = return_to;
-                    ex.stack.push(return_value);
+                    ex.stack_push(return_value);
                 }
                 OpCode::Shift => {
                     let jump = ex.read_offset(&self.program.instructions)?;
                     let continuation = ex.current_continuation();
-                    ex.stack.push(Value::Continuation(continuation));
+                    ex.stack_push(Value::Continuation(continuation));
                     ex.ip += jump;
                 }
                 OpCode::Reset => {
-                    let return_value = ex.stack.pop()?;
+                    let return_value = ex.stack_pop()?;
                     ex.reset_continuation()?;
-                    ex.stack.push(return_value);
+                    ex.stack_push(return_value);
                 }
                 OpCode::Jump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
@@ -364,30 +370,30 @@ impl VirtualMachine {
                 }
                 OpCode::CondJump => {
                     let dist = ex.read_offset(&self.program.instructions)?;
-                    let cond = ex.stack.pop()?;
+                    let cond = ex.stack_pop()?;
                     match cond {
                         Value::Bool(false) => ex.ip += dist,
                         Value::Bool(true) => {}
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::CondJumpBack => {
                     let dist = ex.read_offset(&self.program.instructions)?;
-                    let cond = ex.stack.pop()?;
+                    let cond = ex.stack_pop()?;
                     match cond {
                         Value::Bool(false) => ex.ip -= dist,
                         Value::Bool(true) => {}
-                        _ => return Err(Error::RuntimeTypeError),
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Branch => {
                     // A branch requires two values on the stack; the two branches get the
                     // different values, respectively.
-                    let right = ex.stack.pop()?;
-                    let left = ex.stack.pop()?;
+                    let right = ex.stack_pop()?;
+                    let left = ex.stack_pop()?;
                     let mut branch = ex.branch();
-                    ex.stack.push(left);
-                    branch.stack.push(right);
+                    ex.stack_push(left);
+                    branch.stack_push(right);
                     self.executions.push_back(branch);
                 }
                 OpCode::Fizzle => {
@@ -403,12 +409,17 @@ impl VirtualMachine {
                     // When run in embedded mode, the exit value can be any value. The
                     // interpreter binary can decide how to handle that exit value when
                     // passing off to the OS.
-                    let value = ex.stack.pop()?;
+                    //
+                    // Exit is allowed to not have a value, in which case we fill in with unit.
+                    let value = ex.stack_pop().unwrap_or(Value::Unit);
                     self.executions.clear();
                     return Ok(value);
                 }
             }
         }
-        Err(Error::ExecutionFizzledError)
+        Err(Error {
+            ip: 0,
+            kind: ErrorKind::ExecutionFizzledError,
+        })
     }
 }

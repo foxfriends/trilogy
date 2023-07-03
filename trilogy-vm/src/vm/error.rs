@@ -2,9 +2,15 @@
 // with what they are documented as.
 //
 // Maybe `Error` is not the best name for this enum, will revisit later.
+#[derive(Copy, Clone, Debug)]
+pub struct Error {
+    pub ip: usize,
+    pub kind: ErrorKind,
+}
+
 #[allow(clippy::enum_variant_names)]
 #[derive(Copy, Clone, Debug)]
-pub enum Error {
+pub enum ErrorKind {
     RuntimeTypeError,
     AssertionError,
     ExecutionFizzledError,
@@ -21,7 +27,7 @@ pub enum InternalRuntimeError {
     ExpectedStack,
 }
 
-impl From<InternalRuntimeError> for Error {
+impl From<InternalRuntimeError> for ErrorKind {
     fn from(value: InternalRuntimeError) -> Self {
         Self::InternalRuntimeError(value)
     }

@@ -6,6 +6,7 @@ pub enum OpCode {
     Load,
     Set,
     Pop,
+    Copy,
     // Basic operations
     Add,
     Subtract,

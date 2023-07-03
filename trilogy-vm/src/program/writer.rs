@@ -48,6 +48,7 @@ impl FromStr for Program {
                     writer.write_opcode(OpCode::Set);
                     writer.write_offset(offset);
                 }
+                Instruction::Copy => writer.write_opcode(OpCode::Copy),
                 Instruction::Pop => writer.write_opcode(OpCode::Pop),
                 Instruction::Add => writer.write_opcode(OpCode::Add),
                 Instruction::Subtract => writer.write_opcode(OpCode::Subtract),
@@ -172,6 +173,7 @@ impl Instruction {
             "CONST" => Ok(Self::Const(value(param, interner)?)),
             "LOAD" => Ok(Self::Load(offset(param)?)),
             "SET" => Ok(Self::Set(offset(param)?)),
+            "COPY" => Ok(Self::Copy),
             "POP" => Ok(Self::Pop),
             "ADD" => Ok(Self::Add),
             "SUB" => Ok(Self::Subtract),

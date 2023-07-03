@@ -44,6 +44,7 @@ impl ProgramReader<'_> {
             OpCode::Set => Ok(Instruction::Set(self.read_offset()?)),
             OpCode::Pop => Ok(Instruction::Pop),
             OpCode::Add => Ok(Instruction::Add),
+            OpCode::Copy => Ok(Instruction::Copy),
             OpCode::Subtract => Ok(Instruction::Subtract),
             OpCode::Multiply => Ok(Instruction::Multiply),
             OpCode::Divide => Ok(Instruction::Divide),
