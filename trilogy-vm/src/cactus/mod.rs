@@ -40,6 +40,7 @@ impl<T> Default for Cactus<T> {
 }
 
 impl<T> Cactus<T> {
+    #[cfg(test)]
     pub fn new() -> Self {
         Self::default()
     }
@@ -60,6 +61,7 @@ impl<T> Cactus<T> {
         self.stack.pop()
     }
 
+    #[cfg(test)]
     pub fn peek(&self) -> Option<&T> {
         self.stack.last()
     }
@@ -80,6 +82,7 @@ impl<T> Cactus<T> {
         }
     }
 
+    #[cfg(test)]
     pub fn parent(&self) -> Option<Arc<Mutex<Self>>> {
         self.parent.clone()
     }

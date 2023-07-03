@@ -11,13 +11,6 @@ pub(crate) struct Execution {
 }
 
 impl Execution {
-    pub fn new() -> Self {
-        Self {
-            stack: Stack::default(),
-            ip: 0,
-        }
-    }
-
     pub fn branch(&mut self) -> Self {
         let branch = self.stack.branch();
         Self {
@@ -106,12 +99,6 @@ impl Execution {
     ) -> Result<Value, Error> {
         self.stack
             .replace_with_pointer(index, pointer)
-            .map_err(|k| self.error(k))
-    }
-
-    pub fn stack_replace_with_value(&mut self, index: usize, value: Value) -> Result<usize, Error> {
-        self.stack
-            .replace_with_value(index, value)
             .map_err(|k| self.error(k))
     }
 

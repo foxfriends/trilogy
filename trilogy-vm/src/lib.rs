@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod bytecode;
 mod cactus;
 mod program;
