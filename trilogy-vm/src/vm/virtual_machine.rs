@@ -1,4 +1,4 @@
-use super::error::ErrorKind;
+use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Execution};
 use crate::bytecode::OpCode;
 use crate::runtime::Number;
@@ -12,6 +12,7 @@ use std::collections::VecDeque;
 pub struct VirtualMachine {
     program: Program,
     executions: VecDeque<Execution>,
+    heap: Vec<Option<Value>>,
 }
 
 impl VirtualMachine {
@@ -19,6 +20,7 @@ impl VirtualMachine {
         Self {
             program,
             executions: VecDeque::with_capacity(8),
+            heap: vec![],
         }
     }
 
@@ -42,16 +44,52 @@ impl VirtualMachine {
                     ex.stack_push(self.program.constants[value].clone());
                 }
                 OpCode::Load => {
+                    let pointer = ex.stack_pop_pointer()?;
+                    ex.stack_push(
+                        self.heap
+                            .get(pointer)
+                            .cloned()
+                            .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
+                            .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))?,
+                    );
+                }
+                OpCode::Set => {
+                    let pointer = ex.stack_pop_pointer()?;
+                    let value = ex.stack_pop()?;
+                    *self
+                        .heap
+                        .get_mut(pointer)
+                        .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
+                        .as_mut()
+                        .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))? = value;
+                }
+                OpCode::Alloc => {
+                    let value = ex.stack_pop()?;
+                    let pointer = self.heap.len();
+                    self.heap.push(Some(value));
+                    ex.stack_push_pointer(pointer);
+                }
+                OpCode::Free => {
+                    let pointer = ex.stack_pop_pointer()?;
+                    self.heap[pointer] = None;
+                }
+                OpCode::LoadRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     ex.stack_push(ex.stack_at(offset)?);
                 }
-                OpCode::Set => {
+                OpCode::SetRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     let value = ex.stack_pop()?;
                     ex.stack_replace_at(offset, value)?;
                 }
                 OpCode::Pop => {
                     ex.stack_pop()?;
+                }
+                OpCode::Swap => {
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
+                    ex.stack_push(rhs);
+                    ex.stack_push(lhs);
                 }
                 OpCode::Copy => {
                     let value = ex.stack_at(0)?;
@@ -334,7 +372,7 @@ impl VirtualMachine {
                 }
                 OpCode::Call => {
                     let arity = ex.read_offset(&self.program.instructions)?;
-                    let callable = ex.stack_replace_with_pointer(arity, ex.ip)?;
+                    let callable = ex.stack_replace_with_return(arity, ex.ip)?;
                     match callable {
                         Value::Continuation(continuation) => {
                             ex.call_continuation(continuation, arity)?;
@@ -345,7 +383,7 @@ impl VirtualMachine {
                 }
                 OpCode::Return => {
                     let return_value = ex.stack_pop()?;
-                    let return_to = ex.stack_pop_pointer()?;
+                    let return_to = ex.stack_pop_return()?;
                     ex.ip = return_to;
                     ex.stack_push(return_value);
                 }

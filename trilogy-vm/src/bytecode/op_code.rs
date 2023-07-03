@@ -3,9 +3,14 @@
 pub enum OpCode {
     // Direct stack manipulation
     Const,
+    LoadRegister,
+    SetRegister,
     Load,
     Set,
+    Alloc,
+    Free,
     Pop,
+    Swap,
     Copy,
     // Basic operations
     Add,

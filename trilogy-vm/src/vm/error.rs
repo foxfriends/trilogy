@@ -22,9 +22,12 @@ pub enum ErrorKind {
 pub enum InternalRuntimeError {
     InvalidOpcode,
     InvalidOffset,
+    InvalidPointer,
+    UseAfterFree,
     ExpectedValue,
     ExpectedPointer,
     ExpectedStack,
+    ExpectedReturn,
 }
 
 impl From<InternalRuntimeError> for ErrorKind {

@@ -53,10 +53,10 @@ fn test_capture() {
     const PROGRAM: &str = r#"
     CONST 1
     SHIFT 17
-    LOAD 2
+    LOADR 2
     ADD
-    SET 1
-    LOAD 1
+    SETR 1
+    LOADR 1
     RESET
     COPY
     CONST 1
@@ -65,6 +65,32 @@ fn test_capture() {
     EXIT
     "#;
 
+    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
+    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(4)));
+}
+
+#[test]
+#[ignore = "incomplete"]
+fn test_yield_invert() {
+    const PROGRAM: &str = r#"
+    # with
+    SHIFT 1
+        EXIT
+    # when
+    SHIFT 17
+        COPY
+        # resume
+        CALL 1
+        CALL 2
+        # cancel
+        RESET
+    # yield
+    SHIFT 1
+        RESET
+    SWAP
+    CALL 3
+    EXIT
+    "#;
     let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
     assert_eq!(vm.run().unwrap(), Value::Number(Number::from(4)));
 }

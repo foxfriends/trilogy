@@ -58,7 +58,7 @@ impl Execution {
 
     pub fn reset_continuation(&mut self) -> Result<(), Error> {
         if self.stack.return_to().map_err(|k| self.error(k))? {
-            let ip = self.stack.pop_pointer().map_err(|k| self.error(k))?;
+            let ip = self.stack.pop_return().map_err(|k| self.error(k))?;
             self.ip = ip;
         }
         Ok(())
@@ -86,23 +86,31 @@ impl Execution {
         self.stack.push(value);
     }
 
+    pub fn stack_push_pointer(&mut self, pointer: usize) {
+        self.stack.push_pointer(pointer);
+    }
+
     pub fn stack_replace_at(&mut self, index: usize, value: Value) -> Result<Value, Error> {
         self.stack
             .replace_at(index, value)
             .map_err(|k| self.error(k))
     }
 
-    pub fn stack_replace_with_pointer(
+    pub fn stack_replace_with_return(
         &mut self,
         index: usize,
         pointer: usize,
     ) -> Result<Value, Error> {
         self.stack
-            .replace_with_pointer(index, pointer)
+            .replace_with_return(index, pointer)
             .map_err(|k| self.error(k))
     }
 
     pub fn stack_pop_pointer(&mut self) -> Result<usize, Error> {
         self.stack.pop_pointer().map_err(|k| self.error(k))
+    }
+
+    pub fn stack_pop_return(&mut self) -> Result<usize, Error> {
+        self.stack.pop_return().map_err(|k| self.error(k))
     }
 }

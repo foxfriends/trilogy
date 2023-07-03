@@ -4,6 +4,7 @@ use crate::{cactus::Cactus, Value};
 #[derive(Clone, Debug)]
 enum InternalValue {
     Value(Value),
+    Return(usize),
     Pointer(usize),
     Stack(Stack),
 }
@@ -20,6 +21,13 @@ impl InternalValue {
         match self {
             InternalValue::Pointer(pointer) => Ok(pointer),
             _ => Err(InternalRuntimeError::ExpectedPointer),
+        }
+    }
+
+    fn try_into_return(self) -> Result<usize, InternalRuntimeError> {
+        match self {
+            InternalValue::Return(pointer) => Ok(pointer),
+            _ => Err(InternalRuntimeError::ExpectedReturn),
         }
     }
 }
@@ -57,13 +65,24 @@ impl Stack {
             .and_then(InternalValue::try_into_pointer)
     }
 
-    pub(crate) fn replace_with_pointer(
+    pub(crate) fn pop_return(&mut self) -> Result<usize, InternalRuntimeError> {
+        self.0
+            .pop()
+            .ok_or(InternalRuntimeError::ExpectedReturn)
+            .and_then(InternalValue::try_into_return)
+    }
+
+    pub(crate) fn push_pointer(&mut self, pointer: usize) {
+        self.0.push(InternalValue::Pointer(pointer));
+    }
+
+    pub(crate) fn replace_with_return(
         &mut self,
         index: usize,
         pointer: usize,
     ) -> Result<Value, InternalRuntimeError> {
         self.0
-            .replace_at(index, InternalValue::Pointer(pointer))
+            .replace_at(index, InternalValue::Return(pointer))
             .map_err(|_| InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
@@ -98,8 +117,8 @@ impl Stack {
     }
 
     pub(crate) fn return_to(&mut self) -> Result<bool, InternalRuntimeError> {
-        let value = self.0.pop().ok_or(InternalRuntimeError::ExpectedStack)?;
-        if let InternalValue::Stack(stack) = value {
+        if let Some(InternalValue::Stack(stack)) = self.0.at(0) {
+            self.0.pop().unwrap();
             // NOTE: this seems to be "correct" but... a bit disappointing in that we have no
             // way of detecting that this was actually not just improper stack usage. Fortunately,
             // programs should still end up being invalid as we will soon try to pop a value from

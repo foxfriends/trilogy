@@ -40,9 +40,14 @@ impl ProgramReader<'_> {
                     .clone();
                 Ok(Instruction::Const(value))
             }
-            OpCode::Load => Ok(Instruction::Load(self.read_offset()?)),
-            OpCode::Set => Ok(Instruction::Set(self.read_offset()?)),
+            OpCode::Load => Ok(Instruction::Load),
+            OpCode::Set => Ok(Instruction::Set),
+            OpCode::Alloc => Ok(Instruction::Alloc),
+            OpCode::Free => Ok(Instruction::Free),
+            OpCode::LoadRegister => Ok(Instruction::LoadRegister(self.read_offset()?)),
+            OpCode::SetRegister => Ok(Instruction::SetRegister(self.read_offset()?)),
             OpCode::Pop => Ok(Instruction::Pop),
+            OpCode::Swap => Ok(Instruction::Swap),
             OpCode::Add => Ok(Instruction::Add),
             OpCode::Copy => Ok(Instruction::Copy),
             OpCode::Subtract => Ok(Instruction::Subtract),

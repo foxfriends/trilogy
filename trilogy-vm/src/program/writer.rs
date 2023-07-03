@@ -40,16 +40,21 @@ impl FromStr for Program {
                     writer.write_opcode(OpCode::Const);
                     writer.write_offset(index);
                 }
-                Instruction::Load(offset) => {
-                    writer.write_opcode(OpCode::Load);
+                Instruction::Load => writer.write_opcode(OpCode::Load),
+                Instruction::Set => writer.write_opcode(OpCode::Set),
+                Instruction::Alloc => writer.write_opcode(OpCode::Alloc),
+                Instruction::Free => writer.write_opcode(OpCode::Free),
+                Instruction::LoadRegister(offset) => {
+                    writer.write_opcode(OpCode::LoadRegister);
                     writer.write_offset(offset);
                 }
-                Instruction::Set(offset) => {
-                    writer.write_opcode(OpCode::Set);
+                Instruction::SetRegister(offset) => {
+                    writer.write_opcode(OpCode::SetRegister);
                     writer.write_offset(offset);
                 }
                 Instruction::Copy => writer.write_opcode(OpCode::Copy),
                 Instruction::Pop => writer.write_opcode(OpCode::Pop),
+                Instruction::Swap => writer.write_opcode(OpCode::Swap),
                 Instruction::Add => writer.write_opcode(OpCode::Add),
                 Instruction::Subtract => writer.write_opcode(OpCode::Subtract),
                 Instruction::Multiply => writer.write_opcode(OpCode::Multiply),
@@ -171,10 +176,15 @@ impl Instruction {
 
         match opcode {
             "CONST" => Ok(Self::Const(value(param, interner)?)),
-            "LOAD" => Ok(Self::Load(offset(param)?)),
-            "SET" => Ok(Self::Set(offset(param)?)),
+            "LOAD" => Ok(Self::Load),
+            "SET" => Ok(Self::Set),
+            "ALLOC" => Ok(Self::Alloc),
+            "FREE" => Ok(Self::Free),
+            "LOADR" => Ok(Self::LoadRegister(offset(param)?)),
+            "SETR" => Ok(Self::SetRegister(offset(param)?)),
             "COPY" => Ok(Self::Copy),
             "POP" => Ok(Self::Pop),
+            "SWAP" => Ok(Self::Swap),
             "ADD" => Ok(Self::Add),
             "SUB" => Ok(Self::Subtract),
             "MUL" => Ok(Self::Multiply),
