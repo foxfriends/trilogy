@@ -1,62 +1,34 @@
-use super::Error;
-use crate::bytecode::{Instruction, Offset, OpCode};
-use crate::runtime::Value;
-use std::fmt::{self, Display};
+use super::Program;
+use crate::bytecode::{Offset, OpCode};
+use crate::Instruction;
 
-#[derive(Clone, Debug)]
-pub struct Program {
-    pub(crate) constants: Vec<Value>,
-    pub(crate) instructions: Vec<u8>,
-}
-
-impl Display for Program {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for instruction in self.into_iter() {
-            writeln!(f, "{}", instruction.map_err(|_| fmt::Error)?)?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> IntoIterator for &'a Program {
-    type Item = Result<Instruction, Error>;
-    type IntoIter = ProgramReader<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        ProgramReader {
-            program: self,
-            ip: 0,
-        }
-    }
-}
+pub struct InvalidBytecode;
 
 pub struct ProgramReader<'a> {
-    program: &'a Program,
-    ip: usize,
+    pub(super) program: &'a Program,
+    pub(super) ip: usize,
 }
 
 impl ProgramReader<'_> {
-    fn read_opcode(&mut self) -> Result<OpCode, Error> {
+    fn read_opcode(&mut self) -> Result<OpCode, InvalidBytecode> {
         let instruction = self.program.instructions[self.ip]
             .try_into()
-            .map_err(|_| Error::InternalRuntimeError)?;
+            .map_err(|_| InvalidBytecode)?;
         self.ip += 1;
         Ok(instruction)
     }
 
-    fn read_offset(&mut self) -> Result<Offset, Error> {
+    fn read_offset(&mut self) -> Result<Offset, InvalidBytecode> {
         let value = usize::from_le_bytes(
             self.program.instructions[self.ip..self.ip + 4]
                 .try_into()
-                .map_err(|_| Error::InternalRuntimeError)?,
+                .map_err(|_| InvalidBytecode)?,
         );
         self.ip += 4;
         Ok(value)
     }
-}
 
-impl ProgramReader<'_> {
-    fn read_instruction(&mut self) -> Result<Instruction, Error> {
+    fn read_instruction(&mut self) -> Result<Instruction, InvalidBytecode> {
         match self.read_opcode()? {
             OpCode::Const => {
                 let offset = self.read_offset()?;
@@ -64,7 +36,7 @@ impl ProgramReader<'_> {
                     .program
                     .constants
                     .get(offset)
-                    .ok_or(Error::InternalRuntimeError)?
+                    .ok_or(InvalidBytecode)?
                     .clone();
                 Ok(Instruction::Const(value))
             }
@@ -116,7 +88,7 @@ impl ProgramReader<'_> {
 }
 
 impl Iterator for ProgramReader<'_> {
-    type Item = Result<Instruction, Error>;
+    type Item = Result<Instruction, InvalidBytecode>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.ip == self.program.instructions.len() {

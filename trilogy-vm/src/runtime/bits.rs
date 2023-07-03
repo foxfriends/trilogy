@@ -7,12 +7,26 @@ use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 pub struct Bits(BitVec);
 
 impl Bits {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn get(&self, index: usize) -> Option<bool> {
         self.0.get(index).as_deref().copied()
     }
 
     pub fn set(&mut self, index: usize, value: bool) {
         self.0.set(index, value);
+    }
+}
+
+impl FromIterator<bool> for Bits {
+    fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
+        Self(BitVec::from_iter(iter))
     }
 }
 

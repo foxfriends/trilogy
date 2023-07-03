@@ -1,4 +1,5 @@
 use std::cmp::PartialEq;
+use std::collections::HashSet;
 use std::fmt::{self, Display};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
@@ -22,5 +23,20 @@ impl Hash for Atom {
 impl Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "'{}", self.0)
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct AtomInterner(HashSet<Arc<String>>);
+
+impl AtomInterner {
+    pub fn intern(&mut self, string: &String) -> Atom {
+        if let Some(arc) = self.0.get(string) {
+            Atom(arc.clone())
+        } else {
+            let arc = Arc::new(string.to_owned());
+            self.0.insert(arc.clone());
+            Atom(arc)
+        }
     }
 }

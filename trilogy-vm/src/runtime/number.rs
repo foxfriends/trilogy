@@ -1,6 +1,9 @@
-use num::{BigInt, BigRational, BigUint, Complex, One, Zero};
+use num::complex::ParseComplexError;
+use num::rational::ParseRatioError;
+use num::{BigInt, BigRational, BigUint, Complex, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
+use std::str::FromStr;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Number(Complex<BigRational>);
@@ -134,26 +137,14 @@ impl From<BigRational> for Number {
 
 impl Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let num = &self.0;
+        self.0.fmt(f)
+    }
+}
 
-        // TODO: write it in decimal form when "convenient"
-        // (or maybe based on a format specifier?)
+impl FromStr for Number {
+    type Err = ParseComplexError<ParseRatioError>;
 
-        write!(f, "{}", num.re.numer())?;
-        if !num.re.denom().is_one() {
-            write!(f, "/{}", num.re.denom())?;
-        }
-
-        if !num.im.is_zero() {
-            if num.im < BigRational::zero() {
-                write!(f, " - 0i")?;
-            }
-            write!(f, "{}", num.im.numer())?;
-            if !num.im.denom().is_one() {
-                write!(f, "/{}", num.im.denom())?;
-            }
-        }
-
-        Ok(())
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
     }
 }

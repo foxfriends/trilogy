@@ -1,7 +1,7 @@
-use super::{Error, Execution, Program};
+use super::{Error, Execution};
 use crate::bytecode::OpCode;
 use crate::runtime::Number;
-use crate::{ReferentialEq, StructuralEq};
+use crate::{Program, ReferentialEq, StructuralEq};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;

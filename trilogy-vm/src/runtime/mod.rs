@@ -1,5 +1,5 @@
 mod array;
-mod atom;
+pub(crate) mod atom;
 mod bits;
 mod continuation;
 mod eq;

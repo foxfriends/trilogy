@@ -3,8 +3,25 @@ use std::fmt::{self, Display};
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Struct {
-    pub name: Atom,
-    pub value: Box<Value>,
+    name: Atom,
+    value: Box<Value>,
+}
+
+impl Struct {
+    pub fn new(name: Atom, value: Value) -> Self {
+        Self {
+            name,
+            value: Box::new(value),
+        }
+    }
+
+    pub fn name(&self) -> Atom {
+        self.name.clone()
+    }
+
+    pub fn value(&self) -> &Value {
+        &self.value
+    }
 }
 
 impl PartialOrd for Struct {
