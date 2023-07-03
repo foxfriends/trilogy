@@ -1,7 +1,8 @@
 use crate::bytecode::OpCode;
 use crate::runtime::atom::AtomInterner;
 use crate::runtime::Bits;
-use crate::{Instruction, Program, Struct, Tuple, Value};
+use crate::{Array, Instruction, Program, Record, Set, Struct, Tuple, Value};
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug)]
@@ -158,7 +159,9 @@ impl Value {
             _ if s.starts_with("false") => Ok((Value::Bool(false), &s[5..])),
             _ if s.starts_with('\'') => {
                 if s.starts_with('\\') {
-                    todo!("Escape sequence")
+                    let (ch, s) = Self::escape_sequence(s).ok_or(ValueError::InvalidCharacter)?;
+                    let s = s.strip_prefix('\'').ok_or(ValueError::InvalidCharacter)?;
+                    Ok((Value::Char(ch), s))
                 } else if &s[2..3] == "'" {
                     Ok((
                         Value::Char(s[1..2].parse().map_err(|_| ValueError::InvalidCharacter)?),
@@ -192,10 +195,86 @@ impl Value {
                 let s = s.strip_prefix(')').ok_or(ValueError::InvalidTuple)?;
                 Ok((Value::Tuple(Tuple::new(lhs, rhs)), s))
             }
-            _ if s.starts_with('"') => todo!(),
-            _ if s.starts_with("[|") => todo!(),
-            _ if s.starts_with("{|") => todo!(),
-            _ if s.starts_with('[') => todo!(),
+            _ if s.starts_with('"') => {
+                let mut string = String::new();
+                let mut s = &s[1..];
+                loop {
+                    if s.is_empty() {
+                        return Err(ValueError::InvalidString);
+                    }
+                    if let Some(s) = s.strip_prefix('"') {
+                        return Ok((Value::String(string), s));
+                    }
+                    if s.starts_with('\\') {
+                        let (ch, rest) =
+                            Self::escape_sequence(s).ok_or(ValueError::InvalidString)?;
+                        s = rest;
+                        string.push(ch);
+                        continue;
+                    }
+                    string.push(s.chars().next().ok_or(ValueError::InvalidString)?);
+                    s = &s[1..];
+                }
+            }
+            _ if s.starts_with("[|") => {
+                let mut set = HashSet::new();
+                let mut s = &s[2..];
+                let s = loop {
+                    if let Some(rest) = s.strip_prefix("|]") {
+                        break rest;
+                    }
+                    if s.is_empty() {
+                        return Err(ValueError::InvalidSet);
+                    }
+                    let (value, rest) = Value::parse_prefix(s, interner)?;
+                    set.insert(value);
+                    if let Some(rest) = rest.strip_prefix("|]") {
+                        break rest;
+                    }
+                    s = rest.strip_prefix(',').ok_or(ValueError::InvalidSet)?;
+                };
+                Ok((Value::Set(Set::from(set)), s))
+            }
+            _ if s.starts_with("{|") => {
+                let mut map = HashMap::new();
+                let mut s = &s[2..];
+                let s = loop {
+                    if let Some(rest) = s.strip_prefix("|}") {
+                        break rest;
+                    }
+                    if s.is_empty() {
+                        return Err(ValueError::InvalidRecord);
+                    }
+                    let (key, rest) = Value::parse_prefix(s, interner)?;
+                    let rest = rest.strip_prefix("=>").ok_or(ValueError::InvalidRecord)?;
+                    let (value, rest) = Value::parse_prefix(rest, interner)?;
+                    map.insert(key, value);
+                    if let Some(rest) = rest.strip_prefix("|}") {
+                        break rest;
+                    }
+                    s = rest.strip_prefix(',').ok_or(ValueError::InvalidRecord)?;
+                };
+                Ok((Value::Record(Record::from(map)), s))
+            }
+            _ if s.starts_with('[') => {
+                let mut array = vec![];
+                let mut s = &s[1..];
+                let s = loop {
+                    if let Some(rest) = s.strip_prefix(']') {
+                        break rest;
+                    }
+                    if s.is_empty() {
+                        return Err(ValueError::InvalidArray);
+                    }
+                    let (value, rest) = Value::parse_prefix(s, interner)?;
+                    array.push(value);
+                    if let Some(rest) = rest.strip_prefix(']') {
+                        break rest;
+                    }
+                    s = rest.strip_prefix(',').ok_or(ValueError::InvalidArray)?;
+                };
+                Ok((Value::Array(Array::from(array)), s))
+            }
             _ if s.starts_with('&') => {
                 let s = &s[1..];
                 let numberlike: String = s.chars().take_while(|ch| ch.is_numeric()).collect();
@@ -241,6 +320,38 @@ impl Value {
             Ok((value, "")) => Ok(value),
             Ok(..) => Err(ValueError::ExtraChars),
             Err(error) => Err(error),
+        }
+    }
+
+    // NOTE: Logic taken from scanner
+
+    fn unicode_escape_sequence(s: &str) -> Option<(char, &str)> {
+        let s = s.strip_prefix('{')?;
+        let repr: String = s.chars().take_while(|ch| ch.is_ascii_hexdigit()).collect();
+        let s = s[repr.len()..].strip_prefix('}')?;
+        let num = u32::from_str_radix(&repr, 16).ok()?;
+        Some((char::from_u32(num)?, s))
+    }
+
+    fn ascii_escape_sequence(s: &str) -> Option<(char, &str)> {
+        u32::from_str_radix(&s[0..2], 16)
+            .ok()
+            .and_then(char::from_u32)
+            .map(|ch| (ch, &s[2..]))
+    }
+
+    fn escape_sequence(s: &str) -> Option<(char, &str)> {
+        match s.strip_prefix('\\')? {
+            s if s.starts_with('u') => Self::unicode_escape_sequence(&s[1..]),
+            s if s.starts_with('x') => Self::ascii_escape_sequence(&s[1..]),
+            s if s.starts_with(|ch| matches!(ch, '"' | '\'' | '$' | '\\')) => {
+                Some((s.chars().next()?, &s[1..]))
+            }
+            s if s.starts_with('n') => Some(('\n', &s[1..])),
+            s if s.starts_with('t') => Some(('\t', &s[1..])),
+            s if s.starts_with('r') => Some(('\r', &s[1..])),
+            s if s.starts_with('0') => Some(('\0', &s[1..])),
+            _ => None,
         }
     }
 }

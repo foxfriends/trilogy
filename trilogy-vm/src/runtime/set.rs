@@ -4,8 +4,30 @@ use std::fmt::{self, Display};
 use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct Set(Arc<Mutex<HashSet<Value>>>);
+
+impl Set {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn get(&self, value: &Value) -> Option<Value> {
+        self.0.lock().unwrap().get(value).cloned()
+    }
+
+    pub fn has(&self, value: &Value) -> bool {
+        self.0.lock().unwrap().contains(value)
+    }
+
+    pub fn insert(&self, value: Value) -> bool {
+        self.0.lock().unwrap().insert(value)
+    }
+
+    pub fn remove(&self, value: &Value) -> bool {
+        self.0.lock().unwrap().remove(value)
+    }
+}
 
 impl Eq for Set {}
 impl PartialEq for Set {
@@ -44,5 +66,11 @@ impl Display for Set {
             write!(f, "{item},")?;
         }
         write!(f, "|]")
+    }
+}
+
+impl From<HashSet<Value>> for Set {
+    fn from(set: HashSet<Value>) -> Self {
+        Self(Arc::new(Mutex::new(set)))
     }
 }

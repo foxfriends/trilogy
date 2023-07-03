@@ -4,7 +4,7 @@ use std::fmt::{self, Display};
 use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct Record(Arc<Mutex<HashMap<Value, Value>>>);
 
 impl Eq for Record {}
@@ -38,8 +38,16 @@ impl StructuralEq for Record {
 }
 
 impl Record {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn get(&self, key: &Value) -> Option<Value> {
         self.0.lock().unwrap().get(key).cloned()
+    }
+
+    pub fn contains_key(&self, key: &Value) -> bool {
+        self.0.lock().unwrap().contains_key(key)
     }
 
     pub fn insert(&self, key: Value, value: Value) -> Option<Value> {
@@ -55,8 +63,14 @@ impl Display for Record {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{|")?;
         for (key, value) in &*self.0.lock().unwrap() {
-            write!(f, "{key} => {value},")?;
+            write!(f, "{key}=>{value},")?;
         }
         write!(f, "|}}")
+    }
+}
+
+impl From<HashMap<Value, Value>> for Record {
+    fn from(value: HashMap<Value, Value>) -> Self {
+        Self(Arc::new(Mutex::new(value)))
     }
 }

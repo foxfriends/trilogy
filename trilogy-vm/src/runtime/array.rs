@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct Array(Arc<Mutex<Vec<Value>>>);
 
 impl Eq for Array {}
@@ -51,6 +51,10 @@ impl PartialOrd for Array {
 }
 
 impl Array {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn get(&self, index: usize) -> Option<Value> {
         self.0.lock().unwrap().get(index).cloned()
     }
@@ -80,5 +84,11 @@ impl Display for Array {
             write!(f, "{item},")?;
         }
         write!(f, "]")
+    }
+}
+
+impl From<Vec<Value>> for Array {
+    fn from(value: Vec<Value>) -> Self {
+        Self(Arc::new(Mutex::new(value)))
     }
 }
