@@ -1,3 +1,4 @@
+use super::error::InternalRuntimeError;
 use super::{Error, Stack};
 use crate::bytecode::OpCode;
 use crate::runtime::Continuation;
@@ -24,22 +25,22 @@ impl Execution {
         }
     }
 
-    pub fn read_opcode(&mut self, instructions: &[u8]) -> Result<OpCode, Error> {
+    pub fn read_opcode(&mut self, instructions: &[u8]) -> Result<OpCode, InternalRuntimeError> {
         let instruction = instructions[self.ip]
             .try_into()
-            .map_err(|_| Error::InternalRuntimeError)?;
+            .map_err(|_| InternalRuntimeError::InvalidOpcode)?;
         self.ip += 1;
         Ok(instruction)
     }
 
-    pub fn read_offset(&mut self, instructions: &[u8]) -> Result<usize, Error> {
-        let value = usize::from_le_bytes(
+    pub fn read_offset(&mut self, instructions: &[u8]) -> Result<usize, InternalRuntimeError> {
+        let value = u32::from_be_bytes(
             instructions[self.ip..self.ip + 4]
                 .try_into()
-                .map_err(|_| Error::InternalRuntimeError)?,
+                .map_err(|_| InternalRuntimeError::InvalidOffset)?,
         );
         self.ip += 4;
-        Ok(value)
+        Ok(value as usize)
     }
 
     pub fn current_continuation(&mut self) -> Continuation {

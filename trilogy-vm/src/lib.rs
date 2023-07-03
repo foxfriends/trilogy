@@ -8,5 +8,7 @@ mod vm;
 
 pub use bytecode::Instruction;
 pub use program::Program;
-pub use runtime::{Array, Atom, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple, Value};
+pub use runtime::{
+    Array, Atom, Bits, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple, Value,
+};
 pub use vm::VirtualMachine;

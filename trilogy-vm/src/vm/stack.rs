@@ -1,4 +1,4 @@
-use super::Error;
+use super::error::InternalRuntimeError;
 use crate::{cactus::Cactus, Value};
 
 #[derive(Clone, Debug)]
@@ -9,24 +9,24 @@ enum InternalValue {
 }
 
 impl InternalValue {
-    fn try_into_value(self) -> Result<Value, Error> {
+    fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
         match self {
             InternalValue::Value(value) => Ok(value),
-            _ => Err(Error::InternalRuntimeError),
+            _ => Err(InternalRuntimeError::ExpectedValue),
         }
     }
 
-    fn try_into_pointer(self) -> Result<usize, Error> {
+    fn try_into_pointer(self) -> Result<usize, InternalRuntimeError> {
         match self {
             InternalValue::Pointer(pointer) => Ok(pointer),
-            _ => Err(Error::InternalRuntimeError),
+            _ => Err(InternalRuntimeError::ExpectedPointer),
         }
     }
 
-    fn try_into_stack(self) -> Result<Stack, Error> {
+    fn try_into_stack(self) -> Result<Stack, InternalRuntimeError> {
         match self {
             InternalValue::Stack(stack) => Ok(stack),
-            _ => Err(Error::InternalRuntimeError),
+            _ => Err(InternalRuntimeError::ExpectedStack),
         }
     }
 }
@@ -43,64 +43,76 @@ impl Stack {
         self.0.push(InternalValue::Value(value));
     }
 
-    pub fn pop(&mut self) -> Result<Value, Error> {
+    pub fn pop(&mut self) -> Result<Value, InternalRuntimeError> {
         self.0
             .pop()
-            .ok_or(Error::InternalRuntimeError)
+            .ok_or(InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
 
-    pub fn at(&self, index: usize) -> Result<Value, Error> {
+    pub fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
         self.0
             .at(index)
-            .ok_or(Error::InternalRuntimeError)
+            .ok_or(InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
 
-    pub fn pop_pointer(&mut self) -> Result<usize, Error> {
+    pub fn pop_pointer(&mut self) -> Result<usize, InternalRuntimeError> {
         self.0
             .pop()
-            .ok_or(Error::InternalRuntimeError)
+            .ok_or(InternalRuntimeError::ExpectedPointer)
             .and_then(InternalValue::try_into_pointer)
     }
 
-    pub fn replace_with_pointer(&mut self, index: usize, pointer: usize) -> Result<Value, Error> {
+    pub fn replace_with_pointer(
+        &mut self,
+        index: usize,
+        pointer: usize,
+    ) -> Result<Value, InternalRuntimeError> {
         self.0
             .replace_at(index, InternalValue::Pointer(pointer))
-            .map_err(|_| Error::InternalRuntimeError)
+            .map_err(|_| InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
 
-    pub fn replace_with_value(&mut self, index: usize, value: Value) -> Result<usize, Error> {
+    pub fn replace_with_value(
+        &mut self,
+        index: usize,
+        value: Value,
+    ) -> Result<usize, InternalRuntimeError> {
         self.0
             .replace_at(index, InternalValue::Value(value))
-            .map_err(|_| Error::InternalRuntimeError)
+            .map_err(|_| InternalRuntimeError::ExpectedPointer)
             .and_then(InternalValue::try_into_pointer)
     }
 
-    pub fn replace_at(&mut self, index: usize, value: Value) -> Result<Value, Error> {
+    pub fn replace_at(
+        &mut self,
+        index: usize,
+        value: Value,
+    ) -> Result<Value, InternalRuntimeError> {
         self.0
             .replace_at(index, InternalValue::Value(value))
-            .map_err(|_| Error::InternalRuntimeError)
+            .map_err(|_| InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
 
-    pub fn continue_on(&mut self, stack: Stack, offset: usize) -> Result<(), Error> {
+    pub fn continue_on(&mut self, stack: Stack, offset: usize) -> Result<(), InternalRuntimeError> {
         // NOTE: it would be best if the transfer were performed at the VirtualMachine
         // level, but because of privacy it's just more convenient to do it here. Move
         // it later if it ever comes up.
         let transfer = self
             .0
             .detach_at(offset)
-            .ok_or(Error::InternalRuntimeError)?;
+            .ok_or(InternalRuntimeError::ExpectedValue)?;
         let return_to = std::mem::replace(self, stack);
         self.0.push(InternalValue::Stack(return_to));
         self.0.attach(transfer);
         Ok(())
     }
 
-    pub fn return_to(&mut self) -> Result<bool, Error> {
-        let value = self.0.pop().ok_or(Error::InternalRuntimeError)?;
+    pub fn return_to(&mut self) -> Result<bool, InternalRuntimeError> {
+        let value = self.0.pop().ok_or(InternalRuntimeError::ExpectedStack)?;
         if let InternalValue::Stack(stack) = value {
             // NOTE: this seems to be "correct" but... a bit disappointing in that we have no
             // way of detecting that this was actually not just improper stack usage. Fortunately,

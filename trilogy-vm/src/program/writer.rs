@@ -5,7 +5,7 @@ use crate::{Array, Instruction, Program, Record, Set, Struct, Tuple, Value};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Error {
     pub line: usize,
     pub error: InvalidInstruction,
@@ -26,6 +26,9 @@ impl FromStr for Program {
 
         let instructions = s
             .lines()
+            .map(|line| line.trim())
+            .filter(|line| !line.is_empty())
+            .filter(|line| !line.starts_with('#'))
             .map(|line| Instruction::parse(line, &mut interner))
             .enumerate()
             .map(|(line, result)| result.map_err(|error| Error { line, error }));
@@ -130,6 +133,88 @@ impl ProgramWriter<'_> {
         self.program
             .instructions
             .extend((offset as u32).to_be_bytes())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum InvalidInstruction {
+    UnknownOpcode(String),
+    MissingParameter,
+    InvalidOffset,
+    InvalidValue(ValueError),
+}
+
+impl Instruction {
+    fn parse(s: &str, interner: &mut AtomInterner) -> Result<Self, InvalidInstruction> {
+        let (opcode, param) = s
+            .split_once(' ')
+            .map(|(s, p)| (s, Some(p)))
+            .unwrap_or((s, None));
+
+        fn offset(param: Option<&str>) -> Result<usize, InvalidInstruction> {
+            param
+                .ok_or(InvalidInstruction::MissingParameter)
+                .and_then(|param| param.parse().map_err(|_| InvalidInstruction::InvalidOffset))
+        }
+
+        fn value(
+            param: Option<&str>,
+            interner: &mut AtomInterner,
+        ) -> Result<Value, InvalidInstruction> {
+            param
+                .ok_or(InvalidInstruction::MissingParameter)
+                .and_then(|param| {
+                    Value::parse(param, interner).map_err(InvalidInstruction::InvalidValue)
+                })
+        }
+
+        match opcode {
+            "CONST" => Ok(Self::Const(value(param, interner)?)),
+            "LOAD" => Ok(Self::Load(offset(param)?)),
+            "SET" => Ok(Self::Set(offset(param)?)),
+            "POP" => Ok(Self::Pop),
+            "ADD" => Ok(Self::Add),
+            "SUB" => Ok(Self::Subtract),
+            "MUL" => Ok(Self::Multiply),
+            "DIV" => Ok(Self::Divide),
+            "REM" => Ok(Self::Remainder),
+            "INTDIV" => Ok(Self::IntDivide),
+            "POW" => Ok(Self::Power),
+            "NEG" => Ok(Self::Negate),
+            "GLUE" => Ok(Self::Glue),
+            "ACCESS" => Ok(Self::Access),
+            "ASSIGN" => Ok(Self::Assign),
+            "NOT" => Ok(Self::Not),
+            "AND" => Ok(Self::And),
+            "OR" => Ok(Self::Or),
+            "BITAND" => Ok(Self::BitwiseAnd),
+            "BITOR" => Ok(Self::BitwiseOr),
+            "BITXOR" => Ok(Self::BitwiseXor),
+            "BITNEG" => Ok(Self::BitwiseNeg),
+            "LSHIFT" => Ok(Self::LeftShift),
+            "RSHIFT" => Ok(Self::RightShift),
+            "CONS" => Ok(Self::Cons),
+            "LEQ" => Ok(Self::Leq),
+            "LT" => Ok(Self::Lt),
+            "GEQ" => Ok(Self::Geq),
+            "GT" => Ok(Self::Gt),
+            "REFEQ" => Ok(Self::RefEq),
+            "VALEQ" => Ok(Self::ValEq),
+            "REFNEQ" => Ok(Self::RefNeq),
+            "VALNEQ" => Ok(Self::ValNeq),
+            "CALL" => Ok(Self::Call(offset(param)?)),
+            "RETURN" => Ok(Self::Return),
+            "SHIFT" => Ok(Self::Shift(offset(param)?)),
+            "RESET" => Ok(Self::Reset),
+            "JUMP" => Ok(Self::Jump(offset(param)?)),
+            "RJUMP" => Ok(Self::JumpBack(offset(param)?)),
+            "JUMPF" => Ok(Self::CondJump(offset(param)?)),
+            "RJUMPF" => Ok(Self::CondJumpBack(offset(param)?)),
+            "BRANCH" => Ok(Self::Branch),
+            "FIZZLE" => Ok(Self::Fizzle),
+            "EXIT" => Ok(Self::Exit),
+            opcode => Err(InvalidInstruction::UnknownOpcode(opcode.to_owned())),
+        }
     }
 }
 
@@ -352,88 +437,6 @@ impl Value {
             s if s.starts_with('r') => Some(('\r', &s[1..])),
             s if s.starts_with('0') => Some(('\0', &s[1..])),
             _ => None,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum InvalidInstruction {
-    UnknownOpcode,
-    MissingParameter,
-    InvalidOffset,
-    InvalidValue(ValueError),
-}
-
-impl Instruction {
-    fn parse(s: &str, interner: &mut AtomInterner) -> Result<Self, InvalidInstruction> {
-        let (opcode, param) = s
-            .split_once(' ')
-            .map(|(s, p)| (s, Some(p)))
-            .unwrap_or((s, None));
-
-        fn offset(param: Option<&str>) -> Result<usize, InvalidInstruction> {
-            param
-                .ok_or(InvalidInstruction::MissingParameter)
-                .and_then(|param| param.parse().map_err(|_| InvalidInstruction::InvalidOffset))
-        }
-
-        fn value(
-            param: Option<&str>,
-            interner: &mut AtomInterner,
-        ) -> Result<Value, InvalidInstruction> {
-            param
-                .ok_or(InvalidInstruction::MissingParameter)
-                .and_then(|param| {
-                    Value::parse(param, interner).map_err(InvalidInstruction::InvalidValue)
-                })
-        }
-
-        match opcode {
-            "CONST" => Ok(Self::Const(value(param, interner)?)),
-            "LOAD" => Ok(Self::Load(offset(param)?)),
-            "SET" => Ok(Self::Set(offset(param)?)),
-            "POP" => Ok(Self::Pop),
-            "ADD" => Ok(Self::Add),
-            "SUB" => Ok(Self::Subtract),
-            "MUL" => Ok(Self::Multiply),
-            "DIV" => Ok(Self::Divide),
-            "REM" => Ok(Self::Remainder),
-            "INTDIV" => Ok(Self::IntDivide),
-            "POW" => Ok(Self::Power),
-            "NEG" => Ok(Self::Negate),
-            "GLUE" => Ok(Self::Glue),
-            "ACCESS" => Ok(Self::Access),
-            "ASSIGN" => Ok(Self::Assign),
-            "NOT" => Ok(Self::Not),
-            "AND" => Ok(Self::And),
-            "OR" => Ok(Self::Or),
-            "BITAND" => Ok(Self::BitwiseAnd),
-            "BITOR" => Ok(Self::BitwiseOr),
-            "BITXOR" => Ok(Self::BitwiseXor),
-            "BITNEG" => Ok(Self::BitwiseNeg),
-            "LSHIFT" => Ok(Self::LeftShift),
-            "RSHIFT" => Ok(Self::RightShift),
-            "CONS" => Ok(Self::Cons),
-            "LEQ" => Ok(Self::Leq),
-            "LT" => Ok(Self::Lt),
-            "GEQ" => Ok(Self::Geq),
-            "GT" => Ok(Self::Gt),
-            "REFEQ" => Ok(Self::RefEq),
-            "VALEQ" => Ok(Self::ValEq),
-            "REFNEQ" => Ok(Self::RefNeq),
-            "VALNEQ" => Ok(Self::ValNeq),
-            "CALL" => Ok(Self::Call(offset(param)?)),
-            "RETURN" => Ok(Self::Return),
-            "SHIFT" => Ok(Self::Shift(offset(param)?)),
-            "RESET" => Ok(Self::Reset),
-            "JUMP" => Ok(Self::Jump(offset(param)?)),
-            "RJUMP" => Ok(Self::JumpBack(offset(param)?)),
-            "JUMPF" => Ok(Self::CondJump(offset(param)?)),
-            "RJUMPF" => Ok(Self::CondJumpBack(offset(param)?)),
-            "BRANCH" => Ok(Self::Branch),
-            "FIZZLE" => Ok(Self::Fizzle),
-            "EXIT" => Ok(Self::Exit),
-            _ => Err(InvalidInstruction::UnknownOpcode),
         }
     }
 }
