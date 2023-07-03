@@ -1,5 +1,5 @@
 use super::Error;
-use crate::bytecode::{Instruction, Offset, OpCode, Reader};
+use crate::bytecode::{Instruction, Offset, OpCode};
 use crate::runtime::Value;
 use std::fmt::{self, Display};
 
@@ -55,10 +55,8 @@ impl ProgramReader<'_> {
     }
 }
 
-impl Reader for ProgramReader<'_> {
-    type Error = Error;
-
-    fn read_instruction(&mut self) -> Result<Instruction, Self::Error> {
+impl ProgramReader<'_> {
+    fn read_instruction(&mut self) -> Result<Instruction, Error> {
         match self.read_opcode()? {
             OpCode::Const => {
                 let offset = self.read_offset()?;
@@ -114,18 +112,6 @@ impl Reader for ProgramReader<'_> {
             OpCode::Fizzle => Ok(Instruction::Fizzle),
             OpCode::Exit => Ok(Instruction::Exit),
         }
-    }
-
-    fn seek(&mut self, ip: usize) {
-        self.ip = ip;
-    }
-
-    fn jump(&mut self, offset: usize) {
-        self.ip += offset;
-    }
-
-    fn jump_back(&mut self, offset: usize) {
-        self.ip -= offset;
     }
 }
 
