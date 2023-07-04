@@ -1,3 +1,10 @@
+mod traits {
+    pub(crate) trait Tags {
+        type Tag;
+        fn tag(&self) -> Self::Tag;
+    }
+}
+
 mod bytecode;
 mod cactus;
 mod program;

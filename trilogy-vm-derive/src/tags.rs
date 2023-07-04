@@ -136,8 +136,10 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
             #(#declarations),*
         }
 
-        impl #ident {
-            #vis fn tag(&self) -> #name {
+        impl crate::traits::Tags for #ident {
+            type Tag = #name;
+
+            fn tag(&self) -> Self::Tag {
                 match self {
                     #(#conversions),*
                 }
