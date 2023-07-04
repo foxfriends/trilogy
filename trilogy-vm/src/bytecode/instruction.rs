@@ -13,18 +13,27 @@ pub enum Instruction {
     Set,
     Alloc,
     Free,
+    #[asm(name = "LOADR")]
     LoadRegister(Offset),
+    #[asm(name = "SETR")]
     SetRegister(Offset),
     Copy,
     Pop,
     Swap,
     Add,
+    #[asm(name = "SUB")]
     Subtract,
+    #[asm(name = "MUL")]
     Multiply,
+    #[asm(name = "DIV")]
     Divide,
+    #[asm(name = "REM")]
     Remainder,
+    #[asm(name = "INTDIV")]
     IntDivide,
+    #[asm(name = "POW")]
     Power,
+    #[asm(name = "NEG")]
     Negate,
     Glue,
     Access,
@@ -32,11 +41,17 @@ pub enum Instruction {
     Not,
     And,
     Or,
+    #[asm(name = "BITAND")]
     BitwiseAnd,
+    #[asm(name = "BITOR")]
     BitwiseOr,
+    #[asm(name = "BITXOR")]
     BitwiseXor,
+    #[asm(name = "BITNEG")]
     BitwiseNeg,
+    #[asm(name = "LSHIFT")]
     LeftShift,
+    #[asm(name = "RSHIFT")]
     RightShift,
     Cons,
     Leq,
@@ -52,8 +67,11 @@ pub enum Instruction {
     Shift(Offset),
     Reset,
     Jump(Offset),
+    #[asm(name = "RJUMP")]
     JumpBack(Offset),
+    #[asm(name = "JUMPF")]
     CondJump(Offset),
+    #[asm(name = "RJUMPF")]
     CondJumpBack(Offset),
     Branch,
     Fizzle,
