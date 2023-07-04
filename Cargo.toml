@@ -7,4 +7,5 @@ members = [
     "trilogy-loader",
     "trilogy-ir",
     "trilogy-vm",
+    "trilogy-vm-derive",
 ]
