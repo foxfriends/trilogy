@@ -70,27 +70,37 @@ fn test_capture() {
 }
 
 #[test]
-#[ignore = "incomplete"]
 fn test_yield_invert() {
+    // exit with 1 + yield 1
+    //     when n invert n |> resume |> resume |> cancel
     const PROGRAM: &str = r#"
-    # with
+    # with (cancel)
     SHIFT 1
         EXIT
-    # when
-    SHIFT 17
-        COPY
+    # when (yield)
+    SHIFT 22
+        # 2 cancel
+        # 1 resume
+        # 0 n
+        LOADR 1
+        SWAP
         # resume
         CALL 1
-        CALL 2
+        # resume
+        CALL 1
         # cancel
-        RESET
-    # yield
-    SHIFT 1
-        RESET
+        CALL 1
+        FIZZLE
     SWAP
+    # pre-yield (resume)
+    SHIFT 7
+        CONST 1
+        ADD
+        RESET
+    CONST 1
+    # yield
     CALL 3
-    EXIT
     "#;
     let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(4)));
+    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(3)));
 }

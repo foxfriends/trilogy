@@ -1,9 +1,19 @@
 use crate::vm::Stack;
+use std::fmt::{self, Debug};
 use std::hash::Hash;
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Continuation(Arc<InnerContinuation>);
+
+impl Debug for Continuation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Continuation")
+            .field("ip", &self.0.ip)
+            .field("stack", &self.0.stack)
+            .finish()
+    }
+}
 
 #[derive(Clone, Debug)]
 struct InnerContinuation {

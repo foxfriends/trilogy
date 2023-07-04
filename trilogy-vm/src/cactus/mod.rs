@@ -5,12 +5,24 @@
 //! into something actually useful, but for now, no sense in going for more
 //! than "functioning".
 
+use std::fmt::{self, Debug};
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(crate) struct Cactus<T> {
     parent: Option<Arc<Mutex<Cactus<T>>>>,
     stack: Vec<T>,
+}
+
+impl<T: Debug> Debug for Cactus<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_struct("Cactus");
+        if let Some(parent) = &self.parent {
+            let parent = parent.lock().unwrap();
+            debug.field("parent", &Some(&*parent));
+        }
+        debug.field("stack", &self.stack).finish()
+    }
 }
 
 impl<T> Eq for Cactus<T> where T: PartialEq {}
@@ -116,12 +128,13 @@ impl<T> Cactus<T> {
 
     pub fn detach_at(&mut self, count: usize) -> Option<Vec<T>>
     where
-        T: Clone,
+        T: Clone + std::fmt::Debug,
     {
         while self.stack.len() < count {
-            // TODO: https://doc.rust-lang.org/std/sync/struct.Arc.html#method.unwrap_or_clone
             let new_self = self.parent.as_ref()?.lock().unwrap().clone();
-            *self = new_self;
+            self.parent = new_self.parent;
+            let end = std::mem::replace(&mut self.stack, new_self.stack);
+            self.stack.extend(end);
         }
         Some(self.stack.split_off(self.stack.len() - count))
     }
@@ -131,6 +144,26 @@ impl<T> Cactus<T> {
     }
 }
 
+pub struct CactusIntoIter<T>(Cactus<T>);
+
+impl<T: Clone> Iterator for CactusIntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop()
+    }
+}
+
+impl<T: Clone> IntoIterator for Cactus<T> {
+    type Item = T;
+    type IntoIter = CactusIntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        CactusIntoIter(self)
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct OutOfBounds;
 
 #[cfg(test)]

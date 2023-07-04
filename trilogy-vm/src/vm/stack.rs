@@ -1,5 +1,6 @@
 use super::error::InternalRuntimeError;
 use crate::{cactus::Cactus, Value};
+use std::fmt::{self, Debug};
 
 #[derive(Clone, Debug)]
 enum InternalValue {
@@ -32,8 +33,22 @@ impl InternalValue {
     }
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone)]
 pub struct Stack(Cactus<InternalValue>);
+
+impl Debug for Stack {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut tuple = f.debug_tuple("Stack");
+        self.0
+            .clone()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .fold(&mut tuple, |f, v| f.field(&v))
+            .finish()
+    }
+}
 
 impl Stack {
     pub(crate) fn branch(&mut self) -> Self {
