@@ -1,6 +1,8 @@
 use crate::{runtime::atom::AtomInterner, Array, Bits, Record, Set, Struct, Tuple, Value};
 use std::collections::{HashMap, HashSet};
 
+use super::Offset;
+
 #[derive(Default)]
 pub(crate) struct AsmContext {
     interner: AtomInterner,
@@ -12,6 +14,10 @@ pub enum AsmError {
     MissingParameter,
     InvalidOffset,
     InvalidValue(ValueError),
+}
+
+pub(crate) trait FromAsmParam: Sized {
+    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError>;
 }
 
 impl AsmContext {
@@ -26,11 +32,28 @@ impl AsmContext {
             Err(error) => Err(error),
         }
     }
+
+    pub fn parse_param<T: FromAsmParam>(&mut self, src: Option<&str>) -> Result<T, AsmError> {
+        let src = src.ok_or(AsmError::MissingParameter)?;
+        T::from_asm_param(src, self)
+    }
+}
+
+impl FromAsmParam for Value {
+    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError> {
+        Ok(ctx.parse_value(src)?)
+    }
+}
+
+impl FromAsmParam for Offset {
+    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError> {
+        ctx.parse_offset(src)
+    }
 }
 
 pub(crate) trait Asm: Sized {
     fn fmt_asm(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result;
-    fn parse_asm(&self, ctx: AsmContext) -> Result<Self, AsmError>;
+    fn parse_asm(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError>;
 }
 
 impl From<ValueError> for AsmError {
