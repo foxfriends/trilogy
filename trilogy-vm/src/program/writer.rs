@@ -2,6 +2,7 @@ use crate::bytecode::asm::{AsmContext, AsmError};
 use crate::bytecode::OpCode;
 use crate::traits::Tags;
 use crate::{Instruction, Program, Value};
+use std::collections::HashMap;
 use std::str::FromStr;
 
 impl FromStr for Program {
@@ -29,6 +30,7 @@ impl ProgramWriter {
             program: Program {
                 constants: vec![],
                 instructions: vec![],
+                labels: HashMap::default(),
             },
         }
     }
@@ -56,6 +58,7 @@ impl ProgramWriter {
                 .instructions
                 .splice(hole..hole + 4, (offset as u32).to_be_bytes());
         }
+        self.program.labels = context.labels();
         Ok(self.program)
     }
 }

@@ -1,5 +1,6 @@
 use crate::bytecode::Instruction;
 use crate::runtime::Value;
+use std::collections::HashMap;
 use std::fmt::{self, Display};
 
 mod reader;
@@ -12,6 +13,7 @@ pub use reader::ProgramReader;
 pub struct Program {
     pub(crate) constants: Vec<Value>,
     pub(crate) instructions: Vec<u8>,
+    pub(crate) labels: HashMap<String, usize>,
 }
 
 impl Display for Program {

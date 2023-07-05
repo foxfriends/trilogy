@@ -20,7 +20,7 @@ impl VirtualMachine {
         Self {
             program,
             executions: VecDeque::with_capacity(8),
-            heap: vec![],
+            heap: Vec::with_capacity(128),
         }
     }
 
