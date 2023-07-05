@@ -18,10 +18,10 @@ pub(crate) struct AsmContext {
 impl AsmContext {
     pub fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
         let offset = if let Some(suffix) = src.strip_prefix('&') {
-            let label: String = suffix
-                .chars()
-                .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_')
-                .collect();
+            let label = Self::take_label(src);
+            if label.is_empty() {
+                return Err(ErrorKind::InvalidLabelReference);
+            }
             if Self::is_empty(&suffix[label.len()..]) {
                 self.holes.insert(self.line, (self.ip, label));
                 0
@@ -35,6 +35,12 @@ impl AsmContext {
         self.ip += 4;
 
         Ok(offset)
+    }
+
+    fn take_label(src: &str) -> String {
+        src.chars()
+            .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '@' || ch == '-')
+            .collect()
     }
 
     pub fn parse_value(&mut self, src: &str) -> Result<Value, ValueError> {
@@ -60,10 +66,7 @@ impl AsmContext {
             return Ok(None);
         }
         let src = src.trim_start();
-        let prefix: String = src
-            .chars()
-            .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_')
-            .collect();
+        let prefix = Self::take_label(src);
         if let Some(src) = src[prefix.len()..].strip_prefix(':') {
             self.labels.insert(prefix, self.ip);
             self.parse_line(src)
