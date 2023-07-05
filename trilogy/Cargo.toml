@@ -20,3 +20,5 @@ pretty = { version = "0.11.3" }
 trilogy-scanner = { path = "../trilogy-scanner/" }
 trilogy-parser = { path = "../trilogy-parser/" }
 trilogy-loader = { path = "../trilogy-loader/" }
+trilogy-vm = { path = "../trilogy-vm/" }
+num = "0.4.0"

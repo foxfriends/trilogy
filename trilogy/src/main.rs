@@ -1,6 +1,8 @@
 use clap::Parser as _;
+use num::{bigint::Sign, BigInt};
 use std::path::PathBuf;
 use trilogy_loader::Loader;
+use trilogy_vm::{Value, VirtualMachine};
 
 #[cfg(feature = "dev")]
 mod dev;
@@ -19,7 +21,13 @@ enum Command {
     /// Run a Trilogy program.
     ///
     /// Expects a single path in which the `main!()` procedure is found.
-    Run { file: PathBuf },
+    Run {
+        file: PathBuf,
+        #[arg(short = 'S', long)]
+        no_std: bool,
+        #[arg(short, long)]
+        print: bool,
+    },
     /// Check the syntax and warnings of a Trilogy program.
     ///
     /// Expects a single path, from which all imported modules will be
@@ -41,6 +49,14 @@ enum Command {
     },
     /// Run the Trilogy language server.
     Lsp { files: Vec<PathBuf> },
+    /// Run precompiled bytecode directly.
+    Vm {
+        file: PathBuf,
+        #[arg(short = 'S', long)]
+        no_std: bool,
+        #[arg(short, long)]
+        print: bool,
+    },
     /// Commands for assistance when developing Trilogy.
     #[cfg(feature = "dev")]
     #[command(subcommand)]
@@ -57,7 +73,7 @@ fn main() -> std::io::Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        Command::Run { file } => {
+        Command::Run { file, .. } => {
             let loader = Loader::new(file);
             let binder = loader.load().unwrap();
             if binder.has_errors() {
@@ -77,6 +93,37 @@ fn main() -> std::io::Result<()> {
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;
+        }
+        Command::Vm { file, print, .. } => {
+            let asm = std::fs::read_to_string(file)?;
+            let program = match asm.parse() {
+                Ok(program) => program,
+                Err(error) => {
+                    eprintln!("{error}");
+                    std::process::exit(1);
+                }
+            };
+            match VirtualMachine::load(program).run() {
+                Ok(value) if print => {
+                    println!("{}", value);
+                }
+                Ok(Value::Number(number)) if number.is_integer() => {
+                    let output = number.as_integer().unwrap();
+                    // Truly awful
+                    if BigInt::from(i32::MIN) <= output && output <= BigInt::from(i32::MAX) {
+                        let (sign, digits) = output.to_u32_digits();
+                        let exit = if sign == Sign::Minus {
+                            -(digits[0] as i32)
+                        } else {
+                            digits[0] as i32
+                        };
+                        std::process::exit(exit);
+                    }
+                    std::process::exit(255)
+                }
+                Ok(..) => std::process::exit(255),
+                Err(..) => std::process::exit(255),
+            }
         }
         _ => unimplemented!("This feature is not yet built"),
     }

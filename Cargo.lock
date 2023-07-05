@@ -1094,10 +1094,12 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "colored",
+ "num",
  "pretty",
  "trilogy-loader",
  "trilogy-parser",
  "trilogy-scanner",
+ "trilogy-vm",
 ]
 
 [[package]]
