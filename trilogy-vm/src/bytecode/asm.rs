@@ -1,62 +1,146 @@
+use super::Offset;
 use crate::{runtime::atom::AtomInterner, Array, Bits, Record, Set, Struct, Tuple, Value};
 use std::collections::{HashMap, HashSet};
 
-use super::Offset;
-
 #[derive(Default)]
 pub(crate) struct AsmContext {
+    line: usize,
+    ip: usize,
     interner: AtomInterner,
+    labels: HashMap<String, Offset>,
+    holes: HashMap<usize, (Offset, String)>,
 }
 
 #[derive(Clone, Debug)]
-pub enum AsmError {
+pub struct AsmError {
+    pub line: usize,
+    pub error: ErrorKind,
+}
+
+#[derive(Clone, Debug)]
+pub enum ErrorKind {
     UnknownOpcode(String),
     MissingParameter,
     InvalidOffset,
+    InvalidLabelReference,
+    MissingLabel(String),
     InvalidValue(ValueError),
 }
 
 pub(crate) trait FromAsmParam: Sized {
-    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError>;
+    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, ErrorKind>;
 }
 
 impl AsmContext {
-    pub fn parse_offset(&mut self, src: &str) -> Result<usize, AsmError> {
-        src.parse().map_err(|_| AsmError::InvalidOffset)
+    pub fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
+        let offset = if let Some(suffix) = src.strip_prefix('&') {
+            let label: String = suffix
+                .chars()
+                .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_')
+                .collect();
+            if Self::is_empty(&suffix[label.len()..]) {
+                self.holes.insert(self.line, (self.ip, label));
+                0
+            } else {
+                return Err(ErrorKind::InvalidLabelReference);
+            }
+        } else {
+            src.parse().map_err(|_| ErrorKind::InvalidOffset)?
+        };
+
+        self.ip += 4;
+
+        Ok(offset)
     }
 
     pub fn parse_value(&mut self, src: &str) -> Result<Value, ValueError> {
-        match Value::parse_prefix(src, &mut self.interner) {
-            Ok((value, "")) => Ok(value),
-            Ok(..) => Err(ValueError::ExtraChars),
-            Err(error) => Err(error),
+        let value = match Value::parse_prefix(src, &mut self.interner) {
+            Ok((value, s)) if Self::is_empty(s) => value,
+            Ok(..) => return Err(ValueError::ExtraChars),
+            Err(error) => return Err(error),
+        };
+        self.ip += 4;
+        Ok(value)
+    }
+
+    pub fn parse_param<T: FromAsmParam>(&mut self, src: Option<&str>) -> Result<T, ErrorKind> {
+        let src = src.ok_or(ErrorKind::MissingParameter)?;
+        T::from_asm_param(src, self)
+    }
+
+    pub fn parse_line<T>(&mut self, src: &str) -> Result<Option<T>, AsmError>
+    where
+        T: Asm,
+    {
+        if Self::is_empty(src) {
+            return Ok(None);
+        }
+        let src = src.trim_start();
+        let prefix: String = src
+            .chars()
+            .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_')
+            .collect();
+        if let Some(src) = src[prefix.len()..].strip_prefix(':') {
+            self.labels.insert(prefix, self.ip);
+            self.parse_line(src)
+        } else {
+            self.ip += 1;
+            T::parse_asm(src, self)
+                .map_err(|error| AsmError {
+                    line: self.line,
+                    error,
+                })
+                .map(Some)
         }
     }
 
-    pub fn parse_param<T: FromAsmParam>(&mut self, src: Option<&str>) -> Result<T, AsmError> {
-        let src = src.ok_or(AsmError::MissingParameter)?;
-        T::from_asm_param(src, self)
+    pub fn parse<'a, T>(
+        &'a mut self,
+        src: &'a str,
+    ) -> impl Iterator<Item = Result<T, AsmError>> + 'a
+    where
+        T: Asm,
+    {
+        src.lines().enumerate().filter_map(|(line, src)| {
+            self.line = line;
+            self.parse_line(src).transpose()
+        })
+    }
+
+    pub fn holes(self) -> impl Iterator<Item = Result<(usize, usize), AsmError>> {
+        self.holes.into_iter().map(move |(line, (hole, label))| {
+            let offset = self.labels.get(&label).ok_or(AsmError {
+                line,
+                error: ErrorKind::MissingLabel(label),
+            })?;
+            Ok((hole, usize::abs_diff(hole + 4, *offset)))
+        })
+    }
+
+    fn is_empty(s: &str) -> bool {
+        let s = s.trim_start();
+        s.is_empty() || s.starts_with('#')
     }
 }
 
 impl FromAsmParam for Value {
-    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError> {
+    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, ErrorKind> {
         Ok(ctx.parse_value(src)?)
     }
 }
 
 impl FromAsmParam for Offset {
-    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError> {
+    fn from_asm_param(src: &str, ctx: &mut AsmContext) -> Result<Self, ErrorKind> {
         ctx.parse_offset(src)
     }
 }
 
 pub(crate) trait Asm: Sized {
     fn fmt_asm(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result;
-    fn parse_asm(src: &str, ctx: &mut AsmContext) -> Result<Self, AsmError>;
+    fn parse_asm(src: &str, ctx: &mut AsmContext) -> Result<Self, ErrorKind>;
 }
 
-impl From<ValueError> for AsmError {
+impl From<ValueError> for ErrorKind {
     fn from(value: ValueError) -> Self {
         Self::InvalidValue(value)
     }

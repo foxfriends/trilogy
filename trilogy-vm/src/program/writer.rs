@@ -1,52 +1,38 @@
-use crate::bytecode::asm::{Asm, AsmContext, AsmError};
+use crate::bytecode::asm::{AsmContext, AsmError};
 use crate::bytecode::OpCode;
 use crate::traits::Tags;
 use crate::{Instruction, Program, Value};
 use std::str::FromStr;
 
-#[derive(Clone, Debug)]
-pub struct Error {
-    pub line: usize,
-    pub error: AsmError,
-}
-
 impl FromStr for Program {
-    type Err = Error;
+    type Err = AsmError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut context = AsmContext::default();
-        let mut program = Program {
-            constants: vec![],
-            instructions: vec![],
-        };
-        let mut writer = ProgramWriter {
-            program: &mut program,
-        };
-
-        let instructions = s
-            .lines()
-            .map(|line| line.trim())
-            .filter(|line| !line.is_empty())
-            .filter(|line| !line.starts_with('#'))
-            .map(|line| Instruction::parse_asm(line, &mut context))
-            .enumerate()
-            .map(|(line, result)| result.map_err(|error| Error { line, error }));
-
-        for instruction in instructions {
+        let mut writer = ProgramWriter::new();
+        for instruction in context.parse::<Instruction>(s) {
             let instruction = instruction?;
             writer.write_opcode(instruction.tag());
             instruction.write_offset(&mut writer);
         }
-
-        Ok(program)
+        writer.finish(context)
     }
 }
 
-struct ProgramWriter<'a> {
-    program: &'a mut Program,
+struct ProgramWriter {
+    program: Program,
 }
 
-impl ProgramWriter<'_> {
+impl ProgramWriter {
+    fn new() -> Self {
+        Self {
+            program: Program {
+                constants: vec![],
+                instructions: vec![],
+            },
+        }
+    }
+
     fn add_constant(&mut self, constant: Value) -> usize {
         let index = self.program.constants.len();
         self.program.constants.push(constant);
@@ -61,6 +47,16 @@ impl ProgramWriter<'_> {
         self.program
             .instructions
             .extend((offset as u32).to_be_bytes())
+    }
+
+    fn finish(mut self, context: AsmContext) -> Result<Program, AsmError> {
+        for hole_offset in context.holes() {
+            let (hole, offset) = hole_offset?;
+            self.program
+                .instructions
+                .splice(hole..hole + 4, (offset as u32).to_be_bytes());
+        }
+        Ok(self.program)
     }
 }
 

@@ -3,25 +3,26 @@ use trilogy_vm::{Number, Value, VirtualMachine};
 #[test]
 fn test_noop() {
     const PROGRAM: &str = r#"
-    SHIFT 1
+    SHIFT &after
     RESET
-    CONST unit
+    after: CONST unit
     CALL 1
     EXIT
     "#;
 
     let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
+    println!("{:?}", vm);
     assert_eq!(vm.run().unwrap(), Value::Unit);
 }
 
 #[test]
 fn test_basic() {
     const PROGRAM: &str = r#"
-    SHIFT 7
+    SHIFT &after
     CONST 1
     ADD
     RESET
-    CONST 3
+    after: CONST 3
     CALL 1
     EXIT
     "#;
@@ -33,11 +34,11 @@ fn test_basic() {
 #[test]
 fn test_reenter() {
     const PROGRAM: &str = r#"
-    SHIFT 7
+    SHIFT &after
     CONST 1
     ADD
     RESET
-    COPY
+    after: COPY
     CONST 3
     CALL 1
     CALL 1
@@ -52,13 +53,13 @@ fn test_reenter() {
 fn test_capture() {
     const PROGRAM: &str = r#"
     CONST 1
-    SHIFT 17
+    SHIFT &after
     LOADR 2
     ADD
     SETR 1
     LOADR 1
     RESET
-    COPY
+    after: COPY
     CONST 1
     CALL 1
     CALL 1
@@ -75,10 +76,11 @@ fn test_yield_invert() {
     //     when n invert n |> resume |> resume |> cancel
     const PROGRAM: &str = r#"
     # with (cancel)
-    SHIFT 1
+with:
+    SHIFT &when
         EXIT
-    # when (yield)
-    SHIFT 22
+when:
+    SHIFT &resume
         # 2 cancel
         # 1 resume
         # 0 n
@@ -91,12 +93,13 @@ fn test_yield_invert() {
         # cancel
         CALL 1
         FIZZLE
+resume:
     SWAP
-    # pre-yield (resume)
-    SHIFT 7
+    SHIFT &after
         CONST 1
         ADD
         RESET
+after:
     CONST 1
     # yield
     CALL 3
@@ -109,7 +112,7 @@ fn test_yield_invert() {
 fn test_same_stack_twice() {
     const PROGRAM: &str = r#"
     CONST 1
-    SHIFT 28
+    SHIFT &after
     JUMPF 17
     CONST 2
     SWAP
@@ -118,7 +121,7 @@ fn test_same_stack_twice() {
     CALL 2
     LOADR 2
     EXIT
-    COPY
+    after: COPY
     CONST true
     CALL 2
     "#;

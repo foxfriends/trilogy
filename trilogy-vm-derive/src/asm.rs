@@ -112,14 +112,14 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                 Ok(())
             }
 
-            fn parse_asm(src: &str, ctx: &mut crate::bytecode::asm::AsmContext) -> Result<Self, crate::bytecode::asm::AsmError> {
+            fn parse_asm(src: &str, ctx: &mut crate::bytecode::asm::AsmContext) -> Result<Self, crate::bytecode::asm::ErrorKind> {
                 let (opcode, param) = src
                     .split_once(' ')
                     .map(|(opcode, param)| (opcode, Some(param)))
                     .unwrap_or((src, None));
                 match opcode {
                     #(#from_asm)*
-                    s => Err(crate::bytecode::asm::AsmError::UnknownOpcode(s.to_owned())),
+                    s => Err(crate::bytecode::asm::ErrorKind::UnknownOpcode(s.to_owned())),
                 }
             }
         }
