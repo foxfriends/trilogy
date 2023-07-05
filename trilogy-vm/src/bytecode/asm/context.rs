@@ -18,7 +18,7 @@ pub(crate) struct AsmContext {
 impl AsmContext {
     pub fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
         let offset = if let Some(suffix) = src.strip_prefix('&') {
-            let label = Self::take_label(src);
+            let label = Self::take_label(suffix);
             if label.is_empty() {
                 return Err(ErrorKind::InvalidLabelReference);
             }
