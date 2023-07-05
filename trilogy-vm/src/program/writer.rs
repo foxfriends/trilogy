@@ -3,29 +3,13 @@ use crate::bytecode::OpCode;
 use crate::traits::Tags;
 use crate::{Instruction, Program, Value};
 use std::collections::HashMap;
-use std::str::FromStr;
 
-impl FromStr for Program {
-    type Err = AsmError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut context = AsmContext::default();
-        let mut writer = ProgramWriter::new();
-        for instruction in context.parse::<Instruction>(s) {
-            let instruction = instruction?;
-            writer.write_opcode(instruction.tag());
-            instruction.write_offset(&mut writer);
-        }
-        writer.finish(context)
-    }
-}
-
-struct ProgramWriter {
+pub(super) struct ProgramWriter {
     program: Program,
 }
 
 impl ProgramWriter {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             program: Program {
                 constants: vec![],
@@ -51,7 +35,20 @@ impl ProgramWriter {
             .extend((offset as u32).to_be_bytes())
     }
 
-    fn finish(mut self, context: AsmContext) -> Result<Program, AsmError> {
+    pub(super) fn finish(mut self, mut context: AsmContext) -> Result<Program, AsmError> {
+        for hole_value in context.value_holes() {
+            let (hole, value) = hole_value?;
+            let offset = u32::from_be_bytes(
+                self.program.instructions[hole..hole + 4]
+                    .try_into()
+                    .unwrap(),
+            );
+            assert!(matches!(
+                self.program.constants[offset as usize],
+                Value::Unit,
+            ));
+            self.program.constants[offset as usize] = value;
+        }
         for hole_offset in context.holes() {
             let (hole, offset) = hole_offset?;
             self.program
@@ -60,6 +57,11 @@ impl ProgramWriter {
         }
         self.program.labels = context.labels();
         Ok(self.program)
+    }
+
+    pub(super) fn write_instruction(&mut self, instruction: Instruction) {
+        self.write_opcode(instruction.tag());
+        instruction.write_offset(self);
     }
 }
 

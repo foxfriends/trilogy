@@ -47,6 +47,7 @@ impl From<ValueError> for ErrorKind {
 #[derive(Copy, Clone, Debug)]
 pub enum ValueError {
     InvalidProcedure,
+    UnresolvedLabelReference,
     InvalidCharacter,
     InvalidAtom,
     InvalidTuple,
@@ -64,6 +65,7 @@ impl Display for ValueError {
         match self {
             Self::InvalidProcedure => write!(f, "improperly formatted procedure reference"),
             Self::InvalidCharacter => write!(f, "improperly formatted character"),
+            Self::UnresolvedLabelReference => write!(f, "unresolved procedure reference"),
             Self::InvalidAtom => write!(f, "improperly formatted atom"),
             Self::InvalidTuple => write!(f, "improperly formatted tuple"),
             Self::InvalidNumber => write!(f, "improperly formatted number"),

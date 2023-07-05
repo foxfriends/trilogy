@@ -70,6 +70,7 @@ impl Execution {
     {
         Error {
             ip: self.ip,
+            stack_dump: self.stack.clone(),
             kind: kind.into(),
         }
     }

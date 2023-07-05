@@ -2,7 +2,7 @@ use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
 use std::path::PathBuf;
 use trilogy_loader::Loader;
-use trilogy_vm::{Value, VirtualMachine};
+use trilogy_vm::{Program, Value, VirtualMachine};
 
 #[cfg(feature = "dev")]
 mod dev;
@@ -96,14 +96,14 @@ fn main() -> std::io::Result<()> {
         }
         Command::Vm { file, print, .. } => {
             let asm = std::fs::read_to_string(file)?;
-            let program = match asm.parse() {
+            let program: Program = match asm.parse() {
                 Ok(program) => program,
                 Err(error) => {
                     eprintln!("{error}");
                     std::process::exit(1);
                 }
             };
-            match VirtualMachine::load(program).run() {
+            match VirtualMachine::load(program.clone()).run() {
                 Ok(value) if print => {
                     println!("{}", value);
                 }
@@ -123,6 +123,8 @@ fn main() -> std::io::Result<()> {
                 }
                 Ok(..) => std::process::exit(255),
                 Err(error) => {
+                    eprintln!("Trace:\n{}", error.trace(&program));
+                    eprintln!("Dump:\n{}", error.dump());
                     eprintln!("{error}");
                     std::process::exit(255);
                 }

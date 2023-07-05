@@ -35,13 +35,19 @@ impl VirtualMachine {
         // simple situations, which is all that we will have to deal with while this
         // VM remains a (relative) toy.
         let ep = 0;
-        while !self.executions.is_empty() {
+        let last_ex = loop {
             let ex = &mut self.executions[ep];
             let instruction = ex.read_opcode(&self.program.instructions)?;
             match instruction {
                 OpCode::Const => {
                     let value = ex.read_offset(&self.program.instructions)?;
-                    ex.stack_push(self.program.constants[value].clone());
+                    ex.stack_push(
+                        self.program
+                            .constants
+                            .get(value)
+                            .cloned()
+                            .ok_or_else(|| ex.error(InternalRuntimeError::MissingConstant))?,
+                    );
                 }
                 OpCode::Load => {
                     let pointer = ex.stack_pop_pointer()?;
@@ -377,7 +383,7 @@ impl VirtualMachine {
                         Value::Continuation(continuation) => {
                             ex.call_continuation(continuation, arity)?;
                         }
-                        Value::Procedure(ip) => ex.ip = ip,
+                        Value::Procedure(procedure) => ex.ip = procedure.ip(),
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
@@ -441,7 +447,10 @@ impl VirtualMachine {
                     // RAII cause that cleanup to happen automatically?
                     //
                     // I suspect it is automatic.
-                    self.executions.pop_front();
+                    let ex = self.executions.remove(ep).unwrap();
+                    if self.executions.is_empty() {
+                        break ex;
+                    }
                 }
                 OpCode::Exit => {
                     // When run in embedded mode, the exit value can be any value. The
@@ -454,10 +463,7 @@ impl VirtualMachine {
                     return Ok(value);
                 }
             }
-        }
-        Err(Error {
-            ip: 0,
-            kind: ErrorKind::ExecutionFizzledError,
-        })
+        };
+        Err(last_ex.error(ErrorKind::ExecutionFizzledError))
     }
 }

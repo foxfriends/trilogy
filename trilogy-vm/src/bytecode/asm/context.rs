@@ -3,7 +3,7 @@ use super::error::{AsmError, ErrorKind, ValueError};
 use super::from_asm_param::FromAsmParam;
 use super::Asm;
 use crate::runtime::atom::AtomInterner;
-use crate::Value;
+use crate::{Atom, Value};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -13,10 +13,17 @@ pub(crate) struct AsmContext {
     interner: AtomInterner,
     labels: HashMap<String, Offset>,
     holes: HashMap<usize, (Offset, String)>,
+    value_holes: HashMap<usize, (Offset, String)>,
 }
 
 impl AsmContext {
-    pub fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
+    fn take_label(src: &str) -> String {
+        src.chars()
+            .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '@' || ch == '-')
+            .collect()
+    }
+
+    pub(super) fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
         let offset = if let Some(suffix) = src.strip_prefix('&') {
             let label = Self::take_label(suffix);
             if label.is_empty() {
@@ -31,25 +38,45 @@ impl AsmContext {
         } else {
             src.parse().map_err(|_| ErrorKind::InvalidOffset)?
         };
-
         self.ip += 4;
-
         Ok(offset)
     }
 
-    fn take_label(src: &str) -> String {
-        src.chars()
-            .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '@' || ch == '-')
-            .collect()
+    pub fn read_procedure_label(&mut self, s: &str) -> Option<String> {
+        let label = Self::take_label(s);
+        if label.is_empty() {
+            return None;
+        }
+        Some(label)
     }
 
-    pub fn parse_value(&mut self, src: &str) -> Result<Value, ValueError> {
-        let value = match Value::parse_prefix(src, &mut self.interner) {
+    pub(super) fn lookup_label(&mut self, s: &str) -> Option<Offset> {
+        self.labels.get(s).copied()
+    }
+
+    pub fn intern(&mut self, atom: &String) -> Atom {
+        self.interner.intern(atom)
+    }
+
+    pub(super) fn parse_value(&mut self, src: &str) -> Result<Value, ValueError> {
+        let value = match self.parse_value_final(src) {
+            Err(ValueError::UnresolvedLabelReference) => {
+                self.value_holes
+                    .insert(self.line, (self.ip, src.to_owned()));
+                Value::Unit
+            }
+            value => value?,
+        };
+        self.ip += 4;
+        Ok(value)
+    }
+
+    fn parse_value_final(&mut self, src: &str) -> Result<Value, ValueError> {
+        let value = match Value::parse_prefix(src, self) {
             Ok((value, s)) if Self::is_empty(s) => value,
             Ok(..) => return Err(ValueError::ExtraChars),
             Err(error) => return Err(error),
         };
-        self.ip += 4;
         Ok(value)
     }
 
@@ -98,13 +125,26 @@ impl AsmContext {
         self.labels
     }
 
-    pub fn holes(&self) -> impl Iterator<Item = Result<(usize, usize), AsmError>> + '_ {
+    pub fn holes(&self) -> impl Iterator<Item = Result<(Offset, Offset), AsmError>> + '_ {
         self.holes.iter().map(|(line, (hole, label))| {
             let offset = self.labels.get(label).ok_or_else(|| AsmError {
                 line: *line,
                 error: ErrorKind::MissingLabel(label.to_owned()),
             })?;
+            // Jumps are taken from the beginning of the next instruction, which is 4 bytes
+            // after the start of the hole.
             Ok((*hole, usize::abs_diff(hole + 4, *offset)))
+        })
+    }
+
+    pub fn value_holes(&mut self) -> impl Iterator<Item = Result<(Offset, Value), AsmError>> + '_ {
+        let value_holes = std::mem::take(&mut self.value_holes);
+        value_holes.into_iter().map(|(line, (hole, src))| {
+            let value = self.parse_value_final(&src).map_err(|error| AsmError {
+                line,
+                error: ErrorKind::InvalidValue(error),
+            })?;
+            Ok((hole, value))
         })
     }
 

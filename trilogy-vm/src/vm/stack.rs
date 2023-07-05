@@ -1,6 +1,7 @@
 use super::error::InternalRuntimeError;
-use crate::{cactus::Cactus, Value};
-use std::fmt::{self, Debug};
+use crate::{cactus::Cactus, Program, Value};
+use std::collections::BTreeMap;
+use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]
 enum InternalValue {
@@ -33,8 +34,36 @@ impl InternalValue {
     }
 }
 
+impl Display for InternalValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InternalValue::Value(value) => write!(f, "{value}"),
+            InternalValue::Return(offset) => write!(f, "->{offset}"),
+            InternalValue::Pointer(offset) => write!(f, "&{offset}"),
+            InternalValue::Stack(..) => write!(f, "->reset"),
+        }
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct Stack(Cactus<InternalValue>);
+
+impl Display for Stack {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (i, item) in self
+            .0
+            .clone()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .enumerate()
+            .rev()
+        {
+            writeln!(f, "{}: {}", i, item)?;
+        }
+        Ok(())
+    }
+}
 
 impl Debug for Stack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -50,7 +79,107 @@ impl Debug for Stack {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct Caller {
+    pub ip: usize,
+    pub name: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct StackFrame {
+    pub caller: Caller,
+    pub callee: Caller,
+    pub exit_at: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct StackTrace {
+    pub frames: Vec<StackFrame>,
+}
+
+impl Display for StackTrace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (
+            i,
+            StackFrame {
+                caller,
+                callee,
+                exit_at,
+            },
+        ) in self.frames.iter().rev().enumerate()
+        {
+            writeln!(
+                f,
+                "{i}. {}:{}",
+                callee.ip,
+                callee.name.as_deref().unwrap_or("<unknown>")
+            )?;
+            writeln!(
+                f,
+                "\tat {}:{}[{}]",
+                caller.ip,
+                caller.name.as_deref().unwrap_or("<unknown>"),
+                exit_at,
+            )?;
+        }
+        Ok(())
+    }
+}
+
 impl Stack {
+    pub fn trace(&self, from_ip: usize, program: &Program) -> StackTrace {
+        let mut ip_history: Vec<usize> = vec![from_ip];
+        self.trace_into(&mut ip_history);
+
+        let mut directory = BTreeMap::<usize, Vec<&str>>::new();
+        for (label, ip) in &program.labels {
+            directory.entry(*ip).or_default().push(label);
+        }
+
+        let frames = ip_history
+            .windows(2)
+            .map(|window| {
+                let exit_at = window[0];
+                let jump_from = window[1];
+                let callee = directory
+                    .range(..exit_at)
+                    .last()
+                    .map(|(&ip, labels)| Caller {
+                        ip,
+                        name: labels.first().map(|&s| s.to_owned()),
+                    })
+                    .unwrap_or(Caller { ip: 0, name: None });
+                let caller = directory
+                    .range(..jump_from)
+                    .last()
+                    .map(|(&ip, labels)| Caller {
+                        ip,
+                        name: labels.first().map(|&s| s.to_owned()),
+                    })
+                    .unwrap_or(Caller { ip: 0, name: None });
+                StackFrame {
+                    caller,
+                    callee,
+                    exit_at,
+                }
+            })
+            .collect();
+
+        StackTrace { frames }
+    }
+
+    fn trace_into(&self, ip_history: &mut Vec<usize>) {
+        for value in self.0.clone() {
+            match value {
+                InternalValue::Return(ip) => {
+                    ip_history.push(ip);
+                }
+                InternalValue::Stack(stack) => stack.trace_into(ip_history),
+                _ => {}
+            }
+        }
+    }
+
     pub(crate) fn branch(&mut self) -> Self {
         Self(self.0.branch())
     }

@@ -1,11 +1,11 @@
-use super::error::ValueError;
-use crate::{runtime::atom::AtomInterner, Array, Bits, Record, Set, Struct, Tuple, Value};
+use super::{error::ValueError, AsmContext};
+use crate::{runtime::Procedure, Array, Bits, Record, Set, Struct, Tuple, Value};
 use std::collections::{HashMap, HashSet};
 
 impl Value {
     pub(super) fn parse_prefix<'a>(
         s: &'a str,
-        interner: &mut AtomInterner,
+        context: &mut AsmContext,
     ) -> Result<(Self, &'a str), ValueError> {
         match s {
             _ if s.starts_with("unit") => Ok((Value::Unit, &s[4..])),
@@ -30,9 +30,9 @@ impl Value {
                         Err(ValueError::InvalidAtom)
                     } else {
                         let s = &s[atom.len()..];
-                        let atom = interner.intern(&atom);
+                        let atom = context.intern(&atom);
                         if let Some(s) = s.strip_prefix('(') {
-                            let (value, s) = Value::parse_prefix(s, interner)?;
+                            let (value, s) = Value::parse_prefix(s, context)?;
                             let s = s.strip_prefix(')').ok_or(ValueError::InvalidStruct)?;
                             Ok((Value::Struct(Struct::new(atom, value)), s))
                         } else {
@@ -43,9 +43,9 @@ impl Value {
             }
             _ if s.starts_with('(') => {
                 let s = &s[1..];
-                let (lhs, s) = Value::parse_prefix(s, interner)?;
+                let (lhs, s) = Value::parse_prefix(s, context)?;
                 let s = s.strip_prefix(':').ok_or(ValueError::InvalidTuple)?;
-                let (rhs, s) = Value::parse_prefix(s, interner)?;
+                let (rhs, s) = Value::parse_prefix(s, context)?;
                 let s = s.strip_prefix(')').ok_or(ValueError::InvalidTuple)?;
                 Ok((Value::Tuple(Tuple::new(lhs, rhs)), s))
             }
@@ -80,7 +80,7 @@ impl Value {
                     if s.is_empty() {
                         return Err(ValueError::InvalidSet);
                     }
-                    let (value, rest) = Value::parse_prefix(s, interner)?;
+                    let (value, rest) = Value::parse_prefix(s, context)?;
                     set.insert(value);
                     if let Some(rest) = rest.strip_prefix("|]") {
                         break rest;
@@ -99,9 +99,9 @@ impl Value {
                     if s.is_empty() {
                         return Err(ValueError::InvalidRecord);
                     }
-                    let (key, rest) = Value::parse_prefix(s, interner)?;
+                    let (key, rest) = Value::parse_prefix(s, context)?;
                     let rest = rest.strip_prefix("=>").ok_or(ValueError::InvalidRecord)?;
-                    let (value, rest) = Value::parse_prefix(rest, interner)?;
+                    let (value, rest) = Value::parse_prefix(rest, context)?;
                     map.insert(key, value);
                     if let Some(rest) = rest.strip_prefix("|}") {
                         break rest;
@@ -120,7 +120,7 @@ impl Value {
                     if s.is_empty() {
                         return Err(ValueError::InvalidArray);
                     }
-                    let (value, rest) = Value::parse_prefix(s, interner)?;
+                    let (value, rest) = Value::parse_prefix(s, context)?;
                     array.push(value);
                     if let Some(rest) = rest.strip_prefix(']') {
                         break rest;
@@ -131,11 +131,25 @@ impl Value {
             }
             _ if s.starts_with('&') => {
                 let s = &s[1..];
-                let numberlike: String = s.chars().take_while(|ch| ch.is_numeric()).collect();
-                let offset = numberlike
-                    .parse()
-                    .map_err(|_| ValueError::InvalidProcedure)?;
-                Ok((Value::Procedure(offset), &s[numberlike.len()..]))
+                if let Some(s) = s.strip_prefix('(') {
+                    let numberlike: String = s.chars().take_while(|ch| ch.is_numeric()).collect();
+                    let offset = numberlike
+                        .parse()
+                        .map_err(|_| ValueError::InvalidProcedure)?;
+                    let s = s.strip_prefix(')').ok_or(ValueError::InvalidProcedure)?;
+                    Ok((
+                        Value::Procedure(Procedure::new(offset)),
+                        &s[numberlike.len()..],
+                    ))
+                } else {
+                    let Some(label) = context.read_procedure_label(s) else {
+                        return Err(ValueError::InvalidProcedure);
+                    };
+                    let offset = context
+                        .lookup_label(&label)
+                        .ok_or(ValueError::UnresolvedLabelReference)?;
+                    Ok((Value::Procedure(Procedure::new(offset)), &s[label.len()..]))
+                }
             }
             _ if s.starts_with("0b") => {
                 let bits: Bits = s[2..]

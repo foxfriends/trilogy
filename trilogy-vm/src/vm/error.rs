@@ -1,20 +1,34 @@
+use crate::Program;
+
+use super::{stack::StackTrace, Stack};
 use std::fmt::{self, Display};
 
 // I am aware these names are not all that ergonomic, but they line up
 // with what they are documented as.
 //
 // Maybe `Error` is not the best name for this enum, will revisit later.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Error {
     pub ip: usize,
     pub kind: ErrorKind,
+    pub(crate) stack_dump: Stack,
 }
 
 impl std::error::Error for Error {}
 
+impl Error {
+    pub fn trace(&self, program: &Program) -> StackTrace {
+        self.stack_dump.trace(self.ip, program)
+    }
+
+    pub fn dump(&self) -> impl Display + '_ {
+        &self.stack_dump
+    }
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Runtime error [ip:{}]: {}", self.ip, self.kind)
+        write!(f, "Runtime error: {}", self.kind)
     }
 }
 
@@ -43,6 +57,7 @@ pub enum InternalRuntimeError {
     InvalidOpcode,
     InvalidOffset,
     InvalidPointer,
+    MissingConstant,
     UseAfterFree,
     ExpectedValue,
     ExpectedPointer,
@@ -62,6 +77,7 @@ impl Display for InternalRuntimeError {
             Self::InvalidOpcode => write!(f, "invalid opcode"),
             Self::InvalidOffset => write!(f, "invalid offset"),
             Self::InvalidPointer => write!(f, "invalid pointer"),
+            Self::MissingConstant => write!(f, "missing constant"),
             Self::UseAfterFree => write!(f, "use after free"),
             Self::ExpectedValue => write!(f, "expected value on stack"),
             Self::ExpectedPointer => write!(f, "expected pointer on stack"),

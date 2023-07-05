@@ -1,12 +1,12 @@
 use super::{
-    Array, Atom, Bits, Continuation, Number, Record, ReferentialEq, Set, Struct, StructuralEq,
-    Tuple,
+    Array, Atom, Bits, Continuation, Number, Procedure, Record, ReferentialEq, Set, Struct,
+    StructuralEq, Tuple,
 };
 use num::ToPrimitive;
 use std::fmt::{self, Display};
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Value {
     Unit,
     Bool(bool),
@@ -20,7 +20,7 @@ pub enum Value {
     Array(Array),
     Set(Set),
     Record(Record),
-    Procedure(usize),
+    Procedure(Procedure),
     Continuation(Continuation),
 }
 
@@ -202,7 +202,7 @@ impl Display for Value {
             Self::Array(value) => write!(f, "{value}"),
             Self::Set(value) => write!(f, "{value}"),
             Self::Record(value) => write!(f, "{value}"),
-            Self::Procedure(offset) => write!(f, "&{offset}"),
+            Self::Procedure(value) => write!(f, "{value}"),
             Self::Continuation(..) => Err(fmt::Error),
         }
     }

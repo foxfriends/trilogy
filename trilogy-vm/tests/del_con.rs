@@ -38,7 +38,8 @@ fn test_reenter() {
     CONST 1
     ADD
     RESET
-    after: COPY
+after:
+    COPY
     CONST 3
     CALL 1
     CALL 1
