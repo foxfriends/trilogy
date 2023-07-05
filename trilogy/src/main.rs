@@ -122,7 +122,10 @@ fn main() -> std::io::Result<()> {
                     std::process::exit(255)
                 }
                 Ok(..) => std::process::exit(255),
-                Err(..) => std::process::exit(255),
+                Err(error) => {
+                    eprintln!("{error}");
+                    std::process::exit(255);
+                }
             }
         }
         _ => unimplemented!("This feature is not yet built"),
