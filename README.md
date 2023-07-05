@@ -37,10 +37,10 @@ As you can see, progress at this time is limited:
 - [x] Start the project:
     - [x] Scanning
     - [x] Parsing
-    - [ ] Testing (In progress)
     - [x] Syntactic analysis
     - [ ] Name resolution (In progress)
     - [ ] Bytecode generation
     - [x] Virtual machine
+    - [ ] Testing (In progress)
     - [ ] Optimization
     - [ ] Standard library
