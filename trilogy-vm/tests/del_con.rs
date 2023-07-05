@@ -104,3 +104,24 @@ fn test_yield_invert() {
     let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
     assert_eq!(vm.run().unwrap(), Value::Number(Number::from(3)));
 }
+
+#[test]
+fn test_same_stack_twice() {
+    const PROGRAM: &str = r#"
+    CONST 1
+    SHIFT 28
+    JUMPF 17
+    CONST 2
+    SWAP
+    COPY
+    CONST false
+    CALL 2
+    LOADR 2
+    EXIT
+    COPY
+    CONST true
+    CALL 2
+    "#;
+    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
+    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(1)));
+}
