@@ -43,4 +43,4 @@ As you can see, progress at this time is limited:
     - [ ] Semantic structure
     - [ ] Semantic analysis
     - [ ] Bytecode generation
-    - [ ] Virtual machine
+    - [x] Virtual machine
