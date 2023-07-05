@@ -42,5 +42,5 @@ As you can see, progress at this time is limited:
     - [ ] Bytecode generation
     - [x] Virtual machine
     - [ ] Testing (In progress)
-    - [ ] Optimization
     - [ ] Standard library
+    - [ ] Optimization
