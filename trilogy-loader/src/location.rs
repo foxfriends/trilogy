@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fmt::Display, path::Path};
 use url::Url;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -31,5 +31,11 @@ impl AsRef<Url> for Location {
 impl From<Location> for Url {
     fn from(location: Location) -> Url {
         location.0
+    }
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

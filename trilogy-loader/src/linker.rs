@@ -72,4 +72,8 @@ impl Resolver for LinkerResolver<'_> {
         self.linker.link_module(&location);
         self.linker.linked.get(&location).unwrap().clone()
     }
+
+    fn location(&self) -> String {
+        self.location.to_string()
+    }
 }

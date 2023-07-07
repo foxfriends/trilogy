@@ -5,6 +5,7 @@ use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
 pub struct Module {
+    location: String,
     pub span: Span,
     pub parameters: Vec<Expression>,
     definitions: Definitions,
@@ -15,6 +16,7 @@ impl Module {
         let span = ast.span();
         let definitions = Definitions::convert(analyzer, ast.definitions);
         Self {
+            location: analyzer.location(),
             span,
             parameters: vec![],
             definitions,
@@ -33,6 +35,7 @@ impl Module {
         let definitions = Definitions::convert(analyzer, ast.definitions);
         analyzer.pop_scope();
         Self {
+            location: analyzer.location(),
             span,
             parameters,
             definitions,
@@ -45,5 +48,9 @@ impl Module {
 
     pub fn definitions_mut(&mut self) -> &mut [Definition] {
         &mut self.definitions.0
+    }
+
+    pub fn location(&self) -> &str {
+        &self.location
     }
 }

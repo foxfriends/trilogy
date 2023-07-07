@@ -55,4 +55,8 @@ impl<'a> Analyzer<'a> {
     pub(crate) fn resolve(&mut self, path: &str) -> Arc<ModuleCell> {
         self.resolver.resolve(path)
     }
+
+    pub(crate) fn location(&self) -> String {
+        self.resolver.location()
+    }
 }
