@@ -124,7 +124,7 @@ impl Value {
                     let s = s[numberlike.len()..]
                         .strip_prefix(')')
                         .ok_or(ValueError::InvalidProcedure)?;
-                    Ok((Value::Procedure(Procedure::new(offset)), &s))
+                    Ok((Value::Procedure(Procedure::new(offset)), s))
                 } else {
                     let Some((label, s)) = AsmContext::take_label(s) else {
                         return Err(ValueError::InvalidProcedure);
