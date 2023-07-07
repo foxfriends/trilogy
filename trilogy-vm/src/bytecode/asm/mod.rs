@@ -1,6 +1,7 @@
 mod context;
 mod error;
 mod from_asm_param;
+mod string;
 mod value;
 
 pub(crate) use context::AsmContext;

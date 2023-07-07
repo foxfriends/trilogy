@@ -1,6 +1,7 @@
 use super::super::Offset;
 use super::error::{AsmError, ErrorKind, ValueError};
 use super::from_asm_param::FromAsmParam;
+use super::string::extract_string_prefix;
 use super::Asm;
 use crate::runtime::atom::AtomInterner;
 use crate::{Atom, Value};
@@ -17,18 +18,29 @@ pub(crate) struct AsmContext {
 }
 
 impl AsmContext {
-    fn take_label(src: &str) -> String {
-        src.chars()
-            .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '@' || ch == '-')
-            .collect()
+    pub fn take_label(src: &str) -> Option<(String, &str)> {
+        if src.starts_with('"') {
+            // A bit funny but we keep the quotes on these... Just makes life easier since
+            // the thing consuming this label is not receiving tail slice right now. Nobody
+            // really sees the labels anyway, unless things crash.
+            extract_string_prefix(src)
+        } else {
+            let label: String = src
+                .chars()
+                .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '@' || ch == '-')
+                .collect();
+            if label.is_empty() {
+                None
+            } else {
+                let src = &src[label.len()..];
+                Some((label, src))
+            }
+        }
     }
 
     pub(super) fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
         let offset = if let Some(suffix) = src.strip_prefix('&') {
-            let label = Self::take_label(suffix);
-            if label.is_empty() {
-                return Err(ErrorKind::InvalidLabelReference);
-            }
+            let (label, _) = Self::take_label(suffix).ok_or(ErrorKind::InvalidLabelReference)?;
             if Self::is_empty(&suffix[label.len()..]) {
                 self.holes.insert(self.line, (self.ip, label));
                 0
@@ -40,14 +52,6 @@ impl AsmContext {
         };
         self.ip += 4;
         Ok(offset)
-    }
-
-    pub fn read_procedure_label(&mut self, s: &str) -> Option<String> {
-        let label = Self::take_label(s);
-        if label.is_empty() {
-            return None;
-        }
-        Some(label)
     }
 
     pub(super) fn lookup_label(&mut self, s: &str) -> Option<Offset> {
@@ -93,19 +97,19 @@ impl AsmContext {
             return Ok(None);
         }
         let src = src.trim_start();
-        let prefix = Self::take_label(src);
-        if let Some(src) = src[prefix.len()..].strip_prefix(':') {
-            self.labels.insert(prefix, self.ip);
-            self.parse_line(src)
-        } else {
-            self.ip += 1;
-            T::parse_asm(src, self)
-                .map_err(|error| AsmError {
-                    line: self.line,
-                    error,
-                })
-                .map(Some)
+        if let Some((prefix, src)) = Self::take_label(src) {
+            if let Some(src) = src.strip_prefix(':') {
+                self.labels.insert(prefix, self.ip);
+                return self.parse_line(src);
+            }
         }
+        self.ip += 1;
+        T::parse_asm(src, self)
+            .map_err(|error| AsmError {
+                line: self.line,
+                error,
+            })
+            .map(Some)
     }
 
     pub fn parse<'a, T>(
