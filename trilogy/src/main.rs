@@ -28,6 +28,11 @@ enum Command {
         #[arg(short, long)]
         print: bool,
     },
+    /// Compile a Trilogy program into a bytecode file which can be run
+    /// later on the VM directly.
+    ///
+    /// Expects a single path in which the `main!()` procedure is found.
+    Compile { file: PathBuf },
     /// Check the syntax and warnings of a Trilogy program.
     ///
     /// Expects a single path, from which all imported modules will be
@@ -69,11 +74,44 @@ fn print_errors(errors: impl IntoIterator<Item = impl std::fmt::Debug>) {
     }
 }
 
+fn run(program: Program, print: bool, _no_std: bool) {
+    match VirtualMachine::load(program.clone()).run() {
+        Ok(value) if print => {
+            println!("{}", value);
+        }
+        Ok(Value::Number(number)) if number.is_integer() => {
+            let output = number.as_integer().unwrap();
+            // Truly awful
+            if BigInt::from(i32::MIN) <= output && output <= BigInt::from(i32::MAX) {
+                let (sign, digits) = output.to_u32_digits();
+                let exit = if sign == Sign::Minus {
+                    -(digits[0] as i32)
+                } else {
+                    digits[0] as i32
+                };
+                std::process::exit(exit);
+            }
+            std::process::exit(255)
+        }
+        Ok(..) => std::process::exit(255),
+        Err(error) => {
+            eprintln!("Trace:\n{}", error.trace(&program));
+            eprintln!("Dump:\n{}", error.dump());
+            eprintln!("{error}");
+            std::process::exit(255);
+        }
+    }
+}
+
 fn main() -> std::io::Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        Command::Run { file, .. } => {
+        Command::Run {
+            file,
+            print,
+            no_std,
+        } => {
             let loader = Loader::new(file);
             let binder = loader.load().unwrap();
             if binder.has_errors() {
@@ -87,14 +125,47 @@ fn main() -> std::io::Result<()> {
                     std::process::exit(1);
                 }
             };
-            // NOTE: programs with circular dependencies are infinite when printed.
-            println!("{:#?}", program);
+            let program = program.generate_code();
+            run(program, print, no_std)
+        }
+        Command::Compile { file } => {
+            let loader = Loader::new(file);
+            let binder = loader.load().unwrap();
+            if binder.has_errors() {
+                print_errors(binder.errors());
+                std::process::exit(1);
+            }
+            let program = match binder.analyze() {
+                Ok(program) => program,
+                Err(errors) => {
+                    print_errors(errors);
+                    std::process::exit(1);
+                }
+            };
+            let program = program.generate_code();
+            print!("{}", program);
+        }
+        Command::Check { file } => {
+            let loader = Loader::new(file);
+            let binder = loader.load().unwrap();
+            if binder.has_errors() {
+                print_errors(binder.errors());
+                std::process::exit(1);
+            }
+            if let Err(errors) = binder.analyze() {
+                print_errors(errors);
+                std::process::exit(1);
+            };
         }
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;
         }
-        Command::Vm { file, print, .. } => {
+        Command::Vm {
+            file,
+            print,
+            no_std,
+        } => {
             let asm = std::fs::read_to_string(file)?;
             let program: Program = match asm.parse() {
                 Ok(program) => program,
@@ -103,32 +174,7 @@ fn main() -> std::io::Result<()> {
                     std::process::exit(1);
                 }
             };
-            match VirtualMachine::load(program.clone()).run() {
-                Ok(value) if print => {
-                    println!("{}", value);
-                }
-                Ok(Value::Number(number)) if number.is_integer() => {
-                    let output = number.as_integer().unwrap();
-                    // Truly awful
-                    if BigInt::from(i32::MIN) <= output && output <= BigInt::from(i32::MAX) {
-                        let (sign, digits) = output.to_u32_digits();
-                        let exit = if sign == Sign::Minus {
-                            -(digits[0] as i32)
-                        } else {
-                            digits[0] as i32
-                        };
-                        std::process::exit(exit);
-                    }
-                    std::process::exit(255)
-                }
-                Ok(..) => std::process::exit(255),
-                Err(error) => {
-                    eprintln!("Trace:\n{}", error.trace(&program));
-                    eprintln!("Dump:\n{}", error.dump());
-                    eprintln!("{error}");
-                    std::process::exit(255);
-                }
-            }
+            run(program, print, no_std)
         }
         _ => unimplemented!("This feature is not yet built"),
     }

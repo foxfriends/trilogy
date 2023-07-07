@@ -5,6 +5,7 @@ use super::string::extract_string_prefix;
 use super::Asm;
 use crate::runtime::atom::AtomInterner;
 use crate::{Atom, Value};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -17,7 +18,19 @@ pub(crate) struct AsmContext {
     value_holes: HashMap<usize, (Offset, String)>,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct LabelAlreadyInserted;
+
 impl AsmContext {
+    pub fn insert_label(&mut self, label: String) -> Result<Offset, LabelAlreadyInserted> {
+        if let Entry::Vacant(e) = self.labels.entry(label) {
+            e.insert(self.ip);
+            Ok(self.ip)
+        } else {
+            Err(LabelAlreadyInserted)
+        }
+    }
+
     pub fn take_label(src: &str) -> Option<(String, &str)> {
         if src.starts_with('"') {
             // A bit funny but we keep the quotes on these... Just makes life easier since
@@ -58,7 +71,7 @@ impl AsmContext {
         self.labels.get(s).copied()
     }
 
-    pub fn intern(&mut self, atom: &String) -> Atom {
+    pub fn intern(&mut self, atom: &str) -> Atom {
         self.interner.intern(atom)
     }
 

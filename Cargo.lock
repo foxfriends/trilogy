@@ -1103,6 +1103,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "trilogy-codegen"
+version = "0.1.0"
+dependencies = [
+ "trilogy-ir",
+ "trilogy-vm",
+]
+
+[[package]]
 name = "trilogy-ir"
 version = "0.1.0"
 dependencies = [
@@ -1118,9 +1126,11 @@ name = "trilogy-loader"
 version = "0.1.0"
 dependencies = [
  "reqwest",
+ "trilogy-codegen",
  "trilogy-ir",
  "trilogy-parser",
  "trilogy-scanner",
+ "trilogy-vm",
  "url",
 ]
 

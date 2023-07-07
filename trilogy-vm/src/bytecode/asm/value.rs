@@ -221,7 +221,7 @@ mod test {
     #[test]
     fn parse_atom() {
         let mut context = AsmContext::default();
-        let atom = context.intern(&String::from("hello"));
+        let atom = context.intern("hello");
         let (value, tail) = Value::parse_prefix("'hello", &mut context).unwrap();
         assert!(StructuralEq::eq(&value, &atom.into()));
         assert_eq!(tail, "");
@@ -230,7 +230,7 @@ mod test {
     #[test]
     fn parse_struct() {
         let mut context = AsmContext::default();
-        let atom = context.intern(&String::from("hello"));
+        let atom = context.intern("hello");
         let (value, tail) = Value::parse_prefix("'hello(123)", &mut context).unwrap();
         assert!(StructuralEq::eq(
             &value,

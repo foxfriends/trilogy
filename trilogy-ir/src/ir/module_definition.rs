@@ -15,6 +15,10 @@ impl ModuleCell {
             .set(module)
             .expect("module should not be inserted twice");
     }
+
+    pub fn as_module(&self) -> Option<&Module> {
+        self.0.get()
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -1,5 +1,5 @@
 use crate::bytecode::asm::{AsmContext, AsmError};
-use crate::bytecode::OpCode;
+use crate::bytecode::{Offset, OpCode};
 use crate::traits::Tags;
 use crate::{Instruction, Program, Value};
 use std::collections::HashMap;
@@ -8,8 +8,8 @@ pub(super) struct ProgramWriter {
     program: Program,
 }
 
-impl ProgramWriter {
-    pub fn new() -> Self {
+impl Default for ProgramWriter {
+    fn default() -> Self {
         Self {
             program: Program {
                 constants: vec![],
@@ -18,11 +18,19 @@ impl ProgramWriter {
             },
         }
     }
+}
 
+impl ProgramWriter {
     fn add_constant(&mut self, constant: Value) -> usize {
-        let index = self.program.constants.len();
-        self.program.constants.push(constant);
-        index
+        self.program
+            .constants
+            .iter()
+            .position(|val| *val == constant)
+            .unwrap_or_else(|| {
+                let index = self.program.constants.len();
+                self.program.constants.push(constant);
+                index
+            })
     }
 
     fn write_opcode(&mut self, opcode: OpCode) {
@@ -35,7 +43,7 @@ impl ProgramWriter {
             .extend((offset as u32).to_be_bytes())
     }
 
-    pub(super) fn finish(mut self, mut context: AsmContext) -> Result<Program, AsmError> {
+    pub fn finish(mut self, mut context: AsmContext) -> Result<Program, AsmError> {
         for hole_value in context.value_holes() {
             let (hole, value) = hole_value?;
             let offset = u32::from_be_bytes(
@@ -59,9 +67,13 @@ impl ProgramWriter {
         Ok(self.program)
     }
 
-    pub(super) fn write_instruction(&mut self, instruction: Instruction) {
+    pub fn write_instruction(&mut self, instruction: Instruction) {
         self.write_opcode(instruction.tag());
         instruction.write_offset(self);
+    }
+
+    pub fn offset(&self) -> Offset {
+        self.program.instructions.len()
     }
 }
 

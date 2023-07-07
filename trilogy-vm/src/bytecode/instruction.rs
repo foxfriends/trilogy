@@ -78,6 +78,23 @@ pub enum Instruction {
     Exit,
 }
 
+impl Instruction {
+    pub fn size(&self) -> usize {
+        match self {
+            Self::Const(..) => 5,
+            Self::LoadRegister(..) => 5,
+            Self::SetRegister(..) => 5,
+            Self::Call(..) => 5,
+            Self::Shift(..) => 5,
+            Self::Jump(..) => 5,
+            Self::JumpBack(..) => 5,
+            Self::CondJump(..) => 5,
+            Self::CondJumpBack(..) => 5,
+            _ => 1,
+        }
+    }
+}
+
 impl TryFrom<u8> for OpCode {
     type Error = u8;
 

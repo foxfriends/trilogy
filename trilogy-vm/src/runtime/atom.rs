@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cmp::PartialEq;
 use std::collections::HashSet;
 use std::fmt::{self, Display};
@@ -26,16 +27,31 @@ impl Display for Atom {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Hash)]
+struct AtomRaw(Arc<String>);
+
+impl From<AtomRaw> for Atom {
+    fn from(value: AtomRaw) -> Self {
+        Self(value.0)
+    }
+}
+
+impl Borrow<str> for AtomRaw {
+    fn borrow(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 #[derive(Default)]
-pub(crate) struct AtomInterner(HashSet<Arc<String>>);
+pub(crate) struct AtomInterner(HashSet<AtomRaw>);
 
 impl AtomInterner {
-    pub fn intern(&mut self, string: &String) -> Atom {
+    pub fn intern(&mut self, string: &str) -> Atom {
         if let Some(arc) = self.0.get(string) {
-            Atom(arc.clone())
+            (*arc).clone().into()
         } else {
             let arc = Arc::new(string.to_owned());
-            self.0.insert(arc.clone());
+            self.0.insert(AtomRaw(arc.clone()));
             Atom(arc)
         }
     }

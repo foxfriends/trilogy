@@ -5,11 +5,13 @@ use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
+mod builder;
 mod reader;
 mod writer;
 
+pub use builder::ProgramBuilder;
 use reader::InvalidBytecode;
-pub use reader::ProgramReader;
+use reader::ProgramReader;
 
 use self::writer::ProgramWriter;
 
@@ -22,8 +24,23 @@ pub struct Program {
 
 impl Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for instruction in self.into_iter() {
-            writeln!(f, "{}", instruction.map_err(|_| fmt::Error)?)?;
+        let labels_per_line = self.labels.iter().fold(
+            HashMap::<usize, Vec<&str>>::new(),
+            |mut offsets, (label, offset)| {
+                offsets.entry(*offset).or_default().push(label);
+                offsets
+            },
+        );
+        let mut offset = 0;
+        let mut instructions = self.into_iter();
+        loop {
+            for label in labels_per_line.get(&offset).into_iter().flatten() {
+                writeln!(f, "{label:?}:")?;
+            }
+            let Some(instruction) = instructions.next() else { break };
+            let instruction = instruction.map_err(|_| fmt::Error)?;
+            writeln!(f, "\t{}", instruction)?;
+            offset += instruction.size();
         }
         Ok(())
     }
@@ -46,7 +63,7 @@ impl FromStr for Program {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut context = AsmContext::default();
-        let mut writer = ProgramWriter::new();
+        let mut writer = ProgramWriter::default();
         for instruction in context.parse::<Instruction>(s) {
             writer.write_instruction(instruction?);
         }

@@ -5,6 +5,7 @@ mod string;
 mod value;
 
 pub(crate) use context::AsmContext;
+pub use context::LabelAlreadyInserted;
 pub use error::{AsmError, ErrorKind, ValueError};
 
 pub(crate) trait Asm: Sized {
