@@ -15,7 +15,7 @@ impl Value {
             _ if s.starts_with("false") => Ok((Value::Bool(false), &s[5..])),
             _ if s.starts_with('\'') => {
                 if s.starts_with("'\\") {
-                    let (ch, s) = escape_sequence(s).ok_or(ValueError::InvalidCharacter)?;
+                    let (ch, s) = escape_sequence(&s[1..]).ok_or(ValueError::InvalidCharacter)?;
                     let s = s.strip_prefix('\'').ok_or(ValueError::InvalidCharacter)?;
                     Ok((Value::Char(ch), s))
                 } else if &s[2..3] == "'" {
@@ -121,11 +121,10 @@ impl Value {
                     let offset = numberlike
                         .parse()
                         .map_err(|_| ValueError::InvalidProcedure)?;
-                    let s = s.strip_prefix(')').ok_or(ValueError::InvalidProcedure)?;
-                    Ok((
-                        Value::Procedure(Procedure::new(offset)),
-                        &s[numberlike.len()..],
-                    ))
+                    let s = s[numberlike.len()..]
+                        .strip_prefix(')')
+                        .ok_or(ValueError::InvalidProcedure)?;
+                    Ok((Value::Procedure(Procedure::new(offset)), &s))
                 } else {
                     let Some((label, s)) = AsmContext::take_label(s) else {
                         return Err(ValueError::InvalidProcedure);
@@ -166,5 +165,86 @@ impl Value {
                 ))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{Instruction, StructuralEq};
+    use num::{BigRational, Complex};
+
+    macro_rules! test {
+        ($name:ident =>  $input:literal, $value:expr, $tail:literal) => {
+            #[test]
+            fn $name() {
+                let (value, tail) =
+                    Value::parse_prefix($input, &mut AsmContext::default()).unwrap();
+                assert!(StructuralEq::eq(&value, &$value.into()));
+                assert_eq!(tail, $tail);
+            }
+        };
+    }
+
+    test!(parse_string => r#""hello""#, "hello", "");
+    test!(parse_string_escapes => r#""hel\\\x15\u{ff00}lo""#, "hel\\\x15\u{ff00}lo", "");
+    test!(parse_string_trailing => r#""hello"123"#, "hello", "123");
+    test!(parse_char => "'a'", 'a', "");
+    test!(parse_char_escape => r#"'\\'"#, '\\', "");
+    test!(parse_number => "123", 123, "");
+    test!(parse_number_neg => "-123", -123, "");
+    test!(parse_number_rational => "123/123", 1, "");
+    test!(parse_number_complex => "123+3i", Complex::new(BigRational::new(123.into(), 1.into()), BigRational::new(3.into(), 1.into())), "");
+    test!(parse_number_complex_neg => "123-3i", Complex::new(BigRational::new(123.into(), 1.into()), -BigRational::new(3.into(), 1.into())), "");
+    test!(parse_true => "true", true, "");
+    test!(parse_false => "false", false, "");
+    test!(parse_unit => "unit", (), "");
+    test!(parse_array => r#"[1,true,"hello"]"#, vec![Value::from(1), true.into(), "hello".into()], "");
+    test!(parse_array_empty => "[]", Vec::<Value>::new(), "");
+    test!(parse_set => r#"[|1,2,1|]"#, {
+        let mut set = HashSet::<Value>::new();
+        set.insert(1.into());
+        set.insert(2.into());
+        set
+    }, "");
+    test!(parse_set_empty => r#"[||]"#, HashSet::<Value>::new(), "");
+    test!(parse_record => r#"{|"x"=>true,"y"=>5|}"#, {
+        let mut map = HashMap::<Value, Value>::new();
+        map.insert("x".into(), true.into());
+        map.insert("y".into(), 5.into());
+        map
+    }, "");
+    test!(parse_record_empty => r#"{||}"#, HashMap::<Value, Value>::new(), "");
+    test!(parse_procedure => "&(123)", Procedure::new(123), "");
+    test!(parse_bits => "0b111011", vec![true, true, true, false, true, true] , "");
+
+    #[test]
+    fn parse_atom() {
+        let mut context = AsmContext::default();
+        let atom = context.intern(&String::from("hello"));
+        let (value, tail) = Value::parse_prefix("'hello", &mut context).unwrap();
+        assert!(StructuralEq::eq(&value, &atom.into()));
+        assert_eq!(tail, "");
+    }
+
+    #[test]
+    fn parse_struct() {
+        let mut context = AsmContext::default();
+        let atom = context.intern(&String::from("hello"));
+        let (value, tail) = Value::parse_prefix("'hello(123)", &mut context).unwrap();
+        assert!(StructuralEq::eq(
+            &value,
+            &Struct::new(atom, 123.into()).into()
+        ));
+        assert_eq!(tail, "");
+    }
+
+    #[test]
+    fn parse_procedure_label() {
+        let mut context = AsmContext::default();
+        context.parse_line::<Instruction>("label:").unwrap();
+        let (value, tail) = Value::parse_prefix("&label", &mut context).unwrap();
+        assert!(StructuralEq::eq(&value, &Procedure::new(0).into()));
+        assert_eq!(tail, "");
     }
 }

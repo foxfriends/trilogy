@@ -3,6 +3,7 @@ use super::{
     StructuralEq, Tuple,
 };
 use num::ToPrimitive;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display};
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
@@ -207,3 +208,73 @@ impl Display for Value {
         }
     }
 }
+
+macro_rules! impl_from {
+    (<$fromty:ty> for $variant:ident) => {
+        impl From<$fromty> for Value {
+            fn from(value: $fromty) -> Self {
+                Self::$variant(value)
+            }
+        }
+    };
+
+    (<$fromty:ty> for $variant:ident via $via:ident) => {
+        impl From<$fromty> for Value {
+            fn from(value: $fromty) -> Self {
+                Self::$variant($via::from(value))
+            }
+        }
+    };
+}
+
+impl From<()> for Value {
+    fn from(_: ()) -> Self {
+        Self::Unit
+    }
+}
+
+impl_from!(<String> for String);
+impl_from!(<Number> for Number);
+impl_from!(<char> for Char);
+impl_from!(<bool> for Bool);
+impl_from!(<Bits> for Bits);
+impl_from!(<Atom> for Atom);
+impl_from!(<Struct> for Struct);
+impl_from!(<Set> for Set);
+impl_from!(<Record> for Record);
+impl_from!(<Array> for Array);
+impl_from!(<Tuple> for Tuple);
+impl_from!(<Procedure> for Procedure);
+impl_from!(<Continuation> for Continuation);
+
+impl<T, U> From<(T, U)> for Value
+where
+    Value: From<T>,
+    Value: From<U>,
+{
+    fn from(value: (T, U)) -> Self {
+        Self::Tuple(Tuple::from(value))
+    }
+}
+
+impl_from!(<HashMap<Value, Value>> for Record via Record);
+impl_from!(<HashSet<Value>> for Set via Set);
+impl_from!(<Vec<Value>> for Array via Array);
+impl_from!(<Vec<bool>> for Bits via Bits);
+impl_from!(<&str> for String via String);
+impl_from!(<usize> for Number via Number);
+impl_from!(<u8> for Number via Number);
+impl_from!(<u16> for Number via Number);
+impl_from!(<u32> for Number via Number);
+impl_from!(<u64> for Number via Number);
+impl_from!(<u128> for Number via Number);
+impl_from!(<isize> for Number via Number);
+impl_from!(<i8> for Number via Number);
+impl_from!(<i16> for Number via Number);
+impl_from!(<i32> for Number via Number);
+impl_from!(<i64> for Number via Number);
+impl_from!(<i128> for Number via Number);
+impl_from!(<num::BigRational> for Number via Number);
+impl_from!(<num::BigInt> for Number via Number);
+impl_from!(<num::BigUint> for Number via Number);
+impl_from!(<num::Complex<num::BigRational>> for Number via Number);

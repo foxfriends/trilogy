@@ -30,6 +30,12 @@ impl FromIterator<bool> for Bits {
     }
 }
 
+impl From<Vec<bool>> for Bits {
+    fn from(value: Vec<bool>) -> Self {
+        value.into_iter().collect()
+    }
+}
+
 impl BitAnd for Bits {
     type Output = Bits;
 

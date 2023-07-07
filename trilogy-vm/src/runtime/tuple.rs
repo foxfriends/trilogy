@@ -16,3 +16,13 @@ impl Display for Tuple {
         write!(f, "({}:{})", (self.0).0, (self.0).1)
     }
 }
+
+impl<T, U> From<(T, U)> for Tuple
+where
+    Value: From<T>,
+    Value: From<U>,
+{
+    fn from((t, u): (T, U)) -> Self {
+        Self::new(t.into(), u.into())
+    }
+}

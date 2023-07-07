@@ -163,6 +163,21 @@ impl From<BigRational> for Number {
     }
 }
 
+impl From<BigInt> for Number {
+    fn from(value: BigInt) -> Self {
+        Self(Complex::new(BigRational::from(value), Zero::zero()))
+    }
+}
+
+impl From<BigUint> for Number {
+    fn from(value: BigUint) -> Self {
+        Self(Complex::new(
+            BigRational::from(BigInt::from(value)),
+            Zero::zero(),
+        ))
+    }
+}
+
 impl Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
