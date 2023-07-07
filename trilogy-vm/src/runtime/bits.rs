@@ -36,6 +36,12 @@ impl From<Vec<bool>> for Bits {
     }
 }
 
+impl From<BitVec> for Bits {
+    fn from(value: BitVec) -> Self {
+        Self(value)
+    }
+}
+
 impl BitAnd for Bits {
     type Output = Bits;
 

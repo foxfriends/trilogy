@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
@@ -43,5 +44,14 @@ impl SymbolTable {
 
     pub fn reuse(&self, tag: &str) -> Option<&Id> {
         self.symbols.get(tag)
+    }
+}
+
+impl Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0.as_ref() {
+            Some(name) => name.fmt(f),
+            None => "<intermediate value>".fmt(f),
+        }
     }
 }

@@ -1,9 +1,10 @@
-use trilogy_ir::ir;
-use trilogy_vm::{Instruction, ProgramBuilder};
+mod evaluation;
+mod labeler;
+mod module;
+mod procedure;
 
-pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module) {
-    builder
-        .write_label(module.location().to_owned())
-        .expect("each module has a unique location and is only written once")
-        .write_instruction(Instruction::Exit);
-}
+use labeler::Labeler;
+
+use evaluation::write_evaluation;
+pub use module::write_module;
+use procedure::write_procedure;

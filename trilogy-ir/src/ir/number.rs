@@ -8,4 +8,8 @@ impl Number {
     pub(super) fn convert(ast: syntax::NumberLiteral) -> Self {
         Self(ast.value())
     }
+
+    pub fn value(&self) -> &Complex<BigRational> {
+        &self.0
+    }
 }

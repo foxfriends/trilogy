@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{Analyzer, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
@@ -27,5 +29,11 @@ impl Identifier {
         let span = identifier.span();
         let id = analyzer.declared(identifier.as_ref())?.clone();
         Some(Self { span, id })
+    }
+}
+
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.id.fmt(f)
     }
 }

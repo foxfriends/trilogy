@@ -6,7 +6,7 @@ use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
-pub(super) enum DefinitionItem {
+pub enum DefinitionItem {
     Procedure(Box<ProcedureDefinition>),
     Function(Box<FunctionDefinition>),
     Rule(Box<RuleDefinition>),
@@ -18,7 +18,7 @@ pub(super) enum DefinitionItem {
 #[derive(Clone, Debug)]
 pub struct Definition {
     pub span: Span,
-    pub(super) item: DefinitionItem,
+    pub item: DefinitionItem,
     pub is_exported: bool,
 }
 
