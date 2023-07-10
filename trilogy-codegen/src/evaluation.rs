@@ -1,5 +1,5 @@
-use crate::labeler::Labeler;
-use trilogy_ir::ir::{self, Builtin};
+use crate::{is_operator, write_operator, Labeler};
+use trilogy_ir::ir;
 use trilogy_vm::{Instruction, ProgramBuilder, Value};
 
 #[allow(clippy::only_used_in_recursion)]
@@ -9,53 +9,7 @@ pub(crate) fn write_evaluation(
     expr: &ir::Expression,
 ) {
     match &expr.value {
-        ir::Value::Builtin(Builtin::Negate) => todo!(),
-        ir::Value::Builtin(Builtin::Not) => todo!(),
-        ir::Value::Builtin(Builtin::Access) => todo!(),
-        ir::Value::Builtin(Builtin::And) => todo!(),
-        ir::Value::Builtin(Builtin::Or) => todo!(),
-        ir::Value::Builtin(Builtin::Add) => todo!(),
-        ir::Value::Builtin(Builtin::Subtract) => todo!(),
-        ir::Value::Builtin(Builtin::Multiply) => todo!(),
-        ir::Value::Builtin(Builtin::Divide) => todo!(),
-        ir::Value::Builtin(Builtin::Remainder) => todo!(),
-        ir::Value::Builtin(Builtin::Power) => todo!(),
-        ir::Value::Builtin(Builtin::IntDivide) => todo!(),
-        ir::Value::Builtin(Builtin::StructuralEquality) => todo!(),
-        ir::Value::Builtin(Builtin::StructuralInequality) => todo!(),
-        ir::Value::Builtin(Builtin::ReferenceEquality) => todo!(),
-        ir::Value::Builtin(Builtin::ReferenceInequality) => todo!(),
-        ir::Value::Builtin(Builtin::Lt) => todo!(),
-        ir::Value::Builtin(Builtin::Gt) => todo!(),
-        ir::Value::Builtin(Builtin::Leq) => todo!(),
-        ir::Value::Builtin(Builtin::Geq) => todo!(),
-        ir::Value::Builtin(Builtin::BitwiseAnd) => todo!(),
-        ir::Value::Builtin(Builtin::BitwiseOr) => todo!(),
-        ir::Value::Builtin(Builtin::BitwiseXor) => todo!(),
-        ir::Value::Builtin(Builtin::LeftShift) => todo!(),
-        ir::Value::Builtin(Builtin::RightShift) => todo!(),
-        ir::Value::Builtin(Builtin::Sequence) => todo!(),
-        ir::Value::Builtin(Builtin::Cons) => todo!(),
-        ir::Value::Builtin(Builtin::Glue) => todo!(),
-        ir::Value::Builtin(Builtin::Invert) => todo!(),
-        ir::Value::Builtin(Builtin::ModuleAccess) => todo!(),
-        ir::Value::Builtin(Builtin::Compose) => todo!(),
-        ir::Value::Builtin(Builtin::RCompose) => todo!(),
-        ir::Value::Builtin(Builtin::Pipe) => todo!(),
-        ir::Value::Builtin(Builtin::RPipe) => todo!(),
-        ir::Value::Builtin(Builtin::Construct) => todo!(),
-        ir::Value::Builtin(Builtin::Array) => todo!(),
-        ir::Value::Builtin(Builtin::Set) => todo!(),
-        ir::Value::Builtin(Builtin::Record) => todo!(),
-        ir::Value::Builtin(Builtin::Is) => todo!(),
-        ir::Value::Builtin(Builtin::For) => todo!(),
-        ir::Value::Builtin(Builtin::Yield) => todo!(),
-        ir::Value::Builtin(Builtin::Resume) => todo!(),
-        ir::Value::Builtin(Builtin::Cancel) => todo!(),
-        ir::Value::Builtin(Builtin::Return) => todo!(),
-        ir::Value::Builtin(Builtin::Break) => todo!(),
-        ir::Value::Builtin(Builtin::Continue) => todo!(),
-        ir::Value::Builtin(Builtin::Exit) => todo!(),
+        ir::Value::Builtin(..) => todo!(),
         ir::Value::Pack(..) => todo!(),
         ir::Value::Sequence(seq) => {
             for expr in seq {
@@ -82,9 +36,9 @@ pub(crate) fn write_evaluation(
         ir::Value::Unit => {
             builder.write_instruction(Instruction::Const(Value::Unit));
         }
-        ir::Value::Conjunction(..) => todo!(),
-        ir::Value::Disjunction(..) => todo!(),
-        ir::Value::Wildcard => unreachable!("Wildcard cannot appear in this location"),
+        ir::Value::Conjunction(..) => unreachable!("Conjunction cannot appear in an evaluation"),
+        ir::Value::Disjunction(..) => unreachable!("Disjunction cannot appear in an evaluation"),
+        ir::Value::Wildcard => unreachable!("Wildcard cannot appear in an evaluation"),
         ir::Value::Atom(value) => {
             let atom = builder.atom(value);
             builder.write_instruction(Instruction::Const(atom.into()));
@@ -93,8 +47,27 @@ pub(crate) fn write_evaluation(
         ir::Value::Iterator(..) => todo!(),
         ir::Value::While(..) => todo!(),
         ir::Value::Application(application) => {
+            match &application.function.value {
+                ir::Value::Builtin(builtin) if is_operator(*builtin) => {
+                    return write_unary_operation(labeler, builder, &application.argument, *builtin)
+                }
+                ir::Value::Application(lhs_app) => match &lhs_app.function.value {
+                    ir::Value::Builtin(builtin) if is_operator(*builtin) => {
+                        return write_binary_operation(
+                            labeler,
+                            builder,
+                            &lhs_app.argument,
+                            &application.argument,
+                            *builtin,
+                        )
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
             write_evaluation(labeler, builder, &application.function);
             write_evaluation(labeler, builder, &application.argument);
+            // TODO: support multiple arguments more efficiently?
             builder.write_instruction(Instruction::Call(1));
         }
         ir::Value::Let(..) => todo!(),
@@ -113,4 +86,26 @@ pub(crate) fn write_evaluation(
             builder.write_instruction(Instruction::Fizzle);
         }
     }
+}
+
+fn write_unary_operation(
+    labeler: &mut Labeler,
+    builder: &mut ProgramBuilder,
+    value: &ir::Expression,
+    builtin: ir::Builtin,
+) {
+    write_evaluation(labeler, builder, value);
+    write_operator(labeler, builder, builtin);
+}
+
+fn write_binary_operation(
+    labeler: &mut Labeler,
+    builder: &mut ProgramBuilder,
+    lhs: &ir::Expression,
+    rhs: &ir::Expression,
+    builtin: ir::Builtin,
+) {
+    write_evaluation(labeler, builder, lhs);
+    write_evaluation(labeler, builder, rhs);
+    write_operator(labeler, builder, builtin);
 }

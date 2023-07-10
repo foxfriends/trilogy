@@ -19,13 +19,13 @@ impl ProgramReader<'_> {
     }
 
     fn read_offset(&mut self) -> Result<Offset, InvalidBytecode> {
-        let value = usize::from_le_bytes(
+        let value = u32::from_be_bytes(
             self.program.instructions[self.ip..self.ip + 4]
                 .try_into()
                 .map_err(|_| InvalidBytecode)?,
         );
         self.ip += 4;
-        Ok(value)
+        Ok(value as usize)
     }
 
     fn read_instruction(&mut self) -> Result<Instruction, InvalidBytecode> {
@@ -102,5 +102,22 @@ impl Iterator for ProgramReader<'_> {
         } else {
             Some(self.read_instruction())
         }
+    }
+}
+
+pub struct WithIp<'a>(ProgramReader<'a>);
+
+impl<'a> ProgramReader<'a> {
+    pub fn with_ip(self) -> WithIp<'a> {
+        WithIp(self)
+    }
+}
+
+impl Iterator for WithIp<'_> {
+    type Item = Result<(Offset, Instruction), InvalidBytecode>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ip = self.0.ip;
+        Some(self.0.next()?.map(|instruction| (ip, instruction)))
     }
 }

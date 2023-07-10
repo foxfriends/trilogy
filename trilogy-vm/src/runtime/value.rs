@@ -4,7 +4,7 @@ use super::{
 };
 use num::ToPrimitive;
 use std::collections::{HashMap, HashSet};
-use std::fmt::{self, Display};
+use std::fmt::Display;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -204,7 +204,7 @@ impl Display for Value {
             Self::Set(value) => write!(f, "{value}"),
             Self::Record(value) => write!(f, "{value}"),
             Self::Procedure(value) => write!(f, "{value}"),
-            Self::Continuation(..) => Err(fmt::Error),
+            Self::Continuation(..) => write!(f, "<anonymous continuation>"),
         }
     }
 }

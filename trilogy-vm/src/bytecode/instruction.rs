@@ -5,6 +5,7 @@ use trilogy_vm_derive::{Asm, Tags};
 
 pub type Offset = usize;
 
+#[rustfmt::skip]
 #[derive(Debug, Tags, Asm)]
 #[tags(name = OpCode, derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
 pub enum Instruction {
@@ -13,46 +14,31 @@ pub enum Instruction {
     Set,
     Alloc,
     Free,
-    #[asm(name = "LOADR")]
-    LoadRegister(Offset),
-    #[asm(name = "SETR")]
-    SetRegister(Offset),
+    #[asm(name = "LOADR")] LoadRegister(Offset),
+    #[asm(name = "SETR")] SetRegister(Offset),
     Copy,
     Pop,
     Swap,
     Add,
-    #[asm(name = "SUB")]
-    Subtract,
-    #[asm(name = "MUL")]
-    Multiply,
-    #[asm(name = "DIV")]
-    Divide,
-    #[asm(name = "REM")]
-    Remainder,
-    #[asm(name = "INTDIV")]
-    IntDivide,
-    #[asm(name = "POW")]
-    Power,
-    #[asm(name = "NEG")]
-    Negate,
+    #[asm(name = "SUB")] Subtract,
+    #[asm(name = "MUL")] Multiply,
+    #[asm(name = "DIV")] Divide,
+    #[asm(name = "REM")] Remainder,
+    #[asm(name = "INTDIV")] IntDivide,
+    #[asm(name = "POW")] Power,
+    #[asm(name = "NEG")] Negate,
     Glue,
     Access,
     Assign,
     Not,
     And,
     Or,
-    #[asm(name = "BITAND")]
-    BitwiseAnd,
-    #[asm(name = "BITOR")]
-    BitwiseOr,
-    #[asm(name = "BITXOR")]
-    BitwiseXor,
-    #[asm(name = "BITNEG")]
-    BitwiseNeg,
-    #[asm(name = "LSHIFT")]
-    LeftShift,
-    #[asm(name = "RSHIFT")]
-    RightShift,
+    #[asm(name = "BITAND")] BitwiseAnd,
+    #[asm(name = "BITOR")] BitwiseOr,
+    #[asm(name = "BITXOR")] BitwiseXor,
+    #[asm(name = "BITNEG")] BitwiseNeg,
+    #[asm(name = "LSHIFT")] LeftShift,
+    #[asm(name = "RSHIFT")] RightShift,
     Cons,
     Leq,
     Lt,
@@ -67,12 +53,9 @@ pub enum Instruction {
     Shift(Offset),
     Reset,
     Jump(Offset),
-    #[asm(name = "RJUMP")]
-    JumpBack(Offset),
-    #[asm(name = "JUMPF")]
-    CondJump(Offset),
-    #[asm(name = "RJUMPF")]
-    CondJumpBack(Offset),
+    #[asm(name = "RJUMP")] JumpBack(Offset),
+    #[asm(name = "JUMPF")] CondJump(Offset),
+    #[asm(name = "RJUMPF")] CondJumpBack(Offset),
     Branch,
     Fizzle,
     Exit,
