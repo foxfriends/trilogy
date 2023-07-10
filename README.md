@@ -39,7 +39,7 @@ As you can see, progress at this time is limited:
     - [x] Parsing
     - [x] Syntactic analysis
     - [ ] Name resolution (In progress)
-    - [ ] Bytecode generation
+    - [ ] Bytecode generation (In progress)
     - [x] Virtual machine
     - [ ] Testing (In progress)
     - [ ] Standard library
