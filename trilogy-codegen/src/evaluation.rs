@@ -1,47 +1,43 @@
-use crate::{is_operator, write_operator, Labeler};
+use crate::{context::Binding, is_operator, write_operator, Context};
 use trilogy_ir::ir;
-use trilogy_vm::{Instruction, ProgramBuilder, Value};
+use trilogy_vm::{Instruction, Value};
 
 #[allow(clippy::only_used_in_recursion)]
-pub(crate) fn write_evaluation(
-    labeler: &mut Labeler,
-    builder: &mut ProgramBuilder,
-    expr: &ir::Expression,
-) {
+pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
     match &expr.value {
         ir::Value::Builtin(..) => todo!(),
         ir::Value::Pack(..) => todo!(),
         ir::Value::Sequence(seq) => {
             for expr in seq {
-                write_evaluation(labeler, builder, expr);
+                write_evaluation(context, expr);
             }
         }
         ir::Value::Assignment(..) => todo!(),
         ir::Value::Mapping(..) => todo!(),
         ir::Value::Number(value) => {
-            builder.write_instruction(Instruction::Const(value.value().clone().into()));
+            context.write_instruction(Instruction::Const(value.value().clone().into()));
         }
         ir::Value::Character(value) => {
-            builder.write_instruction(Instruction::Const((*value).into()));
+            context.write_instruction(Instruction::Const((*value).into()));
         }
         ir::Value::String(value) => {
-            builder.write_instruction(Instruction::Const(value.into()));
+            context.write_instruction(Instruction::Const(value.into()));
         }
         ir::Value::Bits(value) => {
-            builder.write_instruction(Instruction::Const(value.value().clone().into()));
+            context.write_instruction(Instruction::Const(value.value().clone().into()));
         }
         ir::Value::Boolean(value) => {
-            builder.write_instruction(Instruction::Const((*value).into()));
+            context.write_instruction(Instruction::Const((*value).into()));
         }
         ir::Value::Unit => {
-            builder.write_instruction(Instruction::Const(Value::Unit));
+            context.write_instruction(Instruction::Const(Value::Unit));
         }
         ir::Value::Conjunction(..) => unreachable!("Conjunction cannot appear in an evaluation"),
         ir::Value::Disjunction(..) => unreachable!("Disjunction cannot appear in an evaluation"),
         ir::Value::Wildcard => unreachable!("Wildcard cannot appear in an evaluation"),
         ir::Value::Atom(value) => {
-            let atom = builder.atom(value);
-            builder.write_instruction(Instruction::Const(atom.into()));
+            let atom = context.atom(value);
+            context.write_instruction(Instruction::Const(atom.into()));
         }
         ir::Value::Query(..) => todo!(),
         ir::Value::Iterator(..) => todo!(),
@@ -49,13 +45,12 @@ pub(crate) fn write_evaluation(
         ir::Value::Application(application) => {
             match &application.function.value {
                 ir::Value::Builtin(builtin) if is_operator(*builtin) => {
-                    return write_unary_operation(labeler, builder, &application.argument, *builtin)
+                    return write_unary_operation(context, &application.argument, *builtin)
                 }
                 ir::Value::Application(lhs_app) => match &lhs_app.function.value {
                     ir::Value::Builtin(builtin) if is_operator(*builtin) => {
                         return write_binary_operation(
-                            labeler,
-                            builder,
+                            context,
                             &lhs_app.argument,
                             &application.argument,
                             *builtin,
@@ -65,10 +60,10 @@ pub(crate) fn write_evaluation(
                 },
                 _ => {}
             }
-            write_evaluation(labeler, builder, &application.function);
-            write_evaluation(labeler, builder, &application.argument);
+            write_evaluation(context, &application.function);
+            write_evaluation(context, &application.argument);
             // TODO: support multiple arguments more efficiently?
-            builder.write_instruction(Instruction::Call(1));
+            context.write_instruction(Instruction::Call(1));
         }
         ir::Value::Let(..) => todo!(),
         ir::Value::IfElse(..) => todo!(),
@@ -77,35 +72,42 @@ pub(crate) fn write_evaluation(
         ir::Value::Do(..) => todo!(),
         ir::Value::Handled(..) => todo!(),
         ir::Value::Module(..) => todo!(),
-        ir::Value::Reference(..) => todo!(),
+        ir::Value::Reference(ident) => {
+            let binding = context.scope.lookup(&ident.id);
+            match binding {
+                Some(Binding::Constant(value)) => {
+                    context.write_instruction(Instruction::Const(value.clone()));
+                }
+                Some(Binding::Variable(offset)) => {
+                    context.write_instruction(Instruction::LoadRegister(
+                        context.register_distance(*offset),
+                    ));
+                }
+                None => panic!("Unresolved reference should not exist at this point"),
+            }
+        }
         ir::Value::Dynamic(dynamic) => {
             panic!("Dynamic is not actually supposed to happen, but we got {dynamic:?}");
         }
         ir::Value::Assert(..) => todo!(),
         ir::Value::End => {
-            builder.write_instruction(Instruction::Fizzle);
+            context.write_instruction(Instruction::Fizzle);
         }
     }
 }
 
-fn write_unary_operation(
-    labeler: &mut Labeler,
-    builder: &mut ProgramBuilder,
-    value: &ir::Expression,
-    builtin: ir::Builtin,
-) {
-    write_evaluation(labeler, builder, value);
-    write_operator(labeler, builder, builtin);
+fn write_unary_operation(context: &mut Context, value: &ir::Expression, builtin: ir::Builtin) {
+    write_evaluation(context, value);
+    write_operator(context, builtin);
 }
 
 fn write_binary_operation(
-    labeler: &mut Labeler,
-    builder: &mut ProgramBuilder,
+    context: &mut Context,
     lhs: &ir::Expression,
     rhs: &ir::Expression,
     builtin: ir::Builtin,
 ) {
-    write_evaluation(labeler, builder, lhs);
-    write_evaluation(labeler, builder, rhs);
-    write_operator(labeler, builder, builtin);
+    write_evaluation(context, lhs);
+    write_evaluation(context, rhs);
+    write_operator(context, builtin);
 }

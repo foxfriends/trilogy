@@ -1,5 +1,6 @@
 use trilogy_ir::ir::Identifier;
 
+#[derive(Clone, Debug)]
 pub(crate) struct Labeler {
     location: String,
     context: Vec<String>,

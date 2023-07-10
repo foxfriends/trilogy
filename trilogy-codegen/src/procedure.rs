@@ -1,32 +1,27 @@
-use crate::{write_evaluation, Labeler};
+use crate::{write_evaluation, Context};
 use trilogy_ir::ir;
-use trilogy_vm::{Instruction, ProgramBuilder};
+use trilogy_vm::Instruction;
 
-pub(crate) fn write_procedure(
-    labeler: &mut Labeler,
-    builder: &mut ProgramBuilder,
-    procedure: &ir::ProcedureDefinition,
-) {
-    builder
-        .write_label(labeler.begin_procedure(&procedure.name))
-        .unwrap();
+pub(crate) fn write_procedure(context: &mut Context, procedure: &ir::ProcedureDefinition) {
+    let beginning = context.labeler.begin_procedure(&procedure.name);
+    context.write_label(beginning).unwrap();
 
     for (i, overload) in procedure.overloads.iter().enumerate() {
-        builder.write_label(labeler.begin_overload(i)).unwrap();
-        write_procedure_overload(labeler, builder, overload);
-        builder.write_label(labeler.end()).unwrap();
+        let beginning = context.labeler.begin_overload(i);
+        context.write_label(beginning).unwrap();
+        write_procedure_overload(context, overload);
+        let end = context.labeler.end();
+        context.write_label(end).unwrap();
     }
-    builder
-        .write_label(labeler.end())
+
+    let end = context.labeler.end();
+    context
+        .write_label(end)
         .unwrap()
         .write_instruction(Instruction::Fizzle);
 }
 
-fn write_procedure_overload(
-    labeler: &mut Labeler,
-    builder: &mut ProgramBuilder,
-    procedure: &ir::Procedure,
-) {
+fn write_procedure_overload(context: &mut Context, procedure: &ir::Procedure) {
     for _parameter in &procedure.parameters {}
-    write_evaluation(labeler, builder, &procedure.body);
+    write_evaluation(context, &procedure.body);
 }

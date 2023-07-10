@@ -25,13 +25,6 @@ impl InternalValue {
             _ => Err(InternalRuntimeError::ExpectedPointer),
         }
     }
-
-    fn try_into_return(self) -> Result<usize, InternalRuntimeError> {
-        match self {
-            InternalValue::Return(pointer) => Ok(pointer),
-            _ => Err(InternalRuntimeError::ExpectedReturn),
-        }
-    }
 }
 
 impl Display for InternalValue {
@@ -210,10 +203,12 @@ impl Stack {
     }
 
     pub(crate) fn pop_return(&mut self) -> Result<usize, InternalRuntimeError> {
-        self.0
-            .pop()
-            .ok_or(InternalRuntimeError::ExpectedReturn)
-            .and_then(InternalValue::try_into_return)
+        loop {
+            let popped = self.0.pop().ok_or(InternalRuntimeError::ExpectedReturn)?;
+            if let InternalValue::Return(offset) = popped {
+                return Ok(offset);
+            }
+        }
     }
 
     pub(crate) fn push_pointer(&mut self, pointer: usize) {

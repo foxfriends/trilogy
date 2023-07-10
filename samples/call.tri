@@ -1,0 +1,7 @@
+proc add2!(x) {
+    return x + 2
+}
+
+proc main!() {
+    exit add2!(3)
+}

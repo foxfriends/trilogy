@@ -11,7 +11,7 @@ mod program;
 mod runtime;
 mod vm;
 
-pub use bytecode::{AsmError, Instruction};
+pub use bytecode::{AsmError, Instruction, LabelAlreadyInserted};
 pub use program::{Program, ProgramBuilder};
 pub use runtime::{
     Array, Atom, Bits, Continuation, Number, Record, ReferentialEq, Set, Struct, StructuralEq,
