@@ -5,6 +5,8 @@ use trilogy_vm::Instruction;
 pub(crate) fn write_procedure(context: &mut Context, procedure: &ir::ProcedureDefinition) {
     let beginning = context.labeler.begin_procedure(&procedure.name);
     context.write_label(beginning).unwrap();
+    let for_id = context.labeler.for_id(&procedure.name.id);
+    context.write_label(for_id).unwrap();
 
     for (i, overload) in procedure.overloads.iter().enumerate() {
         let beginning = context.labeler.begin_overload(i);

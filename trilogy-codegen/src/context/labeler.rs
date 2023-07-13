@@ -1,4 +1,4 @@
-use trilogy_ir::ir::Identifier;
+use trilogy_ir::{ir::Identifier, Id};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Labeler {
@@ -16,6 +16,10 @@ impl Labeler {
 
     pub fn label(&self, suffix: &str) -> String {
         format!("{}#{}${suffix}", self.location, self.context.join("::"))
+    }
+
+    pub fn for_id(&self, id: &Id) -> String {
+        id.symbol()
     }
 
     pub fn begin_procedure(&mut self, identifier: &Identifier) -> String {

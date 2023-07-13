@@ -26,6 +26,12 @@ impl<'a> Context<'a> {
         offset - self.stack_height
     }
 
+    pub fn write_procedure_reference(&mut self, label: String) -> &mut Self {
+        let constant = self.builder.store_label(label);
+        self.builder.write_reuse_constant(constant);
+        self
+    }
+
     pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
         use Instruction::*;
         match instruction {

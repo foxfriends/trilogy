@@ -10,6 +10,13 @@ impl Id {
     fn new(tag: String) -> Self {
         Self(Arc::new(Some(tag)))
     }
+
+    pub fn symbol(&self) -> String {
+        match self.0.as_ref() {
+            Some(s) => format!("{s}#{:x}", Arc::as_ptr(&self.0) as usize),
+            None => format!("#{:x}", Arc::as_ptr(&self.0) as usize),
+        }
+    }
 }
 
 impl Eq for Id {}

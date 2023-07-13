@@ -83,6 +83,9 @@ pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
                         context.register_distance(*offset),
                     ));
                 }
+                Some(Binding::Label(label)) => {
+                    context.write_procedure_reference(label.to_owned());
+                }
                 None => panic!("Unresolved reference should not exist at this point"),
             }
         }

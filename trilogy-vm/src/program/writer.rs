@@ -1,5 +1,5 @@
 use crate::bytecode::asm::{AsmContext, AsmError};
-use crate::bytecode::{Offset, OpCode};
+use crate::bytecode::OpCode;
 use crate::traits::Tags;
 use crate::{Instruction, Program, Value};
 use std::collections::HashMap;
@@ -33,11 +33,11 @@ impl ProgramWriter {
             })
     }
 
-    fn write_opcode(&mut self, opcode: OpCode) {
+    pub fn write_opcode(&mut self, opcode: OpCode) {
         self.program.instructions.push(opcode as u8);
     }
 
-    fn write_offset(&mut self, offset: usize) {
+    pub fn write_offset(&mut self, offset: usize) {
         self.program
             .instructions
             .extend((offset as u32).to_be_bytes())
@@ -70,10 +70,6 @@ impl ProgramWriter {
     pub fn write_instruction(&mut self, instruction: Instruction) {
         self.write_opcode(instruction.tag());
         instruction.write_offset(self);
-    }
-
-    pub fn offset(&self) -> Offset {
-        self.program.instructions.len()
     }
 }
 

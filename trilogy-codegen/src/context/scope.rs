@@ -6,6 +6,7 @@ use trilogy_vm::Value;
 pub(crate) enum Binding {
     Variable(usize),
     Constant(Value),
+    Label(String),
 }
 
 impl Binding {
@@ -15,6 +16,10 @@ impl Binding {
 
     pub fn is_constant(&self) -> bool {
         matches!(self, Binding::Constant(..))
+    }
+
+    pub fn is_label(&self) -> bool {
+        matches!(self, Binding::Label(..))
     }
 
     pub fn constant_value(&self) -> Option<&Value> {
@@ -27,6 +32,13 @@ impl Binding {
     pub fn variable_offset(&self) -> Option<&usize> {
         match &self {
             Self::Variable(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_label(&self) -> Option<&str> {
+        match &self {
+            Self::Label(value) => Some(value),
             _ => None,
         }
     }
@@ -44,6 +56,10 @@ impl Scope {
 
     pub fn declare_constant(&mut self, id: Id, value: Value) {
         self.identifiers.insert(id, Binding::Constant(value));
+    }
+
+    pub fn declare_label(&mut self, id: Id, label: String) {
+        self.identifiers.insert(id, Binding::Label(label));
     }
 
     pub fn lookup(&self, id: &Id) -> Option<&Binding> {
