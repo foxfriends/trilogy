@@ -151,15 +151,6 @@ impl<T> Cactus<T> {
                 .map(|parent| parent.lock().unwrap().len())
                 .unwrap_or(0)
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.stack.is_empty()
-            && self
-                .parent
-                .as_ref()
-                .map(|parent| parent.lock().unwrap().is_empty())
-                .unwrap_or(true)
-    }
 }
 
 pub struct CactusIntoIter<T>(Cactus<T>);
