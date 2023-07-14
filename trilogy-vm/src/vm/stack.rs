@@ -6,7 +6,7 @@ use std::fmt::{self, Debug, Display};
 #[derive(Clone, Debug)]
 enum InternalValue {
     Value(Value),
-    Return(usize),
+    Return { ip: usize, frame: usize },
     Pointer(usize),
     Stack(Stack),
 }
@@ -31,7 +31,7 @@ impl Display for InternalValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InternalValue::Value(value) => write!(f, "{value}"),
-            InternalValue::Return(offset) => write!(f, "->{offset}"),
+            InternalValue::Return { ip, .. } => write!(f, "->{ip}"),
             InternalValue::Pointer(offset) => write!(f, "&{offset}"),
             InternalValue::Stack(..) => write!(f, "->reset"),
         }
@@ -164,7 +164,7 @@ impl Stack {
     fn trace_into(&self, ip_history: &mut Vec<usize>) {
         for value in self.0.clone() {
             match value {
-                InternalValue::Return(ip) => {
+                InternalValue::Return { ip, .. } => {
                     ip_history.push(ip);
                 }
                 InternalValue::Stack(stack) => stack.trace_into(ip_history),
@@ -202,11 +202,11 @@ impl Stack {
             .and_then(InternalValue::try_into_pointer)
     }
 
-    pub(crate) fn pop_return(&mut self) -> Result<usize, InternalRuntimeError> {
+    pub(crate) fn pop_return(&mut self) -> Result<(usize, usize), InternalRuntimeError> {
         loop {
             let popped = self.0.pop().ok_or(InternalRuntimeError::ExpectedReturn)?;
-            if let InternalValue::Return(offset) = popped {
-                return Ok(offset);
+            if let InternalValue::Return { ip, frame } = popped {
+                return Ok((ip, frame));
             }
         }
     }
@@ -218,10 +218,11 @@ impl Stack {
     pub(crate) fn replace_with_return(
         &mut self,
         index: usize,
-        pointer: usize,
+        ip: usize,
+        frame: usize,
     ) -> Result<Value, InternalRuntimeError> {
         self.0
-            .replace_at(index, InternalValue::Return(pointer))
+            .replace_at(index, InternalValue::Return { ip, frame })
             .map_err(|_| InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
@@ -268,5 +269,13 @@ impl Stack {
         } else {
             Ok(false)
         }
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }

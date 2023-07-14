@@ -55,10 +55,10 @@ fn test_capture() {
     const PROGRAM: &str = r#"
     CONST 1
     SHIFT &after
-    LOADR 2
+    LOADR 0
     ADD
-    SETR 1
-    LOADR 1
+    SETR 0
+    LOADR 0
     RESET
     after: COPY
     CONST 1
@@ -78,14 +78,11 @@ fn test_yield_invert() {
     const PROGRAM: &str = r#"
     # with (cancel)
 with:
-    SHIFT &when
+    SHIFT &when         # 0 -> cancel
         EXIT
 when:
-    SHIFT &resume
-        # 2 cancel
-        # 1 resume
-        # 0 n
-        LOADR 1
+    SHIFT &resume       # 1 -> when (reset)
+        LOADR 3         # 2 -> cancel; 3 -> resume; 4 -> 1
         SWAP
         # resume
         CALL 1
@@ -95,13 +92,13 @@ when:
         CALL 1
         FIZZLE
 resume:
-    SWAP
-    SHIFT &after
+    SWAP                # 0 -> when; 1 -> cancel
+    SHIFT &after        # 2 -> resume
         CONST 1
         ADD
         RESET
 after:
-    CONST 1
+    CONST 1             # 3 -> 1
     # yield
     CALL 3
     "#;
@@ -120,7 +117,7 @@ fn test_same_stack_twice() {
     COPY
     CONST false
     CALL 2
-    LOADR 2
+    LOADR 0
     EXIT
     after: COPY
     CONST true

@@ -81,12 +81,12 @@ impl VirtualMachine {
                 }
                 OpCode::LoadRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
-                    ex.stack_push(ex.stack_at(offset)?);
+                    ex.stack_push(ex.read_register(offset)?);
                 }
                 OpCode::SetRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     let value = ex.stack_pop()?;
-                    ex.stack_replace_at(offset, value)?;
+                    ex.set_register(offset, value)?;
                 }
                 OpCode::Pop => {
                     ex.stack_pop()?;
@@ -378,19 +378,11 @@ impl VirtualMachine {
                 }
                 OpCode::Call => {
                     let arity = ex.read_offset(&self.program.instructions)?;
-                    let callable = ex.stack_replace_with_return(arity, ex.ip)?;
-                    match callable {
-                        Value::Continuation(continuation) => {
-                            ex.call_continuation(continuation, arity)?;
-                        }
-                        Value::Procedure(procedure) => ex.ip = procedure.ip(),
-                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
-                    }
+                    ex.call(arity)?;
                 }
                 OpCode::Return => {
                     let return_value = ex.stack_pop()?;
-                    let return_to = ex.stack_pop_return()?;
-                    ex.ip = return_to;
+                    ex.r#return()?;
                     ex.stack_push(return_value);
                 }
                 OpCode::Shift => {

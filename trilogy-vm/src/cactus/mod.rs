@@ -142,6 +142,24 @@ impl<T> Cactus<T> {
     pub fn attach(&mut self, items: Vec<T>) {
         self.stack.extend(items);
     }
+
+    pub fn len(&self) -> usize {
+        self.stack.len()
+            + self
+                .parent
+                .as_ref()
+                .map(|parent| parent.lock().unwrap().len())
+                .unwrap_or(0)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.stack.is_empty()
+            && self
+                .parent
+                .as_ref()
+                .map(|parent| parent.lock().unwrap().is_empty())
+                .unwrap_or(true)
+    }
 }
 
 pub struct CactusIntoIter<T>(Cactus<T>);

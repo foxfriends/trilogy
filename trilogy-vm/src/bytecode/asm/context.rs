@@ -51,7 +51,13 @@ impl AsmContext {
                 return Err(ErrorKind::InvalidLabelReference);
             }
         } else {
-            src.parse().map_err(|_| ErrorKind::InvalidOffset)?
+            let numberlike: String = src.chars().take_while(|ch| ch.is_numeric()).collect();
+            let offset = numberlike.parse().map_err(|_| ErrorKind::InvalidOffset)?;
+            if Self::is_empty(&src[numberlike.len()..]) {
+                offset
+            } else {
+                return Err(ErrorKind::InvalidOffset);
+            }
         };
         self.ip += 4;
         Ok(offset)
