@@ -1,4 +1,4 @@
-use crate::{write_evaluation, Context};
+use crate::{pattern_match::write_pattern_match, write_evaluation, Context};
 use trilogy_ir::ir;
 use trilogy_vm::Instruction;
 
@@ -11,8 +11,9 @@ pub(crate) fn write_procedure(context: &mut Context, procedure: &ir::ProcedureDe
     for (i, overload) in procedure.overloads.iter().enumerate() {
         let beginning = context.labeler.begin_overload(i);
         context.write_label(beginning).unwrap();
-        write_procedure_overload(context, overload);
-        let end = context.labeler.end();
+        let end = context.labeler.to_end();
+        write_procedure_overload(context, overload, &end);
+        context.labeler.end();
         context.write_label(end).unwrap();
     }
 
@@ -23,7 +24,9 @@ pub(crate) fn write_procedure(context: &mut Context, procedure: &ir::ProcedureDe
         .write_instruction(Instruction::Fizzle);
 }
 
-fn write_procedure_overload(context: &mut Context, procedure: &ir::Procedure) {
-    for _parameter in &procedure.parameters {}
+fn write_procedure_overload(context: &mut Context, procedure: &ir::Procedure, on_fail: &str) {
+    for (i, parameter) in procedure.parameters.iter().enumerate() {
+        write_pattern_match(context, i, parameter, on_fail);
+    }
     write_evaluation(context, &procedure.body);
 }
