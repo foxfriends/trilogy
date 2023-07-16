@@ -21,6 +21,7 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
         Builtin::StructuralInequality => true,
         Builtin::ReferenceEquality => true,
         Builtin::ReferenceInequality => true,
+        Builtin::Construct => true,
         Builtin::Lt => true,
         Builtin::Gt => true,
         Builtin::Leq => true,
@@ -70,6 +71,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         Builtin::RightShift => context.write_instruction(Instruction::RightShift),
         Builtin::Sequence => context.write_instruction(Instruction::Pop),
         Builtin::Cons => context.write_instruction(Instruction::Cons),
+        Builtin::Construct => context.write_instruction(Instruction::Construct),
         Builtin::Glue => context.write_instruction(Instruction::Glue),
         Builtin::Pipe => context
             .write_instruction(Instruction::Swap)

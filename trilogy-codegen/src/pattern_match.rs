@@ -1,5 +1,5 @@
 use crate::context::{Binding, Context};
-use trilogy_ir::ir::{self, Expression};
+use trilogy_ir::ir::{self, Builtin, Expression};
 use trilogy_vm::{Instruction, Value};
 
 /// Pattern matches the contents of a particular register with an expression.
@@ -93,11 +93,47 @@ pub(crate) fn write_pattern_match(
                     .cond_jump(on_fail);
             }
             None => {
-                context
-                    .scope
-                    .declare_variable(ident.id.clone(), context.stack_height);
-                context.write_instruction(Instruction::LoadRegister(register));
+                context.scope.declare_variable(ident.id.clone(), register);
             }
+        },
+        ir::Value::Application(application) => match &application.function.value {
+            ir::Value::Builtin(Builtin::Negate) => {
+                context
+                    .write_instruction(Instruction::LoadRegister(register))
+                    .write_instruction(Instruction::Negate);
+                write_pattern_match(
+                    context,
+                    context.stack_height,
+                    &application.argument,
+                    on_fail,
+                );
+            }
+            ir::Value::Application(lhs_app) => match &lhs_app.function.value {
+                ir::Value::Builtin(Builtin::Glue) => todo!(),
+                ir::Value::Builtin(Builtin::Construct) => {
+                    context
+                        .write_instruction(Instruction::LoadRegister(register))
+                        .write_instruction(Instruction::Destruct);
+                    let atom = context.stack_height;
+                    let value = context.stack_height - 1;
+                    write_pattern_match(context, atom, &application.argument, on_fail);
+                    write_pattern_match(context, value, &lhs_app.argument, on_fail);
+                }
+                ir::Value::Builtin(Builtin::Cons) => {
+                    context
+                        .write_instruction(Instruction::LoadRegister(register))
+                        .write_instruction(Instruction::Uncons);
+                    let rhs = context.stack_height;
+                    let lhs = context.stack_height - 1;
+                    write_pattern_match(context, rhs, &application.argument, on_fail);
+                    write_pattern_match(context, lhs, &lhs_app.argument, on_fail);
+                }
+                ir::Value::Builtin(Builtin::Array) => todo!(),
+                ir::Value::Builtin(Builtin::Record) => todo!(),
+                ir::Value::Builtin(Builtin::Set) => todo!(),
+                _ => panic!("not a pattern"),
+            },
+            _ => panic!("not a pattern"),
         },
         ir::Value::Dynamic(dynamic) => {
             panic!("Dynamic is not actually supposed to happen, but we got {dynamic:?}");

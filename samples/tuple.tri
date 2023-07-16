@@ -1,0 +1,7 @@
+proc add_pair!(x : y) {
+    return x + y
+}
+
+proc main!() {
+    exit add_pair!(3 : 4)
+}

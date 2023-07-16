@@ -3,5 +3,5 @@ proc add!(x, y) {
 }
 
 proc main!() {
-    exit add!(3, 3)
+    exit add!(3, 4)
 }
