@@ -22,6 +22,14 @@ impl Struct {
     pub fn value(&self) -> &Value {
         &self.value
     }
+
+    pub fn destruct(self) -> (Atom, Value) {
+        (self.name, *self.value)
+    }
+
+    pub fn into_value(self) -> Value {
+        *self.value
+    }
 }
 
 impl PartialOrd for Struct {

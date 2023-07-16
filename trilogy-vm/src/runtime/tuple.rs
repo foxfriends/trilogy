@@ -9,6 +9,26 @@ impl Tuple {
     pub fn new(lhs: Value, rhs: Value) -> Self {
         Self(Box::new((lhs, rhs)))
     }
+
+    pub fn uncons(self) -> (Value, Value) {
+        *self.0
+    }
+
+    pub fn first(&self) -> &Value {
+        &(self.0).0
+    }
+
+    pub fn into_first(self) -> Value {
+        (self.0).0
+    }
+
+    pub fn second(&self) -> &Value {
+        &(self.0).1
+    }
+
+    pub fn into_second(self) -> Value {
+        (self.0).1
+    }
 }
 
 impl Display for Tuple {

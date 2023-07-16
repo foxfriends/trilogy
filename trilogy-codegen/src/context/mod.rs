@@ -32,6 +32,7 @@ impl<'a> Context<'a> {
         self.builder
             .write_opcode(OpCode::CondJump)
             .write_offset_label(label.to_owned());
+        self.stack_height -= 1;
         self
     }
 
@@ -69,6 +70,11 @@ impl<'a> Context<'a> {
             LeftShift => self.stack_height -= 1,
             RightShift => self.stack_height -= 1,
             Cons => self.stack_height -= 1,
+            Uncons => self.stack_height += 1,
+            First => {}
+            Second => {}
+            Construct => self.stack_height -= 1,
+            Destruct => self.stack_height += 1,
             Leq => self.stack_height -= 1,
             Lt => self.stack_height -= 1,
             Geq => self.stack_height -= 1,

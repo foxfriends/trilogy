@@ -2,7 +2,7 @@ use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Execution};
 use crate::bytecode::OpCode;
 use crate::runtime::Number;
-use crate::{Program, ReferentialEq, StructuralEq};
+use crate::{Program, ReferentialEq, Struct, StructuralEq};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -265,24 +265,24 @@ impl VirtualMachine {
                     }
                 }
                 OpCode::BitwiseAnd => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs & rhs {
                         Ok(val) => ex.stack_push(val),
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::BitwiseOr => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs | rhs {
                         Ok(val) => ex.stack_push(val),
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::BitwiseXor => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs ^ rhs {
                         Ok(val) => ex.stack_push(val),
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
@@ -296,25 +296,63 @@ impl VirtualMachine {
                     }
                 }
                 OpCode::LeftShift => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs << rhs {
                         Ok(val) => ex.stack_push(val),
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::RightShift => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     match lhs >> rhs {
                         Ok(val) => ex.stack_push(val),
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
                 OpCode::Cons => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     ex.stack_push(Value::Tuple(Tuple::new(lhs, rhs)));
+                }
+                OpCode::Uncons => {
+                    let (first, second) = ex.stack_pop().and_then(|val| match val {
+                        Value::Tuple(tuple) => Ok(tuple.uncons()),
+                        _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    })?;
+                    ex.stack_push(first);
+                    ex.stack_push(second);
+                }
+                OpCode::First => {
+                    let first = ex.stack_pop().and_then(|val| match val {
+                        Value::Tuple(tuple) => Ok(tuple.into_first()),
+                        _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    })?;
+                    ex.stack_push(first);
+                }
+                OpCode::Second => {
+                    let first = ex.stack_pop().and_then(|val| match val {
+                        Value::Tuple(tuple) => Ok(tuple.into_second()),
+                        _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    })?;
+                    ex.stack_push(first);
+                }
+                OpCode::Construct => {
+                    let atom = ex.stack_pop().and_then(|val| match val {
+                        Value::Atom(atom) => Ok(atom),
+                        _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    })?;
+                    let rhs = ex.stack_pop()?;
+                    ex.stack_push(Value::Struct(Struct::new(atom, rhs)));
+                }
+                OpCode::Destruct => {
+                    let (atom, value) = ex.stack_pop().and_then(|val| match val {
+                        Value::Struct(val) => Ok(val.destruct()),
+                        _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    })?;
+                    ex.stack_push(value);
+                    ex.stack_push(atom.into());
                 }
                 OpCode::Leq => {
                     let lhs = ex.stack_pop()?;
