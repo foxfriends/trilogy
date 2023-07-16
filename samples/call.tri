@@ -1,7 +1,7 @@
-proc add2!(x) {
-    return x + 2
+proc add!(x, y) {
+    return x + y
 }
 
 proc main!() {
-    exit add2!(3)
+    exit add!(3, 3)
 }
