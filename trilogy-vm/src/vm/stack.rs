@@ -88,6 +88,7 @@ pub struct StackFrame {
 #[derive(Clone, Debug)]
 pub struct StackTrace {
     pub frames: Vec<StackFrame>,
+    pub ip: usize,
 }
 
 impl Display for StackTrace {
@@ -115,7 +116,7 @@ impl Display for StackTrace {
                 exit_at,
             )?;
         }
-        Ok(())
+        writeln!(f, "Final IP: {}", self.ip)
     }
 }
 
@@ -158,7 +159,10 @@ impl Stack {
             })
             .collect();
 
-        StackTrace { frames }
+        StackTrace {
+            frames,
+            ip: from_ip,
+        }
     }
 
     fn trace_into(&self, ip_history: &mut Vec<usize>) {

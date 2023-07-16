@@ -3,7 +3,7 @@ mod scope;
 
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
-use trilogy_vm::{Atom, Instruction, LabelAlreadyInserted, ProgramBuilder};
+use trilogy_vm::{Atom, Instruction, LabelAlreadyInserted, OpCode, ProgramBuilder};
 
 pub(crate) struct Context<'a> {
     pub labeler: Labeler,
@@ -22,13 +22,16 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn register_distance(&self, offset: usize) -> usize {
-        offset - self.stack_height
-    }
-
     pub fn write_procedure_reference(&mut self, label: String) -> &mut Self {
         let constant = self.builder.store_label(label);
         self.builder.write_reuse_constant(constant);
+        self
+    }
+
+    pub fn cond_jump(&mut self, label: &str) -> &mut Self {
+        self.builder
+            .write_opcode(OpCode::CondJump)
+            .write_offset_label(label.to_owned());
         self
     }
 

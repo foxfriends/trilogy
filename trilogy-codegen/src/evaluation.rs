@@ -1,4 +1,5 @@
-use crate::{context::Binding, is_operator, write_operator, Context};
+use crate::context::Binding;
+use crate::{is_operator, write_operator, Context};
 use trilogy_ir::ir;
 use trilogy_vm::{Instruction, Value};
 
@@ -6,7 +7,15 @@ use trilogy_vm::{Instruction, Value};
 pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
     match &expr.value {
         ir::Value::Builtin(..) => todo!(),
-        ir::Value::Pack(..) => todo!(),
+        ir::Value::Pack(pack) => {
+            for element in &pack.values {
+                if element.is_spread {
+                    todo!()
+                } else {
+                    write_evaluation(context, &element.expression);
+                }
+            }
+        }
         ir::Value::Sequence(seq) => {
             for expr in seq {
                 write_evaluation(context, expr);
@@ -61,9 +70,11 @@ pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
                 _ => {}
             }
             write_evaluation(context, &application.function);
+            let start = context.stack_height;
             write_evaluation(context, &application.argument);
+            let end = context.stack_height;
             // TODO: support multiple arguments more efficiently?
-            context.write_instruction(Instruction::Call(1));
+            context.write_instruction(Instruction::Call(end - start));
         }
         ir::Value::Let(..) => todo!(),
         ir::Value::IfElse(..) => todo!(),
@@ -78,10 +89,8 @@ pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
                 Some(Binding::Constant(value)) => {
                     context.write_instruction(Instruction::Const(value.clone()));
                 }
-                Some(Binding::Variable(offset)) => {
-                    context.write_instruction(Instruction::LoadRegister(
-                        context.register_distance(*offset),
-                    ));
+                Some(&Binding::Variable(offset)) => {
+                    context.write_instruction(Instruction::LoadRegister(offset));
                 }
                 Some(Binding::Label(label)) => {
                     context.write_procedure_reference(label.to_owned());

@@ -40,6 +40,12 @@ impl ProgramBuilder {
         self
     }
 
+    pub fn write_offset_label(&mut self, label: String) -> &mut Self {
+        self.byte_holes.insert(self.bytes.len(), label);
+        self.bytes.extend(0u32.to_be_bytes());
+        self
+    }
+
     pub fn write_reuse_constant(&mut self, offset: usize) -> &mut Self {
         self.write_opcode(OpCode::Const);
         self.write_offset(offset);
@@ -114,8 +120,9 @@ impl ProgramBuilder {
         }
         for (ip, label) in self.byte_holes.into_iter() {
             let offset = self.labels.get(&label).ok_or(UnknownLabel)?;
+            let distance = offset - ip - 4;
             self.bytes
-                .splice(ip..ip + 4, u32::to_be_bytes((*offset) as u32));
+                .splice(ip..ip + 4, u32::to_be_bytes(distance as u32));
         }
         Ok(Program {
             constants: self.constants,
