@@ -754,7 +754,7 @@ impl Value {
     pub fn bindings(&self) -> Box<dyn std::iter::Iterator<Item = Id> + '_> {
         match self {
             Self::Pack(pack) => Box::new(pack.bindings()),
-            Self::Sequence(seq) => Box::new(seq.into_iter().flat_map(|expr| expr.bindings())),
+            Self::Sequence(seq) => Box::new(seq.iter().flat_map(|expr| expr.bindings())),
             Self::Assignment(assig) => Box::new(assig.bindings()),
             Self::Mapping(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
             Self::Conjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),

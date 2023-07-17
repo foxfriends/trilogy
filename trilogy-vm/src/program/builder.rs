@@ -115,11 +115,11 @@ impl ProgramBuilder {
     /// error indicating why the program is invalid.
     pub fn build(mut self) -> Result<Program, UnknownLabel> {
         for (constant, label) in self.constant_holes.into_iter() {
-            let offset = self.labels.get(&label).ok_or_else(|| UnknownLabel(label))?;
+            let offset = self.labels.get(&label).ok_or(UnknownLabel(label))?;
             self.constants[constant] = Value::Procedure(Procedure::new(*offset));
         }
         for (ip, label) in self.byte_holes.into_iter() {
-            let offset = *self.labels.get(&label).ok_or_else(|| UnknownLabel(label))?;
+            let offset = *self.labels.get(&label).ok_or(UnknownLabel(label))?;
             if ip < offset {
                 // Jumping forwards
                 let distance = offset - (ip + 4);

@@ -9,6 +9,7 @@ pub struct Pack {
 }
 
 impl Pack {
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> Option<usize> {
         if self.values.iter().all(|val| !val.is_spread) {
             Some(self.values.len())

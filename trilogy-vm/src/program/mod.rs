@@ -80,17 +80,79 @@ impl Display for Program {
             },
         );
         for line in self.into_iter().with_ip() {
-            let (offset, instruction) = match line {
+            let (ip, instruction) = match line {
                 Ok(line) => line,
                 Err(..) => {
                     writeln!(f, "Invalid Bytecode.")?;
                     return Ok(());
                 }
             };
-            for label in labels_per_line.get(&offset).into_iter().flatten() {
+            for label in labels_per_line.get(&ip).into_iter().flatten() {
                 writeln!(f, "{label:?}:")?;
             }
-            writeln!(f, "\t{}", instruction)?;
+            match &instruction {
+                Instruction::Const(Value::Procedure(procedure)) => {
+                    if let Some(label) = labels_per_line
+                        .get(&procedure.ip())
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        writeln!(f, "\tCONST &{label:?}")?;
+                    } else {
+                        writeln!(f, "\t{}", instruction)?;
+                    }
+                }
+                Instruction::Jump(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip + offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        writeln!(f, "\tJUMP &{label:?}")?;
+                    } else {
+                        writeln!(f, "\t{}", instruction)?;
+                    }
+                }
+                Instruction::JumpBack(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip - offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        writeln!(f, "\tRJUMP &{label:?}")?;
+                    } else {
+                        writeln!(f, "\t{}", instruction)?;
+                    }
+                }
+                Instruction::CondJump(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip + offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        writeln!(f, "\tJUMPF &{label:?}")?;
+                    } else {
+                        writeln!(f, "\t{}", instruction)?;
+                    }
+                }
+                Instruction::CondJumpBack(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip - offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        writeln!(f, "\tRJUMPF &{label:?}")?;
+                    } else {
+                        writeln!(f, "\t{}", instruction)?;
+                    }
+                }
+                _ => writeln!(f, "\t{}", instruction)?,
+            }
         }
         Ok(())
     }
