@@ -79,6 +79,15 @@ impl VirtualMachine {
                     let pointer = ex.stack_pop_pointer()?;
                     self.heap[pointer] = None;
                 }
+                OpCode::LoadLocal => {
+                    let offset = ex.read_offset(&self.program.instructions)?;
+                    ex.stack_push(ex.read_local(offset)?);
+                }
+                OpCode::SetLocal => {
+                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let value = ex.stack_pop()?;
+                    ex.set_local(offset, value)?;
+                }
                 OpCode::LoadRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     ex.stack_push(ex.read_register(offset)?);
@@ -98,7 +107,7 @@ impl VirtualMachine {
                     ex.stack_push(lhs);
                 }
                 OpCode::Copy => {
-                    let value = ex.stack_at(0)?;
+                    let value = ex.read_register(0)?;
                     ex.stack_push(value);
                 }
                 OpCode::Add => {
@@ -339,11 +348,11 @@ impl VirtualMachine {
                     ex.stack_push(first);
                 }
                 OpCode::Construct => {
+                    let rhs = ex.stack_pop()?;
                     let atom = ex.stack_pop().and_then(|val| match val {
                         Value::Atom(atom) => Ok(atom),
                         _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
                     })?;
-                    let rhs = ex.stack_pop()?;
                     ex.stack_push(Value::Struct(Struct::new(atom, rhs)));
                 }
                 OpCode::Destruct => {
@@ -351,8 +360,8 @@ impl VirtualMachine {
                         Value::Struct(val) => Ok(val.destruct()),
                         _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
                     })?;
-                    ex.stack_push(value);
                     ex.stack_push(atom.into());
+                    ex.stack_push(value);
                 }
                 OpCode::Leq => {
                     let lhs = ex.stack_pop()?;

@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::{Analyzer, Id};
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -35,5 +35,9 @@ impl Unification {
         let pattern = Expression::convert_pattern(analyzer, pattern);
         let expression = Expression::convert(analyzer, expression);
         Self::new(pattern, expression)
+    }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.pattern.bindings().chain(self.expression.bindings())
     }
 }

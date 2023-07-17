@@ -70,11 +70,14 @@ pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
                 _ => {}
             }
             write_evaluation(context, &application.function);
-            let start = context.stack_height;
             write_evaluation(context, &application.argument);
-            let end = context.stack_height;
-            // TODO: support multiple arguments more efficiently?
-            context.write_instruction(Instruction::Call(end - start));
+            let arity = match &application.argument.value {
+                ir::Value::Pack(pack) => pack
+                    .len()
+                    .expect("procedures may not have spread arguments"),
+                _ => 1,
+            };
+            context.write_instruction(Instruction::Call(arity));
         }
         ir::Value::Let(..) => todo!(),
         ir::Value::IfElse(..) => todo!(),
@@ -90,7 +93,7 @@ pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
                     context.write_instruction(Instruction::Const(value.clone()));
                 }
                 Some(&Binding::Variable(offset)) => {
-                    context.write_instruction(Instruction::LoadRegister(offset));
+                    context.write_instruction(Instruction::LoadLocal(offset));
                 }
                 Some(Binding::Label(label)) => {
                     context.write_procedure_reference(label.to_owned());

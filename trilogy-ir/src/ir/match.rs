@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::{Analyzer, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -43,6 +43,12 @@ impl Match {
             .collect();
         cases.push(Case::new_fallback(else_case));
         Expression::r#match(span, Self { expression, cases })
+    }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.expression
+            .bindings()
+            .chain(self.cases.iter().flat_map(|case| case.bindings()))
     }
 }
 
@@ -107,5 +113,12 @@ impl Case {
             guard,
             body,
         }
+    }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.pattern
+            .bindings()
+            .chain(self.guard.bindings())
+            .chain(self.body.bindings())
     }
 }

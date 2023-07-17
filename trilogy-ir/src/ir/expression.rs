@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Error};
+use crate::{Analyzer, Error, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -10,6 +10,10 @@ pub struct Expression {
 }
 
 impl Expression {
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.value.bindings()
+    }
+
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Expression) -> Self {
         use syntax::Expression::*;
         match ast {
@@ -20,11 +24,12 @@ impl Expression {
             Boolean(ast) => Self::boolean(ast.span(), ast.value()),
             Unit(ast) => Self::unit(ast.span()),
             Atom(ast) => Self::atom(ast.span(), ast.value()),
-            Struct(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.atom.span(), Builtin::Construct),
-                Self::convert(analyzer, ast.value),
-            ),
+            Struct(ast) => Self::builtin(ast.span(), Builtin::Construct)
+                .apply_to(
+                    ast.atom.span(),
+                    Self::atom(ast.atom.span(), ast.atom.value()),
+                )
+                .apply_to(ast.value.span(), Self::convert(analyzer, ast.value)),
             Array(ast) => {
                 let start_span = ast.start_token().span;
                 let span = ast.span();
@@ -311,11 +316,15 @@ impl Expression {
                     )
                     .apply_to(span, Self::convert_pattern(analyzer, ast.rhs))
             }
-            Struct(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.atom.span(), Builtin::Construct),
-                Self::convert_pattern(analyzer, ast.pattern),
-            ),
+            Struct(ast) => Self::builtin(ast.span(), Builtin::Construct)
+                .apply_to(
+                    ast.atom.span(),
+                    Self::atom(ast.atom.span(), ast.atom.value()),
+                )
+                .apply_to(
+                    ast.pattern.span(),
+                    Self::convert_pattern(analyzer, ast.pattern),
+                ),
             Tuple(ast) => {
                 let cons_span = ast.cons_token().span;
                 let lhs_span = ast.lhs.span();
@@ -392,7 +401,10 @@ impl Expression {
                     .apply_to(span, Self::pack(span, elements))
             }
             Pinned(ast) => Identifier::declared(analyzer, &ast.identifier)
-                .map(|identifier| Self::reference(ast.span(), identifier))
+                .map(|identifier| {
+                    Self::builtin(ast.span(), Builtin::Pin)
+                        .apply_to(ast.span(), Self::reference(ast.span(), identifier))
+                })
                 .unwrap_or_else(|| {
                     analyzer.error(Error::UnboundIdentifier {
                         name: ast.identifier.clone(),
@@ -736,4 +748,30 @@ pub enum Value {
     Dynamic(Box<syntax::Identifier>),
     Assert(Box<Assert>),
     End,
+}
+
+impl Value {
+    pub fn bindings(&self) -> Box<dyn std::iter::Iterator<Item = Id> + '_> {
+        match self {
+            Self::Pack(pack) => Box::new(pack.bindings()),
+            Self::Sequence(seq) => Box::new(seq.into_iter().flat_map(|expr| expr.bindings())),
+            Self::Assignment(assig) => Box::new(assig.bindings()),
+            Self::Mapping(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
+            Self::Conjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
+            Self::Disjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
+            Self::Query(query) => Box::new(query.bindings()),
+            Self::Iterator(iter) => Box::new(iter.bindings()),
+            Self::While(body) => Box::new(body.bindings()),
+            Self::Application(body) => Box::new(body.bindings()),
+            Self::Let(body) => Box::new(body.bindings()),
+            Self::IfElse(body) => Box::new(body.bindings()),
+            Self::Match(body) => Box::new(body.bindings()),
+            Self::Fn(body) => Box::new(body.bindings()),
+            Self::Do(body) => Box::new(body.bindings()),
+            Self::Handled(body) => Box::new(body.bindings()),
+            Self::Reference(ident) => Box::new(std::iter::once(ident.id.clone())),
+            Self::Assert(body) => Box::new(body.bindings()),
+            _ => Box::new(std::iter::empty()),
+        }
+    }
 }

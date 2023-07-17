@@ -7,11 +7,11 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 #[derive(Debug)]
-pub struct UnknownLabel;
+pub struct UnknownLabel(String);
 impl std::error::Error for UnknownLabel {}
 impl Display for UnknownLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "unknown label")
+        write!(f, "unknown label \"{}\"", self.0)
     }
 }
 
@@ -60,8 +60,8 @@ impl ProgramBuilder {
                 let index = self.write_constant(constant);
                 Some(index)
             }
-            Instruction::LoadRegister(offset) => Some(offset),
-            Instruction::SetRegister(offset) => Some(offset),
+            Instruction::LoadLocal(offset) => Some(offset),
+            Instruction::SetLocal(offset) => Some(offset),
             Instruction::Call(offset) => Some(offset),
             Instruction::Shift(offset) => Some(offset),
             Instruction::Jump(offset) => Some(offset),
@@ -115,14 +115,22 @@ impl ProgramBuilder {
     /// error indicating why the program is invalid.
     pub fn build(mut self) -> Result<Program, UnknownLabel> {
         for (constant, label) in self.constant_holes.into_iter() {
-            let offset = self.labels.get(&label).ok_or(UnknownLabel)?;
+            let offset = self.labels.get(&label).ok_or_else(|| UnknownLabel(label))?;
             self.constants[constant] = Value::Procedure(Procedure::new(*offset));
         }
         for (ip, label) in self.byte_holes.into_iter() {
-            let offset = self.labels.get(&label).ok_or(UnknownLabel)?;
-            let distance = offset - ip - 4;
-            self.bytes
-                .splice(ip..ip + 4, u32::to_be_bytes(distance as u32));
+            let offset = *self.labels.get(&label).ok_or_else(|| UnknownLabel(label))?;
+            if ip < offset {
+                // Jumping forwards
+                let distance = offset - (ip + 4);
+                self.bytes
+                    .splice(ip..ip + 4, u32::to_be_bytes(distance as u32));
+            } else {
+                // Jumping backwards
+                let distance = (ip + 4) - offset;
+                self.bytes
+                    .splice(ip..ip + 4, u32::to_be_bytes(distance as u32));
+            }
         }
         Ok(Program {
             constants: self.constants,

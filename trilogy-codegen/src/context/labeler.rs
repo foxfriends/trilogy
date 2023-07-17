@@ -4,6 +4,7 @@ use trilogy_ir::{ir::Identifier, Id};
 pub(crate) struct Labeler {
     location: String,
     context: Vec<String>,
+    counter: usize,
 }
 
 impl Labeler {
@@ -11,7 +12,13 @@ impl Labeler {
         Self {
             location,
             context: vec![],
+            counter: 0,
         }
+    }
+
+    pub fn unique(&mut self) -> String {
+        self.counter += 1;
+        format!("#temp::{}", self.counter)
     }
 
     pub fn label(&self, suffix: &str) -> String {
@@ -23,22 +30,6 @@ impl Labeler {
     }
 
     pub fn begin_procedure(&mut self, identifier: &Identifier) -> String {
-        self.context.push(identifier.to_string());
-        self.context.join("::")
-    }
-
-    pub fn begin_overload(&mut self, index: usize) -> String {
-        self.context.push(index.to_string());
-        self.context.join("::")
-    }
-
-    pub fn end(&mut self) -> String {
-        let label = self.to_end();
-        self.context.pop();
-        label
-    }
-
-    pub fn to_end(&self) -> String {
-        self.label("end")
+        self.label(&identifier.to_string())
     }
 }

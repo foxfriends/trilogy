@@ -1,0 +1,7 @@
+proc add!('a(x) or 'b(x), 'a(y) or 'b(y)) {
+    return x + y;
+}
+
+proc main!() {
+    exit add!('a(3), 'a(4)) + add!('b(3), 'b(4))
+}

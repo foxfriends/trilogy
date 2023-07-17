@@ -11,6 +11,10 @@ impl Id {
         Self(Arc::new(Some(tag)))
     }
 
+    pub fn name(&self) -> Option<&str> {
+        self.0.as_deref()
+    }
+
     pub fn symbol(&self) -> String {
         match self.0.as_ref() {
             Some(s) => format!("{s}#{:x}", Arc::as_ptr(&self.0) as usize),

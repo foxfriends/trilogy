@@ -23,6 +23,8 @@ pub enum Command {
         #[arg(short, long)]
         verbose: bool,
     },
+    /// Parse a file, printing out the IR.
+    Ir { file: PathBuf },
     /// Compile a program and output its bytecode in bytes as hex.
     Bytes { file: PathBuf },
 }
@@ -95,6 +97,22 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 println!("Encountered {} errors:", parse.errors().len());
                 println!("{:#?}", parse.errors());
             }
+        }
+        Command::Ir { file } => {
+            let loader = Loader::new(file);
+            let binder = loader.load().unwrap();
+            if binder.has_errors() {
+                print_errors(binder.errors());
+                std::process::exit(1);
+            }
+            let program = match binder.analyze() {
+                Ok(program) => program,
+                Err(errors) => {
+                    print_errors(errors);
+                    std::process::exit(1);
+                }
+            };
+            println!("{:#?}", program);
         }
         Command::Bytes { file } => {
             let loader = Loader::new(file);

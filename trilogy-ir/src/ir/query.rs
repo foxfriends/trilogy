@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::{Analyzer, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -91,6 +91,10 @@ impl Query {
     pub(super) fn end(span: Span) -> Self {
         Self::new(span, Value::End)
     }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.value.bindings()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -106,4 +110,21 @@ pub enum Value {
     Not(Box<Query>),
     Pass,
     End,
+}
+
+impl Value {
+    fn bindings(&self) -> Box<dyn std::iter::Iterator<Item = Id> + '_> {
+        match self {
+            Self::Conjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
+            Self::Disjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
+            Self::Implication(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
+            Self::Alternative(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
+            Self::Direct(unif) => Box::new(unif.bindings()),
+            Self::Element(unif) => Box::new(unif.bindings()),
+            Self::Lookup(lookup) => Box::new(lookup.bindings()),
+            Self::Is(expr) => Box::new(expr.bindings()),
+            Self::Not(query) => Box::new(query.bindings()),
+            _ => Box::new(std::iter::empty()),
+        }
+    }
 }

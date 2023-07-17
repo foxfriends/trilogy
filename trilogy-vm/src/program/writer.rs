@@ -80,8 +80,8 @@ impl Instruction {
                 let index = writer.add_constant(constant);
                 Some(index)
             }
-            Instruction::LoadRegister(offset) => Some(offset),
-            Instruction::SetRegister(offset) => Some(offset),
+            Instruction::LoadLocal(offset) => Some(offset),
+            Instruction::SetLocal(offset) => Some(offset),
             Instruction::Call(offset) => Some(offset),
             Instruction::Shift(offset) => Some(offset),
             Instruction::Jump(offset) => Some(offset),

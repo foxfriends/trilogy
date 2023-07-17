@@ -18,7 +18,7 @@ impl Program {
         let mut builder = vm::ProgramBuilder::default();
         builder.write_opcode(OpCode::Jump);
         builder.write_offset_label("main".to_owned());
-        trilogy_codegen::write_module(&mut builder, self.module.as_module().unwrap());
+        trilogy_codegen::write_module(&mut builder, self.module.as_module().unwrap(), true);
         builder.build().unwrap()
     }
 }

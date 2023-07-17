@@ -2,7 +2,7 @@ use super::{write_procedure, Context};
 use trilogy_ir::ir;
 use trilogy_vm::ProgramBuilder;
 
-pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module) {
+pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module, is_entrypoint: bool) {
     let mut context = Context::new(builder, module.location().to_owned());
 
     context
@@ -32,7 +32,12 @@ pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module) {
             ir::DefinitionItem::Module(..) => {}
             ir::DefinitionItem::Function(..) => {}
             ir::DefinitionItem::Rule(..) => {}
-            ir::DefinitionItem::Procedure(procedure) => write_procedure(&mut context, procedure),
+            ir::DefinitionItem::Procedure(procedure) => {
+                if is_entrypoint && procedure.name.id.name() == Some("main") {
+                    context.write_label("main".to_owned()).unwrap();
+                }
+                write_procedure(&mut context, procedure);
+            }
             ir::DefinitionItem::Alias(..) => {}
             ir::DefinitionItem::Test(..) => {}
         }

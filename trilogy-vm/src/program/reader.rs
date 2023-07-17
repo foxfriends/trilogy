@@ -44,6 +44,8 @@ impl ProgramReader<'_> {
             OpCode::Set => Ok(Instruction::Set),
             OpCode::Alloc => Ok(Instruction::Alloc),
             OpCode::Free => Ok(Instruction::Free),
+            OpCode::LoadLocal => Ok(Instruction::LoadLocal(self.read_offset()?)),
+            OpCode::SetLocal => Ok(Instruction::SetLocal(self.read_offset()?)),
             OpCode::LoadRegister => Ok(Instruction::LoadRegister(self.read_offset()?)),
             OpCode::SetRegister => Ok(Instruction::SetRegister(self.read_offset()?)),
             OpCode::Pop => Ok(Instruction::Pop),

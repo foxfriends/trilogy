@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::{Analyzer, Id};
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -17,5 +17,11 @@ impl Lookup {
             .map(|pat| Expression::convert_pattern(analyzer, pat))
             .collect();
         Self { path, patterns }
+    }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.path
+            .bindings()
+            .chain(self.patterns.iter().flat_map(|pat| pat.bindings()))
     }
 }

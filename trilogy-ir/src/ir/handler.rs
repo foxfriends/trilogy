@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::{Analyzer, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -109,5 +109,12 @@ impl Handler {
                 }
             }
         }
+    }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.pattern
+            .bindings()
+            .chain(self.guard.bindings())
+            .chain(self.body.bindings())
     }
 }

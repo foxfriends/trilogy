@@ -42,6 +42,7 @@ pub enum Builtin {
     Set,
     Record,
     Is,
+    Pin,
     For,
     Yield,
     Resume,

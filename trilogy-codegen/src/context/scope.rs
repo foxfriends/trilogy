@@ -29,9 +29,9 @@ impl Binding {
         }
     }
 
-    pub fn variable_offset(&self) -> Option<&usize> {
+    pub fn variable_offset(&self) -> Option<usize> {
         match &self {
-            Self::Variable(value) => Some(value),
+            Self::Variable(value) => Some(*value),
             _ => None,
         }
     }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::{Analyzer, Id};
 use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
@@ -51,5 +51,12 @@ impl IfElse {
         let when_false = Expression::convert(analyzer, ast.when_false);
         let when_true = Expression::convert(analyzer, ast.when_true);
         Expression::if_else(span, Self::new(condition, when_true, when_false))
+    }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.condition
+            .bindings()
+            .chain(self.when_true.bindings())
+            .chain(self.when_false.bindings())
     }
 }

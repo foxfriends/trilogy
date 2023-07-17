@@ -10,10 +10,12 @@ pub type Offset = usize;
 #[tags(name = OpCode, derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
 pub enum Instruction {
     Const(Value),
-    Load,
-    Set,
+    #[asm(name = "LOAD")] Load,
+    #[asm(name = "SET")] Set,
     Alloc,
     Free,
+    #[asm(name = "LOADL")] LoadLocal(Offset),
+    #[asm(name = "SETL")] SetLocal(Offset),
     #[asm(name = "LOADR")] LoadRegister(Offset),
     #[asm(name = "SETR")] SetRegister(Offset),
     Copy,
@@ -70,8 +72,8 @@ impl Instruction {
     pub fn size(&self) -> usize {
         match self {
             Self::Const(..) => 5,
-            Self::LoadRegister(..) => 5,
-            Self::SetRegister(..) => 5,
+            Self::LoadLocal(..) => 5,
+            Self::SetLocal(..) => 5,
             Self::Call(..) => 5,
             Self::Shift(..) => 5,
             Self::Jump(..) => 5,

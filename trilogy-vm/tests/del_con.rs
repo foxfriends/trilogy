@@ -55,10 +55,10 @@ fn test_capture() {
     const PROGRAM: &str = r#"
     CONST 1
     SHIFT &after
-    LOADR 0
+    LOADL 0
     ADD
-    SETR 0
-    LOADR 0
+    SETL 0
+    LOADL 0
     RESET
     after: COPY
     CONST 1
@@ -82,7 +82,7 @@ with:
         EXIT
 when:
     SHIFT &resume       # 1 -> when (reset)
-        LOADR 3         # 2 -> cancel; 3 -> resume; 4 -> 1
+        LOADL 3         # 2 -> cancel; 3 -> resume; 4 -> 1
         SWAP
         # resume
         CALL 1
@@ -117,7 +117,7 @@ fn test_same_stack_twice() {
     COPY
     CONST false
     CALL 2
-    LOADR 0
+    LOADL 0
     EXIT
     after: COPY
     CONST true

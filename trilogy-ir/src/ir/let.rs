@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::{Analyzer, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -35,5 +35,9 @@ impl Let {
         let query = Query::convert(analyzer, ast.query);
         let body = Expression::convert(analyzer, ast.body);
         Expression::r#let(span, Self::new(query, body))
+    }
+
+    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
+        self.query.bindings().chain(self.body.bindings())
     }
 }
