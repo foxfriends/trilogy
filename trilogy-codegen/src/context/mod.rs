@@ -36,6 +36,13 @@ impl<'a> Context<'a> {
         self
     }
 
+    pub fn jump(&mut self, label: &str) -> &mut Self {
+        self.builder
+            .write_opcode(OpCode::Jump)
+            .write_offset_label(label.to_owned());
+        self
+    }
+
     pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
         use Instruction::*;
         match instruction {

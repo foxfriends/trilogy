@@ -57,9 +57,31 @@ pub(crate) fn write_pattern_match(
                 .write_instruction(Instruction::ValEq)
                 .cond_jump(on_fail);
         }
-        ir::Value::Conjunction(..) => todo!(),
-        ir::Value::Disjunction(..) => todo!(),
-        ir::Value::Wildcard => {} // Wildcard always matches, so is noop
+        ir::Value::Conjunction(conj) => {
+            write_pattern_match(context, register, &conj.0, on_fail);
+            // TODO: cleanup if second one fails
+            write_pattern_match(context, register, &conj.1, on_fail);
+        }
+        ir::Value::Disjunction(disj) => {
+            let next_pattern = format!(
+                "disj::middle::{:x}",
+                (&**disj) as *const (ir::Expression, ir::Expression) as usize
+            );
+            let success = format!(
+                "disj::end::{:x}",
+                (&**disj) as *const (ir::Expression, ir::Expression) as usize
+            );
+            write_pattern_match(context, register, &disj.0, &next_pattern);
+            context.jump(&success);
+            context
+                .write_label(next_pattern)
+                .expect("disjunction pointer is unique");
+            write_pattern_match(context, register, &disj.1, on_fail);
+            context
+                .write_label(success)
+                .expect("disjunction pointer is unique");
+        }
+        ir::Value::Wildcard => {} // Wildcard always matches but does not bind, so is noop
         ir::Value::Atom(value) => {
             let atom = context.atom(value);
             context
@@ -117,6 +139,7 @@ pub(crate) fn write_pattern_match(
                     let atom = context.stack_height;
                     let value = context.stack_height - 1;
                     write_pattern_match(context, atom, &application.argument, on_fail);
+                    // TODO: cleanup if second one fails
                     write_pattern_match(context, value, &lhs_app.argument, on_fail);
                 }
                 ir::Value::Builtin(Builtin::Cons) => {
@@ -126,6 +149,7 @@ pub(crate) fn write_pattern_match(
                     let rhs = context.stack_height;
                     let lhs = context.stack_height - 1;
                     write_pattern_match(context, rhs, &application.argument, on_fail);
+                    // TODO: cleanup if second one fails
                     write_pattern_match(context, lhs, &lhs_app.argument, on_fail);
                 }
                 ir::Value::Builtin(Builtin::Array) => todo!(),
