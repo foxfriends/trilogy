@@ -1,5 +1,5 @@
-use crate::Id;
 use super::*;
+use crate::Id;
 
 #[derive(Clone, Debug)]
 pub struct Application {
