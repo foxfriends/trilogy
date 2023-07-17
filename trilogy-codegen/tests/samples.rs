@@ -41,3 +41,12 @@ fn sample_tuple() {
     let program = include_tri!("tuple.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(7));
 }
+
+#[test]
+fn sample_disj() {
+    let program = include_tri!("disj.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(14)
+    );
+}

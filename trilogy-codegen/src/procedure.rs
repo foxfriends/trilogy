@@ -7,20 +7,15 @@ pub(crate) fn write_procedure(context: &mut Context, procedure: &ir::ProcedureDe
     context.write_label(beginning).unwrap();
     let for_id = context.labeler.for_id(&procedure.name.id);
     context.write_label(for_id).unwrap();
-    let mut on_fail = context.labeler.unique();
     for overload in &procedure.overloads {
-        write_procedure_overload(context, overload, &mut on_fail);
-        let end = std::mem::replace(&mut on_fail, context.labeler.unique());
-        context.write_label(end).unwrap();
+        let on_fail = context.labeler.unique();
+        write_procedure_overload(context, overload, &on_fail);
+        context.write_label(on_fail).unwrap();
     }
     context.write_instruction(Instruction::Fizzle);
 }
 
-fn write_procedure_overload(
-    context: &mut Context,
-    procedure: &ir::Procedure,
-    on_fail: &mut String,
-) {
+fn write_procedure_overload(context: &mut Context, procedure: &ir::Procedure, on_fail: &str) {
     let mut offset = procedure.parameters.len();
     for binding in procedure.bindings() {
         if context.scope.lookup(&binding).is_none() {

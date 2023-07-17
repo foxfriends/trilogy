@@ -10,7 +10,7 @@ use trilogy_vm::{Instruction, Value};
 /// On success, the stack now includes the bindings of the expression in separate registers.
 /// On failure, the provided label is jumped to.
 /// In either case, the original value is left unchanged.
-pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_fail: &mut String) {
+pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_fail: &str) {
     match &expr.value {
         ir::Value::Mapping(..) => todo!(),
         ir::Value::Number(value) => {
@@ -55,9 +55,9 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
         }
         ir::Value::Disjunction(disj) => {
             let next = context.labeler.unique();
-            let mut recover = context.labeler.unique_hint("disj2");
+            let recover = context.labeler.unique_hint("disj2");
             context.write_instruction(Instruction::Copy);
-            write_pattern_match(context, &disj.0, &mut recover);
+            write_pattern_match(context, &disj.0, &recover);
             context
                 .write_instruction(Instruction::Pop)
                 .jump(&next)
@@ -110,9 +110,9 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
                     context
                         .write_instruction(Instruction::Destruct)
                         .write_instruction(Instruction::Swap);
-                    let mut cleanup = context.labeler.unique();
+                    let cleanup = context.labeler.unique();
                     // Match the atom, very easy
-                    write_pattern_match(context, &lhs_app.argument, &mut cleanup);
+                    write_pattern_match(context, &lhs_app.argument, &cleanup);
                     // If the atom matching fails, we have to clean up the extra value
                     let match_value = context.labeler.unique_hint("structvalue");
                     context
@@ -129,8 +129,8 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
                     context
                         .write_instruction(Instruction::Uncons)
                         .write_instruction(Instruction::Swap);
-                    let mut cleanup = context.labeler.unique();
-                    write_pattern_match(context, &lhs_app.argument, &mut cleanup);
+                    let cleanup = context.labeler.unique();
+                    write_pattern_match(context, &lhs_app.argument, &cleanup);
                     // If the first matching fails, we have to clean up the second
                     let match_second = context.labeler.unique_hint("snd");
                     context
