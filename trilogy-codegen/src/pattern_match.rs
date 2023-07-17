@@ -55,9 +55,9 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
         }
         ir::Value::Disjunction(disj) => {
             let next = context.labeler.unique();
-            let recover = std::mem::replace(on_fail, context.labeler.unique());
+            let mut recover = context.labeler.unique_hint("disj2");
             context.write_instruction(Instruction::Copy);
-            write_pattern_match(context, &disj.0, on_fail);
+            write_pattern_match(context, &disj.0, &mut recover);
             context
                 .write_instruction(Instruction::Pop)
                 .jump(&next)
@@ -107,36 +107,41 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
             ir::Value::Application(lhs_app) => match &lhs_app.function.value {
                 ir::Value::Builtin(Builtin::Glue) => todo!(),
                 ir::Value::Builtin(Builtin::Construct) => {
-                    context.write_instruction(Instruction::Destruct);
-                    let next = context.labeler.unique();
-                    let cleanup = std::mem::replace(on_fail, context.labeler.unique());
-                    write_pattern_match(context, &application.argument, on_fail);
-                    write_pattern_match(context, &lhs_app.argument, on_fail);
                     context
-                        .jump(&next)
+                        .write_instruction(Instruction::Destruct)
+                        .write_instruction(Instruction::Swap);
+                    let mut cleanup = context.labeler.unique();
+                    // Match the atom, very easy
+                    write_pattern_match(context, &lhs_app.argument, &mut cleanup);
+                    // If the atom matching fails, we have to clean up the extra value
+                    let match_value = context.labeler.unique_hint("structvalue");
+                    context
+                        .jump(&match_value)
                         .write_label(cleanup)
                         .unwrap()
                         .write_instruction(Instruction::Pop)
-                        .write_instruction(Instruction::Pop)
                         .jump(on_fail)
-                        .write_label(next)
+                        .write_label(match_value)
                         .unwrap();
+                    write_pattern_match(context, &application.argument, on_fail);
                 }
                 ir::Value::Builtin(Builtin::Cons) => {
-                    context.write_instruction(Instruction::Uncons);
-                    let next = context.labeler.unique();
-                    let cleanup = std::mem::replace(on_fail, context.labeler.unique());
-                    write_pattern_match(context, &application.argument, on_fail);
-                    write_pattern_match(context, &lhs_app.argument, on_fail);
                     context
-                        .jump(&next)
+                        .write_instruction(Instruction::Uncons)
+                        .write_instruction(Instruction::Swap);
+                    let mut cleanup = context.labeler.unique();
+                    write_pattern_match(context, &lhs_app.argument, &mut cleanup);
+                    // If the first matching fails, we have to clean up the second
+                    let match_second = context.labeler.unique_hint("snd");
+                    context
+                        .jump(&match_second)
                         .write_label(cleanup)
                         .unwrap()
                         .write_instruction(Instruction::Pop)
-                        .write_instruction(Instruction::Pop)
                         .jump(on_fail)
-                        .write_label(next)
+                        .write_label(match_second)
                         .unwrap();
+                    write_pattern_match(context, &application.argument, on_fail);
                 }
                 ir::Value::Builtin(Builtin::Array) => todo!(),
                 ir::Value::Builtin(Builtin::Record) => todo!(),

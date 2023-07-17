@@ -21,6 +21,11 @@ impl Labeler {
         format!("#temp::{}", self.counter)
     }
 
+    pub fn unique_hint(&mut self, hint: &'static str) -> String {
+        self.counter += 1;
+        format!("#temp::{}::{hint}", self.counter)
+    }
+
     pub fn label(&self, suffix: &str) -> String {
         format!("{}#{}${suffix}", self.location, self.context.join("::"))
     }
