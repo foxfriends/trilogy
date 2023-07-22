@@ -1,0 +1,9 @@
+proc call!(rec) {
+    rec.3 = 5;
+    rec."hello" = "world";
+    return rec;
+}
+
+proc main!() {
+    exit call!({| |});
+}

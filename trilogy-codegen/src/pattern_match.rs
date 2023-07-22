@@ -99,7 +99,7 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
                 write_pattern_match(context, &application.argument, on_fail);
             }
             ir::Value::Builtin(Builtin::Pin) => {
-                write_evaluation(context, &application.argument);
+                write_evaluation(context, &application.argument.value);
                 context
                     .write_instruction(Instruction::ValEq)
                     .cond_jump(on_fail);

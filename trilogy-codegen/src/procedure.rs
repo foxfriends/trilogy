@@ -1,4 +1,4 @@
-use crate::{write_evaluation, write_pattern_match, Context};
+use crate::{write_expression, write_pattern_match, Context};
 use trilogy_ir::ir;
 use trilogy_vm::{Instruction, Value};
 
@@ -28,7 +28,7 @@ fn write_procedure_overload(context: &mut Context, procedure: &ir::Procedure, on
         context.write_instruction(Instruction::LoadLocal(offset));
         write_pattern_match(context, parameter, on_fail);
     }
-    write_evaluation(context, &procedure.body);
+    write_expression(context, &procedure.body);
     context
         .write_instruction(Instruction::Const(Value::Unit))
         .write_instruction(Instruction::Return);

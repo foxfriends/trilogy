@@ -3,26 +3,65 @@ use crate::{is_operator, write_operator, Context};
 use trilogy_ir::ir;
 use trilogy_vm::{Instruction, Value};
 
-#[allow(clippy::only_used_in_recursion)]
-pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
-    match &expr.value {
-        ir::Value::Builtin(..) => todo!(),
+fn unapply_2(application: &ir::Application) -> (Option<&ir::Value>, &ir::Value, &ir::Value) {
+    match &application.function.value {
+        ir::Value::Application(lhs) => (
+            Some(&lhs.function.value),
+            &lhs.argument.value,
+            &application.argument.value,
+        ),
+        _ => (
+            None,
+            &application.function.value,
+            &application.argument.value,
+        ),
+    }
+}
+
+#[inline(always)]
+pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
+    write_evaluation(context, &expr.value)
+}
+
+pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
+    match &value {
+        ir::Value::Builtin(..) => todo!("{value:?}"),
         ir::Value::Pack(pack) => {
             for element in &pack.values {
                 if element.is_spread {
                     todo!()
                 } else {
-                    write_evaluation(context, &element.expression);
+                    write_expression(context, &element.expression);
                 }
             }
         }
         ir::Value::Sequence(seq) => {
             for expr in seq {
-                write_evaluation(context, expr);
+                write_expression(context, expr);
             }
         }
-        ir::Value::Assignment(..) => todo!(),
-        ir::Value::Mapping(..) => todo!(),
+        ir::Value::Assignment(assignment) => match &assignment.lhs.value {
+            ir::Value::Reference(var) => {
+                write_expression(context, &assignment.rhs);
+                match context.scope.lookup(&var.id) {
+                    Some(Binding::Variable(index)) => {
+                        context.write_instruction(Instruction::SetLocal(*index));
+                    }
+                    _ => unreachable!("Only variables can be assigned to"),
+                }
+            }
+            ir::Value::Application(application) => match unapply_2(application) {
+                (Some(ir::Value::Builtin(ir::Builtin::Access)), collection, key) => {
+                    write_evaluation(context, collection);
+                    write_evaluation(context, key);
+                    write_expression(context, &assignment.rhs);
+                    context.write_instruction(Instruction::Assign);
+                }
+                _ => unreachable!("LValue applications must be access"),
+            },
+            _ => unreachable!("LValues must be reference or application"),
+        },
+        ir::Value::Mapping(..) => unreachable!("Mapping cannot appear in an evaluation"),
         ir::Value::Number(value) => {
             context.write_instruction(Instruction::Const(value.value().clone().into()));
         }
@@ -51,41 +90,51 @@ pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
         ir::Value::Query(..) => todo!(),
         ir::Value::Iterator(..) => todo!(),
         ir::Value::While(..) => todo!(),
-        ir::Value::Application(application) => {
-            match &application.function.value {
-                ir::Value::Builtin(builtin) if is_operator(*builtin) => {
-                    return write_unary_operation(context, &application.argument, *builtin)
-                }
-                ir::Value::Application(lhs_app) => match &lhs_app.function.value {
-                    ir::Value::Builtin(builtin) if is_operator(*builtin) => {
-                        return write_binary_operation(
-                            context,
-                            &lhs_app.argument,
-                            &application.argument,
-                            *builtin,
-                        )
-                    }
-                    _ => {}
-                },
-                _ => {}
+        ir::Value::Application(application) => match unapply_2(application) {
+            (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
+                write_unary_operation(context, arg, *builtin);
             }
-            write_evaluation(context, &application.function);
-            write_evaluation(context, &application.argument);
-            let arity = match &application.argument.value {
-                ir::Value::Pack(pack) => pack
-                    .len()
-                    .expect("procedures may not have spread arguments"),
-                _ => 1,
-            };
-            context.write_instruction(Instruction::Call(arity));
-        }
-        ir::Value::Let(..) => todo!(),
-        ir::Value::IfElse(..) => todo!(),
-        ir::Value::Match(..) => todo!(),
-        ir::Value::Fn(..) => todo!(),
-        ir::Value::Do(..) => todo!(),
-        ir::Value::Handled(..) => todo!(),
-        ir::Value::Module(..) => todo!(),
+            (Some(ir::Value::Builtin(builtin)), lhs, rhs) if is_operator(*builtin) => {
+                write_binary_operation(context, lhs, rhs, *builtin);
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Record), arg) => match arg {
+                ir::Value::Pack(pack) if pack.values.is_empty() => {
+                    context
+                        .write_instruction(Instruction::Const(Value::Record(Default::default())));
+                }
+                _ => todo!("{arg:?}"),
+            },
+            (None, ir::Value::Builtin(ir::Builtin::Set), arg) => match arg {
+                ir::Value::Pack(pack) if pack.values.is_empty() => {
+                    context.write_instruction(Instruction::Const(Value::Set(Default::default())));
+                }
+                _ => todo!("{arg:?}"),
+            },
+            (None, ir::Value::Builtin(ir::Builtin::Array), arg) => match arg {
+                ir::Value::Pack(pack) if pack.values.is_empty() => {
+                    context.write_instruction(Instruction::Const(Value::Array(Default::default())));
+                }
+                _ => todo!("{arg:?}"),
+            },
+            _ => {
+                write_expression(context, &application.function);
+                write_expression(context, &application.argument);
+                let arity = match &application.argument.value {
+                    ir::Value::Pack(pack) => pack
+                        .len()
+                        .expect("procedures may not have spread arguments"),
+                    _ => 1,
+                };
+                context.write_instruction(Instruction::Call(arity));
+            }
+        },
+        ir::Value::Let(..) => todo!("{value:?}"),
+        ir::Value::IfElse(..) => todo!("{value:?}"),
+        ir::Value::Match(..) => todo!("{value:?}"),
+        ir::Value::Fn(..) => todo!("{value:?}"),
+        ir::Value::Do(..) => todo!("{value:?}"),
+        ir::Value::Handled(..) => todo!("{value:?}"),
+        ir::Value::Module(..) => todo!("{value:?}"),
         ir::Value::Reference(ident) => {
             let binding = context.scope.lookup(&ident.id);
             match binding {
@@ -111,15 +160,15 @@ pub(crate) fn write_evaluation(context: &mut Context, expr: &ir::Expression) {
     }
 }
 
-fn write_unary_operation(context: &mut Context, value: &ir::Expression, builtin: ir::Builtin) {
+fn write_unary_operation(context: &mut Context, value: &ir::Value, builtin: ir::Builtin) {
     write_evaluation(context, value);
     write_operator(context, builtin);
 }
 
 fn write_binary_operation(
     context: &mut Context,
-    lhs: &ir::Expression,
-    rhs: &ir::Expression,
+    lhs: &ir::Value,
+    rhs: &ir::Value,
     builtin: ir::Builtin,
 ) {
     write_evaluation(context, lhs);

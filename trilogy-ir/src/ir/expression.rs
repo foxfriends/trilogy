@@ -58,7 +58,8 @@ impl Expression {
                     .into_iter()
                     .map(|element| Element::convert_record(analyzer, element))
                     .collect::<Pack>();
-                Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
+                Self::builtin(start_span, Builtin::Record)
+                    .apply_to(span, Self::pack(span, elements))
             }
             ArrayComprehension(ast) => {
                 let start_span = ast.start_token().span;
