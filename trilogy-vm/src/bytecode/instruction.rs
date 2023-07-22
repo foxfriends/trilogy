@@ -32,6 +32,8 @@ pub enum Instruction {
     Glue,
     Access,
     Assign,
+    Insert,
+    Delete,
     Not,
     And,
     Or,

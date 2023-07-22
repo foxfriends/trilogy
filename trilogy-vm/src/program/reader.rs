@@ -62,6 +62,8 @@ impl ProgramReader<'_> {
             OpCode::Glue => Ok(Instruction::Glue),
             OpCode::Access => Ok(Instruction::Access),
             OpCode::Assign => Ok(Instruction::Assign),
+            OpCode::Insert => Ok(Instruction::Insert),
+            OpCode::Delete => Ok(Instruction::Delete),
             OpCode::Not => Ok(Instruction::Not),
             OpCode::And => Ok(Instruction::And),
             OpCode::Or => Ok(Instruction::Or),

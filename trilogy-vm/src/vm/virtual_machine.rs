@@ -246,6 +246,35 @@ impl VirtualMachine {
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
+                OpCode::Insert => {
+                    let value = ex.stack_pop()?;
+                    let Value::Set(set) = ex.stack_pop()? else {
+                        return Err(ex.error(ErrorKind::RuntimeTypeError));
+                    };
+                    set.insert(value);
+                }
+                OpCode::Delete => {
+                    let key = ex.stack_pop()?;
+                    let value = ex.stack_pop()?;
+                    match value {
+                        Value::Record(record) => {
+                            record.remove(&key);
+                        }
+                        Value::Set(set) => {
+                            set.remove(&key);
+                        }
+                        Value::Array(arr) => {
+                            let Value::Number(number) = key else {
+                                return Err(ex.error(ErrorKind::RuntimeTypeError));
+                            };
+                            let Some(index) = number.as_uinteger().and_then(|index| index.to_usize()) else {
+                                return Err(ex.error(ErrorKind::RuntimeTypeError));
+                            };
+                            arr.remove(index);
+                        }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    }
+                }
                 OpCode::Not => {
                     let val = ex.stack_pop()?;
                     match val {
