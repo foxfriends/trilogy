@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 use trilogy_ir::Id;
 use trilogy_vm::Value;
