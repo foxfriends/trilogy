@@ -34,6 +34,7 @@ pub enum Instruction {
     Assign,
     Insert,
     Delete,
+    Length,
     Not,
     And,
     Or,

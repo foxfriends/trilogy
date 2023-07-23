@@ -132,6 +132,7 @@ impl ProgramBuilder {
                 let distance = (ip + 4) - offset;
                 self.bytes
                     .splice(ip..ip + 4, u32::to_be_bytes(distance as u32));
+                self.bytes[ip - 1] += 1;
             }
         }
         Ok(Program {

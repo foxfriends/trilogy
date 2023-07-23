@@ -27,6 +27,14 @@ impl Set {
     pub fn remove(&self, value: &Value) -> bool {
         self.0.lock().unwrap().remove(value)
     }
+
+    pub fn len(&self) -> usize {
+        self.0.lock().unwrap().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.lock().unwrap().is_empty()
+    }
 }
 
 impl Eq for Set {}

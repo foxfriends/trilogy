@@ -235,6 +235,7 @@ impl VirtualMachine {
                     match (lhs, rhs, value) {
                         (Value::Record(record), rhs, value) => {
                             record.insert(rhs, value);
+                            ex.stack_push(record.into());
                         }
                         (Value::Array(lhs), Value::Number(rhs), value) => {
                             let index = rhs.as_uinteger().and_then(|index| index.to_usize());
@@ -242,7 +243,18 @@ impl VirtualMachine {
                                 Some(index) => lhs.set(index, value),
                                 None => todo!("yield 'MIA"),
                             }
+                            ex.stack_push(lhs.into());
                         }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    }
+                }
+                OpCode::Length => {
+                    let value = ex.stack_pop()?;
+                    match value {
+                        Value::Array(arr) => ex.stack_push(Value::from(arr.len())),
+                        Value::Record(record) => ex.stack_push(Value::from(record.len())),
+                        Value::Set(set) => ex.stack_push(Value::from(set.len())),
+                        Value::String(string) => ex.stack_push(Value::from(string.len())),
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }

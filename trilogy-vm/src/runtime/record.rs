@@ -57,6 +57,14 @@ impl Record {
     pub fn remove(&self, key: &Value) -> Option<Value> {
         self.0.lock().unwrap().remove(key)
     }
+
+    pub fn len(&self) -> usize {
+        self.0.lock().unwrap().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.lock().unwrap().is_empty()
+    }
 }
 
 impl Display for Record {

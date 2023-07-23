@@ -76,3 +76,19 @@ fn sample_do_closure() {
     let program = include_tri!("do_closure.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(7));
 }
+
+#[test]
+fn sample_array() {
+    let program = include_tri!("array.tri");
+    assert!(StructuralEq::eq(
+        &VirtualMachine::load(program).run().unwrap(),
+        &Value::from(vec![
+            Value::from(1),
+            2.into(),
+            3.into(),
+            4.into(),
+            5.into(),
+            6.into()
+        ])
+    ));
+}
