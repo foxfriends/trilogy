@@ -59,11 +59,10 @@ impl Execution {
     }
 
     pub fn reset_continuation(&mut self) -> Result<(), Error> {
-        if self.stack.return_to().map_err(|k| self.error(k))? {
-            let (ip, frame) = self.stack.pop_return().map_err(|k| self.error(k))?;
-            self.frame = frame;
-            self.ip = ip;
-        }
+        self.stack.return_to().map_err(|k| self.error(k))?;
+        let (ip, frame) = self.stack.pop_return().map_err(|k| self.error(k))?;
+        self.frame = frame;
+        self.ip = ip;
         Ok(())
     }
 

@@ -29,6 +29,7 @@ impl Procedure {
 
     pub(super) fn convert_do(analyzer: &mut Analyzer, ast: syntax::DoExpression) -> Self {
         let span = ast.span();
+        let do_span = ast.do_token().span();
         let parameters: Vec<_> = ast
             .parameters
             .into_iter()
@@ -36,7 +37,8 @@ impl Procedure {
             .collect();
         let body = match ast.body {
             syntax::DoBody::Block(ast) => Expression::convert_block(analyzer, *ast),
-            syntax::DoBody::Expression(ast) => Expression::convert(analyzer, *ast),
+            syntax::DoBody::Expression(expr) => Expression::builtin(do_span, Builtin::Return)
+                .apply_to(span, Expression::convert(analyzer, *expr)),
         };
         Self {
             span,

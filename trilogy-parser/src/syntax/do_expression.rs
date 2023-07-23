@@ -43,6 +43,10 @@ impl DoExpression {
             body,
         })
     }
+
+    pub fn do_token(&self) -> &Token {
+        &self.start
+    }
 }
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]

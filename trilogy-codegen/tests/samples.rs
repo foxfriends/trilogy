@@ -70,3 +70,9 @@ fn sample_record() {
         &Value::from(map)
     ));
 }
+
+#[test]
+fn sample_do_closure() {
+    let program = include_tri!("do_closure.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(7));
+}

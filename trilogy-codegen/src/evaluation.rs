@@ -71,7 +71,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let atom = context.atom(value);
             context.write_instruction(Instruction::Const(atom.into()));
         }
-        ir::Value::Query(..) => todo!(),
+        ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(..) => todo!(),
         ir::Value::While(..) => todo!(),
         ir::Value::Application(application) => match unapply_2(application) {
@@ -121,7 +121,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &cond.condition);
             context.cond_jump(&when_false);
             write_expression(context, &cond.when_true);
-            let end = context.labeler.unique_hint("endif");
+            let end = context.labeler.unique_hint("end_if");
             context.jump(&end);
             context.write_label(when_false).unwrap();
             write_expression(context, &cond.when_false);
@@ -129,22 +129,48 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Match(..) => todo!("{value:?}"),
         ir::Value::Fn(..) => todo!("{value:?}"),
-        ir::Value::Do(..) => todo!("{value:?}"),
+        ir::Value::Do(closure) => {
+            let end = context.labeler.unique_hint("end_do");
+            context.shift(&end);
+
+            let on_fail = context.labeler.unique_hint("do_fail");
+            for (offset, parameter) in closure.parameters.iter().enumerate() {
+                context.write_instruction(Instruction::LoadRegister(
+                    closure.parameters.len() - offset - 1,
+                ));
+                write_pattern_match(context, parameter, &on_fail);
+            }
+            for _ in 0..closure.parameters.len() {
+                context.write_instruction(Instruction::Pop);
+            }
+            write_expression(context, &closure.body);
+            context
+                .write_instruction(Instruction::Const(Value::Unit))
+                .write_instruction(Instruction::Reset)
+                .write_label(on_fail)
+                .unwrap()
+                .write_instruction(Instruction::Fizzle)
+                .reset()
+                .write_label(end)
+                .unwrap();
+        }
         ir::Value::Handled(..) => todo!("{value:?}"),
         ir::Value::Module(..) => todo!("{value:?}"),
         ir::Value::Reference(ident) => {
-            let binding = context.scope.lookup(&ident.id);
+            let binding = context
+                .scope
+                .lookup(&ident.id)
+                .expect("unresolved reference should not exist at this point");
             match binding {
-                Some(Binding::Constant(value)) => {
+                Binding::Constant(value) => {
                     context.write_instruction(Instruction::Const(value.clone()));
                 }
-                Some(&Binding::Variable(offset)) => {
+                &Binding::Variable(offset) => {
                     context.write_instruction(Instruction::LoadLocal(offset));
                 }
-                Some(Binding::Label(label)) => {
+                Binding::Label(label) => {
                     context.write_procedure_reference(label.to_owned());
                 }
-                None => panic!("Unresolved reference should not exist at this point"),
             }
         }
         ir::Value::Dynamic(dynamic) => {

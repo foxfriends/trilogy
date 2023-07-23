@@ -76,6 +76,8 @@ impl Instruction {
             Self::Const(..) => 5,
             Self::LoadLocal(..) => 5,
             Self::SetLocal(..) => 5,
+            Self::LoadRegister(..) => 5,
+            Self::SetRegister(..) => 5,
             Self::Call(..) => 5,
             Self::Shift(..) => 5,
             Self::Jump(..) => 5,

@@ -260,19 +260,19 @@ impl Stack {
         Ok(())
     }
 
-    pub(crate) fn return_to(&mut self) -> Result<bool, InternalRuntimeError> {
-        if let Some(InternalValue::Stack(stack)) = self.0.at(0) {
-            self.0.pop().unwrap();
-            // NOTE: this seems to be "correct" but... a bit disappointing in that we have no
-            // way of detecting that this was actually not just improper stack usage. Fortunately,
-            // programs should still end up being invalid as we will soon try to pop a value from
-            // the stack to find that we are on the wrong stack and a stack was popped instead,
-            // causing an internal runtime error still, just not at the optimal moment.
-            *self = stack;
-            Ok(true)
-        } else {
-            Ok(false)
+    pub(crate) fn return_to(&mut self) -> Result<(), InternalRuntimeError> {
+        while let Some(value) = self.0.pop() {
+            if let InternalValue::Stack(stack) = value {
+                // NOTE: this seems to be "correct" but... a bit disappointing in that we have no
+                // way of detecting that this was actually not just improper stack usage. Fortunately,
+                // programs should still end up being invalid as we will soon try to pop a value from
+                // the stack to find that we are on the wrong stack and a stack was popped instead,
+                // causing an internal runtime error still, just not at the optimal moment.
+                *self = stack;
+                return Ok(());
+            }
         }
+        Err(InternalRuntimeError::ExpectedStack)
     }
 
     pub(crate) fn len(&self) -> usize {

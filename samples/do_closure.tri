@@ -1,0 +1,4 @@
+proc main!() {
+    let inner = do(x) x + 2;
+    exit inner!(5);
+}
