@@ -1,9 +1,6 @@
-proc call!(rec) {
+proc main!() {
+    let rec = {||};
     rec.3 = 5;
     rec."hello" = "world";
-    return rec;
-}
-
-proc main!() {
-    exit call!({| |});
+    exit rec;
 }

@@ -112,7 +112,10 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.write_instruction(Instruction::Call(arity));
             }
         },
-        ir::Value::Let(..) => todo!("{value:?}"),
+        ir::Value::Let(decl) => {
+            write_query(context, &decl.query);
+            write_expression(context, &decl.body);
+        }
         ir::Value::IfElse(..) => todo!("{value:?}"),
         ir::Value::Match(..) => todo!("{value:?}"),
         ir::Value::Fn(..) => todo!("{value:?}"),

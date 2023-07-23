@@ -56,7 +56,7 @@ pub use number::Number;
 pub use pack::{Element, Pack};
 pub use procedure::Procedure;
 pub use procedure_definition::ProcedureDefinition;
-pub use query::Query;
+pub use query::{Query, Value as QueryValue};
 pub use r#let::Let;
 pub use r#match::{Case, Match};
 pub use r#while::While;
