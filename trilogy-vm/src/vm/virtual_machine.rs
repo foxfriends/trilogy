@@ -249,7 +249,7 @@ impl VirtualMachine {
                         }
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
-                    ex.stack_push(lhs.into());
+                    ex.stack_push(lhs);
                 }
                 OpCode::Length => {
                     let value = ex.stack_pop()?;
