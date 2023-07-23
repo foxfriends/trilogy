@@ -1,4 +1,4 @@
-use super::{write_procedure, Context};
+use crate::prelude::*;
 use trilogy_ir::ir;
 use trilogy_vm::ProgramBuilder;
 

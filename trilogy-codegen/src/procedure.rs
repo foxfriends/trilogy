@@ -1,4 +1,4 @@
-use crate::{write_expression, write_pattern_match, Context};
+use crate::prelude::*;
 use trilogy_ir::ir;
 use trilogy_vm::{Instruction, Value};
 

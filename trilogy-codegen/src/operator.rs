@@ -1,4 +1,4 @@
-use crate::Context;
+use crate::prelude::*;
 use trilogy_ir::ir::Builtin;
 use trilogy_vm::Instruction;
 

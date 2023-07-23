@@ -1,22 +1,6 @@
-use crate::context::Binding;
-use crate::{is_operator, write_operator, Context};
+use crate::prelude::*;
 use trilogy_ir::ir;
 use trilogy_vm::{Instruction, Value};
-
-fn unapply_2(application: &ir::Application) -> (Option<&ir::Value>, &ir::Value, &ir::Value) {
-    match &application.function.value {
-        ir::Value::Application(lhs) => (
-            Some(&lhs.function.value),
-            &lhs.argument.value,
-            &application.argument.value,
-        ),
-        _ => (
-            None,
-            &application.function.value,
-            &application.argument.value,
-        ),
-    }
-}
 
 #[inline(always)]
 pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {

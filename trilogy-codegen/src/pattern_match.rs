@@ -1,17 +1,19 @@
-use crate::{
-    context::{Binding, Context},
-    evaluation::write_evaluation,
-};
+use crate::prelude::*;
 use trilogy_ir::ir::{self, Builtin, Expression};
 use trilogy_vm::{Instruction, Value};
+
+#[inline(always)]
+pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_fail: &str) {
+    write_pattern(context, &expr.value, on_fail);
+}
 
 /// Pattern matches the contents of a particular register with an expression.
 ///
 /// On success, the stack now includes the bindings of the expression in separate registers.
 /// On failure, the provided label is jumped to.
 /// In either case, the original value is left unchanged.
-pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_fail: &str) {
-    match &expr.value {
+pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &str) {
+    match &value {
         ir::Value::Mapping(..) => todo!(),
         ir::Value::Number(value) => {
             context
@@ -93,66 +95,63 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
                     .cond_jump(on_fail);
             }
         },
-        ir::Value::Application(application) => match &application.function.value {
-            ir::Value::Builtin(Builtin::Negate) => {
+        ir::Value::Application(application) => match unapply_2(application) {
+            (None, ir::Value::Builtin(Builtin::Negate), value) => {
                 context.write_instruction(Instruction::Negate);
-                write_pattern_match(context, &application.argument, on_fail);
+                write_pattern(context, value, on_fail);
             }
-            ir::Value::Builtin(Builtin::Pin) => {
-                write_evaluation(context, &application.argument.value);
+            (None, ir::Value::Builtin(Builtin::Pin), value) => {
+                write_evaluation(context, value);
                 context
                     .write_instruction(Instruction::ValEq)
                     .cond_jump(on_fail);
             }
-            ir::Value::Application(lhs_app) => match &lhs_app.function.value {
-                ir::Value::Builtin(Builtin::Glue) => todo!(),
-                ir::Value::Builtin(Builtin::Construct) => {
-                    context
-                        .write_instruction(Instruction::Destruct)
-                        .write_instruction(Instruction::Swap);
-                    let cleanup = context.labeler.unique();
-                    // Match the atom, very easy
-                    write_pattern_match(context, &lhs_app.argument, &cleanup);
-                    // If the atom matching fails, we have to clean up the extra value
-                    let match_value = context.labeler.unique_hint("structvalue");
-                    context
-                        .jump(&match_value)
-                        .write_label(cleanup)
-                        .unwrap()
-                        .write_instruction(Instruction::Pop)
-                        .jump(on_fail)
-                        .write_label(match_value)
-                        .unwrap();
-                    write_pattern_match(context, &application.argument, on_fail);
-                }
-                ir::Value::Builtin(Builtin::Cons) => {
-                    context
-                        .write_instruction(Instruction::Uncons)
-                        .write_instruction(Instruction::Swap);
-                    let cleanup = context.labeler.unique();
-                    write_pattern_match(context, &lhs_app.argument, &cleanup);
-                    // If the first matching fails, we have to clean up the second
-                    let match_second = context.labeler.unique_hint("snd");
-                    context
-                        .jump(&match_second)
-                        .write_label(cleanup)
-                        .unwrap()
-                        .write_instruction(Instruction::Pop)
-                        .jump(on_fail)
-                        .write_label(match_second)
-                        .unwrap();
-                    write_pattern_match(context, &application.argument, on_fail);
-                }
-                ir::Value::Builtin(Builtin::Array) => todo!(),
-                ir::Value::Builtin(Builtin::Record) => todo!(),
-                ir::Value::Builtin(Builtin::Set) => todo!(),
-                what => panic!("not a pattern ({what:?})"),
-            },
+            (Some(ir::Value::Builtin(Builtin::Glue)), ..) => todo!(),
+            (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
+                context
+                    .write_instruction(Instruction::Destruct)
+                    .write_instruction(Instruction::Swap);
+                let cleanup = context.labeler.unique();
+                // Match the atom, very easy
+                write_pattern(context, &lhs, &cleanup);
+                // If the atom matching fails, we have to clean up the extra value
+                let match_value = context.labeler.unique_hint("structvalue");
+                context
+                    .jump(&match_value)
+                    .write_label(cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .jump(on_fail)
+                    .write_label(match_value)
+                    .unwrap();
+                write_pattern(context, rhs, on_fail);
+            }
+            (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
+                context
+                    .write_instruction(Instruction::Uncons)
+                    .write_instruction(Instruction::Swap);
+                let cleanup = context.labeler.unique();
+                write_pattern(context, lhs, &cleanup);
+                // If the first matching fails, we have to clean up the second
+                let match_second = context.labeler.unique_hint("snd");
+                context
+                    .jump(&match_second)
+                    .write_label(cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .jump(on_fail)
+                    .write_label(match_second)
+                    .unwrap();
+                write_pattern(context, rhs, on_fail);
+            }
+            (Some(ir::Value::Builtin(Builtin::Array)), ..) => todo!(),
+            (Some(ir::Value::Builtin(Builtin::Record)), ..) => todo!(),
+            (Some(ir::Value::Builtin(Builtin::Set)), ..) => todo!(),
             what => panic!("not a pattern ({what:?})"),
         },
         ir::Value::Dynamic(dynamic) => {
             panic!("Dynamic is not actually supposed to happen, but we got {dynamic:?}");
         }
-        _ => panic!("{:?} is not a pattern", expr.value),
+        value => panic!("{value:?} is not a pattern"),
     }
 }
