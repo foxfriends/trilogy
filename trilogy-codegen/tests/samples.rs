@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
-use trilogy_vm::{Value, VirtualMachine};
+use std::{collections::HashMap, path::PathBuf};
+use trilogy_vm::{StructuralEq, Value, VirtualMachine};
 
 const TEST_DIR: &str = "../samples";
 
@@ -49,4 +48,25 @@ fn sample_disj() {
         VirtualMachine::load(program).run().unwrap(),
         Value::from(14)
     );
+}
+
+#[test]
+fn sample_if_else() {
+    let program = include_tri!("if_else.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(11)
+    );
+}
+
+#[test]
+fn sample_record() {
+    let program = include_tri!("record.tri");
+    let mut map = HashMap::new();
+    map.insert(Value::from(3), Value::from(5));
+    map.insert(Value::from("hello"), Value::from("world"));
+    assert!(StructuralEq::eq(
+        &VirtualMachine::load(program).run().unwrap(),
+        &Value::from(map)
+    ));
 }

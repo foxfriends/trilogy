@@ -116,7 +116,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_query(context, &decl.query);
             write_expression(context, &decl.body);
         }
-        ir::Value::IfElse(..) => todo!("{value:?}"),
+        ir::Value::IfElse(cond) => {
+            let when_false = context.labeler.unique_hint("else");
+            write_expression(context, &cond.condition);
+            context.cond_jump(&when_false);
+            write_expression(context, &cond.when_true);
+            let end = context.labeler.unique_hint("endif");
+            context.jump(&end);
+            context.write_label(when_false).unwrap();
+            write_expression(context, &cond.when_false);
+            context.write_label(end).unwrap();
+        }
         ir::Value::Match(..) => todo!("{value:?}"),
         ir::Value::Fn(..) => todo!("{value:?}"),
         ir::Value::Do(..) => todo!("{value:?}"),
