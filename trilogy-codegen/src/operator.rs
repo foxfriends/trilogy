@@ -26,6 +26,7 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
         Builtin::Gt => true,
         Builtin::Leq => true,
         Builtin::Geq => true,
+        Builtin::Invert => true,
         Builtin::BitwiseAnd => true,
         Builtin::BitwiseOr => true,
         Builtin::BitwiseXor => true,
@@ -67,6 +68,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         Builtin::BitwiseAnd => context.write_instruction(Instruction::BitwiseAnd),
         Builtin::BitwiseOr => context.write_instruction(Instruction::BitwiseOr),
         Builtin::BitwiseXor => context.write_instruction(Instruction::BitwiseXor),
+        Builtin::Invert => context.write_instruction(Instruction::BitwiseNeg),
         Builtin::LeftShift => context.write_instruction(Instruction::LeftShift),
         Builtin::RightShift => context.write_instruction(Instruction::RightShift),
         Builtin::Sequence => context.write_instruction(Instruction::Pop),
@@ -79,6 +81,22 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         Builtin::RPipe => context.write_instruction(Instruction::Call(1)),
         Builtin::Exit => context.write_instruction(Instruction::Exit),
         Builtin::Return => context.write_instruction(context.kw_return()),
-        _ => panic!("write_operator was called with a builtin that is not an operator"),
+
+        Builtin::ModuleAccess
+        | Builtin::Compose
+        | Builtin::RCompose
+        | Builtin::Array
+        | Builtin::Set
+        | Builtin::Record
+        | Builtin::Is
+        | Builtin::Pin
+        | Builtin::For
+        | Builtin::Yield
+        | Builtin::Resume
+        | Builtin::Cancel
+        | Builtin::Break
+        | Builtin::Continue => {
+            panic!("write_operator was called with a builtin that is not an operator")
+        }
     };
 }
