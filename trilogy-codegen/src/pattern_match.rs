@@ -113,7 +113,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .write_instruction(Instruction::Swap);
                 let cleanup = context.labeler.unique();
                 // Match the atom, very easy
-                write_pattern(context, &lhs, &cleanup);
+                write_pattern(context, lhs, &cleanup);
                 // If the atom matching fails, we have to clean up the extra value
                 let match_value = context.labeler.unique_hint("structvalue");
                 context
