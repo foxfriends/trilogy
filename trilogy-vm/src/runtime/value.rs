@@ -25,12 +25,23 @@ pub enum Value {
     Continuation(Continuation),
 }
 
+impl Value {
+    pub fn structural_clone(&self) -> Self {
+        match self {
+            Self::Array(array) => Self::Array(array.structural_clone()),
+            Self::Set(array) => Self::Set(array.structural_clone()),
+            Self::Record(array) => Self::Record(array.structural_clone()),
+            _ => self.clone(),
+        }
+    }
+}
+
 impl ReferentialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Array(lhs), Self::Array(rhs)) => ReferentialEq::eq(lhs, rhs),
-            (Self::Record(lhs), Self::Record(rhs)) => ReferentialEq::eq(lhs, rhs),
             (Self::Set(lhs), Self::Set(rhs)) => ReferentialEq::eq(lhs, rhs),
+            (Self::Record(lhs), Self::Record(rhs)) => ReferentialEq::eq(lhs, rhs),
             _ => self == other,
         }
     }
@@ -40,8 +51,8 @@ impl StructuralEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Array(lhs), Self::Array(rhs)) => StructuralEq::eq(lhs, rhs),
-            (Self::Record(lhs), Self::Record(rhs)) => StructuralEq::eq(lhs, rhs),
             (Self::Set(lhs), Self::Set(rhs)) => StructuralEq::eq(lhs, rhs),
+            (Self::Record(lhs), Self::Record(rhs)) => StructuralEq::eq(lhs, rhs),
             _ => self == other,
         }
     }

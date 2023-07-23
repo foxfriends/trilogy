@@ -110,6 +110,10 @@ impl VirtualMachine {
                     let value = ex.read_register(0)?;
                     ex.stack_push(value);
                 }
+                OpCode::Clone => {
+                    let value = ex.read_register(0)?;
+                    ex.stack_push(value.structural_clone());
+                }
                 OpCode::Add => {
                     let rhs = ex.stack_pop()?;
                     let lhs = ex.stack_pop()?;
@@ -232,10 +236,9 @@ impl VirtualMachine {
                     let value = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
                     let lhs = ex.stack_pop()?;
-                    match (lhs, rhs, value) {
+                    match (&lhs, rhs, value) {
                         (Value::Record(record), rhs, value) => {
                             record.insert(rhs, value);
-                            ex.stack_push(record.into());
                         }
                         (Value::Array(lhs), Value::Number(rhs), value) => {
                             let index = rhs.as_uinteger().and_then(|index| index.to_usize());
@@ -243,10 +246,10 @@ impl VirtualMachine {
                                 Some(index) => lhs.set(index, value),
                                 None => todo!("yield 'MIA"),
                             }
-                            ex.stack_push(lhs.into());
                         }
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
+                    ex.stack_push(lhs.into());
                 }
                 OpCode::Length => {
                     let value = ex.stack_pop()?;
@@ -260,10 +263,17 @@ impl VirtualMachine {
                 }
                 OpCode::Insert => {
                     let value = ex.stack_pop()?;
-                    let Value::Set(set) = ex.stack_pop()? else {
-                        return Err(ex.error(ErrorKind::RuntimeTypeError));
-                    };
-                    set.insert(value);
+                    let collection = ex.stack_pop()?;
+                    match &collection {
+                        Value::Array(arr) => {
+                            arr.push(value);
+                        }
+                        Value::Set(set) => {
+                            set.insert(value);
+                        }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    }
+                    ex.stack_push(collection);
                 }
                 OpCode::Delete => {
                     let key = ex.stack_pop()?;
@@ -283,6 +293,27 @@ impl VirtualMachine {
                                 return Err(ex.error(ErrorKind::RuntimeTypeError));
                             };
                             arr.remove(index);
+                        }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    }
+                }
+                OpCode::Entries => {
+                    let collection = ex.stack_pop()?;
+                    match collection {
+                        Value::Record(record) => {
+                            ex.stack_push(
+                                record
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .collect::<Vec<Value>>()
+                                    .into(),
+                            );
+                        }
+                        Value::Set(set) => {
+                            ex.stack_push(set.into_iter().collect::<Vec<Value>>().into());
+                        }
+                        value @ Value::Array(..) => {
+                            ex.stack_push(value);
                         }
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }

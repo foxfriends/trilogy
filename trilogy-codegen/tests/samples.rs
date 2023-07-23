@@ -1,4 +1,7 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 use trilogy_vm::{StructuralEq, Value, VirtualMachine};
 
 const TEST_DIR: &str = "../samples";
@@ -90,5 +93,20 @@ fn sample_array() {
             5.into(),
             6.into()
         ])
+    ));
+}
+
+#[test]
+fn sample_set() {
+    let program = include_tri!("set.tri");
+    let mut set = HashSet::<Value>::new();
+    set.insert(1.into());
+    set.insert(2.into());
+    set.insert(3.into());
+    set.insert(4.into());
+    set.insert(5.into());
+    assert!(StructuralEq::eq(
+        &VirtualMachine::load(program).run().unwrap(),
+        &Value::from(set)
     ));
 }

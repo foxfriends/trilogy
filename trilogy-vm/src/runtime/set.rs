@@ -12,6 +12,10 @@ impl Set {
         Self::default()
     }
 
+    pub fn structural_clone(&self) -> Self {
+        Self::from(self.0.lock().unwrap().clone())
+    }
+
     pub fn get(&self, value: &Value) -> Option<Value> {
         self.0.lock().unwrap().get(value).cloned()
     }
@@ -34,6 +38,15 @@ impl Set {
 
     pub fn is_empty(&self) -> bool {
         self.0.lock().unwrap().is_empty()
+    }
+}
+
+impl IntoIterator for &'_ Set {
+    type Item = Value;
+    type IntoIter = <HashSet<Value, Value> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.lock().unwrap().clone().into_iter()
     }
 }
 

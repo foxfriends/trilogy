@@ -42,6 +42,10 @@ impl Record {
         Self::default()
     }
 
+    pub fn structural_clone(&self) -> Self {
+        Self::from(self.0.lock().unwrap().clone())
+    }
+
     pub fn get(&self, key: &Value) -> Option<Value> {
         self.0.lock().unwrap().get(key).cloned()
     }
@@ -64,6 +68,15 @@ impl Record {
 
     pub fn is_empty(&self) -> bool {
         self.0.lock().unwrap().is_empty()
+    }
+}
+
+impl IntoIterator for &'_ Record {
+    type Item = (Value, Value);
+    type IntoIter = <HashMap<Value, Value> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.lock().unwrap().clone().into_iter()
     }
 }
 

@@ -38,6 +38,15 @@ impl StructuralEq for Array {
     }
 }
 
+impl IntoIterator for &'_ Array {
+    type Item = Value;
+    type IntoIter = <Vec<Value> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.lock().unwrap().clone().into_iter()
+    }
+}
+
 impl PartialOrd for Array {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let Ok(lhs) = self.0.lock() else {
@@ -53,6 +62,10 @@ impl PartialOrd for Array {
 impl Array {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn structural_clone(&self) -> Self {
+        Self::from(self.0.lock().unwrap().clone())
     }
 
     pub fn get(&self, index: usize) -> Option<Value> {
@@ -74,6 +87,10 @@ impl Array {
         } else {
             None
         }
+    }
+
+    pub fn push(&self, value: Value) {
+        self.0.lock().unwrap().push(value);
     }
 
     pub fn len(&self) -> usize {

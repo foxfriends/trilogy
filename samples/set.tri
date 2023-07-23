@@ -1,0 +1,6 @@
+proc main!() {
+    let three = 3;
+    let set = [| 3, 4, 5, 4 |];
+    let longer = [| 1, 2, three, ..set |];
+    exit longer;
+}
