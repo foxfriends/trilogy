@@ -1,0 +1,9 @@
+proc main!() {
+    let out = 1;
+    let x = 5;
+    while x > 0 {
+        x -= 1;
+        out *= 2;
+    }
+    exit out;
+}

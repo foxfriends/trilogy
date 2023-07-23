@@ -65,13 +65,15 @@ impl<'a> Context<'a> {
         self.builder
             .write_opcode(OpCode::Shift)
             .write_offset_label(label.to_owned());
-        self.kw_return = KwReturn::Reset;
         self
     }
 
-    pub fn reset(&mut self) -> &mut Self {
+    pub fn closure(&mut self) {
+        self.kw_return = KwReturn::Reset;
+    }
+
+    pub fn unclosure(&mut self) {
         self.kw_return = KwReturn::Return;
-        self
     }
 
     pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {

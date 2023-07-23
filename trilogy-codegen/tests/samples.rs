@@ -112,3 +112,9 @@ fn sample_set() {
         &Value::from(set)
     ));
 }
+
+#[test]
+fn sample_while() {
+    let program = include_tri!("while.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(32));
+}

@@ -76,7 +76,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(..) => todo!(),
-        ir::Value::While(..) => todo!(),
+        ir::Value::While(stmt) => {
+            // TODO: support continue/break
+            let start = context.labeler.unique_hint("while");
+            let end = context.labeler.unique_hint("end_while");
+            context.write_label(start.clone()).unwrap();
+            write_expression(context, &stmt.condition);
+            context.cond_jump(&end);
+            write_expression(context, &stmt.body);
+            context.jump(&start);
+            context.write_label(end).unwrap();
+        }
         ir::Value::Application(application) => match unapply_2(application) {
             (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
                 write_unary_operation(context, arg, *builtin);
@@ -244,6 +254,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Do(closure) => {
             let end = context.labeler.unique_hint("end_do");
             context.shift(&end);
+            context.closure();
 
             let on_fail = context.labeler.unique_hint("do_fail");
             for (offset, parameter) in closure.parameters.iter().enumerate() {
@@ -256,15 +267,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.write_instruction(Instruction::Pop);
             }
             write_expression(context, &closure.body);
+
             context
                 .write_instruction(Instruction::Const(Value::Unit))
                 .write_instruction(Instruction::Reset)
                 .write_label(on_fail)
                 .unwrap()
                 .write_instruction(Instruction::Fizzle)
-                .reset()
                 .write_label(end)
                 .unwrap();
+
+            context.unclosure();
         }
         ir::Value::Handled(..) => todo!("{value:?}"),
         ir::Value::Module(..) => todo!("{value:?}"),

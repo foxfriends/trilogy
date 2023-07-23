@@ -436,8 +436,8 @@ impl VirtualMachine {
                     ex.stack_push(value);
                 }
                 OpCode::Leq => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less | Ordering::Equal) => Value::Bool(true),
                         Some(Ordering::Greater) => Value::Bool(false),
@@ -446,8 +446,8 @@ impl VirtualMachine {
                     ex.stack_push(cmp);
                 }
                 OpCode::Lt => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less) => Value::Bool(true),
                         Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(false),
@@ -456,8 +456,8 @@ impl VirtualMachine {
                     ex.stack_push(cmp);
                 }
                 OpCode::Geq => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less) => Value::Bool(false),
                         Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(true),
@@ -466,8 +466,8 @@ impl VirtualMachine {
                     ex.stack_push(cmp);
                 }
                 OpCode::Gt => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     let cmp = match lhs.partial_cmp(&rhs) {
                         Some(Ordering::Less) | Some(Ordering::Equal) => Value::Bool(false),
                         Some(Ordering::Greater) => Value::Bool(true),
@@ -476,23 +476,23 @@ impl VirtualMachine {
                     ex.stack_push(cmp);
                 }
                 OpCode::RefEq => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     ex.stack_push(Value::Bool(ReferentialEq::eq(&lhs, &rhs)));
                 }
                 OpCode::ValEq => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     ex.stack_push(Value::Bool(StructuralEq::eq(&lhs, &rhs)));
                 }
                 OpCode::RefNeq => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     ex.stack_push(Value::Bool(!ReferentialEq::eq(&lhs, &rhs)));
                 }
                 OpCode::ValNeq => {
-                    let lhs = ex.stack_pop()?;
                     let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
                     ex.stack_push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
                 }
                 OpCode::Call => {
