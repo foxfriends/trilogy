@@ -1,6 +1,8 @@
 proc main!() {
-    let rec = {||};
+    let rec = {| 1 => 2, 3 => 4 |};
     rec.3 = 5;
     rec."hello" = "world";
-    exit rec;
+
+    let second = {| 4 => 5, ..rec |};
+    exit second;
 }

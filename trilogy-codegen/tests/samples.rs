@@ -67,6 +67,8 @@ fn sample_record() {
     let program = include_tri!("record.tri");
     let mut map = HashMap::new();
     map.insert(Value::from(3), Value::from(5));
+    map.insert(Value::from(1), Value::from(2));
+    map.insert(Value::from(4), Value::from(5));
     map.insert(Value::from("hello"), Value::from("world"));
     assert!(StructuralEq::eq(
         &VirtualMachine::load(program).run().unwrap(),

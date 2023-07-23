@@ -45,7 +45,10 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             },
             _ => unreachable!("LValues must be reference or application"),
         },
-        ir::Value::Mapping(..) => unreachable!("Mapping cannot appear in an evaluation"),
+        ir::Value::Mapping(value) => {
+            write_expression(context, &value.0);
+            write_expression(context, &value.1);
+        }
         ir::Value::Number(value) => {
             context.write_instruction(Instruction::Const(value.value().clone().into()));
         }
@@ -82,9 +85,46 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_binary_operation(context, lhs, rhs, *builtin);
             }
             (None, ir::Value::Builtin(ir::Builtin::Record), arg) => match arg {
-                ir::Value::Pack(pack) if pack.values.is_empty() => {
+                ir::Value::Pack(pack) => {
                     context
                         .write_instruction(Instruction::Const(Value::Record(Default::default())));
+                    for element in &pack.values {
+                        write_expression(context, &element.expression);
+                        if element.is_spread {
+                            let spread = context.labeler.unique_hint("spread");
+                            let end_spread = context.labeler.unique_hint("end_spread");
+                            context
+                                .write_instruction(Instruction::Entries)
+                                .write_instruction(Instruction::Const(0.into()))
+                                .write_instruction(Instruction::Swap)
+                                .write_label(spread.clone())
+                                .unwrap()
+                                .write_instruction(Instruction::Copy)
+                                .write_instruction(Instruction::Length)
+                                .write_instruction(Instruction::LoadRegister(2))
+                                .write_instruction(Instruction::ValNeq)
+                                .cond_jump(&end_spread)
+                                .write_instruction(Instruction::Copy)
+                                .write_instruction(Instruction::LoadRegister(2))
+                                .write_instruction(Instruction::Access)
+                                .write_instruction(Instruction::LoadRegister(3))
+                                .write_instruction(Instruction::Swap)
+                                .write_instruction(Instruction::Uncons)
+                                .write_instruction(Instruction::Assign)
+                                .write_instruction(Instruction::Pop)
+                                .write_instruction(Instruction::Swap)
+                                .write_instruction(Instruction::Const(1.into()))
+                                .write_instruction(Instruction::Add)
+                                .write_instruction(Instruction::Swap)
+                                .jump(&spread)
+                                .write_label(end_spread)
+                                .unwrap()
+                                .write_instruction(Instruction::Pop)
+                                .write_instruction(Instruction::Pop);
+                        } else {
+                            context.write_instruction(Instruction::Assign);
+                        }
+                    }
                 }
                 _ => todo!("{arg:?}"),
             },
