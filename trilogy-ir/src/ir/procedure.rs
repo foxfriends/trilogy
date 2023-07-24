@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Id};
+use crate::Analyzer;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -45,12 +45,5 @@ impl Procedure {
             parameters,
             body,
         }
-    }
-
-    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.parameters
-            .iter()
-            .flat_map(|param| param.bindings())
-            .chain(self.body.bindings())
     }
 }

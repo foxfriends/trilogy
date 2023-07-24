@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Error, Id};
+use crate::{Analyzer, Error};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -10,10 +10,6 @@ pub struct Assignment {
 }
 
 impl Assignment {
-    pub(super) fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.lhs.bindings().chain(self.rhs.bindings())
-    }
-
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::AssignmentStatement) -> Expression {
         use syntax::AssignmentStrategy::*;
         let span = ast.span();

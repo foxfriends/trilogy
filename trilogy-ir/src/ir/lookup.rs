@@ -20,8 +20,6 @@ impl Lookup {
     }
 
     pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.path
-            .bindings()
-            .chain(self.patterns.iter().flat_map(|pat| pat.bindings()))
+        self.patterns.iter().flat_map(|pat| pat.bindings())
     }
 }

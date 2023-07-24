@@ -103,6 +103,18 @@ impl Display for Program {
                         writeln!(f, "\t{}", instruction)?;
                     }
                 }
+                Instruction::Shift(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip + offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        writeln!(f, "\tSHIFT &{label:?}")?;
+                    } else {
+                        writeln!(f, "\t{}", instruction)?;
+                    }
+                }
                 Instruction::Jump(offset) => {
                     if let Some(label) = labels_per_line
                         .get(&(ip + offset + 5))

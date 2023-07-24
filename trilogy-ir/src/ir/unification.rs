@@ -38,6 +38,6 @@ impl Unification {
     }
 
     pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.pattern.bindings().chain(self.expression.bindings())
+        self.pattern.bindings()
     }
 }

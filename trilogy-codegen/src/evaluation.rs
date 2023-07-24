@@ -29,7 +29,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_expression(context, &assignment.rhs);
                 match context.scope.lookup(&var.id) {
                     Some(Binding::Variable(index)) => {
-                        context.write_instruction(Instruction::SetLocal(*index));
+                        context.write_instruction(Instruction::SetLocal(index));
                     }
                     _ => unreachable!("Only variables can be assigned to"),
                 }
@@ -235,8 +235,10 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
         },
         ir::Value::Let(decl) => {
+            context.declare_variables(decl.query.bindings());
             write_query(context, &decl.query);
             write_expression(context, &decl.body);
+            context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::IfElse(cond) => {
             let when_false = context.labeler.unique_hint("else");
@@ -254,19 +256,18 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Do(closure) => {
             let end = context.labeler.unique_hint("end_do");
             context.shift(&end);
-            context.closure();
+            let param_start = context.scope.closure(closure.parameters.len());
 
             let on_fail = context.labeler.unique_hint("do_fail");
             for (offset, parameter) in closure.parameters.iter().enumerate() {
-                context.write_instruction(Instruction::LoadRegister(
-                    closure.parameters.len() - offset - 1,
-                ));
+                context.declare_variables(parameter.bindings());
+                context.write_instruction(Instruction::LoadLocal(param_start + offset));
                 write_pattern_match(context, parameter, &on_fail);
             }
-            for _ in 0..closure.parameters.len() {
-                context.write_instruction(Instruction::Pop);
-            }
             write_expression(context, &closure.body);
+            for parameter in closure.parameters.iter().rev() {
+                context.undeclare_variables(parameter.bindings(), false);
+            }
 
             context
                 .write_instruction(Instruction::Const(Value::Unit))
@@ -277,7 +278,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .write_label(end)
                 .unwrap();
 
-            context.unclosure();
+            context.scope.unclosure(closure.parameters.len());
         }
         ir::Value::Handled(..) => todo!("{value:?}"),
         ir::Value::Module(..) => todo!("{value:?}"),
@@ -287,13 +288,10 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .lookup(&ident.id)
                 .expect("unresolved reference should not exist at this point");
             match binding {
-                Binding::Constant(value) => {
-                    context.write_instruction(Instruction::Const(value.clone()));
-                }
-                &Binding::Variable(offset) => {
+                Binding::Variable(offset) => {
                     context.write_instruction(Instruction::LoadLocal(offset));
                 }
-                Binding::Label(label) => {
+                Binding::Static(label) => {
                     context.write_procedure_reference(label.to_owned());
                 }
             }

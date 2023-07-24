@@ -112,9 +112,6 @@ impl Handler {
     }
 
     pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.pattern
-            .bindings()
-            .chain(self.guard.bindings())
-            .chain(self.body.bindings())
+        self.pattern.bindings()
     }
 }

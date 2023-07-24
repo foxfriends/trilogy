@@ -77,23 +77,10 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 .cond_jump(on_fail);
         }
         ir::Value::Reference(ident) => match context.scope.lookup(&ident.id).unwrap() {
-            Binding::Constant(value) => {
-                let value = value.clone();
-                context
-                    .write_instruction(Instruction::Const(value))
-                    .write_instruction(Instruction::ValEq)
-                    .cond_jump(on_fail);
-            }
             Binding::Variable(offset) => {
-                context.write_instruction(Instruction::SetLocal(*offset));
+                context.write_instruction(Instruction::SetLocal(offset));
             }
-            Binding::Label(label) => {
-                let label = label.clone();
-                context
-                    .write_procedure_reference(label)
-                    .write_instruction(Instruction::ValEq)
-                    .cond_jump(on_fail);
-            }
+            Binding::Static(..) => unreachable!(),
         },
         ir::Value::Application(application) => match unapply_2(application) {
             (None, ir::Value::Builtin(Builtin::Negate), value) => {

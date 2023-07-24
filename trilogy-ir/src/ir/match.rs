@@ -44,12 +44,6 @@ impl Match {
         cases.push(Case::new_fallback(else_case));
         Expression::r#match(span, Self { expression, cases })
     }
-
-    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.expression
-            .bindings()
-            .chain(self.cases.iter().flat_map(|case| case.bindings()))
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -116,9 +110,6 @@ impl Case {
     }
 
     pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.pattern
-            .bindings()
-            .chain(self.guard.bindings())
-            .chain(self.body.bindings())
+        self.pattern.bindings()
     }
 }

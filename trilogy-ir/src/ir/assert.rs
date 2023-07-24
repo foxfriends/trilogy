@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Id};
+use crate::Analyzer;
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -16,9 +16,5 @@ impl Assert {
             .unwrap_or_else(|| todo!("pretty print the expression?"));
         let assertion = Expression::convert(analyzer, ast.assertion);
         Self { message, assertion }
-    }
-
-    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.message.bindings().chain(self.assertion.bindings())
     }
 }

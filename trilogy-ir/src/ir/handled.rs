@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Id};
+use crate::Analyzer;
 use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
@@ -44,11 +44,5 @@ impl Handled {
                 handlers,
             },
         )
-    }
-
-    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.expression
-            .bindings()
-            .chain(self.handlers.iter().flat_map(|handler| handler.bindings()))
     }
 }

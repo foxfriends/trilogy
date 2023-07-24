@@ -754,24 +754,14 @@ pub enum Value {
 impl Value {
     pub fn bindings(&self) -> Box<dyn std::iter::Iterator<Item = Id> + '_> {
         match self {
-            Self::Pack(pack) => Box::new(pack.bindings()),
             Self::Sequence(seq) => Box::new(seq.iter().flat_map(|expr| expr.bindings())),
-            Self::Assignment(assig) => Box::new(assig.bindings()),
+            Self::Pack(pack) => Box::new(pack.bindings()),
             Self::Mapping(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
             Self::Conjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
             Self::Disjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            Self::Query(query) => Box::new(query.bindings()),
-            Self::Iterator(iter) => Box::new(iter.bindings()),
-            Self::While(body) => Box::new(body.bindings()),
-            Self::Application(body) => Box::new(body.bindings()),
-            Self::Let(body) => Box::new(body.bindings()),
-            Self::IfElse(body) => Box::new(body.bindings()),
-            Self::Match(body) => Box::new(body.bindings()),
-            Self::Fn(body) => Box::new(body.bindings()),
-            Self::Do(body) => Box::new(body.bindings()),
-            Self::Handled(body) => Box::new(body.bindings()),
+            // Self::Query(query) => Box::new(query.bindings()),
+            Self::Application(application) => Box::new(application.bindings()),
             Self::Reference(ident) => Box::new(std::iter::once(ident.id.clone())),
-            Self::Assert(body) => Box::new(body.bindings()),
             _ => Box::new(std::iter::empty()),
         }
     }

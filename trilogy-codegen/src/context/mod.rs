@@ -3,41 +3,25 @@ mod scope;
 
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
-use trilogy_vm::{Atom, Instruction, LabelAlreadyInserted, OpCode, ProgramBuilder};
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) enum KwReturn {
-    Return,
-    Reset,
-}
+use trilogy_ir::Id;
+use trilogy_vm::{Atom, Instruction, LabelAlreadyInserted, OpCode, ProgramBuilder, Value};
 
 pub(crate) struct Context<'a> {
-    pub labeler: Labeler,
-    pub scope: Scope,
+    pub labeler: &'a mut Labeler,
+    pub scope: Scope<'a>,
     builder: &'a mut ProgramBuilder,
-
-    kw_return: KwReturn,
-    #[allow(dead_code)]
-    kw_resume: Option<usize>,
-    #[allow(dead_code)]
-    kw_cancel: Option<usize>,
-    #[allow(dead_code)]
-    kw_break: Option<usize>,
-    #[allow(dead_code)]
-    kw_continue: Option<usize>,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(builder: &'a mut ProgramBuilder, location: String) -> Self {
+    pub fn new(
+        builder: &'a mut ProgramBuilder,
+        labeler: &'a mut Labeler,
+        scope: Scope<'a>,
+    ) -> Self {
         Self {
-            labeler: Labeler::new(location),
-            scope: Scope::default(),
+            labeler,
+            scope,
             builder,
-            kw_return: KwReturn::Return,
-            kw_resume: None,
-            kw_cancel: None,
-            kw_break: None,
-            kw_continue: None,
         }
     }
 
@@ -68,14 +52,6 @@ impl<'a> Context<'a> {
         self
     }
 
-    pub fn closure(&mut self) {
-        self.kw_return = KwReturn::Reset;
-    }
-
-    pub fn unclosure(&mut self) {
-        self.kw_return = KwReturn::Return;
-    }
-
     pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
         self.builder.write_instruction(instruction);
         self
@@ -90,10 +66,19 @@ impl<'a> Context<'a> {
         self.builder.atom(value)
     }
 
-    pub fn kw_return(&self) -> Instruction {
-        match self.kw_return {
-            KwReturn::Reset => Instruction::Reset,
-            KwReturn::Return => Instruction::Return,
+    pub fn declare_variables(&mut self, variables: impl Iterator<Item = Id>) {
+        for id in variables {
+            if self.scope.declare_variable(id) {
+                self.write_instruction(Instruction::Const(Value::Unit));
+            }
+        }
+    }
+
+    pub fn undeclare_variables(&mut self, variables: impl Iterator<Item = Id>, pop: bool) {
+        for id in variables {
+            if self.scope.undeclare_variable(&id) && pop {
+                self.write_instruction(Instruction::Pop);
+            }
         }
     }
 }

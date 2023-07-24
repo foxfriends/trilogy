@@ -122,8 +122,6 @@ impl Value {
             Self::Direct(unif) => Box::new(unif.bindings()),
             Self::Element(unif) => Box::new(unif.bindings()),
             Self::Lookup(lookup) => Box::new(lookup.bindings()),
-            Self::Is(expr) => Box::new(expr.bindings()),
-            Self::Not(query) => Box::new(query.bindings()),
             _ => Box::new(std::iter::empty()),
         }
     }
