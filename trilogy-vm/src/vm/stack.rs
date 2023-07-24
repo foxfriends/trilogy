@@ -31,20 +31,23 @@ impl Display for InternalValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InternalValue::Value(value) => write!(f, "{value}"),
-            InternalValue::Return { ip, .. } => write!(f, "->{ip}"),
+            InternalValue::Return { ip, .. } => write!(f, "-> {ip}"),
             InternalValue::Pointer(offset) => write!(f, "&{offset}"),
-            InternalValue::Stack(..) => write!(f, "->reset"),
+            InternalValue::Stack(stack) => write!(f, "reset ({})", stack.cactus.at(0).unwrap()),
         }
     }
 }
 
 #[derive(Default, Clone)]
-pub struct Stack(Cactus<InternalValue>);
+pub struct Stack {
+    cactus: Cactus<InternalValue>,
+    frame: usize,
+}
 
 impl Display for Stack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, item) in self
-            .0
+            .cactus
             .clone()
             .into_iter()
             .collect::<Vec<_>>()
@@ -61,7 +64,7 @@ impl Display for Stack {
 impl Debug for Stack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut tuple = f.debug_tuple("Stack");
-        self.0
+        self.cactus
             .clone()
             .into_iter()
             .collect::<Vec<_>>()
@@ -166,7 +169,7 @@ impl Stack {
     }
 
     fn trace_into(&self, ip_history: &mut Vec<usize>) {
-        for value in self.0.clone() {
+        for value in self.cactus.clone() {
             match value {
                 InternalValue::Return { ip, .. } => {
                     ip_history.push(ip);
@@ -178,57 +181,81 @@ impl Stack {
     }
 
     pub(crate) fn branch(&mut self) -> Self {
-        Self(self.0.branch())
+        Self {
+            cactus: self.cactus.branch(),
+            frame: self.frame,
+        }
     }
 
     pub(crate) fn push(&mut self, value: Value) {
-        self.0.push(InternalValue::Value(value));
+        self.cactus.push(InternalValue::Value(value));
     }
 
     pub(crate) fn pop(&mut self) -> Result<Value, InternalRuntimeError> {
-        self.0
+        self.cactus
             .pop()
             .ok_or(InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
 
     pub(crate) fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
-        self.0
+        self.cactus
             .at(index)
             .ok_or(InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
 
+    pub(crate) fn at_local(&self, index: usize) -> Result<Value, InternalRuntimeError> {
+        self.cactus
+            .at(self.len() - 1 - self.frame - index)
+            .ok_or(InternalRuntimeError::ExpectedValue)
+            .and_then(InternalValue::try_into_value)
+    }
+
     pub(crate) fn pop_pointer(&mut self) -> Result<usize, InternalRuntimeError> {
-        self.0
+        self.cactus
             .pop()
             .ok_or(InternalRuntimeError::ExpectedPointer)
             .and_then(InternalValue::try_into_pointer)
     }
 
-    pub(crate) fn pop_return(&mut self) -> Result<(usize, usize), InternalRuntimeError> {
+    pub(crate) fn pop_return(&mut self) -> Result<usize, InternalRuntimeError> {
         loop {
-            let popped = self.0.pop().ok_or(InternalRuntimeError::ExpectedReturn)?;
+            let popped = self
+                .cactus
+                .pop()
+                .ok_or(InternalRuntimeError::ExpectedReturn)?;
             if let InternalValue::Return { ip, frame } = popped {
-                return Ok((ip, frame));
+                self.frame = frame;
+                return Ok(ip);
             }
         }
     }
 
     pub(crate) fn push_pointer(&mut self, pointer: usize) {
-        self.0.push(InternalValue::Pointer(pointer));
+        self.cactus.push(InternalValue::Pointer(pointer));
     }
 
     pub(crate) fn replace_with_return(
         &mut self,
         index: usize,
         ip: usize,
-        frame: usize,
     ) -> Result<Value, InternalRuntimeError> {
-        self.0
-            .replace_at(index, InternalValue::Return { ip, frame })
+        let callable = self
+            .cactus
+            .replace_at(
+                index,
+                InternalValue::Return {
+                    ip,
+                    frame: self.frame,
+                },
+            )
             .map_err(|_| InternalRuntimeError::ExpectedValue)
-            .and_then(InternalValue::try_into_value)
+            .and_then(InternalValue::try_into_value)?;
+        if matches!(callable, Value::Procedure(..)) {
+            self.frame = self.len() - index;
+        }
+        Ok(callable)
     }
 
     pub(crate) fn replace_at(
@@ -236,8 +263,22 @@ impl Stack {
         index: usize,
         value: Value,
     ) -> Result<Value, InternalRuntimeError> {
-        self.0
+        self.cactus
             .replace_at(index, InternalValue::Value(value))
+            .map_err(|_| InternalRuntimeError::ExpectedValue)
+            .and_then(InternalValue::try_into_value)
+    }
+
+    pub(crate) fn replace_at_local(
+        &mut self,
+        index: usize,
+        value: Value,
+    ) -> Result<Value, InternalRuntimeError> {
+        self.cactus
+            .replace_at(
+                self.len() - 1 - self.frame - index,
+                InternalValue::Value(value),
+            )
             .map_err(|_| InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
@@ -251,23 +292,18 @@ impl Stack {
         // level, but because of privacy it's just more convenient to do it here. Move
         // it later if it ever comes up.
         let transfer = self
-            .0
+            .cactus
             .detach_at(offset)
             .ok_or(InternalRuntimeError::ExpectedValue)?;
         let return_to = std::mem::replace(self, stack);
-        self.0.push(InternalValue::Stack(return_to));
-        self.0.attach(transfer);
+        self.cactus.push(InternalValue::Stack(return_to));
+        self.cactus.attach(transfer);
         Ok(())
     }
 
     pub(crate) fn return_to(&mut self) -> Result<(), InternalRuntimeError> {
-        while let Some(value) = self.0.pop() {
+        while let Some(value) = self.cactus.pop() {
             if let InternalValue::Stack(stack) = value {
-                // NOTE: this seems to be "correct" but... a bit disappointing in that we have no
-                // way of detecting that this was actually not just improper stack usage. Fortunately,
-                // programs should still end up being invalid as we will soon try to pop a value from
-                // the stack to find that we are on the wrong stack and a stack was popped instead,
-                // causing an internal runtime error still, just not at the optimal moment.
                 *self = stack;
                 return Ok(());
             }
@@ -276,6 +312,6 @@ impl Stack {
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.0.len()
+        self.cactus.len()
     }
 }

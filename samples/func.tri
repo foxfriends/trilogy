@@ -1,0 +1,11 @@
+func a1 1 a = 1 + a
+func a1 a 1 = a - 1
+func a1 a b = a * b
+
+proc main!() {
+    let x = a1 1 4
+    let y = a1 1 1
+    let z = a1 4 1
+    let w = a1 2 2
+    exit x + y + z + w
+}

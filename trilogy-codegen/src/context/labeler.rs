@@ -34,7 +34,7 @@ impl Labeler {
         id.symbol()
     }
 
-    pub fn begin_procedure(&mut self, identifier: &Identifier) -> String {
+    pub fn begin(&mut self, identifier: &Identifier) -> String {
         self.label(&identifier.to_string())
     }
 }

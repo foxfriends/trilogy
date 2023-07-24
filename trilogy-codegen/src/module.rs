@@ -51,7 +51,9 @@ pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module, is_entryp
     for def in module.definitions() {
         match &def.item {
             ir::DefinitionItem::Module(..) => {}
-            ir::DefinitionItem::Function(..) => {}
+            ir::DefinitionItem::Function(function) => {
+                context.write_function(function);
+            }
             ir::DefinitionItem::Rule(..) => {}
             ir::DefinitionItem::Procedure(procedure) => {
                 if is_entrypoint && procedure.name.id.name() == Some("main") {
@@ -67,17 +69,43 @@ pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module, is_entryp
 
 impl ModuleContext<'_> {
     fn write_procedure(&mut self, procedure: &ir::ProcedureDefinition) {
-        let beginning = self.labeler.begin_procedure(&procedure.name);
+        let beginning = self.labeler.begin(&procedure.name);
         self.builder.write_label(beginning).unwrap();
         let for_id = self.labeler.for_id(&procedure.name.id);
         self.builder.write_label(for_id).unwrap();
-        for overload in &procedure.overloads {
-            let on_fail = self.labeler.unique();
-            let context = self.begin(overload.parameters.len());
-            write_procedure(context, overload, &on_fail);
-            self.builder.write_label(on_fail).unwrap();
+        assert!(procedure.overloads.len() == 1);
+        let overload = &procedure.overloads[0];
+        let context = self.begin(overload.parameters.len());
+        write_procedure(context, overload);
+    }
+
+    fn write_function(&mut self, function: &ir::FunctionDefinition) {
+        let beginning = self.labeler.begin(&function.name);
+        self.builder.write_label(beginning).unwrap();
+        let for_id = self.labeler.for_id(&function.name.id);
+        self.builder.write_label(for_id).unwrap();
+        let mut context = self.begin(1);
+
+        let ret = context.labeler.unique_hint("func_return");
+        let res = context.labeler.unique_hint("func_reset");
+        let arity = function.overloads[0].parameters.len();
+        for i in 1..arity {
+            context.shift(if i == 1 { &ret } else { &res });
+            context.scope.closure(1);
         }
-        self.builder.write_instruction(Instruction::Fizzle);
+
+        for overload in &function.overloads {
+            write_function(&mut context, overload);
+        }
+
+        context
+            .write_instruction(Instruction::Fizzle)
+            .write_label(ret)
+            .unwrap()
+            .write_instruction(Instruction::Return)
+            .write_label(res)
+            .unwrap()
+            .write_instruction(Instruction::Reset);
     }
 
     fn begin(&mut self, parameters: usize) -> Context<'_> {

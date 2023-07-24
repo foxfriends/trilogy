@@ -19,7 +19,8 @@ impl Function {
             .into_iter()
             .map(|param| Expression::convert_pattern(analyzer, param))
             .collect();
-        let body = Expression::convert(analyzer, ast.body);
+        let body = Expression::builtin(span, Builtin::Return)
+            .apply_to(span, Expression::convert(analyzer, ast.body));
         Self {
             span,
             parameters,
@@ -34,7 +35,8 @@ impl Function {
             .into_iter()
             .map(|param| Expression::convert_pattern(analyzer, param))
             .collect();
-        let body = Expression::convert(analyzer, ast.body);
+        let body = Expression::builtin(span, Builtin::Return)
+            .apply_to(span, Expression::convert(analyzer, ast.body));
         Self {
             span,
             parameters,

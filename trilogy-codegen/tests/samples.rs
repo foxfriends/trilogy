@@ -121,3 +121,12 @@ fn sample_while() {
         Value::from(32)
     );
 }
+
+#[test]
+fn sample_func() {
+    let program = include_tri!("func.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(14)
+    );
+}

@@ -117,6 +117,12 @@ impl Definition {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
             syntax::DefinitionItem::ExternalModule(ast) => {
+                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                    analyzer.error(Error::DuplicateDefinition {
+                        name: ast.head.name.clone(),
+                    });
+                    return vec![];
+                }
                 let name = Identifier::declare(analyzer, ast.head.name.clone());
                 Self {
                     span: ast.span(),
@@ -125,6 +131,9 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Function(ast) => {
+                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                    return vec![];
+                }
                 let span = ast.span();
                 let name = Identifier::declare(analyzer, ast.head.name.clone());
                 Self {
@@ -140,13 +149,13 @@ impl Definition {
                     .map(|alias| {
                         let span = alias.span();
                         let name = match alias {
-                            syntax::Alias::Same(name) => {
-                                Identifier::declare(analyzer, name.clone())
-                            }
-                            syntax::Alias::Rename(_, name) => {
-                                Identifier::declare(analyzer, name.clone())
-                            }
+                            syntax::Alias::Same(name) => name,
+                            syntax::Alias::Rename(_, name) => name,
                         };
+                        if analyzer.declared(name.as_ref()).is_some() {
+                            analyzer.error(Error::DuplicateDefinition { name: name.clone() });
+                        }
+                        let name = Identifier::declare(analyzer, name.clone());
                         Self {
                             span,
                             item: DefinitionItem::Alias(Box::new(Alias::declare(name))),
@@ -156,6 +165,12 @@ impl Definition {
                     .collect();
             }
             syntax::DefinitionItem::Module(ast) => {
+                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                    analyzer.error(Error::DuplicateDefinition {
+                        name: ast.head.name.clone(),
+                    });
+                    return vec![];
+                }
                 let name = Identifier::declare(analyzer, ast.head.name.clone());
                 Self {
                     span: ast.span(),
@@ -164,6 +179,12 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::ModuleImport(ast) => {
+                if analyzer.declared(ast.name.as_ref()).is_some() {
+                    analyzer.error(Error::DuplicateDefinition {
+                        name: ast.name.clone(),
+                    });
+                    return vec![];
+                }
                 let name = Identifier::declare(analyzer, ast.name.clone());
                 Self {
                     span: ast.span(),
@@ -172,6 +193,12 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Procedure(ast) => {
+                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                    analyzer.error(Error::DuplicateDefinition {
+                        name: ast.head.name.clone(),
+                    });
+                    return vec![];
+                }
                 let span = ast.span();
                 let name = Identifier::declare(analyzer, ast.head.name.clone());
                 Self {
@@ -181,6 +208,9 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Rule(ast) => {
+                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                    return vec![];
+                }
                 let span = ast.span();
                 let name = Identifier::declare(analyzer, ast.head.name.clone());
                 Self {

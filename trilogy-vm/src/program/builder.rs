@@ -81,8 +81,12 @@ impl ProgramBuilder {
     /// Writes a label at the position of the next instruction in the program. Returns the
     /// offset of that label, or an error if a label with this name has already been set.
     pub fn write_label(&mut self, label: String) -> Result<&mut Self, LabelAlreadyInserted> {
-        if self.labels.insert(label, self.bytes.len()).is_some() {
-            return Err(LabelAlreadyInserted);
+        if self
+            .labels
+            .insert(label.clone(), self.bytes.len())
+            .is_some()
+        {
+            return Err(LabelAlreadyInserted(label));
         }
         Ok(self)
     }

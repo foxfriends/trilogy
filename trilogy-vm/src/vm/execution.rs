@@ -8,7 +8,6 @@ use crate::Value;
 pub(crate) struct Execution {
     stack: Stack,
     pub ip: usize,
-    pub frame: usize,
 }
 
 impl Execution {
@@ -17,7 +16,6 @@ impl Execution {
         Self {
             stack: branch,
             ip: self.ip,
-            frame: self.frame,
         }
     }
 
@@ -60,8 +58,7 @@ impl Execution {
 
     pub fn reset_continuation(&mut self) -> Result<(), Error> {
         self.stack.return_to().map_err(|k| self.error(k))?;
-        let (ip, frame) = self.stack.pop_return().map_err(|k| self.error(k))?;
-        self.frame = frame;
+        let ip = self.stack.pop_return().map_err(|k| self.error(k))?;
         self.ip = ip;
         Ok(())
     }
@@ -78,14 +75,12 @@ impl Execution {
     }
 
     pub fn read_local(&self, index: usize) -> Result<Value, Error> {
-        self.stack
-            .at(self.stack.len() - 1 - self.frame - index)
-            .map_err(|k| self.error(k))
+        self.stack.at_local(index).map_err(|k| self.error(k))
     }
 
     pub fn set_local(&mut self, index: usize, value: Value) -> Result<Value, Error> {
         self.stack
-            .replace_at(self.stack.len() - 1 - self.frame - index, value)
+            .replace_at_local(index, value)
             .map_err(|k| self.error(k))
     }
 
@@ -114,7 +109,7 @@ impl Execution {
     pub fn call(&mut self, arity: usize) -> Result<(), Error> {
         let callable = self
             .stack
-            .replace_with_return(arity, self.ip, self.frame)
+            .replace_with_return(arity, self.ip)
             .map_err(|k| self.error(k))?;
         match callable {
             Value::Continuation(continuation) => {
@@ -122,7 +117,6 @@ impl Execution {
             }
             Value::Procedure(procedure) => {
                 self.ip = procedure.ip();
-                self.frame = self.stack.len() - arity;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
@@ -134,8 +128,7 @@ impl Execution {
     }
 
     pub fn r#return(&mut self) -> Result<(), Error> {
-        let (ip, frame) = self.stack.pop_return().map_err(|k| self.error(k))?;
-        self.frame = frame;
+        let ip = self.stack.pop_return().map_err(|k| self.error(k))?;
         self.ip = ip;
         Ok(())
     }

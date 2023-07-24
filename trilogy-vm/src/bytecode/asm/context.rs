@@ -17,15 +17,12 @@ pub(crate) struct AsmContext {
     value_holes: HashMap<usize, (Offset, String)>,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct LabelAlreadyInserted;
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct LabelAlreadyInserted(pub(crate) String);
 
 impl AsmContext {
     pub fn take_label(src: &str) -> Option<(String, &str)> {
         if src.starts_with('"') {
-            // A bit funny but we keep the quotes on these... Just makes life easier since
-            // the thing consuming this label is not receiving tail slice right now. Nobody
-            // really sees the labels anyway, unless things crash.
             extract_string_prefix(src)
         } else {
             let label: String = src
@@ -43,8 +40,8 @@ impl AsmContext {
 
     pub(super) fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
         let offset = if let Some(suffix) = src.strip_prefix('&') {
-            let (label, _) = Self::take_label(suffix).ok_or(ErrorKind::InvalidLabelReference)?;
-            if Self::is_empty(&suffix[label.len()..]) {
+            let (label, tail) = Self::take_label(suffix).ok_or(ErrorKind::InvalidLabelReference)?;
+            if Self::is_empty(tail) {
                 self.holes.insert(self.line, (self.ip, label));
                 0
             } else {
