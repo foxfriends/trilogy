@@ -68,7 +68,7 @@ impl<'a> Scope<'a> {
 
     pub fn unclosure(&mut self, parameters: usize) {
         self.kw_return -= 1;
-        self.parameters -= parameters - 1;
+        self.parameters -= parameters + 1;
     }
 
     pub fn kw_return(&self) -> Instruction {

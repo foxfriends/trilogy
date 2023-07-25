@@ -1,0 +1,5 @@
+proc main!() {
+    let double = fn x. x * 2
+    let add = fn x y. x + y
+    exit double 3 + add 2 4
+}

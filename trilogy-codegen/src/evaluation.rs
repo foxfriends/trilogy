@@ -252,7 +252,36 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.write_label(end).unwrap();
         }
         ir::Value::Match(..) => todo!("{value:?}"),
-        ir::Value::Fn(..) => todo!("{value:?}"),
+        ir::Value::Fn(closure) => {
+            let end = context.labeler.unique_hint("end_fn");
+            let reset = context.labeler.unique_hint("mid_fn");
+            let on_fail = context.labeler.unique_hint("fn_fail");
+            let mut args = vec![];
+            for i in 0..closure.parameters.len() {
+                args.push(context.scope.closure(1));
+                context.shift(if i == 0 { &end } else { &reset });
+            }
+            for (i, parameter) in closure.parameters.iter().enumerate() {
+                context.declare_variables(parameter.bindings());
+                context.write_instruction(Instruction::LoadLocal(args[i]));
+                write_pattern_match(context, parameter, &on_fail);
+            }
+            write_expression(context, &closure.body);
+            for parameter in closure.parameters.iter().rev() {
+                context.undeclare_variables(parameter.bindings(), false);
+                context.scope.unclosure(1)
+            }
+
+            context
+                .write_label(reset)
+                .unwrap()
+                .write_instruction(Instruction::Reset)
+                .write_label(on_fail)
+                .unwrap()
+                .write_instruction(Instruction::Fizzle)
+                .write_label(end)
+                .unwrap();
+        }
         ir::Value::Do(closure) => {
             let end = context.labeler.unique_hint("end_do");
             context.shift(&end);

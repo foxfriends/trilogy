@@ -130,3 +130,12 @@ fn sample_func() {
         Value::from(14)
     );
 }
+
+#[test]
+fn sample_fn() {
+    let program = include_tri!("fn.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(12)
+    );
+}
