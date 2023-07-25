@@ -68,7 +68,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             write_pattern_match(context, &disj.1, on_fail);
             context.write_label(next).unwrap();
         }
-        ir::Value::Wildcard => {} // Wildcard always matches but does not bind, so is noop
+        ir::Value::Wildcard => {
+            context.write_instruction(Instruction::Pop);
+        }
         ir::Value::Atom(value) => {
             let atom = context.atom(value);
             context
@@ -84,8 +86,24 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
         },
         ir::Value::Application(application) => match unapply_2(application) {
             (None, ir::Value::Builtin(Builtin::Negate), value) => {
-                context.write_instruction(Instruction::Negate);
+                let end = context.labeler.unique_hint("negate_end");
+                let cleanup = context.labeler.unique_hint("negate_cleanup");
+                context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::TypeOf)
+                    .write_instruction(Instruction::Const("number".into()))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup)
+                    .write_instruction(Instruction::Negate);
                 write_pattern(context, value, on_fail);
+                context
+                    .jump(&end)
+                    .write_label(cleanup)
+                    .unwrap()
+                    .jump(on_fail)
+                    .write_instruction(Instruction::Pop)
+                    .write_label(end)
+                    .unwrap();
             }
             (None, ir::Value::Builtin(Builtin::Pin), value) => {
                 write_evaluation(context, value);
@@ -95,10 +113,15 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), ..) => todo!(),
             (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
+                let cleanup = context.labeler.unique();
                 context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::TypeOf)
+                    .write_instruction(Instruction::Const("struct".into()))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup)
                     .write_instruction(Instruction::Destruct)
                     .write_instruction(Instruction::Swap);
-                let cleanup = context.labeler.unique();
                 // Match the atom, very easy
                 write_pattern(context, lhs, &cleanup);
                 // If the atom matching fails, we have to clean up the extra value
@@ -114,10 +137,15 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 write_pattern(context, rhs, on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
+                let cleanup = context.labeler.unique();
                 context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::TypeOf)
+                    .write_instruction(Instruction::Const("tuple".into()))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup)
                     .write_instruction(Instruction::Uncons)
                     .write_instruction(Instruction::Swap);
-                let cleanup = context.labeler.unique();
                 write_pattern(context, lhs, &cleanup);
                 // If the first matching fails, we have to clean up the second
                 let match_second = context.labeler.unique_hint("snd");

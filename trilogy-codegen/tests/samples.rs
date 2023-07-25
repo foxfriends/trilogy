@@ -139,3 +139,18 @@ fn sample_fn() {
         Value::from(12)
     );
 }
+
+#[test]
+fn neg_pattern() {
+    let program = include_tri!("negpattern.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(0));
+}
+
+#[test]
+fn r#match() {
+    let program = include_tri!("match.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(21)
+    );
+}

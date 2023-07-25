@@ -114,6 +114,26 @@ impl VirtualMachine {
                     let value = ex.read_register(0)?;
                     ex.stack_push(value.structural_clone());
                 }
+                OpCode::TypeOf => {
+                    let value = ex.stack_pop()?;
+                    match value {
+                        Value::Unit => ex.stack_push("unit".into()),
+                        Value::Number(..) => ex.stack_push("number".into()),
+                        Value::Bits(..) => ex.stack_push("bits".into()),
+                        Value::Bool(..) => ex.stack_push("boolean".into()),
+                        Value::String(..) => ex.stack_push("string".into()),
+                        Value::Char(..) => ex.stack_push("character".into()),
+                        Value::Tuple(..) => ex.stack_push("tuple".into()),
+                        Value::Array(..) => ex.stack_push("array".into()),
+                        Value::Set(..) => ex.stack_push("set".into()),
+                        Value::Record(..) => ex.stack_push("record".into()),
+                        Value::Atom(..) => ex.stack_push("atom".into()),
+                        Value::Struct(..) => ex.stack_push("struct".into()),
+                        Value::Procedure(..) | Value::Continuation(..) => {
+                            ex.stack_push("callable".into())
+                        }
+                    }
+                }
                 OpCode::Add => {
                     let rhs = ex.stack_pop()?;
                     let lhs = ex.stack_pop()?;

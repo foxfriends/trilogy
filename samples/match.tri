@@ -1,0 +1,12 @@
+proc matcher!(x) {
+    let y = match x
+        case 'a(a) then 2 * a
+        case 'b(b) then 3 * b
+        case a : b then a + b
+        else 5
+    return y
+}
+
+proc main!() {
+    exit matcher!('a(2)) + matcher!('b(3)) + matcher!(1 : 2) + matcher!(unit)
+}

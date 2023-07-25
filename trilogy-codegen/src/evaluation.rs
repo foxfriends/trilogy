@@ -251,7 +251,29 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &cond.when_false);
             context.write_label(end).unwrap();
         }
-        ir::Value::Match(..) => todo!("{value:?}"),
+        ir::Value::Match(cond) => {
+            write_expression(context, &cond.expression);
+            let end = context.labeler.unique_hint("match_end");
+            let val = context.scope.intermediate();
+            for case in &cond.cases {
+                let cleanup = context.labeler.unique_hint("case_cleanup");
+                let vars = context.declare_variables(case.pattern.bindings());
+                context.write_instruction(Instruction::LoadLocal(val));
+                write_pattern_match(context, &case.pattern, &cleanup);
+                write_expression(context, &case.guard);
+                context.cond_jump(&cleanup);
+                write_expression(context, &case.body);
+                context.write_instruction(Instruction::SetLocal(val));
+                context.undeclare_variables(case.pattern.bindings(), true);
+                context.jump(&end);
+                context.write_label(cleanup).unwrap();
+                for _ in 0..vars {
+                    context.write_instruction(Instruction::Pop);
+                }
+            }
+            context.scope.end_intermediate();
+            context.write_label(end).unwrap();
+        }
         ir::Value::Fn(closure) => {
             let end = context.labeler.unique_hint("end_fn");
             let reset = context.labeler.unique_hint("mid_fn");

@@ -22,6 +22,7 @@ pub enum Instruction {
     Clone,
     Pop,
     Swap,
+    TypeOf,
     Add,
     #[asm(name = "SUB")] Subtract,
     #[asm(name = "MUL")] Multiply,

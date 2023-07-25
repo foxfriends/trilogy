@@ -50,6 +50,7 @@ impl ProgramReader<'_> {
             OpCode::SetRegister => Ok(Instruction::SetRegister(self.read_offset()?)),
             OpCode::Pop => Ok(Instruction::Pop),
             OpCode::Swap => Ok(Instruction::Swap),
+            OpCode::TypeOf => Ok(Instruction::TypeOf),
             OpCode::Add => Ok(Instruction::Add),
             OpCode::Copy => Ok(Instruction::Copy),
             OpCode::Clone => Ok(Instruction::Clone),

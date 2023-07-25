@@ -78,4 +78,13 @@ impl<'a> Scope<'a> {
             Instruction::Reset
         }
     }
+
+    pub fn intermediate(&mut self) -> usize {
+        self.parameters += 1;
+        self.parameters + self.locals.len() - 1
+    }
+
+    pub fn end_intermediate(&mut self) {
+        self.parameters -= 1;
+    }
 }

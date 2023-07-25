@@ -66,12 +66,15 @@ impl<'a> Context<'a> {
         self.builder.atom(value)
     }
 
-    pub fn declare_variables(&mut self, variables: impl Iterator<Item = Id>) {
+    pub fn declare_variables(&mut self, variables: impl Iterator<Item = Id>) -> usize {
+        let mut n = 0;
         for id in variables {
             if self.scope.declare_variable(id) {
                 self.write_instruction(Instruction::Const(Value::Unit));
+                n += 1;
             }
         }
+        n
     }
 
     pub fn undeclare_variables(&mut self, variables: impl Iterator<Item = Id>, pop: bool) {

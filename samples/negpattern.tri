@@ -1,0 +1,9 @@
+proc matcher!(x) {
+    match x
+        case -y { return y }
+        case 'a(y) { return y }
+}
+
+proc main!() {
+    exit matcher!(5) + matcher!('a(5));
+}
