@@ -7,11 +7,10 @@ pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_f
     write_pattern(context, &expr.value, on_fail);
 }
 
-/// Pattern matches the contents of a particular register with an expression.
-///
-/// On success, the stack now includes the bindings of the expression in separate registers.
-/// On failure, the provided label is jumped to.
-/// In either case, the original value is left unchanged.
+/// Pattern matches the top of the stack with an expression.
+/// * On success, the binding references found in the pattern have been set to the appropriate values.
+/// * On failure, the provided label is jumped to.
+/// * In either case, the original value is consumed.
 pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &str) {
     match &value {
         ir::Value::Mapping(..) => todo!(),
