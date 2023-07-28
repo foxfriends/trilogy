@@ -271,7 +271,7 @@ impl VirtualMachine {
                     match (lhs, rhs) {
                         (Value::Record(record), rhs) => match record.get(&rhs) {
                             Some(value) => ex.stack_push(value),
-                            None => todo!("yield 'MIA"),
+                            None => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                         },
                         (Value::String(lhs), Value::Number(rhs)) => {
                             let ch = rhs
@@ -280,7 +280,7 @@ impl VirtualMachine {
                                 .and_then(|index| lhs.chars().nth(index));
                             match ch {
                                 Some(ch) => ex.stack_push(Value::Char(ch)),
-                                None => todo!("yield 'MIA"),
+                                None => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                             }
                         }
                         (Value::Bits(lhs), Value::Number(rhs)) => {
@@ -290,7 +290,7 @@ impl VirtualMachine {
                                 .and_then(|index| lhs.get(index));
                             match val {
                                 Some(val) => ex.stack_push(Value::Bool(val)),
-                                None => todo!("yield 'MIA"),
+                                None => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                             }
                         }
                         (Value::Array(lhs), Value::Number(rhs)) => {
@@ -300,7 +300,7 @@ impl VirtualMachine {
                                 .and_then(|index| lhs.get(index));
                             match val {
                                 Some(val) => ex.stack_push(val),
-                                None => todo!("yield 'MIA"),
+                                None => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                             }
                         }
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
@@ -318,7 +318,7 @@ impl VirtualMachine {
                             let index = rhs.as_uinteger().and_then(|index| index.to_usize());
                             match index {
                                 Some(index) => lhs.set(index, value),
-                                None => todo!("yield 'MIA"),
+                                None => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                             }
                         }
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
