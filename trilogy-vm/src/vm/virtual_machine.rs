@@ -371,6 +371,22 @@ impl VirtualMachine {
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }
+                OpCode::Contains => {
+                    let key = ex.stack_pop()?;
+                    let value = ex.stack_pop()?;
+                    match value {
+                        Value::Record(record) => {
+                            ex.stack_push(record.contains_key(&key).into());
+                        }
+                        Value::Set(set) => {
+                            ex.stack_push(set.has(&key).into());
+                        }
+                        Value::Array(arr) => {
+                            ex.stack_push(arr.contains(&key).into());
+                        }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    }
+                }
                 OpCode::Entries => {
                     let collection = ex.stack_pop()?;
                     match collection {

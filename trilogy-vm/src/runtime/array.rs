@@ -80,6 +80,10 @@ impl Array {
         array[index] = value;
     }
 
+    pub fn contains(&self, value: &Value) -> bool {
+        self.0.lock().unwrap().contains(value)
+    }
+
     pub fn remove(&self, index: usize) -> Option<Value> {
         let mut array = self.0.lock().unwrap();
         if index <= array.len() {

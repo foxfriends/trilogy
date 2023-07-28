@@ -66,6 +66,7 @@ impl ProgramReader<'_> {
             OpCode::Assign => Ok(Instruction::Assign),
             OpCode::Insert => Ok(Instruction::Insert),
             OpCode::Delete => Ok(Instruction::Delete),
+            OpCode::Contains => Ok(Instruction::Contains),
             OpCode::Entries => Ok(Instruction::Entries),
             OpCode::Skip => Ok(Instruction::Skip),
             OpCode::Take => Ok(Instruction::Take),

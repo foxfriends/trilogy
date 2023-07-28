@@ -184,3 +184,14 @@ fn sample_array_pattern() {
         ])
     ));
 }
+
+#[test]
+fn sample_record_pattern() {
+    let program = include_tri!("record_pattern.tri");
+    let mut map = HashMap::new();
+    map.insert(Value::from(2), Value::from("b"));
+    assert!(StructuralEq::eq(
+        &VirtualMachine::load(program).run().unwrap(),
+        &Value::from(map)
+    ));
+}

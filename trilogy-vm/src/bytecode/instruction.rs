@@ -44,6 +44,7 @@ pub enum Instruction {
     Assign,
     Insert,
     Delete,
+    Contains,
     Entries,
     Length,
     Take,
