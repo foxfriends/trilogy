@@ -326,7 +326,41 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .write_label(end)
                     .unwrap();
             }
-            (None, ir::Value::Builtin(Builtin::Set), ..) => todo!(),
+            (None, ir::Value::Builtin(Builtin::Set), ir::Value::Pack(pack)) => {
+                let cleanup = context.labeler.unique_hint("set_cleanup");
+                let end = context.labeler.unique_hint("set_end");
+                let mut spread = None;
+                context.write_instruction(Instruction::Clone);
+                for element in &pack.values {
+                    if element.is_spread {
+                        spread = Some(&element.expression);
+                        continue;
+                    }
+                    context.write_instruction(Instruction::Copy);
+                    write_expression(context, &element.expression);
+                    context
+                        .write_instruction(Instruction::LoadRegister(1))
+                        .write_instruction(Instruction::LoadRegister(1))
+                        .write_instruction(Instruction::Contains)
+                        .cond_jump(&cleanup);
+                    context.write_instruction(Instruction::Delete);
+                }
+                if let Some(spread) = spread {
+                    write_pattern_match(context, spread, on_fail);
+                } else {
+                    context.write_instruction(Instruction::Pop);
+                }
+                context
+                    .jump(&end)
+                    .write_label(cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .write_instruction(Instruction::Pop)
+                    .write_instruction(Instruction::Pop)
+                    .jump(on_fail)
+                    .write_label(end)
+                    .unwrap();
+            }
             what => panic!("not a pattern ({what:?})"),
         },
         ir::Value::Dynamic(dynamic) => {

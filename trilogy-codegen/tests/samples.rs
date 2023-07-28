@@ -195,3 +195,15 @@ fn sample_record_pattern() {
         &Value::from(map)
     ));
 }
+
+#[test]
+fn sample_set_pattern() {
+    let program = include_tri!("set_pattern.tri");
+    let mut set = HashSet::<Value>::new();
+    set.insert(3.into());
+    set.insert(4.into());
+    assert!(StructuralEq::eq(
+        &VirtualMachine::load(program).run().unwrap(),
+        &Value::from(set)
+    ));
+}

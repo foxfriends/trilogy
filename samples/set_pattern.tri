@@ -1,0 +1,10 @@
+proc main!() {
+    let set = [| 1, 2, 3, 4, 5 |]
+
+    let y = match set
+        case [| 0, 1, 2, ..rest |] then rest
+        case [| 1, 2, 5, ..rest |] then rest
+        else unit
+
+    exit y
+}
