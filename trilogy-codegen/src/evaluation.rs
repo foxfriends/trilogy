@@ -13,15 +13,19 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Pack(pack) => {
             for element in &pack.values {
                 if element.is_spread {
-                    todo!()
-                } else {
-                    write_expression(context, &element.expression);
+                    panic!("spread elements are not available in generalized packs");
                 }
+                write_expression(context, &element.expression);
             }
         }
         ir::Value::Sequence(seq) => {
-            for expr in seq {
+            let mut seq = seq.iter();
+            let Some(mut expr) = seq.next() else { return };
+            loop {
                 write_expression(context, expr);
+                let Some(next_expr) = seq.next() else { break };
+                expr = next_expr;
+                context.write_instruction(Instruction::Pop);
             }
         }
         ir::Value::Assignment(assignment) => match &assignment.lhs.value {
@@ -29,7 +33,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_expression(context, &assignment.rhs);
                 match context.scope.lookup(&var.id) {
                     Some(Binding::Variable(index)) => {
-                        context.write_instruction(Instruction::SetLocal(index));
+                        context
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::SetLocal(index));
                     }
                     _ => unreachable!("Only variables can be assigned to"),
                 }
@@ -84,8 +90,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &stmt.condition);
             context.cond_jump(&end);
             write_expression(context, &stmt.body);
+            context.write_instruction(Instruction::Pop);
             context.jump(&start);
-            context.write_label(end).unwrap();
+            context
+                .write_label(end)
+                .unwrap()
+                .write_instruction(Instruction::Const(Value::Unit));
         }
         ir::Value::Application(application) => match unapply_2(application) {
             (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
@@ -101,36 +111,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     for element in &pack.values {
                         write_expression(context, &element.expression);
                         if element.is_spread {
-                            let spread = context.labeler.unique_hint("spread");
-                            let end_spread = context.labeler.unique_hint("end_spread");
-                            context
-                                .write_instruction(Instruction::Entries)
-                                .write_instruction(Instruction::Const(0.into()))
-                                .write_instruction(Instruction::Swap)
-                                .write_label(spread.clone())
-                                .unwrap()
-                                .write_instruction(Instruction::Copy)
-                                .write_instruction(Instruction::Length)
-                                .write_instruction(Instruction::LoadRegister(2))
-                                .write_instruction(Instruction::ValNeq)
-                                .cond_jump(&end_spread)
-                                .write_instruction(Instruction::Copy)
-                                .write_instruction(Instruction::LoadRegister(2))
-                                .write_instruction(Instruction::Access)
-                                .write_instruction(Instruction::LoadRegister(3))
-                                .write_instruction(Instruction::Swap)
-                                .write_instruction(Instruction::Uncons)
-                                .write_instruction(Instruction::Assign)
-                                .write_instruction(Instruction::Pop)
-                                .write_instruction(Instruction::Swap)
-                                .write_instruction(Instruction::Const(1.into()))
-                                .write_instruction(Instruction::Add)
-                                .write_instruction(Instruction::Swap)
-                                .jump(&spread)
-                                .write_label(end_spread)
-                                .unwrap()
-                                .write_instruction(Instruction::Pop)
-                                .write_instruction(Instruction::Pop);
+                            context.write_instruction(Instruction::Glue);
                         } else {
                             context.write_instruction(Instruction::Assign);
                         }
@@ -144,35 +125,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     for element in &pack.values {
                         write_expression(context, &element.expression);
                         if element.is_spread {
-                            let spread = context.labeler.unique_hint("spread");
-                            let end_spread = context.labeler.unique_hint("end_spread");
-                            context
-                                .write_instruction(Instruction::Entries)
-                                .write_instruction(Instruction::Const(0.into()))
-                                .write_instruction(Instruction::Swap)
-                                .write_label(spread.clone())
-                                .unwrap()
-                                .write_instruction(Instruction::Copy)
-                                .write_instruction(Instruction::Length)
-                                .write_instruction(Instruction::LoadRegister(2))
-                                .write_instruction(Instruction::ValNeq)
-                                .cond_jump(&end_spread)
-                                .write_instruction(Instruction::Copy)
-                                .write_instruction(Instruction::LoadRegister(2))
-                                .write_instruction(Instruction::Access)
-                                .write_instruction(Instruction::LoadRegister(3))
-                                .write_instruction(Instruction::Swap)
-                                .write_instruction(Instruction::Insert)
-                                .write_instruction(Instruction::Pop)
-                                .write_instruction(Instruction::Swap)
-                                .write_instruction(Instruction::Const(1.into()))
-                                .write_instruction(Instruction::Add)
-                                .write_instruction(Instruction::Swap)
-                                .jump(&spread)
-                                .write_label(end_spread)
-                                .unwrap()
-                                .write_instruction(Instruction::Pop)
-                                .write_instruction(Instruction::Pop);
+                            context.write_instruction(Instruction::Glue);
                         } else {
                             context.write_instruction(Instruction::Insert);
                         }
@@ -186,34 +139,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     for element in &pack.values {
                         write_expression(context, &element.expression);
                         if element.is_spread {
-                            let spread = context.labeler.unique_hint("spread");
-                            let end_spread = context.labeler.unique_hint("end_spread");
-                            context
-                                .write_instruction(Instruction::Const(0.into()))
-                                .write_instruction(Instruction::Swap)
-                                .write_label(spread.clone())
-                                .unwrap()
-                                .write_instruction(Instruction::Copy)
-                                .write_instruction(Instruction::Length)
-                                .write_instruction(Instruction::LoadRegister(2))
-                                .write_instruction(Instruction::ValNeq)
-                                .cond_jump(&end_spread)
-                                .write_instruction(Instruction::Copy)
-                                .write_instruction(Instruction::LoadRegister(2))
-                                .write_instruction(Instruction::Access)
-                                .write_instruction(Instruction::LoadRegister(3))
-                                .write_instruction(Instruction::Swap)
-                                .write_instruction(Instruction::Insert)
-                                .write_instruction(Instruction::Pop)
-                                .write_instruction(Instruction::Swap)
-                                .write_instruction(Instruction::Const(1.into()))
-                                .write_instruction(Instruction::Add)
-                                .write_instruction(Instruction::Swap)
-                                .jump(&spread)
-                                .write_label(end_spread)
-                                .unwrap()
-                                .write_instruction(Instruction::Pop)
-                                .write_instruction(Instruction::Pop);
+                            context.write_instruction(Instruction::Glue);
                         } else {
                             context.write_instruction(Instruction::Insert);
                         }

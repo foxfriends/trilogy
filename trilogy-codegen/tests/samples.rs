@@ -154,3 +154,12 @@ fn r#match() {
         Value::from(21)
     );
 }
+
+#[test]
+fn glue() {
+    let program = include_tri!("glue.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from("worldworld")
+    );
+}

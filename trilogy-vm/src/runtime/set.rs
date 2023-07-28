@@ -32,6 +32,11 @@ impl Set {
         self.0.lock().unwrap().remove(value)
     }
 
+    pub fn union(&self, other: &Set) {
+        let mut other = other.0.lock().unwrap().clone();
+        self.0.lock().unwrap().extend(other.drain());
+    }
+
     pub fn len(&self) -> usize {
         self.0.lock().unwrap().len()
     }

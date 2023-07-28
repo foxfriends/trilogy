@@ -93,12 +93,24 @@ impl Array {
         self.0.lock().unwrap().push(value);
     }
 
+    pub fn append(&self, other: &Array) {
+        let mut other = other.0.lock().unwrap().clone();
+        self.0.lock().unwrap().append(&mut other);
+    }
+
     pub fn len(&self) -> usize {
         self.0.lock().unwrap().len()
     }
 
     pub fn is_empty(&self) -> bool {
         self.0.lock().unwrap().is_empty()
+    }
+
+    pub fn range<I>(&self, range: I) -> Self
+    where
+        Vec<Value>: std::ops::Index<I, Output = [Value]>,
+    {
+        self.0.lock().unwrap()[range].to_vec().into()
     }
 }
 

@@ -111,7 +111,84 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .write_instruction(Instruction::ValEq)
                     .cond_jump(on_fail);
             }
-            (Some(ir::Value::Builtin(Builtin::Glue)), ..) => todo!(),
+            (Some(ir::Value::Builtin(Builtin::Glue)), lhs @ ir::Value::String(..), rhs) => {
+                let end = context.labeler.unique_hint("glue_end");
+                let cleanup = context.labeler.unique_hint("glue_cleanup");
+                let double_cleanup = context.labeler.unique_hint("glue_cleanup2");
+                context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::TypeOf)
+                    .write_instruction(Instruction::Const("string".into()))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup);
+                write_evaluation(context, lhs);
+                context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::Length)
+                    .write_instruction(Instruction::LoadRegister(2))
+                    .write_instruction(Instruction::Swap)
+                    .write_instruction(Instruction::Take)
+                    .write_instruction(Instruction::LoadRegister(1))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(&double_cleanup)
+                    .write_instruction(Instruction::Length)
+                    .write_instruction(Instruction::Skip);
+                write_pattern(context, rhs, on_fail);
+                context
+                    .jump(&end)
+                    .write_label(double_cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .write_label(cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .jump(on_fail)
+                    .write_label(end)
+                    .unwrap();
+            }
+            (Some(ir::Value::Builtin(Builtin::Glue)), lhs, rhs @ ir::Value::String(..)) => {
+                let end = context.labeler.unique_hint("glue_end");
+                let cleanup = context.labeler.unique_hint("glue_cleanup");
+                let double_cleanup = context.labeler.unique_hint("glue_cleanup2");
+                context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::TypeOf)
+                    .write_instruction(Instruction::Const("string".into()))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup);
+                write_evaluation(context, rhs);
+                context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::Length)
+                    .write_instruction(Instruction::LoadRegister(2))
+                    .write_instruction(Instruction::Length)
+                    .write_instruction(Instruction::Swap)
+                    .write_instruction(Instruction::Subtract)
+                    .write_instruction(Instruction::LoadRegister(2))
+                    .write_instruction(Instruction::Swap)
+                    .write_instruction(Instruction::Skip)
+                    .write_instruction(Instruction::LoadRegister(1))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(&double_cleanup)
+                    .write_instruction(Instruction::Length)
+                    .write_instruction(Instruction::LoadRegister(1))
+                    .write_instruction(Instruction::Length)
+                    .write_instruction(Instruction::Swap)
+                    .write_instruction(Instruction::Subtract)
+                    .write_instruction(Instruction::Take);
+                write_pattern(context, lhs, on_fail);
+                context
+                    .jump(&end)
+                    .write_label(double_cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .write_label(cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .jump(on_fail)
+                    .write_label(end)
+                    .unwrap();
+            }
             (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
                 let cleanup = context.labeler.unique();
                 context

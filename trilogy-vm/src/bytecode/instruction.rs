@@ -9,20 +9,27 @@ pub type Offset = usize;
 #[derive(Debug, Tags, Asm)]
 #[tags(name = OpCode, derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
 pub enum Instruction {
+    // Stack
     Const(Value),
-    #[asm(name = "LOAD")] Load,
-    #[asm(name = "SET")] Set,
-    Alloc,
-    Free,
-    #[asm(name = "LOADL")] LoadLocal(Offset),
-    #[asm(name = "SETL")] SetLocal(Offset),
-    #[asm(name = "LOADR")] LoadRegister(Offset),
-    #[asm(name = "SETR")] SetRegister(Offset),
     Copy,
     Clone,
     Pop,
     Swap,
     TypeOf,
+
+    // Heap (why?)
+    #[asm(name = "LOAD")] Load,
+    #[asm(name = "SET")] Set,
+    Alloc,
+    Free,
+
+    // Variables
+    #[asm(name = "LOADL")] LoadLocal(Offset),
+    #[asm(name = "SETL")] SetLocal(Offset),
+    #[asm(name = "LOADR")] LoadRegister(Offset),
+    #[asm(name = "SETR")] SetRegister(Offset),
+
+    // Numbers
     Add,
     #[asm(name = "SUB")] Subtract,
     #[asm(name = "MUL")] Multiply,
@@ -31,28 +38,42 @@ pub enum Instruction {
     #[asm(name = "INTDIV")] IntDivide,
     #[asm(name = "POW")] Power,
     #[asm(name = "NEG")] Negate,
-    Glue,
+
+    // Collections
     Access,
     Assign,
     Insert,
     Delete,
     Entries,
     Length,
+    Take,
+    Skip,
+    Glue,
+
+    // Booleans
     Not,
     And,
     Or,
+
+    // Bits
     #[asm(name = "BITAND")] BitwiseAnd,
     #[asm(name = "BITOR")] BitwiseOr,
     #[asm(name = "BITXOR")] BitwiseXor,
     #[asm(name = "BITNEG")] BitwiseNeg,
     #[asm(name = "LSHIFT")] LeftShift,
     #[asm(name = "RSHIFT")] RightShift,
+
+    // Tuples
     Cons,
     Uncons,
     First,
     Second,
+
+    // Structs
     Construct,
     Destruct,
+
+    // Comparison
     Leq,
     Lt,
     Geq,
@@ -61,6 +82,8 @@ pub enum Instruction {
     ValEq,
     RefNeq,
     ValNeq,
+
+    // Control Flow
     Call(Offset),
     Return,
     Shift(Offset),

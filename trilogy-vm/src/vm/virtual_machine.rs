@@ -208,6 +208,60 @@ impl VirtualMachine {
                         (Value::String(lhs), Value::String(rhs)) => {
                             ex.stack_push(Value::String(lhs + &rhs))
                         }
+                        (Value::Array(lhs), Value::Array(rhs)) => {
+                            lhs.append(&rhs);
+                            ex.stack_push(Value::Array(lhs));
+                        }
+                        (Value::Set(lhs), Value::Set(rhs)) => {
+                            lhs.union(&rhs);
+                            ex.stack_push(Value::Set(lhs));
+                        }
+                        (Value::Record(lhs), Value::Record(rhs)) => {
+                            lhs.union(&rhs);
+                            ex.stack_push(Value::Record(lhs));
+                        }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    }
+                }
+                OpCode::Skip => {
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let count = match rhs {
+                        Value::Number(number) if number.is_uinteger() => number
+                            .as_uinteger()
+                            .unwrap()
+                            .to_usize()
+                            .ok_or(ex.error(ErrorKind::RuntimeTypeError))?,
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    };
+                    match lhs {
+                        Value::String(lhs) => {
+                            ex.stack_push(Value::String(lhs.chars().skip(count).collect()))
+                        }
+                        Value::Array(lhs) => {
+                            ex.stack_push(Value::Array(lhs.range(count..).to_owned()))
+                        }
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    }
+                }
+                OpCode::Take => {
+                    let rhs = ex.stack_pop()?;
+                    let lhs = ex.stack_pop()?;
+                    let count = match rhs {
+                        Value::Number(number) if number.is_uinteger() => number
+                            .as_uinteger()
+                            .unwrap()
+                            .to_usize()
+                            .ok_or(ex.error(ErrorKind::RuntimeTypeError))?,
+                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
+                    };
+                    match lhs {
+                        Value::String(lhs) => {
+                            ex.stack_push(Value::String(lhs.chars().take(count).collect()));
+                        }
+                        Value::Array(lhs) => {
+                            ex.stack_push(Value::Array(lhs.range(..count).to_owned()));
+                        }
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
                 }

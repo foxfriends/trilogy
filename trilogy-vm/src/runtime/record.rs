@@ -58,6 +58,11 @@ impl Record {
         self.0.lock().unwrap().insert(key, value)
     }
 
+    pub fn union(&self, other: &Record) {
+        let mut other = other.0.lock().unwrap().clone();
+        self.0.lock().unwrap().extend(other.drain());
+    }
+
     pub fn remove(&self, key: &Value) -> Option<Value> {
         self.0.lock().unwrap().remove(key)
     }
