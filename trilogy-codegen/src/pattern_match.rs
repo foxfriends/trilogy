@@ -236,9 +236,56 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .unwrap();
                 write_pattern(context, rhs, on_fail);
             }
-            (Some(ir::Value::Builtin(Builtin::Array)), ..) => todo!(),
-            (Some(ir::Value::Builtin(Builtin::Record)), ..) => todo!(),
-            (Some(ir::Value::Builtin(Builtin::Set)), ..) => todo!(),
+            (None, ir::Value::Builtin(Builtin::Array), ir::Value::Pack(pack)) => {
+                let cleanup = context.labeler.unique_hint("array_cleanup");
+                let end = context.labeler.unique_hint("array_end");
+                let mut spread = None;
+                context.write_instruction(Instruction::Clone);
+                for element in &pack.values {
+                    if element.is_spread {
+                        spread = Some(&element.expression);
+                        continue;
+                    }
+                    // TODO: this could be way more efficient
+                    if spread.is_none() {
+                        context
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Const(0.into()))
+                            .write_instruction(Instruction::Access);
+                        write_pattern_match(context, &element.expression, &cleanup);
+                        context
+                            .write_instruction(Instruction::Const(1.into()))
+                            .write_instruction(Instruction::Skip);
+                    } else {
+                        context
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Length)
+                            .write_instruction(Instruction::Const(1.into()))
+                            .write_instruction(Instruction::Subtract)
+                            .write_instruction(Instruction::LoadRegister(1))
+                            .write_instruction(Instruction::LoadRegister(1))
+                            .write_instruction(Instruction::Access);
+                        write_pattern_match(context, &element.expression, &cleanup);
+                        context.write_instruction(Instruction::Take);
+                    }
+                }
+                if let Some(spread) = spread {
+                    write_pattern_match(context, spread, on_fail);
+                } else {
+                    context.write_instruction(Instruction::Pop);
+                }
+                context
+                    .jump(&end)
+                    .write_label(cleanup)
+                    .unwrap()
+                    .write_instruction(Instruction::Pop)
+                    .write_instruction(Instruction::Pop)
+                    .jump(on_fail)
+                    .write_label(end)
+                    .unwrap();
+            }
+            (None, ir::Value::Builtin(Builtin::Record), ..) => todo!(),
+            (None, ir::Value::Builtin(Builtin::Set), ..) => todo!(),
             what => panic!("not a pattern ({what:?})"),
         },
         ir::Value::Dynamic(dynamic) => {

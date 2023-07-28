@@ -111,7 +111,7 @@ impl VirtualMachine {
                     ex.stack_push(value);
                 }
                 OpCode::Clone => {
-                    let value = ex.read_register(0)?;
+                    let value = ex.stack_pop()?;
                     ex.stack_push(value.structural_clone());
                 }
                 OpCode::TypeOf => {

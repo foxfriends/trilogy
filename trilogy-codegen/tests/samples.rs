@@ -163,3 +163,24 @@ fn glue() {
         Value::from("worldworld")
     );
 }
+
+#[test]
+fn sample_array_pattern() {
+    let program = include_tri!("array_pattern.tri");
+    assert!(StructuralEq::eq(
+        &VirtualMachine::load(program).run().unwrap(),
+        &Value::from(vec![
+            Value::from(2),
+            3.into(),
+            4.into(),
+            5.into(),
+            2.into(),
+            3.into(),
+            4.into(),
+            1.into(),
+            2.into(),
+            3.into(),
+            4.into(),
+        ])
+    ));
+}

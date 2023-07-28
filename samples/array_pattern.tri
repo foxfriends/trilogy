@@ -1,0 +1,7 @@
+proc main!() {
+    let x = [1, 2, 3, 4, 5];
+    let [1, ..y] = x;
+    let [..z, 5] = x;
+    let [1, ..m, 5] = x;
+    exit [..y, ..m, ..z];
+}
