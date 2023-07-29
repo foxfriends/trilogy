@@ -606,6 +606,18 @@ impl VirtualMachine {
                     ex.r#return()?;
                     ex.stack_push(return_value);
                 }
+                OpCode::Close => {
+                    let jump = ex.read_offset(&self.program.instructions)?;
+                    let closure = ex.current_closure();
+                    ex.stack_push(Value::Procedure(closure));
+                    ex.ip += jump;
+                }
+                OpCode::CloseBack => {
+                    let jump = ex.read_offset(&self.program.instructions)?;
+                    let closure = ex.current_closure();
+                    ex.stack_push(Value::Procedure(closure));
+                    ex.ip -= jump;
+                }
                 OpCode::Shift => {
                     let jump = ex.read_offset(&self.program.instructions)?;
                     let continuation = ex.current_continuation();

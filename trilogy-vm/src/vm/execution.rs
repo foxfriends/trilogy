@@ -45,6 +45,10 @@ impl Execution {
         Continuation::new(self.ip, self.stack.branch())
     }
 
+    pub fn current_closure(&mut self) -> Procedure {
+        Procedure::new_closure(self.ip, self.stack.branch())
+    }
+
     pub fn call_continuation(
         &mut self,
         continuation: Continuation,
@@ -76,13 +80,13 @@ impl Execution {
     }
 
     fn call_procedure(&mut self, procedure: Procedure, args: Vec<Value>) {
-        self.stack.push_frame(self.ip, args);
+        self.stack.push_frame(self.ip, args, procedure.stack());
         self.ip = procedure.ip();
     }
 
     fn become_procedure(&mut self, procedure: Procedure, args: Vec<Value>) -> Result<(), Error> {
         let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-        self.stack.push_frame(ip, args);
+        self.stack.push_frame(ip, args, procedure.stack());
         self.ip = procedure.ip();
         Ok(())
     }

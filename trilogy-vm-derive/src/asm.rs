@@ -114,7 +114,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
 
             fn parse_asm(src: &str, ctx: &mut crate::bytecode::asm::AsmContext) -> Result<Self, crate::bytecode::asm::ErrorKind> {
                 let (opcode, param) = src
-                    .split_once(' ')
+                    .split_once(|ch: char| ch.is_ascii_whitespace())
                     .map(|(opcode, param)| (opcode, Some(param)))
                     .unwrap_or((src, None));
                 match opcode {

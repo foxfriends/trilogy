@@ -14,7 +14,6 @@ pub(crate) struct Scope<'a> {
     locals: HashMap<Id, usize>,
     parameters: usize,
 
-    kw_return: usize,
     #[allow(dead_code)]
     kw_resume: Option<usize>,
     #[allow(dead_code)]
@@ -31,7 +30,6 @@ impl<'a> Scope<'a> {
             parameters,
             statics,
             locals: HashMap::default(),
-            kw_return: 0,
             kw_resume: None,
             kw_cancel: None,
             kw_break: vec![],
@@ -61,22 +59,12 @@ impl<'a> Scope<'a> {
 
     pub fn closure(&mut self, parameters: usize) -> usize {
         let offset = self.parameters + self.locals.len();
-        self.kw_return += 1;
         self.parameters += parameters;
         offset
     }
 
     pub fn unclosure(&mut self, parameters: usize) {
-        self.kw_return -= 1;
         self.parameters -= parameters;
-    }
-
-    pub fn kw_return(&self) -> Instruction {
-        if self.kw_return == 0 {
-            Instruction::Return
-        } else {
-            Instruction::Reset
-        }
     }
 
     pub fn intermediate(&mut self) -> usize {

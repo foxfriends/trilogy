@@ -1,20 +1,74 @@
-use std::fmt::Display;
+use crate::vm::Stack;
+use std::fmt::{self, Debug, Display};
+use std::hash::Hash;
+use std::sync::Arc;
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct Procedure(usize);
+#[derive(Clone)]
+pub struct Procedure(Arc<InnerProcedure>);
+
+impl Debug for Procedure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Procedure")
+            .field("ip", &self.0.ip)
+            .field("stack", &self.0.stack)
+            .finish()
+    }
+}
+
+impl Eq for Procedure {}
+
+impl PartialEq for Procedure {
+    fn eq(&self, other: &Self) -> bool {
+        if self.0.stack.is_none() && other.0.stack.is_none() {
+            self.0.ip == other.0.ip
+        } else {
+            Arc::ptr_eq(&self.0, &other.0)
+        }
+    }
+}
+
+impl Hash for Procedure {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        Arc::as_ptr(&self.0).hash(state);
+    }
+}
+
+#[derive(Clone, Debug)]
+struct InnerProcedure {
+    ip: usize,
+    stack: Option<Stack>,
+}
 
 impl Procedure {
     pub(crate) fn new(pointer: usize) -> Self {
-        Self(pointer)
+        Self(Arc::new(InnerProcedure {
+            ip: pointer,
+            stack: None,
+        }))
+    }
+
+    pub(crate) fn new_closure(pointer: usize, stack: Stack) -> Self {
+        Self(Arc::new(InnerProcedure {
+            ip: pointer,
+            stack: Some(stack),
+        }))
     }
 
     pub(crate) fn ip(&self) -> usize {
-        self.0
+        self.0.ip
+    }
+
+    pub(crate) fn stack(&self) -> Option<Stack> {
+        self.0.stack.clone()
     }
 }
 
 impl Display for Procedure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "&({})", self.0)
+        write!(f, "&({})", self.0.ip)?;
+        if self.0.stack.is_some() {
+            write!(f, " [closure]")?;
+        }
+        Ok(())
     }
 }

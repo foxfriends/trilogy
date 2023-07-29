@@ -52,6 +52,13 @@ impl<'a> Context<'a> {
         self
     }
 
+    pub fn close(&mut self, label: &str) -> &mut Self {
+        self.builder
+            .write_opcode(OpCode::Close)
+            .write_offset_label(label.to_owned());
+        self
+    }
+
     pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
         self.builder.write_instruction(instruction);
         self

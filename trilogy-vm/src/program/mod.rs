@@ -116,6 +116,30 @@ impl Display for Program {
                         write!(f, "\t{}", instruction)?;
                     }
                 }
+                Instruction::Close(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip + offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        write!(f, "\tCLOSE &{label:?}")?;
+                    } else {
+                        write!(f, "\t{}", instruction)?;
+                    }
+                }
+                Instruction::CloseBack(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip - offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        write!(f, "\tRCLOSE &{label:?}")?;
+                    } else {
+                        write!(f, "\t{}", instruction)?;
+                    }
+                }
                 Instruction::Shift(offset) => {
                     if let Some(label) = labels_per_line
                         .get(&(ip + offset + 5))
@@ -130,7 +154,7 @@ impl Display for Program {
                 }
                 Instruction::ShiftBack(offset) => {
                     if let Some(label) = labels_per_line
-                        .get(&(ip + offset + 5))
+                        .get(&(ip - offset + 5))
                         .into_iter()
                         .flatten()
                         .next()

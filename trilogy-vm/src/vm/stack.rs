@@ -6,7 +6,11 @@ use std::fmt::{self, Debug, Display};
 #[derive(Clone, Debug)]
 enum InternalValue {
     Value(Value),
-    Return { ip: usize, frame: usize },
+    Return {
+        ip: usize,
+        frame: usize,
+        ghost: Option<Stack>,
+    },
     Pointer(usize),
 }
 
@@ -30,7 +34,22 @@ impl Display for InternalValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InternalValue::Value(value) => write!(f, "{value}"),
-            InternalValue::Return { ip, .. } => write!(f, "-> {ip}"),
+            InternalValue::Return {
+                ip, ghost: None, ..
+            } => write!(f, "-> {ip}"),
+            InternalValue::Return {
+                ip,
+                ghost: Some(ghost),
+                ..
+            } => {
+                let ghost_str = format!("{}", ghost)
+                    .lines()
+                    .map(|line| format!("\t{line}"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                writeln!(f, "{}", ghost_str)?;
+                write!(f, "-> {ip}\t[closure]")
+            }
             InternalValue::Pointer(offset) => write!(f, "&{offset}"),
         }
     }
@@ -205,8 +224,14 @@ impl Stack {
     }
 
     pub(crate) fn at_local(&self, index: usize) -> Result<Value, InternalRuntimeError> {
+        let register = self.count_locals() - index - 1;
+        let local_locals = self.len() - self.frame;
+        if register >= local_locals {
+            let InternalValue::Return{ ghost: Some(stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            return stack.at_local(index);
+        }
         self.cactus
-            .at(self.len() - 1 - self.frame - index)
+            .at(register)
             .ok_or(InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
@@ -224,16 +249,20 @@ impl Stack {
                 .cactus
                 .pop()
                 .ok_or(InternalRuntimeError::ExpectedReturn)?;
-            if let InternalValue::Return { ip, frame } = popped {
+            if let InternalValue::Return { ip, frame, .. } = popped {
                 self.frame = frame;
                 return Ok(ip);
             }
         }
     }
 
-    pub(crate) fn push_frame(&mut self, ip: usize, arguments: Vec<Value>) {
+    pub(crate) fn push_frame(&mut self, ip: usize, arguments: Vec<Value>, stack: Option<Stack>) {
         let frame = self.frame;
-        self.cactus.push(InternalValue::Return { ip, frame });
+        self.cactus.push(InternalValue::Return {
+            ip,
+            frame,
+            ghost: stack,
+        });
         self.frame = self.len();
         self.push_many(arguments);
     }
@@ -258,11 +287,13 @@ impl Stack {
         index: usize,
         value: Value,
     ) -> Result<Value, InternalRuntimeError> {
+        let register = self.count_locals() - index - 1;
+        let local_locals = self.len() - self.frame;
+        if register >= local_locals {
+            todo!()
+        }
         self.cactus
-            .replace_at(
-                self.len() - 1 - self.frame - index,
-                InternalValue::Value(value),
-            )
+            .replace_at(register, InternalValue::Value(value))
             .map_err(|_| InternalRuntimeError::ExpectedValue)
             .and_then(InternalValue::try_into_value)
     }
@@ -278,7 +309,17 @@ impl Stack {
             .collect()
     }
 
-    pub(crate) fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.cactus.len()
+    }
+
+    fn count_locals(&self) -> usize {
+        let local_locals = self.len() - self.frame;
+        match self.cactus.at(self.len() - self.frame) {
+            Some(InternalValue::Return {
+                ghost: Some(stack), ..
+            }) => stack.count_locals() + local_locals,
+            _ => local_locals,
+        }
     }
 }

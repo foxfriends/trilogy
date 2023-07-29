@@ -1,7 +1,5 @@
-use crate::{
-    preamble::{END, RESET},
-    prelude::*,
-};
+use crate::preamble::{END, RETURN};
+use crate::prelude::*;
 use trilogy_ir::ir;
 use trilogy_vm::{Instruction, Value};
 
@@ -231,14 +229,13 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Fn(closure) => {
             let end = context.labeler.unique_hint("end_fn");
-            let mut args = vec![];
+            let params = context.scope.closure(closure.parameters.len());
             for i in 0..closure.parameters.len() {
-                args.push(context.scope.closure(1));
-                context.shift(if i == 0 { &end } else { RESET });
+                context.close(if i == 0 { &end } else { RETURN });
             }
             for (i, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
-                context.write_instruction(Instruction::LoadLocal(args[i]));
+                context.write_instruction(Instruction::LoadLocal(params + i));
                 write_pattern_match(context, parameter, END);
             }
             write_expression(context, &closure.body);
@@ -251,24 +248,21 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Do(closure) => {
             let end = context.labeler.unique_hint("end_do");
-            context.shift(&end);
             let param_start = context.scope.closure(closure.parameters.len());
-
+            context.close(&end);
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context.write_instruction(Instruction::LoadLocal(param_start + offset));
                 write_pattern_match(context, parameter, END);
             }
             write_expression(context, &closure.body);
+            context
+                .write_instruction(Instruction::Const(Value::Unit))
+                .write_instruction(Instruction::Return)
+                .write_label(end);
             for parameter in closure.parameters.iter().rev() {
                 context.undeclare_variables(parameter.bindings(), false);
             }
-
-            context
-                .write_instruction(Instruction::Const(Value::Unit))
-                .write_instruction(Instruction::Reset)
-                .write_label(end);
-
             context.scope.unclosure(closure.parameters.len());
         }
         ir::Value::Handled(..) => todo!("{value:?}"),

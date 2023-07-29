@@ -126,7 +126,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             .write_instruction(Instruction::Call(1)),
         Builtin::RPipe => context.write_instruction(Instruction::Call(1)),
         Builtin::Exit => context.write_instruction(Instruction::Exit),
-        Builtin::Return => context.write_instruction(context.scope.kw_return()),
+        Builtin::Return => context.write_instruction(Instruction::Return),
         Builtin::Break => context
             .write_instruction(context.scope.kw_break().unwrap())
             .write_instruction(Instruction::Const(trilogy_vm::Value::Unit))

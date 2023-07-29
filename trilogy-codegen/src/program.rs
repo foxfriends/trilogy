@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-
 use crate::context::{Labeler, Scope};
-use crate::preamble::{RESET, RETURN};
+use crate::preamble::RETURN;
 use crate::prelude::*;
 use trilogy_ir::{ir, Id};
 use trilogy_vm::{Instruction, OpCode, ProgramBuilder};
@@ -70,12 +69,10 @@ impl ProgramContext<'_> {
         self.write_label(beginning);
         let for_id = self.labeler.for_id(&function.name.id);
         self.write_label(for_id);
-        let mut context = self.begin(statics, 1);
-
         let arity = function.overloads[0].parameters.len();
-        for i in 1..arity {
-            context.shift(if i == 1 { RETURN } else { RESET });
-            context.scope.closure(1);
+        let mut context = self.begin(statics, arity);
+        for _ in 1..arity {
+            context.close(RETURN);
         }
         for overload in &function.overloads {
             write_function(&mut context, overload);

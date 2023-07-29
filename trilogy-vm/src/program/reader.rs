@@ -99,6 +99,8 @@ impl ProgramReader<'_> {
             OpCode::Return => Ok(Instruction::Return),
             OpCode::Shift => Ok(Instruction::Shift(self.read_offset()?)),
             OpCode::ShiftBack => Ok(Instruction::ShiftBack(self.read_offset()?)),
+            OpCode::Close => Ok(Instruction::Close(self.read_offset()?)),
+            OpCode::CloseBack => Ok(Instruction::CloseBack(self.read_offset()?)),
             OpCode::Reset => Ok(Instruction::Reset),
             OpCode::Jump => Ok(Instruction::Jump(self.read_offset()?)),
             OpCode::JumpBack => Ok(Instruction::JumpBack(self.read_offset()?)),
