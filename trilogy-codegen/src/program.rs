@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use crate::context::{Labeler, Scope};
 use crate::preamble::RETURN;
 use crate::prelude::*;
+use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
 use trilogy_vm::{Instruction, OpCode, ProgramBuilder};
 
