@@ -60,15 +60,15 @@ impl<'a> Scope<'a> {
     }
 
     pub fn closure(&mut self, parameters: usize) -> usize {
-        let offset = self.parameters + self.locals.len() + 1;
+        let offset = self.parameters + self.locals.len();
         self.kw_return += 1;
-        self.parameters += parameters + 1;
+        self.parameters += parameters;
         offset
     }
 
     pub fn unclosure(&mut self, parameters: usize) {
         self.kw_return -= 1;
-        self.parameters -= parameters + 1;
+        self.parameters -= parameters;
     }
 
     pub fn kw_return(&self) -> Instruction {

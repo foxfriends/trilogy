@@ -119,7 +119,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .write_instruction(Instruction::LoadLocal(0))
         .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::LoadLocal(2))
+        .write_instruction(Instruction::LoadLocal(1))
         .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
         .write_instruction(Instruction::Reset);
@@ -127,11 +127,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .write_label(COMPOSE.to_owned())
         .shift(RETURN)
         .shift(RESET)
-        .write_instruction(Instruction::LoadLocal(2))
-        .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::LoadLocal(0))
-        .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
         .write_instruction(Instruction::Reset);
 

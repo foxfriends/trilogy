@@ -82,7 +82,7 @@ with:
         EXIT
 when:
     SHIFT &resume       # 1 -> when (reset)
-        LOADL 3         # 2 -> cancel; 3 -> resume; 4 -> 1
+        LOADL 2         # 2 -> cancel; 3 -> resume; 4 -> 1
         SWAP
         # resume
         CALL 1

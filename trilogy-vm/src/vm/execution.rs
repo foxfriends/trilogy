@@ -1,13 +1,14 @@
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Stack};
 use crate::bytecode::OpCode;
-use crate::runtime::Continuation;
+use crate::runtime::{Continuation, Procedure};
 use crate::Value;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Execution {
-    stack: Stack,
     pub ip: usize,
+    stack: Stack,
+    stack_stack: Vec<(usize, Stack)>,
 }
 
 impl Execution {
@@ -15,6 +16,7 @@ impl Execution {
         let branch = self.stack.branch();
         Self {
             stack: branch,
+            stack_stack: vec![],
             ip: self.ip,
         }
     }
@@ -46,21 +48,30 @@ impl Execution {
     pub fn call_continuation(
         &mut self,
         continuation: Continuation,
-        arity: usize,
+        args: Vec<Value>,
     ) -> Result<(), Error> {
         let running_stack = continuation.stack();
-        self.stack
-            .continue_on(running_stack, arity)
-            .map_err(|k| self.error(k))?;
+        let paused_stack = std::mem::replace(&mut self.stack, running_stack);
+        self.stack_stack.push((self.ip, paused_stack));
+        self.stack.push_many(args);
         self.ip = continuation.ip();
         Ok(())
     }
 
     pub fn reset_continuation(&mut self) -> Result<(), Error> {
-        self.stack.return_to().map_err(|k| self.error(k))?;
-        let ip = self.stack.pop_return().map_err(|k| self.error(k))?;
+        let (ip, running_stack) = self.stack_stack.pop().ok_or_else(|| {
+            self.error(ErrorKind::InternalRuntimeError(
+                InternalRuntimeError::ExpectedStack,
+            ))
+        })?;
         self.ip = ip;
+        self.stack = running_stack;
         Ok(())
+    }
+
+    fn call_procedure(&mut self, procedure: Procedure, args: Vec<Value>) {
+        self.stack.push_frame(self.ip, args);
+        self.ip = procedure.ip();
     }
 
     pub fn error<K>(&self, kind: K) -> Error
@@ -107,16 +118,14 @@ impl Execution {
     }
 
     pub fn call(&mut self, arity: usize) -> Result<(), Error> {
-        let callable = self
-            .stack
-            .replace_with_return(arity, self.ip)
-            .map_err(|k| self.error(k))?;
+        let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
+        let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
             Value::Continuation(continuation) => {
-                self.call_continuation(continuation, arity)?;
+                self.call_continuation(continuation, arguments)?;
             }
             Value::Procedure(procedure) => {
-                self.ip = procedure.ip();
+                self.call_procedure(procedure, arguments);
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
@@ -128,7 +137,7 @@ impl Execution {
     }
 
     pub fn r#return(&mut self) -> Result<(), Error> {
-        let ip = self.stack.pop_return().map_err(|k| self.error(k))?;
+        let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
         self.ip = ip;
         Ok(())
     }

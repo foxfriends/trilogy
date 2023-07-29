@@ -6,7 +6,7 @@ pub(crate) fn write_function(context: &mut Context, function: &ir::Function) {
     let mut cleanup = vec![context.labeler.unique_hint("next")];
     for (i, parameter) in function.parameters.iter().enumerate() {
         context.declare_variables(parameter.bindings());
-        context.write_instruction(Instruction::LoadLocal(i * 2));
+        context.write_instruction(Instruction::LoadLocal(i));
         write_pattern_match(context, parameter, &cleanup[i]);
         cleanup.push(context.labeler.unique_hint("cleanup"));
     }
