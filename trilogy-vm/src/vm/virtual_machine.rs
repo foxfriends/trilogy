@@ -608,6 +608,12 @@ impl VirtualMachine {
                     ex.stack_push(Value::Continuation(continuation));
                     ex.ip += jump;
                 }
+                OpCode::ShiftBack => {
+                    let jump = ex.read_offset(&self.program.instructions)?;
+                    let continuation = ex.current_continuation();
+                    ex.stack_push(Value::Continuation(continuation));
+                    ex.ip -= jump;
+                }
                 OpCode::Reset => {
                     let return_value = ex.stack_pop()?;
                     ex.reset_continuation()?;

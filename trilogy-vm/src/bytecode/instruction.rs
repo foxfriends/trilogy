@@ -61,8 +61,8 @@ pub enum Instruction {
     #[asm(name = "BITOR")] BitwiseOr,
     #[asm(name = "BITXOR")] BitwiseXor,
     #[asm(name = "BITNEG")] BitwiseNeg,
-    #[asm(name = "LSHIFT")] LeftShift,
-    #[asm(name = "RSHIFT")] RightShift,
+    #[asm(name = "BITSHIFTL")] LeftShift,
+    #[asm(name = "BITSHIFTR")] RightShift,
 
     // Tuples
     Cons,
@@ -88,6 +88,7 @@ pub enum Instruction {
     Call(Offset),
     Return,
     Shift(Offset),
+    #[asm(name = "RSHIFT")] ShiftBack(Offset),
     Reset,
     Jump(Offset),
     #[asm(name = "RJUMP")] JumpBack(Offset),
@@ -108,6 +109,7 @@ impl Instruction {
             Self::SetRegister(..) => 5,
             Self::Call(..) => 5,
             Self::Shift(..) => 5,
+            Self::ShiftBack(..) => 5,
             Self::Jump(..) => 5,
             Self::JumpBack(..) => 5,
             Self::CondJump(..) => 5,

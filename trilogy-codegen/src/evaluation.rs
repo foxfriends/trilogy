@@ -1,4 +1,7 @@
-use crate::prelude::*;
+use crate::{
+    preamble::{END, RESET},
+    prelude::*,
+};
 use trilogy_ir::ir;
 use trilogy_vm::{Instruction, Value};
 
@@ -14,8 +17,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Builtin(ir::Builtin::Return) => todo!(),
         ir::Value::Builtin(ir::Builtin::Break) => todo!(),
-        ir::Value::Builtin(ir::Builtin::Yield) => todo!(),
-        ir::Value::Builtin(ir::Builtin::Exit) => todo!(),
         ir::Value::Builtin(ir::Builtin::Continue) => todo!(),
         ir::Value::Builtin(ir::Builtin::Resume) => todo!(),
         ir::Value::Builtin(ir::Builtin::Cancel) => todo!(),
@@ -211,17 +212,15 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Fn(closure) => {
             let end = context.labeler.unique_hint("end_fn");
-            let reset = context.labeler.unique_hint("mid_fn");
-            let on_fail = context.labeler.unique_hint("fn_fail");
             let mut args = vec![];
             for i in 0..closure.parameters.len() {
                 args.push(context.scope.closure(1));
-                context.shift(if i == 0 { &end } else { &reset });
+                context.shift(if i == 0 { &end } else { RESET });
             }
             for (i, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context.write_instruction(Instruction::LoadLocal(args[i]));
-                write_pattern_match(context, parameter, &on_fail);
+                write_pattern_match(context, parameter, END);
             }
             write_expression(context, &closure.body);
             for parameter in closure.parameters.iter().rev() {
@@ -229,23 +228,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.unclosure(1)
             }
 
-            context
-                .write_label(reset)
-                .write_instruction(Instruction::Reset)
-                .write_label(on_fail)
-                .write_instruction(Instruction::Fizzle)
-                .write_label(end);
+            context.write_label(end);
         }
         ir::Value::Do(closure) => {
             let end = context.labeler.unique_hint("end_do");
             context.shift(&end);
             let param_start = context.scope.closure(closure.parameters.len());
 
-            let on_fail = context.labeler.unique_hint("do_fail");
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context.write_instruction(Instruction::LoadLocal(param_start + offset));
-                write_pattern_match(context, parameter, &on_fail);
+                write_pattern_match(context, parameter, END);
             }
             write_expression(context, &closure.body);
             for parameter in closure.parameters.iter().rev() {
@@ -255,8 +248,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context
                 .write_instruction(Instruction::Const(Value::Unit))
                 .write_instruction(Instruction::Reset)
-                .write_label(on_fail)
-                .write_instruction(Instruction::Fizzle)
                 .write_label(end);
 
             context.scope.unclosure(closure.parameters.len());

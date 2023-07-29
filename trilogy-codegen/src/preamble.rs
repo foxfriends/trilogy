@@ -39,8 +39,9 @@ pub const RCOMPOSE: &str = "core::rcompose";
 
 pub const CONS: &str = "core::cons";
 
-const RETURN: &str = "core::return";
-const RESET: &str = "core::reset";
+pub const RETURN: &str = "core::return";
+pub const RESET: &str = "core::reset";
+pub const END: &str = "core::end";
 
 macro_rules! binop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
@@ -137,6 +138,8 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder
         .write_label(RESET.to_owned())
         .write_instruction(Instruction::Reset)
+        .write_label(END.to_owned())
+        .write_instruction(Instruction::Fizzle)
         .write_label(RETURN.to_owned())
         .write_instruction(Instruction::Return);
 }

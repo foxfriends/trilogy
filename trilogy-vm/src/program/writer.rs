@@ -90,6 +90,7 @@ impl Instruction {
             Instruction::SetRegister(offset) => Some(offset),
             Instruction::Call(offset) => Some(offset),
             Instruction::Shift(offset) => Some(offset),
+            Instruction::ShiftBack(offset) => Some(offset),
             Instruction::Jump(offset) => Some(offset),
             Instruction::JumpBack(offset) => Some(offset),
             Instruction::CondJump(offset) => Some(offset),
