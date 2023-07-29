@@ -1,0 +1,10 @@
+proc main!() {
+    let x = 0
+    let count = do() { x += 1 }
+
+    count!()
+    count!()
+    count!()
+
+    exit x
+}

@@ -250,3 +250,12 @@ fn sample_while_break_continue_higher_order() {
         Value::from(22)
     );
 }
+
+#[test]
+fn sample_while_break_continue_higher_order() {
+    let program = include_tri!("mut_closure.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(3)
+    );
+}

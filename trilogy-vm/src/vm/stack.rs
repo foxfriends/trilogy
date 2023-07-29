@@ -290,7 +290,17 @@ impl Stack {
         let register = self.count_locals() - index - 1;
         let local_locals = self.len() - self.frame;
         if register >= local_locals {
-            todo!()
+            // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
+            //
+            // The stack here just happens to be a cactus with nothing in its immediate list,
+            // and everything in its parent. Editing it therefore occurs on the shared parent
+            // which is in a mutex and does not require mutable access.
+            //
+            // Overall it's just a convenient coincidence coming from the weird way the cactus
+            // is built. I hope someday a more explicitly shared stack representation is devised...
+            // Unless this is actually correct and I just don't understand what I'm doing but it's working.
+            let InternalValue::Return{ ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            return stack.replace_at_local(index, value);
         }
         self.cactus
             .replace_at(register, InternalValue::Value(value))
