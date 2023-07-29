@@ -14,7 +14,7 @@ ideas of them) that I am finding come in sets of three.
 That makes a trilogy. Hopefully I produce something useful. Third time's the charm!
 
 [^1]: First few were school projects, WLP4 (a subset of C), and Joos (a subset of Java), and maybe a few others. Though technically I did (attempt to) implement them (with friends), they aren't *my* languages, so I cannot provide the source code.
-[^2]: The first I could call my own was [Lumber](https://github.com/foxfriends/lumber), an experiment at a functioning language.
+[^2]: The first I could call my own was [Lumber](https://github.com/foxfriends/lumber), an experiment at a logic programming language, but much was found lacking in performance and practicality.
 
 ## Status
 
