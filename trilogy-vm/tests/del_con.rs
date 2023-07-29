@@ -11,7 +11,6 @@ fn test_noop() {
     "#;
 
     let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    println!("{:?}", vm);
     assert_eq!(vm.run().unwrap(), Value::Unit);
 }
 
