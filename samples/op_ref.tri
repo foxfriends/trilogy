@@ -1,0 +1,4 @@
+proc main!() {
+    let add = (+)
+    exit add 1 2
+}

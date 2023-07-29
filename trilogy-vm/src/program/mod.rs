@@ -1,6 +1,8 @@
 use crate::bytecode::asm::{AsmContext, AsmError};
 use crate::bytecode::Instruction;
+use crate::runtime::atom::AtomInterner;
 use crate::runtime::Value;
+use crate::Atom;
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display};
 use std::str::FromStr;
@@ -17,9 +19,20 @@ use self::writer::ProgramWriter;
 
 #[derive(Clone)]
 pub struct Program {
+    pub(crate) interner: AtomInterner,
     pub(crate) constants: Vec<Value>,
     pub(crate) instructions: Vec<u8>,
     pub(crate) labels: HashMap<String, usize>,
+}
+
+impl Program {
+    pub fn atom(&self, key: &str) -> Option<Atom> {
+        self.interner.lookup(key)
+    }
+
+    pub fn intern(&mut self, key: &str) -> Atom {
+        self.interner.intern(key)
+    }
 }
 
 impl Debug for Program {
@@ -98,9 +111,9 @@ impl Display for Program {
                         .flatten()
                         .next()
                     {
-                        writeln!(f, "\tCONST &{label:?}")?;
+                        write!(f, "\tCONST &{label:?}")?;
                     } else {
-                        writeln!(f, "\t{}", instruction)?;
+                        write!(f, "\t{}", instruction)?;
                     }
                 }
                 Instruction::Shift(offset) => {
@@ -110,9 +123,9 @@ impl Display for Program {
                         .flatten()
                         .next()
                     {
-                        writeln!(f, "\tSHIFT &{label:?}")?;
+                        write!(f, "\tSHIFT &{label:?}")?;
                     } else {
-                        writeln!(f, "\t{}", instruction)?;
+                        write!(f, "\t{}", instruction)?;
                     }
                 }
                 Instruction::Jump(offset) => {
@@ -122,9 +135,9 @@ impl Display for Program {
                         .flatten()
                         .next()
                     {
-                        writeln!(f, "\tJUMP &{label:?}")?;
+                        write!(f, "\tJUMP &{label:?}")?;
                     } else {
-                        writeln!(f, "\t{}", instruction)?;
+                        write!(f, "\t{}", instruction)?;
                     }
                 }
                 Instruction::JumpBack(offset) => {
@@ -134,9 +147,9 @@ impl Display for Program {
                         .flatten()
                         .next()
                     {
-                        writeln!(f, "\tRJUMP &{label:?}")?;
+                        write!(f, "\tRJUMP &{label:?}")?;
                     } else {
-                        writeln!(f, "\t{}", instruction)?;
+                        write!(f, "\t{}", instruction)?;
                     }
                 }
                 Instruction::CondJump(offset) => {
@@ -146,9 +159,9 @@ impl Display for Program {
                         .flatten()
                         .next()
                     {
-                        writeln!(f, "\tJUMPF &{label:?}")?;
+                        write!(f, "\tJUMPF &{label:?}")?;
                     } else {
-                        writeln!(f, "\t{}", instruction)?;
+                        write!(f, "\t{}", instruction)?;
                     }
                 }
                 Instruction::CondJumpBack(offset) => {
@@ -158,13 +171,14 @@ impl Display for Program {
                         .flatten()
                         .next()
                     {
-                        writeln!(f, "\tRJUMPF &{label:?}")?;
+                        write!(f, "\tRJUMPF &{label:?}")?;
                     } else {
-                        writeln!(f, "\t{}", instruction)?;
+                        write!(f, "\t{}", instruction)?;
                     }
                 }
-                _ => writeln!(f, "\t{}", instruction)?,
+                _ => write!(f, "\t{}", instruction)?,
             }
+            writeln!(f, "\t# {}", ip)?;
         }
         Ok(())
     }

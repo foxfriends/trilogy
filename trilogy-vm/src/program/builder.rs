@@ -140,6 +140,7 @@ impl ProgramBuilder {
             }
         }
         Ok(Program {
+            interner: self.interner,
             constants: self.constants,
             instructions: self.bytes,
             labels: self.labels,

@@ -131,8 +131,8 @@ impl AsmContext {
         })
     }
 
-    pub fn labels(self) -> HashMap<String, usize> {
-        self.labels
+    pub fn into_parts(self) -> (HashMap<String, usize>, AtomInterner) {
+        (self.labels, self.interner)
     }
 
     pub fn holes(&self) -> impl Iterator<Item = Result<(Offset, Offset), AsmError>> + '_ {

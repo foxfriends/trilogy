@@ -42,7 +42,7 @@ impl Borrow<str> for AtomRaw {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct AtomInterner(HashSet<AtomRaw>);
 
 impl AtomInterner {
@@ -54,5 +54,10 @@ impl AtomInterner {
             self.0.insert(AtomRaw(arc.clone()));
             Atom(arc)
         }
+    }
+
+    pub fn lookup(&self, string: &str) -> Option<Atom> {
+        let arc = self.0.get(string)?;
+        Some((*arc).clone().into())
     }
 }

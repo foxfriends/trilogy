@@ -62,10 +62,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             context
                 .write_instruction(Instruction::Pop)
                 .jump(&next)
-                .write_label(recover)
-                .unwrap();
+                .write_label(recover);
             write_pattern_match(context, &disj.1, on_fail);
-            context.write_label(next).unwrap();
+            context.write_label(next);
         }
         ir::Value::Wildcard => {
             context.write_instruction(Instruction::Pop);
@@ -98,11 +97,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&end)
                     .write_label(cleanup)
-                    .unwrap()
                     .jump(on_fail)
                     .write_instruction(Instruction::Pop)
-                    .write_label(end)
-                    .unwrap();
+                    .write_label(end);
             }
             (None, ir::Value::Builtin(Builtin::Pin), value) => {
                 write_evaluation(context, value);
@@ -136,14 +133,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&end)
                     .write_label(double_cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .write_label(cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
-                    .write_label(end)
-                    .unwrap();
+                    .write_label(end);
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs, rhs @ ir::Value::String(..)) => {
                 let end = context.labeler.unique_hint("glue_end");
@@ -179,14 +173,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&end)
                     .write_label(double_cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .write_label(cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
-                    .write_label(end)
-                    .unwrap();
+                    .write_label(end);
             }
             (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
                 let cleanup = context.labeler.unique();
@@ -205,11 +196,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&match_value)
                     .write_label(cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
-                    .write_label(match_value)
-                    .unwrap();
+                    .write_label(match_value);
                 write_pattern(context, rhs, on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
@@ -228,11 +217,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&match_second)
                     .write_label(cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
-                    .write_label(match_second)
-                    .unwrap();
+                    .write_label(match_second);
                 write_pattern(context, rhs, on_fail);
             }
             (None, ir::Value::Builtin(Builtin::Array), ir::Value::Pack(pack)) => {
@@ -276,12 +263,10 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&end)
                     .write_label(cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
-                    .write_label(end)
-                    .unwrap();
+                    .write_label(end);
             }
             (None, ir::Value::Builtin(Builtin::Record), ir::Value::Pack(pack)) => {
                 let cleanup = context.labeler.unique_hint("record_cleanup");
@@ -317,13 +302,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&end)
                     .write_label(cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
-                    .write_label(end)
-                    .unwrap();
+                    .write_label(end);
             }
             (None, ir::Value::Builtin(Builtin::Set), ir::Value::Pack(pack)) => {
                 let cleanup = context.labeler.unique_hint("set_cleanup");
@@ -352,13 +335,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context
                     .jump(&end)
                     .write_label(cleanup)
-                    .unwrap()
                     .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
-                    .write_label(end)
-                    .unwrap();
+                    .write_label(end);
             }
             what => panic!("not a pattern ({what:?})"),
         },

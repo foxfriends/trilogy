@@ -1,0 +1,9 @@
+func a x = 'a(x)
+func b x = 'b(x)
+
+proc main!() {
+    let a_then_b = a >> b
+    let b_then_a = a << b
+
+    exit a_then_b 1 : b_then_a 1
+}

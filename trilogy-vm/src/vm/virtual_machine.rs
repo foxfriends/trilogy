@@ -2,7 +2,7 @@ use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Execution};
 use crate::bytecode::OpCode;
 use crate::runtime::Number;
-use crate::{Program, ReferentialEq, Struct, StructuralEq};
+use crate::{Atom, Program, ReferentialEq, Struct, StructuralEq};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -22,6 +22,14 @@ impl VirtualMachine {
             executions: VecDeque::with_capacity(8),
             heap: Vec::with_capacity(128),
         }
+    }
+
+    pub fn atom(&self, key: &str) -> Option<Atom> {
+        self.program.atom(key)
+    }
+
+    pub fn intern(&mut self, key: &str) -> Atom {
+        self.program.intern(key)
     }
 
     pub fn run(&mut self) -> Result<Value, Error> {

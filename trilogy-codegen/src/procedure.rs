@@ -14,6 +14,6 @@ pub(crate) fn write_procedure(mut context: Context, procedure: &ir::Procedure) {
         .write_instruction(Instruction::Const(Value::Unit))
         .write_instruction(Instruction::Return)
         .write_label(on_fail)
-        .unwrap()
+        
         .write_instruction(Instruction::Fizzle);
 }

@@ -1,5 +1,6 @@
 use crate::bytecode::asm::{AsmContext, AsmError};
 use crate::bytecode::OpCode;
+use crate::runtime::atom::AtomInterner;
 use crate::traits::Tags;
 use crate::{Instruction, Program, Value};
 use std::collections::HashMap;
@@ -12,6 +13,7 @@ impl Default for ProgramWriter {
     fn default() -> Self {
         Self {
             program: Program {
+                interner: AtomInterner::default(),
                 constants: vec![],
                 instructions: vec![],
                 labels: HashMap::default(),
@@ -63,7 +65,9 @@ impl ProgramWriter {
                 .instructions
                 .splice(hole..hole + 4, (offset as u32).to_be_bytes());
         }
-        self.program.labels = context.labels();
+        let (labels, interner) = context.into_parts();
+        self.program.labels = labels;
+        self.program.interner = interner;
         Ok(self.program)
     }
 

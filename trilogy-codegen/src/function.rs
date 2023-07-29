@@ -13,8 +13,8 @@ pub(crate) fn write_function(context: &mut Context, function: &ir::Function) {
     write_expression(context, &function.body);
 
     for parameter in function.parameters.iter().rev() {
-        context.write_label(cleanup.pop().unwrap()).unwrap();
+        context.write_label(cleanup.pop().unwrap());
         context.undeclare_variables(parameter.bindings(), true);
     }
-    context.write_label(cleanup.pop().unwrap()).unwrap();
+    context.write_label(cleanup.pop().unwrap());
 }

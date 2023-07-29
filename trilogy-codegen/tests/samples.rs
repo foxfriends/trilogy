@@ -2,7 +2,7 @@ use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
 };
-use trilogy_vm::{StructuralEq, Value, VirtualMachine};
+use trilogy_vm::{Struct, StructuralEq, Value, VirtualMachine};
 
 const TEST_DIR: &str = "../samples";
 
@@ -141,13 +141,13 @@ fn sample_fn() {
 }
 
 #[test]
-fn neg_pattern() {
+fn sample_negpattern() {
     let program = include_tri!("negpattern.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(0));
 }
 
 #[test]
-fn r#match() {
+fn sample_match() {
     let program = include_tri!("match.tri");
     assert_eq!(
         VirtualMachine::load(program).run().unwrap(),
@@ -156,7 +156,7 @@ fn r#match() {
 }
 
 #[test]
-fn glue() {
+fn sample_glue() {
     let program = include_tri!("glue.tri");
     assert_eq!(
         VirtualMachine::load(program).run().unwrap(),
@@ -206,4 +206,29 @@ fn sample_set_pattern() {
         &VirtualMachine::load(program).run().unwrap(),
         &Value::from(set)
     ));
+}
+
+#[test]
+fn sample_compose() {
+    let program = include_tri!("compose.tri");
+    let mut vm = VirtualMachine::load(program);
+    assert_eq!(
+        vm.run().unwrap(),
+        Value::from((
+            Struct::new(
+                vm.atom("a").unwrap(),
+                Struct::new(vm.atom("b").unwrap(), 1.into()).into()
+            ),
+            Struct::new(
+                vm.atom("b").unwrap(),
+                Struct::new(vm.atom("a").unwrap(), 1.into()).into()
+            )
+        ))
+    );
+}
+
+#[test]
+fn sample_op_ref() {
+    let program = include_tri!("op_ref.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(3));
 }

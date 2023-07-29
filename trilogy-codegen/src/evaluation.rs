@@ -9,7 +9,17 @@ pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
 
 pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
     match &value {
-        ir::Value::Builtin(..) => todo!("{value:?}"),
+        ir::Value::Builtin(builtin) if is_referenceable_operator(*builtin) => {
+            write_operator_reference(context, *builtin);
+        }
+        ir::Value::Builtin(ir::Builtin::Return) => todo!(),
+        ir::Value::Builtin(ir::Builtin::Break) => todo!(),
+        ir::Value::Builtin(ir::Builtin::Yield) => todo!(),
+        ir::Value::Builtin(ir::Builtin::Exit) => todo!(),
+        ir::Value::Builtin(ir::Builtin::Continue) => todo!(),
+        ir::Value::Builtin(ir::Builtin::Resume) => todo!(),
+        ir::Value::Builtin(ir::Builtin::Cancel) => todo!(),
+        ir::Value::Builtin(builtin) => panic!("{builtin:?} is not a referenceable builtin"),
         ir::Value::Pack(pack) => {
             for element in &pack.values {
                 if element.is_spread {
@@ -86,7 +96,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             // TODO: support continue/break
             let start = context.labeler.unique_hint("while");
             let end = context.labeler.unique_hint("end_while");
-            context.write_label(start.clone()).unwrap();
+            context.write_label(start.clone());
             write_expression(context, &stmt.condition);
             context.cond_jump(&end);
             write_expression(context, &stmt.body);
@@ -94,7 +104,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.jump(&start);
             context
                 .write_label(end)
-                .unwrap()
                 .write_instruction(Instruction::Const(Value::Unit));
         }
         ir::Value::Application(application) => match unapply_2(application) {
@@ -173,9 +182,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &cond.when_true);
             let end = context.labeler.unique_hint("end_if");
             context.jump(&end);
-            context.write_label(when_false).unwrap();
+            context.write_label(when_false);
             write_expression(context, &cond.when_false);
-            context.write_label(end).unwrap();
+            context.write_label(end);
         }
         ir::Value::Match(cond) => {
             write_expression(context, &cond.expression);
@@ -192,13 +201,13 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.write_instruction(Instruction::SetLocal(val));
                 context.undeclare_variables(case.pattern.bindings(), true);
                 context.jump(&end);
-                context.write_label(cleanup).unwrap();
+                context.write_label(cleanup);
                 for _ in 0..vars {
                     context.write_instruction(Instruction::Pop);
                 }
             }
             context.scope.end_intermediate();
-            context.write_label(end).unwrap();
+            context.write_label(end);
         }
         ir::Value::Fn(closure) => {
             let end = context.labeler.unique_hint("end_fn");
@@ -222,13 +231,10 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
 
             context
                 .write_label(reset)
-                .unwrap()
                 .write_instruction(Instruction::Reset)
                 .write_label(on_fail)
-                .unwrap()
                 .write_instruction(Instruction::Fizzle)
-                .write_label(end)
-                .unwrap();
+                .write_label(end);
         }
         ir::Value::Do(closure) => {
             let end = context.labeler.unique_hint("end_do");
@@ -250,10 +256,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .write_instruction(Instruction::Const(Value::Unit))
                 .write_instruction(Instruction::Reset)
                 .write_label(on_fail)
-                .unwrap()
                 .write_instruction(Instruction::Fizzle)
-                .write_label(end)
-                .unwrap();
+                .write_label(end);
 
             context.scope.unclosure(closure.parameters.len());
         }

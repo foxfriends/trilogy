@@ -18,10 +18,10 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query) {
             context
                 .jump(&on_pass)
                 .write_label(on_fail)
-                .unwrap()
+                
                 .write_instruction(Instruction::Fizzle)
                 .write_label(on_pass)
-                .unwrap();
+                ;
         }
         ir::QueryValue::Element(unification) => {
             let element = context.labeler.unique_hint("in_elem");
@@ -31,22 +31,22 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query) {
                 .shift(&element)
                 .jump(&continuation)
                 .write_label(element)
-                .unwrap();
+                ;
 
             // TODO: iterate the iterator here
 
             let on_fail = context.labeler.unique_hint("unif_fail");
             let on_pass = context.labeler.unique_hint("unif_pass");
 
-            context.write_label(continuation).unwrap();
+            context.write_label(continuation);
             write_pattern_match(context, &unification.pattern, &on_fail);
             context
                 .jump(&on_pass)
                 .write_label(on_fail)
-                .unwrap()
+                
                 .write_instruction(Instruction::Fizzle)
                 .write_label(on_pass)
-                .unwrap();
+                ;
         }
         ir::QueryValue::Is(expr) => {
             let on_pass = context.labeler.unique_hint("on_pass");
@@ -56,7 +56,7 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query) {
                 .cond_jump(&on_pass)
                 .write_instruction(Instruction::Fizzle)
                 .write_label(on_pass)
-                .unwrap();
+                ;
         }
         ir::QueryValue::End => {
             context.write_instruction(Instruction::Fizzle);

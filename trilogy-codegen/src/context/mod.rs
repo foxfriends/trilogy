@@ -4,7 +4,7 @@ mod scope;
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
 use trilogy_ir::Id;
-use trilogy_vm::{Atom, Instruction, LabelAlreadyInserted, OpCode, ProgramBuilder, Value};
+use trilogy_vm::{Atom, Instruction, OpCode, ProgramBuilder, Value};
 
 pub(crate) struct Context<'a> {
     pub labeler: &'a mut Labeler,
@@ -57,9 +57,11 @@ impl<'a> Context<'a> {
         self
     }
 
-    pub fn write_label(&mut self, label: String) -> Result<&mut Self, LabelAlreadyInserted> {
-        self.builder.write_label(label)?;
-        Ok(self)
+    pub fn write_label(&mut self, label: String) -> &mut Self {
+        self.builder
+            .write_label(label)
+            .expect("should not write same label twice");
+        self
     }
 
     pub fn atom(&mut self, value: &str) -> Atom {

@@ -1,36 +1,10 @@
-use crate::{
-    context::{Labeler, Scope},
-    prelude::*,
-};
-use std::collections::HashMap;
-use trilogy_ir::{ir, Id};
-use trilogy_vm::{Instruction, ProgramBuilder};
+use crate::program::ProgramContext;
+use trilogy_ir::ir;
 
-struct ModuleContext<'a> {
-    builder: &'a mut ProgramBuilder,
-    statics: HashMap<Id, String>,
-    labeler: Labeler,
-}
+pub(crate) fn write_module(context: &mut ProgramContext, module: &ir::Module, is_entrypoint: bool) {
+    context.write_label(module.location().to_owned());
 
-impl<'a> ModuleContext<'a> {
-    fn new(builder: &'a mut ProgramBuilder, location: String) -> Self {
-        Self {
-            builder,
-            labeler: Labeler::new(location),
-            statics: HashMap::default(),
-        }
-    }
-}
-
-pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module, is_entrypoint: bool) {
-    let mut context = ModuleContext::new(builder, module.location().to_owned());
-
-    context
-        .builder
-        .write_label(module.location().to_owned())
-        .expect("each module has a unique location and is only written once");
-
-    for id in module
+    let statics = module
         .definitions()
         .iter()
         .filter_map(|def| match &def.item {
@@ -43,73 +17,27 @@ pub fn write_module(builder: &mut ProgramBuilder, module: &ir::Module, is_entryp
             ir::DefinitionItem::Alias(alias) => Some(alias.name.id.clone()),
             ir::DefinitionItem::Test(..) => None,
         })
-    {
-        let label = context.labeler.for_id(&id);
-        context.statics.insert(id, label);
-    }
+        .map(|id| {
+            let label = context.labeler.for_id(&id);
+            (id, label)
+        })
+        .collect();
 
     for def in module.definitions() {
         match &def.item {
             ir::DefinitionItem::Module(..) => {}
             ir::DefinitionItem::Function(function) => {
-                context.write_function(function);
+                context.write_function(&statics, function);
             }
             ir::DefinitionItem::Rule(..) => {}
             ir::DefinitionItem::Procedure(procedure) => {
                 if is_entrypoint && procedure.name.id.name() == Some("main") {
-                    context.builder.write_label("main".to_owned()).unwrap();
+                    context.write_label("main".to_owned());
                 }
-                context.write_procedure(procedure);
+                context.write_procedure(&statics, procedure);
             }
             ir::DefinitionItem::Alias(..) => {}
             ir::DefinitionItem::Test(..) => {}
         }
-    }
-}
-
-impl ModuleContext<'_> {
-    fn write_procedure(&mut self, procedure: &ir::ProcedureDefinition) {
-        let beginning = self.labeler.begin(&procedure.name);
-        self.builder.write_label(beginning).unwrap();
-        let for_id = self.labeler.for_id(&procedure.name.id);
-        self.builder.write_label(for_id).unwrap();
-        assert!(procedure.overloads.len() == 1);
-        let overload = &procedure.overloads[0];
-        let context = self.begin(overload.parameters.len());
-        write_procedure(context, overload);
-    }
-
-    fn write_function(&mut self, function: &ir::FunctionDefinition) {
-        let beginning = self.labeler.begin(&function.name);
-        self.builder.write_label(beginning).unwrap();
-        let for_id = self.labeler.for_id(&function.name.id);
-        self.builder.write_label(for_id).unwrap();
-        let mut context = self.begin(1);
-
-        let ret = context.labeler.unique_hint("func_return");
-        let res = context.labeler.unique_hint("func_reset");
-        let arity = function.overloads[0].parameters.len();
-        for i in 1..arity {
-            context.shift(if i == 1 { &ret } else { &res });
-            context.scope.closure(1);
-        }
-
-        for overload in &function.overloads {
-            write_function(&mut context, overload);
-        }
-
-        context
-            .write_instruction(Instruction::Fizzle)
-            .write_label(ret)
-            .unwrap()
-            .write_instruction(Instruction::Return)
-            .write_label(res)
-            .unwrap()
-            .write_instruction(Instruction::Reset);
-    }
-
-    fn begin(&mut self, parameters: usize) -> Context<'_> {
-        let scope = Scope::new(&self.statics, parameters);
-        Context::new(self.builder, &mut self.labeler, scope)
     }
 }
