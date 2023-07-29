@@ -13,7 +13,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Builtin(builtin) if is_referenceable_operator(*builtin) => {
             write_operator_reference(context, *builtin);
         }
-        ir::Value::Builtin(ir::Builtin::Return) => todo!(),
         ir::Value::Builtin(ir::Builtin::Resume) => todo!(),
         ir::Value::Builtin(ir::Builtin::Cancel) => todo!(),
         ir::Value::Builtin(builtin) => panic!("{builtin:?} is not a referenceable builtin"),

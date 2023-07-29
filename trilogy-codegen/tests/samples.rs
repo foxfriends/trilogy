@@ -252,10 +252,13 @@ fn sample_while_break_continue_higher_order() {
 }
 
 #[test]
-fn sample_while_break_continue_higher_order() {
+fn sample_mut_closure() {
     let program = include_tri!("mut_closure.tri");
-    assert_eq!(
-        VirtualMachine::load(program).run().unwrap(),
-        Value::from(3)
-    );
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(3));
+}
+
+#[test]
+fn sample_first_class_return() {
+    let program = include_tri!("first_class_return.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(3));
 }

@@ -47,48 +47,6 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
     }
 }
 
-pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
-    #[allow(clippy::match_like_matches_macro)]
-    match builtin {
-        Builtin::Negate => true,
-        Builtin::Not => true,
-        Builtin::Access => true,
-        Builtin::And => true,
-        Builtin::Or => true,
-        Builtin::Add => true,
-        Builtin::Subtract => true,
-        Builtin::Multiply => true,
-        Builtin::Divide => true,
-        Builtin::Remainder => true,
-        Builtin::Power => true,
-        Builtin::IntDivide => true,
-        Builtin::StructuralEquality => true,
-        Builtin::StructuralInequality => true,
-        Builtin::ReferenceEquality => true,
-        Builtin::ReferenceInequality => true,
-        Builtin::Lt => true,
-        Builtin::Gt => true,
-        Builtin::Leq => true,
-        Builtin::Geq => true,
-        Builtin::Invert => true,
-        Builtin::BitwiseAnd => true,
-        Builtin::BitwiseOr => true,
-        Builtin::BitwiseXor => true,
-        Builtin::LeftShift => true,
-        Builtin::RightShift => true,
-        Builtin::Sequence => true,
-        Builtin::Cons => true,
-        Builtin::Glue => true,
-        Builtin::Pipe => true,
-        Builtin::RPipe => true,
-        Builtin::Compose => true,
-        Builtin::RCompose => true,
-        Builtin::Continue => true,
-        Builtin::Break => true,
-        _ => false,
-    }
-}
-
 pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
     match builtin {
         Builtin::Negate => context.write_instruction(Instruction::Negate),
@@ -162,6 +120,49 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
     };
 }
 
+pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
+    #[allow(clippy::match_like_matches_macro)]
+    match builtin {
+        Builtin::Negate => true,
+        Builtin::Not => true,
+        Builtin::Access => true,
+        Builtin::And => true,
+        Builtin::Or => true,
+        Builtin::Add => true,
+        Builtin::Subtract => true,
+        Builtin::Multiply => true,
+        Builtin::Divide => true,
+        Builtin::Remainder => true,
+        Builtin::Power => true,
+        Builtin::IntDivide => true,
+        Builtin::StructuralEquality => true,
+        Builtin::StructuralInequality => true,
+        Builtin::ReferenceEquality => true,
+        Builtin::ReferenceInequality => true,
+        Builtin::Lt => true,
+        Builtin::Gt => true,
+        Builtin::Leq => true,
+        Builtin::Geq => true,
+        Builtin::Invert => true,
+        Builtin::BitwiseAnd => true,
+        Builtin::BitwiseOr => true,
+        Builtin::BitwiseXor => true,
+        Builtin::LeftShift => true,
+        Builtin::RightShift => true,
+        Builtin::Sequence => true,
+        Builtin::Cons => true,
+        Builtin::Glue => true,
+        Builtin::Pipe => true,
+        Builtin::RPipe => true,
+        Builtin::Compose => true,
+        Builtin::RCompose => true,
+        Builtin::Continue => true,
+        Builtin::Break => true,
+        Builtin::Return => true,
+        _ => false,
+    }
+}
+
 pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) {
     match builtin {
         Builtin::Negate => context.write_procedure_reference(NEGATE.to_owned()),
@@ -198,6 +199,13 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         Builtin::RCompose => context.write_procedure_reference(RCOMPOSE.to_owned()),
         Builtin::Break => context.write_instruction(context.scope.kw_break().unwrap()),
         Builtin::Continue => context.write_instruction(context.scope.kw_continue().unwrap()),
+        Builtin::Return => {
+            let end = context.labeler.unique_hint("J");
+            context
+                .shift(&end)
+                .write_instruction(Instruction::Return)
+                .write_label(end)
+        }
 
         Builtin::ModuleAccess
         | Builtin::Array
@@ -211,7 +219,6 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         | Builtin::Cancel
         | Builtin::Sequence
         | Builtin::Construct
-        | Builtin::Return
         | Builtin::Exit => {
             panic!("write_operator_reference was called with a builtin that is not a referenceable operator")
         }

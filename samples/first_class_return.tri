@@ -1,0 +1,15 @@
+proc third!(out) {
+    out 3;
+}
+
+proc second!() {
+    let out = (return);
+
+    third!(out);
+
+    return 5;
+}
+
+proc main!() {
+    exit second!()
+}
