@@ -262,3 +262,9 @@ fn sample_first_class_return() {
     let program = include_tri!("first_class_return.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(3));
 }
+
+#[test]
+fn sample_first_class_return_closure() {
+    let program = include_tri!("first_class_return_closure.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(4));
+}
