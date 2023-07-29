@@ -1,0 +1,11 @@
+proc j!() {
+    return (return)
+}
+
+proc main!() {
+    let here = j!();
+    if here == 5 {
+        exit 3
+    }
+    here 5
+}

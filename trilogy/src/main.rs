@@ -86,8 +86,10 @@ fn run(program: Program, print: bool, _no_std: bool) {
                 let (sign, digits) = output.to_u32_digits();
                 let exit = if sign == Sign::Minus {
                     -(digits[0] as i32)
-                } else {
+                } else if sign == Sign::Plus {
                     digits[0] as i32
+                } else {
+                    0
                 };
                 std::process::exit(exit);
             }
