@@ -86,6 +86,7 @@ pub enum Instruction {
 
     // Control Flow
     Call(Offset),
+    Become(Offset),
     Return,
     Shift(Offset),
     #[asm(name = "RSHIFT")] ShiftBack(Offset),
@@ -108,6 +109,7 @@ impl Instruction {
             Self::LoadRegister(..) => 5,
             Self::SetRegister(..) => 5,
             Self::Call(..) => 5,
+            Self::Become(..) => 5,
             Self::Shift(..) => 5,
             Self::ShiftBack(..) => 5,
             Self::Jump(..) => 5,

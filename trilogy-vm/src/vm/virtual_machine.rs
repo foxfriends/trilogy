@@ -597,6 +597,10 @@ impl VirtualMachine {
                     let arity = ex.read_offset(&self.program.instructions)?;
                     ex.call(arity)?;
                 }
+                OpCode::Become => {
+                    let arity = ex.read_offset(&self.program.instructions)?;
+                    ex.r#become(arity)?;
+                }
                 OpCode::Return => {
                     let return_value = ex.stack_pop()?;
                     ex.r#return()?;

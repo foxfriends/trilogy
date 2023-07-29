@@ -95,6 +95,7 @@ impl ProgramReader<'_> {
             OpCode::RefNeq => Ok(Instruction::RefNeq),
             OpCode::ValNeq => Ok(Instruction::ValNeq),
             OpCode::Call => Ok(Instruction::Call(self.read_offset()?)),
+            OpCode::Become => Ok(Instruction::Become(self.read_offset()?)),
             OpCode::Return => Ok(Instruction::Return),
             OpCode::Shift => Ok(Instruction::Shift(self.read_offset()?)),
             OpCode::ShiftBack => Ok(Instruction::ShiftBack(self.read_offset()?)),

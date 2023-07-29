@@ -58,6 +58,12 @@ impl Execution {
         Ok(())
     }
 
+    pub fn become_continuation(&mut self, continuation: Continuation, args: Vec<Value>) {
+        self.stack = continuation.stack();
+        self.stack.push_many(args);
+        self.ip = continuation.ip();
+    }
+
     pub fn reset_continuation(&mut self) -> Result<(), Error> {
         let (ip, running_stack) = self.stack_stack.pop().ok_or_else(|| {
             self.error(ErrorKind::InternalRuntimeError(
@@ -72,6 +78,13 @@ impl Execution {
     fn call_procedure(&mut self, procedure: Procedure, args: Vec<Value>) {
         self.stack.push_frame(self.ip, args);
         self.ip = procedure.ip();
+    }
+
+    fn become_procedure(&mut self, procedure: Procedure, args: Vec<Value>) -> Result<(), Error> {
+        let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
+        self.stack.push_frame(ip, args);
+        self.ip = procedure.ip();
+        Ok(())
     }
 
     pub fn error<K>(&self, kind: K) -> Error
@@ -126,6 +139,21 @@ impl Execution {
             }
             Value::Procedure(procedure) => {
                 self.call_procedure(procedure, arguments);
+            }
+            _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+        }
+        Ok(())
+    }
+
+    pub fn r#become(&mut self, arity: usize) -> Result<(), Error> {
+        let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
+        let callable = self.stack.pop().map_err(|k| self.error(k))?;
+        match callable {
+            Value::Continuation(continuation) => {
+                self.become_continuation(continuation, arguments);
+            }
+            Value::Procedure(procedure) => {
+                self.become_procedure(procedure, arguments)?;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
