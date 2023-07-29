@@ -232,3 +232,21 @@ fn sample_op_ref() {
     let program = include_tri!("op_ref.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(3));
 }
+
+#[test]
+fn sample_while_break_continue() {
+    let program = include_tri!("while_break_continue.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(22)
+    );
+}
+
+#[test]
+fn sample_while_break_continue_higher_order() {
+    let program = include_tri!("while_break_continue_higher_order.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(22)
+    );
+}

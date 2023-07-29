@@ -16,8 +16,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_operator_reference(context, *builtin);
         }
         ir::Value::Builtin(ir::Builtin::Return) => todo!(),
-        ir::Value::Builtin(ir::Builtin::Break) => todo!(),
-        ir::Value::Builtin(ir::Builtin::Continue) => todo!(),
         ir::Value::Builtin(ir::Builtin::Resume) => todo!(),
         ir::Value::Builtin(ir::Builtin::Cancel) => todo!(),
         ir::Value::Builtin(builtin) => panic!("{builtin:?} is not a referenceable builtin"),
@@ -94,18 +92,39 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(..) => todo!(),
         ir::Value::While(stmt) => {
-            // TODO: support continue/break
-            let start = context.labeler.unique_hint("while");
-            let end = context.labeler.unique_hint("end_while");
-            context.write_label(start.clone());
-            write_expression(context, &stmt.condition);
-            context.cond_jump(&end);
-            write_expression(context, &stmt.body);
-            context.write_instruction(Instruction::Pop);
-            context.jump(&start);
+            let begin = context.labeler.unique_hint("while");
+            let setup = context.labeler.unique_hint("while_setup");
+            let cond_fail = context.labeler.unique_hint("while_exit");
+            let end = context.labeler.unique_hint("while_end");
+            let continuation = context.labeler.unique_hint("while_cont");
+            let r#continue = context.scope.push_continue();
+            let r#break = context.scope.push_break();
             context
-                .write_label(end)
-                .write_instruction(Instruction::Const(Value::Unit));
+                .write_instruction(Instruction::Const(Value::Unit))
+                .write_instruction(Instruction::Const(Value::Unit))
+                .shift(&continuation)
+                .write_label(begin.to_owned());
+            write_expression(context, &stmt.condition);
+            context.cond_jump(&cond_fail);
+            write_expression(context, &stmt.body);
+            context
+                .write_instruction(Instruction::LoadLocal(r#continue))
+                .write_instruction(Instruction::Become(0))
+                .write_label(cond_fail)
+                .write_instruction(Instruction::LoadLocal(r#break))
+                .write_instruction(Instruction::Become(0))
+                .write_label(continuation)
+                .write_instruction(Instruction::SetLocal(r#continue))
+                .shift(&setup)
+                .write_instruction(Instruction::Pop)
+                .write_instruction(Instruction::Pop)
+                .jump(&end)
+                .write_label(setup)
+                .write_instruction(Instruction::SetLocal(r#break))
+                .jump(&begin)
+                .write_label(end);
+            context.scope.pop_break();
+            context.scope.pop_continue();
         }
         ir::Value::Application(application) => match unapply_2(application) {
             (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {

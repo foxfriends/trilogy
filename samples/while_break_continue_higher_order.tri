@@ -1,0 +1,19 @@
+func validate br co 0 = br unit
+func validate br co x = 
+    if x % 3 == 0 
+        then co unit
+    else if x % 5 == 0
+        then co unit
+    else x
+
+proc main!() {
+    let out = 0;
+    let x = 10;
+
+    while true {
+        x -= 1
+        out += validate (break) (continue) x
+    }
+
+    exit out;
+}

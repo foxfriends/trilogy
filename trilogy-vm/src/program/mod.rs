@@ -128,6 +128,18 @@ impl Display for Program {
                         write!(f, "\t{}", instruction)?;
                     }
                 }
+                Instruction::ShiftBack(offset) => {
+                    if let Some(label) = labels_per_line
+                        .get(&(ip + offset + 5))
+                        .into_iter()
+                        .flatten()
+                        .next()
+                    {
+                        write!(f, "\tRSHIFT &{label:?}")?;
+                    } else {
+                        write!(f, "\t{}", instruction)?;
+                    }
+                }
                 Instruction::Jump(offset) => {
                     if let Some(label) = labels_per_line
                         .get(&(ip + offset + 5))

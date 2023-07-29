@@ -1,0 +1,14 @@
+proc main!() {
+    let out = 0;
+    let x = 10;
+
+    while true {
+        x -= 1
+        if (x == 0) { break }
+        if (x % 5 == 0) { continue }
+        if (x % 3 == 0) { continue }
+        out += x;
+    }
+
+    exit out;
+}

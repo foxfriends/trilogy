@@ -20,9 +20,9 @@ pub(crate) struct Scope<'a> {
     #[allow(dead_code)]
     kw_cancel: Option<usize>,
     #[allow(dead_code)]
-    kw_break: Option<usize>,
+    kw_break: Vec<usize>,
     #[allow(dead_code)]
-    kw_continue: Option<usize>,
+    kw_continue: Vec<usize>,
 }
 
 impl<'a> Scope<'a> {
@@ -34,8 +34,8 @@ impl<'a> Scope<'a> {
             kw_return: 0,
             kw_resume: None,
             kw_cancel: None,
-            kw_break: None,
-            kw_continue: None,
+            kw_break: vec![],
+            kw_continue: vec![],
         }
     }
 
@@ -86,5 +86,37 @@ impl<'a> Scope<'a> {
 
     pub fn end_intermediate(&mut self) {
         self.parameters -= 1;
+    }
+
+    pub fn push_break(&mut self) -> usize {
+        let offset = self.intermediate();
+        self.kw_break.push(offset);
+        offset
+    }
+
+    pub fn pop_break(&mut self) {
+        self.end_intermediate();
+        self.kw_break.pop();
+    }
+
+    pub fn kw_break(&self) -> Option<Instruction> {
+        let offset = self.kw_break.last()?;
+        Some(Instruction::LoadLocal(*offset))
+    }
+
+    pub fn push_continue(&mut self) -> usize {
+        let offset = self.intermediate();
+        self.kw_continue.push(offset);
+        offset
+    }
+
+    pub fn pop_continue(&mut self) {
+        self.end_intermediate();
+        self.kw_continue.pop();
+    }
+
+    pub fn kw_continue(&self) -> Option<Instruction> {
+        let offset = self.kw_continue.last()?;
+        Some(Instruction::LoadLocal(*offset))
     }
 }

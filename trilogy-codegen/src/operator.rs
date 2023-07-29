@@ -41,6 +41,8 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
         Builtin::Return => true,
         Builtin::Compose => true,
         Builtin::RCompose => true,
+        Builtin::Continue => true,
+        Builtin::Break => true,
         _ => false,
     }
 }
@@ -81,6 +83,8 @@ pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
         Builtin::RPipe => true,
         Builtin::Compose => true,
         Builtin::RCompose => true,
+        Builtin::Continue => true,
+        Builtin::Break => true,
         _ => false,
     }
 }
@@ -123,6 +127,14 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         Builtin::RPipe => context.write_instruction(Instruction::Call(1)),
         Builtin::Exit => context.write_instruction(Instruction::Exit),
         Builtin::Return => context.write_instruction(context.scope.kw_return()),
+        Builtin::Break => context
+            .write_instruction(context.scope.kw_break().unwrap())
+            .write_instruction(Instruction::Const(trilogy_vm::Value::Unit))
+            .write_instruction(Instruction::Become(1)),
+        Builtin::Continue => context
+            .write_instruction(context.scope.kw_continue().unwrap())
+            .write_instruction(Instruction::Const(trilogy_vm::Value::Unit))
+            .write_instruction(Instruction::Become(1)),
         Builtin::Compose => context
             .write_procedure_reference(RCOMPOSE.to_owned())
             .write_instruction(Instruction::Swap)
@@ -144,9 +156,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         | Builtin::For
         | Builtin::Yield
         | Builtin::Resume
-        | Builtin::Cancel
-        | Builtin::Break
-        | Builtin::Continue => {
+        | Builtin::Cancel => {
             panic!("write_operator was called with a builtin that is not an operator")
         }
     };
@@ -186,6 +196,8 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         Builtin::RPipe => context.write_procedure_reference(RPIPE.to_owned()),
         Builtin::Compose => context.write_procedure_reference(COMPOSE.to_owned()),
         Builtin::RCompose => context.write_procedure_reference(RCOMPOSE.to_owned()),
+        Builtin::Break => context.write_instruction(context.scope.kw_break().unwrap()),
+        Builtin::Continue => context.write_instruction(context.scope.kw_continue().unwrap()),
 
         Builtin::ModuleAccess
         | Builtin::Array
@@ -197,8 +209,6 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         | Builtin::Yield
         | Builtin::Resume
         | Builtin::Cancel
-        | Builtin::Break
-        | Builtin::Continue
         | Builtin::Sequence
         | Builtin::Construct
         | Builtin::Return
