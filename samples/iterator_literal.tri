@@ -1,0 +1,19 @@
+proc make_iterator!() {
+    let n = 0
+    
+    return do() {
+        n += 1
+        if n == 5 {
+            return 'done 
+        } else {
+            return 'next(n)
+        }
+    }
+}
+
+proc main!() {
+    let y in $(2 * x for x in make_iterator!())
+    if y % 2 == 1 { exit false }
+    if y == 8 { exit true }
+    end
+}

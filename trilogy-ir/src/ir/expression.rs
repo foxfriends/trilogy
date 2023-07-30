@@ -82,7 +82,7 @@ impl Expression {
                     .union(ast.key_expression.span())
                     .union(ast.expression.span());
                 analyzer.push_scope();
-                let query = Self::convert_query(analyzer, ast.query);
+                let query = Query::convert(analyzer, ast.query);
                 let key = Self::convert(analyzer, ast.key_expression);
                 let value = Self::convert(analyzer, ast.expression);
                 analyzer.pop_scope();
@@ -489,7 +489,7 @@ impl Expression {
                 let for_span = branch.for_token().span;
                 let span = branch.span();
                 analyzer.push_scope();
-                let query = Expression::convert_query(analyzer, branch.query);
+                let query = Query::convert(analyzer, branch.query);
                 let value = Expression::convert_block(analyzer, branch.body);
                 analyzer.pop_scope();
                 Expression::builtin(for_span, Builtin::For)
@@ -512,7 +512,7 @@ impl Expression {
     ) -> Self {
         let span = query.span().union(expression.span());
         analyzer.push_scope();
-        let query = Self::convert_query(analyzer, query);
+        let query = Query::convert(analyzer, query);
         let body = Self::convert(analyzer, expression);
         analyzer.pop_scope();
         Self::iterator(span, query, body)
@@ -629,7 +629,7 @@ impl Expression {
         Self::new(span, Value::Handled(Box::new(handled)))
     }
 
-    pub(super) fn iterator(span: Span, query: Expression, value: Expression) -> Self {
+    pub(super) fn iterator(span: Span, query: Query, value: Expression) -> Self {
         Self::new(span, Value::Iterator(Box::new(Iterator::new(query, value))))
     }
 

@@ -274,3 +274,18 @@ fn sample_first_class_return_returned() {
     let program = include_tri!("first_class_return_returned.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(3));
 }
+
+#[test]
+fn sample_iterator_query() {
+    let program = include_tri!("iterator_query.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(3));
+}
+
+#[test]
+fn sample_iterator_literal() {
+    let program = include_tri!("iterator_literal.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(true)
+    );
+}

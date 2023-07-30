@@ -7,7 +7,7 @@ use crate::Value;
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Execution {
     pub ip: usize,
-    stack: Stack,
+    pub stack: Stack,
     stack_stack: Vec<(usize, Stack)>,
 }
 

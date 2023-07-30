@@ -22,5 +22,5 @@ mod prelude {
     pub(crate) use crate::pattern_match::write_pattern_match;
     pub(crate) use crate::preamble::write_preamble;
     pub(crate) use crate::procedure::write_procedure;
-    pub(crate) use crate::query::write_query;
+    pub(crate) use crate::query::*;
 }

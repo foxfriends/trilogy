@@ -1,0 +1,20 @@
+proc make_iterator!() {
+    let n = 0
+    
+    return do() {
+        n += 1
+        if n == 5 {
+            return 'done 
+        } else {
+            return 'next(n)
+        }
+    }
+}
+
+proc main!() {
+    let times = 0
+    let x in make_iterator!()
+    times += 1
+    if x == 3 { exit times }
+    end
+}

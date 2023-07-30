@@ -87,7 +87,35 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.write_instruction(Instruction::Const(atom.into()));
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
-        ir::Value::Iterator(..) => todo!(),
+        ir::Value::Iterator(iterator) => {
+            let construct = context.labeler.unique_hint("iter");
+            let on_fail = context.labeler.unique_hint("iter_out");
+            let end = context.labeler.unique_hint("iter_end");
+            context.close(&construct);
+            context.declare_variables(iterator.query.bindings());
+            write_query_state(context, &iterator.query);
+            let state = context.scope.intermediate();
+            context.close(&end);
+            context.write_instruction(Instruction::LoadLocal(state));
+            write_query(context, &iterator.query, &on_fail);
+            context.write_instruction(Instruction::SetLocal(state));
+            write_expression(context, &iterator.value);
+            let next = context.atom("next");
+            let done = context.atom("done");
+            context
+                .write_instruction(Instruction::Const(next.into()))
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::Construct)
+                .write_instruction(Instruction::Return)
+                .write_label(on_fail)
+                .write_instruction(Instruction::Const(done.into()))
+                .write_label(end) // end is just here to reuse a return instead of printing two in a row
+                .write_instruction(Instruction::Return)
+                .write_label(construct)
+                .write_instruction(Instruction::Call(0));
+            context.scope.end_intermediate();
+            context.undeclare_variables(iterator.query.bindings(), false);
+        }
         ir::Value::While(stmt) => {
             let begin = context.labeler.unique_hint("while");
             let setup = context.labeler.unique_hint("while_setup");
@@ -187,9 +215,22 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
         },
         ir::Value::Let(decl) => {
+            let reenter = context.labeler.unique_hint("let");
+
             context.declare_variables(decl.query.bindings());
-            write_query(context, &decl.query);
+            write_query_state(context, &decl.query);
+            context.scope.intermediate();
+
+            context.write_label(reenter.clone());
+            write_query(context, &decl.query, END);
+            context
+                .write_instruction(Instruction::Const(Value::Bool(true)))
+                .write_instruction(Instruction::Const(Value::Bool(false)))
+                .write_instruction(Instruction::Branch)
+                .cond_jump(&reenter);
             write_expression(context, &decl.body);
+            context.write_instruction(Instruction::Pop);
+            context.scope.end_intermediate();
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::IfElse(cond) => {
@@ -205,8 +246,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Match(cond) => {
             write_expression(context, &cond.expression);
-            let end = context.labeler.unique_hint("match_end");
             let val = context.scope.intermediate();
+            let end = context.labeler.unique_hint("match_end");
             for case in &cond.cases {
                 let cleanup = context.labeler.unique_hint("case_cleanup");
                 let vars = context.declare_variables(case.pattern.bindings());

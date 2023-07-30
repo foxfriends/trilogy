@@ -687,9 +687,7 @@ impl VirtualMachine {
                     // When run in embedded mode, the exit value can be any value. The
                     // interpreter binary can decide how to handle that exit value when
                     // passing off to the OS.
-                    //
-                    // Exit is allowed to not have a value, in which case we fill in with unit.
-                    let value = ex.stack_pop().unwrap_or(Value::Unit);
+                    let value = ex.stack_pop()?;
                     self.executions.clear();
                     return Ok(value);
                 }
