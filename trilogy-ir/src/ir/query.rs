@@ -95,6 +95,10 @@ impl Query {
     pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
         self.value.bindings()
     }
+
+    pub fn is_once(&self) -> bool {
+        self.value.is_once()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -123,6 +127,22 @@ impl Value {
             Self::Element(unif) => Box::new(unif.bindings()),
             Self::Lookup(lookup) => Box::new(lookup.bindings()),
             _ => Box::new(std::iter::empty()),
+        }
+    }
+
+    fn is_once(&self) -> bool {
+        match self {
+            Self::Disjunction(..) => false,
+            Self::Conjunction(inner) => inner.0.is_once() && inner.1.is_once(),
+            Self::Implication(..) => false, // TODO: these ones might be once?
+            Self::Alternative(..) => false, // TODO: these ones might be once?
+            Self::Direct(..) => true,
+            Self::Pass => true,
+            Self::Is(..) => true,
+            Self::Lookup(..) => false,
+            Self::End => true,
+            Self::Not(inner) => inner.is_once(),
+            Self::Element(..) => false,
         }
     }
 }

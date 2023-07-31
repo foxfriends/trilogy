@@ -1,0 +1,21 @@
+proc main!() {
+    let total = 0
+
+    for x in [1, 2, 3] {
+        total += x
+    }
+
+    for x in [| 4, 5, 6 |] {
+        total += x
+    }
+
+    for k:v in {| 7 => 8, 9 => 10 |} {
+        total += k + v
+    }
+
+    for x in 11 : 12 : 13 : unit {
+        total += x
+    }
+
+    exit total
+}

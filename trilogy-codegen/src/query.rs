@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{preamble::ITERATE_COLLECTION, prelude::*};
 use trilogy_ir::ir;
 use trilogy_vm::Instruction;
 
@@ -14,6 +14,10 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
         }
         ir::QueryValue::Element(unification) => {
             write_expression(context, &unification.expression);
+            context
+                .write_procedure_reference(ITERATE_COLLECTION.to_owned())
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::Call(1));
         }
         ir::QueryValue::Alternative(alt) => {
             write_query_state(context, &alt.0);

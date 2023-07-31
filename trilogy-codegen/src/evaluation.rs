@@ -49,8 +49,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             ir::Value::Application(application) => match unapply_2(application) {
                 (Some(ir::Value::Builtin(ir::Builtin::Access)), collection, key) => {
                     write_evaluation(context, collection);
+                    context.scope.intermediate();
                     write_evaluation(context, key);
+                    context.scope.intermediate();
                     write_expression(context, &assignment.rhs);
+                    context.scope.end_intermediate();
+                    context.scope.end_intermediate();
                     context.write_instruction(Instruction::Assign);
                 }
                 _ => unreachable!("LValue applications must be access"),
@@ -59,7 +63,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         },
         ir::Value::Mapping(value) => {
             write_expression(context, &value.0);
+            context.scope.intermediate();
             write_expression(context, &value.1);
+            context.scope.end_intermediate();
         }
         ir::Value::Number(value) => {
             context.write_instruction(Instruction::Const(value.value().clone().into()));
@@ -202,9 +208,46 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 ir::Value::Iterator(iter) => todo!("{iter:?}"),
                 _ => panic!("collections must be pack or iterator"),
             },
+            (None, ir::Value::Builtin(ir::Builtin::For), value) => {
+                context.write_instruction(Instruction::Const(false.into()));
+                let eval_to = context.scope.intermediate();
+                write_evaluation(context, value);
+                let loop_begin = context.labeler.unique_hint("for");
+                let loop_exit = context.labeler.unique_hint("for_end");
+                let next = context.atom("next");
+                let done = context.atom("done");
+                context
+                    .write_label(loop_begin.clone())
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::Call(0))
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::Const(done.into()))
+                    .write_instruction(Instruction::ValNeq)
+                    .cond_jump(&loop_exit)
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::TypeOf)
+                    .write_instruction(Instruction::Const("struct".into()))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(END)
+                    .write_instruction(Instruction::Destruct)
+                    .write_instruction(Instruction::Swap)
+                    .write_instruction(Instruction::Const(next.into()))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(END)
+                    .write_instruction(Instruction::Const(true.into()))
+                    .write_instruction(Instruction::SetLocal(eval_to))
+                    .write_instruction(Instruction::Pop)
+                    .jump(&loop_begin)
+                    .write_label(loop_exit)
+                    .write_instruction(Instruction::Pop)
+                    .write_instruction(Instruction::Pop);
+                context.scope.end_intermediate();
+            }
             _ => {
                 write_expression(context, &application.function);
+                context.scope.intermediate();
                 write_expression(context, &application.argument);
+                context.scope.end_intermediate();
                 let arity = match &application.argument.value {
                     ir::Value::Pack(pack) => pack
                         .len()
@@ -214,6 +257,20 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.write_instruction(Instruction::Call(arity));
             }
         },
+        ir::Value::Let(decl) if decl.query.is_once() => {
+            let reenter = context.labeler.unique_hint("let");
+            context.declare_variables(decl.query.bindings());
+            write_query_state(context, &decl.query);
+            context.scope.intermediate();
+            context.write_label(reenter.clone());
+            write_query(context, &decl.query, END);
+            write_expression(context, &decl.body);
+            // TODO: would be really nice to move this pop one line up, but the shared
+            // stack thing with closures makes it not work
+            context.write_instruction(Instruction::Pop);
+            context.scope.end_intermediate();
+            context.undeclare_variables(decl.query.bindings(), true);
+        }
         ir::Value::Let(decl) => {
             let reenter = context.labeler.unique_hint("let");
 
@@ -343,6 +400,8 @@ fn write_binary_operation(
     builtin: ir::Builtin,
 ) {
     write_evaluation(context, lhs);
+    context.scope.intermediate();
     write_evaluation(context, rhs);
+    context.scope.end_intermediate();
     write_operator(context, builtin);
 }

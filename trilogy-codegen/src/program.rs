@@ -3,7 +3,7 @@ use crate::preamble::RETURN;
 use crate::prelude::*;
 use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
-use trilogy_vm::{Instruction, OpCode, ProgramBuilder};
+use trilogy_vm::{Atom, Instruction, OpCode, ProgramBuilder};
 
 pub(crate) struct ProgramContext<'a> {
     pub labeler: Labeler,
@@ -40,6 +40,13 @@ impl ProgramContext<'_> {
         self
     }
 
+    pub fn cond_jump(&mut self, label: &str) -> &mut Self {
+        self.builder
+            .write_opcode(OpCode::CondJump)
+            .write_offset_label(label.to_owned());
+        self
+    }
+
     pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
         self.builder.write_instruction(instruction);
         self
@@ -50,6 +57,10 @@ impl ProgramContext<'_> {
             .write_label(label)
             .expect("should not insert same label twice");
         self
+    }
+
+    pub fn atom(&mut self, value: &str) -> Atom {
+        self.builder.atom(value)
     }
 
     pub fn write_procedure(
