@@ -114,22 +114,27 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .write_label(RCOMPOSE.to_owned())
-        .shift(RETURN)
-        .shift(RESET)
+        .close(RETURN)
+        .close(RETURN)
         .write_instruction(Instruction::LoadLocal(0))
         .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
         .write_instruction(Instruction::LoadLocal(1))
         .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::Reset);
+        .write_instruction(Instruction::Return);
+
     builder
         .write_label(COMPOSE.to_owned())
-        .shift(RETURN)
-        .shift(RESET)
+        .close(RETURN)
+        .close(RETURN)
+        .write_instruction(Instruction::LoadLocal(1))
+        .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
+        .write_instruction(Instruction::LoadLocal(0))
+        .write_instruction(Instruction::Swap)
         .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::Reset);
+        .write_instruction(Instruction::Return);
 
     builder
         .write_label(RESET.to_owned())
