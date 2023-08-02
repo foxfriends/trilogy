@@ -289,3 +289,21 @@ fn sample_iterator_literal() {
         Value::from(true)
     );
 }
+
+#[test]
+fn sample_iterator_collection() {
+    let program = include_tri!("iterator_collection.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(91)
+    );
+}
+
+#[test]
+fn sample_collect_iterator() {
+    let program = include_tri!("collect_iterator.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(75)
+    );
+}

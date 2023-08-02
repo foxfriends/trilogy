@@ -105,7 +105,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.write_instruction(Instruction::LoadLocal(state));
             write_query(context, &iterator.query, &on_fail);
             context.write_instruction(Instruction::SetLocal(state));
-            write_expression(context, &iterator.value);
+            match &iterator.value.value {
+                ir::Value::Mapping(mapping) => {
+                    write_expression(context, &mapping.0);
+                    context.scope.intermediate();
+                    write_expression(context, &mapping.1);
+                    context.scope.end_intermediate();
+                    context.write_instruction(Instruction::Cons);
+                }
+                other => write_evaluation(context, other),
+            }
             let next = context.atom("next");
             let done = context.atom("done");
             context
@@ -164,50 +173,166 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             (Some(ir::Value::Builtin(builtin)), lhs, rhs) if is_operator(*builtin) => {
                 write_binary_operation(context, lhs, rhs, *builtin);
             }
-            (None, ir::Value::Builtin(ir::Builtin::Record), arg) => match arg {
-                ir::Value::Pack(pack) => {
-                    context
-                        .write_instruction(Instruction::Const(Value::Record(Default::default())));
-                    for element in &pack.values {
-                        write_expression(context, &element.expression);
-                        if element.is_spread {
-                            context.write_instruction(Instruction::Glue);
-                        } else {
-                            context.write_instruction(Instruction::Assign);
+            (None, ir::Value::Builtin(ir::Builtin::Record), arg) => {
+                context.write_instruction(Instruction::Const(Value::Record(Default::default())));
+                let record = context.scope.intermediate();
+                match arg {
+                    ir::Value::Pack(pack) => {
+                        for element in &pack.values {
+                            write_expression(context, &element.expression);
+                            if element.is_spread {
+                                context.write_instruction(Instruction::Glue);
+                            } else {
+                                context.write_instruction(Instruction::Assign);
+                            }
                         }
                     }
+                    ir::Value::Iterator(..) => {
+                        write_evaluation(context, arg);
+                        context.scope.intermediate();
+                        let loop_begin = context.labeler.unique_hint("record_collect");
+                        let loop_exit = context.labeler.unique_hint("record_collect_end");
+                        let next = context.atom("next");
+                        let done = context.atom("done");
+                        context
+                            .write_label(loop_begin.clone())
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Call(0))
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Const(done.into()))
+                            .write_instruction(Instruction::ValNeq)
+                            .cond_jump(&loop_exit)
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::TypeOf)
+                            .write_instruction(Instruction::Const("struct".into()))
+                            .write_instruction(Instruction::ValEq)
+                            .cond_jump(END)
+                            .write_instruction(Instruction::Destruct)
+                            .write_instruction(Instruction::Swap)
+                            .write_instruction(Instruction::Const(next.into()))
+                            .write_instruction(Instruction::ValEq)
+                            .cond_jump(END)
+                            .write_instruction(Instruction::LoadLocal(record))
+                            .write_instruction(Instruction::Swap)
+                            .write_instruction(Instruction::Uncons)
+                            .write_instruction(Instruction::Assign)
+                            .write_instruction(Instruction::Pop)
+                            .jump(&loop_begin)
+                            .write_label(loop_exit)
+                            .write_instruction(Instruction::Pop)
+                            .write_instruction(Instruction::Pop);
+                        context.scope.end_intermediate();
+                    }
+                    _ => panic!("record literal must have pack or iterator"),
                 }
-                _ => todo!("{arg:?}"),
-            },
-            (None, ir::Value::Builtin(ir::Builtin::Set), arg) => match arg {
-                ir::Value::Pack(pack) => {
-                    context.write_instruction(Instruction::Const(Value::Set(Default::default())));
-                    for element in &pack.values {
-                        write_expression(context, &element.expression);
-                        if element.is_spread {
-                            context.write_instruction(Instruction::Glue);
-                        } else {
-                            context.write_instruction(Instruction::Insert);
+                context.scope.end_intermediate();
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Set), arg) => {
+                context.write_instruction(Instruction::Const(Value::Set(Default::default())));
+                let set = context.scope.intermediate();
+                match arg {
+                    ir::Value::Pack(pack) => {
+                        for element in &pack.values {
+                            write_expression(context, &element.expression);
+                            if element.is_spread {
+                                context.write_instruction(Instruction::Glue);
+                            } else {
+                                context.write_instruction(Instruction::Insert);
+                            }
                         }
                     }
+                    ir::Value::Iterator(..) => {
+                        write_evaluation(context, arg);
+                        context.scope.intermediate();
+                        let loop_begin = context.labeler.unique_hint("set_collect");
+                        let loop_exit = context.labeler.unique_hint("set_collect_end");
+                        let next = context.atom("next");
+                        let done = context.atom("done");
+                        context
+                            .write_label(loop_begin.clone())
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Call(0))
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Const(done.into()))
+                            .write_instruction(Instruction::ValNeq)
+                            .cond_jump(&loop_exit)
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::TypeOf)
+                            .write_instruction(Instruction::Const("struct".into()))
+                            .write_instruction(Instruction::ValEq)
+                            .cond_jump(END)
+                            .write_instruction(Instruction::Destruct)
+                            .write_instruction(Instruction::Swap)
+                            .write_instruction(Instruction::Const(next.into()))
+                            .write_instruction(Instruction::ValEq)
+                            .cond_jump(END)
+                            .write_instruction(Instruction::LoadLocal(set))
+                            .write_instruction(Instruction::Swap)
+                            .write_instruction(Instruction::Insert)
+                            .write_instruction(Instruction::Pop)
+                            .jump(&loop_begin)
+                            .write_label(loop_exit)
+                            .write_instruction(Instruction::Pop)
+                            .write_instruction(Instruction::Pop);
+                        context.scope.end_intermediate();
+                    }
+                    _ => panic!("set literal must have pack or iterator"),
                 }
-                _ => todo!("{arg:?}"),
-            },
-            (None, ir::Value::Builtin(ir::Builtin::Array), arg) => match arg {
-                ir::Value::Pack(pack) => {
-                    context.write_instruction(Instruction::Const(Value::Array(Default::default())));
-                    for element in &pack.values {
-                        write_expression(context, &element.expression);
-                        if element.is_spread {
-                            context.write_instruction(Instruction::Glue);
-                        } else {
-                            context.write_instruction(Instruction::Insert);
+                context.scope.end_intermediate();
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Array), arg) => {
+                context.write_instruction(Instruction::Const(Value::Array(Default::default())));
+                let array = context.scope.intermediate();
+                match arg {
+                    ir::Value::Pack(pack) => {
+                        for element in &pack.values {
+                            write_expression(context, &element.expression);
+                            if element.is_spread {
+                                context.write_instruction(Instruction::Glue);
+                            } else {
+                                context.write_instruction(Instruction::Insert);
+                            }
                         }
                     }
+                    ir::Value::Iterator(..) => {
+                        write_evaluation(context, arg);
+                        context.scope.intermediate();
+                        let loop_begin = context.labeler.unique_hint("array_collect");
+                        let loop_exit = context.labeler.unique_hint("array_collect_end");
+                        let next = context.atom("next");
+                        let done = context.atom("done");
+                        context
+                            .write_label(loop_begin.clone())
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Call(0))
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::Const(done.into()))
+                            .write_instruction(Instruction::ValNeq)
+                            .cond_jump(&loop_exit)
+                            .write_instruction(Instruction::Copy)
+                            .write_instruction(Instruction::TypeOf)
+                            .write_instruction(Instruction::Const("struct".into()))
+                            .write_instruction(Instruction::ValEq)
+                            .cond_jump(END)
+                            .write_instruction(Instruction::Destruct)
+                            .write_instruction(Instruction::Swap)
+                            .write_instruction(Instruction::Const(next.into()))
+                            .write_instruction(Instruction::ValEq)
+                            .cond_jump(END)
+                            .write_instruction(Instruction::LoadLocal(array))
+                            .write_instruction(Instruction::Swap)
+                            .write_instruction(Instruction::Insert)
+                            .write_instruction(Instruction::Pop)
+                            .jump(&loop_begin)
+                            .write_label(loop_exit)
+                            .write_instruction(Instruction::Pop)
+                            .write_instruction(Instruction::Pop);
+                        context.scope.end_intermediate();
+                    }
+                    _ => panic!("array literal must have pack or iterator"),
                 }
-                ir::Value::Iterator(iter) => todo!("{iter:?}"),
-                _ => panic!("collections must be pack or iterator"),
-            },
+                context.scope.end_intermediate();
+            }
             (None, ir::Value::Builtin(ir::Builtin::For), value) => {
                 context.write_instruction(Instruction::Const(false.into()));
                 let eval_to = context.scope.intermediate();

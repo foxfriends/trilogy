@@ -1,0 +1,15 @@
+func range 0 = unit
+func range n = n : range (n - 1)
+
+proc main!() {
+    let array = [x for x in range 5]
+    let set = [| x for x in range 5 |]
+    let record = {| x => 2 * x for x in range 5 |}
+
+    let total = 0
+    for x in array { total += x }
+    for x in set { total += x }
+    for x:y in record { total += x + y }
+
+    exit total
+}
