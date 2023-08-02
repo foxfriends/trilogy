@@ -1,6 +1,6 @@
 use crate::{preamble::*, prelude::*};
 use trilogy_ir::ir::Builtin;
-use trilogy_vm::Instruction;
+use trilogy_vm::{Instruction, Value};
 
 pub(crate) fn is_operator(builtin: Builtin) -> bool {
     #[allow(clippy::match_like_matches_macro)]
@@ -87,11 +87,11 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         Builtin::Return => context.write_instruction(Instruction::Return),
         Builtin::Break => context
             .write_instruction(context.scope.kw_break().unwrap())
-            .write_instruction(Instruction::Const(trilogy_vm::Value::Unit))
+            .write_instruction(Instruction::Const(Value::Unit))
             .write_instruction(Instruction::Become(1)),
         Builtin::Continue => context
             .write_instruction(context.scope.kw_continue().unwrap())
-            .write_instruction(Instruction::Const(trilogy_vm::Value::Unit))
+            .write_instruction(Instruction::Const(Value::Unit))
             .write_instruction(Instruction::Become(1)),
         Builtin::Compose => context
             .write_procedure_reference(RCOMPOSE.to_owned())
@@ -105,6 +105,14 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             .write_instruction(Instruction::Call(1))
             .write_instruction(Instruction::Swap)
             .write_instruction(Instruction::Call(1)),
+        Builtin::Yield => context
+            .write_instruction(Instruction::LoadRegister(0))
+            .write_instruction(Instruction::Copy)
+            .write_instruction(Instruction::Const(Value::Unit))
+            .write_instruction(Instruction::ValNeq)
+            .cond_jump(END)
+            .write_instruction(Instruction::Swap)
+            .write_instruction(Instruction::Call(1)),
         Builtin::ModuleAccess
         | Builtin::Array
         | Builtin::Set
@@ -112,7 +120,6 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         | Builtin::Is
         | Builtin::Pin
         | Builtin::For
-        | Builtin::Yield
         | Builtin::Resume
         | Builtin::Cancel => {
             panic!("write_operator was called with a builtin that is not an operator")

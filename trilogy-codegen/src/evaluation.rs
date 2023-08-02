@@ -487,7 +487,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             context.scope.unclosure(closure.parameters.len());
         }
-        ir::Value::Handled(_handled) => {
+        ir::Value::Handled(handled) => {
             todo!()
         }
         ir::Value::Module(..) => todo!("{value:?}"),
