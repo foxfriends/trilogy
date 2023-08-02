@@ -43,6 +43,7 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
         Builtin::RCompose => true,
         Builtin::Continue => true,
         Builtin::Break => true,
+        Builtin::Yield => true,
         _ => false,
     }
 }
