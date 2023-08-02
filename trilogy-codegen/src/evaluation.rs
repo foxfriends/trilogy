@@ -487,7 +487,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             context.scope.unclosure(closure.parameters.len());
         }
-        ir::Value::Handled(..) => todo!("{value:?}"),
+        ir::Value::Handled(_handled) => {
+            todo!()
+        }
         ir::Value::Module(..) => todo!("{value:?}"),
         ir::Value::Reference(ident) => {
             let binding = context

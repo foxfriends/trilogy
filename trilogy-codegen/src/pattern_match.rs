@@ -117,18 +117,22 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .write_instruction(Instruction::Const("string".into()))
                     .write_instruction(Instruction::ValEq)
                     .cond_jump(&cleanup);
+                let original = context.scope.intermediate();
                 write_evaluation(context, lhs);
+                let lhs_val = context.scope.intermediate();
                 context
                     .write_instruction(Instruction::Copy)
                     .write_instruction(Instruction::Length)
-                    .write_instruction(Instruction::LoadRegister(2))
+                    .write_instruction(Instruction::LoadLocal(original))
                     .write_instruction(Instruction::Swap)
                     .write_instruction(Instruction::Take)
-                    .write_instruction(Instruction::LoadRegister(1))
+                    .write_instruction(Instruction::LoadLocal(lhs_val))
                     .write_instruction(Instruction::ValEq)
                     .cond_jump(&double_cleanup)
                     .write_instruction(Instruction::Length)
                     .write_instruction(Instruction::Skip);
+                context.scope.end_intermediate();
+                context.scope.end_intermediate();
                 write_pattern(context, rhs, on_fail);
                 context
                     .jump(&end)
@@ -149,26 +153,30 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .write_instruction(Instruction::Const("string".into()))
                     .write_instruction(Instruction::ValEq)
                     .cond_jump(&cleanup);
+                let original = context.scope.intermediate();
                 write_evaluation(context, rhs);
+                let rhs_val = context.scope.intermediate();
                 context
                     .write_instruction(Instruction::Copy)
                     .write_instruction(Instruction::Length)
-                    .write_instruction(Instruction::LoadRegister(2))
+                    .write_instruction(Instruction::LoadLocal(original))
                     .write_instruction(Instruction::Length)
                     .write_instruction(Instruction::Swap)
                     .write_instruction(Instruction::Subtract)
-                    .write_instruction(Instruction::LoadRegister(2))
+                    .write_instruction(Instruction::LoadLocal(original))
                     .write_instruction(Instruction::Swap)
                     .write_instruction(Instruction::Skip)
-                    .write_instruction(Instruction::LoadRegister(1))
+                    .write_instruction(Instruction::LoadLocal(rhs_val))
                     .write_instruction(Instruction::ValEq)
                     .cond_jump(&double_cleanup)
                     .write_instruction(Instruction::Length)
-                    .write_instruction(Instruction::LoadRegister(1))
+                    .write_instruction(Instruction::LoadLocal(original))
                     .write_instruction(Instruction::Length)
                     .write_instruction(Instruction::Swap)
                     .write_instruction(Instruction::Subtract)
                     .write_instruction(Instruction::Take);
+                context.scope.end_intermediate();
+                context.scope.end_intermediate();
                 write_pattern(context, lhs, on_fail);
                 context
                     .jump(&end)
@@ -227,6 +235,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let end = context.labeler.unique_hint("array_end");
                 let mut spread = None;
                 context.write_instruction(Instruction::Clone);
+                let array = context.scope.intermediate();
                 for element in &pack.values {
                     if element.is_spread {
                         spread = Some(&element.expression);
@@ -243,16 +252,18 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                             .write_instruction(Instruction::Const(1.into()))
                             .write_instruction(Instruction::Skip);
                     } else {
+                        let index = context.scope.intermediate();
                         context
                             .write_instruction(Instruction::Copy)
                             .write_instruction(Instruction::Length)
                             .write_instruction(Instruction::Const(1.into()))
                             .write_instruction(Instruction::Subtract)
-                            .write_instruction(Instruction::LoadRegister(1))
-                            .write_instruction(Instruction::LoadRegister(1))
+                            .write_instruction(Instruction::LoadLocal(array))
+                            .write_instruction(Instruction::LoadLocal(index))
                             .write_instruction(Instruction::Access);
                         write_pattern_match(context, &element.expression, &cleanup);
                         context.write_instruction(Instruction::Take);
+                        context.scope.end_intermediate();
                     }
                 }
                 if let Some(spread) = spread {
@@ -260,6 +271,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 } else {
                     context.write_instruction(Instruction::Pop);
                 }
+                context.scope.end_intermediate();
                 context
                     .jump(&end)
                     .write_label(cleanup)
@@ -273,6 +285,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let end = context.labeler.unique_hint("record_end");
                 let mut spread = None;
                 context.write_instruction(Instruction::Clone);
+                let record = context.scope.intermediate();
                 for element in &pack.values {
                     if element.is_spread {
                         spread = Some(&element.expression);
@@ -281,28 +294,29 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     let ir::Value::Mapping(mapping) = &element.expression.value else {
                         panic!("record pattern elements must be mapping ");
                     };
-                    context.write_instruction(Instruction::Copy);
                     write_expression(context, &mapping.0);
+                    let key = context.scope.intermediate();
                     context
-                        .write_instruction(Instruction::LoadRegister(1))
-                        .write_instruction(Instruction::LoadRegister(1))
+                        .write_instruction(Instruction::LoadLocal(record))
+                        .write_instruction(Instruction::LoadLocal(key))
                         .write_instruction(Instruction::Contains)
                         .cond_jump(&cleanup)
-                        .write_instruction(Instruction::LoadRegister(1))
-                        .write_instruction(Instruction::LoadRegister(1))
+                        .write_instruction(Instruction::LoadLocal(record))
+                        .write_instruction(Instruction::LoadLocal(key))
                         .write_instruction(Instruction::Access);
                     write_pattern_match(context, &mapping.1, &cleanup);
                     context.write_instruction(Instruction::Delete);
+                    context.scope.end_intermediate();
                 }
                 if let Some(spread) = spread {
                     write_pattern_match(context, spread, on_fail);
                 } else {
                     context.write_instruction(Instruction::Pop);
                 }
+                context.scope.end_intermediate();
                 context
                     .jump(&end)
                     .write_label(cleanup)
-                    .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)
@@ -313,29 +327,31 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let end = context.labeler.unique_hint("set_end");
                 let mut spread = None;
                 context.write_instruction(Instruction::Clone);
+                let set = context.scope.intermediate();
                 for element in &pack.values {
                     if element.is_spread {
                         spread = Some(&element.expression);
                         continue;
                     }
-                    context.write_instruction(Instruction::Copy);
                     write_expression(context, &element.expression);
+                    let value = context.scope.intermediate();
                     context
-                        .write_instruction(Instruction::LoadRegister(1))
-                        .write_instruction(Instruction::LoadRegister(1))
+                        .write_instruction(Instruction::LoadLocal(set))
+                        .write_instruction(Instruction::LoadLocal(value))
                         .write_instruction(Instruction::Contains)
                         .cond_jump(&cleanup);
                     context.write_instruction(Instruction::Delete);
+                    context.scope.end_intermediate();
                 }
                 if let Some(spread) = spread {
                     write_pattern_match(context, spread, on_fail);
                 } else {
                     context.write_instruction(Instruction::Pop);
                 }
+                context.scope.end_intermediate();
                 context
                     .jump(&end)
                     .write_label(cleanup)
-                    .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .write_instruction(Instruction::Pop)
                     .jump(on_fail)

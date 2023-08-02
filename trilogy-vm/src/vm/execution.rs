@@ -112,14 +112,8 @@ impl Execution {
             .map_err(|k| self.error(k))
     }
 
-    pub fn read_register(&self, index: usize) -> Result<Value, Error> {
-        self.stack.at(index).map_err(|k| self.error(k))
-    }
-
-    pub fn set_register(&mut self, index: usize, value: Value) -> Result<Value, Error> {
-        self.stack
-            .replace_at(index, value)
-            .map_err(|k| self.error(k))
+    pub fn stack_peek(&self) -> Result<Value, Error> {
+        self.stack.at(0).map_err(|k| self.error(k))
     }
 
     pub fn stack_pop(&mut self) -> Result<Value, Error> {

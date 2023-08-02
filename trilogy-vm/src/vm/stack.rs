@@ -271,17 +271,6 @@ impl Stack {
         self.cactus.push(InternalValue::Pointer(pointer));
     }
 
-    pub(crate) fn replace_at(
-        &mut self,
-        index: usize,
-        value: Value,
-    ) -> Result<Value, InternalRuntimeError> {
-        self.cactus
-            .replace_at(index, InternalValue::Value(value))
-            .map_err(|_| InternalRuntimeError::ExpectedValue)
-            .and_then(InternalValue::try_into_value)
-    }
-
     pub(crate) fn replace_at_local(
         &mut self,
         index: usize,

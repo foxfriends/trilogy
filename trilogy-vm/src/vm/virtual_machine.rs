@@ -12,6 +12,7 @@ use std::collections::VecDeque;
 pub struct VirtualMachine {
     program: Program,
     executions: VecDeque<Execution>,
+    registers: Vec<Value>,
     heap: Vec<Option<Value>>,
 }
 
@@ -20,7 +21,8 @@ impl VirtualMachine {
         Self {
             program,
             executions: VecDeque::with_capacity(8),
-            heap: Vec::with_capacity(128),
+            registers: vec![Value::Unit; 8],
+            heap: Vec::with_capacity(8),
         }
     }
 
@@ -98,12 +100,18 @@ impl VirtualMachine {
                 }
                 OpCode::LoadRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
-                    ex.stack_push(ex.read_register(offset)?);
+                    if offset >= self.registers.len() {
+                        return Err(ex.error(InternalRuntimeError::InvalidOffset));
+                    }
+                    ex.stack_push(self.registers[offset].clone());
                 }
                 OpCode::SetRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     let value = ex.stack_pop()?;
-                    ex.set_register(offset, value)?;
+                    if offset >= self.registers.len() {
+                        return Err(ex.error(InternalRuntimeError::InvalidOffset));
+                    }
+                    self.registers[offset] = value;
                 }
                 OpCode::Pop => {
                     ex.stack_pop()?;
@@ -115,7 +123,7 @@ impl VirtualMachine {
                     ex.stack_push(lhs);
                 }
                 OpCode::Copy => {
-                    let value = ex.read_register(0)?;
+                    let value = ex.stack_peek()?;
                     ex.stack_push(value);
                 }
                 OpCode::Clone => {
@@ -360,7 +368,7 @@ impl VirtualMachine {
                 OpCode::Delete => {
                     let key = ex.stack_pop()?;
                     let value = ex.stack_pop()?;
-                    match value {
+                    match &value {
                         Value::Record(record) => {
                             record.remove(&key);
                         }
@@ -378,6 +386,7 @@ impl VirtualMachine {
                         }
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }
+                    ex.stack_push(value);
                 }
                 OpCode::Contains => {
                     let key = ex.stack_pop()?;
