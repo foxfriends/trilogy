@@ -51,8 +51,19 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 .cond_jump(on_fail);
         }
         ir::Value::Conjunction(conj) => {
-            write_pattern_match(context, &conj.0, on_fail);
+            let cleanup = context.labeler.unique_hint("conj_cleanup");
+            let done = context.labeler.unique_hint("conj_done");
+            context.write_instruction(Instruction::Copy);
+            context.scope.intermediate();
+            write_pattern_match(context, &conj.0, &cleanup);
+            context.scope.end_intermediate();
             write_pattern_match(context, &conj.1, on_fail);
+            context
+                .jump(&done)
+                .write_label(cleanup)
+                .write_instruction(Instruction::Pop)
+                .jump(on_fail)
+                .write_label(done);
         }
         ir::Value::Disjunction(disj) => {
             let next = context.labeler.unique();

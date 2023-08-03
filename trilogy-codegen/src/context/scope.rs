@@ -14,13 +14,9 @@ pub(crate) struct Scope<'a> {
     locals: HashMap<Id, usize>,
     parameters: usize,
 
-    #[allow(dead_code)]
-    kw_resume: Option<usize>,
-    #[allow(dead_code)]
-    kw_cancel: Option<usize>,
-    #[allow(dead_code)]
+    kw_resume: Vec<usize>,
+    kw_cancel: Vec<usize>,
     kw_break: Vec<usize>,
-    #[allow(dead_code)]
     kw_continue: Vec<usize>,
 }
 
@@ -30,8 +26,8 @@ impl<'a> Scope<'a> {
             parameters,
             statics,
             locals: HashMap::default(),
-            kw_resume: None,
-            kw_cancel: None,
+            kw_resume: vec![],
+            kw_cancel: vec![],
             kw_break: vec![],
             kw_continue: vec![],
         }
@@ -105,6 +101,38 @@ impl<'a> Scope<'a> {
 
     pub fn kw_continue(&self) -> Option<Instruction> {
         let offset = self.kw_continue.last()?;
+        Some(Instruction::LoadLocal(*offset))
+    }
+
+    pub fn push_cancel(&mut self) -> usize {
+        let offset = self.intermediate();
+        self.kw_cancel.push(offset);
+        offset
+    }
+
+    pub fn pop_cancel(&mut self) {
+        self.end_intermediate();
+        self.kw_cancel.pop();
+    }
+
+    pub fn kw_cancel(&self) -> Option<Instruction> {
+        let offset = self.kw_cancel.last()?;
+        Some(Instruction::LoadLocal(*offset))
+    }
+
+    pub fn push_resume(&mut self) -> usize {
+        let offset = self.intermediate();
+        self.kw_resume.push(offset);
+        offset
+    }
+
+    pub fn pop_resume(&mut self) {
+        self.end_intermediate();
+        self.kw_resume.pop();
+    }
+
+    pub fn kw_resume(&self) -> Option<Instruction> {
+        let offset = self.kw_resume.last()?;
         Some(Instruction::LoadLocal(*offset))
     }
 }

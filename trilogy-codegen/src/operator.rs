@@ -44,6 +44,8 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
         Builtin::Continue => true,
         Builtin::Break => true,
         Builtin::Yield => true,
+        Builtin::Resume => true,
+        Builtin::Cancel => true,
         _ => false,
     }
 }
@@ -107,22 +109,24 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             .write_instruction(Instruction::Swap)
             .write_instruction(Instruction::Call(1)),
         Builtin::Yield => context
-            .write_instruction(Instruction::LoadRegister(0))
-            .write_instruction(Instruction::Copy)
-            .write_instruction(Instruction::Const(Value::Unit))
-            .write_instruction(Instruction::ValNeq)
-            .cond_jump(END)
+            .write_procedure_reference(YIELD.to_owned())
             .write_instruction(Instruction::Swap)
             .write_instruction(Instruction::Call(1)),
+        Builtin::Resume => context
+            .write_instruction(context.scope.kw_resume().unwrap())
+            .write_instruction(Instruction::Swap)
+            .write_instruction(Instruction::Call(1)),
+        Builtin::Cancel => context
+            .write_instruction(context.scope.kw_cancel().unwrap())
+            .write_instruction(Instruction::Swap)
+            .write_instruction(Instruction::Become(1)),
         Builtin::ModuleAccess
         | Builtin::Array
         | Builtin::Set
         | Builtin::Record
         | Builtin::Is
         | Builtin::Pin
-        | Builtin::For
-        | Builtin::Resume
-        | Builtin::Cancel => {
+        | Builtin::For => {
             panic!("write_operator was called with a builtin that is not an operator")
         }
     };
@@ -167,6 +171,8 @@ pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
         Builtin::Continue => true,
         Builtin::Break => true,
         Builtin::Return => true,
+        Builtin::Resume => true,
+        Builtin::Cancel => true,
         _ => false,
     }
 }
@@ -207,6 +213,8 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         Builtin::RCompose => context.write_procedure_reference(RCOMPOSE.to_owned()),
         Builtin::Break => context.write_instruction(context.scope.kw_break().unwrap()),
         Builtin::Continue => context.write_instruction(context.scope.kw_continue().unwrap()),
+        Builtin::Resume => context.write_instruction(context.scope.kw_resume().unwrap()),
+        Builtin::Cancel => context.write_instruction(context.scope.kw_cancel().unwrap()),
         Builtin::Return => {
             let end = context.labeler.unique_hint("J");
             context
@@ -223,8 +231,6 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         | Builtin::Pin
         | Builtin::For
         | Builtin::Yield
-        | Builtin::Resume
-        | Builtin::Cancel
         | Builtin::Sequence
         | Builtin::Construct
         | Builtin::Exit => {

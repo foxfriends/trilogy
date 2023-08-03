@@ -48,6 +48,7 @@ pub const ITERATE_LIST: &str = "core::iter_list";
 pub const RETURN: &str = "core::return";
 pub const RESET: &str = "core::reset";
 pub const END: &str = "core::end";
+pub const YIELD: &str = "core::yield";
 
 macro_rules! binop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
@@ -232,4 +233,21 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .write_instruction(Instruction::Fizzle)
         .write_label(RETURN.to_owned())
         .write_instruction(Instruction::Return);
+
+    let yielding = builder.labeler.unique_hint("yielding");
+
+    builder
+        .write_label(YIELD.to_owned())
+        .write_instruction(Instruction::LoadRegister(0))
+        .write_instruction(Instruction::Const(Value::Unit))
+        .write_instruction(Instruction::ValNeq)
+        .cond_jump(END)
+        .write_instruction(Instruction::LoadRegister(0))
+        .write_instruction(Instruction::Swap)
+        .shift(&yielding)
+        .write_instruction(Instruction::LoadLocal(0))
+        .write_instruction(Instruction::SetRegister(0))
+        .write_instruction(Instruction::Return)
+        .write_label(yielding)
+        .write_instruction(Instruction::Become(2));
 }

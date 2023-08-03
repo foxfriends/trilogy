@@ -488,7 +488,50 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.unclosure(closure.parameters.len());
         }
         ir::Value::Handled(handled) => {
-            todo!()
+            let when = context.labeler.unique_hint("when");
+            let end = context.labeler.unique_hint("with_end");
+            let body = context.labeler.unique_hint("with_body");
+            context.write_instruction(Instruction::LoadRegister(0));
+            let stored_yield = context.scope.intermediate();
+
+            context.shift(&when).jump(&end);
+            context.scope.push_cancel();
+
+            context.write_label(when).shift(&body);
+            let effect = context.scope.intermediate();
+            context.scope.push_resume();
+
+            context
+                .write_instruction(Instruction::LoadLocal(stored_yield))
+                .write_instruction(Instruction::SetRegister(0));
+            for handler in &handled.handlers {
+                let next = context.labeler.unique_hint("when_next");
+                context.declare_variables(handler.pattern.bindings());
+                context.write_instruction(Instruction::LoadLocal(effect));
+                write_pattern_match(context, &handler.pattern, &next);
+                write_expression(context, &handler.guard);
+                context.cond_jump(&next);
+                write_expression(context, &handler.body);
+                context
+                    .write_instruction(Instruction::Fizzle)
+                    .write_label(next)
+                    .undeclare_variables(handler.pattern.bindings(), true);
+            }
+            context.write_instruction(Instruction::Fizzle);
+            context.scope.pop_resume();
+            context.scope.end_intermediate();
+
+            context
+                .write_label(body)
+                .write_instruction(Instruction::SetRegister(0));
+            write_expression(context, &handled.expression);
+            context
+                .write_instruction(Instruction::Reset)
+                .write_label(end)
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::SetRegister(0));
+            context.scope.pop_cancel();
+            context.scope.end_intermediate();
         }
         ir::Value::Module(..) => todo!("{value:?}"),
         ir::Value::Reference(ident) => {

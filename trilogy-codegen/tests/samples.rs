@@ -307,3 +307,12 @@ fn sample_collect_iterator() {
         Value::from(75)
     );
 }
+
+#[test]
+fn sample_handler() {
+    let program = include_tri!("handler.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(12)
+    );
+}
