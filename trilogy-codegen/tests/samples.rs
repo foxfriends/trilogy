@@ -316,3 +316,9 @@ fn sample_handler() {
         Value::from(12)
     );
 }
+
+#[test]
+fn sample_first_class_resume() {
+    let program = include_tri!("first_class_resume.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(2));
+}
