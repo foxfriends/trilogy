@@ -24,8 +24,9 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
         | ir::QueryValue::Implication(alt)
         | ir::QueryValue::Disjunction(alt) => {
             write_query_state(context, &alt.0);
-            write_query_state(context, &alt.1);
-            context.write_instruction(Instruction::Cons);
+            context
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Cons);
         }
     }
 }
@@ -105,33 +106,57 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .write_instruction(Instruction::Swap)
                 .cond_jump(on_fail);
         }
-        // ir::QueryValue::Conjunction(conj) => {
-        //     let cleanup = context.labeler.unique_hint("conj_cleanup");
-        //     let done = context.labeler.unique_hint("conj_done");
-        //     let next = context.labeler.unique_hint("conj_next");
-        //     let retry = context.labeler.unique_hint("conj");
-        //     context
-        //         .write_instruction(Instruction::Uncons)
-        //         .write_label(retry.clone())
-        //         .write_instruction(Instruction::Swap);
-        //     context.scope.intermediate();
-        //     write_query(context, &conj.0, &cleanup);
-        //     context.write_instruction(Instruction::Swap);
-        //     write_query(context, &conj.1, &next);
-        //     context.scope.end_intermediate();
-        //     context
-        //         .write_instruction(Instruction::Cons)
-        //         .jump(&done)
-        //         .write_label(next)
-        //         .write_instruction(Instruction::Pop);
-        //     write_query_state(context, &conj.1);
-        //     context.jump(&retry);
-        //     context
-        //         .write_label(cleanup)
-        //         .write_instruction(Instruction::Pop)
-        //         .jump(on_fail)
-        //         .write_label(done);
-        // }
+        ir::QueryValue::Conjunction(conj) => {
+            let out = context.labeler.unique_hint("conj_out");
+            let next = context.labeler.unique_hint("conj_next");
+            let cleanup = context.labeler.unique_hint("conj_cleanup");
+            let outer = context.labeler.unique_hint("conj_outer");
+            let inner = context.labeler.unique_hint("conj_inner");
+            let reset = context.labeler.unique_hint("conj_reset");
+
+            context
+                .write_instruction(Instruction::Uncons)
+                .cond_jump(&outer);
+
+            context
+                .write_label(inner.clone())
+                .write_instruction(Instruction::Uncons);
+            context.scope.intermediate();
+            write_query(context, &conj.1, &reset);
+            context.scope.end_intermediate();
+            context
+                .write_instruction(Instruction::Cons)
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(&out);
+
+            context
+                .write_label(reset)
+                .write_instruction(Instruction::Pop)
+                .write_instruction(Instruction::Reset);
+
+            context.write_label(outer.clone());
+            write_query(context, &conj.0, &cleanup);
+            write_query_state(context, &conj.1);
+            context
+                .write_instruction(Instruction::Cons)
+                .write_instruction(Instruction::SetRegister(1))
+                .shift(&next)
+                .jump(&inner);
+            context
+                .write_label(next)
+                .write_instruction(Instruction::LoadRegister(1))
+                .write_instruction(Instruction::Call(1))
+                .jump(&outer);
+
+            context
+                .write_label(cleanup)
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(on_fail);
+
+            context.write_label(out);
+        }
         // ir::QueryValue::Disjunction(disj) => {
         //     let cleanup = context.labeler.unique_hint("disj_cleanup");
         //     let next = context.labeler.unique_hint("disj_next");

@@ -50,12 +50,12 @@ impl VirtualMachine {
             let instruction = ex.read_opcode(&self.program.instructions)?;
             match instruction {
                 OpCode::Const => {
-                    let value = ex.read_offset(&self.program.instructions)?;
+                    let index = ex.read_offset(&self.program.instructions)?;
                     ex.stack_push(
                         self.program
                             .constants
-                            .get(value)
-                            .cloned()
+                            .get(index)
+                            .map(|value| value.structural_clone())
                             .ok_or_else(|| ex.error(InternalRuntimeError::MissingConstant))?,
                     );
                 }

@@ -322,3 +322,12 @@ fn sample_first_class_resume() {
     let program = include_tri!("first_class_resume.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(2));
 }
+
+#[test]
+fn sample_query_conjunction() {
+    let program = include_tri!("query_conjunction.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(20)
+    );
+}
