@@ -39,7 +39,7 @@ logical operations.
     }
 \end{bnf*}
 
-While logic is orderless, \Law{} is constraint by its being a programming language,
+While logic is orderless, \Law{} is constrained by its being a programming language,
 and so unifications in \Law{} do occur in an order; the order in which they are
 written. After a unification, the free variables of each pattern are bound and
 control continues to the next unification depending on which connective was used.
@@ -77,7 +77,7 @@ and will likely be the connective used in most situations.
 
 Disjunction is a bit trickier to get right. Notably, this is not a mutually
 exclusive disjunction: both branches will be chosen, given that their unifications
-are successful, before moving on to the next branch.
+are successful, before moving on.
 
 The precedence of \kw{or} is low such that \tri{A and B or C and D}
 is equivalent to \tri{(A and B) or (C and D)}.
