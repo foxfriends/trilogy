@@ -1,0 +1,8 @@
+rule eq(A, A)
+
+proc main!() {
+    for eq(x, 1 : x) {
+        exit x
+    }
+    exit 0
+}
