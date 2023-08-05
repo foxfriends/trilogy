@@ -162,6 +162,43 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
 
             context.write_label(out);
         }
+        ir::QueryValue::Implication(imp) => {
+            let out = context.labeler.unique_hint("impl_out");
+            let cleanup_first = context.labeler.unique_hint("impl_cleanf");
+            let cleanup_second = context.labeler.unique_hint("impl_cleans");
+            let outer = context.labeler.unique_hint("impl_outer");
+            let inner = context.labeler.unique_hint("impl_inner");
+
+            context
+                .write_instruction(Instruction::Uncons)
+                .cond_jump(&outer);
+
+            context.write_label(inner.clone());
+            write_query(context, &imp.1, &cleanup_second);
+            context
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(&out);
+
+            context.write_label(outer.clone());
+            write_query(context, &imp.0, &cleanup_first);
+            context.write_instruction(Instruction::Pop);
+            write_query_state(context, &imp.1);
+            context.jump(&inner);
+
+            context
+                .write_label(cleanup_first)
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(on_fail);
+            context
+                .write_label(cleanup_second)
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(on_fail);
+
+            context.write_label(out);
+        }
         ir::QueryValue::Disjunction(disj) => {
             let first = context.labeler.unique_hint("disj_first");
             let second = context.labeler.unique_hint("disj_second");

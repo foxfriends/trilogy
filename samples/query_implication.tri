@@ -1,0 +1,17 @@
+proc main!() {
+    let total = 0
+
+    for if x in [1, 2, 3] then y in [x, 2, 3] {
+        total += y
+    } else {
+        total += 1
+    }
+
+    for if x in [] then y in [3, 4, 5] {
+        total += x
+    } else {
+        total += 7
+    }
+
+    exit total
+}

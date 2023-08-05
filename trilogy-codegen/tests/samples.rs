@@ -358,3 +358,12 @@ fn sample_query_alternative() {
         Value::from(10)
     );
 }
+
+#[test]
+fn sample_query_implication() {
+    let program = include_tri!("query_implication.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(13)
+    );
+}
