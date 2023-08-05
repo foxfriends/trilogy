@@ -340,3 +340,21 @@ fn sample_query_disjunction() {
         Value::from(15)
     );
 }
+
+#[test]
+fn sample_for_failure() {
+    let program = include_tri!("for_failure.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(10)
+    );
+}
+
+#[test]
+fn sample_query_alternative() {
+    let program = include_tri!("query_alternative.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(10)
+    );
+}

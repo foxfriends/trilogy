@@ -19,8 +19,13 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
                 .write_instruction(Instruction::Swap)
                 .write_instruction(Instruction::Call(1));
         }
-        ir::QueryValue::Alternative(alt)
-        | ir::QueryValue::Conjunction(alt)
+        ir::QueryValue::Alternative(alt) => {
+            write_query_state(context, &alt.0);
+            context
+                .write_instruction(Instruction::Const(().into()))
+                .write_instruction(Instruction::Cons);
+        }
+        ir::QueryValue::Conjunction(alt)
         | ir::QueryValue::Implication(alt)
         | ir::QueryValue::Disjunction(alt) => {
             write_query_state(context, &alt.0);
@@ -195,6 +200,69 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .jump(on_fail);
 
             context.write_label(out);
+        }
+        ir::QueryValue::Alternative(alt) => {
+            let maybe = context.labeler.unique_hint("alt_maybe");
+            let second = context.labeler.unique_hint("alt_second");
+            let out = context.labeler.unique_hint("alt_out");
+            let cleanup_first = context.labeler.unique_hint("alt_cleanf");
+            let cleanup_second = context.labeler.unique_hint("alt_cleans");
+
+            context
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Swap);
+            let is_uncommitted = context.scope.intermediate();
+
+            context
+                .write_instruction(Instruction::Uncons)
+                .write_instruction(Instruction::Copy)
+                .write_instruction(Instruction::Const(().into()))
+                .write_instruction(Instruction::ValEq)
+                .write_instruction(Instruction::SetLocal(is_uncommitted))
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::ValNeq)
+                .cond_jump(&second);
+            write_query(context, &alt.0, &maybe);
+            context
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(&out);
+
+            context.write_label(second.clone());
+            write_query(context, &alt.1, &cleanup_second);
+            context
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(&out);
+
+            context
+                .write_label(maybe)
+                .write_instruction(Instruction::LoadLocal(is_uncommitted))
+                .cond_jump(&cleanup_first)
+                .write_instruction(Instruction::Pop);
+            write_query_state(context, &alt.1);
+            context.jump(&second);
+
+            context
+                .write_label(cleanup_first)
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::Pop)
+                .jump(on_fail);
+            context
+                .write_label(cleanup_second)
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Cons)
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::Pop)
+                .jump(on_fail);
+
+            context
+                .write_label(out)
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::Pop);
+            context.scope.end_intermediate();
         }
         value => todo!("{value:?}"),
     }
