@@ -373,3 +373,10 @@ fn sample_query_not() {
     let program = include_tri!("query_not.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(1));
 }
+
+#[test]
+#[ignore = "not yet working"]
+fn sample_reused_variable() {
+    let program = include_tri!("reused_variable.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(0));
+}

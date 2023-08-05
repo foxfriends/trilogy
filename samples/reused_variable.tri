@@ -1,0 +1,3 @@
+proc main!() {
+    for x:x = 1:2 { exit x } else { exit 0 }
+}
