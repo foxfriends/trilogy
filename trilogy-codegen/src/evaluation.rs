@@ -1,6 +1,7 @@
 use crate::preamble::{END, RETURN};
 use crate::prelude::*;
 use trilogy_ir::ir;
+use trilogy_ir::visitor::HasBindings;
 use trilogy_vm::{Instruction, Value};
 
 #[inline(always)]

@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Id};
+use crate::Analyzer;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -16,10 +16,6 @@ impl Pack {
         } else {
             None
         }
-    }
-
-    pub(super) fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.values.iter().flat_map(|val| val.expression.bindings())
     }
 }
 

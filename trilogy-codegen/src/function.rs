@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use trilogy_ir::ir;
+use trilogy_ir::visitor::HasBindings;
 use trilogy_vm::Instruction;
 
 pub(crate) fn write_function(context: &mut Context, function: &ir::Function) {

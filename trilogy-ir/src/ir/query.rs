@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Id};
+use crate::Analyzer;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -92,10 +92,6 @@ impl Query {
         Self::new(span, Value::End)
     }
 
-    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.value.bindings()
-    }
-
     pub fn is_once(&self) -> bool {
         self.value.is_once()
     }
@@ -117,19 +113,6 @@ pub enum Value {
 }
 
 impl Value {
-    fn bindings(&self) -> Box<dyn std::iter::Iterator<Item = Id> + '_> {
-        match self {
-            Self::Conjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            Self::Disjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            Self::Implication(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            Self::Alternative(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            Self::Direct(unif) => Box::new(unif.bindings()),
-            Self::Element(unif) => Box::new(unif.bindings()),
-            Self::Lookup(lookup) => Box::new(lookup.bindings()),
-            _ => Box::new(std::iter::empty()),
-        }
-    }
-
     fn is_once(&self) -> bool {
         match self {
             Self::Disjunction(..) => false,

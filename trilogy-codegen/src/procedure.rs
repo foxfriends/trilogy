@@ -1,5 +1,6 @@
 use crate::{preamble::END, prelude::*};
 use trilogy_ir::ir;
+use trilogy_ir::visitor::HasBindings;
 use trilogy_vm::{Instruction, Value};
 
 pub(crate) fn write_procedure(mut context: Context, procedure: &ir::Procedure) {

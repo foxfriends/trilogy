@@ -1,0 +1,4 @@
+proc main!() {
+    let x = x : x
+    exit x
+}

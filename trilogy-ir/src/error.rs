@@ -6,4 +6,5 @@ pub enum Error {
     UnboundIdentifier { name: syntax::Identifier },
     UnknownModule { name: syntax::Identifier },
     DuplicateDefinition { name: syntax::Identifier },
+    IdentifierInOwnDefinition { name: syntax::Identifier },
 }

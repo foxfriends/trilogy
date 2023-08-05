@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Error, Id};
+use crate::{Analyzer, Error};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -10,10 +10,6 @@ pub struct Expression {
 }
 
 impl Expression {
-    pub fn bindings(&self) -> impl std::iter::Iterator<Item = Id> + '_ {
-        self.value.bindings()
-    }
-
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Expression) -> Self {
         use syntax::Expression::*;
         match ast {
@@ -749,20 +745,4 @@ pub enum Value {
     Dynamic(Box<syntax::Identifier>),
     Assert(Box<Assert>),
     End,
-}
-
-impl Value {
-    pub fn bindings(&self) -> Box<dyn std::iter::Iterator<Item = Id> + '_> {
-        match self {
-            Self::Sequence(seq) => Box::new(seq.iter().flat_map(|expr| expr.bindings())),
-            Self::Pack(pack) => Box::new(pack.bindings()),
-            Self::Mapping(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            Self::Conjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            Self::Disjunction(pair) => Box::new(pair.0.bindings().chain(pair.1.bindings())),
-            // Self::Query(query) => Box::new(query.bindings()),
-            Self::Application(application) => Box::new(application.bindings()),
-            Self::Reference(ident) => Box::new(std::iter::once(ident.id.clone())),
-            _ => Box::new(std::iter::empty()),
-        }
-    }
 }
