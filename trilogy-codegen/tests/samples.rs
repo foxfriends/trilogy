@@ -331,3 +331,12 @@ fn sample_query_conjunction() {
         Value::from(20)
     );
 }
+
+#[test]
+fn sample_query_disjunction() {
+    let program = include_tri!("query_disjunction.tri");
+    assert_eq!(
+        VirtualMachine::load(program).run().unwrap(),
+        Value::from(15)
+    );
+}

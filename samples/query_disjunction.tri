@@ -1,0 +1,7 @@
+proc main!() {
+    let total = 0
+    for x in [1, 2] or x in [3, 4, 5] {
+        total += x
+    }
+    exit total
+}

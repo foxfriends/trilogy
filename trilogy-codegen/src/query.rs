@@ -157,31 +157,45 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
 
             context.write_label(out);
         }
-        // ir::QueryValue::Disjunction(disj) => {
-        //     let cleanup = context.labeler.unique_hint("disj_cleanup");
-        //     let next = context.labeler.unique_hint("disj_next");
-        //     let done = context.labeler.unique_hint("disj_done");
-        //     context
-        //         .write_instruction(Instruction::Uncons)
-        //         .write_instruction(Instruction::Swap);
-        //     context.scope.intermediate();
-        //     write_query(context, &disj.0, &next);
-        //     context
-        //         .write_instruction(Instruction::Swap)
-        //         .write_instruction(Instruction::Cons)
-        //         .jump(&done)
-        //         .write_label(next)
-        //         .write_instruction(Instruction::Swap);
-        //     write_query(context, &disj.1, &cleanup);
-        //     context.scope.end_intermediate();
-        //     context
-        //         .write_instruction(Instruction::Cons)
-        //         .jump(&done)
-        //         .write_label(cleanup)
-        //         .write_instruction(Instruction::Pop)
-        //         .jump(on_fail)
-        //         .write_label(done);
-        // }
+        ir::QueryValue::Disjunction(disj) => {
+            let first = context.labeler.unique_hint("disj_first");
+            let second = context.labeler.unique_hint("disj_second");
+            let next = context.labeler.unique_hint("disj_next");
+            let out = context.labeler.unique_hint("disj_out");
+            let cleanup = context.labeler.unique_hint("disj_cleanup");
+
+            context
+                .write_instruction(Instruction::Uncons)
+                .cond_jump(&first);
+
+            context.write_label(second.clone());
+            write_query(context, &disj.1, &cleanup);
+            context
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(&out);
+
+            context.write_label(first);
+            write_query(context, &disj.0, &next);
+            context
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(&out);
+
+            context
+                .write_label(next)
+                .write_instruction(Instruction::Pop);
+            write_query_state(context, &disj.1);
+            context.jump(&second);
+
+            context
+                .write_label(cleanup)
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(on_fail);
+
+            context.write_label(out);
+        }
         value => todo!("{value:?}"),
     }
 }
