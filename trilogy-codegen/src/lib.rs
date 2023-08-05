@@ -9,6 +9,7 @@ mod preamble;
 mod procedure;
 mod program;
 mod query;
+mod rule;
 
 pub use program::write_program;
 
@@ -23,4 +24,5 @@ mod prelude {
     pub(crate) use crate::preamble::write_preamble;
     pub(crate) use crate::procedure::write_procedure;
     pub(crate) use crate::query::*;
+    pub(crate) use crate::rule::write_rule;
 }

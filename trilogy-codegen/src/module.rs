@@ -29,7 +29,9 @@ pub(crate) fn write_module(context: &mut ProgramContext, module: &ir::Module, is
             ir::DefinitionItem::Function(function) => {
                 context.write_function(&statics, function);
             }
-            ir::DefinitionItem::Rule(..) => {}
+            ir::DefinitionItem::Rule(rule) => {
+                context.write_rule(&statics, rule);
+            }
             ir::DefinitionItem::Procedure(procedure) => {
                 if is_entrypoint && procedure.name.id.name() == Some("main") {
                     context.write_label("main".to_owned());

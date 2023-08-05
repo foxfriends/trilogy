@@ -78,6 +78,22 @@ impl ProgramContext<'_> {
         write_procedure(context, overload);
     }
 
+    pub fn write_rule(&mut self, statics: &HashMap<Id, String>, rule: &ir::RuleDefinition) {
+        let beginning = self.labeler.begin(&rule.name);
+        self.write_label(beginning);
+        let for_id = self.labeler.for_id(&rule.name.id);
+        self.write_label(for_id);
+        let arity = rule.overloads[0].parameters.len();
+        let mut context = self.begin(statics, arity);
+        for _ in 1..arity {
+            context.close(RETURN);
+        }
+        for overload in &rule.overloads {
+            write_rule(&mut context, overload);
+        }
+        context.write_instruction(Instruction::Fizzle);
+    }
+
     pub fn write_function(
         &mut self,
         statics: &HashMap<Id, String>,
