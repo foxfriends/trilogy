@@ -6,9 +6,9 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
     match &query.value {
         ir::QueryValue::Lookup(..)
         | ir::QueryValue::Is(..)
-        | ir::QueryValue::Not(..)
         | ir::QueryValue::End
         | ir::QueryValue::Pass
+        | ir::QueryValue::Not(..)
         | ir::QueryValue::Direct(..) => {
             context.write_instruction(Instruction::Const(true.into()));
         }
@@ -110,6 +110,21 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Swap)
                 .cond_jump(on_fail);
+        }
+        ir::QueryValue::Not(query) => {
+            let on_pass = context.labeler.unique_hint("not_fail");
+            context
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Swap)
+                .cond_jump(on_fail);
+            context.scope.intermediate();
+            write_query_state(context, query);
+            write_query(context, query, &on_pass);
+            context.write_instruction(Instruction::Pop).jump(on_fail);
+            context
+                .write_label(on_pass)
+                .write_instruction(Instruction::Pop);
+            context.scope.end_intermediate();
         }
         ir::QueryValue::Conjunction(conj) => {
             let out = context.labeler.unique_hint("conj_out");
@@ -301,6 +316,6 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .write_instruction(Instruction::Pop);
             context.scope.end_intermediate();
         }
-        value => todo!("{value:?}"),
+        ir::QueryValue::Lookup(_lookup) => todo!(),
     }
 }

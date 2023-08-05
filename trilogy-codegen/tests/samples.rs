@@ -367,3 +367,9 @@ fn sample_query_implication() {
         Value::from(13)
     );
 }
+
+#[test]
+fn sample_query_not() {
+    let program = include_tri!("query_not.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(1));
+}

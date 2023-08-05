@@ -1,0 +1,7 @@
+proc main!() {
+    for not 2 in [1, 3] {
+        exit 1
+    } else {
+        exit 2
+    }
+}
