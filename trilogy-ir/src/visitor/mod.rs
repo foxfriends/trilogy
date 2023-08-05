@@ -1,8 +1,10 @@
 use crate::ir::*;
 
 mod bindings;
+mod identifiers;
 
 pub use bindings::{Bindings, HasBindings};
+pub use identifiers::Identifiers;
 
 macro_rules! visit_node {
     ($name:ident, $t:ty) => {

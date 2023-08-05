@@ -1,5 +1,6 @@
 use super::*;
-use crate::Analyzer;
+use crate::visitor::{Bindings, Identifiers};
+use crate::{Analyzer, Error};
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -35,6 +36,20 @@ impl Unification {
         let pattern = Expression::convert_pattern(analyzer, pattern);
         let expression = Expression::convert(analyzer, expression);
 
-        Self::new(pattern, expression)
+        let unification = Self::new(pattern, expression);
+        let violations = validate_unification(&unification);
+        for violation in violations {
+            analyzer.error(Error::IdentifierInOwnDefinition { name: violation });
+        }
+        unification
     }
+}
+
+fn validate_unification(unification: &Unification) -> Vec<Identifier> {
+    let declared_ids = Bindings::of(&unification.pattern);
+    let used_ids = Identifiers::of(&unification.expression);
+    used_ids
+        .into_iter()
+        .filter(|ident| declared_ids.contains(&ident.id))
+        .collect::<Vec<_>>()
 }
