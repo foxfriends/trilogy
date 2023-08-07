@@ -24,8 +24,11 @@ pub enum Instruction {
     Free,
 
     // Variables
+    #[asm(name = "VAR")] Variable,
     #[asm(name = "LOADL")] LoadLocal(Offset),
     #[asm(name = "SETL")] SetLocal(Offset),
+    #[asm(name = "INITL")] InitLocal(Offset),
+    #[asm(name = "UNSETL")] UnsetLocal(Offset),
     #[asm(name = "LOADR")] LoadRegister(Offset),
     #[asm(name = "SETR")] SetRegister(Offset),
 

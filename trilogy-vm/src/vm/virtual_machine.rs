@@ -93,10 +93,23 @@ impl VirtualMachine {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     ex.stack_push(ex.read_local(offset)?);
                 }
+                OpCode::Variable => {
+                    ex.push_unset();
+                }
                 OpCode::SetLocal => {
                     let offset = ex.read_offset(&self.program.instructions)?;
                     let value = ex.stack_pop()?;
                     ex.set_local(offset, value)?;
+                }
+                OpCode::UnsetLocal => {
+                    let offset = ex.read_offset(&self.program.instructions)?;
+                    ex.unset_local(offset)?;
+                }
+                OpCode::InitLocal => {
+                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let value = ex.stack_pop()?;
+                    let did_set = ex.init_local(offset, value)?;
+                    ex.stack_push(did_set.into());
                 }
                 OpCode::LoadRegister => {
                     let offset = ex.read_offset(&self.program.instructions)?;
@@ -114,7 +127,7 @@ impl VirtualMachine {
                     self.registers[offset] = value;
                 }
                 OpCode::Pop => {
-                    ex.stack_pop()?;
+                    ex.stack_discard()?;
                 }
                 OpCode::Swap => {
                     let rhs = ex.stack_pop()?;

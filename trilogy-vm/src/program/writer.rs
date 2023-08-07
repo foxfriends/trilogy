@@ -86,6 +86,8 @@ impl Instruction {
             }
             Instruction::LoadLocal(offset) => Some(offset),
             Instruction::SetLocal(offset) => Some(offset),
+            Instruction::InitLocal(offset) => Some(offset),
+            Instruction::UnsetLocal(offset) => Some(offset),
             Instruction::LoadRegister(offset) => Some(offset),
             Instruction::SetRegister(offset) => Some(offset),
             Instruction::Call(offset) => Some(offset),

@@ -4,7 +4,7 @@ mod scope;
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
 use trilogy_ir::Id;
-use trilogy_vm::{Atom, Instruction, OpCode, ProgramBuilder, Value};
+use trilogy_vm::{Atom, Instruction, OpCode, ProgramBuilder};
 
 pub(crate) struct Context<'a> {
     pub labeler: &'a mut Labeler,
@@ -79,7 +79,7 @@ impl<'a> Context<'a> {
         let mut n = 0;
         for id in variables {
             if self.scope.declare_variable(id) {
-                self.write_instruction(Instruction::Const(Value::Unit));
+                self.write_instruction(Instruction::Variable);
                 n += 1;
             }
         }

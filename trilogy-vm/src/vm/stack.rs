@@ -5,6 +5,7 @@ use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]
 enum InternalValue {
+    Unset,
     Value(Value),
     Return {
         ip: usize,
@@ -22,6 +23,14 @@ impl InternalValue {
         }
     }
 
+    fn try_into_value_maybe(self) -> Result<Option<Value>, InternalRuntimeError> {
+        match self {
+            InternalValue::Value(value) => Ok(Some(value)),
+            InternalValue::Unset => Ok(None),
+            _ => Err(InternalRuntimeError::ExpectedValue),
+        }
+    }
+
     fn try_into_pointer(self) -> Result<usize, InternalRuntimeError> {
         match self {
             InternalValue::Pointer(pointer) => Ok(pointer),
@@ -33,6 +42,7 @@ impl InternalValue {
 impl Display for InternalValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            InternalValue::Unset => write!(f, "<unset>"),
             InternalValue::Value(value) => write!(f, "{value}"),
             InternalValue::Return {
                 ip, ghost: None, ..
@@ -200,6 +210,10 @@ impl Stack {
         }
     }
 
+    pub(crate) fn push_unset(&mut self) {
+        self.cactus.push(InternalValue::Unset);
+    }
+
     pub(crate) fn push(&mut self, value: Value) {
         self.cactus.push(InternalValue::Value(value));
     }
@@ -209,11 +223,11 @@ impl Stack {
             .attach(values.into_iter().map(InternalValue::Value).collect());
     }
 
-    pub(crate) fn pop(&mut self) -> Result<Value, InternalRuntimeError> {
+    pub(crate) fn pop(&mut self) -> Result<Option<Value>, InternalRuntimeError> {
         self.cactus
             .pop()
             .ok_or(InternalRuntimeError::ExpectedValue)
-            .and_then(InternalValue::try_into_value)
+            .and_then(InternalValue::try_into_value_maybe)
     }
 
     pub(crate) fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
@@ -271,11 +285,11 @@ impl Stack {
         self.cactus.push(InternalValue::Pointer(pointer));
     }
 
-    pub(crate) fn replace_at_local(
+    pub(crate) fn set_local(
         &mut self,
         index: usize,
         value: Value,
-    ) -> Result<Value, InternalRuntimeError> {
+    ) -> Result<Option<Value>, InternalRuntimeError> {
         let register = self.count_locals() - index - 1;
         let local_locals = self.len() - self.frame;
         if register >= local_locals {
@@ -288,13 +302,76 @@ impl Stack {
             // Overall it's just a convenient coincidence coming from the weird way the cactus
             // is built. I hope someday a more explicitly shared stack representation is devised...
             // Unless this is actually correct and I just don't understand what I'm doing but it's working.
-            let InternalValue::Return{ ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
-            return stack.replace_at_local(index, value);
+            let InternalValue::Return { ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            return stack.set_local(index, value);
         }
         self.cactus
             .replace_at(register, InternalValue::Value(value))
             .map_err(|_| InternalRuntimeError::ExpectedValue)
-            .and_then(InternalValue::try_into_value)
+            .and_then(|val| match val {
+                InternalValue::Value(value) => Ok(Some(value)),
+                InternalValue::Unset => Ok(None),
+                _ => Err(InternalRuntimeError::ExpectedValue),
+            })
+    }
+
+    pub(crate) fn unset_local(
+        &mut self,
+        index: usize,
+    ) -> Result<Option<Value>, InternalRuntimeError> {
+        let register = self.count_locals() - index - 1;
+        let local_locals = self.len() - self.frame;
+        if register >= local_locals {
+            // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
+            //
+            // The stack here just happens to be a cactus with nothing in its immediate list,
+            // and everything in its parent. Editing it therefore occurs on the shared parent
+            // which is in a mutex and does not require mutable access.
+            //
+            // Overall it's just a convenient coincidence coming from the weird way the cactus
+            // is built. I hope someday a more explicitly shared stack representation is devised...
+            // Unless this is actually correct and I just don't understand what I'm doing but it's working.
+            let InternalValue::Return { ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            return stack.unset_local(index);
+        }
+        self.cactus
+            .replace_at(register, InternalValue::Unset)
+            .map_err(|_| InternalRuntimeError::ExpectedValue)
+            .and_then(|val| match val {
+                InternalValue::Value(value) => Ok(Some(value)),
+                InternalValue::Unset => Ok(None),
+                _ => Err(InternalRuntimeError::ExpectedValue),
+            })
+    }
+
+    pub(crate) fn init_local(
+        &mut self,
+        index: usize,
+        value: Value,
+    ) -> Result<bool, InternalRuntimeError> {
+        let register = self.count_locals() - index - 1;
+        let local_locals = self.len() - self.frame;
+        if register >= local_locals {
+            // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
+            //
+            // The stack here just happens to be a cactus with nothing in its immediate list,
+            // and everything in its parent. Editing it therefore occurs on the shared parent
+            // which is in a mutex and does not require mutable access.
+            //
+            // Overall it's just a convenient coincidence coming from the weird way the cactus
+            // is built. I hope someday a more explicitly shared stack representation is devised...
+            // Unless this is actually correct and I just don't understand what I'm doing but it's working.
+            let InternalValue::Return { ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            return stack.init_local(index, value);
+        }
+        if matches!(self.cactus.at(register), Some(InternalValue::Unset)) {
+            self.cactus
+                .replace_at(register, InternalValue::Value(value))
+                .unwrap();
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     pub(crate) fn pop_n(&mut self, arity: usize) -> Result<Vec<Value>, InternalRuntimeError> {

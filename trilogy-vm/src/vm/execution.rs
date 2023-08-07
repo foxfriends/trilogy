@@ -106,9 +106,23 @@ impl Execution {
         self.stack.at_local(index).map_err(|k| self.error(k))
     }
 
-    pub fn set_local(&mut self, index: usize, value: Value) -> Result<Value, Error> {
+    pub fn set_local(&mut self, index: usize, value: Value) -> Result<Option<Value>, Error> {
         self.stack
-            .replace_at_local(index, value)
+            .set_local(index, value)
+            .map_err(|k| self.error(k))
+    }
+
+    pub fn push_unset(&mut self) {
+        self.stack.push_unset();
+    }
+
+    pub fn unset_local(&mut self, index: usize) -> Result<Option<Value>, Error> {
+        self.stack.unset_local(index).map_err(|k| self.error(k))
+    }
+
+    pub fn init_local(&mut self, index: usize, value: Value) -> Result<bool, Error> {
+        self.stack
+            .init_local(index, value)
             .map_err(|k| self.error(k))
     }
 
@@ -117,6 +131,11 @@ impl Execution {
     }
 
     pub fn stack_pop(&mut self) -> Result<Value, Error> {
+        self.stack_discard()
+            .and_then(|v| v.ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue)))
+    }
+
+    pub fn stack_discard(&mut self) -> Result<Option<Value>, Error> {
         self.stack.pop().map_err(|k| self.error(k))
     }
 
@@ -132,10 +151,10 @@ impl Execution {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
-            Value::Continuation(continuation) => {
+            Some(Value::Continuation(continuation)) => {
                 self.call_continuation(continuation, arguments)?;
             }
-            Value::Procedure(procedure) => {
+            Some(Value::Procedure(procedure)) => {
                 self.call_procedure(procedure, arguments);
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
@@ -147,10 +166,10 @@ impl Execution {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
-            Value::Continuation(continuation) => {
+            Some(Value::Continuation(continuation)) => {
                 self.become_continuation(continuation, arguments);
             }
-            Value::Procedure(procedure) => {
+            Some(Value::Procedure(procedure)) => {
                 self.become_procedure(procedure, arguments)?;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
