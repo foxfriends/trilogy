@@ -60,6 +60,8 @@ impl ProgramBuilder {
                 let index = self.write_constant(constant);
                 Some(index)
             }
+            Instruction::InitLocal(offset) => Some(offset),
+            Instruction::UnsetLocal(offset) => Some(offset),
             Instruction::LoadLocal(offset) => Some(offset),
             Instruction::SetLocal(offset) => Some(offset),
             Instruction::LoadRegister(offset) => Some(offset),

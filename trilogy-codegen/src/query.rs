@@ -1,5 +1,7 @@
 use crate::{preamble::ITERATE_COLLECTION, prelude::*};
-use trilogy_ir::ir;
+use std::collections::HashSet;
+use trilogy_ir::visitor::HasBindings;
+use trilogy_ir::{ir, Id};
 use trilogy_vm::Instruction;
 
 pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
@@ -48,13 +50,25 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
 /// initial state is set, as well as to ensure that the state value is carried around
 /// so that next time we enter the query it is set correctly.
 pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &str) {
-    match &query.value {
+    write_query_value(context, &query.value, &HashSet::default(), on_fail);
+}
+
+fn write_query_value(
+    context: &mut Context,
+    value: &ir::QueryValue,
+    bound: &HashSet<Id>,
+    on_fail: &str,
+) {
+    match &value {
         ir::QueryValue::Direct(unification) => {
+            let vars = unification.pattern.bindings();
+            let newly_bound = vars.difference(bound);
             context
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             write_expression(context, &unification.expression);
+            unbind(context, newly_bound);
             write_pattern_match(context, &unification.pattern, on_fail);
         }
         ir::QueryValue::Element(unification) => {
@@ -63,6 +77,9 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
 
             let next = context.atom("next");
             let done = context.atom("done");
+
+            let vars = unification.pattern.bindings();
+            let newly_bound = vars.difference(bound);
 
             context
                 // Done if done
@@ -86,6 +103,7 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .write_instruction(Instruction::Const(next.into()))
                 .write_instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
+            unbind(context, newly_bound);
             write_pattern_match(context, &unification.pattern, on_fail);
             context
                 .jump(&continuation)
@@ -119,7 +137,7 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .cond_jump(on_fail);
             context.scope.intermediate();
             write_query_state(context, query);
-            write_query(context, query, &on_pass);
+            write_query_value(context, &query.value, bound, &on_pass);
             context.write_instruction(Instruction::Pop).jump(on_fail);
             context
                 .write_label(on_pass)
@@ -134,6 +152,9 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
             let inner = context.labeler.unique_hint("conj_inner");
             let reset = context.labeler.unique_hint("conj_reset");
 
+            let lhs_vars = conj.0.bindings();
+            let rhs_bound = bound.union(&lhs_vars).cloned().collect::<HashSet<_>>();
+
             context
                 .write_instruction(Instruction::Uncons)
                 .cond_jump(&outer);
@@ -142,7 +163,7 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .write_label(inner.clone())
                 .write_instruction(Instruction::Uncons);
             context.scope.intermediate();
-            write_query(context, &conj.1, &reset);
+            write_query_value(context, &conj.1.value, &rhs_bound, &reset);
             context.scope.end_intermediate();
             context
                 .write_instruction(Instruction::Cons)
@@ -156,7 +177,7 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .write_instruction(Instruction::Reset);
 
             context.write_label(outer.clone());
-            write_query(context, &conj.0, &cleanup);
+            write_query_value(context, &conj.0.value, bound, &cleanup);
             write_query_state(context, &conj.1);
             context
                 .write_instruction(Instruction::Cons)
@@ -184,30 +205,33 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
             let outer = context.labeler.unique_hint("impl_outer");
             let inner = context.labeler.unique_hint("impl_inner");
 
+            let lhs_vars = imp.0.bindings();
+            let rhs_bound = bound.union(&lhs_vars).cloned().collect::<HashSet<_>>();
+
             context
                 .write_instruction(Instruction::Uncons)
                 .cond_jump(&outer);
 
             context.write_label(inner.clone());
-            write_query(context, &imp.1, &cleanup_second);
+            write_query_value(context, &imp.1.value, &rhs_bound, &cleanup_second);
             context
                 .write_instruction(Instruction::Const(true.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(&out);
 
             context.write_label(outer.clone());
-            write_query(context, &imp.0, &cleanup_first);
+            write_query_value(context, &imp.0.value, bound, &cleanup_first);
             context.write_instruction(Instruction::Pop);
             write_query_state(context, &imp.1);
             context.jump(&inner);
 
+            context.write_label(cleanup_first);
             context
-                .write_label(cleanup_first)
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(on_fail);
+            context.write_label(cleanup_second);
             context
-                .write_label(cleanup_second)
                 .write_instruction(Instruction::Const(true.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(on_fail);
@@ -226,14 +250,14 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .cond_jump(&first);
 
             context.write_label(second.clone());
-            write_query(context, &disj.1, &cleanup);
+            write_query_value(context, &disj.1.value, bound, &cleanup);
             context
                 .write_instruction(Instruction::Const(true.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(&out);
 
             context.write_label(first);
-            write_query(context, &disj.0, &next);
+            write_query_value(context, &disj.0.value, bound, &next);
             context
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Cons)
@@ -274,14 +298,14 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::ValNeq)
                 .cond_jump(&second);
-            write_query(context, &alt.0, &maybe);
+            write_query_value(context, &alt.0.value, bound, &maybe);
             context
                 .write_instruction(Instruction::Const(true.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(&out);
 
             context.write_label(second.clone());
-            write_query(context, &alt.1, &cleanup_second);
+            write_query_value(context, &alt.1.value, bound, &cleanup_second);
             context
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Cons)
@@ -317,5 +341,16 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
             context.scope.end_intermediate();
         }
         ir::QueryValue::Lookup(_lookup) => todo!(),
+    }
+}
+
+fn unbind<'a>(context: &mut Context, vars: impl IntoIterator<Item = &'a Id>) {
+    for var in vars {
+        match context.scope.lookup(var).unwrap() {
+            Binding::Variable(index) => {
+                context.write_instruction(Instruction::UnsetLocal(index));
+            }
+            _ => unreachable!(),
+        }
     }
 }

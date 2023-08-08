@@ -111,6 +111,8 @@ impl Instruction {
             Self::Const(..) => 5,
             Self::LoadLocal(..) => 5,
             Self::SetLocal(..) => 5,
+            Self::InitLocal(..) => 5,
+            Self::UnsetLocal(..) => 5,
             Self::LoadRegister(..) => 5,
             Self::SetRegister(..) => 5,
             Self::Call(..) => 5,

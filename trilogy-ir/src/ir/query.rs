@@ -13,11 +13,19 @@ impl Query {
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Query) -> Self {
         use syntax::Query::*;
         match ast {
-            Disjunction(ast) => Self::disjunction(
-                ast.span(),
-                Self::convert(analyzer, ast.lhs),
-                Self::convert(analyzer, ast.rhs),
-            ),
+            Disjunction(ast) => {
+                let span = ast.span();
+                let lhs = Self::convert(analyzer, ast.lhs);
+                let rhs = Self::convert(analyzer, ast.rhs);
+                // NOTE: checking for disjoint bindings here is not
+                // correct, as variables may be used in the pattern
+                // more than once, and then not used in the body,
+                // in which case it is ok to be used only in one branch
+                // of the query.
+                //
+                // Will have to do a smarter check elsewhere.
+                Self::disjunction(span, lhs, rhs)
+            }
             Conjunction(ast) => Self::conjunction(
                 ast.span(),
                 Self::convert(analyzer, ast.lhs),
@@ -28,11 +36,12 @@ impl Query {
                 Self::convert(analyzer, ast.lhs),
                 Self::convert(analyzer, ast.rhs),
             ),
-            Alternative(ast) => Self::alternative(
-                ast.span(),
-                Self::convert(analyzer, ast.lhs),
-                Self::convert(analyzer, ast.rhs),
-            ),
+            Alternative(ast) => {
+                let span = ast.span();
+                let lhs = Self::convert(analyzer, ast.lhs);
+                let rhs = Self::convert(analyzer, ast.rhs);
+                Self::alternative(span, lhs, rhs)
+            }
             Direct(ast) => Self::direct(ast.span(), Unification::convert_direct(analyzer, *ast)),
             Element(ast) => Self::element(ast.span(), Unification::convert_element(analyzer, *ast)),
             Parenthesized(ast) => Self::convert(analyzer, ast.query),

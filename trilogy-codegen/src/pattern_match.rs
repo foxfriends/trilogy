@@ -89,7 +89,19 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
         }
         ir::Value::Reference(ident) => match context.scope.lookup(&ident.id).unwrap() {
             Binding::Variable(offset) => {
-                context.write_instruction(Instruction::SetLocal(offset));
+                let compare = context.labeler.unique_hint("compare");
+                let assigned = context.labeler.unique_hint("assigned");
+                context
+                    .write_instruction(Instruction::Copy)
+                    .write_instruction(Instruction::InitLocal(offset))
+                    .cond_jump(&compare)
+                    .write_instruction(Instruction::Pop)
+                    .jump(&assigned)
+                    .write_label(compare)
+                    .write_instruction(Instruction::LoadLocal(offset))
+                    .write_instruction(Instruction::ValEq)
+                    .cond_jump(on_fail)
+                    .write_label(assigned);
             }
             Binding::Static(..) => unreachable!(),
         },
