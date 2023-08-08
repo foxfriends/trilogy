@@ -354,7 +354,7 @@ impl IrVisitable for Rule {
         for parameter in &self.parameters {
             visitor.visit_expression(parameter);
         }
-        visitor.visit_expression(&self.body);
+        visitor.visit_query(&self.body);
     }
 }
 

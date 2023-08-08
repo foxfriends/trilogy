@@ -7,7 +7,7 @@ use trilogy_parser::{syntax, Spanned};
 pub struct Rule {
     pub span: Span,
     pub parameters: Vec<Expression>,
-    pub body: Expression,
+    pub body: Query,
 }
 
 impl Rule {
@@ -21,8 +21,8 @@ impl Rule {
             .collect();
         let body = ast
             .body
-            .map(|query| Expression::convert_query(analyzer, query))
-            .unwrap_or_else(|| Expression::query(span, Query::pass(span)));
+            .map(|query| Query::convert(analyzer, query))
+            .unwrap_or_else(|| Query::pass(span));
         Self {
             span,
             parameters,
