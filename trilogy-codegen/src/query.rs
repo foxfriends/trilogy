@@ -6,13 +6,16 @@ use trilogy_vm::Instruction;
 
 pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
     match &query.value {
-        ir::QueryValue::Lookup(..)
-        | ir::QueryValue::Is(..)
+        ir::QueryValue::Is(..)
         | ir::QueryValue::End
         | ir::QueryValue::Pass
         | ir::QueryValue::Not(..)
         | ir::QueryValue::Direct(..) => {
             context.write_instruction(Instruction::Const(true.into()));
+        }
+        ir::QueryValue::Lookup(lookup) => {
+            write_static_expression(context, &lookup.path);
+            context.write_instruction(Instruction::Call(0));
         }
         ir::QueryValue::Element(unification) => {
             write_expression(context, &unification.expression);

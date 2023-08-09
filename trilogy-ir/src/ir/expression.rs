@@ -406,8 +406,10 @@ impl Expression {
                     analyzer.error(Error::UnboundIdentifier {
                         name: ast.identifier.clone(),
                     });
-                    // TODO: is dynamic the best way?
-                    Self::dynamic(ast.identifier)
+                    Self::reference(
+                        ast.identifier.span(),
+                        Identifier::declare(analyzer, ast.identifier),
+                    )
                 }),
             Binding(ast) => {
                 Self::reference(ast.span(), Identifier::declare(analyzer, ast.identifier))
@@ -422,10 +424,7 @@ impl Expression {
             let module_span = module.span;
             let module = Self::builtin(token.span, Builtin::ModuleAccess)
                 .apply_to(module_span.union(token.span), module)
-                .apply_to(
-                    module_span.union(ast.name.span()),
-                    Expression::dynamic(ast.name),
-                );
+                .apply_to(module_span.union(ast.name.span()), Self::dynamic(ast.name));
             ast.arguments.into_iter().fold(module, |function, ast| {
                 let span = function.span.union(ast.span());
                 function.apply_to(span, Expression::convert(analyzer, ast))
@@ -453,8 +452,10 @@ impl Expression {
                     analyzer.error(Error::UnboundIdentifier {
                         name: ast.member.clone(),
                     });
-                    // TODO: is dynamic the best way?
-                    Self::dynamic(ast.member)
+                    Expression::reference(
+                        ast.member.span(),
+                        Identifier::declare(analyzer, ast.member),
+                    )
                 }),
         }
     }
@@ -540,8 +541,7 @@ impl Expression {
                     .map(|tag| Expression::reference(tag.span, tag))
                     .unwrap_or_else(|| {
                         analyzer.error(Error::UnboundIdentifier { name: tag.clone() });
-                        // TODO: is dynamic the best way?
-                        Self::dynamic(tag)
+                        Expression::reference(tag.span(), Identifier::declare(analyzer, tag))
                     });
                 let strings = Self::builtin(span, Builtin::Array)
                     .apply_to(span, Self::pack(span, Pack::from_iter(strings)));

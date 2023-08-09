@@ -168,6 +168,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.pop_continue();
         }
         ir::Value::Application(application) => match unapply_2(application) {
+            (Some(ir::Value::Builtin(ir::Builtin::ModuleAccess)), ..) => {
+                write_static_value(context, value)
+            }
             (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
                 write_unary_operation(context, arg, *builtin);
             }
@@ -534,7 +537,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.pop_cancel();
             context.scope.end_intermediate();
         }
-        ir::Value::Module(..) => todo!("{value:?}"),
+        ir::Value::Module(..) => unreachable!(),
         ir::Value::Reference(ident) => {
             let binding = context
                 .scope
