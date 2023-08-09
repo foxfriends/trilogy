@@ -104,7 +104,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let state = context.scope.intermediate();
             context.close(&end);
             context.write_instruction(Instruction::LoadLocal(state));
-            write_query(context, &iterator.query, &on_fail);
+            write_query(context, &iterator.query, &on_fail, None);
             context.write_instruction(Instruction::SetLocal(state));
             match &iterator.value.value {
                 ir::Value::Mapping(mapping) => {
@@ -392,7 +392,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_query_state(context, &decl.query);
             context.scope.intermediate();
             context.write_label(reenter.clone());
-            write_query(context, &decl.query, END);
+            write_query(context, &decl.query, END, None);
             write_expression(context, &decl.body);
             // TODO: would be really nice to move this pop one line up, but the shared
             // stack thing with closures makes it not work
@@ -408,7 +408,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.intermediate();
 
             context.write_label(reenter.clone());
-            write_query(context, &decl.query, END);
+            write_query(context, &decl.query, END, None);
             context
                 .write_instruction(Instruction::Const(Value::Bool(true)))
                 .write_instruction(Instruction::Const(Value::Bool(false)))

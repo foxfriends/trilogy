@@ -52,26 +52,45 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
 /// It's up to the user of the query to call `write_query_state` to ensure that the
 /// initial state is set, as well as to ensure that the state value is carried around
 /// so that next time we enter the query it is set correctly.
-pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &str) {
-    write_query_value(context, &query.value, &HashSet::default(), on_fail);
+pub(crate) fn write_query(
+    context: &mut Context,
+    query: &ir::Query,
+    on_fail: &str,
+    runtime_bindset: Option<usize>,
+) {
+    write_query_value(
+        context,
+        &query.value,
+        on_fail,
+        Bindings {
+            compile_time: &HashSet::default(),
+            run_time: runtime_bindset,
+        },
+    );
+}
+
+#[derive(Copy, Clone)]
+struct Bindings<'a> {
+    compile_time: &'a HashSet<Id>,
+    run_time: Option<usize>,
 }
 
 fn write_query_value(
     context: &mut Context,
     value: &ir::QueryValue,
-    bound: &HashSet<Id>,
     on_fail: &str,
+    bound: Bindings<'_>,
 ) {
     match &value {
         ir::QueryValue::Direct(unification) => {
             let vars = unification.pattern.bindings();
-            let newly_bound = vars.difference(bound);
+            let newly_bound = vars.difference(bound.compile_time);
             context
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             write_expression(context, &unification.expression);
-            unbind(context, newly_bound);
+            unbind(context, bound, newly_bound);
             write_pattern_match(context, &unification.pattern, on_fail);
         }
         ir::QueryValue::Element(unification) => {
@@ -82,7 +101,7 @@ fn write_query_value(
             let done = context.atom("done");
 
             let vars = unification.pattern.bindings();
-            let newly_bound = vars.difference(bound);
+            let newly_bound = vars.difference(bound.compile_time);
 
             context
                 // Done if done
@@ -106,7 +125,7 @@ fn write_query_value(
                 .write_instruction(Instruction::Const(next.into()))
                 .write_instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
-            unbind(context, newly_bound);
+            unbind(context, bound, newly_bound);
             write_pattern_match(context, &unification.pattern, on_fail);
             context
                 .jump(&continuation)
@@ -140,7 +159,7 @@ fn write_query_value(
                 .cond_jump(on_fail);
             context.scope.intermediate();
             write_query_state(context, query);
-            write_query_value(context, &query.value, bound, &on_pass);
+            write_query_value(context, &query.value, &on_pass, bound);
             context.write_instruction(Instruction::Pop).jump(on_fail);
             context
                 .write_label(on_pass)
@@ -156,7 +175,15 @@ fn write_query_value(
             let reset = context.labeler.unique_hint("conj_reset");
 
             let lhs_vars = conj.0.bindings();
-            let rhs_bound = bound.union(&lhs_vars).cloned().collect::<HashSet<_>>();
+            let rhs_bound = bound
+                .compile_time
+                .union(&lhs_vars)
+                .cloned()
+                .collect::<HashSet<_>>();
+            let rhs_bound = Bindings {
+                compile_time: &rhs_bound,
+                run_time: bound.run_time,
+            };
 
             context
                 .write_instruction(Instruction::Uncons)
@@ -166,7 +193,7 @@ fn write_query_value(
                 .write_label(inner.clone())
                 .write_instruction(Instruction::Uncons);
             context.scope.intermediate();
-            write_query_value(context, &conj.1.value, &rhs_bound, &reset);
+            write_query_value(context, &conj.1.value, &reset, rhs_bound);
             context.scope.end_intermediate();
             context
                 .write_instruction(Instruction::Cons)
@@ -180,7 +207,7 @@ fn write_query_value(
                 .write_instruction(Instruction::Reset);
 
             context.write_label(outer.clone());
-            write_query_value(context, &conj.0.value, bound, &cleanup);
+            write_query_value(context, &conj.0.value, &cleanup, bound);
             write_query_state(context, &conj.1);
             context
                 .write_instruction(Instruction::Cons)
@@ -209,21 +236,29 @@ fn write_query_value(
             let inner = context.labeler.unique_hint("impl_inner");
 
             let lhs_vars = imp.0.bindings();
-            let rhs_bound = bound.union(&lhs_vars).cloned().collect::<HashSet<_>>();
+            let rhs_bound = bound
+                .compile_time
+                .union(&lhs_vars)
+                .cloned()
+                .collect::<HashSet<_>>();
+            let rhs_bound = Bindings {
+                compile_time: &rhs_bound,
+                run_time: bound.run_time,
+            };
 
             context
                 .write_instruction(Instruction::Uncons)
                 .cond_jump(&outer);
 
             context.write_label(inner.clone());
-            write_query_value(context, &imp.1.value, &rhs_bound, &cleanup_second);
+            write_query_value(context, &imp.1.value, &cleanup_second, rhs_bound);
             context
                 .write_instruction(Instruction::Const(true.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(&out);
 
             context.write_label(outer.clone());
-            write_query_value(context, &imp.0.value, bound, &cleanup_first);
+            write_query_value(context, &imp.0.value, &cleanup_first, bound);
             context.write_instruction(Instruction::Pop);
             write_query_state(context, &imp.1);
             context.jump(&inner);
@@ -253,14 +288,14 @@ fn write_query_value(
                 .cond_jump(&first);
 
             context.write_label(second.clone());
-            write_query_value(context, &disj.1.value, bound, &cleanup);
+            write_query_value(context, &disj.1.value, &cleanup, bound);
             context
                 .write_instruction(Instruction::Const(true.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(&out);
 
             context.write_label(first);
-            write_query_value(context, &disj.0.value, bound, &next);
+            write_query_value(context, &disj.0.value, &next, bound);
             context
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Cons)
@@ -301,14 +336,14 @@ fn write_query_value(
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::ValNeq)
                 .cond_jump(&second);
-            write_query_value(context, &alt.0.value, bound, &maybe);
+            write_query_value(context, &alt.0.value, &maybe, bound);
             context
                 .write_instruction(Instruction::Const(true.into()))
                 .write_instruction(Instruction::Cons)
                 .jump(&out);
 
             context.write_label(second.clone());
-            write_query_value(context, &alt.1.value, bound, &cleanup_second);
+            write_query_value(context, &alt.1.value, &cleanup_second, bound);
             context
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Cons)
@@ -347,7 +382,11 @@ fn write_query_value(
     }
 }
 
-fn unbind<'a>(context: &mut Context, vars: impl IntoIterator<Item = &'a Id>) {
+fn unbind<'a>(
+    context: &mut Context,
+    _bindset: Bindings<'_>,
+    vars: impl IntoIterator<Item = &'a Id>,
+) {
     for var in vars {
         match context.scope.lookup(var).unwrap() {
             Binding::Variable(index) => {

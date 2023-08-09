@@ -63,6 +63,8 @@ impl ProgramContext<'_> {
         self.builder.atom(value)
     }
 
+    /// Writes a procedure. Calling convention of procedures is to simply call with all arguments
+    /// on the stack in order.
     pub fn write_procedure(
         &mut self,
         statics: &HashMap<Id, String>,
@@ -78,24 +80,63 @@ impl ProgramContext<'_> {
         write_procedure(context, overload);
     }
 
+    /// Writes a rule. Calling convention of rules is to call once with no arguments to
+    /// perform setup, then call the returned closure with the input arguments along with one
+    /// extra argument which is a Set listing the indexes of the parameters which are to
+    /// be treated as "fixed" for the purpose of backtracking. "Incomplete" parameters (entirely
+    /// or partially unbound) may be passed with any value as they will be treated as unset.
+    ///
+    /// The return value will be a tuple of resulting bindings in argument order which are
+    /// to be pattern matched against the inputs to bind them.
     pub fn write_rule(&mut self, statics: &HashMap<Id, String>, rule: &ir::RuleDefinition) {
         let beginning = self.labeler.begin(&rule.name);
         self.write_label(beginning);
         let for_id = self.labeler.for_id(&rule.name.id);
         self.write_label(for_id);
         let arity = rule.overloads[0].parameters.len();
-        let mut context = self.begin(statics, arity);
-        for _ in 1..arity {
-            context.close(RETURN);
-        }
-        for overload in &rule.overloads {
-            write_rule(&mut context, overload);
+        let mut context = self.begin(statics, 0);
+        context
+            .write_instruction(Instruction::Const(((), 0).into()))
+            .write_instruction(Instruction::Const(().into()));
+        context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
+        context.scope.intermediate(); // TODO: do we need to know the index of this (it's 1)?
+        context.close(RETURN);
+        context.scope.closure(arity); // TODO: do we need to know the index of these (2 + n)?
+        context
+            .write_instruction(Instruction::SetLocal(1))
+            .write_instruction(Instruction::LoadLocal(0))
+            .write_instruction(Instruction::Uncons);
+        for (i, overload) in rule.overloads.iter().enumerate() {
+            let next = context.labeler.unique_hint("next");
+            let fail = context.labeler.unique_hint("fail");
+            context
+                .write_instruction(Instruction::Copy)
+                .write_instruction(Instruction::Const(i.into()))
+                .write_instruction(Instruction::ValEq)
+                .cond_jump(&next)
+                .write_instruction(Instruction::Pop);
+            write_rule(&mut context, overload, &fail);
+            context
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::Const(i.into()))
+                .write_instruction(Instruction::Cons)
+                .write_instruction(Instruction::SetLocal(0))
+                .write_instruction(Instruction::Return);
+            context
+                .write_label(fail)
+                .write_instruction(Instruction::Pop)
+                .write_instruction(Instruction::Const(((), i + 1).into()))
+                .write_instruction(Instruction::SetLocal(0))
+                .write_label(next);
         }
         context
             .write_instruction(Instruction::Const(().into()))
             .write_instruction(Instruction::Return);
     }
 
+    /// Writes a function. Calling convention of functions is to pass one arguments at a time
+    /// via repeated `CALL 1`. Eventually the returned value will be the final value of the
+    /// function.
     pub fn write_function(
         &mut self,
         statics: &HashMap<Id, String>,
