@@ -14,7 +14,7 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
             context.write_instruction(Instruction::Const(true.into()));
         }
         ir::QueryValue::Lookup(lookup) => {
-            write_static_expression(context, &lookup.path);
+            write_expression(context, &lookup.path);
             context.write_instruction(Instruction::Call(0));
         }
         ir::QueryValue::Element(unification) => {

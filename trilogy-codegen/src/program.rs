@@ -91,7 +91,9 @@ impl ProgramContext<'_> {
         for overload in &rule.overloads {
             write_rule(&mut context, overload);
         }
-        context.write_instruction(Instruction::Fizzle);
+        context
+            .write_instruction(Instruction::Const(().into()))
+            .write_instruction(Instruction::Return);
     }
 
     pub fn write_function(

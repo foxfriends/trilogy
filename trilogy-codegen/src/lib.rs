@@ -26,5 +26,5 @@ mod prelude {
     pub(crate) use crate::procedure::write_procedure;
     pub(crate) use crate::query::*;
     pub(crate) use crate::rule::write_rule;
-    pub(crate) use crate::static_expression::{write_static_expression, write_static_value};
+    pub(crate) use crate::static_expression::write_static_value;
 }

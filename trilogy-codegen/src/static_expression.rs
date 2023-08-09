@@ -1,6 +1,7 @@
 use crate::context::Context;
 use trilogy_ir::ir;
 
+#[allow(dead_code)]
 pub(crate) fn write_static_expression(context: &mut Context, expression: &ir::Expression) {
     write_static_value(context, &expression.value)
 }
