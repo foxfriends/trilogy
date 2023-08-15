@@ -1,6 +1,6 @@
 use crate::{preamble::ITERATE_COLLECTION, prelude::*};
 use std::collections::HashSet;
-use trilogy_ir::visitor::HasBindings;
+use trilogy_ir::visitor::{HasBindings, HasReferences};
 use trilogy_ir::{ir, Id};
 use trilogy_vm::Instruction;
 
@@ -15,7 +15,10 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
         }
         ir::QueryValue::Lookup(lookup) => {
             write_expression(context, &lookup.path);
-            context.write_instruction(Instruction::Call(0));
+            context
+                .write_instruction(Instruction::Call(0))
+                .write_instruction(Instruction::Const(false.into()))
+                .write_instruction(Instruction::Cons);
         }
         ir::QueryValue::Element(unification) => {
             write_expression(context, &unification.expression);
@@ -70,9 +73,15 @@ pub(crate) fn write_query(
 }
 
 #[derive(Copy, Clone)]
-struct Bindings<'a> {
+pub(crate) struct Bindings<'a> {
     compile_time: &'a HashSet<Id>,
     run_time: Option<usize>,
+}
+
+impl Bindings<'_> {
+    fn is_bound(&self, var: &Id) -> bool {
+        self.compile_time.contains(var)
+    }
 }
 
 fn write_query_value(
@@ -378,7 +387,72 @@ fn write_query_value(
                 .write_instruction(Instruction::Pop);
             context.scope.end_intermediate();
         }
-        ir::QueryValue::Lookup(_lookup) => todo!(),
+        ir::QueryValue::Lookup(lookup) => {
+            let setup = context.labeler.unique_hint("setup");
+            let enter = context.labeler.unique_hint("enter");
+            let cleanup = context.labeler.unique_hint("cleanup");
+            let end = context.labeler.unique_hint("end");
+
+            let next = context.atom("next");
+            let done = context.atom("done");
+
+            context.scope.intermediate();
+            context
+                .write_instruction(Instruction::Uncons)
+                .cond_jump(&setup)
+                .write_label(enter.clone())
+                .write_instruction(Instruction::Copy)
+                .write_instruction(Instruction::Call(0))
+                .write_instruction(Instruction::Copy)
+                .write_instruction(Instruction::Const(done.into()))
+                .write_instruction(Instruction::ValEq)
+                .cond_jump(&cleanup)
+                .write_instruction(Instruction::Destruct)
+                .write_instruction(Instruction::Swap)
+                .write_instruction(Instruction::Const(next.into()))
+                .write_instruction(Instruction::ValEq)
+                .cond_jump(&cleanup);
+            context.scope.intermediate();
+            for pattern in &lookup.patterns {
+                context.write_instruction(Instruction::Uncons);
+                write_pattern_match(context, &pattern, &cleanup);
+            }
+            context.scope.end_intermediate();
+            context
+                .write_instruction(Instruction::Pop)
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(&end)
+                .write_label(cleanup)
+                .write_instruction(Instruction::Pop)
+                .write_instruction(Instruction::Const(true.into()))
+                .write_instruction(Instruction::Cons)
+                .jump(on_fail);
+
+            context.write_label(setup);
+            // We can predetermine all the statically assigned expressions
+            let mut set = HashSet::new();
+            for (i, pattern) in lookup.patterns.iter().enumerate() {
+                let vars = pattern.references();
+                if vars.iter().all(|var| bound.is_bound(var)) {
+                    set.insert(i.into());
+                }
+            }
+            context.write_instruction(Instruction::Const(set.into()));
+            let save_into = context.scope.intermediate();
+            for (i, pattern) in lookup.patterns.iter().enumerate() {
+                pattern.bindings();
+                evaluate(context, bound, pattern, i, save_into);
+                context.scope.intermediate();
+            }
+
+            context.write_instruction(Instruction::Call(lookup.patterns.len() + 1));
+            for _ in &lookup.patterns {
+                context.scope.end_intermediate();
+            }
+            context.scope.end_intermediate();
+            context.jump(&enter).write_label(end);
+        }
     }
 }
 
@@ -394,5 +468,49 @@ fn unbind<'a>(
             }
             _ => unreachable!(),
         }
+    }
+}
+
+fn evaluate<'a>(
+    context: &mut Context,
+    bindset: Bindings<'_>,
+    value: &ir::Expression,
+    expr_index: usize,
+    save_into: usize,
+) {
+    let vars = value.references();
+    if vars.iter().all(|var| bindset.is_bound(var)) {
+        write_expression(context, value);
+    } else if bindset.run_time.is_some() {
+        let nope = context.labeler.unique_hint("nope");
+        for var in &vars {
+            if bindset.is_bound(var) {
+                continue;
+            }
+            match context.scope.lookup(var).unwrap() {
+                Binding::Variable(index) => {
+                    let runtime_bound = bindset.run_time.unwrap();
+                    context
+                        .write_instruction(Instruction::LoadLocal(runtime_bound))
+                        .write_instruction(Instruction::Const(index.into()))
+                        .write_instruction(Instruction::Contains)
+                        .cond_jump(&nope);
+                }
+                _ => unreachable!(),
+            }
+        }
+        let next = context.labeler.unique_hint("next");
+        write_expression(context, value);
+        context
+            .write_instruction(Instruction::LoadLocal(save_into))
+            .write_instruction(Instruction::Const(expr_index.into()))
+            .write_instruction(Instruction::Insert)
+            .write_instruction(Instruction::Pop)
+            .jump(&next)
+            .write_label(nope)
+            .write_instruction(Instruction::Const(().into()))
+            .write_label(next);
+    } else {
+        context.write_instruction(Instruction::Const(().into()));
     }
 }

@@ -2,9 +2,11 @@ use crate::ir::*;
 
 mod bindings;
 mod identifiers;
+mod references;
 
 pub use bindings::{Bindings, HasBindings};
 pub use identifiers::Identifiers;
+pub use references::{HasReferences, References};
 
 macro_rules! visit_node {
     ($name:ident, $t:ty) => {
@@ -66,6 +68,7 @@ pub trait IrVisitor: Sized {
     visit_node!(visit_rule_definition, RuleDefinition);
     visit_node!(visit_rule, Rule);
     visit_node!(visit_expression, Expression);
+    visit_node!(visit_pattern, Expression);
     visit_node!(visit_value, Value);
     visit_value!(visit_builtin, Builtin);
     visit_node!(visit_pack, Pack);
@@ -258,7 +261,7 @@ impl IrVisitable for Match {
 
 impl IrVisitable for Case {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
-        visitor.visit_expression(&self.pattern);
+        visitor.visit_pattern(&self.pattern);
         visitor.visit_expression(&self.guard);
         visitor.visit_expression(&self.body);
     }
@@ -267,7 +270,7 @@ impl IrVisitable for Case {
 impl IrVisitable for Function {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         for parameter in &self.parameters {
-            visitor.visit_expression(parameter);
+            visitor.visit_pattern(parameter);
         }
         visitor.visit_expression(&self.body);
     }
@@ -276,7 +279,7 @@ impl IrVisitable for Function {
 impl IrVisitable for Procedure {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         for parameter in &self.parameters {
-            visitor.visit_expression(parameter);
+            visitor.visit_pattern(parameter);
         }
         visitor.visit_expression(&self.body);
     }
@@ -293,7 +296,7 @@ impl IrVisitable for Handled {
 
 impl IrVisitable for Handler {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
-        visitor.visit_expression(&self.pattern);
+        visitor.visit_pattern(&self.pattern);
         visitor.visit_expression(&self.guard);
         visitor.visit_expression(&self.body);
     }
@@ -308,7 +311,7 @@ impl IrVisitable for Assert {
 
 impl IrVisitable for Unification {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
-        visitor.visit_expression(&self.pattern);
+        visitor.visit_pattern(&self.pattern);
         visitor.visit_expression(&self.expression);
     }
 }
@@ -352,7 +355,7 @@ impl IrVisitable for FunctionDefinition {
 impl IrVisitable for Rule {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         for parameter in &self.parameters {
-            visitor.visit_expression(parameter);
+            visitor.visit_pattern(parameter);
         }
         visitor.visit_query(&self.body);
     }
@@ -368,7 +371,7 @@ impl IrVisitable for ModuleDefinition {
 impl IrVisitable for Module {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         for parameter in &self.parameters {
-            visitor.visit_expression(parameter);
+            visitor.visit_pattern(parameter);
         }
         for definition in self.definitions() {
             visitor.visit_definition(definition);

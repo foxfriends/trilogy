@@ -1,0 +1,9 @@
+rule is_ok(1)
+rule is_ok(2)
+rule is_ok(3)
+
+proc main!() {
+    let total = 0
+    for is_ok(n) { total += n }
+    exit total
+}
