@@ -78,7 +78,9 @@ impl<'a> Context<'a> {
     pub fn declare_variables(&mut self, variables: impl IntoIterator<Item = Id>) -> usize {
         let mut n = 0;
         for id in variables {
-            if self.scope.declare_variable(id) {
+            if self.scope.declare_variable(id.clone()) {
+                let label = self.labeler.var(&id);
+                self.write_label(label);
                 self.write_instruction(Instruction::Variable);
                 n += 1;
             }

@@ -26,6 +26,16 @@ impl Labeler {
         format!("#temp::{}::{hint}", self.counter)
     }
 
+    pub fn var(&mut self, var: &Id) -> String {
+        self.counter += 1;
+        format!(
+            "#var::{}::{}::{:#?}",
+            self.counter,
+            var.to_string(),
+            var.as_ptr()
+        )
+    }
+
     pub fn label(&self, suffix: &str) -> String {
         format!("{}#{}${suffix}", self.location, self.context.join("::"))
     }

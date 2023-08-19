@@ -21,6 +21,10 @@ impl Id {
             None => format!("#{:x}", Arc::as_ptr(&self.0) as usize),
         }
     }
+
+    pub fn as_ptr(&self) -> *const Option<String> {
+        Arc::as_ptr(&self.0)
+    }
 }
 
 impl Eq for Id {}

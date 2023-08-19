@@ -47,6 +47,11 @@ impl IrVisitor for Bindings {
 
         match node {
             Not(..) | Is(..) => {}
+            Lookup(lookup) => {
+                for pattern in &lookup.patterns {
+                    pattern.visit(self);
+                }
+            }
             _ => node.visit(self),
         }
     }
