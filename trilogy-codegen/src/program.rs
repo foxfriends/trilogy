@@ -100,12 +100,13 @@ impl ProgramContext<'_> {
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
         context.close(RETURN);
         context.scope.closure(arity + 1); // TODO: do we need to know the index of these (1 + n)?
+        context.close(RETURN);
 
         context
             .write_instruction(Instruction::LoadLocal(0))
             .write_instruction(Instruction::Uncons);
         for (i, overload) in rule.overloads.iter().enumerate() {
-            let skip = context.labeler.unique_hint("skip");
+            let skip = context.labeler.unique_hint("next_overload");
             let fail = context.labeler.unique_hint("fail");
             context
                 .write_instruction(Instruction::Copy)
@@ -123,8 +124,11 @@ impl ProgramContext<'_> {
             context
                 .write_label(fail)
                 .write_instruction(Instruction::Pop)
+                .write_instruction(Instruction::Pop)
                 .write_instruction(Instruction::Const(((), i + 1).into()))
                 .write_instruction(Instruction::SetLocal(0))
+                .write_instruction(Instruction::LoadLocal(0))
+                .write_instruction(Instruction::Uncons)
                 .write_label(skip);
         }
         let done = context.atom("done");

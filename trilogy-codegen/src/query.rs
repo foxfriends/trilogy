@@ -405,7 +405,7 @@ fn write_query_value(
                 .write_instruction(Instruction::Call(0))
                 .write_instruction(Instruction::Copy)
                 .write_instruction(Instruction::Const(done.into()))
-                .write_instruction(Instruction::ValEq)
+                .write_instruction(Instruction::ValNeq)
                 .cond_jump(&cleanup)
                 .write_instruction(Instruction::Destruct)
                 .write_instruction(Instruction::Swap)
