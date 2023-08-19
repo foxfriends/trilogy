@@ -415,7 +415,7 @@ fn write_query_value(
             context.scope.intermediate();
             for pattern in &lookup.patterns {
                 context.write_instruction(Instruction::Uncons);
-                write_pattern_match(context, &pattern, &cleanup);
+                write_pattern_match(context, pattern, &cleanup);
             }
             context.scope.end_intermediate();
             context
@@ -471,7 +471,7 @@ fn unbind<'a>(
     }
 }
 
-fn evaluate<'a>(
+fn evaluate(
     context: &mut Context,
     bindset: Bindings<'_>,
     value: &ir::Expression,
