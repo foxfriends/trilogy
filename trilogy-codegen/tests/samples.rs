@@ -387,6 +387,12 @@ fn sample_rule() {
 }
 
 #[test]
+fn sample_rule_fancy() {
+    let program = include_tri!("rule_fancy.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(14));
+}
+
+#[test]
 #[ignore = "not yet working"]
 fn sample_occurs_check() {
     let program = include_tri!("occurs_check.tri");
