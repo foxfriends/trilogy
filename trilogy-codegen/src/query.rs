@@ -457,7 +457,18 @@ fn unbind<'a>(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
     for var in newly_bound {
         match context.scope.lookup(var).unwrap() {
             Binding::Variable(index) => {
-                context.write_instruction(Instruction::UnsetLocal(index));
+                let skip = context.labeler.unique_hint("skip");
+                if let Some(bindings) = bindset.run_time {
+                    context
+                        .write_instruction(Instruction::LoadLocal(bindings))
+                        .write_instruction(Instruction::Const(index.into()))
+                        .write_instruction(Instruction::Contains)
+                        .write_instruction(Instruction::Not)
+                        .jump(&skip);
+                }
+                context
+                    .write_instruction(Instruction::UnsetLocal(index))
+                    .write_label(skip);
             }
             _ => unreachable!(),
         }
