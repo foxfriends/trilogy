@@ -29,7 +29,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         .cond_jump(&end)
         .write_instruction(Instruction::Pop)
         .write_instruction(Instruction::Pop)
-        .jump(&on_fail);
+        .jump(on_fail);
 
     context
         .write_label(setup)
