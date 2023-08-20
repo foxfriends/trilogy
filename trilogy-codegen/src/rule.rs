@@ -25,9 +25,11 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         // failures.
         .write_instruction(Instruction::Copy)
         .write_instruction(Instruction::Const(done.clone().into()))
-        .write_instruction(Instruction::ValNeq)
-        .cond_jump(on_fail)
-        .jump(&end);
+        .write_instruction(Instruction::ValEq)
+        .cond_jump(&end)
+        .write_instruction(Instruction::Pop)
+        .write_instruction(Instruction::Pop)
+        .jump(&on_fail);
 
     context
         .write_label(setup)

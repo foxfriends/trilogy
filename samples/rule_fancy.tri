@@ -1,0 +1,14 @@
+rule fancy(1, 1)
+rule fancy(1, 2)
+rule fancy(2, 3)
+rule fancy(2, 4)
+rule fancy(3, 5)
+rule fancy(3, 6)
+
+proc main!() {
+    let total = 0
+    for x in [1, 3] and fancy(x, y) {
+        total += y
+    }
+    exit total
+}

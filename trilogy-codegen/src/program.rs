@@ -123,8 +123,6 @@ impl ProgramContext<'_> {
                 .write_instruction(Instruction::Return);
             context
                 .write_label(fail)
-                .write_instruction(Instruction::Pop)
-                .write_instruction(Instruction::Pop)
                 .write_instruction(Instruction::Const(((), i + 1).into()))
                 .write_instruction(Instruction::SetLocal(0))
                 .write_instruction(Instruction::LoadLocal(0))
