@@ -49,21 +49,9 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.write_label(skip);
     }
 
-    let close = context.labeler.unique_hint("close");
-    context.jump(&close);
-
-    // Sad path: we have to undeclare all the variables that have been
-    // declared so far, then fail as regular.
-    for parameter in rule.parameters.iter().rev() {
-        context.write_label(cleanup.pop().unwrap());
-        context.undeclare_variables(parameter.bindings(), true);
-    }
-    context.jump(on_fail);
-
     // Happy path: we continue by writing the query state down, and then
     // encapsulating all that into a closure which will be the iterator for
     // this overload of the rule.
-    context.write_label(close);
     write_query_state(context, &rule.body);
     context.close(&call);
 
@@ -103,13 +91,20 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // This ends with 2 expected values on the stack ([state, retval])
     // so they are no longer intemediate
     context.scope.end_intermediate();
-    context.scope.end_intermediate();
 
     // On failure, just return 'done
     context
         .write_label(on_done)
         .write_instruction(Instruction::Const(done.into()))
         .write_instruction(Instruction::Return);
+
+    // Sad path: we have to undeclare all the variables that have been
+    // declared so far, then fail as regular.
+    for parameter in rule.parameters.iter().rev() {
+        context.write_label(cleanup.pop().unwrap());
+        context.undeclare_variables(parameter.bindings(), true);
+    }
+    context.jump(on_fail);
 
     context.write_label(end);
 }
