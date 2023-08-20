@@ -1,7 +1,7 @@
 use crate::context::Context;
 use crate::prelude::*;
 use trilogy_ir::ir;
-use trilogy_ir::visitor::HasBindings;
+use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
 use trilogy_vm::Instruction;
 
 pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) {
@@ -72,9 +72,24 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // TODO[Optimization]: Parameters that were already fully bound
     // can just be loaded directly instead of re-evaluated.
     context.scope.intermediate(); // At this point, the query state is an intermediate
-    for param in &rule.parameters {
-        write_expression(context, param);
+    for (i, param) in rule.parameters.iter().enumerate() {
+        let eval = context.labeler.unique_hint("eval");
+        let next = context.labeler.unique_hint("next");
+        context
+            .write_instruction(Instruction::LoadLocal(1))
+            .write_instruction(Instruction::Const(i.into()))
+            .write_instruction(Instruction::Contains)
+            .cond_jump(&eval)
+            .write_instruction(Instruction::LoadLocal(2 + i))
+            .jump(&next);
+        context.write_label(eval);
+        if param.can_evaluate() {
+            write_expression(context, param);
+        } else {
+            context.write_instruction(Instruction::Fizzle);
+        }
         context.scope.intermediate(); // As is each subsequent parameter value
+        context.write_label(next);
     }
     // The return value is a (backwards) list
     context.write_instruction(Instruction::Const(().into()));

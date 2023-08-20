@@ -1,10 +1,12 @@
 use crate::ir::*;
 
 mod bindings;
+mod can_evaluate;
 mod identifiers;
 mod references;
 
 pub use bindings::{Bindings, HasBindings};
+pub use can_evaluate::{CanEvaluate, HasCanEvaluate};
 pub use identifiers::Identifiers;
 pub use references::{HasReferences, References};
 
