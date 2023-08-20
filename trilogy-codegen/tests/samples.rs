@@ -397,6 +397,13 @@ fn sample_rule_fancy() {
 
 #[test]
 #[ignore = "not yet working"]
+fn sample_rule_rec() {
+    let program = include_tri!("rule_rec.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(6));
+}
+
+#[test]
+#[ignore = "not yet working"]
 fn sample_occurs_check() {
     let program = include_tri!("occurs_check.tri");
     assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(0));

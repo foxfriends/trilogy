@@ -1,0 +1,10 @@
+rule every(x, [x, .._])
+rule every(x, [_, ..rest]) <- every(x, rest)
+
+proc main!() {
+    let total = 0
+    for every(y, [1, 2, 3]) {
+        total += y
+    }
+    exit total
+}
