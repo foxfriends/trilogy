@@ -452,7 +452,7 @@ fn write_query_value(
     }
 }
 
-fn unbind<'a>(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
+fn unbind(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
     let newly_bound = vars.difference(bindset.compile_time);
     for var in newly_bound {
         match context.scope.lookup(var).unwrap() {
