@@ -92,14 +92,12 @@ fn write_query_value(
 ) {
     match &value {
         ir::QueryValue::Direct(unification) => {
-            let vars = unification.pattern.bindings();
-            let newly_bound = vars.difference(bound.compile_time);
             context
                 .write_instruction(Instruction::Const(false.into()))
                 .write_instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             write_expression(context, &unification.expression);
-            unbind(context, bound, newly_bound);
+            unbind(context, bound, unification.pattern.bindings());
             write_pattern_match(context, &unification.pattern, on_fail);
         }
         ir::QueryValue::Element(unification) => {
@@ -108,9 +106,6 @@ fn write_query_value(
 
             let next = context.atom("next");
             let done = context.atom("done");
-
-            let vars = unification.pattern.bindings();
-            let newly_bound = vars.difference(bound.compile_time);
 
             context
                 // Done if done
@@ -134,7 +129,7 @@ fn write_query_value(
                 .write_instruction(Instruction::Const(next.into()))
                 .write_instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
-            unbind(context, bound, newly_bound);
+            unbind(context, bound, unification.pattern.bindings());
             write_pattern_match(context, &unification.pattern, on_fail);
             context
                 .jump(&continuation)
@@ -415,6 +410,7 @@ fn write_query_value(
             context.scope.intermediate();
             for pattern in &lookup.patterns {
                 context.write_instruction(Instruction::Uncons);
+                unbind(context, bound, pattern.bindings());
                 write_pattern_match(context, pattern, &cleanup);
             }
             context.scope.end_intermediate();
@@ -456,12 +452,9 @@ fn write_query_value(
     }
 }
 
-fn unbind<'a>(
-    context: &mut Context,
-    _bindset: Bindings<'_>,
-    vars: impl IntoIterator<Item = &'a Id>,
-) {
-    for var in vars {
+fn unbind<'a>(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
+    let newly_bound = vars.difference(bindset.compile_time);
+    for var in newly_bound {
         match context.scope.lookup(var).unwrap() {
             Binding::Variable(index) => {
                 context.write_instruction(Instruction::UnsetLocal(index));
