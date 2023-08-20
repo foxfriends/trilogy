@@ -68,9 +68,6 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     context.scope.end_intermediate();
     // The query is normal, then the value is computed by evaluating
     // the parameter patterns now as expressions.
-    //
-    // TODO[Optimization]: Parameters that were already fully bound
-    // can just be loaded directly instead of re-evaluated.
     context.scope.intermediate(); // At this point, the query state is an intermediate
     for (i, param) in rule.parameters.iter().enumerate() {
         let eval = context.labeler.unique_hint("eval");
