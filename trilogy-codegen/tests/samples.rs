@@ -381,6 +381,12 @@ fn sample_reused_variable() {
 }
 
 #[test]
+fn sample_rule() {
+    let program = include_tri!("rule.tri");
+    assert_eq!(VirtualMachine::load(program).run().unwrap(), Value::from(6));
+}
+
+#[test]
 #[ignore = "not yet working"]
 fn sample_occurs_check() {
     let program = include_tri!("occurs_check.tri");
