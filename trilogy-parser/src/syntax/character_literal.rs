@@ -16,7 +16,9 @@ impl CharacterLiteral {
     }
 
     pub fn value(&self) -> char {
-        let TokenValue::Char(character) = self.token.value.as_ref().unwrap() else { unreachable!() };
+        let TokenValue::Char(character) = self.token.value.as_ref().unwrap() else {
+            unreachable!()
+        };
         *character
     }
 }

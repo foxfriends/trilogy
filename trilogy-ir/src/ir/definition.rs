@@ -51,13 +51,17 @@ impl Definition {
             syntax::DefinitionItem::ExternalModule(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
+                let DefinitionItem::Module(module) = &mut definition.item else {
+                    unreachable!()
+                };
                 module.module = analyzer.resolve(ast.locator.as_ref());
             }
             syntax::DefinitionItem::Function(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Function(function) = &mut definition.item else { unreachable!() };
+                let DefinitionItem::Function(function) = &mut definition.item else {
+                    unreachable!()
+                };
                 function.overloads.push(Function::convert(analyzer, *ast))
             }
             syntax::DefinitionItem::Import(ast) => {
@@ -70,7 +74,9 @@ impl Definition {
                     };
                     let id = analyzer.declared(to.as_ref()).unwrap();
                     let definition = definitions.get_mut(id).unwrap();
-                    let DefinitionItem::Alias(alias) = &mut definition.item else { unreachable!() };
+                    let DefinitionItem::Alias(alias) = &mut definition.item else {
+                        unreachable!()
+                    };
                     alias.value = Some(
                         Expression::builtin(from_span, Builtin::Access)
                             .apply_to(from.span(), expression.clone())
@@ -81,26 +87,34 @@ impl Definition {
             syntax::DefinitionItem::Module(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Module(module) = &mut definition.item else { unreachable!() };
+                let DefinitionItem::Module(module) = &mut definition.item else {
+                    unreachable!()
+                };
                 module.module = Arc::new(ModuleCell::new(Module::convert_module(analyzer, *ast)));
             }
             syntax::DefinitionItem::ModuleImport(ast) => {
                 let id = analyzer.declared(ast.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Alias(alias) = &mut definition.item else { unreachable!() };
+                let DefinitionItem::Alias(alias) = &mut definition.item else {
+                    unreachable!()
+                };
                 let expression = Expression::convert_module_path(analyzer, ast.module);
                 alias.value = Some(expression);
             }
             syntax::DefinitionItem::Procedure(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Procedure(procedure) = &mut definition.item else { unreachable!() };
+                let DefinitionItem::Procedure(procedure) = &mut definition.item else {
+                    unreachable!()
+                };
                 procedure.overloads.push(Procedure::convert(analyzer, *ast))
             }
             syntax::DefinitionItem::Rule(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Rule(rule) = &mut definition.item else { unreachable!() };
+                let DefinitionItem::Rule(rule) = &mut definition.item else {
+                    unreachable!()
+                };
                 rule.overloads.push(Rule::convert(analyzer, *ast))
             }
             syntax::DefinitionItem::Test(ast) => {

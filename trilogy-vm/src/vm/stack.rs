@@ -241,7 +241,12 @@ impl Stack {
         let register = self.count_locals() - index - 1;
         let local_locals = self.len() - self.frame;
         if register >= local_locals {
-            let InternalValue::Return{ ghost: Some(stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            let InternalValue::Return {
+                ghost: Some(stack), ..
+            } = self.cactus.at(self.len() - self.frame).unwrap()
+            else {
+                panic!()
+            };
             return stack.at_local(index);
         }
         self.cactus
@@ -302,7 +307,13 @@ impl Stack {
             // Overall it's just a convenient coincidence coming from the weird way the cactus
             // is built. I hope someday a more explicitly shared stack representation is devised...
             // Unless this is actually correct and I just don't understand what I'm doing but it's working.
-            let InternalValue::Return { ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            let InternalValue::Return {
+                ghost: Some(mut stack),
+                ..
+            } = self.cactus.at(self.len() - self.frame).unwrap()
+            else {
+                panic!()
+            };
             return stack.set_local(index, value);
         }
         self.cactus
@@ -331,7 +342,13 @@ impl Stack {
             // Overall it's just a convenient coincidence coming from the weird way the cactus
             // is built. I hope someday a more explicitly shared stack representation is devised...
             // Unless this is actually correct and I just don't understand what I'm doing but it's working.
-            let InternalValue::Return { ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            let InternalValue::Return {
+                ghost: Some(mut stack),
+                ..
+            } = self.cactus.at(self.len() - self.frame).unwrap()
+            else {
+                panic!()
+            };
             return stack.unset_local(index);
         }
         self.cactus
@@ -361,7 +378,13 @@ impl Stack {
             // Overall it's just a convenient coincidence coming from the weird way the cactus
             // is built. I hope someday a more explicitly shared stack representation is devised...
             // Unless this is actually correct and I just don't understand what I'm doing but it's working.
-            let InternalValue::Return { ghost: Some(mut stack), .. } = self.cactus.at(self.len() - self.frame).unwrap() else { panic!() };
+            let InternalValue::Return {
+                ghost: Some(mut stack),
+                ..
+            } = self.cactus.at(self.len() - self.frame).unwrap()
+            else {
+                panic!()
+            };
             return stack.init_local(index, value);
         }
         if matches!(self.cactus.at(register), Some(InternalValue::Unset)) {

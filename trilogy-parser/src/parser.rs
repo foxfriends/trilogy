@@ -87,7 +87,9 @@ impl Parser<'_> {
 
     fn peek_chomp(&mut self) {
         loop {
-            let Some(token) = self.source.peek() else { return };
+            let Some(token) = self.source.peek() else {
+                return;
+            };
             if token.token_type == TokenType::EndOfFile {
                 return;
             }

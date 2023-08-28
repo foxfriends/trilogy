@@ -16,7 +16,9 @@ impl AtomLiteral {
     }
 
     pub fn value(&self) -> String {
-        let TokenValue::String(value) = self.token.value.as_ref().unwrap() else { unreachable!() };
+        let TokenValue::String(value) = self.token.value.as_ref().unwrap() else {
+            unreachable!()
+        };
         value.clone()
     }
 }

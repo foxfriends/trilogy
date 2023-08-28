@@ -46,7 +46,9 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 );
                 match token.token_type {
                     TokenType::Identifier => {
-                        let Some(TokenValue::String(value)) = token.value else { unreachable!() };
+                        let Some(TokenValue::String(value)) = token.value else {
+                            unreachable!()
+                        };
                         print!(" ({})", value.blue());
                     }
                     TokenType::Numeric

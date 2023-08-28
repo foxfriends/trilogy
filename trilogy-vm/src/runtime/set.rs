@@ -75,11 +75,9 @@ impl ReferentialEq for Set {
 
 impl StructuralEq for Set {
     fn eq(&self, other: &Self) -> bool {
-        let Ok(lhs) = self.0.lock() else {
-            return false
-        };
+        let Ok(lhs) = self.0.lock() else { return false };
         let Ok(rhs) = other.0.lock() else {
-            return false
+            return false;
         };
         lhs.eq(&*rhs)
     }

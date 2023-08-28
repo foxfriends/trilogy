@@ -17,7 +17,9 @@ impl BitsLiteral {
     }
 
     pub fn value(&self) -> BitVec {
-        let TokenValue::Bits(bits) = self.token.value.as_ref().unwrap() else { unreachable!() };
+        let TokenValue::Bits(bits) = self.token.value.as_ref().unwrap() else {
+            unreachable!()
+        };
         bits.clone()
     }
 }

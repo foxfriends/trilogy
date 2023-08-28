@@ -17,7 +17,9 @@ impl NumberLiteral {
     }
 
     pub fn value(&self) -> Complex<BigRational> {
-        let TokenValue::Number(number) = self.token.value.as_ref().unwrap() else {unreachable!()};
+        let TokenValue::Number(number) = self.token.value.as_ref().unwrap() else {
+            unreachable!()
+        };
         *number.clone()
     }
 }

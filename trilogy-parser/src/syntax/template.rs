@@ -56,7 +56,9 @@ impl Template {
     }
 
     pub fn prefix(&self) -> String {
-        let TokenValue::String(value) = self.start.value.as_ref().unwrap() else { unreachable!() };
+        let TokenValue::String(value) = self.start.value.as_ref().unwrap() else {
+            unreachable!()
+        };
         value.to_owned()
     }
 
@@ -86,7 +88,9 @@ pub struct TemplateSegment {
 
 impl TemplateSegment {
     pub fn suffix(&self) -> String {
-        let TokenValue::String(value) = self.end.value.as_ref().unwrap() else { unreachable!() };
+        let TokenValue::String(value) = self.end.value.as_ref().unwrap() else {
+            unreachable!()
+        };
         value.to_owned()
     }
 

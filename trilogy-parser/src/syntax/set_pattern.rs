@@ -39,10 +39,8 @@ impl SetPattern {
         // handling in this parser so far!
         if let Ok(comma) = parser.expect(OpComma) {
             let Ok(end) = parser.expect(CBrackPipe) else {
-                let error = SyntaxError::new(
-                    comma.span,
-                    "a rest (`..`) element must end a set pattern",
-                );
+                let error =
+                    SyntaxError::new(comma.span, "a rest (`..`) element must end a set pattern");
                 parser.error(error.clone());
                 return Err(error);
             };
