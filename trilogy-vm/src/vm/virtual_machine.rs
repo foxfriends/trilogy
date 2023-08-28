@@ -9,11 +9,34 @@ use std::cmp::Ordering;
 use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
+enum HeapCell {
+    Unset,
+    Value(Value),
+    Freed,
+}
+
+impl HeapCell {
+    fn available(&mut self) -> Option<&mut Self> {
+        match self {
+            Self::Freed => None,
+            _ => Some(self),
+        }
+    }
+
+    fn as_ref(&self) -> Option<&Value> {
+        match self {
+            Self::Value(val) => Some(val),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct VirtualMachine {
     program: Program,
     executions: VecDeque<Execution>,
     registers: Vec<Value>,
-    heap: Vec<Option<Value>>,
+    heap: Vec<HeapCell>,
 }
 
 impl VirtualMachine {
@@ -66,7 +89,9 @@ impl VirtualMachine {
                             .get(pointer)
                             .cloned()
                             .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
-                            .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))?,
+                            .as_ref()
+                            .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))?
+                            .clone(),
                     );
                 }
                 OpCode::Set => {
@@ -76,18 +101,18 @@ impl VirtualMachine {
                         .heap
                         .get_mut(pointer)
                         .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
-                        .as_mut()
-                        .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))? = value;
+                        .available()
+                        .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))? =
+                        HeapCell::Value(value);
                 }
                 OpCode::Alloc => {
-                    let value = ex.stack_pop()?;
                     let pointer = self.heap.len();
-                    self.heap.push(Some(value));
+                    self.heap.push(HeapCell::Unset);
                     ex.stack_push_pointer(pointer);
                 }
                 OpCode::Free => {
                     let pointer = ex.stack_pop_pointer()?;
-                    self.heap[pointer] = None;
+                    self.heap[pointer] = HeapCell::Freed;
                 }
                 OpCode::LoadLocal => {
                     let offset = ex.read_offset(&self.program.instructions)?;
@@ -392,7 +417,9 @@ impl VirtualMachine {
                             let Value::Number(number) = key else {
                                 return Err(ex.error(ErrorKind::RuntimeTypeError));
                             };
-                            let Some(index) = number.as_uinteger().and_then(|index| index.to_usize()) else {
+                            let Some(index) =
+                                number.as_uinteger().and_then(|index| index.to_usize())
+                            else {
                                 return Err(ex.error(ErrorKind::RuntimeTypeError));
                             };
                             arr.remove(index);
