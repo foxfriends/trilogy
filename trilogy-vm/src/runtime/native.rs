@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::Arc;
 
-pub trait NativeFunction {
+pub trait NativeFunction: Send + Sync {
     fn call(&self, input: Vec<Value>) -> Value;
     fn arity(&self) -> usize;
 }
