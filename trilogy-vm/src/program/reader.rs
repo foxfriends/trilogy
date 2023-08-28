@@ -41,6 +41,8 @@ impl ProgramReader<'_> {
                 Ok(Instruction::Const(value))
             }
             OpCode::Load => Ok(Instruction::Load),
+            OpCode::Init => Ok(Instruction::Init),
+            OpCode::Unset => Ok(Instruction::Unset),
             OpCode::Set => Ok(Instruction::Set),
             OpCode::Alloc => Ok(Instruction::Alloc),
             OpCode::Free => Ok(Instruction::Free),

@@ -20,6 +20,8 @@ pub enum Instruction {
     // Heap (why?)
     #[asm(name = "LOAD")] Load,
     #[asm(name = "SET")] Set,
+    #[asm(name = "INIT")] Init,
+    #[asm(name = "UNSET")] Unset,
     Alloc,
     Free,
 

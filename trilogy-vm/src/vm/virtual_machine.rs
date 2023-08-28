@@ -16,17 +16,40 @@ enum HeapCell {
 }
 
 impl HeapCell {
-    fn available(&mut self) -> Option<&mut Self> {
-        match self {
-            Self::Freed => None,
-            _ => Some(self),
+    fn unset(&mut self) -> Result<(), InternalRuntimeError> {
+        if matches!(self, HeapCell::Freed) {
+            Err(InternalRuntimeError::UseAfterFree)
+        } else {
+            *self = HeapCell::Unset;
+            Ok(())
         }
     }
 
-    fn as_ref(&self) -> Option<&Value> {
+    fn set(&mut self, value: Value) -> Result<(), InternalRuntimeError> {
+        if matches!(self, HeapCell::Freed) {
+            Err(InternalRuntimeError::UseAfterFree)
+        } else {
+            *self = HeapCell::Value(value);
+            Ok(())
+        }
+    }
+
+    fn init(&mut self, value: Value) -> Result<bool, InternalRuntimeError> {
         match self {
-            Self::Value(val) => Some(val),
-            _ => None,
+            HeapCell::Unset => {
+                *self = HeapCell::Value(value);
+                Ok(true)
+            }
+            HeapCell::Value(..) => Ok(false),
+            HeapCell::Freed => Err(InternalRuntimeError::UseAfterFree),
+        }
+    }
+
+    fn as_value(&mut self) -> Result<Option<Value>, InternalRuntimeError> {
+        match self {
+            HeapCell::Unset => Ok(None),
+            HeapCell::Value(val) => Ok(Some(val.clone())),
+            HeapCell::Freed => Err(InternalRuntimeError::UseAfterFree),
         }
     }
 }
@@ -89,21 +112,38 @@ impl VirtualMachine {
                             .get(pointer)
                             .cloned()
                             .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
-                            .as_ref()
-                            .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))?
-                            .clone(),
+                            .as_value()
+                            .map_err(|er| ex.error(er))?
+                            .ok_or_else(|| ex.error(InternalRuntimeError::ExpectedValue))?,
                     );
                 }
                 OpCode::Set => {
                     let pointer = ex.stack_pop_pointer()?;
                     let value = ex.stack_pop()?;
-                    *self
+                    self.heap
+                        .get_mut(pointer)
+                        .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
+                        .set(value)
+                        .map_err(|er| ex.error(er))?;
+                }
+                OpCode::Init => {
+                    let pointer = ex.stack_pop_pointer()?;
+                    let value = ex.stack_pop()?;
+                    let was_set = self
                         .heap
                         .get_mut(pointer)
                         .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
-                        .available()
-                        .ok_or_else(|| ex.error(InternalRuntimeError::UseAfterFree))? =
-                        HeapCell::Value(value);
+                        .init(value)
+                        .map_err(|er| ex.error(er))?;
+                    ex.stack_push(was_set.into());
+                }
+                OpCode::Unset => {
+                    let pointer = ex.stack_pop_pointer()?;
+                    self.heap
+                        .get_mut(pointer)
+                        .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
+                        .unset()
+                        .map_err(|er| ex.error(er))?;
                 }
                 OpCode::Alloc => {
                     let pointer = self.heap.len();
