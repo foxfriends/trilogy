@@ -10,4 +10,5 @@ members = [
     "trilogy-codegen",
     "trilogy-vm",
     "trilogy-vm-derive",
+    "trilogy-derive",
 ]

@@ -157,6 +157,10 @@ impl Execution {
             Some(Value::Procedure(procedure)) => {
                 self.call_procedure(procedure, arguments);
             }
+            Some(Value::Native(native)) => {
+                let ret_val = native.call(arguments);
+                self.stack.push(ret_val);
+            }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
         Ok(())
@@ -171,6 +175,11 @@ impl Execution {
             }
             Some(Value::Procedure(procedure)) => {
                 self.become_procedure(procedure, arguments)?;
+            }
+            Some(Value::Native(native)) => {
+                let ret_val = native.call(arguments);
+                self.r#return()?;
+                self.stack.push(ret_val);
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }

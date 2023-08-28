@@ -223,7 +223,7 @@ impl VirtualMachine {
                         Value::Record(..) => ex.stack_push("record".into()),
                         Value::Atom(..) => ex.stack_push("atom".into()),
                         Value::Struct(..) => ex.stack_push("struct".into()),
-                        Value::Procedure(..) | Value::Continuation(..) => {
+                        Value::Procedure(..) | Value::Continuation(..) | Value::Native(..) => {
                             ex.stack_push("callable".into())
                         }
                     }

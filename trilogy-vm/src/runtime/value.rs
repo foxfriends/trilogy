@@ -1,5 +1,5 @@
 use super::{
-    Array, Atom, Bits, Continuation, Number, Procedure, Record, ReferentialEq, Set, Struct,
+    Array, Atom, Bits, Continuation, Native, Number, Procedure, Record, ReferentialEq, Set, Struct,
     StructuralEq, Tuple,
 };
 use num::ToPrimitive;
@@ -23,6 +23,7 @@ pub enum Value {
     Record(Record),
     Procedure(Procedure),
     Continuation(Continuation),
+    Native(Native),
 }
 
 impl Value {
@@ -216,6 +217,7 @@ impl Display for Value {
             Self::Record(value) => write!(f, "{value}"),
             Self::Procedure(value) => write!(f, "{value}"),
             Self::Continuation(..) => write!(f, "<anonymous continuation>"),
+            Self::Native(..) => write!(f, "<native code>"),
         }
     }
 }
