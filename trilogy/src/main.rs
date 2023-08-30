@@ -38,6 +38,11 @@ enum Command {
     /// Expects a single path, from which all imported modules will be
     /// checked.
     Check { file: PathBuf },
+    /// Runs all tests found in the given module and all its submodules.
+    ///
+    /// The provided path is not required to define a `main` function as
+    /// entrypoint, as it will not be called.
+    Test { file: PathBuf },
     /// Format one or many Trilogy files.
     ///
     /// If one file is provided, the output is written to standard output

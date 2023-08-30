@@ -1,28 +1,31 @@
 use crate::context::{Labeler, Scope};
 use crate::preamble::RETURN;
 use crate::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use trilogy_ir::{ir, Id};
 use trilogy_vm::{Atom, Instruction, OpCode, ProgramBuilder};
 
 pub(crate) struct ProgramContext<'a> {
     pub labeler: Labeler,
+    modules_written: HashSet<*const ir::ModuleCell>,
     builder: &'a mut ProgramBuilder,
 }
 
 impl<'a> ProgramContext<'a> {
-    fn new(builder: &'a mut ProgramBuilder, location: String) -> Self {
+    fn new(builder: &'a mut ProgramBuilder) -> Self {
         Self {
             builder,
-            labeler: Labeler::new(location),
+            modules_written: HashSet::new(),
+            labeler: Labeler::new(),
         }
     }
 }
 
 pub fn write_program(builder: &mut ProgramBuilder, module: &ir::Module) {
-    let mut context = ProgramContext::new(builder, module.location().to_owned());
+    let mut context = ProgramContext::new(builder);
     write_preamble(&mut context);
-    write_module(&mut context, module, true);
+    write_module(&mut context, module, None, true);
 }
 
 impl ProgramContext<'_> {
@@ -70,8 +73,6 @@ impl ProgramContext<'_> {
         statics: &HashMap<Id, String>,
         procedure: &ir::ProcedureDefinition,
     ) {
-        let beginning = self.labeler.begin(&procedure.name);
-        self.write_label(beginning);
         let for_id = self.labeler.for_id(&procedure.name.id);
         self.write_label(for_id);
         assert!(procedure.overloads.len() == 1);
@@ -90,8 +91,6 @@ impl ProgramContext<'_> {
     /// tuple of resulting bindings in argument order which are to be pattern matched against
     /// the input patterns.
     pub fn write_rule(&mut self, statics: &HashMap<Id, String>, rule: &ir::RuleDefinition) {
-        let beginning = self.labeler.begin(&rule.name);
-        self.write_label(beginning);
         let for_id = self.labeler.for_id(&rule.name.id);
         self.write_label(for_id);
         let arity = rule.overloads[0].parameters.len();
@@ -143,8 +142,6 @@ impl ProgramContext<'_> {
         statics: &HashMap<Id, String>,
         function: &ir::FunctionDefinition,
     ) {
-        let beginning = self.labeler.begin(&function.name);
-        self.write_label(beginning);
         let for_id = self.labeler.for_id(&function.name.id);
         self.write_label(for_id);
         let arity = function.overloads[0].parameters.len();
@@ -156,6 +153,25 @@ impl ProgramContext<'_> {
             write_function(&mut context, overload);
         }
         context.write_instruction(Instruction::Fizzle);
+    }
+
+    pub fn write_module(
+        &mut self,
+        statics: &HashMap<Id, String>,
+        def: &ir::ModuleDefinition,
+        current_location: &str,
+    ) {
+        let ptr = Arc::as_ptr(&def.module);
+        if self.modules_written.contains(&ptr) {
+            return;
+        }
+        self.modules_written.insert(ptr);
+        let module = def.module.as_module().unwrap();
+        if module.location() == current_location {
+            write_module(self, module, Some(statics), false);
+        } else {
+            write_module(self, module, None, false);
+        }
     }
 
     fn begin<'a>(&'a mut self, statics: &'a HashMap<Id, String>, parameters: usize) -> Context<'a> {

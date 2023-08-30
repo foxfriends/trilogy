@@ -1,10 +1,18 @@
-use crate::program::ProgramContext;
-use trilogy_ir::ir;
+use std::collections::HashMap;
 
-pub(crate) fn write_module(context: &mut ProgramContext, module: &ir::Module, is_entrypoint: bool) {
+use crate::program::ProgramContext;
+use trilogy_ir::{ir, Id};
+
+pub(crate) fn write_module(
+    context: &mut ProgramContext,
+    module: &ir::Module,
+    parent_statics: Option<&HashMap<Id, String>>,
+    is_entrypoint: bool,
+) {
+    let current_location = module.location();
     context.write_label(module.location().to_owned());
 
-    let statics = module
+    let mut statics = module
         .definitions()
         .iter()
         .filter_map(|def| match &def.item {
@@ -21,11 +29,15 @@ pub(crate) fn write_module(context: &mut ProgramContext, module: &ir::Module, is
             let label = context.labeler.for_id(&id);
             (id, label)
         })
-        .collect();
-
+        .collect::<HashMap<_, _>>();
+    if let Some(parent_statics) = parent_statics {
+        statics.extend(parent_statics.clone());
+    }
     for def in module.definitions() {
         match &def.item {
-            ir::DefinitionItem::Module(..) => {}
+            ir::DefinitionItem::Module(definition) => {
+                context.write_module(&statics, definition, current_location);
+            }
             ir::DefinitionItem::Function(function) => {
                 context.write_function(&statics, function);
             }
@@ -38,8 +50,8 @@ pub(crate) fn write_module(context: &mut ProgramContext, module: &ir::Module, is
                 }
                 context.write_procedure(&statics, procedure);
             }
-            ir::DefinitionItem::Alias(..) => {}
-            ir::DefinitionItem::Test(..) => {}
+            ir::DefinitionItem::Alias(..) => todo!(),
+            ir::DefinitionItem::Test(..) => todo!(),
         }
     }
 }

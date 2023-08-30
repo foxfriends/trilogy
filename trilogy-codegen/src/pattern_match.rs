@@ -66,7 +66,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 .write_label(done);
         }
         ir::Value::Disjunction(disj) => {
-            let next = context.labeler.unique();
+            let next = context.labeler.unique_hint("next");
             let recover = context.labeler.unique_hint("disj2");
             context.write_instruction(Instruction::Copy);
             write_pattern_match(context, &disj.0, &recover);
@@ -211,7 +211,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .write_label(end);
             }
             (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
-                let cleanup = context.labeler.unique();
+                let cleanup = context.labeler.unique_hint("cleanup");
                 context
                     .write_instruction(Instruction::Copy)
                     .write_instruction(Instruction::TypeOf)
@@ -233,7 +233,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 write_pattern(context, rhs, on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
-                let cleanup = context.labeler.unique();
+                let cleanup = context.labeler.unique_hint("cleanup");
                 context
                     .write_instruction(Instruction::Copy)
                     .write_instruction(Instruction::TypeOf)

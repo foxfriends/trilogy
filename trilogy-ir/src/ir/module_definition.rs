@@ -24,7 +24,7 @@ impl ModuleCell {
 #[derive(Clone, Debug)]
 pub struct ModuleDefinition {
     pub name: Identifier,
-    pub(crate) module: Arc<ModuleCell>,
+    pub module: Arc<ModuleCell>,
 }
 
 impl ModuleDefinition {
