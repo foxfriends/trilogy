@@ -17,7 +17,7 @@ pub use atom::Atom;
 pub use bits::Bits;
 pub use continuation::Continuation;
 pub use eq::{ReferentialEq, StructuralEq};
-pub use native::Native;
+pub use native::{Native, NativeFunction};
 pub use number::Number;
 pub use procedure::Procedure;
 pub use r#struct::Struct;

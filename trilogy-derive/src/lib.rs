@@ -1,14 +1,11 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use proc_macro::TokenStream;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod proc;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[proc_macro_attribute]
+pub fn proc(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let item = syn::parse(item).unwrap();
+    proc::impl_attr(item)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }

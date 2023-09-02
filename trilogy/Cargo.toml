@@ -9,9 +9,11 @@ keywords = ["programming-language", "language"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
-default = ["dev"]
+default = ["dev", "std"]
 dev = []
 lax = ["trilogy-parser/lax"]
+derive = ["trilogy-derive"]
+std = ["derive"]
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }
@@ -22,3 +24,4 @@ trilogy-parser = { path = "../trilogy-parser/" }
 trilogy-loader = { path = "../trilogy-loader/" }
 trilogy-vm = { path = "../trilogy-vm/" }
 num = "0.4.0"
+trilogy-derive = { path = "../trilogy-derive/", optional = true }

@@ -1096,6 +1096,7 @@ dependencies = [
  "colored",
  "num",
  "pretty",
+ "trilogy-derive",
  "trilogy-loader",
  "trilogy-parser",
  "trilogy-scanner",
@@ -1114,6 +1115,11 @@ dependencies = [
 [[package]]
 name = "trilogy-derive"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.23",
+]
 
 [[package]]
 name = "trilogy-ir"

@@ -8,13 +8,10 @@ mod traits {
 mod bytecode;
 mod cactus;
 mod program;
-mod runtime;
+pub mod runtime;
 mod vm;
 
 pub use bytecode::{AsmError, Instruction, LabelAlreadyInserted, OpCode};
 pub use program::{Program, ProgramBuilder};
-pub use runtime::{
-    Array, Atom, Bits, Continuation, Number, Record, ReferentialEq, Set, Struct, StructuralEq,
-    Tuple, Value,
-};
+pub use runtime::*;
 pub use vm::VirtualMachine;
