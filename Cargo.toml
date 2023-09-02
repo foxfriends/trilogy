@@ -5,7 +5,6 @@ members = [
     "trilogy-scanner",
     "trilogy-parser",
     "trilogy-parser-derive",
-    "trilogy-loader",
     "trilogy-ir",
     "trilogy-codegen",
     "trilogy-vm",

@@ -2,8 +2,8 @@ use crate::print_errors;
 use clap::Subcommand;
 use colored::*;
 use pretty::{DocAllocator, RcAllocator};
-use std::path::PathBuf;
-use trilogy_loader::Loader;
+use std::{collections::HashMap, path::PathBuf};
+use trilogy::Loader;
 use trilogy_parser::{Parser, PrettyPrintSExpr};
 use trilogy_scanner::{Scanner, TokenType, TokenValue};
 
@@ -25,8 +25,6 @@ pub enum Command {
     },
     /// Parse a file, printing out the IR.
     Ir { file: PathBuf },
-    /// Compile a program and output its bytecode in bytes as hex.
-    Bytes { file: PathBuf },
 }
 
 pub fn run(command: Command) -> std::io::Result<()> {
@@ -107,7 +105,7 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 print_errors(binder.errors());
                 std::process::exit(1);
             }
-            let program = match binder.analyze() {
+            let program = match binder.analyze(&HashMap::new()) {
                 Ok(program) => program,
                 Err(errors) => {
                     print_errors(errors);
@@ -115,23 +113,6 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 }
             };
             println!("{:#?}", program);
-        }
-        Command::Bytes { file } => {
-            let loader = Loader::new(file);
-            let binder = loader.load().unwrap();
-            if binder.has_errors() {
-                print_errors(binder.errors());
-                std::process::exit(1);
-            }
-            let program = match binder.analyze() {
-                Ok(program) => program,
-                Err(errors) => {
-                    print_errors(errors);
-                    std::process::exit(1);
-                }
-            };
-            let program = program.generate_code();
-            print!("{:?}", program);
         }
     }
 

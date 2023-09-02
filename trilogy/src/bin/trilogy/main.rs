@@ -2,7 +2,6 @@ use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
 use std::path::PathBuf;
 use trilogy::{LoadError, Trilogy};
-use trilogy_loader::Loader;
 use trilogy_vm::{Program, Value};
 
 #[cfg(feature = "dev")]
@@ -38,7 +37,11 @@ enum Command {
     ///
     /// Expects a single path, from which all imported modules will be
     /// checked.
-    Check { file: PathBuf },
+    Check {
+        file: PathBuf,
+        #[arg(short = 'S', long)]
+        no_std: bool,
+    },
     /// Runs all tests found in the given module and all its submodules.
     ///
     /// The provided path is not required to define a `main` function as
@@ -127,35 +130,29 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        Command::Compile { file } => {
-            let loader = Loader::new(file);
-            let binder = loader.load().unwrap();
-            if binder.has_errors() {
-                print_errors(binder.errors());
-                std::process::exit(1);
+        Command::Compile { file } => match Trilogy::from_file(file) {
+            Ok(trilogy) => {
+                println!("{}", trilogy);
             }
-            let program = match binder.analyze() {
-                Ok(program) => program,
-                Err(errors) => {
-                    print_errors(errors);
-                    std::process::exit(1);
+            Err(errors) => {
+                match errors {
+                    LoadError::SyntaxError(errors) => print_errors(errors),
+                    LoadError::LinkerError(errors) => print_errors(errors),
                 }
-            };
-            let program = program.generate_code();
-            print!("{}", program);
-        }
-        Command::Check { file } => {
-            let loader = Loader::new(file);
-            let binder = loader.load().unwrap();
-            if binder.has_errors() {
-                print_errors(binder.errors());
                 std::process::exit(1);
             }
-            if let Err(errors) = binder.analyze() {
-                print_errors(errors);
+        },
+        Command::Check { file, no_std: _ } => match Trilogy::from_file(file) {
+            Ok(..) => {}
+            Err(errors) => {
+                match errors {
+                    LoadError::SyntaxError(errors) => print_errors(errors),
+                    LoadError::LinkerError(errors) => print_errors(errors),
+                }
                 std::process::exit(1);
-            };
-        }
+            }
+        },
+
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;

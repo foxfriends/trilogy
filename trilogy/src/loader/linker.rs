@@ -1,4 +1,4 @@
-use crate::{Location, Module};
+use super::{Location, Module};
 use reqwest::Url;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -10,14 +10,14 @@ pub enum LinkerError {
     Ir(IrError),
 }
 
-pub(crate) struct Linker {
+pub(super) struct Linker {
     unlinked: HashMap<Url, Module<Parse<Document>>>,
     linked: HashMap<Location, Arc<ir::ModuleCell>>,
     errors: Vec<LinkerError>,
 }
 
 impl Linker {
-    pub(crate) fn new(unlinked: HashMap<Url, Module<Parse<Document>>>) -> Self {
+    pub(super) fn new(unlinked: HashMap<Url, Module<Parse<Document>>>) -> Self {
         Self {
             unlinked,
             linked: HashMap::new(),
@@ -25,7 +25,7 @@ impl Linker {
         }
     }
 
-    pub(crate) fn link_module(&mut self, location: &Location) {
+    pub(super) fn link_module(&mut self, location: &Location) {
         if self.linked.contains_key(location) {
             return;
         }
@@ -48,15 +48,15 @@ impl Linker {
         module_cell.insert(module);
     }
 
-    pub(crate) fn has_errors(&self) -> bool {
+    pub(super) fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
 
-    pub(crate) fn into_errors(self) -> Vec<LinkerError> {
+    pub(super) fn into_errors(self) -> Vec<LinkerError> {
         self.errors
     }
 
-    pub(crate) fn into_module(mut self, location: &Location) -> Arc<ir::ModuleCell> {
+    pub(super) fn into_module(mut self, location: &Location) -> Arc<ir::ModuleCell> {
         self.linked.remove(location).unwrap()
     }
 }

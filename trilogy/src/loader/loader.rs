@@ -1,6 +1,6 @@
-use crate::cache::{Cache, NoopCache};
-use crate::wip_binder::WipBinder;
-use crate::{Binder, Error, ErrorKind, Location};
+use super::cache::{Cache, NoopCache};
+use super::wip_binder::WipBinder;
+use super::{Binder, Error, ErrorKind, Location};
 use std::path::PathBuf;
 use trilogy_parser::syntax::Document;
 use trilogy_parser::Parse;
@@ -43,7 +43,7 @@ where
     ///
     /// **Actually, that's just the plan... Right now, the result is actually the whole
     /// result.** We'll get around to error handling eventually.
-    pub fn load(self) -> crate::Result<Binder<Parse<Document>>> {
+    pub fn load(self) -> super::Result<Binder<Parse<Document>>> {
         let absolute_path = std::env::current_dir()
             .map_err(|error| Error::new(ErrorKind::Inaccessible, error))?
             .join(&self.base_path);

@@ -1,5 +1,7 @@
-use crate::linker::{Linker, LinkerError};
-use crate::{Location, Module, Program};
+use crate::NativeModule;
+
+use super::linker::{Linker, LinkerError};
+use super::{Location, Module, Program};
 use std::collections::HashMap;
 use trilogy_parser::syntax::{Document, SyntaxError};
 use trilogy_parser::Parse;
@@ -12,7 +14,7 @@ pub struct Binder<T> {
 }
 
 impl<T> Binder<T> {
-    pub(crate) fn new(entrypoint: Location) -> Self {
+    pub(super) fn new(entrypoint: Location) -> Self {
         Self {
             entrypoint,
             modules: HashMap::default(),
@@ -33,7 +35,10 @@ impl Binder<Parse<Document>> {
             .flat_map(|module| module.contents.errors())
     }
 
-    pub fn analyze(self) -> Result<Program, Vec<LinkerError>> {
+    pub fn analyze(
+        self,
+        _libraries: &HashMap<&'static str, NativeModule>,
+    ) -> Result<Program, Vec<LinkerError>> {
         let mut linker = Linker::new(self.modules);
         linker.link_module(&self.entrypoint);
         if linker.has_errors() {

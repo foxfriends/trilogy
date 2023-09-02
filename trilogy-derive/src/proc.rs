@@ -1,7 +1,17 @@
+use crate::Argument;
 use quote::quote;
-use syn::{FnArg, Item};
+use syn::punctuated::Punctuated;
+use syn::{FnArg, Item, Token};
 
-pub(crate) fn impl_attr(item: Item) -> syn::Result<proc_macro2::TokenStream> {
+pub(crate) fn impl_attr(
+    item: Item,
+    options: Punctuated<Argument, Token![,]>,
+) -> syn::Result<proc_macro2::TokenStream> {
+    let trilogy = options
+        .iter()
+        .find_map(|arg| arg.crate_name())
+        .map(|id| quote! { #id })
+        .unwrap_or_else(|| quote! { trilogy });
     let Item::Fn(function) = item else {
         return Err(syn::Error::new_spanned(
             item,
@@ -11,6 +21,7 @@ pub(crate) fn impl_attr(item: Item) -> syn::Result<proc_macro2::TokenStream> {
 
     let name = &function.sig.ident;
     let vis = &function.vis;
+    let attrs = &function.attrs;
     let arity = function.sig.inputs.len();
 
     let inputs = function.sig.inputs.iter().map(|param| match param {
@@ -26,9 +37,12 @@ pub(crate) fn impl_attr(item: Item) -> syn::Result<proc_macro2::TokenStream> {
 
     Ok(quote! {
         #[allow(non_camel_case_types)]
+        #(#attrs)*
         #vis struct #name;
 
-        impl trilogy_vm::NativeFunction for #name {
+        impl #trilogy::NativeFunction for #name {
+            fn name() -> &'static str { stringify!(#name) }
+
             fn call(&self, input: Vec<Value>) -> Value {
                 let mut input = input.into_iter();
                 #function

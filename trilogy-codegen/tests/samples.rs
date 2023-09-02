@@ -16,7 +16,7 @@ macro_rules! include_tri {
                 binder.errors().collect::<Vec<_>>()
             );
         }
-        let program = match binder.analyze() {
+        let program = match binder.analyze(&HashMap::default()) {
             Ok(program) => program,
             Err(errors) => {
                 panic!("Failed to compile: {:?}", errors);

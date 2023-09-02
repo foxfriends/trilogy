@@ -1,5 +1,5 @@
-use crate::location::Location;
-use crate::{Binder, Cache, Error, ErrorKind, Module};
+use super::location::Location;
+use super::{Binder, Cache, Error, ErrorKind, Module};
 use reqwest::blocking::Client;
 use std::collections::VecDeque;
 use std::fs;
@@ -26,7 +26,7 @@ where
         }
     }
 
-    fn download(&self, url: &Url) -> crate::Result<String> {
+    fn download(&self, url: &Url) -> super::Result<String> {
         self.client
             .get(url.clone())
             .header("Accept", "text/x-trilogy")
@@ -40,7 +40,7 @@ where
         self.module_queue.push_back(location);
     }
 
-    fn load_source(&mut self, location: &Location) -> Result<String, crate::Error> {
+    fn load_source(&mut self, location: &Location) -> Result<String, super::Error> {
         if self.cache.has(location) {
             return self.cache.load(location).map_err(Error::cache);
         }
@@ -57,7 +57,7 @@ where
     }
 
     // TODO: multithreading
-    pub fn load(mut self, entrypoint: Location) -> crate::Result<Binder<Parse<Document>>> {
+    pub fn load(mut self, entrypoint: Location) -> super::Result<Binder<Parse<Document>>> {
         self.request(entrypoint.clone());
         let mut binder = Binder::new(entrypoint);
         while let Some(location) = self.module_queue.pop_front() {

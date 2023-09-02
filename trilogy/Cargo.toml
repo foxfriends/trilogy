@@ -18,10 +18,13 @@ std = ["derive"]
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }
 colored = { version = "2.0.0" }
+num = "0.4.0"
 pretty = { version = "0.11.3" }
 trilogy-scanner = { path = "../trilogy-scanner/" }
 trilogy-parser = { path = "../trilogy-parser/" }
-trilogy-loader = { path = "../trilogy-loader/" }
+trilogy-ir = { path = "../trilogy-ir/" }
+trilogy-codegen = { path = "../trilogy-codegen/" }
 trilogy-vm = { path = "../trilogy-vm/" }
-num = "0.4.0"
 trilogy-derive = { path = "../trilogy-derive/", optional = true }
+reqwest = { version = "0.11.20", features = ["blocking"] }
+url = "2.4.1"

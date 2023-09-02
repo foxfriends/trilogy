@@ -1,4 +1,4 @@
-use crate::location::Location;
+use super::location::Location;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
@@ -15,6 +15,7 @@ pub struct FileSystemCache {
 }
 
 impl FileSystemCache {
+    #[allow(dead_code)] // To be used later
     pub fn new(cache_dir: impl AsRef<Path>) -> io::Result<Self> {
         let metadata = cache_dir.as_ref().metadata()?;
         // TODO: determine if this will detect and fail if there is a file in the way
