@@ -72,6 +72,10 @@ impl VirtualMachine {
         }
     }
 
+    pub fn program(&self) -> &Program {
+        &self.program
+    }
+
     pub fn atom(&self, key: &str) -> Option<Atom> {
         self.program.atom(key)
     }

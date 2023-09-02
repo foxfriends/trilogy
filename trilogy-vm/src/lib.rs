@@ -14,4 +14,4 @@ mod vm;
 pub use bytecode::{AsmError, Instruction, LabelAlreadyInserted, OpCode};
 pub use program::{Program, ProgramBuilder};
 pub use runtime::*;
-pub use vm::VirtualMachine;
+pub use vm::{Error, ErrorKind, VirtualMachine};

@@ -15,5 +15,6 @@ pub use loader::Loader;
 pub use location::Location;
 pub use module::Module;
 pub use program::Program;
+pub use linker::LinkerError;
 
 pub type Result<T> = std::result::Result<T, Error>;

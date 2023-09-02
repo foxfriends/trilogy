@@ -1,8 +1,9 @@
 use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
 use std::path::PathBuf;
+use trilogy::{LoadError, Trilogy};
 use trilogy_loader::Loader;
-use trilogy_vm::{Program, Value, VirtualMachine};
+use trilogy_vm::{Program, Value};
 
 #[cfg(feature = "dev")]
 mod dev;
@@ -79,8 +80,8 @@ fn print_errors(errors: impl IntoIterator<Item = impl std::fmt::Debug>) {
     }
 }
 
-fn run(program: Program, print: bool, _no_std: bool) {
-    match VirtualMachine::load(program.clone()).run() {
+fn run(mut trilogy: Trilogy, print: bool) {
+    match trilogy.run() {
         Ok(value) if print => {
             println!("{}", value);
         }
@@ -102,8 +103,6 @@ fn run(program: Program, print: bool, _no_std: bool) {
         }
         Ok(..) => std::process::exit(255),
         Err(error) => {
-            eprintln!("Trace:\n{}", error.trace(&program));
-            eprintln!("Dump:\n{}", error.dump());
             eprintln!("{error}");
             std::process::exit(255);
         }
@@ -117,24 +116,17 @@ fn main() -> std::io::Result<()> {
         Command::Run {
             file,
             print,
-            no_std,
-        } => {
-            let loader = Loader::new(file);
-            let binder = loader.load().unwrap();
-            if binder.has_errors() {
-                print_errors(binder.errors());
+            no_std: _,
+        } => match Trilogy::from_file(file) {
+            Ok(trilogy) => run(trilogy, print),
+            Err(errors) => {
+                match errors {
+                    LoadError::SyntaxError(errors) => print_errors(errors),
+                    LoadError::LinkerError(errors) => print_errors(errors),
+                }
                 std::process::exit(1);
             }
-            let program = match binder.analyze() {
-                Ok(program) => program,
-                Err(errors) => {
-                    print_errors(errors);
-                    std::process::exit(1);
-                }
-            };
-            let program = program.generate_code();
-            run(program, print, no_std)
-        }
+        },
         Command::Compile { file } => {
             let loader = Loader::new(file);
             let binder = loader.load().unwrap();
@@ -171,7 +163,7 @@ fn main() -> std::io::Result<()> {
         Command::Vm {
             file,
             print,
-            no_std,
+            no_std: _,
         } => {
             let asm = std::fs::read_to_string(file)?;
             let program: Program = match asm.parse() {
@@ -181,7 +173,7 @@ fn main() -> std::io::Result<()> {
                     std::process::exit(1);
                 }
             };
-            run(program, print, no_std)
+            run(Trilogy::from(program), print)
         }
         _ => unimplemented!("This feature is not yet built"),
     }
