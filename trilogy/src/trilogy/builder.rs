@@ -7,11 +7,12 @@ use crate::stdlib;
 
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::Trilogy;
 
 pub struct Builder<E> {
+    root_dir: Option<PathBuf>,
     libraries: HashMap<&'static str, NativeModule>,
     cache: Box<dyn Cache<Error = E>>,
 }
@@ -30,6 +31,7 @@ impl Default for Builder<Infallible> {
 impl Builder<Infallible> {
     pub fn new() -> Self {
         Self {
+            root_dir: None,
             libraries: HashMap::new(),
             cache: Box::new(NoopCache),
         }
@@ -44,13 +46,17 @@ impl<E: std::error::Error + 'static> Builder<E> {
 
     pub fn with_cache<C: Cache + 'static>(self, cache: C) -> Builder<C::Error> {
         Builder {
+            root_dir: self.root_dir,
             libraries: self.libraries,
             cache: Box::new(cache),
         }
     }
 
     pub(super) fn build_from_file(self, file: impl AsRef<Path>) -> Result<Trilogy, LoadError<E>> {
-        let absolute_path = std::env::current_dir()
+        let absolute_path = self
+            .root_dir
+            .map(Ok)
+            .unwrap_or_else(std::env::current_dir)
             .map_err(|error| LoadError::External(Box::new(error)))?
             .join(file);
         let location = Location::local_absolute(absolute_path);
