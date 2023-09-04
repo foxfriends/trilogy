@@ -1,21 +1,13 @@
-use super::location::Location;
+use super::Cache;
+use crate::location::Location;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
-
-pub trait Cache {
-    type Error;
-
-    fn has(&self, location: &Location) -> bool;
-    fn load(&self, location: &Location) -> Result<String, Self::Error>;
-    fn save(&self, location: &Location, source: &str) -> Result<(), Self::Error>;
-}
 
 pub struct FileSystemCache {
     cache_dir: PathBuf,
 }
 
 impl FileSystemCache {
-    #[allow(dead_code)] // To be used later
     pub fn new(cache_dir: impl AsRef<Path>) -> io::Result<Self> {
         let metadata = cache_dir.as_ref().metadata()?;
         // TODO: determine if this will detect and fail if there is a file in the way
@@ -59,23 +51,5 @@ impl Cache for FileSystemCache {
 
     fn save(&self, location: &Location, source: &str) -> Result<(), Self::Error> {
         fs::write(self.cache_path(location), source)
-    }
-}
-
-pub struct NoopCache;
-
-impl Cache for NoopCache {
-    type Error = std::convert::Infallible;
-
-    fn has(&self, _location: &Location) -> bool {
-        false
-    }
-
-    fn load(&self, _location: &Location) -> Result<String, Self::Error> {
-        unimplemented!()
-    }
-
-    fn save(&self, _location: &Location, _source: &str) -> Result<(), Self::Error> {
-        Ok(())
     }
 }

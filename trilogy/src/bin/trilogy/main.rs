@@ -1,7 +1,7 @@
 use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
 use std::path::PathBuf;
-use trilogy::{LoadError, Trilogy};
+use trilogy::Trilogy;
 use trilogy_vm::{Program, Value};
 
 #[cfg(feature = "dev")]
@@ -77,12 +77,6 @@ enum Command {
     Dev(dev::Command),
 }
 
-fn print_errors(errors: impl IntoIterator<Item = impl std::fmt::Debug>) {
-    for error in errors {
-        eprintln!("{error:#?}");
-    }
-}
-
 fn run(mut trilogy: Trilogy, print: bool) {
     match trilogy.run() {
         Ok(value) if print => {
@@ -123,10 +117,7 @@ fn main() -> std::io::Result<()> {
         } => match Trilogy::from_file(file) {
             Ok(trilogy) => run(trilogy, print),
             Err(errors) => {
-                match errors {
-                    LoadError::SyntaxError(errors) => print_errors(errors),
-                    LoadError::LinkerError(errors) => print_errors(errors),
-                }
+                eprintln!("{errors}");
                 std::process::exit(1);
             }
         },
@@ -135,20 +126,14 @@ fn main() -> std::io::Result<()> {
                 println!("{}", trilogy);
             }
             Err(errors) => {
-                match errors {
-                    LoadError::SyntaxError(errors) => print_errors(errors),
-                    LoadError::LinkerError(errors) => print_errors(errors),
-                }
+                eprintln!("{errors}");
                 std::process::exit(1);
             }
         },
         Command::Check { file, no_std: _ } => match Trilogy::from_file(file) {
             Ok(..) => {}
             Err(errors) => {
-                match errors {
-                    LoadError::SyntaxError(errors) => print_errors(errors),
-                    LoadError::LinkerError(errors) => print_errors(errors),
-                }
+                eprintln!("{errors}");
                 std::process::exit(1);
             }
         },

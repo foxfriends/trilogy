@@ -1,5 +1,7 @@
-use super::location::Location;
-use super::{Binder, Cache, Error, ErrorKind, Module};
+use super::{Binder, Module};
+use crate::cache::Cache;
+use crate::location::Location;
+use crate::LoadError;
 use reqwest::blocking::Client;
 use std::collections::VecDeque;
 use std::fs;
@@ -26,38 +28,41 @@ where
         }
     }
 
-    fn download(&self, url: &Url) -> super::Result<String> {
+    fn download(&self, url: &Url) -> Result<String, LoadError<E>> {
         self.client
             .get(url.clone())
             .header("Accept", "text/x-trilogy")
             .send()
-            .map_err(Error::inaccessible)?
+            .map_err(LoadError::external)?
             .text()
-            .map_err(Error::invalid)
+            .map_err(LoadError::external)
     }
 
     fn request(&mut self, location: Location) {
         self.module_queue.push_back(location);
     }
 
-    fn load_source(&mut self, location: &Location) -> Result<String, super::Error> {
+    fn load_source(&mut self, location: &Location) -> Result<String, LoadError<E>> {
         if self.cache.has(location) {
-            return self.cache.load(location).map_err(Error::cache);
+            return self.cache.load(location).map_err(LoadError::Cache);
         }
         let url = location.as_ref();
         match url.scheme() {
-            "file" => Ok(fs::read_to_string(url.path()).map_err(Error::inaccessible)?),
+            "file" => Ok(fs::read_to_string(url.path()).map_err(LoadError::external)?),
             "http" | "https" => {
-                let source = self.download(url)?;
-                self.cache.save(location, &source).map_err(Error::cache)?;
+                let source = self.download(url).map_err(LoadError::external)?;
+                self.cache
+                    .save(location, &source)
+                    .map_err(LoadError::Cache)?;
                 Ok(source)
             }
-            _ => Err(Error::from(ErrorKind::InvalidLocation)),
+            "trilogy" => todo!(),
+            scheme => Err(LoadError::InvalidScheme(scheme.to_owned())),
         }
     }
 
     // TODO: multithreading
-    pub fn load(mut self, entrypoint: Location) -> super::Result<Binder<Parse<Document>>> {
+    pub fn load(mut self, entrypoint: Location) -> Result<Binder<Parse<Document>>, LoadError<E>> {
         self.request(entrypoint.clone());
         let mut binder = Binder::new(entrypoint);
         while let Some(location) = self.module_queue.pop_front() {

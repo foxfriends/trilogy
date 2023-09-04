@@ -1,9 +1,7 @@
-use crate::print_errors;
 use clap::Subcommand;
 use colored::*;
 use pretty::{DocAllocator, RcAllocator};
-use std::{collections::HashMap, path::PathBuf};
-use trilogy::Loader;
+use std::path::PathBuf;
 use trilogy_parser::{Parser, PrettyPrintSExpr};
 use trilogy_scanner::{Scanner, TokenType, TokenValue};
 
@@ -98,22 +96,7 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 println!("{:#?}", parse.errors());
             }
         }
-        Command::Ir { file } => {
-            let loader = Loader::new(file);
-            let binder = loader.load().unwrap();
-            if binder.has_errors() {
-                print_errors(binder.errors());
-                std::process::exit(1);
-            }
-            let program = match binder.analyze(&HashMap::new()) {
-                Ok(program) => program,
-                Err(errors) => {
-                    print_errors(errors);
-                    std::process::exit(1);
-                }
-            };
-            println!("{:#?}", program);
-        }
+        Command::Ir { .. } => todo!(),
     }
 
     Ok(())

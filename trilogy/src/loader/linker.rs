@@ -1,4 +1,5 @@
-use super::{Location, Module};
+use super::Module;
+use crate::location::Location;
 use reqwest::Url;
 use std::collections::HashMap;
 use std::sync::Arc;

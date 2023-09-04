@@ -1,7 +1,8 @@
+use crate::location::Location;
 use crate::NativeModule;
 
 use super::linker::{Linker, LinkerError};
-use super::{Location, Module, Program};
+use super::{Module, Program};
 use std::collections::HashMap;
 use trilogy_parser::syntax::{Document, SyntaxError};
 use trilogy_parser::Parse;

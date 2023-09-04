@@ -1,4 +1,4 @@
-use super::location::Location;
+use crate::location::Location;
 use trilogy_parser::syntax::{DefinitionItem, Document, ModuleDefinition};
 use trilogy_parser::{Parse, Parser};
 use trilogy_scanner::Scanner;
