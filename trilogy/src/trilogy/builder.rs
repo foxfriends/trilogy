@@ -36,6 +36,14 @@ impl Builder<Infallible> {
             cache: Box::new(NoopCache),
         }
     }
+
+    pub fn at_root<P: AsRef<Path>>(root_dir: P) -> Self {
+        Self {
+            root_dir: Some(root_dir.as_ref().to_owned()),
+            libraries: HashMap::new(),
+            cache: Box::new(NoopCache),
+        }
+    }
 }
 
 impl<E: std::error::Error + 'static> Builder<E> {
