@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::fmt::{self, Display};
 use std::path::Path;
 use trilogy_vm::{Program, Value, VirtualMachine};
@@ -16,8 +15,9 @@ pub struct Trilogy {
 }
 
 impl Trilogy {
-    pub fn from_file(file: impl AsRef<Path>) -> Result<Self, LoadError<Infallible>> {
-        Builder::default().build_from_file(file)
+    #[cfg(feature = "std")]
+    pub fn from_file(file: impl AsRef<Path>) -> Result<Self, LoadError<std::io::Error>> {
+        Builder::std().build_from_file(file)
     }
 
     pub fn run(&mut self) -> Result<Value, RuntimeError<'_>> {

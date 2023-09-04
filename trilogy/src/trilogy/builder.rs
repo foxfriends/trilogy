@@ -1,6 +1,6 @@
 use crate::loader::WipBinder;
 use crate::location::Location;
-use crate::{Cache, LoadError, NativeModule, NoopCache};
+use crate::{Cache, FileSystemCache, LoadError, NativeModule, NoopCache};
 
 #[cfg(feature = "std")]
 use crate::stdlib;
@@ -17,14 +17,15 @@ pub struct Builder<E> {
     cache: Box<dyn Cache<Error = E>>,
 }
 
-impl Default for Builder<Infallible> {
-    fn default() -> Self {
-        let mut builder = Self::new();
-        #[cfg(feature = "std")]
-        {
-            builder = builder.library("std", stdlib::std());
-        }
-        builder
+#[cfg(feature = "std")]
+impl Builder<std::io::Error> {
+    pub fn std() -> Self {
+        Builder::new()
+            .with_cache(
+                FileSystemCache::new("~/.trilogy")
+                    .expect("canonical cache dir ~/.trilogy is occupied"),
+            )
+            .library("std", stdlib::std())
     }
 }
 
