@@ -56,7 +56,7 @@ where
                     .map_err(LoadError::Cache)?;
                 Ok(source)
             }
-            "trilogy" => todo!(),
+            "trilogy" => todo!("load from libraries"),
             scheme => Err(LoadError::InvalidScheme(scheme.to_owned())),
         }
     }
