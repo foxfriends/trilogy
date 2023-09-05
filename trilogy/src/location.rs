@@ -1,4 +1,5 @@
 use std::{
+    borrow::Borrow,
     fmt::Display,
     path::{Path, PathBuf},
 };
@@ -31,6 +32,12 @@ impl Location {
 
 impl AsRef<Url> for Location {
     fn as_ref(&self) -> &Url {
+        &self.0
+    }
+}
+
+impl Borrow<Url> for Location {
+    fn borrow(&self) -> &Url {
         &self.0
     }
 }

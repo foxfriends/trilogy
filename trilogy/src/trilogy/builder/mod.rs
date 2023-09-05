@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use super::Trilogy;
 
+mod linker;
 mod loader;
 
 pub struct Builder<E> {
@@ -76,11 +77,8 @@ impl<E: std::error::Error + 'static> Builder<E> {
                 .map_err(|error| LoadError::External(Box::new(error)))?,
             file,
         );
-        let binder = loader::load(&*self.cache, entrypoint)?;
-        let program = match binder.analyze(&self.libraries) {
-            Ok(program) => program,
-            Err(errors) => return Err(LoadError::Linker(errors)),
-        };
+        let binder = loader::load(&*self.cache, &entrypoint)?;
+        let program = linker::link(&self.libraries, binder, entrypoint)?;
         let program = program.generate_code();
         Ok(Trilogy::from(program))
     }

@@ -1,13 +1,53 @@
 use crate::cache::Cache;
-use crate::loader::{Binder, Module};
 use crate::location::Location;
 use crate::LoadError;
 use reqwest::blocking::Client;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
-use trilogy_parser::syntax::Document;
-use trilogy_parser::Parse;
+use trilogy_parser::syntax::{DefinitionItem, Document, ModuleDefinition};
+use trilogy_parser::{Parse, Parser};
+use trilogy_scanner::Scanner;
 use url::Url;
+
+#[derive(Clone, Debug)]
+pub struct Module {
+    location: Location,
+    contents: Parse<Document>,
+}
+
+impl Module {
+    pub fn new(location: Location, source: &str) -> Self {
+        let scanner = Scanner::new(source);
+        let parser = Parser::new(scanner);
+        let contents = parser.parse();
+        Self { location, contents }
+    }
+
+    pub fn imported_modules(&self) -> impl Iterator<Item = Location> + '_ {
+        fn module_imported_modules(module_def: &ModuleDefinition) -> Vec<&str> {
+            module_def
+                .definitions
+                .iter()
+                .flat_map(|def| match &def.item {
+                    DefinitionItem::Module(module_def) => module_imported_modules(module_def),
+                    DefinitionItem::ExternalModule(module_def) => vec![module_def.locator.as_ref()],
+                    _ => vec![],
+                })
+                .collect()
+        }
+
+        self.contents
+            .ast()
+            .definitions
+            .iter()
+            .flat_map(|def| match &def.item {
+                DefinitionItem::Module(module_def) => module_imported_modules(module_def),
+                DefinitionItem::ExternalModule(module_def) => vec![module_def.locator.as_ref()],
+                _ => vec![],
+            })
+            .map(|import| self.location.relative(import))
+    }
+}
 
 #[derive(Clone)]
 struct Loader<'a, E> {
@@ -62,36 +102,43 @@ where
             scheme => Err(LoadError::InvalidScheme(scheme.to_owned())),
         }
     }
-
-    // TODO: multithreading
-    fn load(mut self, entrypoint: Location) -> Result<Binder<Parse<Document>>, LoadError<E>> {
-        self.request(entrypoint.clone());
-        let mut binder = Binder::new(entrypoint);
-        while let Some(location) = self.module_queue.pop_front() {
-            let url = location.as_ref();
-            if binder.modules.contains_key(url) {
-                continue;
-            };
-            let Some(source) = self.load_source(&location)? else {
-                continue;
-            };
-            let module = Module::new(location.clone(), &source);
-            for import in module.imported_modules() {
-                self.request(import);
-            }
-            binder.modules.insert(location.into(), module);
-        }
-        Ok(binder)
-    }
 }
 
 pub fn load<E: std::error::Error + 'static>(
     cache: &dyn Cache<Error = E>,
-    entrypoint: Location,
-) -> Result<Binder<Parse<Document>>, LoadError<E>> {
-    let binder = Loader::new(cache).load(entrypoint)?;
-    if binder.has_errors() {
-        return Err(LoadError::Syntax(binder.errors().cloned().collect()));
+    entrypoint: &Location,
+) -> Result<HashMap<Location, Document>, LoadError<E>> {
+    let mut modules = HashMap::new();
+    let mut loader = Loader::new(cache);
+    loader.request(entrypoint.clone());
+
+    while let Some(location) = loader.module_queue.pop_front() {
+        let url = location.as_ref();
+        if modules.contains_key(url) {
+            continue;
+        };
+        let Some(source) = loader.load_source(&location)? else {
+            continue;
+        };
+        let module = Module::new(location.clone(), &source);
+        for import in module.imported_modules() {
+            loader.request(import);
+        }
+        modules.insert(location, module);
     }
-    Ok(binder)
+
+    if modules.values().any(|module| module.contents.has_errors()) {
+        Err(LoadError::Syntax(
+            modules
+                .values()
+                .flat_map(|module| module.contents.errors())
+                .cloned()
+                .collect(),
+        ))
+    } else {
+        Ok(modules
+            .into_iter()
+            .map(|(k, item)| (k, item.contents.into_ast()))
+            .collect())
+    }
 }

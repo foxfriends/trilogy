@@ -1,5 +1,5 @@
-use crate::loader::LinkerError;
 use std::fmt::{self, Display};
+use trilogy_ir::Error as IrError;
 use trilogy_parser::syntax::SyntaxError;
 
 #[derive(Debug)]
@@ -7,7 +7,7 @@ pub enum LoadError<E: std::error::Error> {
     InvalidScheme(String),
     Cache(E),
     Syntax(Vec<SyntaxError>),
-    Linker(Vec<LinkerError>),
+    Linker(Vec<IrError>),
     External(Box<dyn std::error::Error>),
 }
 
