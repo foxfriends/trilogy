@@ -85,8 +85,8 @@ where
     }
 }
 
-pub fn load<'a, E: std::error::Error + 'static>(
-    cache: &'a dyn Cache<Error = E>,
+pub fn load<E: std::error::Error + 'static>(
+    cache: &dyn Cache<Error = E>,
     entrypoint: Location,
 ) -> Result<Binder<Parse<Document>>, LoadError<E>> {
     Loader::new(cache).load(entrypoint)

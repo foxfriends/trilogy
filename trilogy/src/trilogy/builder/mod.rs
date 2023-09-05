@@ -30,6 +30,12 @@ impl Builder<std::io::Error> {
     }
 }
 
+impl Default for Builder<Infallible> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Builder<Infallible> {
     pub fn new() -> Self {
         Self {
