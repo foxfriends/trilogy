@@ -19,21 +19,19 @@ impl FileSystemCache {
         })
     }
 
-    fn cache_path(&self, location: &Location) -> PathBuf {
+    fn cache_path(&self, location: &Location) -> Option<PathBuf> {
         let url = location.as_ref();
         match url.scheme() {
-            "file" => url.path().parse().unwrap(),
+            "file" => Some(url.path().parse().unwrap()),
             "http" | "https" => {
                 let host = url.host().expect("http(s) url should have a host");
                 let dir = match url.port().filter(|&port| port != 80 && port != 443) {
                     Some(port) => format!("{host}:{port}"),
                     None => host.to_string(),
                 };
-                self.cache_dir.join(dir).join(url.path())
+                Some(self.cache_dir.join(dir).join(url.path()))
             }
-            _ => unimplemented!(
-                "only file, http, and https are valid schemes for loading Trilogy modules"
-            ),
+            _ => None,
         }
     }
 }
@@ -42,14 +40,19 @@ impl Cache for FileSystemCache {
     type Error = io::Error;
 
     fn has(&self, location: &Location) -> bool {
-        self.cache_path(location).exists()
+        self.cache_path(location)
+            .map(|path| path.exists())
+            .unwrap_or(false)
     }
 
     fn load(&self, location: &Location) -> Result<String, Self::Error> {
-        fs::read_to_string(self.cache_path(location))
+        fs::read_to_string(self.cache_path(location).unwrap())
     }
 
     fn save(&self, location: &Location, source: &str) -> Result<(), Self::Error> {
-        fs::write(self.cache_path(location), source)
+        if let Some(path) = self.cache_path(location) {
+            fs::write(path, source)?;
+        }
+        Ok(())
     }
 }
