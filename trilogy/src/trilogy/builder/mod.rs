@@ -1,3 +1,5 @@
+use home::home_dir;
+
 use crate::location::Location;
 use crate::{Cache, FileSystemCache, LoadError, NativeModule, NoopCache};
 
@@ -22,10 +24,13 @@ pub struct Builder<E> {
 #[cfg(feature = "std")]
 impl Builder<std::io::Error> {
     pub fn std() -> Self {
+        let home = home_dir()
+            .expect("home dir should exist")
+            .join(".trilogy/cache");
         Builder::new()
             .with_cache(
-                FileSystemCache::new("~/.trilogy")
-                    .expect("canonical cache dir ~/.trilogy is occupied"),
+                FileSystemCache::new(home)
+                    .expect("canonical cache dir ~/.trilogy/cache is occupied"),
             )
             .library("std", stdlib::std())
     }

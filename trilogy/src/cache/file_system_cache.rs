@@ -9,9 +9,7 @@ pub struct FileSystemCache {
 
 impl FileSystemCache {
     pub fn new(cache_dir: impl AsRef<Path>) -> io::Result<Self> {
-        let metadata = cache_dir.as_ref().metadata()?;
-        // TODO: determine if this will detect and fail if there is a file in the way
-        if !metadata.is_dir() {
+        if !cache_dir.as_ref().exists() {
             fs::create_dir_all(&cache_dir)?;
         }
         Ok(Self {
