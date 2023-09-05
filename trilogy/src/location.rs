@@ -1,10 +1,17 @@
-use std::{fmt::Display, path::Path};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 use url::Url;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Location(Url);
 
 impl Location {
+    pub(crate) fn entrypoint(root_dir: PathBuf, file: impl AsRef<Path>) -> Self {
+        Location::local_absolute(root_dir.join(file))
+    }
+
     pub(crate) fn local_absolute(path: impl AsRef<Path>) -> Self {
         Self(Url::from_file_path(path).unwrap())
     }

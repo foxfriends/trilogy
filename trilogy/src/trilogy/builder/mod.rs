@@ -69,18 +69,14 @@ impl<E: std::error::Error + 'static> Builder<E> {
     }
 
     pub(super) fn build_from_file(self, file: impl AsRef<Path>) -> Result<Trilogy, LoadError<E>> {
-        let absolute_path = self
-            .root_dir
-            .map(Ok)
-            .unwrap_or_else(std::env::current_dir)
-            .map_err(|error| LoadError::External(Box::new(error)))?
-            .join(file);
-        let entrypoint = Location::local_absolute(absolute_path);
+        let entrypoint = Location::entrypoint(
+            self.root_dir
+                .map(Ok)
+                .unwrap_or_else(std::env::current_dir)
+                .map_err(|error| LoadError::External(Box::new(error)))?,
+            file,
+        );
         let binder = loader::load(&*self.cache, entrypoint)?;
-
-        if binder.has_errors() {
-            return Err(LoadError::Syntax(binder.errors().cloned().collect()));
-        }
         let program = match binder.analyze(&self.libraries) {
             Ok(program) => program,
             Err(errors) => return Err(LoadError::Linker(errors)),
