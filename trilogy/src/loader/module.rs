@@ -10,14 +10,14 @@ pub struct Module<T> {
 }
 
 impl Module<Parse<Document>> {
-    pub(super) fn new(location: Location, source: &str) -> Self {
+    pub fn new(location: Location, source: &str) -> Self {
         let scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
         let contents = parser.parse();
         Self { location, contents }
     }
 
-    pub(super) fn imported_modules(&self) -> impl Iterator<Item = Location> + '_ {
+    pub fn imported_modules(&self) -> impl Iterator<Item = Location> + '_ {
         fn module_imported_modules(module_def: &ModuleDefinition) -> Vec<&str> {
             module_def
                 .definitions

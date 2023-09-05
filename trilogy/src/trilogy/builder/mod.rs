@@ -1,4 +1,3 @@
-use crate::loader::WipBinder;
 use crate::location::Location;
 use crate::{Cache, FileSystemCache, LoadError, NativeModule, NoopCache};
 
@@ -10,6 +9,8 @@ use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 
 use super::Trilogy;
+
+mod loader;
 
 pub struct Builder<E> {
     root_dir: Option<PathBuf>,
@@ -68,9 +69,9 @@ impl<E: std::error::Error + 'static> Builder<E> {
             .unwrap_or_else(std::env::current_dir)
             .map_err(|error| LoadError::External(Box::new(error)))?
             .join(file);
-        let location = Location::local_absolute(absolute_path);
-        let wip_binder = WipBinder::new(&*self.cache);
-        let binder = wip_binder.load(location)?;
+        let entrypoint = Location::local_absolute(absolute_path);
+        let binder = loader::load(&*self.cache, entrypoint)?;
+
         if binder.has_errors() {
             return Err(LoadError::Syntax(binder.errors().cloned().collect()));
         }

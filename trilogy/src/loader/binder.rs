@@ -15,7 +15,7 @@ pub struct Binder<T> {
 }
 
 impl<T> Binder<T> {
-    pub(super) fn new(entrypoint: Location) -> Self {
+    pub fn new(entrypoint: Location) -> Self {
         Self {
             entrypoint,
             modules: HashMap::default(),
