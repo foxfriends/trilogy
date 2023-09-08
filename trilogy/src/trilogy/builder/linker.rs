@@ -7,7 +7,7 @@ use trilogy_parser::syntax::Document;
 
 pub(super) struct Linker<'a> {
     #[allow(dead_code)]
-    libraries: &'a HashMap<&'static str, NativeModule>,
+    libraries: &'a HashMap<Location, NativeModule>,
     unlinked: HashMap<Location, Document>,
     linked: HashMap<Location, Arc<ir::ModuleCell>>,
     errors: Vec<trilogy_ir::Error>,
@@ -15,7 +15,7 @@ pub(super) struct Linker<'a> {
 
 impl<'a> Linker<'a> {
     pub(super) fn new(
-        libraries: &'a HashMap<&'static str, NativeModule>,
+        libraries: &'a HashMap<Location, NativeModule>,
         unlinked: HashMap<Location, Document>,
     ) -> Self {
         Self {
@@ -79,7 +79,7 @@ impl Resolver for LinkerResolver<'_, '_> {
 }
 
 pub fn link<E: std::error::Error>(
-    libraries: &HashMap<&'static str, NativeModule>,
+    libraries: &HashMap<Location, NativeModule>,
     modules: HashMap<Location, Document>,
     entrypoint: Location,
 ) -> Result<Program, LoadError<E>> {

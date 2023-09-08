@@ -17,7 +17,7 @@ mod loader;
 
 pub struct Builder<E> {
     root_dir: Option<PathBuf>,
-    libraries: HashMap<&'static str, NativeModule>,
+    libraries: HashMap<Location, NativeModule>,
     cache: Box<dyn Cache<Error = E>>,
 }
 
@@ -32,7 +32,7 @@ impl Builder<std::io::Error> {
                 FileSystemCache::new(home)
                     .expect("canonical cache dir ~/.trilogy/cache is occupied"),
             )
-            .library("std", stdlib::std())
+            .library(Location::library("std").unwrap(), stdlib::std())
     }
 }
 
@@ -61,8 +61,8 @@ impl Builder<Infallible> {
 }
 
 impl<E: std::error::Error + 'static> Builder<E> {
-    pub fn library(mut self, name: &'static str, library: NativeModule) -> Self {
-        self.libraries.insert(name, library);
+    pub fn library(mut self, location: Location, library: NativeModule) -> Self {
+        self.libraries.insert(location, library);
         self
     }
 

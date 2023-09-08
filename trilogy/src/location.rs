@@ -9,6 +9,11 @@ use url::Url;
 pub struct Location(Url);
 
 impl Location {
+    pub fn library(name: impl Display) -> Result<Self, url::ParseError> {
+        let url = format!("trilogy:{name}").parse()?;
+        Ok(Self(url))
+    }
+
     pub(crate) fn entrypoint(root_dir: PathBuf, file: impl AsRef<Path>) -> Self {
         Location::local_absolute(root_dir.join(file))
     }
