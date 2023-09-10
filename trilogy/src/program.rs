@@ -1,15 +1,14 @@
-use std::sync::Arc;
 use trilogy_ir::ir;
 use trilogy_vm as vm;
 use vm::OpCode;
 
 #[derive(Debug)]
 pub struct Program {
-    module: Arc<ir::ModuleCell>,
+    module: ir::Module,
 }
 
 impl Program {
-    pub(crate) fn new(module: Arc<ir::ModuleCell>) -> Self {
+    pub(crate) fn new(module: ir::Module) -> Self {
         Self { module }
     }
 
@@ -17,7 +16,7 @@ impl Program {
         let mut builder = vm::ProgramBuilder::default();
         builder.write_opcode(OpCode::Jump);
         builder.write_offset_label("main".to_owned());
-        trilogy_codegen::write_program(&mut builder, self.module.as_module().unwrap());
+        trilogy_codegen::write_program(&mut builder, &self.module);
         builder.build().unwrap()
     }
 }

@@ -5,12 +5,10 @@ use trilogy_ir::{ir, Id};
 
 pub(crate) fn write_module(
     context: &mut ProgramContext,
-    location: String,
     module: &ir::Module,
     parent_statics: Option<&HashMap<Id, String>>,
     is_entrypoint: bool,
 ) {
-    context.write_label(location);
     let mut statics = module
         .definitions()
         .iter()
@@ -35,7 +33,7 @@ pub(crate) fn write_module(
     for def in module.definitions() {
         match &def.item {
             ir::DefinitionItem::Module(definition) => {
-                context.write_module(&statics, definition, &location);
+                context.write_module(Some(&statics), definition);
             }
             ir::DefinitionItem::Function(function) => {
                 context.write_function(&statics, function);

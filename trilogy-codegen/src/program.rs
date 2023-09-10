@@ -157,9 +157,8 @@ impl ProgramContext<'_> {
 
     pub fn write_module(
         &mut self,
-        statics: &HashMap<Id, String>,
+        statics: Option<&HashMap<Id, String>>,
         def: &ir::ModuleDefinition,
-        current_location: &str,
     ) {
         let ptr = Arc::as_ptr(&def.module);
         if self.modules_written.contains(&ptr) {
@@ -167,11 +166,7 @@ impl ProgramContext<'_> {
         }
         self.modules_written.insert(ptr);
         let module = def.module.as_module().unwrap();
-        if module.location() == current_location {
-            write_module(self, module, Some(statics), false);
-        } else {
-            write_module(self, module, None, false);
-        }
+        write_module(self, module, statics, false);
     }
 
     fn begin<'a>(&'a mut self, statics: &'a HashMap<Id, String>, parameters: usize) -> Context<'a> {

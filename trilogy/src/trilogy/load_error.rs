@@ -7,7 +7,7 @@ pub enum LoadError<E: std::error::Error> {
     InvalidScheme(String),
     Cache(E),
     Syntax(Vec<SyntaxError>),
-    Linker(Vec<IrError>),
+    Analyzer(Vec<IrError>),
     External(Box<dyn std::error::Error>),
 }
 
@@ -39,7 +39,7 @@ impl<E: std::error::Error> Display for LoadError<E> {
                 }
                 Ok(())
             }
-            Self::Linker(errors) => {
+            Self::Analyzer(errors) => {
                 for error in errors {
                     writeln!(f, "{error:#?}")?;
                 }

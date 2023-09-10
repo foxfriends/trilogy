@@ -85,7 +85,7 @@ impl<E: std::error::Error + 'static> Builder<E> {
         );
         let binder = loader::load(&*self.cache, &entrypoint)?;
         let ir = analyzer::analyze(binder)?;
-        let program = linker::link(libraries, ir, entrypoint);
+        let program = linker::link(self.libraries, ir, &entrypoint)?;
         let program = program.generate_code();
         Ok(Trilogy::from(program))
     }
