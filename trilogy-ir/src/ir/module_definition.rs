@@ -2,22 +2,29 @@ use super::*;
 use once_cell::sync::OnceCell;
 use std::sync::Arc;
 
-#[derive(Debug, Default)]
-pub struct ModuleCell(OnceCell<Module>);
+#[derive(Debug)]
+pub enum ModuleCell {
+    Module(OnceCell<Module>),
+    External(String),
+}
 
 impl ModuleCell {
     pub fn new(module: Module) -> Self {
-        Self(OnceCell::with_value(module))
+        Self::Module(OnceCell::with_value(module))
     }
 
     pub fn insert(&self, module: Module) {
-        self.0
-            .set(module)
-            .expect("module should not be inserted twice");
+        match self {
+            ModuleCell::Module(cell) => cell.set(module).unwrap(),
+            ModuleCell::External(..) => panic!(),
+        }
     }
 
     pub fn as_module(&self) -> Option<&Module> {
-        self.0.get()
+        match self {
+            ModuleCell::Module(cell) => cell.get(),
+            _ => None,
+        }
     }
 }
 
@@ -31,7 +38,14 @@ impl ModuleDefinition {
     pub(super) fn declare(name: Identifier) -> Self {
         Self {
             name,
-            module: Arc::new(ModuleCell::default()),
+            module: Arc::new(ModuleCell::Module(OnceCell::default())),
+        }
+    }
+
+    pub(super) fn external(name: Identifier, location: String) -> Self {
+        Self {
+            name,
+            module: Arc::new(ModuleCell::External(location)),
         }
     }
 }
