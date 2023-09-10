@@ -7,7 +7,6 @@ use trilogy_parser::syntax::Document;
 
 pub fn analyze<E: std::error::Error>(
     modules: HashMap<Location, Document>,
-    entrypoint: Location,
 ) -> Result<Program, LoadError<E>> {
     let mut analyzed = HashMap::default();
     let mut errors = vec![];

@@ -5,7 +5,6 @@ use vm::OpCode;
 
 #[derive(Debug)]
 pub struct Program {
-    #[allow(dead_code)]
     module: Arc<ir::ModuleCell>,
 }
 
