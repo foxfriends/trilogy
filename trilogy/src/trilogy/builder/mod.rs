@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use super::Trilogy;
 
-mod linker;
+mod analyzer;
 mod loader;
 
 pub struct Builder<E> {
@@ -83,7 +83,7 @@ impl<E: std::error::Error + 'static> Builder<E> {
             file,
         );
         let binder = loader::load(&*self.cache, &entrypoint)?;
-        let program = linker::link(&self.libraries, binder, entrypoint)?;
+        let ir = analyzer::analyze(binder, entrypoint)?;
         let program = program.generate_code();
         Ok(Trilogy::from(program))
     }
