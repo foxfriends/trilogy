@@ -3,17 +3,16 @@ use crate::scope::Scope;
 use crate::{Error, Id};
 use trilogy_parser::syntax;
 
+#[derive(Default)]
 pub struct Analyzer {
     errors: Vec<Error>,
     scope: Scope,
 }
 
 impl Analyzer {
+    #[inline]
     pub fn new() -> Self {
-        Self {
-            errors: vec![],
-            scope: Scope::default(),
-        }
+        Self::default()
     }
 
     pub fn analyze(&mut self, document: syntax::Document) -> Module {
