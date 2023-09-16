@@ -2,7 +2,7 @@ use crate::location::Location;
 use std::collections::HashMap;
 use std::path::Path;
 use trilogy_ir::ir::Module;
-use trilogy_vm::{Chunk, ChunkBuilder, Program, Value, VirtualMachine};
+use trilogy_vm::{Atom, Chunk, ChunkBuilder, Program, Value, VirtualMachine};
 
 mod builder;
 mod load_error;
@@ -41,6 +41,10 @@ impl Trilogy {
         self.vm
             .run(&mut program)
             .map_err(|error| RuntimeError { error })
+    }
+
+    pub fn atom(&self, atom: &str) -> Atom {
+        self.vm.atom(atom)
     }
 }
 

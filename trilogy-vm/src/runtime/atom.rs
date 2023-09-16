@@ -27,7 +27,7 @@ impl Display for Atom {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct AtomRaw(Arc<String>);
 
 impl From<AtomRaw> for Atom {
@@ -42,11 +42,11 @@ impl Borrow<str> for AtomRaw {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub(crate) struct AtomInterner(Arc<Mutex<HashSet<AtomRaw>>>);
 
 impl AtomInterner {
-    pub fn intern(&mut self, string: &str) -> Atom {
+    pub fn intern(&self, string: &str) -> Atom {
         let mut contents = self.0.lock().unwrap();
         if let Some(arc) = contents.get(string) {
             (*arc).clone().into()

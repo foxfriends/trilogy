@@ -3,7 +3,7 @@ use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::OpCode;
 use crate::runtime::Number;
-use crate::{ChunkBuilder, Program, ReferentialEq, Struct, StructuralEq};
+use crate::{Atom, ChunkBuilder, Program, ReferentialEq, Struct, StructuralEq};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -55,25 +55,36 @@ impl HeapCell {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct VirtualMachine {
+    atom_interner: AtomInterner,
     executions: VecDeque<Execution>,
     registers: Vec<Value>,
     heap: Vec<HeapCell>,
 }
 
+impl Default for VirtualMachine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VirtualMachine {
     pub fn new() -> Self {
         Self {
+            atom_interner: AtomInterner::default(),
             executions: VecDeque::with_capacity(8),
             registers: vec![Value::Unit; 8],
             heap: Vec::with_capacity(8),
         }
     }
 
+    pub fn atom(&self, atom: &str) -> Atom {
+        self.atom_interner.intern(atom)
+    }
+
     pub fn run(&mut self, program: &mut dyn Program) -> Result<Value, Error> {
-        let atom_interner = AtomInterner::default();
-        let chunk_builder = ChunkBuilder::new(atom_interner);
+        let chunk_builder = ChunkBuilder::new(self.atom_interner.clone());
         let entrypoint = program.entrypoint(chunk_builder);
         self.executions.push_back(Execution::new(entrypoint));
         // In future, multiple executions will likely be run in parallel on different
