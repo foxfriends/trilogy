@@ -16,6 +16,8 @@ mod analyzer;
 mod linker;
 mod loader;
 
+pub(crate) use loader::ResolverError;
+
 pub struct Builder<E> {
     root_dir: Option<PathBuf>,
     libraries: HashMap<Location, NativeModule>,
@@ -80,7 +82,7 @@ impl<E: std::error::Error + 'static> Builder<E> {
             self.root_dir
                 .map(Ok)
                 .unwrap_or_else(std::env::current_dir)
-                .map_err(|error| LoadError::External(Box::new(error)))?,
+                .map_err(|error| LoadError::Resolver(vec![ResolverError::external(error)]))?,
             file,
         );
         let binder = loader::load(&*self.cache, &entrypoint)?;
