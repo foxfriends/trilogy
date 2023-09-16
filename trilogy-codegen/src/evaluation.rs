@@ -524,9 +524,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.pop_resume();
             context.scope.end_intermediate();
 
-            context
-                .label(body)
-                .instruction(Instruction::SetRegister(0));
+            context.label(body).instruction(Instruction::SetRegister(0));
             write_expression(context, &handled.expression);
             context
                 .instruction(Instruction::Reset)

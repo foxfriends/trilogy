@@ -86,7 +86,7 @@ impl<'a> Scope<'a> {
 
     pub fn kw_break(&self) -> Option<Instruction> {
         let offset = self.kw_break.last()?;
-        Some(Instruction::LoadLocal(*offset as u32))
+        Some(Instruction::LoadLocal(*offset))
     }
 
     pub fn push_continue(&mut self) -> u32 {
@@ -102,7 +102,7 @@ impl<'a> Scope<'a> {
 
     pub fn kw_continue(&self) -> Option<Instruction> {
         let offset = self.kw_continue.last()?;
-        Some(Instruction::LoadLocal(*offset as u32))
+        Some(Instruction::LoadLocal(*offset))
     }
 
     pub fn push_cancel(&mut self) -> u32 {
@@ -118,7 +118,7 @@ impl<'a> Scope<'a> {
 
     pub fn kw_cancel(&self) -> Option<Instruction> {
         let offset = self.kw_cancel.last()?;
-        Some(Instruction::LoadLocal(*offset as u32))
+        Some(Instruction::LoadLocal(*offset))
     }
 
     pub fn push_resume(&mut self) -> u32 {
@@ -134,6 +134,6 @@ impl<'a> Scope<'a> {
 
     pub fn kw_resume(&self) -> Option<Instruction> {
         let offset = self.kw_resume.last()?;
-        Some(Instruction::LoadLocal(*offset as u32))
+        Some(Instruction::LoadLocal(*offset))
     }
 }

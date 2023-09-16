@@ -190,7 +190,7 @@ mod test {
     test!(parse_string_escapes => r#""hel\\\x15\u{ff00}lo""#, "hel\\\x15\u{ff00}lo", "");
     test!(parse_string_trailing => r#""hello"123"#, "hello", "123");
     test!(parse_char => "'a'", 'a', "");
-    test!(parse_char_escape => r#"'\\'"#, '\\', "");
+    test!(parse_char_escape => r"'\\'", '\\', "");
     test!(parse_number => "123", 123, "");
     test!(parse_number_neg => "-123", -123, "");
     test!(parse_number_rational => "123/123", 1, "");

@@ -126,9 +126,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             }
             (None, ir::Value::Builtin(Builtin::Pin), value) => {
                 write_evaluation(context, value);
-                context
-                    .instruction(Instruction::ValEq)
-                    .cond_jump(on_fail);
+                context.instruction(Instruction::ValEq).cond_jump(on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs @ ir::Value::String(..), rhs) => {
                 let end = context.labeler.unique_hint("glue_end");

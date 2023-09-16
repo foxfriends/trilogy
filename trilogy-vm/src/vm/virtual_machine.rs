@@ -55,7 +55,7 @@ impl HeapCell {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct VirtualMachine {
     executions: VecDeque<Execution>,
     registers: Vec<Value>,

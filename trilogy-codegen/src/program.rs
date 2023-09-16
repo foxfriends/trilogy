@@ -22,7 +22,7 @@ impl<'a> ProgramContext<'a> {
     }
 }
 
-pub fn write_program<'a>(builder: &'a mut ChunkBuilder, module: &ir::Module) {
+pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
     let mut context = ProgramContext::new(builder);
     write_preamble(&mut context);
     write_module(&mut context, module, None, true);
