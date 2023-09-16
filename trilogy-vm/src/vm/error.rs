@@ -1,6 +1,5 @@
-use crate::Program;
-
-use super::{stack::StackTrace, Stack};
+use super::Stack;
+use crate::bytecode::Offset;
 use std::fmt::{self, Display};
 
 // I am aware these names are not all that ergonomic, but they line up
@@ -9,7 +8,7 @@ use std::fmt::{self, Display};
 // Maybe `Error` is not the best name for this enum, will revisit later.
 #[derive(Clone, Debug)]
 pub struct Error {
-    pub ip: usize,
+    pub ip: Offset,
     pub kind: ErrorKind,
     pub(crate) stack_dump: Stack,
 }
@@ -17,10 +16,6 @@ pub struct Error {
 impl std::error::Error for Error {}
 
 impl Error {
-    pub fn trace(&self, program: &Program) -> StackTrace {
-        self.stack_dump.trace(self.ip, program)
-    }
-
     pub fn dump(&self) -> impl Display + '_ {
         &self.stack_dump
     }

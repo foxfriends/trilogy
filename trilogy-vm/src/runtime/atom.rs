@@ -3,7 +3,7 @@ use std::cmp::PartialEq;
 use std::collections::HashSet;
 use std::fmt::{self, Display};
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug)]
 pub struct Atom(Arc<String>);
@@ -43,21 +43,17 @@ impl Borrow<str> for AtomRaw {
 }
 
 #[derive(Clone, Default)]
-pub(crate) struct AtomInterner(HashSet<AtomRaw>);
+pub(crate) struct AtomInterner(Arc<Mutex<HashSet<AtomRaw>>>);
 
 impl AtomInterner {
     pub fn intern(&mut self, string: &str) -> Atom {
-        if let Some(arc) = self.0.get(string) {
+        let mut contents = self.0.lock().unwrap();
+        if let Some(arc) = contents.get(string) {
             (*arc).clone().into()
         } else {
             let arc = Arc::new(string.to_owned());
-            self.0.insert(AtomRaw(arc.clone()));
+            contents.insert(AtomRaw(arc.clone()));
             Atom(arc)
         }
-    }
-
-    pub fn lookup(&self, string: &str) -> Option<Atom> {
-        let arc = self.0.get(string)?;
-        Some((*arc).clone().into())
     }
 }

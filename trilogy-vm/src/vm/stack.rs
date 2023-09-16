@@ -1,6 +1,6 @@
 use super::error::InternalRuntimeError;
-use crate::{cactus::Cactus, Program, Value};
-use std::collections::BTreeMap;
+use crate::bytecode::Offset;
+use crate::{cactus::Cactus, Value};
 use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]
@@ -8,7 +8,7 @@ enum InternalValue {
     Unset,
     Value(Value),
     Return {
-        ip: usize,
+        ip: Offset,
         frame: usize,
         ghost: Option<Stack>,
     },
@@ -66,7 +66,7 @@ impl Display for InternalValue {
 }
 
 #[derive(Default, Clone)]
-pub struct Stack {
+pub(crate) struct Stack {
     cactus: Cactus<InternalValue>,
     frame: usize,
 }
@@ -151,58 +151,6 @@ impl Display for StackTrace {
 }
 
 impl Stack {
-    pub fn trace(&self, from_ip: usize, program: &Program) -> StackTrace {
-        let mut ip_history: Vec<usize> = vec![from_ip];
-        self.trace_into(&mut ip_history);
-
-        let mut directory = BTreeMap::<usize, Vec<&str>>::new();
-        for (label, ip) in &program.labels {
-            directory.entry(*ip).or_default().push(label);
-        }
-
-        let frames = ip_history
-            .windows(2)
-            .map(|window| {
-                let exit_at = window[0];
-                let jump_from = window[1];
-                let callee = directory
-                    .range(..exit_at)
-                    .last()
-                    .map(|(&ip, labels)| Caller {
-                        ip,
-                        name: labels.first().map(|&s| s.to_owned()),
-                    })
-                    .unwrap_or(Caller { ip: 0, name: None });
-                let caller = directory
-                    .range(..jump_from)
-                    .last()
-                    .map(|(&ip, labels)| Caller {
-                        ip,
-                        name: labels.first().map(|&s| s.to_owned()),
-                    })
-                    .unwrap_or(Caller { ip: 0, name: None });
-                StackFrame {
-                    caller,
-                    callee,
-                    exit_at,
-                }
-            })
-            .collect();
-
-        StackTrace {
-            frames,
-            ip: from_ip,
-        }
-    }
-
-    fn trace_into(&self, ip_history: &mut Vec<usize>) {
-        for value in self.cactus.clone() {
-            if let InternalValue::Return { ip, .. } = value {
-                ip_history.push(ip);
-            }
-        }
-    }
-
     pub(crate) fn branch(&mut self) -> Self {
         Self {
             cactus: self.cactus.branch(),
@@ -262,7 +210,7 @@ impl Stack {
             .and_then(InternalValue::try_into_pointer)
     }
 
-    pub(crate) fn pop_frame(&mut self) -> Result<usize, InternalRuntimeError> {
+    pub(crate) fn pop_frame(&mut self) -> Result<Offset, InternalRuntimeError> {
         loop {
             let popped = self
                 .cactus
@@ -275,7 +223,7 @@ impl Stack {
         }
     }
 
-    pub(crate) fn push_frame(&mut self, ip: usize, arguments: Vec<Value>, stack: Option<Stack>) {
+    pub(crate) fn push_frame(&mut self, ip: Offset, arguments: Vec<Value>, stack: Option<Stack>) {
         let frame = self.frame;
         self.cactus.push(InternalValue::Return {
             ip,

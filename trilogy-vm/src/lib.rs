@@ -7,11 +7,9 @@ mod traits {
 
 mod bytecode;
 mod cactus;
-mod program;
 pub mod runtime;
 mod vm;
 
-pub use bytecode::{AsmError, Instruction, LabelAlreadyInserted, OpCode};
-pub use program::{Program, ProgramBuilder};
+pub use bytecode::{Instruction, OpCode};
 pub use runtime::*;
-pub use vm::{Error, ErrorKind, VirtualMachine};
+pub use vm::{Chunk, ChunkBuilder, Error, ErrorKind, Program, VirtualMachine};

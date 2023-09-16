@@ -43,7 +43,7 @@ pub(crate) fn write_module(
             }
             ir::DefinitionItem::Procedure(procedure) => {
                 if is_entrypoint && procedure.name.id.name() == Some("main") {
-                    context.write_label("main".to_owned());
+                    context.label("main");
                 }
                 context.write_procedure(&statics, procedure);
             }

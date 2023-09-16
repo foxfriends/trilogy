@@ -2,7 +2,7 @@ use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
 use std::path::PathBuf;
 use trilogy::Trilogy;
-use trilogy_vm::{Program, Value};
+use trilogy_vm::Value;
 
 #[cfg(feature = "dev")]
 mod dev;
@@ -28,11 +28,6 @@ enum Command {
         #[arg(short, long)]
         print: bool,
     },
-    /// Compile a Trilogy program into a bytecode file which can be run
-    /// later on the VM directly.
-    ///
-    /// Expects a single path in which the `main!()` procedure is found.
-    Compile { file: PathBuf },
     /// Check the syntax and warnings of a Trilogy program.
     ///
     /// Expects a single path, from which all imported modules will be
@@ -63,14 +58,6 @@ enum Command {
     },
     /// Run the Trilogy language server.
     Lsp { files: Vec<PathBuf> },
-    /// Run precompiled bytecode directly.
-    Vm {
-        file: PathBuf,
-        #[arg(short = 'S', long)]
-        no_std: bool,
-        #[arg(short, long)]
-        print: bool,
-    },
     /// Commands for assistance when developing Trilogy.
     #[cfg(feature = "dev")]
     #[command(subcommand)]
@@ -121,15 +108,6 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        Command::Compile { file } => match Trilogy::from_file(file) {
-            Ok(trilogy) => {
-                println!("{}", trilogy);
-            }
-            Err(errors) => {
-                eprintln!("{errors}");
-                std::process::exit(1);
-            }
-        },
         Command::Check { file, no_std: _ } => match Trilogy::from_file(file) {
             Ok(..) => {}
             Err(errors) => {
@@ -141,21 +119,6 @@ fn main() -> std::io::Result<()> {
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;
-        }
-        Command::Vm {
-            file,
-            print,
-            no_std: _,
-        } => {
-            let asm = std::fs::read_to_string(file)?;
-            let program: Program = match asm.parse() {
-                Ok(program) => program,
-                Err(error) => {
-                    eprintln!("{error}");
-                    std::process::exit(1);
-                }
-            };
-            run(Trilogy::from(program), print)
         }
         _ => unimplemented!("This feature is not yet built"),
     }

@@ -4,16 +4,16 @@ use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use trilogy_ir::{ir, Id};
-use trilogy_vm::{Atom, Instruction, OpCode, ProgramBuilder};
+use trilogy_vm::{Atom, ChunkBuilder, Instruction};
 
 pub(crate) struct ProgramContext<'a> {
     pub labeler: Labeler,
     modules_written: HashSet<*const ir::ModuleCell>,
-    builder: &'a mut ProgramBuilder,
+    builder: &'a mut ChunkBuilder,
 }
 
 impl<'a> ProgramContext<'a> {
-    fn new(builder: &'a mut ProgramBuilder) -> Self {
+    fn new(builder: &'a mut ChunkBuilder) -> Self {
         Self {
             builder,
             modules_written: HashSet::new(),
@@ -22,7 +22,7 @@ impl<'a> ProgramContext<'a> {
     }
 }
 
-pub fn write_program(builder: &mut ProgramBuilder, module: &ir::Module) {
+pub fn write_program<'a>(builder: &'a mut ChunkBuilder, module: &ir::Module) {
     let mut context = ProgramContext::new(builder);
     write_preamble(&mut context);
     write_module(&mut context, module, None, true);
@@ -30,35 +30,27 @@ pub fn write_program(builder: &mut ProgramBuilder, module: &ir::Module) {
 
 impl ProgramContext<'_> {
     pub fn shift(&mut self, label: &str) -> &mut Self {
-        self.builder
-            .write_opcode(OpCode::Shift)
-            .write_offset_label(label.to_owned());
+        self.builder.shift(label);
         self
     }
 
     pub fn close(&mut self, label: &str) -> &mut Self {
-        self.builder
-            .write_opcode(OpCode::Close)
-            .write_offset_label(label.to_owned());
+        self.builder.close(label);
         self
     }
 
     pub fn cond_jump(&mut self, label: &str) -> &mut Self {
-        self.builder
-            .write_opcode(OpCode::CondJump)
-            .write_offset_label(label.to_owned());
+        self.builder.cond_jump(label);
         self
     }
 
-    pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
-        self.builder.write_instruction(instruction);
+    pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
+        self.builder.instruction(instruction);
         self
     }
 
-    pub fn write_label(&mut self, label: String) -> &mut Self {
-        self.builder
-            .write_label(label)
-            .expect("should not insert same label twice");
+    pub fn label(&mut self, label: impl Into<String>) -> &mut Self {
+        self.builder.label(label);
         self
     }
 
@@ -74,7 +66,7 @@ impl ProgramContext<'_> {
         procedure: &ir::ProcedureDefinition,
     ) {
         let for_id = self.labeler.for_id(&procedure.name.id);
-        self.write_label(for_id);
+        self.label(for_id);
         assert!(procedure.overloads.len() == 1);
         let overload = &procedure.overloads[0];
         let context = self.begin(statics, overload.parameters.len());
@@ -92,46 +84,46 @@ impl ProgramContext<'_> {
     /// the input patterns.
     pub fn write_rule(&mut self, statics: &HashMap<Id, String>, rule: &ir::RuleDefinition) {
         let for_id = self.labeler.for_id(&rule.name.id);
-        self.write_label(for_id);
+        self.label(for_id);
         let arity = rule.overloads[0].parameters.len();
         let mut context = self.begin(statics, 0);
-        context.write_instruction(Instruction::Const(((), 0).into()));
+        context.instruction(Instruction::Const(((), 0).into()));
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
         context.close(RETURN);
         context.scope.closure(arity + 1); // TODO: do we need to know the index of these (1 + n)?
         context.close(RETURN);
 
         context
-            .write_instruction(Instruction::LoadLocal(0))
-            .write_instruction(Instruction::Uncons);
+            .instruction(Instruction::LoadLocal(0))
+            .instruction(Instruction::Uncons);
         for (i, overload) in rule.overloads.iter().enumerate() {
             let skip = context.labeler.unique_hint("next_overload");
             let fail = context.labeler.unique_hint("fail");
             context
-                .write_instruction(Instruction::Copy)
-                .write_instruction(Instruction::Const(i.into()))
-                .write_instruction(Instruction::ValEq)
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(i.into()))
+                .instruction(Instruction::ValEq)
                 .cond_jump(&skip)
-                .write_instruction(Instruction::Pop);
+                .instruction(Instruction::Pop);
             write_rule(&mut context, overload, &fail);
             context
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Const(i.into()))
-                .write_instruction(Instruction::Cons)
-                .write_instruction(Instruction::SetLocal(0))
-                .write_instruction(Instruction::Return);
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Const(i.into()))
+                .instruction(Instruction::Cons)
+                .instruction(Instruction::SetLocal(0))
+                .instruction(Instruction::Return);
             context
-                .write_label(fail)
-                .write_instruction(Instruction::Const(((), i + 1).into()))
-                .write_instruction(Instruction::SetLocal(0))
-                .write_instruction(Instruction::LoadLocal(0))
-                .write_instruction(Instruction::Uncons)
-                .write_label(skip);
+                .label(fail)
+                .instruction(Instruction::Const(((), i + 1).into()))
+                .instruction(Instruction::SetLocal(0))
+                .instruction(Instruction::LoadLocal(0))
+                .instruction(Instruction::Uncons)
+                .label(skip);
         }
         let done = context.atom("done");
         context
-            .write_instruction(Instruction::Const(done.into()))
-            .write_instruction(Instruction::Return);
+            .instruction(Instruction::Const(done.into()))
+            .instruction(Instruction::Return);
     }
 
     /// Writes a function. Calling convention of functions is to pass one arguments at a time
@@ -143,7 +135,7 @@ impl ProgramContext<'_> {
         function: &ir::FunctionDefinition,
     ) {
         let for_id = self.labeler.for_id(&function.name.id);
-        self.write_label(for_id);
+        self.label(for_id);
         let arity = function.overloads[0].parameters.len();
         let mut context = self.begin(statics, arity);
         for _ in 1..arity {
@@ -152,7 +144,7 @@ impl ProgramContext<'_> {
         for overload in &function.overloads {
             write_function(&mut context, overload);
         }
-        context.write_instruction(Instruction::Fizzle);
+        context.instruction(Instruction::Fizzle);
     }
 
     pub fn write_module(

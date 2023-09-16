@@ -13,7 +13,6 @@ use std::path::{Path, PathBuf};
 use super::Trilogy;
 
 mod analyzer;
-mod linker;
 mod loader;
 
 pub(crate) use loader::ResolverError;
@@ -86,9 +85,7 @@ impl<E: std::error::Error + 'static> Builder<E> {
             file,
         );
         let binder = loader::load(&*self.cache, &entrypoint)?;
-        let ir = analyzer::analyze(binder)?;
-        let program = linker::link(self.libraries, ir, &entrypoint)?;
-        let program = program.generate_code();
-        Ok(Trilogy::from(program))
+        let modules = analyzer::analyze(binder)?;
+        Ok(Trilogy::new(modules, entrypoint))
     }
 }

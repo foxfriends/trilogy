@@ -10,7 +10,7 @@ use std::collections::HashMap;
 #[derive(Default)]
 pub(crate) struct AsmContext {
     line: usize,
-    ip: usize,
+    ip: Offset,
     interner: AtomInterner,
     labels: HashMap<String, Offset>,
     holes: HashMap<usize, (Offset, String)>,
@@ -38,7 +38,7 @@ impl AsmContext {
         }
     }
 
-    pub(super) fn parse_offset(&mut self, src: &str) -> Result<usize, ErrorKind> {
+    pub(super) fn parse_offset(&mut self, src: &str) -> Result<Offset, ErrorKind> {
         let offset = if let Some(suffix) = src.strip_prefix('&') {
             let (label, tail) = Self::take_label(suffix).ok_or(ErrorKind::InvalidLabelReference)?;
             if Self::is_empty(tail) {
@@ -131,7 +131,7 @@ impl AsmContext {
         })
     }
 
-    pub fn into_parts(self) -> (HashMap<String, usize>, AtomInterner) {
+    pub fn into_parts(self) -> (HashMap<String, Offset>, AtomInterner) {
         (self.labels, self.interner)
     }
 
@@ -143,7 +143,7 @@ impl AsmContext {
             })?;
             // Jumps are taken from the beginning of the next instruction, which is 4 bytes
             // after the start of the hole.
-            Ok((*hole, usize::abs_diff(hole + 4, *offset)))
+            Ok((*hole, Offset::abs_diff(hole + 4, *offset)))
         })
     }
 

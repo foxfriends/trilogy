@@ -53,7 +53,7 @@ impl ProgramBuilder {
     }
 
     /// Writes the next instruction.
-    pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
+    pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
         self.write_opcode(instruction.tag());
         let offset = match instruction {
             Instruction::Const(constant) => {
@@ -86,7 +86,7 @@ impl ProgramBuilder {
 
     /// Writes a label at the position of the next instruction in the program. Returns the
     /// offset of that label, or an error if a label with this name has already been set.
-    pub fn write_label(&mut self, label: String) -> Result<&mut Self, LabelAlreadyInserted> {
+    pub fn label(&mut self, label: String) -> Result<&mut Self, LabelAlreadyInserted> {
         if self
             .labels
             .insert(label.clone(), self.bytes.len())

@@ -53,32 +53,32 @@ pub const YIELD: &str = "core::yield";
 macro_rules! binop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
         $builder
-            .write_label($label.to_owned())
+            .label($label.to_owned())
             .shift(RETURN)
-            .write_instruction(Instruction::LoadLocal(0))
-            .write_instruction(Instruction::Swap)
-            $(.write_instruction($op))+
-            .write_instruction(Instruction::Reset)
+            .instruction(Instruction::LoadLocal(0))
+            .instruction(Instruction::Swap)
+            $(.instruction($op))+
+            .instruction(Instruction::Reset)
     };
 }
 
 macro_rules! binop_ {
     ($builder:expr, $label:expr, $($op:expr),+) => {
         $builder
-            .write_label($label.to_owned())
+            .label($label.to_owned())
             .shift(RETURN)
-            .write_instruction(Instruction::LoadLocal(0))
-            $(.write_instruction($op))+
-            .write_instruction(Instruction::Reset)
+            .instruction(Instruction::LoadLocal(0))
+            $(.instruction($op))+
+            .instruction(Instruction::Reset)
     };
 }
 
 macro_rules! unop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
         $builder
-            .write_label($label.to_owned())
-            $(.write_instruction($op))+
-            .write_instruction(Instruction::Return)
+            .label($label.to_owned())
+            $(.instruction($op))+
+            .instruction(Instruction::Return)
     };
 }
 
@@ -120,134 +120,134 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     binop!(builder, CONS, Instruction::Cons);
 
     builder
-        .write_label(RCOMPOSE.to_owned())
+        .label(RCOMPOSE.to_owned())
         .close(RETURN)
         .close(RETURN)
-        .write_instruction(Instruction::LoadLocal(0))
-        .write_instruction(Instruction::Swap)
-        .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::LoadLocal(1))
-        .write_instruction(Instruction::Swap)
-        .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::Return);
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Call(1))
+        .instruction(Instruction::LoadLocal(1))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Call(1))
+        .instruction(Instruction::Return);
 
     builder
-        .write_label(COMPOSE.to_owned())
+        .label(COMPOSE.to_owned())
         .close(RETURN)
         .close(RETURN)
-        .write_instruction(Instruction::LoadLocal(1))
-        .write_instruction(Instruction::Swap)
-        .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::LoadLocal(0))
-        .write_instruction(Instruction::Swap)
-        .write_instruction(Instruction::Call(1))
-        .write_instruction(Instruction::Return);
+        .instruction(Instruction::LoadLocal(1))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Call(1))
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Call(1))
+        .instruction(Instruction::Return);
 
     builder
-        .write_label(ITERATE_COLLECTION.to_owned())
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::TypeOf)
-        .write_instruction(Instruction::Const("callable".into()))
-        .write_instruction(Instruction::ValNeq)
+        .label(ITERATE_COLLECTION.to_owned())
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::TypeOf)
+        .instruction(Instruction::Const("callable".into()))
+        .instruction(Instruction::ValNeq)
         .cond_jump(RETURN) // already an iterator (probably)
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::TypeOf)
-        .write_instruction(Instruction::Const("array".into()))
-        .write_instruction(Instruction::ValNeq)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::TypeOf)
+        .instruction(Instruction::Const("array".into()))
+        .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_ARRAY)
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::TypeOf)
-        .write_instruction(Instruction::Const("set".into()))
-        .write_instruction(Instruction::ValNeq)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::TypeOf)
+        .instruction(Instruction::Const("set".into()))
+        .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_SET)
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::TypeOf)
-        .write_instruction(Instruction::Const("record".into()))
-        .write_instruction(Instruction::ValNeq)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::TypeOf)
+        .instruction(Instruction::Const("record".into()))
+        .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_RECORD)
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::TypeOf)
-        .write_instruction(Instruction::Const("tuple".into()))
-        .write_instruction(Instruction::ValNeq)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::TypeOf)
+        .instruction(Instruction::Const("tuple".into()))
+        .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_LIST)
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::Const(Value::Unit))
-        .write_instruction(Instruction::ValNeq)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::Const(Value::Unit))
+        .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_LIST)
-        .write_instruction(Instruction::Fizzle);
+        .instruction(Instruction::Fizzle);
 
     let iter_done = builder.labeler.unique_hint("iter_done");
     let next = builder.atom("next");
     builder
-        .write_label(ITERATE_SET.to_owned())
-        .write_label(ITERATE_RECORD.to_owned())
-        .write_instruction(Instruction::Entries)
-        .write_label(ITERATE_ARRAY.to_owned())
-        .write_instruction(Instruction::Const(0.into()))
-        .write_instruction(Instruction::Cons)
+        .label(ITERATE_SET.to_owned())
+        .label(ITERATE_RECORD.to_owned())
+        .instruction(Instruction::Entries)
+        .label(ITERATE_ARRAY.to_owned())
+        .instruction(Instruction::Const(0.into()))
+        .instruction(Instruction::Cons)
         .close(RETURN)
-        .write_instruction(Instruction::LoadLocal(0))
-        .write_instruction(Instruction::Uncons)
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::LoadLocal(1))
-        .write_instruction(Instruction::Length)
-        .write_instruction(Instruction::Lt)
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Uncons)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::LoadLocal(1))
+        .instruction(Instruction::Length)
+        .instruction(Instruction::Lt)
         .cond_jump(&iter_done)
-        .write_instruction(Instruction::Access)
-        .write_instruction(Instruction::Const(next.clone().into()))
-        .write_instruction(Instruction::Swap)
-        .write_instruction(Instruction::Construct)
-        .write_instruction(Instruction::LoadLocal(0))
-        .write_instruction(Instruction::Uncons)
-        .write_instruction(Instruction::Const(1.into()))
-        .write_instruction(Instruction::Add)
-        .write_instruction(Instruction::Cons)
-        .write_instruction(Instruction::SetLocal(0))
-        .write_instruction(Instruction::Return);
+        .instruction(Instruction::Access)
+        .instruction(Instruction::Const(next.clone().into()))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Uncons)
+        .instruction(Instruction::Const(1.into()))
+        .instruction(Instruction::Add)
+        .instruction(Instruction::Cons)
+        .instruction(Instruction::SetLocal(0))
+        .instruction(Instruction::Return);
 
     builder
-        .write_label(ITERATE_LIST.to_owned())
+        .label(ITERATE_LIST.to_owned())
         .close(RETURN)
-        .write_instruction(Instruction::LoadLocal(0))
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::Const(Value::Unit))
-        .write_instruction(Instruction::ValNeq)
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::Const(Value::Unit))
+        .instruction(Instruction::ValNeq)
         .cond_jump(&iter_done)
-        .write_instruction(Instruction::Uncons)
-        .write_instruction(Instruction::SetLocal(0))
-        .write_instruction(Instruction::Const(next.into()))
-        .write_instruction(Instruction::Swap)
-        .write_instruction(Instruction::Construct)
-        .write_instruction(Instruction::Return);
+        .instruction(Instruction::Uncons)
+        .instruction(Instruction::SetLocal(0))
+        .instruction(Instruction::Const(next.into()))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Return);
 
     let done = builder.atom("done");
     builder
-        .write_label(iter_done)
-        .write_instruction(Instruction::Const(done.into()))
-        .write_instruction(Instruction::Return);
+        .label(iter_done)
+        .instruction(Instruction::Const(done.into()))
+        .instruction(Instruction::Return);
 
     builder
-        .write_label(RESET.to_owned())
-        .write_instruction(Instruction::Reset)
-        .write_label(END.to_owned())
-        .write_instruction(Instruction::Fizzle)
-        .write_label(RETURN.to_owned())
-        .write_instruction(Instruction::Return);
+        .label(RESET.to_owned())
+        .instruction(Instruction::Reset)
+        .label(END.to_owned())
+        .instruction(Instruction::Fizzle)
+        .label(RETURN.to_owned())
+        .instruction(Instruction::Return);
 
     let yielding = builder.labeler.unique_hint("yielding");
 
     builder
-        .write_label(YIELD.to_owned())
-        .write_instruction(Instruction::LoadRegister(0))
-        .write_instruction(Instruction::Const(Value::Unit))
-        .write_instruction(Instruction::ValNeq)
+        .label(YIELD.to_owned())
+        .instruction(Instruction::LoadRegister(0))
+        .instruction(Instruction::Const(Value::Unit))
+        .instruction(Instruction::ValNeq)
         .cond_jump(END)
-        .write_instruction(Instruction::LoadRegister(0))
-        .write_instruction(Instruction::Swap)
+        .instruction(Instruction::LoadRegister(0))
+        .instruction(Instruction::Swap)
         .shift(&yielding)
-        .write_instruction(Instruction::LoadLocal(0))
-        .write_instruction(Instruction::SetRegister(0))
-        .write_instruction(Instruction::Return)
-        .write_label(yielding)
-        .write_instruction(Instruction::Become(2));
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::SetRegister(0))
+        .instruction(Instruction::Return)
+        .label(yielding)
+        .instruction(Instruction::Become(2));
 }
