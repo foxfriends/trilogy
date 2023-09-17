@@ -1,7 +1,4 @@
-use super::asm::Asm as _;
 use crate::Value;
-use std::fmt::{self, Display};
-use trilogy_vm_derive::{Asm, Tags};
 
 /// Integer type used as the single parameter to some instructions.
 pub type Offset = u32;
@@ -12,8 +9,8 @@ pub type Offset = u32;
 /// Some op-codes are followed by single integer parameter, whose interpretation
 /// is different depending on the specific instruction.
 #[rustfmt::skip]
-#[derive(Debug, Tags, Asm)]
-#[tags(name = OpCode, derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
+#[derive(Debug, trilogy_vm_derive::OpCode)]
+#[opcode(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
 pub enum Instruction {
     // Stack
     Const(Value),
@@ -24,31 +21,31 @@ pub enum Instruction {
     TypeOf,
 
     // Heap (why?)
-    #[asm(name = "LOAD")] Load,
-    #[asm(name = "SET")] Set,
-    #[asm(name = "INIT")] Init,
-    #[asm(name = "UNSET")] Unset,
+    #[opcode(name = "LOAD")] Load,
+    #[opcode(name = "SET")] Set,
+    #[opcode(name = "INIT")] Init,
+    #[opcode(name = "UNSET")] Unset,
     Alloc,
     Free,
 
     // Variables
-    #[asm(name = "VAR")] Variable,
-    #[asm(name = "LOADL")] LoadLocal(Offset),
-    #[asm(name = "SETL")] SetLocal(Offset),
-    #[asm(name = "INITL")] InitLocal(Offset),
-    #[asm(name = "UNSETL")] UnsetLocal(Offset),
-    #[asm(name = "LOADR")] LoadRegister(Offset),
-    #[asm(name = "SETR")] SetRegister(Offset),
+    #[opcode(name = "VAR")] Variable,
+    #[opcode(name = "LOADL")] LoadLocal(Offset),
+    #[opcode(name = "SETL")] SetLocal(Offset),
+    #[opcode(name = "INITL")] InitLocal(Offset),
+    #[opcode(name = "UNSETL")] UnsetLocal(Offset),
+    #[opcode(name = "LOADR")] LoadRegister(Offset),
+    #[opcode(name = "SETR")] SetRegister(Offset),
 
     // Numbers
     Add,
-    #[asm(name = "SUB")] Subtract,
-    #[asm(name = "MUL")] Multiply,
-    #[asm(name = "DIV")] Divide,
-    #[asm(name = "REM")] Remainder,
-    #[asm(name = "INTDIV")] IntDivide,
-    #[asm(name = "POW")] Power,
-    #[asm(name = "NEG")] Negate,
+    #[opcode(name = "SUB")] Subtract,
+    #[opcode(name = "MUL")] Multiply,
+    #[opcode(name = "DIV")] Divide,
+    #[opcode(name = "REM")] Remainder,
+    #[opcode(name = "INTDIV")] IntDivide,
+    #[opcode(name = "POW")] Power,
+    #[opcode(name = "NEG")] Negate,
 
     // Collections
     Access,
@@ -68,12 +65,12 @@ pub enum Instruction {
     Or,
 
     // Bits
-    #[asm(name = "BITAND")] BitwiseAnd,
-    #[asm(name = "BITOR")] BitwiseOr,
-    #[asm(name = "BITXOR")] BitwiseXor,
-    #[asm(name = "BITNEG")] BitwiseNeg,
-    #[asm(name = "BITSHIFTL")] LeftShift,
-    #[asm(name = "BITSHIFTR")] RightShift,
+    #[opcode(name = "BITAND")] BitwiseAnd,
+    #[opcode(name = "BITOR")] BitwiseOr,
+    #[opcode(name = "BITXOR")] BitwiseXor,
+    #[opcode(name = "BITNEG")] BitwiseNeg,
+    #[opcode(name = "BITSHIFTL")] LeftShift,
+    #[opcode(name = "BITSHIFTR")] RightShift,
 
     // Tuples
     Cons,
@@ -103,7 +100,7 @@ pub enum Instruction {
     Shift(Offset),
     Reset,
     Jump(Offset),
-    #[asm(name = "JUMPF")] CondJump(Offset),
+    #[opcode(name = "JUMPF")] CondJump(Offset),
     Branch,
     Fizzle,
     Exit,
@@ -118,11 +115,5 @@ impl TryFrom<u8> for OpCode {
         } else {
             Err(value)
         }
-    }
-}
-
-impl Display for Instruction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_asm(f)
     }
 }

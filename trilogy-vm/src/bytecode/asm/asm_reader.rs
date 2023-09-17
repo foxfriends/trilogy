@@ -1,9 +1,6 @@
-mod string;
-mod value;
-
+use super::string::extract_string_prefix;
 use crate::runtime::atom::AtomInterner;
 use crate::{Offset, OpCode, Value};
-use string::extract_string_prefix;
 
 #[derive(Default)]
 pub(crate) struct AsmReader<'a> {
@@ -12,7 +9,7 @@ pub(crate) struct AsmReader<'a> {
     interner: AtomInterner,
 }
 
-pub(crate) enum Parameter {
+enum Parameter {
     Label(String),
     Offset(Offset),
 }
@@ -34,7 +31,7 @@ impl AsmReader<'_> {
         let (index, _) = src
             .char_indices()
             .find(|&(_, ch)| !(ch.is_ascii_alphanumeric() || ch == '_' || ch == '@' || ch == '-'))
-            .unwrap_or((src.len(), '\0'));
+            .unwrap_or_else(|| (src.len(), '\0'));
         if index == 0 {
             return None;
         }
@@ -67,7 +64,7 @@ impl AsmReader<'_> {
         let (index, _) = src
             .char_indices()
             .find(|(_, ch)| !ch.is_numeric())
-            .unwrap_or((src.len(), '\0'));
+            .unwrap_or_else(|| (src.len(), '\0'));
         let offset = src[..index].parse().ok()?;
         self.position += index;
         Some(offset)
@@ -101,7 +98,7 @@ impl AsmReader<'_> {
     pub fn value(&mut self) -> Option<Value> {
         self.chomp();
         let src = &self.source[self.position..];
-        match Value::parse_prefix(src, &self.interner) {
+        match Value::parse_prefix(src, self).ok() {
             Some((value, s)) => {
                 self.position += src.len() - s.len();
                 Some(value)

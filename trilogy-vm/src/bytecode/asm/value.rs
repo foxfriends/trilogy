@@ -1,28 +1,24 @@
-use super::error::ValueError;
 use super::string::{escape_sequence, extract_string_prefix};
-use super::AsmContext;
-use crate::{runtime::Procedure, Array, Bits, Record, Set, Struct, Tuple, Value};
+use crate::atom::AtomInterner;
+use crate::{Array, Bits, Record, Set, Struct, Tuple, Value};
 use std::collections::{HashMap, HashSet};
 
 impl Value {
     pub(super) fn parse_prefix<'a>(
         s: &'a str,
-        context: &mut AsmContext,
-    ) -> Result<(Self, &'a str), ValueError> {
+        atom_interner: &AtomInterner,
+    ) -> Option<(Self, &'a str)> {
         match s {
-            _ if s.starts_with("unit") => Ok((Value::Unit, &s[4..])),
-            _ if s.starts_with("true") => Ok((Value::Bool(true), &s[4..])),
-            _ if s.starts_with("false") => Ok((Value::Bool(false), &s[5..])),
+            _ if s.starts_with("unit") => Some((Value::Unit, &s[4..])),
+            _ if s.starts_with("true") => Some((Value::Bool(true), &s[4..])),
+            _ if s.starts_with("false") => Some((Value::Bool(false), &s[5..])),
             _ if s.starts_with('\'') => {
                 if s.starts_with("'\\") {
-                    let (ch, s) = escape_sequence(&s[1..]).ok_or(ValueError::InvalidCharacter)?;
-                    let s = s.strip_prefix('\'').ok_or(ValueError::InvalidCharacter)?;
-                    Ok((Value::Char(ch), s))
+                    let (ch, s) = escape_sequence(&s[1..])?;
+                    let s = s.strip_prefix('\'')?;
+                    Some((Value::Char(ch), s))
                 } else if &s[2..3] == "'" {
-                    Ok((
-                        Value::Char(s[1..2].parse().map_err(|_| ValueError::InvalidCharacter)?),
-                        &s[3..],
-                    ))
+                    Some((Value::Char(s[1..2].parse().ok()?), &s[3..]))
                 } else {
                     let s = &s[1..];
                     let atom: String = s
@@ -30,31 +26,29 @@ impl Value {
                         .take_while(|&ch| ch.is_ascii_alphanumeric() || ch == '_')
                         .collect();
                     if atom.is_empty() {
-                        Err(ValueError::InvalidAtom)
+                        None
                     } else {
                         let s = &s[atom.len()..];
-                        let atom = context.intern(&atom);
+                        let atom = atom_interner.intern(&atom);
                         if let Some(s) = s.strip_prefix('(') {
-                            let (value, s) = Value::parse_prefix(s, context)?;
-                            let s = s.strip_prefix(')').ok_or(ValueError::InvalidStruct)?;
-                            Ok((Value::Struct(Struct::new(atom, value)), s))
+                            let (value, s) = Value::parse_prefix(s, atom_interner)?;
+                            let s = s.strip_prefix(')')?;
+                            Some((Value::Struct(Struct::new(atom, value)), s))
                         } else {
-                            Ok((Value::Atom(atom), s))
+                            Some((Value::Atom(atom), s))
                         }
                     }
                 }
             }
             _ if s.starts_with('(') => {
                 let s = &s[1..];
-                let (lhs, s) = Value::parse_prefix(s, context)?;
-                let s = s.strip_prefix(':').ok_or(ValueError::InvalidTuple)?;
-                let (rhs, s) = Value::parse_prefix(s, context)?;
-                let s = s.strip_prefix(')').ok_or(ValueError::InvalidTuple)?;
-                Ok((Value::Tuple(Tuple::new(lhs, rhs)), s))
+                let (lhs, s) = Value::parse_prefix(s, atom_interner)?;
+                let s = s.strip_prefix(':')?;
+                let (rhs, s) = Value::parse_prefix(s, atom_interner)?;
+                let s = s.strip_prefix(')')?;
+                Some((Value::Tuple(Tuple::new(lhs, rhs)), s))
             }
-            _ if s.starts_with('"') => extract_string_prefix(s)
-                .map(|(v, s)| (Value::String(v), s))
-                .ok_or(ValueError::InvalidString),
+            _ if s.starts_with('"') => extract_string_prefix(s).map(|(v, s)| (Value::String(v), s)),
             _ if s.starts_with("[|") => {
                 let mut set = HashSet::new();
                 let mut s = &s[2..];
@@ -63,16 +57,16 @@ impl Value {
                         break rest;
                     }
                     if s.is_empty() {
-                        return Err(ValueError::InvalidSet);
+                        return None;
                     }
-                    let (value, rest) = Value::parse_prefix(s, context)?;
+                    let (value, rest) = Value::parse_prefix(s, atom_interner)?;
                     set.insert(value);
                     if let Some(rest) = rest.strip_prefix("|]") {
                         break rest;
                     }
-                    s = rest.strip_prefix(',').ok_or(ValueError::InvalidSet)?;
+                    s = rest.strip_prefix(',')?;
                 };
-                Ok((Value::Set(Set::from(set)), s))
+                Some((Value::Set(Set::from(set)), s))
             }
             _ if s.starts_with("{|") => {
                 let mut map = HashMap::new();
@@ -82,18 +76,18 @@ impl Value {
                         break rest;
                     }
                     if s.is_empty() {
-                        return Err(ValueError::InvalidRecord);
+                        return None;
                     }
-                    let (key, rest) = Value::parse_prefix(s, context)?;
-                    let rest = rest.strip_prefix("=>").ok_or(ValueError::InvalidRecord)?;
-                    let (value, rest) = Value::parse_prefix(rest, context)?;
+                    let (key, rest) = Value::parse_prefix(s, atom_interner)?;
+                    let rest = rest.strip_prefix("=>")?;
+                    let (value, rest) = Value::parse_prefix(rest, atom_interner)?;
                     map.insert(key, value);
                     if let Some(rest) = rest.strip_prefix("|}") {
                         break rest;
                     }
-                    s = rest.strip_prefix(',').ok_or(ValueError::InvalidRecord)?;
+                    s = rest.strip_prefix(',')?;
                 };
-                Ok((Value::Record(Record::from(map)), s))
+                Some((Value::Record(Record::from(map)), s))
             }
             _ if s.starts_with('[') => {
                 let mut array = vec![];
@@ -103,37 +97,16 @@ impl Value {
                         break rest;
                     }
                     if s.is_empty() {
-                        return Err(ValueError::InvalidArray);
+                        return None;
                     }
-                    let (value, rest) = Value::parse_prefix(s, context)?;
+                    let (value, rest) = Value::parse_prefix(s, atom_interner)?;
                     array.push(value);
                     if let Some(rest) = rest.strip_prefix(']') {
                         break rest;
                     }
-                    s = rest.strip_prefix(',').ok_or(ValueError::InvalidArray)?;
+                    s = rest.strip_prefix(',')?;
                 };
-                Ok((Value::Array(Array::from(array)), s))
-            }
-            _ if s.starts_with('&') => {
-                let s = &s[1..];
-                if let Some(s) = s.strip_prefix('(') {
-                    let numberlike: String = s.chars().take_while(|ch| ch.is_numeric()).collect();
-                    let offset = numberlike
-                        .parse()
-                        .map_err(|_| ValueError::InvalidProcedure)?;
-                    let s = s[numberlike.len()..]
-                        .strip_prefix(')')
-                        .ok_or(ValueError::InvalidProcedure)?;
-                    Ok((Value::Procedure(Procedure::new(offset)), s))
-                } else {
-                    let Some((label, s)) = AsmContext::take_label(s) else {
-                        return Err(ValueError::InvalidProcedure);
-                    };
-                    let offset = context
-                        .lookup_label(&label)
-                        .ok_or(ValueError::UnresolvedLabelReference)?;
-                    Ok((Value::Procedure(Procedure::new(offset)), s))
-                }
+                Some((Value::Array(Array::from(array)), s))
             }
             _ if s.starts_with("0b") => {
                 let bits: Bits = s[2..]
@@ -142,7 +115,7 @@ impl Value {
                     .map(|ch| ch == '1')
                     .collect();
                 let s = &s[bits.len() + 2..];
-                Ok((Value::Bits(bits), s))
+                Some((Value::Bits(bits), s))
             }
             s => {
                 let numberlike: String = s
@@ -159,8 +132,8 @@ impl Value {
                             || c == '/'
                     })
                     .collect();
-                Ok((
-                    Value::Number(numberlike.parse().map_err(|_| ValueError::InvalidNumber)?),
+                Some((
+                    Value::Number(numberlike.parse().ok()?),
                     &s[numberlike.len()..],
                 ))
             }
@@ -171,7 +144,7 @@ impl Value {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Instruction, StructuralEq};
+    use crate::StructuralEq;
     use num::{BigRational, Complex};
 
     macro_rules! test {
@@ -179,7 +152,7 @@ mod test {
             #[test]
             fn $name() {
                 let (value, tail) =
-                    Value::parse_prefix($input, &mut AsmContext::default()).unwrap();
+                    Value::parse_prefix($input, &mut AtomInterner::default()).unwrap();
                 assert!(StructuralEq::eq(&value, &$value.into()));
                 assert_eq!(tail, $tail);
             }
@@ -215,36 +188,26 @@ mod test {
         map
     }, "");
     test!(parse_record_empty => r#"{||}"#, HashMap::<Value, Value>::new(), "");
-    test!(parse_procedure => "&(123)", Procedure::new(123), "");
     test!(parse_bits => "0b111011", vec![true, true, true, false, true, true] , "");
 
     #[test]
     fn parse_atom() {
-        let mut context = AsmContext::default();
-        let atom = context.intern("hello");
-        let (value, tail) = Value::parse_prefix("'hello", &mut context).unwrap();
+        let mut atom_interner = AtomInterner::default();
+        let atom = atom_interner.intern("hello");
+        let (value, tail) = Value::parse_prefix("'hello", &mut atom_interner).unwrap();
         assert!(StructuralEq::eq(&value, &atom.into()));
         assert_eq!(tail, "");
     }
 
     #[test]
     fn parse_struct() {
-        let mut context = AsmContext::default();
-        let atom = context.intern("hello");
-        let (value, tail) = Value::parse_prefix("'hello(123)", &mut context).unwrap();
+        let mut atom_interner = AtomInterner::default();
+        let atom = atom_interner.intern("hello");
+        let (value, tail) = Value::parse_prefix("'hello(123)", &mut atom_interner).unwrap();
         assert!(StructuralEq::eq(
             &value,
             &Struct::new(atom, 123.into()).into()
         ));
-        assert_eq!(tail, "");
-    }
-
-    #[test]
-    fn parse_procedure_label() {
-        let mut context = AsmContext::default();
-        context.parse_line::<Instruction>("label:").unwrap();
-        let (value, tail) = Value::parse_prefix("&label", &mut context).unwrap();
-        assert!(StructuralEq::eq(&value, &Procedure::new(0).into()));
         assert_eq!(tail, "");
     }
 }

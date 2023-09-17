@@ -1,7 +1,6 @@
 use crate::bytecode::{LabelAlreadyInserted, Offset, OpCode};
 use crate::runtime::atom::AtomInterner;
 use crate::runtime::Procedure;
-use crate::traits::Tags;
 use crate::{Atom, Instruction, Program, Value};
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -54,7 +53,7 @@ impl ProgramBuilder {
 
     /// Writes the next instruction.
     pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
-        self.write_opcode(instruction.tag());
+        self.write_opcode(instruction.op_code());
         let offset = match instruction {
             Instruction::Const(constant) => {
                 let index = self.write_constant(constant);

@@ -1,6 +1,6 @@
 use super::Chunk;
 use crate::Procedure;
-use crate::{atom::AtomInterner, traits::Tags, Atom, Instruction, OpCode, Value};
+use crate::{atom::AtomInterner, Atom, Instruction, OpCode, Value};
 
 enum Parameter {
     Value(Value),
@@ -85,7 +85,7 @@ impl ChunkBuilder {
 
     /// Insert an instruction.
     pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
-        let opcode = instruction.tag();
+        let opcode = instruction.op_code();
         let value = match instruction {
             Instruction::Const(value) => Some(Parameter::Value(value)),
             Instruction::LoadLocal(offset) => Some(Parameter::Offset(offset)),
