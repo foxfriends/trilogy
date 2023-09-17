@@ -3,8 +3,14 @@ use crate::Value;
 use std::fmt::{self, Display};
 use trilogy_vm_derive::{Asm, Tags};
 
+/// Integer type used as the single parameter to some instructions.
 pub type Offset = u32;
 
+/// An instruction for the Trilogy VM.
+///
+/// In bytecode form, an instruction is represented as a single-byte [`OpCode`][].
+/// Some op-codes are followed by single integer parameter, whose interpretation
+/// is different depending on the specific instruction.
 #[rustfmt::skip]
 #[derive(Debug, Tags, Asm)]
 #[tags(name = OpCode, derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]

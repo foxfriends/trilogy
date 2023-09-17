@@ -1,8 +1,6 @@
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Stack};
-use crate::bytecode::{Offset, OpCode};
-use crate::runtime::{Continuation, Procedure};
-use crate::{Chunk, Value};
+use crate::{Chunk, Continuation, Offset, OpCode, Procedure, Value};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Execution {

@@ -3,11 +3,12 @@ use crate::{atom::AtomInterner, traits::Tags, Atom, Instruction, OpCode, Value};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
+/// A chunk of independently compiled source code for this VM.
 #[derive(Clone)]
 pub struct Chunk {
     labels: HashMap<String, u32>,
-    pub(super) constants: Vec<Value>,
-    pub(super) bytes: Vec<u8>,
+    pub(crate) constants: Vec<Value>,
+    pub(crate) bytes: Vec<u8>,
 }
 
 impl Debug for Chunk {
@@ -50,14 +51,17 @@ struct Line {
     value: Option<Parameter>,
 }
 
+/// Builder for constructing a [`Chunk`][].
 pub struct ChunkBuilder {
     interner: AtomInterner,
     lines: Vec<Line>,
     current_labels: Vec<String>,
 }
 
+/// An error that can occur when building a Chunk incorrectly.
 #[derive(Debug)]
 pub enum ChunkError {
+    /// A referenced label was not defined.
     MissingLabel(String),
 }
 
@@ -70,35 +74,52 @@ impl ChunkBuilder {
         }
     }
 
+    /// Instantiate an atom for the current runtime. Atoms cannot be created except
+    /// for within the context of a particular runtime's global atom table.
     pub fn atom(&mut self, atom: &str) -> Atom {
         self.interner.intern(atom)
     }
 
+    /// Add a label to the next instruction to be inserted.
+    ///
+    /// Note that if no instruction is inserted following this label, the label will
+    /// be treated as if it was not defined.
     pub fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.current_labels.push(label.into());
         self
     }
 
+    /// Insert a CONST instruction that references a procedure located at the
+    /// given label.
+    ///
+    /// ```
+    /// CONST &"label"
+    /// ```
     pub fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Const, Some(Parameter::Reference(label.into())))
     }
 
+    /// Insert a JUMP instruction to a given label.
     pub fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Jump, Some(Parameter::Label(label.into())))
     }
 
+    /// Insert a JUMPF instruction to a given label.
     pub fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::CondJump, Some(Parameter::Label(label.into())))
     }
 
+    /// Insert a CLOSE instruction to a given label.
     pub fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Close, Some(Parameter::Label(label.into())))
     }
 
+    /// Insert a SHIFT instruction to a given label.
     pub fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Shift, Some(Parameter::Label(label.into())))
     }
 
+    /// Insert an instruction.
     pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
         let opcode = instruction.tag();
         let value = match instruction {
@@ -130,6 +151,8 @@ impl ChunkBuilder {
         self
     }
 
+    /// Construct the [`Chunk`][] that was being built. Fails if any labels were referenced
+    /// but not defined.
     pub fn build(mut self) -> Result<Chunk, ChunkError> {
         let mut label_offsets = HashMap::new();
         let mut constants = vec![];

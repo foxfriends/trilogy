@@ -61,7 +61,7 @@ impl Program for TrilogyProgram<'_> {
         chunk.build().unwrap()
     }
 
-    fn chunk(&mut self, _chunk: ChunkBuilder) -> Chunk {
+    fn chunk(&mut self, _input: Value, _chunk: ChunkBuilder) -> Chunk {
         todo!()
     }
 }

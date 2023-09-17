@@ -55,6 +55,10 @@ impl HeapCell {
     }
 }
 
+/// The actual Trilogy Virtual Machine.
+///
+/// This is a stack-based VM, but also with registers and heap.
+/// Further documentation on the actual specifics will follow.
 #[derive(Clone, Debug)]
 pub struct VirtualMachine {
     atom_interner: AtomInterner,
@@ -70,6 +74,7 @@ impl Default for VirtualMachine {
 }
 
 impl VirtualMachine {
+    /// Creates a new virtual machine with empty heap and registers.
     pub fn new() -> Self {
         Self {
             atom_interner: AtomInterner::default(),
@@ -79,10 +84,15 @@ impl VirtualMachine {
         }
     }
 
+    /// Create an atom in the context of this VM.
     pub fn atom(&self, atom: &str) -> Atom {
         self.atom_interner.intern(atom)
     }
 
+    /// Run a [`Program`][] on this VM.
+    ///
+    /// This mutates the VM's internal state (heap and registers), so if reusing `VirtualMachine`
+    /// instances, be sure this is the expected behaviour.
     pub fn run(&mut self, program: &mut dyn Program) -> Result<Value, Error> {
         let chunk_builder = ChunkBuilder::new(self.atom_interner.clone());
         let entrypoint = program.entrypoint(chunk_builder);
