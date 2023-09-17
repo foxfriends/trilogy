@@ -30,6 +30,7 @@ pub enum ChunkError {
     MissingLabel(String),
 }
 
+/// Indicates that there was a syntax error in the ASM string.
 #[derive(Debug)]
 pub struct SyntaxError;
 
