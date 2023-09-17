@@ -96,12 +96,12 @@ impl Parse for VariantArgument {
 }
 
 pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
-    let ident = &ast.ident;
+    let instruction = &ast.ident;
     let vis = &ast.vis;
     let attrs: Vec<Argument> = ast
         .attrs
         .iter()
-        .find(|attr| attr.path().is_ident("opcode"))
+        .find(|attr| attr.path().is_ident("asm"))
         .map(|attr| {
             attr.parse_args_with(|input: ParseStream| {
                 input.parse_terminated(Argument::parse, Token![,])
@@ -147,7 +147,9 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
     let mut params = vec![];
     let mut conversions = vec![];
     let mut from_string = vec![];
+    let mut from_chunk = vec![];
     let mut to_string = vec![];
+    let mut instr_format = vec![];
 
     match ast.data {
         Data::Enum(DataEnum { variants, .. }) => {
@@ -156,7 +158,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                 let asm = variant
                     .attrs
                     .iter()
-                    .find(|attr| attr.path().is_ident("opcode"))
+                    .find(|attr| attr.path().is_ident("asm"))
                     .map(|attr| -> syn::Result<_> {
                         let VariantArgument::Name { value, .. } =
                             attr.parse_args::<VariantArgument>()?;
@@ -173,7 +175,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                 let attrs = variant
                     .attrs
                     .iter()
-                    .filter(|attr| !attr.path().is_ident("opcode"))
+                    .filter(|attr| !attr.path().is_ident("asm"))
                     .map(|attr| -> syn::Result<_> {
                         let tokens = &attr.meta.require_list()?.tokens;
                         Ok(quote! { #[#tokens] })
@@ -183,13 +185,25 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
 
                 match variant.fields {
                     Fields::Unit => {
-                        conversions.push(quote! { Self::#ident => #name::#ident });
-                        params.push(quote! {Self::#ident => 0 });
+                        conversions.push(quote! { #instruction::#ident => #name::#ident });
+                        params.push(quote! { #name::#ident => 0 });
+                        from_chunk.push(quote! { #name::#ident => #instruction::#ident });
+                        instr_format.push(quote! { #instruction::#ident => self.op_code().fmt(f) });
                     }
                     Fields::Unnamed(fields) => {
-                        conversions.push(quote! { Self::#ident(..)  => #name::#ident });
+                        conversions.push(quote! { #instruction::#ident(..)  => #name::#ident });
                         let count = fields.unnamed.len();
-                        params.push(quote! { Self::#ident => #count });
+                        params.push(quote! { #name::#ident => #count });
+                        let get_params = (0..count as u32).map(|i| {
+                            quote! { FromChunk::from_chunk(chunk, offset + 1 + #i * 4) }
+                        });
+                        from_chunk.push(
+                            quote! { #name::#ident => #instruction::#ident(#(#get_params),*) },
+                        );
+                        let bind = (0..count).map(|i| format_ident!("p{i}"));
+                        let reference = bind.clone();
+                        instr_format
+                            .push(quote! { #instruction::#ident(#(#bind),*) => write!(f, "{} {}", self.op_code(), #(#reference),*) });
                     }
                     field @ Fields::Named(..) => {
                         let error =
@@ -197,6 +211,8 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                                 .into_compile_error();
                         conversions.push(quote! { Self::#ident { .. } => #error });
                         params.push(quote! { Self::#ident { .. } => #error });
+                        from_chunk.push(quote! { Self::#ident { .. } => #error });
+                        instr_format.push(quote! { Self::#ident { .. } => #error });
                     }
                 };
             }
@@ -213,7 +229,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
         }
 
         impl #name {
-            pub fn params(&self)-> usize {
+            pub const fn params(&self)-> usize {
                 match self {
                     #(#params),*
                 }
@@ -240,10 +256,28 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
             }
         }
 
-        impl #ident {
-            pub fn op_code(&self) -> #name {
+        impl #instruction {
+            pub fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
+                match chunk.opcode(offset) {
+                    #(#from_chunk),*
+                }
+            }
+
+            pub const fn byte_len(&self) -> usize {
+                self.op_code().params() * 4 + 1
+            }
+
+            pub const fn op_code(&self) -> #name {
                 match self {
                     #(#conversions),*
+                }
+            }
+        }
+
+        impl std::fmt::Display for #instruction {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                match self {
+                    #(#instr_format),*
                 }
             }
         }

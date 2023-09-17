@@ -1,42 +1,121 @@
-use crate::Value;
+use crate::{Instruction, Offset, OpCode, Value};
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{self, Display};
 
 mod builder;
 
 pub use builder::ChunkBuilder;
 
 /// A chunk of independently compiled source code for this VM.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Chunk {
     labels: HashMap<String, u32>,
     pub(crate) constants: Vec<Value>,
     pub(crate) bytes: Vec<u8>,
 }
 
-impl Debug for Chunk {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Constants:")?;
-        for (i, constant) in self.constants.iter().enumerate() {
-            writeln!(f, "{i}: {constant:?}")?;
-        }
-
-        let mut needs_break = false;
-        for (i, byte) in self.bytes.iter().enumerate() {
-            for (label, _) in self
+impl Display for Chunk {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (offset, instruction) in self.into_iter().offsets() {
+            let labels = self
                 .labels
                 .iter()
-                .filter(|(_, offset)| **offset == i as u32)
-            {
-                if needs_break {
-                    writeln!(f)?;
-                    needs_break = false;
-                }
+                .filter(|&(.., &label_offset)| label_offset == offset);
+            for (label, ..) in labels {
                 writeln!(f, "{label}:")?;
             }
-            write!(f, "{byte:02x}")?;
-            needs_break = true;
+
+            "    ".fmt(f)?;
+            match &instruction {
+                Instruction::Const(Value::Procedure(procedure)) => {
+                    let offset = procedure.ip();
+                    match self.labels.iter().find(|(.., pos)| **pos == offset) {
+                        Some((label, ..)) => writeln!(f, "{} &{}", instruction.op_code(), label)?,
+                        _ => writeln!(f, "{instruction}")?,
+                    }
+                }
+                Instruction::Jump(offset)
+                | Instruction::CondJump(offset)
+                | Instruction::Shift(offset)
+                | Instruction::Close(offset) => {
+                    match self.labels.iter().find(|(.., pos)| *pos == offset) {
+                        Some((label, ..)) => writeln!(f, "{} &{}", instruction.op_code(), label)?,
+                        _ => writeln!(f, "{instruction}")?,
+                    }
+                }
+                _ => writeln!(f, "{instruction}")?,
+            }
         }
-        writeln!(f)
+
+        Ok(())
+    }
+}
+
+impl Chunk {
+    pub(crate) fn opcode(&self, offset: Offset) -> OpCode {
+        OpCode::try_from(self.bytes[offset as usize]).unwrap()
+    }
+
+    pub(crate) fn offset(&self, offset: Offset) -> Offset {
+        Offset::from_be_bytes(
+            self.bytes[offset as usize..offset as usize + 4]
+                .try_into()
+                .unwrap(),
+        )
+    }
+
+    pub(crate) fn constant(&self, offset: Offset) -> Value {
+        let index = self.offset(offset);
+        self.constants[index as usize].clone()
+    }
+}
+
+pub struct ChunkIter<'a> {
+    offset: usize,
+    chunk: &'a Chunk,
+}
+
+impl<'a> IntoIterator for &'a Chunk {
+    type Item = Instruction;
+    type IntoIter = ChunkIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ChunkIter {
+            offset: 0,
+            chunk: self,
+        }
+    }
+}
+
+impl Iterator for ChunkIter<'_> {
+    type Item = Instruction;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.offset == self.chunk.bytes.len() {
+            return None;
+        }
+        let instruction = Instruction::from_chunk(self.chunk, self.offset as u32);
+        self.offset += instruction.byte_len();
+        Some(instruction)
+    }
+}
+
+impl<'a> ChunkIter<'a> {
+    fn offsets(self) -> impl Iterator<Item = (Offset, Instruction)> + 'a {
+        struct Offsets<'a> {
+            chunks: ChunkIter<'a>,
+        }
+
+        impl Iterator for Offsets<'_> {
+            type Item = (Offset, Instruction);
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let offset = self.chunks.offset;
+                let next = self.chunks.next()?;
+                Some((offset as u32, next))
+            }
+        }
+
+        Offsets { chunks: self }
     }
 }
