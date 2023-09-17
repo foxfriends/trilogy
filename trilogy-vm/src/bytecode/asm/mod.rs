@@ -5,7 +5,6 @@ use crate::runtime::atom::AtomInterner;
 use crate::{Offset, OpCode, Value};
 use string::extract_string_prefix;
 
-#[derive(Default)]
 pub(crate) struct AsmReader<'a> {
     source: &'a str,
     position: usize,
@@ -17,7 +16,15 @@ pub(crate) enum Parameter {
     Offset(Offset),
 }
 
-impl AsmReader<'_> {
+impl<'a> AsmReader<'a> {
+    pub(crate) fn new(source: &'a str, interner: AtomInterner) -> Self {
+        Self {
+            source,
+            position: 0,
+            interner,
+        }
+    }
+
     fn label(&mut self) -> Option<String> {
         let src = &self.source[self.position..];
         if src.starts_with('"') {

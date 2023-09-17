@@ -1,8 +1,9 @@
 use super::Chunk;
+use crate::bytecode::asm::{self, AsmReader};
 use crate::Procedure;
 use crate::{atom::AtomInterner, Atom, Instruction, OpCode, Value};
 
-enum Parameter {
+pub(super) enum Parameter {
     Value(Value),
     Label(String),
     Offset(u32),
@@ -105,7 +106,7 @@ impl ChunkBuilder {
         self.write_line(opcode, value)
     }
 
-    fn write_line(&mut self, opcode: OpCode, value: Option<Parameter>) -> &mut Self {
+    pub(super) fn write_line(&mut self, opcode: OpCode, value: Option<Parameter>) -> &mut Self {
         let labels = self.current_labels.drain(..).collect();
         self.lines.push(Line {
             labels,
@@ -178,4 +179,40 @@ impl ChunkBuilder {
             bytes,
         })
     }
+
+    pub fn parse(&mut self, source: &str) -> Result<&mut Self, SyntaxError> {
+        let mut reader = AsmReader::new(source, self.interner.clone());
+
+        while !reader.is_empty() {
+            while let Some(label) = reader.label_definition() {
+                self.label(label);
+            }
+            let opcode = reader.opcode().ok_or(SyntaxError)?;
+            match opcode {
+                OpCode::Const => {
+                    self.write_line(
+                        opcode,
+                        Some(Parameter::Value(reader.value().ok_or(SyntaxError)?)),
+                    );
+                }
+                _ => match opcode.params() {
+                    0 => {
+                        self.write_line(opcode, None);
+                    }
+                    1 => {
+                        let param = match reader.parameter().ok_or(SyntaxError)? {
+                            asm::Parameter::Label(label) => Parameter::Label(label),
+                            asm::Parameter::Offset(label) => Parameter::Offset(label),
+                        };
+                        self.write_line(opcode, Some(param));
+                    }
+                    _ => unreachable!(),
+                },
+            }
+        }
+
+        Ok(self)
+    }
 }
+
+pub struct SyntaxError;
