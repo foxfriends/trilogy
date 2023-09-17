@@ -30,6 +30,9 @@ pub enum ChunkError {
     MissingLabel(String),
 }
 
+#[derive(Debug)]
+pub struct SyntaxError;
+
 impl ChunkBuilder {
     pub(crate) fn new(interner: AtomInterner) -> Self {
         Self {
@@ -214,5 +217,3 @@ impl ChunkBuilder {
         Ok(self)
     }
 }
-
-pub struct SyntaxError;
