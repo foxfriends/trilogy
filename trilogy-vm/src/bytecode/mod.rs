@@ -3,5 +3,5 @@ mod asm;
 mod chunk;
 mod instruction;
 
-pub use chunk::{Chunk, ChunkBuilder, ChunkError};
+pub use chunk::{Chunk, ChunkBuilder};
 pub use instruction::{Instruction, Offset, OpCode};
