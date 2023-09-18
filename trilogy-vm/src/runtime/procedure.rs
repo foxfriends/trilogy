@@ -44,7 +44,6 @@ struct InnerProcedure {
 }
 
 impl Procedure {
-    // TODO: probably needs to know chunk here too
     pub(crate) fn new(pointer: Offset) -> Self {
         Self(Arc::new(InnerProcedure {
             ip: pointer,
