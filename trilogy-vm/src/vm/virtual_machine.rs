@@ -764,6 +764,12 @@ impl VirtualMachine {
                     self.executions.clear();
                     return Ok(value);
                 }
+                OpCode::Chunk => {
+                    let value = ex.stack_pop()?;
+                    let builder = ChunkBuilder::new(self.atom_interner.clone());
+                    let _chunk = program.chunk(value, builder);
+                    todo!("use the chunk")
+                }
             }
         };
         Err(last_ex.error(ErrorKind::ExecutionFizzledError))

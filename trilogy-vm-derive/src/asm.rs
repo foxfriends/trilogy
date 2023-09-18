@@ -176,10 +176,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                     .attrs
                     .iter()
                     .filter(|attr| !attr.path().is_ident("asm"))
-                    .map(|attr| -> syn::Result<_> {
-                        let tokens = &attr.meta.require_list()?.tokens;
-                        Ok(quote! { #[#tokens] })
-                    })
+                    .map(|attr| -> syn::Result<_> { Ok(quote! { #attr }) })
                     .collect::<Result<Vec<_>, _>>()?;
                 declarations.push(quote! { #(#attrs)* #ident });
 
