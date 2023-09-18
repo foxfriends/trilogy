@@ -4,6 +4,7 @@ use std::fmt::{self, Display};
 use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
+/// A Trilogy Set value.
 #[derive(Clone, Default, Debug)]
 pub struct Set(Arc<Mutex<HashSet<Value>>>);
 

@@ -3,6 +3,7 @@ use bitvec::vec::BitVec;
 use std::fmt::{self, Display};
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
+/// A Trilogy Bits value.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Bits(BitVec);
 

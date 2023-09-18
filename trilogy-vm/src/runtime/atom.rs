@@ -5,6 +5,7 @@ use std::fmt::{self, Display};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 
+/// A Trilogy Atom value.
 #[derive(Clone, Debug)]
 pub struct Atom(Arc<String>);
 

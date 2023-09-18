@@ -2,6 +2,7 @@ use std::fmt::{self, Display};
 
 use super::Value;
 
+/// A Trilogy Tuple.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Debug, Hash)]
 pub struct Tuple(Box<(Value, Value)>);
 

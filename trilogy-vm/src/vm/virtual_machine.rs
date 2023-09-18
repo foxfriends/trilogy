@@ -188,7 +188,7 @@ impl VirtualMachine {
                 OpCode::LoadRegister => {
                     let offset = ex.read_offset()? as usize;
                     if offset >= self.registers.len() {
-                        return Err(ex.error(InternalRuntimeError::InvalidOffset));
+                        return Err(ex.error(InternalRuntimeError::InvalidRegister));
                     }
                     ex.stack_push(self.registers[offset].clone());
                 }
@@ -196,7 +196,7 @@ impl VirtualMachine {
                     let offset = ex.read_offset()? as usize;
                     let value = ex.stack_pop()?;
                     if offset >= self.registers.len() {
-                        return Err(ex.error(InternalRuntimeError::InvalidOffset));
+                        return Err(ex.error(InternalRuntimeError::InvalidRegister));
                     }
                     self.registers[offset] = value;
                 }

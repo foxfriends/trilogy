@@ -4,6 +4,7 @@ use std::fmt::{self, Display};
 use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
+/// A Trilogy Record value.
 #[derive(Clone, Default, Debug)]
 pub struct Record(Arc<Mutex<HashMap<Value, Value>>>);
 

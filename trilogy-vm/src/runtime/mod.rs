@@ -1,3 +1,5 @@
+//! Bridges the runtime of the Trilogy Virtual Machine to the host program.
+
 mod array;
 pub(crate) mod atom;
 mod bits;

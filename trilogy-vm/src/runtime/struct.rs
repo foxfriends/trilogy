@@ -1,6 +1,7 @@
 use super::{Atom, Value};
 use std::fmt::{self, Display};
 
+/// A Trilogy Struct value.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Struct {
     name: Atom,

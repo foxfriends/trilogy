@@ -3,6 +3,10 @@ use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::Arc;
 
+/// Trait allowing Rust functions to be called by Trilogy programs.
+///
+/// Implementing this trait manually is not recommended, see instead the `trilogy_derive`
+/// crate to generate implementations of this trait automatically.
 pub trait NativeFunction: Send + Sync {
     fn name() -> &'static str
     where
@@ -12,6 +16,9 @@ pub trait NativeFunction: Send + Sync {
     fn arity(&self) -> usize;
 }
 
+/// A native (Rust) function, which has been bridged to be callable from Trilogy.
+///
+/// From within the program this is seen as an opaque "callable" value.
 #[derive(Clone)]
 pub struct Native(Arc<dyn NativeFunction + 'static>);
 

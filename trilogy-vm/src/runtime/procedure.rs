@@ -4,6 +4,9 @@ use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
 use std::sync::Arc;
 
+/// A procedure, function, or closure from a Trilogy program.
+///
+/// From within the program this is seen as an opaque "callable" value.
 #[derive(Clone)]
 pub struct Procedure(Arc<InnerProcedure>);
 

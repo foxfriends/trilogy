@@ -7,6 +7,8 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 
+/// Generic value type, encapsulating every type of value that can be handled by
+/// the Trilogy Virtual Machine.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Value {
     Unit,

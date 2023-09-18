@@ -3,6 +3,7 @@ use std::fmt::{self, Display};
 use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
+/// A Trilogy Array value.
 #[derive(Clone, Default, Debug)]
 pub struct Array(Arc<Mutex<Vec<Value>>>);
 

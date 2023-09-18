@@ -5,6 +5,7 @@ use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
 
+/// A Trilogy Number value.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Number(Complex<BigRational>);
 

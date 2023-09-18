@@ -4,6 +4,9 @@ use std::fmt::{self, Debug};
 use std::hash::Hash;
 use std::sync::Arc;
 
+/// A continuation from a Trilogy program.
+///
+/// From within the program this is seen as an opaque "callable" value.
 #[derive(Clone)]
 pub struct Continuation(Arc<InnerContinuation>);
 
