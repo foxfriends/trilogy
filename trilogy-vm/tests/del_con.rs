@@ -1,4 +1,7 @@
-use trilogy_vm::{Number, Value, VirtualMachine};
+mod static_program;
+
+use static_program::StaticProgram;
+use trilogy_vm::{Value, VirtualMachine};
 
 #[test]
 fn test_noop() {
@@ -10,8 +13,8 @@ fn test_noop() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Unit);
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::Unit);
 }
 
 #[test]
@@ -26,8 +29,8 @@ fn test_basic() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(4)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(4));
 }
 
 #[test]
@@ -45,8 +48,8 @@ after:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(5)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(5));
 }
 
 #[test]
@@ -66,8 +69,8 @@ fn test_capture() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(4)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(4));
 }
 
 #[test]
@@ -101,8 +104,8 @@ after:
     # yield
     CALL 3
     "#;
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(3)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(3));
 }
 
 #[test]
@@ -110,18 +113,19 @@ fn test_same_stack_twice() {
     const PROGRAM: &str = r#"
     CONST 1
     SHIFT &after
-    JUMPF 17
+    JUMPF &skip
     CONST 2
     SWAP
     COPY
     CONST false
     CALL 2
+    skip:
     LOADL 0
     EXIT
     after: COPY
     CONST true
     CALL 2
     "#;
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(1)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(1));
 }

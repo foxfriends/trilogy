@@ -1,3 +1,6 @@
+mod static_program;
+
+use static_program::StaticProgram;
 use trilogy_vm::{Number, Value, VirtualMachine};
 
 #[test]
@@ -7,8 +10,11 @@ fn test_const() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(12)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::from(12)
+    );
 }
 
 #[test]
@@ -20,8 +26,11 @@ fn test_add() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(26)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::from(26)
+    );
 }
 
 #[test]
@@ -33,8 +42,11 @@ fn test_sub() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(-2)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::from(-2)
+    );
 }
 
 #[test]
@@ -46,8 +58,11 @@ fn test_div() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::rational(12, 14)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::Number(Number::rational(12, 14))
+    );
 }
 
 #[test]
@@ -59,8 +74,11 @@ fn test_mul() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(168)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::from(168)
+    );
 }
 
 #[test]
@@ -72,8 +90,8 @@ fn test_intdiv() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(2)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(2));
 }
 
 #[test]
@@ -85,8 +103,8 @@ fn test_rem() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(2)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(2));
 }
 
 #[test]
@@ -99,6 +117,9 @@ fn test_pow() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::Number(Number::from(248832)));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::from(248832)
+    );
 }

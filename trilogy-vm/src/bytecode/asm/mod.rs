@@ -2,7 +2,7 @@ mod string;
 mod value;
 
 use crate::runtime::atom::AtomInterner;
-use crate::{Offset, OpCode, Value};
+use crate::{Offset, OpCode};
 use string::extract_string_prefix;
 
 pub(crate) struct AsmReader<'a> {
@@ -14,6 +14,11 @@ pub(crate) struct AsmReader<'a> {
 pub(crate) enum Parameter {
     Label(String),
     Offset(Offset),
+}
+
+pub(crate) enum Value {
+    Label(String),
+    Value(crate::Value),
 }
 
 impl<'a> AsmReader<'a> {
@@ -105,15 +110,23 @@ impl<'a> AsmReader<'a> {
         }
     }
 
-    pub fn value(&mut self) -> Option<Value> {
-        self.chomp();
+    fn value_inner(&mut self) -> Option<crate::Value> {
         let src = &self.source[self.position..];
-        match Value::parse_prefix(src, &self.interner) {
+        match crate::Value::parse_prefix(src, &self.interner) {
             Some((value, s)) => {
                 self.position += src.len() - s.len();
                 Some(value)
             }
             None => None,
+        }
+    }
+
+    pub fn value(&mut self) -> Option<Value> {
+        self.chomp();
+        if self.source[self.position..].starts_with('&') {
+            self.label_reference().map(Value::Label)
+        } else {
+            self.value_inner().map(Value::Value)
         }
     }
 

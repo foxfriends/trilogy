@@ -51,6 +51,10 @@ impl ChunkBuilder {
 
     /// Add a label to the next instruction to be inserted.
     ///
+    /// ```asm
+    /// label:
+    /// ```
+    ///
     /// Note that if no instruction is inserted following this label, the label will
     /// be treated as if it was not defined.
     pub fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
@@ -61,29 +65,45 @@ impl ChunkBuilder {
     /// Insert a CONST instruction that references a procedure located at the
     /// given label.
     ///
-    /// ```
-    /// CONST &"label"
+    /// ```asm
+    /// CONST &label
     /// ```
     pub fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Const, Some(Parameter::Reference(label.into())))
     }
 
     /// Insert a JUMP instruction to a given label.
+    ///
+    /// ```asm
+    /// JUMP &label
+    /// ```
     pub fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Jump, Some(Parameter::Label(label.into())))
     }
 
     /// Insert a JUMPF instruction to a given label.
+    ///
+    /// ```asm
+    /// JUMPF &label
+    /// ```
     pub fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::CondJump, Some(Parameter::Label(label.into())))
     }
 
     /// Insert a CLOSE instruction to a given label.
+    ///
+    /// ```asm
+    /// CLOSE &label
+    /// ```
     pub fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Close, Some(Parameter::Label(label.into())))
     }
 
     /// Insert a SHIFT instruction to a given label.
+    ///
+    /// ```asm
+    /// SHIFT &label
+    /// ```
     pub fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Shift, Some(Parameter::Label(label.into())))
     }
@@ -184,6 +204,24 @@ impl ChunkBuilder {
         })
     }
 
+    /// Parse a string of written ASM.
+    ///
+    /// Returns a `SyntaxError` if the string is not valid.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// builder
+    ///     .parse(r#"
+    ///         CONST 1
+    ///         CONST 2
+    ///         ADD
+    ///         EXIT
+    ///     "#)
+    ///     .unwrap()
+    ///     .build()
+    ///     .unwrap()
+    /// ```
     pub fn parse(&mut self, source: &str) -> Result<&mut Self, SyntaxError> {
         let mut reader = AsmReader::new(source, self.interner.clone());
 
@@ -194,10 +232,11 @@ impl ChunkBuilder {
             let opcode = reader.opcode().ok_or(SyntaxError)?;
             match opcode {
                 OpCode::Const => {
-                    self.write_line(
-                        opcode,
-                        Some(Parameter::Value(reader.value().ok_or(SyntaxError)?)),
-                    );
+                    let value = match reader.value().ok_or(SyntaxError)? {
+                        asm::Value::Label(label) => Parameter::Reference(label),
+                        asm::Value::Value(value) => Parameter::Value(value),
+                    };
+                    self.write_line(opcode, Some(value));
                 }
                 _ => match opcode.params() {
                     0 => {
