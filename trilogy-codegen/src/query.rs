@@ -11,35 +11,35 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
         | ir::QueryValue::Pass
         | ir::QueryValue::Not(..)
         | ir::QueryValue::Direct(..) => {
-            context.write_instruction(Instruction::Const(true.into()));
+            context.instruction(Instruction::Const(true.into()));
         }
         ir::QueryValue::Lookup(lookup) => {
             write_expression(context, &lookup.path);
             context
-                .write_instruction(Instruction::Call(0))
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Cons);
+                .instruction(Instruction::Call(0))
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons);
         }
         ir::QueryValue::Element(unification) => {
             write_expression(context, &unification.expression);
             context
                 .write_procedure_reference(ITERATE_COLLECTION.to_owned())
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Call(1));
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Call(1));
         }
         ir::QueryValue::Alternative(alt) => {
             write_query_state(context, &alt.0);
             context
-                .write_instruction(Instruction::Const(().into()))
-                .write_instruction(Instruction::Cons);
+                .instruction(Instruction::Const(().into()))
+                .instruction(Instruction::Cons);
         }
         ir::QueryValue::Conjunction(alt)
         | ir::QueryValue::Implication(alt)
         | ir::QueryValue::Disjunction(alt) => {
             write_query_state(context, &alt.0);
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Cons);
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons);
         }
     }
 }
@@ -59,7 +59,7 @@ pub(crate) fn write_query(
     context: &mut Context,
     query: &ir::Query,
     on_fail: &str,
-    runtime_bindset: Option<usize>,
+    runtime_bindset: Option<u32>,
 ) {
     write_query_value(
         context,
@@ -75,7 +75,7 @@ pub(crate) fn write_query(
 #[derive(Copy, Clone)]
 pub(crate) struct Bindings<'a> {
     compile_time: &'a HashSet<Id>,
-    run_time: Option<usize>,
+    run_time: Option<u32>,
 }
 
 impl Bindings<'_> {
@@ -93,8 +93,8 @@ fn write_query_value(
     match &value {
         ir::QueryValue::Direct(unification) => {
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Swap)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             write_expression(context, &unification.expression);
             unbind(context, bound, unification.pattern.bindings());
@@ -109,39 +109,39 @@ fn write_query_value(
 
             context
                 // Done if done
-                .write_instruction(Instruction::Copy)
-                .write_instruction(Instruction::Call(0))
-                .write_instruction(Instruction::Copy)
-                .write_instruction(Instruction::Const(done.into()))
-                .write_instruction(Instruction::ValNeq)
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Call(0))
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(done.into()))
+                .instruction(Instruction::ValNeq)
                 .cond_jump(&cleanup)
                 // Runtime type error is probably expected if it's not an iterator when an
                 // iterator is expected, but we just go to  fail instead anyway because it
                 // seems easier for now. Maybe come back to that later, a panic instruction
                 // is added or something.
-                .write_instruction(Instruction::Copy)
-                .write_instruction(Instruction::TypeOf)
-                .write_instruction(Instruction::Const("struct".into()))
-                .write_instruction(Instruction::ValEq)
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::TypeOf)
+                .instruction(Instruction::Const("struct".into()))
+                .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup)
-                .write_instruction(Instruction::Destruct)
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Const(next.into()))
-                .write_instruction(Instruction::ValEq)
+                .instruction(Instruction::Destruct)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Const(next.into()))
+                .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
             unbind(context, bound, unification.pattern.bindings());
             write_pattern_match(context, &unification.pattern, on_fail);
             context
                 .jump(&continuation)
-                .write_label(cleanup)
-                .write_instruction(Instruction::Pop)
+                .label(cleanup)
+                .instruction(Instruction::Pop)
                 .jump(on_fail)
-                .write_label(continuation);
+                .label(continuation);
         }
         ir::QueryValue::Is(expr) => {
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Swap)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             write_expression(context, expr);
             context.cond_jump(on_fail);
@@ -151,23 +151,21 @@ fn write_query_value(
         }
         ir::QueryValue::Pass => {
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Swap)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
         }
         ir::QueryValue::Not(query) => {
             let on_pass = context.labeler.unique_hint("not_fail");
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Swap)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             context.scope.intermediate();
             write_query_state(context, query);
             write_query_value(context, &query.value, &on_pass, bound);
-            context.write_instruction(Instruction::Pop).jump(on_fail);
-            context
-                .write_label(on_pass)
-                .write_instruction(Instruction::Pop);
+            context.instruction(Instruction::Pop).jump(on_fail);
+            context.label(on_pass).instruction(Instruction::Pop);
             context.scope.end_intermediate();
         }
         ir::QueryValue::Conjunction(conj) => {
@@ -189,48 +187,46 @@ fn write_query_value(
                 run_time: bound.run_time,
             };
 
-            context
-                .write_instruction(Instruction::Uncons)
-                .cond_jump(&outer);
+            context.instruction(Instruction::Uncons).cond_jump(&outer);
 
             context
-                .write_label(inner.clone())
-                .write_instruction(Instruction::Uncons);
+                .label(inner.clone())
+                .instruction(Instruction::Uncons);
             context.scope.intermediate();
             write_query_value(context, &conj.1.value, &reset, rhs_bound);
             context.scope.end_intermediate();
             context
-                .write_instruction(Instruction::Cons)
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Cons)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(&out);
 
             context
-                .write_label(reset)
-                .write_instruction(Instruction::Pop)
-                .write_instruction(Instruction::Reset);
+                .label(reset)
+                .instruction(Instruction::Pop)
+                .instruction(Instruction::Reset);
 
-            context.write_label(outer.clone());
+            context.label(outer.clone());
             write_query_value(context, &conj.0.value, &cleanup, bound);
             write_query_state(context, &conj.1);
             context
-                .write_instruction(Instruction::Cons)
-                .write_instruction(Instruction::SetRegister(1))
+                .instruction(Instruction::Cons)
+                .instruction(Instruction::SetRegister(1))
                 .shift(&next)
                 .jump(&inner);
             context
-                .write_label(next)
-                .write_instruction(Instruction::LoadRegister(1))
-                .write_instruction(Instruction::Call(1))
+                .label(next)
+                .instruction(Instruction::LoadRegister(1))
+                .instruction(Instruction::Call(1))
                 .jump(&outer);
 
             context
-                .write_label(cleanup)
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Cons)
+                .label(cleanup)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons)
                 .jump(on_fail);
 
-            context.write_label(out);
+            context.label(out);
         }
         ir::QueryValue::Implication(imp) => {
             let out = context.labeler.unique_hint("impl_out");
@@ -250,35 +246,33 @@ fn write_query_value(
                 run_time: bound.run_time,
             };
 
-            context
-                .write_instruction(Instruction::Uncons)
-                .cond_jump(&outer);
+            context.instruction(Instruction::Uncons).cond_jump(&outer);
 
-            context.write_label(inner.clone());
+            context.label(inner.clone());
             write_query_value(context, &imp.1.value, &cleanup_second, rhs_bound);
             context
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(&out);
 
-            context.write_label(outer.clone());
+            context.label(outer.clone());
             write_query_value(context, &imp.0.value, &cleanup_first, bound);
-            context.write_instruction(Instruction::Pop);
+            context.instruction(Instruction::Pop);
             write_query_state(context, &imp.1);
             context.jump(&inner);
 
-            context.write_label(cleanup_first);
+            context.label(cleanup_first);
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons)
                 .jump(on_fail);
-            context.write_label(cleanup_second);
+            context.label(cleanup_second);
             context
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(on_fail);
 
-            context.write_label(out);
+            context.label(out);
         }
         ir::QueryValue::Disjunction(disj) => {
             let first = context.labeler.unique_hint("disj_first");
@@ -287,37 +281,33 @@ fn write_query_value(
             let out = context.labeler.unique_hint("disj_out");
             let cleanup = context.labeler.unique_hint("disj_cleanup");
 
-            context
-                .write_instruction(Instruction::Uncons)
-                .cond_jump(&first);
+            context.instruction(Instruction::Uncons).cond_jump(&first);
 
-            context.write_label(second.clone());
+            context.label(second.clone());
             write_query_value(context, &disj.1.value, &cleanup, bound);
             context
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(&out);
 
-            context.write_label(first);
+            context.label(first);
             write_query_value(context, &disj.0.value, &next, bound);
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons)
                 .jump(&out);
 
-            context
-                .write_label(next)
-                .write_instruction(Instruction::Pop);
+            context.label(next).instruction(Instruction::Pop);
             write_query_state(context, &disj.1);
             context.jump(&second);
 
             context
-                .write_label(cleanup)
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .label(cleanup)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(on_fail);
 
-            context.write_label(out);
+            context.label(out);
         }
         ir::QueryValue::Alternative(alt) => {
             let maybe = context.labeler.unique_hint("alt_maybe");
@@ -327,59 +317,59 @@ fn write_query_value(
             let cleanup_second = context.labeler.unique_hint("alt_cleans");
 
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Swap);
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Swap);
             let is_uncommitted = context.scope.intermediate();
 
             context
-                .write_instruction(Instruction::Uncons)
-                .write_instruction(Instruction::Copy)
-                .write_instruction(Instruction::Const(().into()))
-                .write_instruction(Instruction::ValEq)
-                .write_instruction(Instruction::SetLocal(is_uncommitted))
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::ValNeq)
+                .instruction(Instruction::Uncons)
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(().into()))
+                .instruction(Instruction::ValEq)
+                .instruction(Instruction::SetLocal(is_uncommitted))
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::ValNeq)
                 .cond_jump(&second);
             write_query_value(context, &alt.0.value, &maybe, bound);
             context
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(&out);
 
-            context.write_label(second.clone());
+            context.label(second.clone());
             write_query_value(context, &alt.1.value, &cleanup_second, bound);
             context
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons)
                 .jump(&out);
 
             context
-                .write_label(maybe)
-                .write_instruction(Instruction::LoadLocal(is_uncommitted))
+                .label(maybe)
+                .instruction(Instruction::LoadLocal(is_uncommitted))
                 .cond_jump(&cleanup_first)
-                .write_instruction(Instruction::Pop);
+                .instruction(Instruction::Pop);
             write_query_state(context, &alt.1);
             context.jump(&second);
 
             context
-                .write_label(cleanup_first)
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Pop)
+                .label(cleanup_first)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Pop)
                 .jump(on_fail);
             context
-                .write_label(cleanup_second)
-                .write_instruction(Instruction::Const(false.into()))
-                .write_instruction(Instruction::Cons)
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Pop)
+                .label(cleanup_second)
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Pop)
                 .jump(on_fail);
 
             context
-                .write_label(out)
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Pop);
+                .label(out)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Pop);
             context.scope.end_intermediate();
         }
         ir::QueryValue::Lookup(lookup) => {
@@ -393,39 +383,39 @@ fn write_query_value(
 
             context.scope.intermediate();
             context
-                .write_instruction(Instruction::Uncons)
+                .instruction(Instruction::Uncons)
                 .cond_jump(&setup)
-                .write_label(enter.clone())
-                .write_instruction(Instruction::Copy)
-                .write_instruction(Instruction::Call(0))
-                .write_instruction(Instruction::Copy)
-                .write_instruction(Instruction::Const(done.into()))
-                .write_instruction(Instruction::ValNeq)
+                .label(enter.clone())
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Call(0))
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(done.into()))
+                .instruction(Instruction::ValNeq)
                 .cond_jump(&cleanup)
-                .write_instruction(Instruction::Destruct)
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Const(next.into()))
-                .write_instruction(Instruction::ValEq)
+                .instruction(Instruction::Destruct)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Const(next.into()))
+                .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
             context.scope.intermediate();
             for pattern in &lookup.patterns {
-                context.write_instruction(Instruction::Uncons);
+                context.instruction(Instruction::Uncons);
                 unbind(context, bound, pattern.bindings());
                 write_pattern_match(context, pattern, &cleanup);
             }
             context.scope.end_intermediate();
             context
-                .write_instruction(Instruction::Pop)
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .instruction(Instruction::Pop)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(&end)
-                .write_label(cleanup)
-                .write_instruction(Instruction::Pop)
-                .write_instruction(Instruction::Const(true.into()))
-                .write_instruction(Instruction::Cons)
+                .label(cleanup)
+                .instruction(Instruction::Pop)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons)
                 .jump(on_fail);
 
-            context.write_label(setup);
+            context.label(setup);
             // We can predetermine all the statically assigned expressions
             let mut set = HashSet::new();
             for (i, pattern) in lookup.patterns.iter().enumerate() {
@@ -434,20 +424,20 @@ fn write_query_value(
                     set.insert(i.into());
                 }
             }
-            context.write_instruction(Instruction::Const(set.into()));
+            context.instruction(Instruction::Const(set.into()));
             let save_into = context.scope.intermediate();
             for (i, pattern) in lookup.patterns.iter().enumerate() {
                 pattern.bindings();
-                evaluate(context, bound, pattern, i, save_into);
+                evaluate(context, bound, pattern, i as u32, save_into);
                 context.scope.intermediate();
             }
 
-            context.write_instruction(Instruction::Call(lookup.patterns.len() + 1));
+            context.instruction(Instruction::Call(lookup.patterns.len() as u32 + 1));
             for _ in &lookup.patterns {
                 context.scope.end_intermediate();
             }
             context.scope.end_intermediate();
-            context.jump(&enter).write_label(end);
+            context.jump(&enter).label(end);
         }
     }
 }
@@ -460,15 +450,15 @@ fn unbind(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
                 let skip = context.labeler.unique_hint("skip");
                 if let Some(bindings) = bindset.run_time {
                     context
-                        .write_instruction(Instruction::LoadLocal(bindings))
-                        .write_instruction(Instruction::Const(index.into()))
-                        .write_instruction(Instruction::Contains)
-                        .write_instruction(Instruction::Not)
+                        .instruction(Instruction::LoadLocal(bindings))
+                        .instruction(Instruction::Const(index.into()))
+                        .instruction(Instruction::Contains)
+                        .instruction(Instruction::Not)
                         .jump(&skip);
                 }
                 context
-                    .write_instruction(Instruction::UnsetLocal(index))
-                    .write_label(skip);
+                    .instruction(Instruction::UnsetLocal(index))
+                    .label(skip);
             }
             _ => unreachable!(),
         }
@@ -479,8 +469,8 @@ fn evaluate(
     context: &mut Context,
     bindset: Bindings<'_>,
     value: &ir::Expression,
-    expr_index: usize,
-    save_into: usize,
+    expr_index: u32,
+    save_into: u32,
 ) {
     let vars = value.references();
     if vars.iter().all(|var| bindset.is_bound(var)) {
@@ -495,9 +485,9 @@ fn evaluate(
                 Binding::Variable(index) => {
                     let runtime_bound = bindset.run_time.unwrap();
                     context
-                        .write_instruction(Instruction::LoadLocal(runtime_bound))
-                        .write_instruction(Instruction::Const(index.into()))
-                        .write_instruction(Instruction::Contains)
+                        .instruction(Instruction::LoadLocal(runtime_bound))
+                        .instruction(Instruction::Const(index.into()))
+                        .instruction(Instruction::Contains)
                         .cond_jump(&nope);
                 }
                 _ => unreachable!(),
@@ -506,15 +496,15 @@ fn evaluate(
         let next = context.labeler.unique_hint("next");
         write_expression(context, value);
         context
-            .write_instruction(Instruction::LoadLocal(save_into))
-            .write_instruction(Instruction::Const(expr_index.into()))
-            .write_instruction(Instruction::Insert)
-            .write_instruction(Instruction::Pop)
+            .instruction(Instruction::LoadLocal(save_into))
+            .instruction(Instruction::Const(expr_index.into()))
+            .instruction(Instruction::Insert)
+            .instruction(Instruction::Pop)
             .jump(&next)
-            .write_label(nope)
-            .write_instruction(Instruction::Const(().into()))
-            .write_label(next);
+            .label(nope)
+            .instruction(Instruction::Const(().into()))
+            .label(next);
     } else {
-        context.write_instruction(Instruction::Const(().into()));
+        context.instruction(Instruction::Const(().into()));
     }
 }

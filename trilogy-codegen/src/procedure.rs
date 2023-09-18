@@ -6,11 +6,11 @@ use trilogy_vm::{Instruction, Value};
 pub(crate) fn write_procedure(mut context: Context, procedure: &ir::Procedure) {
     for (offset, parameter) in procedure.parameters.iter().enumerate() {
         context.declare_variables(parameter.bindings());
-        context.write_instruction(Instruction::LoadLocal(offset));
+        context.instruction(Instruction::LoadLocal(offset as u32));
         write_pattern_match(&mut context, parameter, END);
     }
     write_expression(&mut context, &procedure.body);
     context
-        .write_instruction(Instruction::Const(Value::Unit))
-        .write_instruction(Instruction::Return);
+        .instruction(Instruction::Const(Value::Unit))
+        .instruction(Instruction::Return);
 }

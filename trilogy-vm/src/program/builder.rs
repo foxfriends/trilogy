@@ -1,7 +1,6 @@
 use crate::bytecode::{LabelAlreadyInserted, Offset, OpCode};
 use crate::runtime::atom::AtomInterner;
 use crate::runtime::Procedure;
-use crate::traits::Tags;
 use crate::{Atom, Instruction, Program, Value};
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -53,8 +52,8 @@ impl ProgramBuilder {
     }
 
     /// Writes the next instruction.
-    pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
-        self.write_opcode(instruction.tag());
+    pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
+        self.write_opcode(instruction.op_code());
         let offset = match instruction {
             Instruction::Const(constant) => {
                 let index = self.write_constant(constant);
@@ -86,7 +85,7 @@ impl ProgramBuilder {
 
     /// Writes a label at the position of the next instruction in the program. Returns the
     /// offset of that label, or an error if a label with this name has already been set.
-    pub fn write_label(&mut self, label: String) -> Result<&mut Self, LabelAlreadyInserted> {
+    pub fn label(&mut self, label: String) -> Result<&mut Self, LabelAlreadyInserted> {
         if self
             .labels
             .insert(label.clone(), self.bytes.len())

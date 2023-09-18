@@ -1,28 +1,37 @@
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Stack};
-use crate::bytecode::OpCode;
-use crate::runtime::{Continuation, Procedure};
-use crate::Value;
+use crate::{Chunk, Continuation, Offset, OpCode, Procedure, Value};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(crate) struct Execution {
-    pub ip: usize,
+    chunk: Chunk,
+    pub ip: Offset,
     pub stack: Stack,
-    stack_stack: Vec<(usize, Stack)>,
+    stack_stack: Vec<(Offset, Stack)>,
 }
 
 impl Execution {
+    pub fn new(chunk: Chunk) -> Self {
+        Self {
+            chunk,
+            ip: 0,
+            stack: Stack::default(),
+            stack_stack: vec![],
+        }
+    }
+
     pub fn branch(&mut self) -> Self {
         let branch = self.stack.branch();
         Self {
+            chunk: self.chunk.clone(),
             stack: branch,
             stack_stack: vec![],
             ip: self.ip,
         }
     }
 
-    pub fn read_opcode(&mut self, instructions: &[u8]) -> Result<OpCode, Error> {
-        let instruction = instructions[self.ip]
+    pub fn read_opcode(&mut self) -> Result<OpCode, Error> {
+        let instruction = self.chunk.bytes[self.ip as usize]
             .try_into()
             .map_err(|_| InternalRuntimeError::InvalidOpcode)
             .map_err(|k| self.error(k))?;
@@ -30,15 +39,23 @@ impl Execution {
         Ok(instruction)
     }
 
-    pub fn read_offset(&mut self, instructions: &[u8]) -> Result<usize, Error> {
+    pub fn read_offset(&mut self) -> Result<Offset, Error> {
         let value = u32::from_be_bytes(
-            instructions[self.ip..self.ip + 4]
+            self.chunk.bytes[self.ip as usize..self.ip as usize + 4]
                 .try_into()
-                .map_err(|_| InternalRuntimeError::InvalidOffset)
-                .map_err(|k| self.error(k))?,
+                .unwrap(),
         );
         self.ip += 4;
-        Ok(value as usize)
+        Ok(value)
+    }
+
+    pub fn read_constant(&mut self) -> Result<Value, Error> {
+        let index = self.read_offset()?;
+        self.chunk
+            .constants
+            .get(index as usize)
+            .map(|value| value.structural_clone())
+            .ok_or_else(|| self.error(InternalRuntimeError::MissingConstant))
     }
 
     pub fn current_continuation(&mut self) -> Continuation {

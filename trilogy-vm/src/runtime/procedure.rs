@@ -1,3 +1,4 @@
+use crate::bytecode::Offset;
 use crate::vm::Stack;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
@@ -35,26 +36,27 @@ impl Hash for Procedure {
 
 #[derive(Clone, Debug)]
 struct InnerProcedure {
-    ip: usize,
+    ip: Offset,
     stack: Option<Stack>,
 }
 
 impl Procedure {
-    pub(crate) fn new(pointer: usize) -> Self {
+    // TODO: probably needs to know chunk here too
+    pub(crate) fn new(pointer: Offset) -> Self {
         Self(Arc::new(InnerProcedure {
             ip: pointer,
             stack: None,
         }))
     }
 
-    pub(crate) fn new_closure(pointer: usize, stack: Stack) -> Self {
+    pub(crate) fn new_closure(pointer: Offset, stack: Stack) -> Self {
         Self(Arc::new(InnerProcedure {
             ip: pointer,
             stack: Some(stack),
         }))
     }
 
-    pub(crate) fn ip(&self) -> usize {
+    pub(crate) fn ip(&self) -> Offset {
         self.0.ip
     }
 

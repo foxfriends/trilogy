@@ -1,8 +1,9 @@
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Execution};
+use crate::atom::AtomInterner;
 use crate::bytecode::OpCode;
 use crate::runtime::Number;
-use crate::{Atom, Program, ReferentialEq, Struct, StructuralEq};
+use crate::{Atom, ChunkBuilder, Program, ReferentialEq, Struct, StructuralEq};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -54,38 +55,48 @@ impl HeapCell {
     }
 }
 
+/// The actual Trilogy Virtual Machine.
+///
+/// This is a stack-based VM, but also with registers and heap.
+/// Further documentation on the actual specifics will follow.
 #[derive(Clone, Debug)]
 pub struct VirtualMachine {
-    program: Program,
+    atom_interner: AtomInterner,
     executions: VecDeque<Execution>,
     registers: Vec<Value>,
     heap: Vec<HeapCell>,
 }
 
+impl Default for VirtualMachine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VirtualMachine {
-    pub fn load(program: Program) -> Self {
+    /// Creates a new virtual machine with empty heap and registers.
+    pub fn new() -> Self {
         Self {
-            program,
+            atom_interner: AtomInterner::default(),
             executions: VecDeque::with_capacity(8),
             registers: vec![Value::Unit; 8],
             heap: Vec::with_capacity(8),
         }
     }
 
-    pub fn program(&self) -> &Program {
-        &self.program
+    /// Create an atom in the context of this VM.
+    pub fn atom(&self, atom: &str) -> Atom {
+        self.atom_interner.intern(atom)
     }
 
-    pub fn atom(&self, key: &str) -> Option<Atom> {
-        self.program.atom(key)
-    }
-
-    pub fn intern(&mut self, key: &str) -> Atom {
-        self.program.intern(key)
-    }
-
-    pub fn run(&mut self) -> Result<Value, Error> {
-        self.executions.push_back(Execution::default());
+    /// Run a [`Program`][] on this VM.
+    ///
+    /// This mutates the VM's internal state (heap and registers), so if reusing `VirtualMachine`
+    /// instances, be sure this is the expected behaviour.
+    pub fn run(&mut self, program: &mut dyn Program) -> Result<Value, Error> {
+        let chunk_builder = ChunkBuilder::new(self.atom_interner.clone());
+        let entrypoint = program.entrypoint(chunk_builder);
+        self.executions.push_back(Execution::new(entrypoint));
         // In future, multiple executions will likely be run in parallel on different
         // threads. Maybe this should be a compile time option, where the alternatives
         // are depth-first, or breadth-first multitasking.
@@ -97,17 +108,11 @@ impl VirtualMachine {
         let ep = 0;
         let last_ex = loop {
             let ex = &mut self.executions[ep];
-            let instruction = ex.read_opcode(&self.program.instructions)?;
+            let instruction = ex.read_opcode()?;
             match instruction {
                 OpCode::Const => {
-                    let index = ex.read_offset(&self.program.instructions)?;
-                    ex.stack_push(
-                        self.program
-                            .constants
-                            .get(index)
-                            .map(|value| value.structural_clone())
-                            .ok_or_else(|| ex.error(InternalRuntimeError::MissingConstant))?,
-                    );
+                    let constant = ex.read_constant()?;
+                    ex.stack_push(constant);
                 }
                 OpCode::Load => {
                     let pointer = ex.stack_pop_pointer()?;
@@ -159,36 +164,36 @@ impl VirtualMachine {
                     self.heap[pointer] = HeapCell::Freed;
                 }
                 OpCode::LoadLocal => {
-                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()? as usize;
                     ex.stack_push(ex.read_local(offset)?);
                 }
                 OpCode::Variable => {
                     ex.push_unset();
                 }
                 OpCode::SetLocal => {
-                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()? as usize;
                     let value = ex.stack_pop()?;
                     ex.set_local(offset, value)?;
                 }
                 OpCode::UnsetLocal => {
-                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()? as usize;
                     ex.unset_local(offset)?;
                 }
                 OpCode::InitLocal => {
-                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()? as usize;
                     let value = ex.stack_pop()?;
                     let did_set = ex.init_local(offset, value)?;
                     ex.stack_push(did_set.into());
                 }
                 OpCode::LoadRegister => {
-                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()? as usize;
                     if offset >= self.registers.len() {
                         return Err(ex.error(InternalRuntimeError::InvalidOffset));
                     }
                     ex.stack_push(self.registers[offset].clone());
                 }
                 OpCode::SetRegister => {
-                    let offset = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()? as usize;
                     let value = ex.stack_pop()?;
                     if offset >= self.registers.len() {
                         return Err(ex.error(InternalRuntimeError::InvalidOffset));
@@ -687,12 +692,12 @@ impl VirtualMachine {
                     ex.stack_push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
                 }
                 OpCode::Call => {
-                    let arity = ex.read_offset(&self.program.instructions)?;
-                    ex.call(arity)?;
+                    let arity = ex.read_offset()?;
+                    ex.call(arity as usize)?;
                 }
                 OpCode::Become => {
-                    let arity = ex.read_offset(&self.program.instructions)?;
-                    ex.r#become(arity)?;
+                    let arity = ex.read_offset()?;
+                    ex.r#become(arity as usize)?;
                 }
                 OpCode::Return => {
                     let return_value = ex.stack_pop()?;
@@ -700,28 +705,16 @@ impl VirtualMachine {
                     ex.stack_push(return_value);
                 }
                 OpCode::Close => {
-                    let jump = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()?;
                     let closure = ex.current_closure();
                     ex.stack_push(Value::Procedure(closure));
-                    ex.ip += jump;
-                }
-                OpCode::CloseBack => {
-                    let jump = ex.read_offset(&self.program.instructions)?;
-                    let closure = ex.current_closure();
-                    ex.stack_push(Value::Procedure(closure));
-                    ex.ip -= jump;
+                    ex.ip = offset;
                 }
                 OpCode::Shift => {
-                    let jump = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()?;
                     let continuation = ex.current_continuation();
                     ex.stack_push(Value::Continuation(continuation));
-                    ex.ip += jump;
-                }
-                OpCode::ShiftBack => {
-                    let jump = ex.read_offset(&self.program.instructions)?;
-                    let continuation = ex.current_continuation();
-                    ex.stack_push(Value::Continuation(continuation));
-                    ex.ip -= jump;
+                    ex.ip = offset;
                 }
                 OpCode::Reset => {
                     let return_value = ex.stack_pop()?;
@@ -729,27 +722,14 @@ impl VirtualMachine {
                     ex.stack_push(return_value);
                 }
                 OpCode::Jump => {
-                    let dist = ex.read_offset(&self.program.instructions)?;
-                    ex.ip += dist;
-                }
-                OpCode::JumpBack => {
-                    let dist = ex.read_offset(&self.program.instructions)?;
-                    ex.ip -= dist;
+                    let offset = ex.read_offset()?;
+                    ex.ip = offset;
                 }
                 OpCode::CondJump => {
-                    let dist = ex.read_offset(&self.program.instructions)?;
+                    let offset = ex.read_offset()?;
                     let cond = ex.stack_pop()?;
                     match cond {
-                        Value::Bool(false) => ex.ip += dist,
-                        Value::Bool(true) => {}
-                        _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
-                    }
-                }
-                OpCode::CondJumpBack => {
-                    let dist = ex.read_offset(&self.program.instructions)?;
-                    let cond = ex.stack_pop()?;
-                    match cond {
-                        Value::Bool(false) => ex.ip -= dist,
+                        Value::Bool(false) => ex.ip = offset,
                         Value::Bool(true) => {}
                         _ => return Err(ex.error(ErrorKind::RuntimeTypeError)),
                     }

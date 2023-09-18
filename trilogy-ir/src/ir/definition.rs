@@ -48,14 +48,7 @@ impl Definition {
                     }
                 }
             }
-            syntax::DefinitionItem::ExternalModule(ast) => {
-                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Module(module) = &mut definition.item else {
-                    unreachable!()
-                };
-                module.module = analyzer.resolve(ast.locator.as_ref());
-            }
+            syntax::DefinitionItem::ExternalModule(..) => {}
             syntax::DefinitionItem::Function(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
@@ -140,7 +133,10 @@ impl Definition {
                 let name = Identifier::declare(analyzer, ast.head.name.clone());
                 Self {
                     span: ast.span(),
-                    item: DefinitionItem::Module(Box::new(ModuleDefinition::declare(name))),
+                    item: DefinitionItem::Module(Box::new(ModuleDefinition::external(
+                        name,
+                        ast.locator.value(),
+                    ))),
                     is_exported: false,
                 }
             }

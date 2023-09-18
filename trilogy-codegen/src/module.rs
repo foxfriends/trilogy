@@ -9,9 +9,6 @@ pub(crate) fn write_module(
     parent_statics: Option<&HashMap<Id, String>>,
     is_entrypoint: bool,
 ) {
-    let current_location = module.location();
-    context.write_label(module.location().to_owned());
-
     let mut statics = module
         .definitions()
         .iter()
@@ -36,7 +33,7 @@ pub(crate) fn write_module(
     for def in module.definitions() {
         match &def.item {
             ir::DefinitionItem::Module(definition) => {
-                context.write_module(&statics, definition, current_location);
+                context.write_module(Some(&statics), definition);
             }
             ir::DefinitionItem::Function(function) => {
                 context.write_function(&statics, function);
@@ -46,7 +43,7 @@ pub(crate) fn write_module(
             }
             ir::DefinitionItem::Procedure(procedure) => {
                 if is_entrypoint && procedure.name.id.name() == Some("main") {
-                    context.write_label("main".to_owned());
+                    context.label("main");
                 }
                 context.write_procedure(&statics, procedure);
             }

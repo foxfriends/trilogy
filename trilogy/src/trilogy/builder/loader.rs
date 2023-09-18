@@ -3,6 +3,7 @@ use crate::location::Location;
 use crate::LoadError;
 use reqwest::blocking::Client;
 use std::collections::{HashMap, VecDeque};
+use std::fmt::{self, Display};
 use std::fs;
 use trilogy_parser::syntax::{DefinitionItem, Document, ModuleDefinition};
 use trilogy_parser::{Parse, Parser};
@@ -13,6 +14,41 @@ use url::Url;
 pub struct Module {
     location: Location,
     contents: Parse<Document>,
+}
+
+#[derive(Debug)]
+pub enum ResolverError<E: std::error::Error> {
+    InvalidScheme(String),
+    Cache(E),
+    External(Box<dyn std::error::Error>),
+}
+
+impl<E: std::error::Error> ResolverError<E> {
+    pub(super) fn external(e: impl std::error::Error + 'static) -> Self {
+        Self::External(Box::new(e))
+    }
+}
+
+impl<E: std::error::Error> Display for ResolverError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cache(error) => write!(f, "{error}"),
+            Self::InvalidScheme(scheme) => {
+                write!(f, "invalid scheme in module location `{}`", scheme)
+            }
+            Self::External(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl<E: std::error::Error> std::error::Error for ResolverError<E> {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        match self {
+            Self::Cache(e) => Some(e),
+            Self::External(e) => Some(&**e),
+            _ => None,
+        }
+    }
 }
 
 impl Module {
@@ -68,38 +104,40 @@ where
         }
     }
 
-    fn download(&self, url: &Url) -> Result<String, LoadError<E>> {
+    fn download(&self, url: &Url) -> Result<String, ResolverError<E>> {
         self.client
             .get(url.clone())
             .header("Accept", "text/x-trilogy")
             .send()
-            .map_err(LoadError::external)?
+            .map_err(ResolverError::external)?
             .text()
-            .map_err(LoadError::external)
+            .map_err(ResolverError::external)
     }
 
     fn request(&mut self, location: Location) {
         self.module_queue.push_back(location);
     }
 
-    fn load_source(&mut self, location: &Location) -> Result<Option<String>, LoadError<E>> {
+    fn load_source(&mut self, location: &Location) -> Result<Option<String>, ResolverError<E>> {
         if self.cache.has(location) {
-            return Ok(Some(self.cache.load(location).map_err(LoadError::Cache)?));
+            return Ok(Some(
+                self.cache.load(location).map_err(ResolverError::Cache)?,
+            ));
         }
         let url = location.as_ref();
         match url.scheme() {
             "file" => Ok(Some(
-                fs::read_to_string(url.path()).map_err(LoadError::external)?,
+                fs::read_to_string(url.path()).map_err(ResolverError::external)?,
             )),
             "http" | "https" => {
-                let source = self.download(url).map_err(LoadError::external)?;
+                let source = self.download(url).map_err(ResolverError::external)?;
                 self.cache
                     .save(location, &source)
-                    .map_err(LoadError::Cache)?;
+                    .map_err(ResolverError::Cache)?;
                 Ok(Some(source))
             }
             "trilogy" => Ok(None),
-            scheme => Err(LoadError::InvalidScheme(scheme.to_owned())),
+            scheme => Err(ResolverError::InvalidScheme(scheme.to_owned())),
         }
     }
 }
@@ -117,7 +155,10 @@ pub fn load<E: std::error::Error + 'static>(
         if modules.contains_key(url) {
             continue;
         };
-        let Some(source) = loader.load_source(&location)? else {
+        let Some(source) = loader
+            .load_source(&location)
+            .map_err(|er| LoadError::Resolver(vec![er]))?
+        else {
             continue;
         };
         let module = Module::new(location.clone(), &source);

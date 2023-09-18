@@ -1,13 +1,17 @@
-use super::asm::Asm as _;
-use crate::Value;
-use std::fmt::{self, Display};
-use trilogy_vm_derive::{Asm, Tags};
+use crate::{Chunk, Value};
+use trilogy_vm_derive::Asm;
 
-pub type Offset = usize;
+/// Integer type used as the single parameter to some instructions.
+pub type Offset = u32;
 
+/// An instruction for the Trilogy VM.
+///
+/// In bytecode form, an instruction is represented as a single-byte [`OpCode`][].
+/// Some op-codes are followed by single integer parameter, whose interpretation
+/// is different depending on the specific instruction.
 #[rustfmt::skip]
-#[derive(Debug, Tags, Asm)]
-#[tags(name = OpCode, derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
+#[derive(Debug, Asm)]
+#[asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
 pub enum Instruction {
     // Stack
     Const(Value),
@@ -94,42 +98,13 @@ pub enum Instruction {
     Become(Offset),
     Return,
     Close(Offset),
-    #[asm(name = "RCLOSE")] CloseBack(Offset),
     Shift(Offset),
-    #[asm(name = "RSHIFT")] ShiftBack(Offset),
     Reset,
     Jump(Offset),
-    #[asm(name = "RJUMP")] JumpBack(Offset),
     #[asm(name = "JUMPF")] CondJump(Offset),
-    #[asm(name = "RJUMPF")] CondJumpBack(Offset),
     Branch,
     Fizzle,
     Exit,
-}
-
-impl Instruction {
-    pub fn size(&self) -> usize {
-        match self {
-            Self::Const(..) => 5,
-            Self::LoadLocal(..) => 5,
-            Self::SetLocal(..) => 5,
-            Self::InitLocal(..) => 5,
-            Self::UnsetLocal(..) => 5,
-            Self::LoadRegister(..) => 5,
-            Self::SetRegister(..) => 5,
-            Self::Call(..) => 5,
-            Self::Become(..) => 5,
-            Self::Close(..) => 5,
-            Self::CloseBack(..) => 5,
-            Self::Shift(..) => 5,
-            Self::ShiftBack(..) => 5,
-            Self::Jump(..) => 5,
-            Self::JumpBack(..) => 5,
-            Self::CondJump(..) => 5,
-            Self::CondJumpBack(..) => 5,
-            _ => 1,
-        }
-    }
 }
 
 impl TryFrom<u8> for OpCode {
@@ -144,8 +119,18 @@ impl TryFrom<u8> for OpCode {
     }
 }
 
-impl Display for Instruction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_asm(f)
+trait FromChunk {
+    fn from_chunk(chunk: &Chunk, offset: Offset) -> Self;
+}
+
+impl FromChunk for Offset {
+    fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
+        chunk.offset(offset)
+    }
+}
+
+impl FromChunk for Value {
+    fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
+        chunk.constant(offset)
     }
 }

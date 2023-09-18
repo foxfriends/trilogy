@@ -4,20 +4,16 @@ mod scope;
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
 use trilogy_ir::Id;
-use trilogy_vm::{Atom, Instruction, OpCode, ProgramBuilder};
+use trilogy_vm::{Atom, ChunkBuilder, Instruction};
 
 pub(crate) struct Context<'a> {
     pub labeler: &'a mut Labeler,
     pub scope: Scope<'a>,
-    builder: &'a mut ProgramBuilder,
+    builder: &'a mut ChunkBuilder,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(
-        builder: &'a mut ProgramBuilder,
-        labeler: &'a mut Labeler,
-        scope: Scope<'a>,
-    ) -> Self {
+    pub fn new(builder: &'a mut ChunkBuilder, labeler: &'a mut Labeler, scope: Scope<'a>) -> Self {
         Self {
             labeler,
             scope,
@@ -26,48 +22,37 @@ impl<'a> Context<'a> {
     }
 
     pub fn write_procedure_reference(&mut self, label: String) -> &mut Self {
-        let constant = self.builder.store_label(label);
-        self.builder.write_reuse_constant(constant);
+        self.builder.reference(label);
         self
     }
 
-    pub fn cond_jump(&mut self, label: &str) -> &mut Self {
-        self.builder
-            .write_opcode(OpCode::CondJump)
-            .write_offset_label(label.to_owned());
+    pub fn cond_jump(&mut self, label: impl Into<String>) -> &mut Self {
+        self.builder.cond_jump(label);
         self
     }
 
-    pub fn jump(&mut self, label: &str) -> &mut Self {
-        self.builder
-            .write_opcode(OpCode::Jump)
-            .write_offset_label(label.to_owned());
+    pub fn jump(&mut self, label: impl Into<String>) -> &mut Self {
+        self.builder.jump(label);
         self
     }
 
-    pub fn shift(&mut self, label: &str) -> &mut Self {
-        self.builder
-            .write_opcode(OpCode::Shift)
-            .write_offset_label(label.to_owned());
+    pub fn shift(&mut self, label: impl Into<String>) -> &mut Self {
+        self.builder.shift(label);
         self
     }
 
-    pub fn close(&mut self, label: &str) -> &mut Self {
-        self.builder
-            .write_opcode(OpCode::Close)
-            .write_offset_label(label.to_owned());
+    pub fn close(&mut self, label: impl Into<String>) -> &mut Self {
+        self.builder.close(label);
         self
     }
 
-    pub fn write_instruction(&mut self, instruction: Instruction) -> &mut Self {
-        self.builder.write_instruction(instruction);
+    pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
+        self.builder.instruction(instruction);
         self
     }
 
-    pub fn write_label(&mut self, label: String) -> &mut Self {
-        self.builder
-            .write_label(label)
-            .expect("should not write same label twice");
+    pub fn label(&mut self, label: impl Into<String>) -> &mut Self {
+        self.builder.label(label);
         self
     }
 
@@ -80,8 +65,8 @@ impl<'a> Context<'a> {
         for id in variables {
             if self.scope.declare_variable(id.clone()) {
                 let label = self.labeler.var(&id);
-                self.write_label(label);
-                self.write_instruction(Instruction::Variable);
+                self.label(label);
+                self.instruction(Instruction::Variable);
                 n += 1;
             }
         }
@@ -91,7 +76,7 @@ impl<'a> Context<'a> {
     pub fn undeclare_variables(&mut self, variables: impl IntoIterator<Item = Id>, pop: bool) {
         for id in variables {
             if self.scope.undeclare_variable(&id) && pop {
-                self.write_instruction(Instruction::Pop);
+                self.instruction(Instruction::Pop);
             }
         }
     }

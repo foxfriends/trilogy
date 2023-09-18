@@ -1,3 +1,6 @@
+mod static_program;
+
+use static_program::StaticProgram;
 use trilogy_vm::{Value, VirtualMachine};
 
 #[test]
@@ -15,8 +18,8 @@ main:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::from(3));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(3));
 }
 
 #[test]
@@ -47,8 +50,11 @@ main:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::from(15));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::from(15)
+    );
 }
 
 #[test]
@@ -78,6 +84,9 @@ main:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::load(PROGRAM.parse().unwrap());
-    assert_eq!(vm.run().unwrap(), Value::from(15));
+    let mut vm = VirtualMachine::new();
+    assert_eq!(
+        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
+        Value::from(15)
+    );
 }

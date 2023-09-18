@@ -1,3 +1,4 @@
+use crate::bytecode::Offset;
 use crate::vm::Stack;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
@@ -17,7 +18,7 @@ impl Debug for Continuation {
 
 #[derive(Clone, Debug)]
 struct InnerContinuation {
-    ip: usize,
+    ip: Offset,
     stack: Stack,
 }
 
@@ -36,15 +37,15 @@ impl Hash for Continuation {
 }
 
 impl Continuation {
-    pub(crate) fn new(ip: usize, stack: Stack) -> Self {
+    pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
         Self(Arc::new(InnerContinuation { ip, stack }))
     }
 
-    pub fn ip(&self) -> usize {
+    pub(crate) fn ip(&self) -> Offset {
         self.0.ip
     }
 
-    pub fn stack(&self) -> Stack {
+    pub(crate) fn stack(&self) -> Stack {
         self.0.stack.clone()
     }
 }

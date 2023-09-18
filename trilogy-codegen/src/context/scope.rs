@@ -4,20 +4,20 @@ use trilogy_vm::Instruction;
 
 #[derive(Clone, Debug)]
 pub(crate) enum Binding<'a> {
-    Variable(usize),
+    Variable(u32),
     Static(&'a str),
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct Scope<'a> {
     statics: &'a HashMap<Id, String>,
-    locals: HashMap<Id, usize>,
+    locals: HashMap<Id, u32>,
     parameters: usize,
 
-    kw_resume: Vec<usize>,
-    kw_cancel: Vec<usize>,
-    kw_break: Vec<usize>,
-    kw_continue: Vec<usize>,
+    kw_resume: Vec<u32>,
+    kw_cancel: Vec<u32>,
+    kw_break: Vec<u32>,
+    kw_continue: Vec<u32>,
 }
 
 impl<'a> Scope<'a> {
@@ -37,7 +37,8 @@ impl<'a> Scope<'a> {
         if self.locals.contains_key(&id) {
             return false;
         }
-        self.locals.insert(id, self.parameters + self.locals.len());
+        self.locals
+            .insert(id, (self.parameters + self.locals.len()) as u32);
         true
     }
 
@@ -53,26 +54,26 @@ impl<'a> Scope<'a> {
             .or_else(|| self.statics.get(id).map(|s| Binding::Static(s)))
     }
 
-    pub fn closure(&mut self, parameters: usize) -> usize {
+    pub fn closure(&mut self, parameters: usize) -> u32 {
         let offset = self.parameters + self.locals.len();
         self.parameters += parameters;
-        offset
+        offset as u32
     }
 
     pub fn unclosure(&mut self, parameters: usize) {
         self.parameters -= parameters;
     }
 
-    pub fn intermediate(&mut self) -> usize {
+    pub fn intermediate(&mut self) -> u32 {
         self.parameters += 1;
-        self.parameters + self.locals.len() - 1
+        (self.parameters + self.locals.len() - 1) as u32
     }
 
     pub fn end_intermediate(&mut self) {
         self.parameters -= 1;
     }
 
-    pub fn push_break(&mut self) -> usize {
+    pub fn push_break(&mut self) -> u32 {
         let offset = self.intermediate();
         self.kw_break.push(offset);
         offset
@@ -88,7 +89,7 @@ impl<'a> Scope<'a> {
         Some(Instruction::LoadLocal(*offset))
     }
 
-    pub fn push_continue(&mut self) -> usize {
+    pub fn push_continue(&mut self) -> u32 {
         let offset = self.intermediate();
         self.kw_continue.push(offset);
         offset
@@ -104,7 +105,7 @@ impl<'a> Scope<'a> {
         Some(Instruction::LoadLocal(*offset))
     }
 
-    pub fn push_cancel(&mut self) -> usize {
+    pub fn push_cancel(&mut self) -> u32 {
         let offset = self.intermediate();
         self.kw_cancel.push(offset);
         offset
@@ -120,7 +121,7 @@ impl<'a> Scope<'a> {
         Some(Instruction::LoadLocal(*offset))
     }
 
-    pub fn push_resume(&mut self) -> usize {
+    pub fn push_resume(&mut self) -> u32 {
         let offset = self.intermediate();
         self.kw_resume.push(offset);
         offset

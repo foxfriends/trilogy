@@ -1,5 +1,7 @@
-pub(crate) mod asm;
+#[allow(dead_code)]
+mod asm;
+mod chunk;
 mod instruction;
 
-pub use asm::{AsmError, LabelAlreadyInserted};
+pub use chunk::{Chunk, ChunkBuilder};
 pub use instruction::{Instruction, Offset, OpCode};

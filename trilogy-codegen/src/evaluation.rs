@@ -30,7 +30,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_expression(context, expr);
                 let Some(next_expr) = seq.next() else { break };
                 expr = next_expr;
-                context.write_instruction(Instruction::Pop);
+                context.instruction(Instruction::Pop);
             }
         }
         ir::Value::Assignment(assignment) => match &assignment.lhs.value {
@@ -39,8 +39,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 match context.scope.lookup(&var.id) {
                     Some(Binding::Variable(index)) => {
                         context
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::SetLocal(index));
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::SetLocal(index));
                     }
                     _ => unreachable!("Only variables can be assigned to"),
                 }
@@ -54,7 +54,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     write_expression(context, &assignment.rhs);
                     context.scope.end_intermediate();
                     context.scope.end_intermediate();
-                    context.write_instruction(Instruction::Assign);
+                    context.instruction(Instruction::Assign);
                 }
                 _ => unreachable!("LValue applications must be access"),
             },
@@ -67,29 +67,29 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.end_intermediate();
         }
         ir::Value::Number(value) => {
-            context.write_instruction(Instruction::Const(value.value().clone().into()));
+            context.instruction(Instruction::Const(value.value().clone().into()));
         }
         ir::Value::Character(value) => {
-            context.write_instruction(Instruction::Const((*value).into()));
+            context.instruction(Instruction::Const((*value).into()));
         }
         ir::Value::String(value) => {
-            context.write_instruction(Instruction::Const(value.into()));
+            context.instruction(Instruction::Const(value.into()));
         }
         ir::Value::Bits(value) => {
-            context.write_instruction(Instruction::Const(value.value().clone().into()));
+            context.instruction(Instruction::Const(value.value().clone().into()));
         }
         ir::Value::Boolean(value) => {
-            context.write_instruction(Instruction::Const((*value).into()));
+            context.instruction(Instruction::Const((*value).into()));
         }
         ir::Value::Unit => {
-            context.write_instruction(Instruction::Const(Value::Unit));
+            context.instruction(Instruction::Const(Value::Unit));
         }
         ir::Value::Conjunction(..) => unreachable!("Conjunction cannot appear in an evaluation"),
         ir::Value::Disjunction(..) => unreachable!("Disjunction cannot appear in an evaluation"),
         ir::Value::Wildcard => unreachable!("Wildcard cannot appear in an evaluation"),
         ir::Value::Atom(value) => {
             let atom = context.atom(value);
-            context.write_instruction(Instruction::Const(atom.into()));
+            context.instruction(Instruction::Const(atom.into()));
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(iterator) => {
@@ -101,32 +101,32 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_query_state(context, &iterator.query);
             let state = context.scope.intermediate();
             context.close(&end);
-            context.write_instruction(Instruction::LoadLocal(state));
+            context.instruction(Instruction::LoadLocal(state));
             write_query(context, &iterator.query, &on_fail, None);
-            context.write_instruction(Instruction::SetLocal(state));
+            context.instruction(Instruction::SetLocal(state));
             match &iterator.value.value {
                 ir::Value::Mapping(mapping) => {
                     write_expression(context, &mapping.0);
                     context.scope.intermediate();
                     write_expression(context, &mapping.1);
                     context.scope.end_intermediate();
-                    context.write_instruction(Instruction::Cons);
+                    context.instruction(Instruction::Cons);
                 }
                 other => write_evaluation(context, other),
             }
             let next = context.atom("next");
             let done = context.atom("done");
             context
-                .write_instruction(Instruction::Const(next.into()))
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::Construct)
-                .write_instruction(Instruction::Return)
-                .write_label(on_fail)
-                .write_instruction(Instruction::Const(done.into()))
-                .write_label(end) // end is just here to reuse a return instead of printing two in a row
-                .write_instruction(Instruction::Return)
-                .write_label(construct)
-                .write_instruction(Instruction::Call(0));
+                .instruction(Instruction::Const(next.into()))
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Construct)
+                .instruction(Instruction::Return)
+                .label(on_fail)
+                .instruction(Instruction::Const(done.into()))
+                .label(end) // end is just here to reuse a return instead of printing two in a row
+                .instruction(Instruction::Return)
+                .label(construct)
+                .instruction(Instruction::Call(0));
             context.scope.end_intermediate();
             context.undeclare_variables(iterator.query.bindings(), false);
         }
@@ -139,29 +139,29 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let r#continue = context.scope.push_continue();
             let r#break = context.scope.push_break();
             context
-                .write_instruction(Instruction::Const(Value::Unit))
-                .write_instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Const(Value::Unit))
                 .shift(&continuation)
-                .write_label(begin.to_owned());
+                .label(begin.to_owned());
             write_expression(context, &stmt.condition);
             context.cond_jump(&cond_fail);
             write_expression(context, &stmt.body);
             context
-                .write_instruction(Instruction::LoadLocal(r#continue))
-                .write_instruction(Instruction::Become(0))
-                .write_label(cond_fail)
-                .write_instruction(Instruction::LoadLocal(r#break))
-                .write_instruction(Instruction::Become(0))
-                .write_label(continuation)
-                .write_instruction(Instruction::SetLocal(r#continue))
+                .instruction(Instruction::LoadLocal(r#continue))
+                .instruction(Instruction::Become(0))
+                .label(cond_fail)
+                .instruction(Instruction::LoadLocal(r#break))
+                .instruction(Instruction::Become(0))
+                .label(continuation)
+                .instruction(Instruction::SetLocal(r#continue))
                 .shift(&setup)
-                .write_instruction(Instruction::Pop)
-                .write_instruction(Instruction::Pop)
+                .instruction(Instruction::Pop)
+                .instruction(Instruction::Pop)
                 .jump(&end)
-                .write_label(setup)
-                .write_instruction(Instruction::SetLocal(r#break))
+                .label(setup)
+                .instruction(Instruction::SetLocal(r#break))
                 .jump(&begin)
-                .write_label(end);
+                .label(end);
             context.scope.pop_break();
             context.scope.pop_continue();
         }
@@ -176,16 +176,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_binary_operation(context, lhs, rhs, *builtin);
             }
             (None, ir::Value::Builtin(ir::Builtin::Record), arg) => {
-                context.write_instruction(Instruction::Const(Value::Record(Default::default())));
+                context.instruction(Instruction::Const(Value::Record(Default::default())));
                 let record = context.scope.intermediate();
                 match arg {
                     ir::Value::Pack(pack) => {
                         for element in &pack.values {
                             write_expression(context, &element.expression);
                             if element.is_spread {
-                                context.write_instruction(Instruction::Glue);
+                                context.instruction(Instruction::Glue);
                             } else {
-                                context.write_instruction(Instruction::Assign);
+                                context.instruction(Instruction::Assign);
                             }
                         }
                     }
@@ -197,32 +197,32 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         let next = context.atom("next");
                         let done = context.atom("done");
                         context
-                            .write_label(loop_begin.clone())
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::Call(0))
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::Const(done.into()))
-                            .write_instruction(Instruction::ValNeq)
+                            .label(loop_begin.clone())
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Call(0))
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Const(done.into()))
+                            .instruction(Instruction::ValNeq)
                             .cond_jump(&loop_exit)
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::TypeOf)
-                            .write_instruction(Instruction::Const("struct".into()))
-                            .write_instruction(Instruction::ValEq)
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::TypeOf)
+                            .instruction(Instruction::Const("struct".into()))
+                            .instruction(Instruction::ValEq)
                             .cond_jump(END)
-                            .write_instruction(Instruction::Destruct)
-                            .write_instruction(Instruction::Swap)
-                            .write_instruction(Instruction::Const(next.into()))
-                            .write_instruction(Instruction::ValEq)
+                            .instruction(Instruction::Destruct)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Const(next.into()))
+                            .instruction(Instruction::ValEq)
                             .cond_jump(END)
-                            .write_instruction(Instruction::LoadLocal(record))
-                            .write_instruction(Instruction::Swap)
-                            .write_instruction(Instruction::Uncons)
-                            .write_instruction(Instruction::Assign)
-                            .write_instruction(Instruction::Pop)
+                            .instruction(Instruction::LoadLocal(record))
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Uncons)
+                            .instruction(Instruction::Assign)
+                            .instruction(Instruction::Pop)
                             .jump(&loop_begin)
-                            .write_label(loop_exit)
-                            .write_instruction(Instruction::Pop)
-                            .write_instruction(Instruction::Pop);
+                            .label(loop_exit)
+                            .instruction(Instruction::Pop)
+                            .instruction(Instruction::Pop);
                         context.scope.end_intermediate();
                     }
                     _ => panic!("record literal must have pack or iterator"),
@@ -230,16 +230,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::Set), arg) => {
-                context.write_instruction(Instruction::Const(Value::Set(Default::default())));
+                context.instruction(Instruction::Const(Value::Set(Default::default())));
                 let set = context.scope.intermediate();
                 match arg {
                     ir::Value::Pack(pack) => {
                         for element in &pack.values {
                             write_expression(context, &element.expression);
                             if element.is_spread {
-                                context.write_instruction(Instruction::Glue);
+                                context.instruction(Instruction::Glue);
                             } else {
-                                context.write_instruction(Instruction::Insert);
+                                context.instruction(Instruction::Insert);
                             }
                         }
                     }
@@ -251,31 +251,31 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         let next = context.atom("next");
                         let done = context.atom("done");
                         context
-                            .write_label(loop_begin.clone())
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::Call(0))
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::Const(done.into()))
-                            .write_instruction(Instruction::ValNeq)
+                            .label(loop_begin.clone())
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Call(0))
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Const(done.into()))
+                            .instruction(Instruction::ValNeq)
                             .cond_jump(&loop_exit)
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::TypeOf)
-                            .write_instruction(Instruction::Const("struct".into()))
-                            .write_instruction(Instruction::ValEq)
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::TypeOf)
+                            .instruction(Instruction::Const("struct".into()))
+                            .instruction(Instruction::ValEq)
                             .cond_jump(END)
-                            .write_instruction(Instruction::Destruct)
-                            .write_instruction(Instruction::Swap)
-                            .write_instruction(Instruction::Const(next.into()))
-                            .write_instruction(Instruction::ValEq)
+                            .instruction(Instruction::Destruct)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Const(next.into()))
+                            .instruction(Instruction::ValEq)
                             .cond_jump(END)
-                            .write_instruction(Instruction::LoadLocal(set))
-                            .write_instruction(Instruction::Swap)
-                            .write_instruction(Instruction::Insert)
-                            .write_instruction(Instruction::Pop)
+                            .instruction(Instruction::LoadLocal(set))
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert)
+                            .instruction(Instruction::Pop)
                             .jump(&loop_begin)
-                            .write_label(loop_exit)
-                            .write_instruction(Instruction::Pop)
-                            .write_instruction(Instruction::Pop);
+                            .label(loop_exit)
+                            .instruction(Instruction::Pop)
+                            .instruction(Instruction::Pop);
                         context.scope.end_intermediate();
                     }
                     _ => panic!("set literal must have pack or iterator"),
@@ -283,16 +283,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::Array), arg) => {
-                context.write_instruction(Instruction::Const(Value::Array(Default::default())));
+                context.instruction(Instruction::Const(Value::Array(Default::default())));
                 let array = context.scope.intermediate();
                 match arg {
                     ir::Value::Pack(pack) => {
                         for element in &pack.values {
                             write_expression(context, &element.expression);
                             if element.is_spread {
-                                context.write_instruction(Instruction::Glue);
+                                context.instruction(Instruction::Glue);
                             } else {
-                                context.write_instruction(Instruction::Insert);
+                                context.instruction(Instruction::Insert);
                             }
                         }
                     }
@@ -304,31 +304,31 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         let next = context.atom("next");
                         let done = context.atom("done");
                         context
-                            .write_label(loop_begin.clone())
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::Call(0))
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::Const(done.into()))
-                            .write_instruction(Instruction::ValNeq)
+                            .label(loop_begin.clone())
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Call(0))
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Const(done.into()))
+                            .instruction(Instruction::ValNeq)
                             .cond_jump(&loop_exit)
-                            .write_instruction(Instruction::Copy)
-                            .write_instruction(Instruction::TypeOf)
-                            .write_instruction(Instruction::Const("struct".into()))
-                            .write_instruction(Instruction::ValEq)
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::TypeOf)
+                            .instruction(Instruction::Const("struct".into()))
+                            .instruction(Instruction::ValEq)
                             .cond_jump(END)
-                            .write_instruction(Instruction::Destruct)
-                            .write_instruction(Instruction::Swap)
-                            .write_instruction(Instruction::Const(next.into()))
-                            .write_instruction(Instruction::ValEq)
+                            .instruction(Instruction::Destruct)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Const(next.into()))
+                            .instruction(Instruction::ValEq)
                             .cond_jump(END)
-                            .write_instruction(Instruction::LoadLocal(array))
-                            .write_instruction(Instruction::Swap)
-                            .write_instruction(Instruction::Insert)
-                            .write_instruction(Instruction::Pop)
+                            .instruction(Instruction::LoadLocal(array))
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert)
+                            .instruction(Instruction::Pop)
                             .jump(&loop_begin)
-                            .write_label(loop_exit)
-                            .write_instruction(Instruction::Pop)
-                            .write_instruction(Instruction::Pop);
+                            .label(loop_exit)
+                            .instruction(Instruction::Pop)
+                            .instruction(Instruction::Pop);
                         context.scope.end_intermediate();
                     }
                     _ => panic!("array literal must have pack or iterator"),
@@ -336,7 +336,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::For), value) => {
-                context.write_instruction(Instruction::Const(false.into()));
+                context.instruction(Instruction::Const(false.into()));
                 let eval_to = context.scope.intermediate();
                 write_evaluation(context, value);
                 let loop_begin = context.labeler.unique_hint("for");
@@ -344,30 +344,30 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let next = context.atom("next");
                 let done = context.atom("done");
                 context
-                    .write_label(loop_begin.clone())
-                    .write_instruction(Instruction::Copy)
-                    .write_instruction(Instruction::Call(0))
-                    .write_instruction(Instruction::Copy)
-                    .write_instruction(Instruction::Const(done.into()))
-                    .write_instruction(Instruction::ValNeq)
+                    .label(loop_begin.clone())
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::Call(0))
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::Const(done.into()))
+                    .instruction(Instruction::ValNeq)
                     .cond_jump(&loop_exit)
-                    .write_instruction(Instruction::Copy)
-                    .write_instruction(Instruction::TypeOf)
-                    .write_instruction(Instruction::Const("struct".into()))
-                    .write_instruction(Instruction::ValEq)
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::TypeOf)
+                    .instruction(Instruction::Const("struct".into()))
+                    .instruction(Instruction::ValEq)
                     .cond_jump(END)
-                    .write_instruction(Instruction::Destruct)
-                    .write_instruction(Instruction::Swap)
-                    .write_instruction(Instruction::Const(next.into()))
-                    .write_instruction(Instruction::ValEq)
+                    .instruction(Instruction::Destruct)
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Const(next.into()))
+                    .instruction(Instruction::ValEq)
                     .cond_jump(END)
-                    .write_instruction(Instruction::Const(true.into()))
-                    .write_instruction(Instruction::SetLocal(eval_to))
-                    .write_instruction(Instruction::Pop)
+                    .instruction(Instruction::Const(true.into()))
+                    .instruction(Instruction::SetLocal(eval_to))
+                    .instruction(Instruction::Pop)
                     .jump(&loop_begin)
-                    .write_label(loop_exit)
-                    .write_instruction(Instruction::Pop)
-                    .write_instruction(Instruction::Pop);
+                    .label(loop_exit)
+                    .instruction(Instruction::Pop)
+                    .instruction(Instruction::Pop);
                 context.scope.end_intermediate();
             }
             _ => {
@@ -378,10 +378,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let arity = match &application.argument.value {
                     ir::Value::Pack(pack) => pack
                         .len()
-                        .expect("procedures may not have spread arguments"),
+                        .expect("procedures may not have spread arguments")
+                        as u32,
                     _ => 1,
                 };
-                context.write_instruction(Instruction::Call(arity));
+                context.instruction(Instruction::Call(arity));
             }
         },
         ir::Value::Let(decl) if decl.query.is_once() => {
@@ -389,12 +390,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
             context.scope.intermediate();
-            context.write_label(reenter.clone());
+            context.label(reenter.clone());
             write_query(context, &decl.query, END, None);
             write_expression(context, &decl.body);
             // TODO: would be really nice to move this pop one line up, but the shared
             // stack thing with closures makes it not work
-            context.write_instruction(Instruction::Pop);
+            context.instruction(Instruction::Pop);
             context.scope.end_intermediate();
             context.undeclare_variables(decl.query.bindings(), true);
         }
@@ -405,15 +406,15 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_query_state(context, &decl.query);
             context.scope.intermediate();
 
-            context.write_label(reenter.clone());
+            context.label(reenter.clone());
             write_query(context, &decl.query, END, None);
             context
-                .write_instruction(Instruction::Const(Value::Bool(true)))
-                .write_instruction(Instruction::Const(Value::Bool(false)))
-                .write_instruction(Instruction::Branch)
+                .instruction(Instruction::Const(Value::Bool(true)))
+                .instruction(Instruction::Const(Value::Bool(false)))
+                .instruction(Instruction::Branch)
                 .cond_jump(&reenter);
             write_expression(context, &decl.body);
-            context.write_instruction(Instruction::Pop);
+            context.instruction(Instruction::Pop);
             context.scope.end_intermediate();
             context.undeclare_variables(decl.query.bindings(), true);
         }
@@ -424,9 +425,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &cond.when_true);
             let end = context.labeler.unique_hint("end_if");
             context.jump(&end);
-            context.write_label(when_false);
+            context.label(when_false);
             write_expression(context, &cond.when_false);
-            context.write_label(end);
+            context.label(end);
         }
         ir::Value::Match(cond) => {
             write_expression(context, &cond.expression);
@@ -435,21 +436,21 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             for case in &cond.cases {
                 let cleanup = context.labeler.unique_hint("case_cleanup");
                 let vars = context.declare_variables(case.pattern.bindings());
-                context.write_instruction(Instruction::LoadLocal(val));
+                context.instruction(Instruction::LoadLocal(val));
                 write_pattern_match(context, &case.pattern, &cleanup);
                 write_expression(context, &case.guard);
                 context.cond_jump(&cleanup);
                 write_expression(context, &case.body);
-                context.write_instruction(Instruction::SetLocal(val));
+                context.instruction(Instruction::SetLocal(val));
                 context.undeclare_variables(case.pattern.bindings(), true);
                 context.jump(&end);
-                context.write_label(cleanup);
+                context.label(cleanup);
                 for _ in 0..vars {
-                    context.write_instruction(Instruction::Pop);
+                    context.instruction(Instruction::Pop);
                 }
             }
             context.scope.end_intermediate();
-            context.write_label(end);
+            context.label(end);
         }
         ir::Value::Fn(closure) => {
             let end = context.labeler.unique_hint("end_fn");
@@ -459,7 +460,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             for (i, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
-                context.write_instruction(Instruction::LoadLocal(params + i));
+                context.instruction(Instruction::LoadLocal(params + i as u32));
                 write_pattern_match(context, parameter, END);
             }
             write_expression(context, &closure.body);
@@ -468,7 +469,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.unclosure(1)
             }
 
-            context.write_label(end);
+            context.label(end);
         }
         ir::Value::Do(closure) => {
             let end = context.labeler.unique_hint("end_do");
@@ -476,14 +477,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.close(&end);
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
-                context.write_instruction(Instruction::LoadLocal(param_start + offset));
+                context.instruction(Instruction::LoadLocal(param_start + offset as u32));
                 write_pattern_match(context, parameter, END);
             }
             write_expression(context, &closure.body);
             context
-                .write_instruction(Instruction::Const(Value::Unit))
-                .write_instruction(Instruction::Return)
-                .write_label(end);
+                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Return)
+                .label(end);
             for parameter in closure.parameters.iter().rev() {
                 context.undeclare_variables(parameter.bindings(), false);
             }
@@ -493,45 +494,43 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let when = context.labeler.unique_hint("when");
             let end = context.labeler.unique_hint("with_end");
             let body = context.labeler.unique_hint("with_body");
-            context.write_instruction(Instruction::LoadRegister(0));
+            context.instruction(Instruction::LoadRegister(0));
             let stored_yield = context.scope.intermediate();
 
             context.shift(&when).jump(&end);
             context.scope.push_cancel();
 
-            context.write_label(when).shift(&body);
+            context.label(when).shift(&body);
             let effect = context.scope.intermediate();
             context.scope.push_resume();
 
             context
-                .write_instruction(Instruction::LoadLocal(stored_yield))
-                .write_instruction(Instruction::SetRegister(0));
+                .instruction(Instruction::LoadLocal(stored_yield))
+                .instruction(Instruction::SetRegister(0));
             for handler in &handled.handlers {
                 let next = context.labeler.unique_hint("when_next");
                 context.declare_variables(handler.pattern.bindings());
-                context.write_instruction(Instruction::LoadLocal(effect));
+                context.instruction(Instruction::LoadLocal(effect));
                 write_pattern_match(context, &handler.pattern, &next);
                 write_expression(context, &handler.guard);
                 context.cond_jump(&next);
                 write_expression(context, &handler.body);
                 context
-                    .write_instruction(Instruction::Fizzle)
-                    .write_label(next)
+                    .instruction(Instruction::Fizzle)
+                    .label(next)
                     .undeclare_variables(handler.pattern.bindings(), true);
             }
-            context.write_instruction(Instruction::Fizzle);
+            context.instruction(Instruction::Fizzle);
             context.scope.pop_resume();
             context.scope.end_intermediate();
 
-            context
-                .write_label(body)
-                .write_instruction(Instruction::SetRegister(0));
+            context.label(body).instruction(Instruction::SetRegister(0));
             write_expression(context, &handled.expression);
             context
-                .write_instruction(Instruction::Reset)
-                .write_label(end)
-                .write_instruction(Instruction::Swap)
-                .write_instruction(Instruction::SetRegister(0));
+                .instruction(Instruction::Reset)
+                .label(end)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::SetRegister(0));
             context.scope.pop_cancel();
             context.scope.end_intermediate();
         }
@@ -543,7 +542,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .expect("unresolved reference should not exist at this point");
             match binding {
                 Binding::Variable(offset) => {
-                    context.write_instruction(Instruction::LoadLocal(offset));
+                    context.instruction(Instruction::LoadLocal(offset));
                 }
                 Binding::Static(label) => {
                     context.write_procedure_reference(label.to_owned());
@@ -555,7 +554,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Assert(..) => todo!(),
         ir::Value::End => {
-            context.write_instruction(Instruction::Fizzle);
+            context.instruction(Instruction::Fizzle);
         }
     }
 }

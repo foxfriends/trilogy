@@ -12,8 +12,10 @@ use std::path::{Path, PathBuf};
 
 use super::Trilogy;
 
-mod linker;
+mod analyzer;
 mod loader;
+
+pub(crate) use loader::ResolverError;
 
 pub struct Builder<E> {
     root_dir: Option<PathBuf>,
@@ -79,12 +81,11 @@ impl<E: std::error::Error + 'static> Builder<E> {
             self.root_dir
                 .map(Ok)
                 .unwrap_or_else(std::env::current_dir)
-                .map_err(|error| LoadError::External(Box::new(error)))?,
+                .map_err(|error| LoadError::Resolver(vec![ResolverError::external(error)]))?,
             file,
         );
         let binder = loader::load(&*self.cache, &entrypoint)?;
-        let program = linker::link(&self.libraries, binder, entrypoint)?;
-        let program = program.generate_code();
-        Ok(Trilogy::from(program))
+        let modules = analyzer::analyze(binder)?;
+        Ok(Trilogy::new(modules, entrypoint))
     }
 }

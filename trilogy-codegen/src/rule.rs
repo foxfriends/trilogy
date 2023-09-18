@@ -13,27 +13,25 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     let call = context.labeler.unique_hint("call");
 
     context
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::Const(().into()))
-        .write_instruction(Instruction::ValNeq)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::Const(().into()))
+        .instruction(Instruction::ValNeq)
         .cond_jump(&setup)
-        .write_label(call.clone())
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::Call(0))
+        .label(call.clone())
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::Call(0))
         // After calling this overload's iterator, flatten failures into the parent.
         // The parent expects this to work more like a query than an iterator for
         // failures.
-        .write_instruction(Instruction::Copy)
-        .write_instruction(Instruction::Const(done.clone().into()))
-        .write_instruction(Instruction::ValEq)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::Const(done.clone().into()))
+        .instruction(Instruction::ValEq)
         .cond_jump(&end)
-        .write_instruction(Instruction::Pop)
-        .write_instruction(Instruction::Pop)
+        .instruction(Instruction::Pop)
+        .instruction(Instruction::Pop)
         .jump(on_fail);
 
-    context
-        .write_label(setup)
-        .write_instruction(Instruction::Pop);
+    context.label(setup).instruction(Instruction::Pop);
     // First check all the parameters, make sure they work. If they don't
     // match, we can fail without even constructing the state.
     let mut cleanup = vec![];
@@ -42,13 +40,13 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         cleanup.push(context.labeler.unique_hint("cleanup"));
         context.declare_variables(parameter.bindings());
         context
-            .write_instruction(Instruction::LoadLocal(1))
-            .write_instruction(Instruction::Const(i.into()))
-            .write_instruction(Instruction::Contains)
+            .instruction(Instruction::LoadLocal(1))
+            .instruction(Instruction::Const(i.into()))
+            .instruction(Instruction::Contains)
             .cond_jump(&skip)
-            .write_instruction(Instruction::LoadLocal(2 + i));
+            .instruction(Instruction::LoadLocal(2 + i as u32));
         write_pattern_match(context, parameter, &cleanup[i]);
-        context.write_label(skip);
+        context.label(skip);
     }
 
     // Happy path: we continue by writing the query state down, and then
@@ -62,9 +60,9 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // returning 'done, as in a regular iterator.
     let on_done = context.labeler.unique_hint("on_done");
     let actual_state = context.scope.intermediate();
-    context.write_instruction(Instruction::LoadLocal(actual_state));
+    context.instruction(Instruction::LoadLocal(actual_state));
     write_query(context, &rule.body, &on_done, Some(1));
-    context.write_instruction(Instruction::SetLocal(actual_state));
+    context.instruction(Instruction::SetLocal(actual_state));
     context.scope.end_intermediate();
     // The query is normal, then the value is computed by evaluating
     // the parameter patterns now as expressions.
@@ -73,52 +71,52 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         let eval = context.labeler.unique_hint("eval");
         let next = context.labeler.unique_hint("next");
         context
-            .write_instruction(Instruction::LoadLocal(1))
-            .write_instruction(Instruction::Const(i.into()))
-            .write_instruction(Instruction::Contains)
+            .instruction(Instruction::LoadLocal(1))
+            .instruction(Instruction::Const(i.into()))
+            .instruction(Instruction::Contains)
             .cond_jump(&eval)
-            .write_instruction(Instruction::LoadLocal(2 + i))
+            .instruction(Instruction::LoadLocal(2 + i as u32))
             .jump(&next);
-        context.write_label(eval);
+        context.label(eval);
         if param.can_evaluate() {
             write_expression(context, param);
         } else {
-            context.write_instruction(Instruction::Fizzle);
+            context.instruction(Instruction::Fizzle);
         }
         context.scope.intermediate(); // As is each subsequent parameter value
-        context.write_label(next);
+        context.label(next);
     }
     // The return value is a (backwards) list
-    context.write_instruction(Instruction::Const(().into()));
+    context.instruction(Instruction::Const(().into()));
     for _ in &rule.parameters {
         context
-            .write_instruction(Instruction::Swap)
-            .write_instruction(Instruction::Cons);
+            .instruction(Instruction::Swap)
+            .instruction(Instruction::Cons);
         context.scope.end_intermediate();
     }
     // Finally, put the return value into 'next()
     context
-        .write_instruction(Instruction::Const(next.into()))
-        .write_instruction(Instruction::Swap)
-        .write_instruction(Instruction::Construct)
-        .write_instruction(Instruction::Return);
+        .instruction(Instruction::Const(next.into()))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Return);
     // This ends with 2 expected values on the stack ([state, retval])
     // so they are no longer intemediate
     context.scope.end_intermediate();
 
     // On failure, just return 'done
     context
-        .write_label(on_done)
-        .write_instruction(Instruction::Const(done.into()))
-        .write_instruction(Instruction::Return);
+        .label(on_done)
+        .instruction(Instruction::Const(done.into()))
+        .instruction(Instruction::Return);
 
     // Sad path: we have to undeclare all the variables that have been
     // declared so far, then fail as regular.
     for parameter in rule.parameters.iter().rev() {
-        context.write_label(cleanup.pop().unwrap());
+        context.label(cleanup.pop().unwrap());
         context.undeclare_variables(parameter.bindings(), true);
     }
     context.jump(on_fail);
 
-    context.write_label(end);
+    context.label(end);
 }
