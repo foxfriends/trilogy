@@ -70,11 +70,6 @@ impl Program for TrilogyProgram<'_> {
 
     fn chunk(&mut self, input: Value, mut chunk: ChunkBuilder) -> Chunk {
         let location = match input {
-            // TODO: this location is not absolute at the moment... have to either
-            // * make it absolute and save that to the IR?
-            // * be able to figure out the current location and resolve it here?
-            //
-            // probably the first option
             Value::String(url) => Location::absolute(url.parse().expect("invalid module location")),
             _ => panic!("invalid module specifier `{input}`"),
         };

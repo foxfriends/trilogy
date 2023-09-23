@@ -1,8 +1,14 @@
 use crate::location::Location;
 use crate::LoadError;
 use std::collections::HashMap;
-use trilogy_ir::{ir, Analyzer};
+use trilogy_ir::{ir, Analyzer, Resolver};
 use trilogy_parser::syntax::Document;
+
+impl Resolver for Location {
+    fn resolve(&self, locator: &str) -> String {
+        self.relative(locator).to_string()
+    }
+}
 
 pub fn analyze<E: std::error::Error>(
     documents: Vec<(Location, Document)>,
@@ -11,7 +17,7 @@ pub fn analyze<E: std::error::Error>(
     let mut errors = vec![];
 
     for (location, document) in documents {
-        let mut analyzer = Analyzer::new();
+        let mut analyzer = Analyzer::new(&location);
         let module = analyzer.analyze(document);
         errors.extend(analyzer.errors());
         analyzed.insert(location, module);

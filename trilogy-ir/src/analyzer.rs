@@ -3,16 +3,23 @@ use crate::scope::Scope;
 use crate::{Error, Id};
 use trilogy_parser::syntax;
 
-#[derive(Default)]
-pub struct Analyzer {
+pub trait Resolver {
+    fn resolve(&self, locator: &str) -> String;
+}
+
+pub struct Analyzer<'a> {
+    resolver: &'a dyn Resolver,
     errors: Vec<Error>,
     scope: Scope,
 }
 
-impl Analyzer {
-    #[inline]
-    pub fn new() -> Self {
-        Self::default()
+impl<'a> Analyzer<'a> {
+    pub fn new(resolver: &'a dyn Resolver) -> Self {
+        Self {
+            resolver,
+            errors: vec![],
+            scope: Scope::default(),
+        }
     }
 
     pub fn analyze(&mut self, document: syntax::Document) -> Module {
@@ -45,5 +52,9 @@ impl Analyzer {
 
     pub(crate) fn declared(&mut self, name: &str) -> Option<&Id> {
         self.scope.declared(name)
+    }
+
+    pub(crate) fn resolve(&self, locator: &str) -> String {
+        self.resolver.resolve(locator)
     }
 }

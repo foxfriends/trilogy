@@ -89,7 +89,6 @@ impl Module {
 struct Loader<'a, E> {
     client: Client, // TODO: generic resolver
     cache: &'a dyn Cache<Error = E>,
-    module_queue: VecDeque<Location>,
 }
 
 impl<'a, E> Loader<'a, E>
@@ -100,7 +99,6 @@ where
         Self {
             client: Client::default(),
             cache,
-            module_queue: VecDeque::default(),
         }
     }
 
@@ -112,10 +110,6 @@ where
             .map_err(ResolverError::external)?
             .text()
             .map_err(ResolverError::external)
-    }
-
-    fn request(&mut self, location: Location) {
-        self.module_queue.push_back(location);
     }
 
     fn load_source(&mut self, location: &Location) -> Result<Option<String>, ResolverError<E>> {
@@ -148,9 +142,10 @@ pub fn load<E: std::error::Error + 'static>(
 ) -> Result<Vec<(Location, Document)>, LoadError<E>> {
     let mut modules = HashMap::new();
     let mut loader = Loader::new(cache);
-    loader.request(entrypoint.clone());
+    let mut module_queue = VecDeque::with_capacity(8);
+    module_queue.push_back(entrypoint.clone());
 
-    while let Some(location) = loader.module_queue.pop_front() {
+    while let Some(location) = module_queue.pop_front() {
         let url = location.as_ref();
         if modules.contains_key(url) {
             continue;
@@ -163,7 +158,7 @@ pub fn load<E: std::error::Error + 'static>(
         };
         let module = Module::new(location.clone(), &source);
         for import in module.imported_modules() {
-            loader.request(import);
+            module_queue.push_back(import);
         }
         modules.insert(location, module);
     }

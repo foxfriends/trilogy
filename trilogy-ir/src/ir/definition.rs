@@ -135,7 +135,7 @@ impl Definition {
                     span: ast.span(),
                     item: DefinitionItem::Module(Box::new(ModuleDefinition::external(
                         name,
-                        ast.locator.value(),
+                        analyzer.resolve(&ast.locator.value()),
                     ))),
                     is_exported: false,
                 }
