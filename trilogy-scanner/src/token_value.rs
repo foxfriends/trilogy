@@ -7,17 +7,28 @@ use num::{rational::BigRational, Complex};
 /// type of token being parsed.
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum TokenValue {
+    /// A character value, having parsed any escape sequences.
     Char(char),
+    /// A string valued token.
+    ///
+    /// For string literals, this value represents the value of the string, having parsed
+    /// any escape sequences.
+    ///
+    /// A string value is also used to represent the actual contents of an atom or identifier
+    /// token.
     String(String),
     // Complex<BigRational> is kind of large, so Box just to make clippy quiet for now.
     // Will require some tuning probably... Maybe storing integers/real numbers in
     // smaller data types since they are the most common types of numbers anyway
     // might be worthwhile.
+    /// A number value, having been parsed and converted to an actual number.
     Number(Box<Complex<BigRational>>),
+    /// A bits value, having been parsed into an actual binary sequence.
     Bits(BitVec),
 }
 
 impl TokenValue {
+    /// The string value of this token, if any.
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Self::String(string) => Some(string),
