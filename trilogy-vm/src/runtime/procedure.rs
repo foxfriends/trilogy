@@ -7,6 +7,9 @@ use std::sync::Arc;
 /// A procedure, function, or closure from a Trilogy program.
 ///
 /// From within the program this is seen as an opaque "callable" value.
+///
+/// It is not possible to construct a value of this type except from within a
+/// Trilogy program.
 #[derive(Clone)]
 pub struct Procedure(Arc<InnerProcedure>);
 

@@ -260,10 +260,12 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                 }
             }
 
+            /// The number of bytes this instruction takes up in bytecode form.
             pub const fn byte_len(&self) -> usize {
                 self.op_code().params() * 4 + 1
             }
 
+            /// The opcode corresponding to this instruction.
             pub const fn op_code(&self) -> #name {
                 match self {
                     #(#conversions),*

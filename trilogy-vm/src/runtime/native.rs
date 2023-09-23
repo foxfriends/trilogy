@@ -5,14 +5,18 @@ use std::sync::Arc;
 
 /// Trait allowing Rust functions to be called by Trilogy programs.
 ///
-/// Implementing this trait manually is not recommended, see instead the `trilogy_derive`
-/// crate to generate implementations of this trait automatically.
+/// Implementing this trait manually is not recommended, see instead the macro
+/// `#[proc]` attribute macro from the `trilogy` crate.
 pub trait NativeFunction: Send + Sync {
+    #[doc(hidden)]
     fn name() -> &'static str
     where
         Self: Sized;
 
+    #[doc(hidden)]
     fn call(&self, input: Vec<Value>) -> Value;
+
+    #[doc(hidden)]
     fn arity(&self) -> usize;
 }
 
