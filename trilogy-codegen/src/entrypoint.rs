@@ -1,14 +1,12 @@
 use crate::context::{Labeler, Scope};
 use crate::preamble::RETURN;
 use crate::prelude::*;
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
 use trilogy_vm::{Atom, ChunkBuilder, Instruction};
 
 pub(crate) struct ProgramContext<'a> {
     pub labeler: Labeler,
-    modules_written: HashSet<*const ir::ModuleCell>,
     builder: &'a mut ChunkBuilder,
 }
 
@@ -16,16 +14,33 @@ impl<'a> ProgramContext<'a> {
     fn new(builder: &'a mut ChunkBuilder) -> Self {
         Self {
             builder,
-            modules_written: HashSet::new(),
             labeler: Labeler::new(),
         }
     }
 }
 
 pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
+    builder.jump("main");
     let mut context = ProgramContext::new(builder);
     write_preamble(&mut context);
-    write_module(&mut context, module, None, true);
+    write_module_inner(
+        &mut context,
+        module,
+        HashMap::default(),
+        HashMap::default(),
+        true,
+    );
+}
+
+pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
+    let mut context = ProgramContext::new(builder);
+    write_module_inner(
+        &mut context,
+        module,
+        HashMap::default(),
+        HashMap::default(),
+        false,
+    );
 }
 
 impl ProgramContext<'_> {
@@ -63,13 +78,14 @@ impl ProgramContext<'_> {
     pub fn write_procedure(
         &mut self,
         statics: &HashMap<Id, String>,
+        modules: &HashMap<Id, String>,
         procedure: &ir::ProcedureDefinition,
     ) {
         let for_id = self.labeler.for_id(&procedure.name.id);
         self.label(for_id);
         assert!(procedure.overloads.len() == 1);
         let overload = &procedure.overloads[0];
-        let context = self.begin(statics, overload.parameters.len());
+        let context = self.begin(statics, modules, overload.parameters.len());
         write_procedure(context, overload);
     }
 
@@ -82,11 +98,16 @@ impl ProgramContext<'_> {
     /// The return value is much like an iterator, either 'next(V) or 'done, where V will be a
     /// tuple of resulting bindings in argument order which are to be pattern matched against
     /// the input patterns.
-    pub fn write_rule(&mut self, statics: &HashMap<Id, String>, rule: &ir::RuleDefinition) {
+    pub fn write_rule(
+        &mut self,
+        statics: &HashMap<Id, String>,
+        modules: &HashMap<Id, String>,
+        rule: &ir::RuleDefinition,
+    ) {
         let for_id = self.labeler.for_id(&rule.name.id);
         self.label(for_id);
         let arity = rule.overloads[0].parameters.len();
-        let mut context = self.begin(statics, 0);
+        let mut context = self.begin(statics, modules, 0);
         context.instruction(Instruction::Const(((), 0).into()));
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
         context.close(RETURN);
@@ -132,12 +153,13 @@ impl ProgramContext<'_> {
     pub fn write_function(
         &mut self,
         statics: &HashMap<Id, String>,
+        modules: &HashMap<Id, String>,
         function: &ir::FunctionDefinition,
     ) {
         let for_id = self.labeler.for_id(&function.name.id);
         self.label(for_id);
         let arity = function.overloads[0].parameters.len();
-        let mut context = self.begin(statics, arity);
+        let mut context = self.begin(statics, modules, arity);
         for _ in 1..arity {
             context.close(RETURN);
         }
@@ -149,20 +171,21 @@ impl ProgramContext<'_> {
 
     pub fn write_module(
         &mut self,
-        statics: Option<&HashMap<Id, String>>,
+        statics: HashMap<Id, String>,
+        modules: HashMap<Id, String>,
         def: &ir::ModuleDefinition,
     ) {
-        let ptr = Arc::as_ptr(&def.module);
-        if self.modules_written.contains(&ptr) {
-            return;
-        }
-        self.modules_written.insert(ptr);
         let module = def.module.as_module().unwrap();
-        write_module(self, module, statics, false);
+        write_module_inner(self, module, statics, modules, false);
     }
 
-    fn begin<'a>(&'a mut self, statics: &'a HashMap<Id, String>, parameters: usize) -> Context<'a> {
-        let scope = Scope::new(statics, parameters);
+    fn begin<'a>(
+        &'a mut self,
+        statics: &'a HashMap<Id, String>,
+        modules: &'a HashMap<Id, String>,
+        parameters: usize,
+    ) -> Context<'a> {
+        let scope = Scope::new(statics, modules, parameters);
         Context::new(self.builder, &mut self.labeler, scope)
     }
 }

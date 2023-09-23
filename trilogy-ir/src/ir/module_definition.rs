@@ -26,6 +26,13 @@ impl ModuleCell {
             _ => None,
         }
     }
+
+    pub fn as_external(&self) -> Option<&str> {
+        match self {
+            ModuleCell::External(path) => Some(path),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

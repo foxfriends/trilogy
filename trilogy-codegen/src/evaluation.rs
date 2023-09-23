@@ -534,7 +534,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.pop_cancel();
             context.scope.end_intermediate();
         }
-        ir::Value::Module(..) => unreachable!(),
+        ir::Value::Module(ident) => {
+            let locator = context.scope.lookup_module(&ident.id).unwrap();
+            context
+                .instruction(Instruction::Const(locator.into()))
+                .instruction(Instruction::Chunk);
+        }
         ir::Value::Reference(ident) => {
             let binding = context
                 .scope

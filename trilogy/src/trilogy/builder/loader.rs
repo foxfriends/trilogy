@@ -145,7 +145,7 @@ where
 pub fn load<E: std::error::Error + 'static>(
     cache: &dyn Cache<Error = E>,
     entrypoint: &Location,
-) -> Result<HashMap<Location, Document>, LoadError<E>> {
+) -> Result<Vec<(Location, Document)>, LoadError<E>> {
     let mut modules = HashMap::new();
     let mut loader = Loader::new(cache);
     loader.request(entrypoint.clone());
@@ -167,6 +167,8 @@ pub fn load<E: std::error::Error + 'static>(
         }
         modules.insert(location, module);
     }
+
+    // TODO: warnings are lost here...
 
     if modules.values().any(|module| module.contents.has_errors()) {
         Err(LoadError::Syntax(

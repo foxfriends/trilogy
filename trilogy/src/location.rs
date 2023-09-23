@@ -14,6 +14,10 @@ impl Location {
         Ok(Self(url))
     }
 
+    pub(crate) fn absolute(url: Url) -> Self {
+        Self(url)
+    }
+
     pub(crate) fn entrypoint(root_dir: PathBuf, file: impl AsRef<Path>) -> Self {
         Location::local_absolute(root_dir.join(file))
     }

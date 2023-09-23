@@ -5,14 +5,14 @@ use trilogy_ir::{ir, Analyzer};
 use trilogy_parser::syntax::Document;
 
 pub fn analyze<E: std::error::Error>(
-    modules: HashMap<Location, Document>,
+    documents: Vec<(Location, Document)>,
 ) -> Result<HashMap<Location, ir::Module>, LoadError<E>> {
     let mut analyzed = HashMap::default();
     let mut errors = vec![];
 
-    for (location, module) in modules {
+    for (location, document) in documents {
         let mut analyzer = Analyzer::new();
-        let module = analyzer.analyze(module);
+        let module = analyzer.analyze(document);
         errors.extend(analyzer.errors());
         analyzed.insert(location, module);
     }

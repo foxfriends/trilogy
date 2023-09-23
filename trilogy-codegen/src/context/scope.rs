@@ -11,6 +11,7 @@ pub(crate) enum Binding<'a> {
 #[derive(Clone, Debug)]
 pub(crate) struct Scope<'a> {
     statics: &'a HashMap<Id, String>,
+    modules: &'a HashMap<Id, String>,
     locals: HashMap<Id, u32>,
     parameters: usize,
 
@@ -21,9 +22,14 @@ pub(crate) struct Scope<'a> {
 }
 
 impl<'a> Scope<'a> {
-    pub fn new(statics: &'a HashMap<Id, String>, parameters: usize) -> Self {
+    pub fn new(
+        statics: &'a HashMap<Id, String>,
+        modules: &'a HashMap<Id, String>,
+        parameters: usize,
+    ) -> Self {
         Self {
             parameters,
+            modules,
             statics,
             locals: HashMap::default(),
             kw_resume: vec![],
@@ -52,6 +58,10 @@ impl<'a> Scope<'a> {
             .copied()
             .map(Binding::Variable)
             .or_else(|| self.statics.get(id).map(|s| Binding::Static(s)))
+    }
+
+    pub fn lookup_module(&self, id: &Id) -> Option<&str> {
+        self.modules.get(id).map(|s| s.as_str())
     }
 
     pub fn closure(&mut self, parameters: usize) -> u32 {

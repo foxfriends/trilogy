@@ -1,4 +1,4 @@
-use crate::program::ProgramContext;
+use crate::entrypoint::ProgramContext;
 use trilogy_vm::{Instruction, Value};
 
 pub const ADD: &str = "core::add";

@@ -84,8 +84,8 @@ impl<E: std::error::Error + 'static> Builder<E> {
                 .map_err(|error| LoadError::Resolver(vec![ResolverError::external(error)]))?,
             file,
         );
-        let binder = loader::load(&*self.cache, &entrypoint)?;
-        let modules = analyzer::analyze(binder)?;
-        Ok(Trilogy::new(modules, entrypoint))
+        let documents = loader::load(&*self.cache, &entrypoint)?;
+        let modules = analyzer::analyze(documents)?;
+        Ok(Trilogy::new(modules, self.libraries, entrypoint))
     }
 }
