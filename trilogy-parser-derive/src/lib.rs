@@ -1,3 +1,7 @@
+//! Internal derive macros for the Trilogy parser.
+//!
+//! This crate is not intended for external usage.
+
 use proc_macro::TokenStream;
 
 mod pretty_print_sexpr;

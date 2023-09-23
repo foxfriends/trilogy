@@ -12,8 +12,8 @@ keywords = ["programming-language", "language"]
 default = ["dev", "std"]
 dev = []
 lax = ["trilogy-parser/lax"]
-derive = ["trilogy-derive"]
-std = ["derive"]
+macros = ["trilogy-derive"]
+std = ["macros"]
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }
