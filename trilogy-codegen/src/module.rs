@@ -56,7 +56,7 @@ pub(crate) fn write_module_inner(
             }
             ir::DefinitionItem::Procedure(procedure) => {
                 if is_entrypoint && procedure.name.id.name() == Some("main") {
-                    context.label("main");
+                    context.entrypoint();
                 }
                 context.write_procedure(&statics, &modules, procedure);
             }

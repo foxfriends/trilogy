@@ -20,7 +20,6 @@ impl<'a> ProgramContext<'a> {
 }
 
 pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
-    builder.jump("main");
     let mut context = ProgramContext::new(builder);
     write_preamble(&mut context);
     write_module_inner(
@@ -41,6 +40,7 @@ pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
         HashMap::default(),
         false,
     );
+    todo!("write the module entrypoint here");
 }
 
 impl ProgramContext<'_> {
@@ -71,6 +71,11 @@ impl ProgramContext<'_> {
 
     pub fn atom(&mut self, value: &str) -> Atom {
         self.builder.atom(value)
+    }
+
+    pub fn entrypoint(&mut self) -> &mut Self {
+        self.builder.entrypoint();
+        self
     }
 
     /// Writes a procedure. Calling convention of procedures is to simply call with all arguments

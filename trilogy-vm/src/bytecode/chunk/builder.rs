@@ -24,6 +24,7 @@ pub struct ChunkBuilder {
     interner: AtomInterner,
     lines: Vec<Line>,
     current_labels: Vec<String>,
+    error: Option<ChunkError>,
 }
 
 /// An error that can occur when building a Chunk incorrectly.
@@ -31,19 +32,18 @@ pub struct ChunkBuilder {
 pub enum ChunkError {
     /// A referenced label was not defined.
     MissingLabel(String),
+    /// Parsed assembly string was invalid.
+    InvalidAsm,
 }
 
 impl Display for ChunkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingLabel(label) => write!(f, "label `{label}` was not defined"),
+            Self::InvalidAsm => write!(f, "invalid assembly string was parsed"),
         }
     }
 }
-
-/// Indicates that there was a syntax error in the ASM string.
-#[derive(Debug)]
-pub struct SyntaxError;
 
 impl ChunkBuilder {
     pub(crate) fn new(interner: AtomInterner) -> Self {
@@ -53,16 +53,14 @@ impl ChunkBuilder {
             interner,
             lines: vec![],
             current_labels: vec![],
+            error: None,
         }
     }
 
     pub(crate) fn new_prefixed(interner: AtomInterner, prefix: Chunk) -> Self {
         Self {
-            entry_line: 0,
             prefix: Some(prefix),
-            interner,
-            lines: vec![],
-            current_labels: vec![],
+            ..Self::new(interner)
         }
     }
 
@@ -175,6 +173,9 @@ impl ChunkBuilder {
     /// Construct the [`Chunk`][] that was being built. Fails if any labels were referenced
     /// but not defined.
     pub(crate) fn build(mut self) -> Result<(Offset, Chunk), ChunkError> {
+        if let Some(error) = self.error {
+            return Err(error);
+        }
         let mut label_offsets;
         let mut constants;
         let mut bytes;
@@ -195,7 +196,7 @@ impl ChunkBuilder {
         let mut distance = bytes.len() as u32;
         for (offset, line) in self.lines.iter_mut().enumerate() {
             if offset == self.entry_line {
-                entrypoint = distance;
+                entrypoint = offset as u32 + distance;
             }
             for label in line.labels.drain(..) {
                 label_offsets.insert(label, offset as u32 + distance);
@@ -273,17 +274,22 @@ impl ChunkBuilder {
     ///     .build()
     ///     .unwrap()
     /// ```
-    pub fn parse(&mut self, source: &str) -> Result<&mut Self, SyntaxError> {
+    pub fn parse(&mut self, source: &str) -> &mut Self {
+        self.error = self.try_parse(source).err();
+        self
+    }
+
+    fn try_parse(&mut self, source: &str) -> Result<(), ChunkError> {
         let mut reader = AsmReader::new(source, self.interner.clone());
 
         while !reader.is_empty() {
             while let Some(label) = reader.label_definition() {
                 self.label(label);
             }
-            let opcode = reader.opcode().ok_or(SyntaxError)?;
+            let opcode = reader.opcode().ok_or(ChunkError::InvalidAsm)?;
             match opcode {
                 OpCode::Const => {
-                    let value = match reader.value().ok_or(SyntaxError)? {
+                    let value = match reader.value().ok_or(ChunkError::InvalidAsm)? {
                         asm::Value::Label(label) => Parameter::Reference(label),
                         asm::Value::Value(value) => Parameter::Value(value),
                     };
@@ -294,7 +300,7 @@ impl ChunkBuilder {
                         self.write_line(opcode, None);
                     }
                     1 => {
-                        let param = match reader.parameter().ok_or(SyntaxError)? {
+                        let param = match reader.parameter().ok_or(ChunkError::InvalidAsm)? {
                             asm::Parameter::Label(label) => Parameter::Label(label),
                             asm::Parameter::Offset(label) => Parameter::Offset(label),
                         };
@@ -305,6 +311,6 @@ impl ChunkBuilder {
             }
         }
 
-        Ok(self)
+        Ok(())
     }
 }
