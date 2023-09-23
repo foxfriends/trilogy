@@ -1,3 +1,5 @@
+//! The various AST nodes of a parsed Trilogy program.
+
 mod alias;
 mod amble;
 mod application;

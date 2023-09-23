@@ -3,6 +3,10 @@ use crate::{Parse, Spanned, TokenPattern};
 use peekmore::{PeekMore, PeekMoreIterator};
 use trilogy_scanner::{Scanner, Token, TokenType};
 
+/// The parser for the Trilogy Programming Language.
+///
+/// This parser takes a sequence of [`Token`][]s, typically from a [`Scanner`][],
+/// and constructs it into an AST, which we call a [`Document`][].
 pub struct Parser<'src> {
     source: PeekMoreIterator<Scanner<'src>>,
     warnings: Vec<SyntaxError>,
@@ -15,6 +19,7 @@ pub struct Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
+    /// Construct a new parser taking input from a [`Scanner`][].
     pub fn new(source: Scanner<'src>) -> Self {
         Self {
             source: source.peekmore(),
@@ -25,6 +30,10 @@ impl<'src> Parser<'src> {
         }
     }
 
+    /// Consume the tokens provided, attempting to build a [`Document`][] from them.
+    ///
+    /// Where possible, errors are recovered from and collected for later. The returned
+    /// `Document` may not be used if the [`Parse`][] contains errors
     pub fn parse(mut self) -> Parse<Document> {
         let ast = Amble::<Document>::parse(&mut self);
         Parse {

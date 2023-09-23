@@ -17,7 +17,8 @@ struct Line {
     value: Option<Parameter>,
 }
 
-/// Builder for constructing a [`Chunk`][].
+/// Builder for constructing a chunk of bytecode for the [`VirtualMachine`][crate::VirtualMachine]
+/// to execute.
 pub struct ChunkBuilder {
     prefix: Option<Chunk>,
     entry_line: usize,

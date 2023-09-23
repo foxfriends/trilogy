@@ -13,9 +13,11 @@ pub use parse::Parse;
 pub use parser::Parser;
 
 // These things probably belong in some internal prelude...
+#[doc(hidden)]
+pub use format::{PrettyPrintSExpr, PrettyPrinted, PrettyPrinter};
+
 mod format;
 mod spanned;
 mod token_pattern;
-pub use format::{PrettyPrintSExpr, PrettyPrinted, PrettyPrinter};
 pub use spanned::Spanned;
 pub(crate) use token_pattern::TokenPattern;

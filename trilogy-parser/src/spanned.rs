@@ -1,6 +1,8 @@
 use source_span::Span;
 use trilogy_scanner::Token;
 
+/// Provides access to the [`Span`][] that this piece of source code takes up
+/// in the source file.
 pub trait Spanned {
     fn span(&self) -> Span;
 }
