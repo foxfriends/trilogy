@@ -4,14 +4,14 @@ use std::fmt::{self, Display};
 
 mod builder;
 
-pub use builder::ChunkBuilder;
+pub use builder::{ChunkBuilder, ChunkError};
 
 /// A chunk of independently compiled source code for this VM.
 #[derive(Clone, Debug)]
-pub struct Chunk {
+pub(crate) struct Chunk {
     labels: HashMap<String, u32>,
-    pub(crate) constants: Vec<Value>,
-    pub(crate) bytes: Vec<u8>,
+    pub constants: Vec<Value>,
+    pub bytes: Vec<u8>,
 }
 
 impl Display for Chunk {
@@ -52,11 +52,11 @@ impl Display for Chunk {
 }
 
 impl Chunk {
-    pub(crate) fn opcode(&self, offset: Offset) -> OpCode {
+    pub fn opcode(&self, offset: Offset) -> OpCode {
         OpCode::try_from(self.bytes[offset as usize]).unwrap()
     }
 
-    pub(crate) fn offset(&self, offset: Offset) -> Offset {
+    pub fn offset(&self, offset: Offset) -> Offset {
         Offset::from_be_bytes(
             self.bytes[offset as usize..offset as usize + 4]
                 .try_into()
@@ -64,13 +64,13 @@ impl Chunk {
         )
     }
 
-    pub(crate) fn constant(&self, offset: Offset) -> Value {
+    pub fn constant(&self, offset: Offset) -> Value {
         let index = self.offset(offset);
         self.constants[index as usize].clone()
     }
 }
 
-pub struct ChunkIter<'a> {
+pub(crate) struct ChunkIter<'a> {
     offset: usize,
     chunk: &'a Chunk,
 }

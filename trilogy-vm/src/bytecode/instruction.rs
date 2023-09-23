@@ -1,4 +1,5 @@
-use crate::{Chunk, Value};
+use super::chunk::Chunk;
+use crate::Value;
 use trilogy_vm_derive::Asm;
 
 /// Integer type used as the single parameter to some instructions.

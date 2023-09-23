@@ -1,19 +1,18 @@
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Stack};
-use crate::{Chunk, Continuation, Offset, OpCode, Procedure, Value};
+use crate::bytecode::chunk::Chunk;
+use crate::{Continuation, Offset, OpCode, Procedure, Value};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Execution {
-    chunk: Chunk,
     pub ip: Offset,
     pub stack: Stack,
     stack_stack: Vec<(Offset, Stack)>,
 }
 
 impl Execution {
-    pub fn new(chunk: Chunk) -> Self {
+    pub fn new() -> Self {
         Self {
-            chunk,
             ip: 0,
             stack: Stack::default(),
             stack_stack: vec![],
@@ -23,15 +22,14 @@ impl Execution {
     pub fn branch(&mut self) -> Self {
         let branch = self.stack.branch();
         Self {
-            chunk: self.chunk.clone(),
             stack: branch,
             stack_stack: vec![],
             ip: self.ip,
         }
     }
 
-    pub fn read_opcode(&mut self) -> Result<OpCode, Error> {
-        let instruction = self.chunk.bytes[self.ip as usize]
+    pub fn read_opcode(&mut self, chunk: &Chunk) -> Result<OpCode, Error> {
+        let instruction = chunk.bytes[self.ip as usize]
             .try_into()
             .map_err(|_| InternalRuntimeError::InvalidOpcode)
             .map_err(|k| self.error(k))?;
@@ -39,9 +37,9 @@ impl Execution {
         Ok(instruction)
     }
 
-    pub fn read_offset(&mut self) -> Result<Offset, Error> {
+    pub fn read_offset(&mut self, chunk: &Chunk) -> Result<Offset, Error> {
         let value = u32::from_be_bytes(
-            self.chunk.bytes[self.ip as usize..self.ip as usize + 4]
+            chunk.bytes[self.ip as usize..self.ip as usize + 4]
                 .try_into()
                 .unwrap(),
         );
@@ -49,9 +47,9 @@ impl Execution {
         Ok(value)
     }
 
-    pub fn read_constant(&mut self) -> Result<Value, Error> {
-        let index = self.read_offset()?;
-        self.chunk
+    pub fn read_constant(&mut self, chunk: &Chunk) -> Result<Value, Error> {
+        let index = self.read_offset(chunk)?;
+        chunk
             .constants
             .get(index as usize)
             .map(|value| value.structural_clone())

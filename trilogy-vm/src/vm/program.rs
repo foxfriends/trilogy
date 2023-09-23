@@ -1,4 +1,4 @@
-use crate::{Chunk, ChunkBuilder, Value};
+use crate::{ChunkBuilder, Value};
 
 /// A program that can be run on this VM.
 ///
@@ -6,11 +6,11 @@ use crate::{Chunk, ChunkBuilder, Value};
 /// particular language's runtime, allowing the relationship between
 /// modules to be defined by the language.
 pub trait Program {
-    /// Retrieve another [`Chunk`][] as described by a given value. The interpretation
+    /// Retrieve another chunk of code as described by a given value. The interpretation
     /// of the value (and production of the value) is at the language runtime's definition.
-    fn chunk(&mut self, input: Value, builder: ChunkBuilder) -> Chunk;
+    fn chunk(&mut self, input: &Value, builder: &mut ChunkBuilder);
 
-    /// The initial [`Chunk`][] to execute when the virtual machine is provided with
+    /// Compute the initial chunk to execute when the virtual machine is provided with
     /// a new program.
-    fn entrypoint(&mut self, builder: ChunkBuilder) -> Chunk;
+    fn entrypoint(&mut self, builder: &mut ChunkBuilder);
 }

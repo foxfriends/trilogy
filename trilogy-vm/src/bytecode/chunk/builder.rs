@@ -1,7 +1,8 @@
 use super::Chunk;
+use crate::atom::AtomInterner;
 use crate::bytecode::asm::{self, AsmReader};
-use crate::Procedure;
-use crate::{atom::AtomInterner, Atom, Instruction, OpCode, Value};
+use crate::{Atom, Instruction, Offset, OpCode, Procedure, Value};
+use std::fmt::{self, Display};
 
 pub(super) enum Parameter {
     Value(Value),
@@ -18,16 +19,26 @@ struct Line {
 
 /// Builder for constructing a [`Chunk`][].
 pub struct ChunkBuilder {
+    prefix: Option<Chunk>,
+    entry_line: usize,
     interner: AtomInterner,
     lines: Vec<Line>,
     current_labels: Vec<String>,
 }
 
 /// An error that can occur when building a Chunk incorrectly.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ChunkError {
     /// A referenced label was not defined.
     MissingLabel(String),
+}
+
+impl Display for ChunkError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingLabel(label) => write!(f, "label `{label}` was not defined"),
+        }
+    }
 }
 
 /// Indicates that there was a syntax error in the ASM string.
@@ -37,6 +48,18 @@ pub struct SyntaxError;
 impl ChunkBuilder {
     pub(crate) fn new(interner: AtomInterner) -> Self {
         Self {
+            entry_line: 0,
+            prefix: None,
+            interner,
+            lines: vec![],
+            current_labels: vec![],
+        }
+    }
+
+    pub(crate) fn new_prefixed(interner: AtomInterner, prefix: Chunk) -> Self {
+        Self {
+            entry_line: 0,
+            prefix: Some(prefix),
             interner,
             lines: vec![],
             current_labels: vec![],
@@ -140,20 +163,45 @@ impl ChunkBuilder {
         self
     }
 
+    /// Sets the entrypoint of this chunk to be at the line about to be written.
+    ///
+    /// By default, the entrypoint is the start of the chunk, but this option may
+    /// be used to start code execution from some point in the middle.
+    pub fn entrypoint(&mut self) -> &mut Self {
+        self.entry_line = self.lines.len();
+        self
+    }
+
     /// Construct the [`Chunk`][] that was being built. Fails if any labels were referenced
     /// but not defined.
-    pub fn build(mut self) -> Result<Chunk, ChunkError> {
-        let mut label_offsets = std::collections::HashMap::new();
-        let mut constants = vec![];
-        let mut bytes = vec![];
+    pub(crate) fn build(mut self) -> Result<(Offset, Chunk), ChunkError> {
+        let mut label_offsets;
+        let mut constants;
+        let mut bytes;
+        match self.prefix {
+            Some(chunk) => {
+                label_offsets = chunk.labels;
+                constants = chunk.constants;
+                bytes = chunk.bytes;
+            }
+            None => {
+                label_offsets = std::collections::HashMap::default();
+                constants = vec![];
+                bytes = vec![];
+            }
+        }
 
-        let mut params = 0;
+        let mut entrypoint = 0;
+        let mut distance = bytes.len() as u32;
         for (offset, line) in self.lines.iter_mut().enumerate() {
+            if offset == self.entry_line {
+                entrypoint = distance;
+            }
             for label in line.labels.drain(..) {
-                label_offsets.insert(label, offset as u32 + params);
+                label_offsets.insert(label, offset as u32 + distance);
             }
             if line.value.is_some() {
-                params += 4;
+                distance += 4;
             }
         }
 
@@ -197,11 +245,14 @@ impl ChunkBuilder {
             }
         }
 
-        Ok(Chunk {
-            labels: label_offsets,
-            constants,
-            bytes,
-        })
+        Ok((
+            entrypoint,
+            Chunk {
+                labels: label_offsets,
+                constants,
+                bytes,
+            },
+        ))
     }
 
     /// Parse a string of written ASM.

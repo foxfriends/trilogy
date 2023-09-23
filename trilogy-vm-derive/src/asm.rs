@@ -254,7 +254,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
         }
 
         impl #instruction {
-            pub fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
+            pub(crate) fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
                 match chunk.opcode(offset) {
                     #(#from_chunk),*
                 }
