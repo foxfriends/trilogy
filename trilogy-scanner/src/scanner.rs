@@ -10,6 +10,10 @@ use std::string::String;
 
 const METRICS: DefaultMetrics = DefaultMetrics::with_tab_stop(4);
 
+/// The scanner (lexer) for the Trilogy Programming Language.
+///
+/// The `Scanner` is expected to be used as an [`Iterator`][] over
+/// [`Token`][]s.
 #[derive(Clone, Debug)]
 pub struct Scanner<'a> {
     chars: PeekMoreIterator<Chars<'a>>,
@@ -69,6 +73,9 @@ enum BitsOrNumber<T> {
 }
 
 impl<'a> Scanner<'a> {
+    /// Create a new scanner that scans the provided source string.
+    ///
+    /// Consume this scanner as an [`Iterator`][].
     pub fn new(source: &'a str) -> Self {
         Self {
             chars: source.chars().peekmore(),

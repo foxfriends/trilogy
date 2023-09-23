@@ -1,14 +1,14 @@
 use crate::syntax::{Amble, Document, SyntaxError};
 use crate::{Parse, Spanned, TokenPattern};
 use peekmore::{PeekMore, PeekMoreIterator};
-use trilogy_scanner::{Scanner, Token, TokenType};
+use trilogy_scanner::{Token, TokenType};
 
 /// The parser for the Trilogy Programming Language.
 ///
-/// This parser takes a sequence of [`Token`][]s, typically from a [`Scanner`][],
+/// This parser takes a sequence of [`Token`][]s, typically from a [`Scanner`][trilogy_scanner::Scanner],
 /// and constructs it into an AST, which we call a [`Document`][].
 pub struct Parser<'src> {
-    source: PeekMoreIterator<Scanner<'src>>,
+    source: PeekMoreIterator<Box<dyn Iterator<Item = Token> + 'src>>,
     warnings: Vec<SyntaxError>,
     #[cfg(test)] // expose this thing to the test framework only
     pub(crate) errors: Vec<SyntaxError>,
@@ -19,10 +19,11 @@ pub struct Parser<'src> {
 }
 
 impl<'src> Parser<'src> {
-    /// Construct a new parser taking input from a [`Scanner`][].
-    pub fn new(source: Scanner<'src>) -> Self {
+    /// Construct a new parser taking input from an iterator of [`Token`][]s. The usual
+    /// choice is to use a [`Scanner`][trilogy_scanner::Scanner]
+    pub fn new<S: Iterator<Item = Token> + 'src>(source: S) -> Self {
         Self {
-            source: source.peekmore(),
+            source: (Box::new(source) as Box<dyn Iterator<Item = Token>>).peekmore(),
             errors: vec![],
             warnings: vec![],
             is_line_start: true,
