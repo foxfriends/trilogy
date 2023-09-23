@@ -1,3 +1,5 @@
+//! The scanner (lexer) for the Trilogy Programming Language.
+
 mod scanner;
 mod token;
 mod token_type;

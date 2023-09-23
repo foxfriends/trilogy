@@ -1,3 +1,5 @@
+//! The parser for the Trilogy Programming Language.
+
 #[macro_use]
 extern crate trilogy_parser_derive;
 
