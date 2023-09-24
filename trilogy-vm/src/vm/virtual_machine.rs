@@ -1,9 +1,9 @@
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Execution};
 use crate::atom::AtomInterner;
-use crate::bytecode::OpCode;
+use crate::bytecode::{ChunkError, OpCode};
 use crate::runtime::Number;
-use crate::{Atom, ChunkBuilder, Procedure, Program, ReferentialEq, Struct, StructuralEq};
+use crate::{Atom, Chunk, ChunkBuilder, Procedure, Program, ReferentialEq, Struct, StructuralEq};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -89,11 +89,17 @@ impl VirtualMachine {
         self.atom_interner.intern(atom)
     }
 
+    pub fn compile(&self, program: &dyn Program) -> Result<Chunk, ChunkError> {
+        let mut chunk_builder = ChunkBuilder::new(self.atom_interner.clone());
+        program.entrypoint(&mut chunk_builder);
+        chunk_builder.build().map(|(.., chunk)| chunk)
+    }
+
     /// Run a [`Program`][] on this VM.
     ///
     /// This mutates the VM's internal state (heap and registers), so if reusing `VirtualMachine`
     /// instances, be sure this is the expected behaviour.
-    pub fn run(&mut self, program: &mut dyn Program) -> Result<Value, Error> {
+    pub fn run(&mut self, program: &dyn Program) -> Result<Value, Error> {
         let mut chunk_builder = ChunkBuilder::new(self.atom_interner.clone());
         let mut chunk_cache = HashMap::<Value, Value>::new();
         program.entrypoint(&mut chunk_builder);
@@ -210,10 +216,11 @@ impl VirtualMachine {
                     ex.stack_discard()?;
                 }
                 OpCode::Swap => {
-                    let rhs = ex.stack_pop()?;
-                    let lhs = ex.stack_pop()?;
-                    ex.stack_push(rhs);
-                    ex.stack_push(lhs);
+                    ex.stack_slide(1)?;
+                }
+                OpCode::Slide => {
+                    let offset = ex.read_offset(&chunk)? as usize;
+                    ex.stack_slide(offset)?;
                 }
                 OpCode::Copy => {
                     let value = ex.stack_peek()?;

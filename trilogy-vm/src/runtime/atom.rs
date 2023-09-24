@@ -1,13 +1,25 @@
 use std::borrow::Borrow;
 use std::cmp::PartialEq;
 use std::collections::HashSet;
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 
 /// A Trilogy Atom value.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Atom(Arc<String>);
+
+impl Debug for Atom {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Atom({}#{:#x})", self.0, self.0.as_ptr() as usize)
+    }
+}
+
+impl Atom {
+    pub(crate) fn new_unique(label: String) -> Self {
+        Self(Arc::new(label))
+    }
+}
 
 impl Eq for Atom {}
 impl PartialEq for Atom {

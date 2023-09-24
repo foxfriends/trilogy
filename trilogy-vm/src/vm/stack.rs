@@ -166,6 +166,8 @@ impl Stack {
         self.cactus.push(InternalValue::Value(value));
     }
 
+    /// Pushes many values at once, not reversing their order as they would be if they
+    /// were each pushed individually.
     pub(crate) fn push_many(&mut self, values: Vec<Value>) {
         self.cactus
             .attach(values.into_iter().map(InternalValue::Value).collect());
@@ -345,6 +347,8 @@ impl Stack {
         }
     }
 
+    /// Pops `n` values from the stack at once, returning them in an array __not__ in reverse order
+    /// the way they would be if they were popped individually one after the other.
     pub(crate) fn pop_n(&mut self, arity: usize) -> Result<Vec<Value>, InternalRuntimeError> {
         let internal_values = self
             .cactus

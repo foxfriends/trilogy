@@ -1,4 +1,5 @@
 use crate::context::{Labeler, Scope};
+use crate::module::Mode;
 use crate::preamble::RETURN;
 use crate::prelude::*;
 use std::collections::HashMap;
@@ -22,25 +23,22 @@ impl<'a> ProgramContext<'a> {
 pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
     let mut context = ProgramContext::new(builder);
     write_preamble(&mut context);
-    write_module_inner(
-        &mut context,
-        module,
-        HashMap::default(),
-        HashMap::default(),
-        true,
-    );
+
+    let mut statics = HashMap::default();
+    let mut modules = HashMap::default();
+    context.collect_static(module, &mut statics, &mut modules);
+    write_module_definitions(&mut context, module, &statics, &modules, Mode::Program);
 }
 
 pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
     let mut context = ProgramContext::new(builder);
-    write_module_inner(
-        &mut context,
-        module,
-        HashMap::default(),
-        HashMap::default(),
-        false,
-    );
-    todo!("write the module entrypoint here");
+    let mut statics = HashMap::default();
+    let mut modules = HashMap::default();
+    context.collect_static(module, &mut statics, &mut modules);
+    context.entrypoint();
+    let mut precontext = context.begin(&statics, &modules, 0);
+    write_module_prelude(&mut precontext, module);
+    write_module_definitions(&mut context, module, &statics, &modules, Mode::Document);
 }
 
 impl ProgramContext<'_> {
@@ -69,7 +67,7 @@ impl ProgramContext<'_> {
         self
     }
 
-    pub fn atom(&mut self, value: &str) -> Atom {
+    pub fn atom(&self, value: &str) -> Atom {
         self.builder.atom(value)
     }
 
@@ -174,14 +172,67 @@ impl ProgramContext<'_> {
         context.instruction(Instruction::Fizzle);
     }
 
+    /// Writes a module. Modules are prefixed with a single prelude function, which takes
+    /// the module's parameters and returns a module object that can be used to access the
+    /// public members.
+    ///
+    /// The module object is a callable that takes one argument, an atom that is the identifier
+    /// of the member to access, and returns that member.
     pub fn write_module(
         &mut self,
-        statics: HashMap<Id, String>,
-        modules: HashMap<Id, String>,
+        mut statics: HashMap<Id, String>,
+        mut modules: HashMap<Id, String>,
         def: &ir::ModuleDefinition,
     ) {
+        let for_id = self.labeler.for_id(&def.name.id);
+        self.label(for_id);
         let module = def.module.as_module().unwrap();
-        write_module_inner(self, module, statics, modules, false);
+        self.collect_static(module, &mut statics, &mut modules);
+        let mut context = self.begin(&statics, &modules, module.parameters.len());
+        statics.extend(write_module_prelude(&mut context, module));
+        write_module_definitions(self, module, &statics, &modules, Mode::Module);
+    }
+
+    fn collect_static(
+        &self,
+        module: &ir::Module,
+        statics: &mut HashMap<Id, String>,
+        modules: &mut HashMap<Id, String>,
+    ) {
+        statics.extend(
+            module
+                .definitions()
+                .iter()
+                .filter_map(|def| match &def.item {
+                    ir::DefinitionItem::Function(func) => Some(func.name.id.clone()),
+                    ir::DefinitionItem::Rule(rule) => Some(rule.name.id.clone()),
+                    ir::DefinitionItem::Procedure(proc) => Some(proc.name.id.clone()),
+                    // TODO: this is wrong for aliases, they are more of a compile-time transform.
+                    // Maybe they should be resolved at the IR phase so they can be omitted here.
+                    ir::DefinitionItem::Alias(alias) => Some(alias.name.id.clone()),
+                    ir::DefinitionItem::Module(module) if module.module.as_module().is_some() => {
+                        Some(module.name.id.clone())
+                    }
+                    ir::DefinitionItem::Module(..) => None,
+                    ir::DefinitionItem::Test(..) => None,
+                })
+                .map(|id| {
+                    let label = self.labeler.for_id(&id);
+                    (id, label)
+                }),
+        );
+        modules.extend(
+            module
+                .definitions()
+                .iter()
+                .filter_map(|def| match &def.item {
+                    ir::DefinitionItem::Module(module) => {
+                        let path = module.module.as_external()?;
+                        Some((module.name.id.clone(), path.to_owned()))
+                    }
+                    _ => None,
+                }),
+        );
     }
 
     fn begin<'a>(

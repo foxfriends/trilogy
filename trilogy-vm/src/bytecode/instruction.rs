@@ -30,6 +30,8 @@ pub enum Instruction {
     Pop,
     /// Swap the value on the top of the stack with the second from the top value.
     Swap,
+    /// Slide the value on the top of the stack a number of places backwards.
+    Slide(Offset),
     /// Replace the value on the top of the stack with a string value representing
     /// the value's type. The new string will be one of:
     /// * `"unit"`
@@ -277,7 +279,7 @@ impl TryFrom<u8> for OpCode {
     type Error = u8;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value <= Self::Exit as u8 {
+        if value <= Self::Chunk as u8 {
             Ok(unsafe { std::mem::transmute(value) })
         } else {
             Err(value)

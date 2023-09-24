@@ -67,8 +67,15 @@ impl ChunkBuilder {
 
     /// Instantiate an atom for the current runtime. Atoms cannot be created except
     /// for within the context of a particular runtime's global atom table.
-    pub fn atom(&mut self, atom: &str) -> Atom {
+    pub fn atom(&self, atom: &str) -> Atom {
         self.interner.intern(atom)
+    }
+
+    /// Instantiate an anonymous atom for the current runtime. An anonymous atom
+    /// cannot be re-created. The provided label is shown when debugging, but two
+    /// atoms with the same label are not the same value.
+    pub fn atom_anon(&self, label: &str) -> Atom {
+        Atom::new_unique(label.to_owned())
     }
 
     /// Add a label to the next instruction to be inserted.
@@ -131,6 +138,9 @@ impl ChunkBuilder {
     }
 
     /// Insert an instruction.
+    ///
+    /// All labels currently in the buffer will be assigned to this line, and
+    /// the buffer will be cleared.
     pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
         let opcode = instruction.op_code();
         let value = match instruction {
@@ -141,13 +151,21 @@ impl ChunkBuilder {
             Instruction::UnsetLocal(offset) => Some(Parameter::Offset(offset)),
             Instruction::LoadRegister(offset) => Some(Parameter::Offset(offset)),
             Instruction::SetRegister(offset) => Some(Parameter::Offset(offset)),
+            Instruction::Slide(offset) => Some(Parameter::Offset(offset)),
             Instruction::Call(offset) => Some(Parameter::Offset(offset)),
             Instruction::Become(offset) => Some(Parameter::Offset(offset)),
             Instruction::Close(offset) => Some(Parameter::Offset(offset)),
             Instruction::Shift(offset) => Some(Parameter::Offset(offset)),
             Instruction::Jump(offset) => Some(Parameter::Offset(offset)),
             Instruction::CondJump(offset) => Some(Parameter::Offset(offset)),
-            _ => None,
+            _ => {
+                assert_eq!(
+                    instruction.byte_len(),
+                    1,
+                    "{instruction} needs to be handled"
+                );
+                None
+            }
         };
         self.write_line(opcode, value)
     }

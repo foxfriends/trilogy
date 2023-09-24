@@ -211,12 +211,12 @@ fn write_query_value(
             write_query_state(context, &conj.1);
             context
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::SetRegister(1))
+                .instruction(Instruction::SetRegister(2))
                 .shift(&next)
                 .jump(&inner);
             context
                 .label(next)
-                .instruction(Instruction::LoadRegister(1))
+                .instruction(Instruction::LoadRegister(2))
                 .instruction(Instruction::Call(1))
                 .jump(&outer);
 

@@ -166,8 +166,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.pop_continue();
         }
         ir::Value::Application(application) => match unapply_2(application) {
-            (Some(ir::Value::Builtin(ir::Builtin::ModuleAccess)), ..) => {
-                write_static_value(context, value)
+            (
+                Some(ir::Value::Builtin(ir::Builtin::ModuleAccess)),
+                module_ref,
+                ir::Value::Dynamic(ident),
+            ) => {
+                write_evaluation(context, module_ref);
+                let atom = context.atom((**ident).as_ref());
+                context
+                    .instruction(Instruction::Const(atom.into()))
+                    .instruction(Instruction::Call(1));
             }
             (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
                 write_unary_operation(context, arg, *builtin);
@@ -538,7 +546,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let locator = context.scope.lookup_module(&ident.id).unwrap();
             context
                 .instruction(Instruction::Const(locator.into()))
-                .instruction(Instruction::Chunk);
+                .instruction(Instruction::Chunk)
+                .instruction(Instruction::Call(0));
         }
         ir::Value::Reference(ident) => {
             let binding = context
@@ -554,8 +563,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
             }
         }
-        ir::Value::Dynamic(dynamic) => {
-            panic!("Dynamic is not actually supposed to happen, but we got {dynamic:?}");
+        ir::Value::Dynamic(..) => {
+            unreachable!("dynamic should not be reached here");
         }
         ir::Value::Assert(..) => todo!(),
         ir::Value::End => {

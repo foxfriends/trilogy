@@ -2,7 +2,7 @@ use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
 use std::path::Path;
 use trilogy_ir::ir::Module;
-use trilogy_vm::{Atom, ChunkBuilder, Program, Value, VirtualMachine};
+use trilogy_vm::{Atom, Chunk, ChunkBuilder, ChunkError, Program, Value, VirtualMachine};
 
 mod builder;
 mod load_error;
@@ -12,6 +12,7 @@ pub use builder::Builder;
 pub use load_error::LoadError;
 pub use runtime_error::RuntimeError;
 
+#[derive(Clone, Debug)]
 pub struct Trilogy {
     modules: HashMap<Location, Module>,
     libraries: HashMap<Location, NativeModule>,
@@ -40,14 +41,23 @@ impl Trilogy {
     }
 
     pub fn run(&mut self) -> Result<Value, RuntimeError> {
-        let mut program = TrilogyProgram {
+        let program = TrilogyProgram {
             modules: &self.modules,
             libraries: &self.libraries,
             entrypoint: &self.entrypoint,
         };
         self.vm
-            .run(&mut program)
+            .run(&program)
             .map_err(|error| RuntimeError { error })
+    }
+
+    pub fn compile(&self) -> Result<Chunk, ChunkError> {
+        let program = TrilogyProgram {
+            modules: &self.modules,
+            libraries: &self.libraries,
+            entrypoint: &self.entrypoint,
+        };
+        self.vm.compile(&program)
     }
 
     pub fn atom(&self, atom: &str) -> Atom {
@@ -62,12 +72,12 @@ struct TrilogyProgram<'a> {
 }
 
 impl Program for TrilogyProgram<'_> {
-    fn entrypoint(&mut self, chunk: &mut ChunkBuilder) {
+    fn entrypoint(&self, chunk: &mut ChunkBuilder) {
         let module = self.modules.get(self.entrypoint).unwrap();
         trilogy_codegen::write_program(chunk, module);
     }
 
-    fn chunk(&mut self, locator: &Value, chunk: &mut ChunkBuilder) {
+    fn chunk(&self, locator: &Value, chunk: &mut ChunkBuilder) {
         let location = match locator {
             Value::String(url) => Location::absolute(url.parse().expect("invalid module location")),
             _ => panic!("invalid module specifier `{locator}`"),
@@ -82,6 +92,7 @@ impl Program for TrilogyProgram<'_> {
             .map(Either::Source)
             .or_else(|| self.libraries.get(&location).map(Either::Native))
             .expect("unknown module location");
+        chunk.label(format!("location:{location}"));
         match module {
             Either::Source(module) => trilogy_codegen::write_module(chunk, module),
             Either::Native(..) => todo!("native modules"),

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use trilogy_vm::{Native, NativeFunction};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NativeModule {
     pub(crate) modules: HashMap<&'static str, NativeModule>,
     pub(crate) procedures: HashMap<&'static str, Native>,

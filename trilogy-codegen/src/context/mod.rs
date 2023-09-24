@@ -21,7 +21,7 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn write_procedure_reference(&mut self, label: String) -> &mut Self {
+    pub fn write_procedure_reference(&mut self, label: impl Into<String>) -> &mut Self {
         self.builder.reference(label);
         self
     }

@@ -57,7 +57,11 @@ impl<'a> Scope<'a> {
             .get(id)
             .copied()
             .map(Binding::Variable)
-            .or_else(|| self.statics.get(id).map(|s| Binding::Static(s)))
+            .or_else(|| self.lookup_static(id).map(Binding::Static))
+    }
+
+    pub fn lookup_static(&self, id: &Id) -> Option<&'_ str> {
+        self.statics.get(id).map(|s| s.as_str())
     }
 
     pub fn lookup_module(&self, id: &Id) -> Option<&str> {

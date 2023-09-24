@@ -1,3 +1,5 @@
-func double x = x * 2
+proc double!(x) {
+    return x * 2
+}
 
 export double

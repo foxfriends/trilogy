@@ -31,7 +31,9 @@ impl Execution {
     pub fn read_opcode(&mut self, chunk: &Chunk) -> Result<OpCode, Error> {
         let instruction = chunk.bytes[self.ip as usize]
             .try_into()
-            .map_err(|_| InternalRuntimeError::InvalidOpcode)
+            .map_err(|_| {
+                InternalRuntimeError::InvalidOpcode(chunk.bytes[self.ip as usize], self.ip)
+            })
             .map_err(|k| self.error(k))?;
         self.ip += 1;
         Ok(instruction)
@@ -152,6 +154,14 @@ impl Execution {
 
     pub fn stack_discard(&mut self) -> Result<Option<Value>, Error> {
         self.stack.pop().map_err(|k| self.error(k))
+    }
+
+    pub fn stack_slide(&mut self, n: usize) -> Result<(), Error> {
+        let top = self.stack_pop()?;
+        let slide = self.stack.pop_n(n).map_err(|k| self.error(k))?;
+        self.stack.push(top);
+        self.stack.push_many(slide);
+        Ok(())
     }
 
     pub fn stack_push(&mut self, value: Value) {

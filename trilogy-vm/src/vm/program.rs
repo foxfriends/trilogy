@@ -8,9 +8,9 @@ use crate::{ChunkBuilder, Value};
 pub trait Program {
     /// Retrieve another chunk of code as described by a given value. The interpretation
     /// of the value (and production of the value) is at the language runtime's definition.
-    fn chunk(&mut self, input: &Value, builder: &mut ChunkBuilder);
+    fn chunk(&self, input: &Value, builder: &mut ChunkBuilder);
 
     /// Compute the initial chunk to execute when the virtual machine is provided with
     /// a new program.
-    fn entrypoint(&mut self, builder: &mut ChunkBuilder);
+    fn entrypoint(&self, builder: &mut ChunkBuilder);
 }

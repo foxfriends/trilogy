@@ -6,9 +6,12 @@ mod builder;
 
 pub use builder::{ChunkBuilder, ChunkError};
 
-/// A chunk of independently compiled source code for this VM.
+/// A chunk of independently compiled source code for the Trilogy VM.
+///
+/// It is currently not defined as to what happens if you run a chunk on a
+/// [`VirtualMachine`][crate::VirtualMachine] instance that is not the one that compiled it.
 #[derive(Clone, Debug)]
-pub(crate) struct Chunk {
+pub struct Chunk {
     labels: HashMap<String, u32>,
     pub constants: Vec<Value>,
     pub bytes: Vec<u8>,
@@ -70,7 +73,7 @@ impl Chunk {
     }
 }
 
-pub(crate) struct ChunkIter<'a> {
+pub struct ChunkIter<'a> {
     offset: usize,
     chunk: &'a Chunk,
 }

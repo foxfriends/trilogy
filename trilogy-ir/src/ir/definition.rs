@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::*;
-use crate::{Analyzer, Error};
+use crate::{Analyzer, Error, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -23,6 +23,17 @@ pub struct Definition {
 }
 
 impl Definition {
+    pub fn name(&self) -> Option<&Id> {
+        match &self.item {
+            DefinitionItem::Procedure(def) => Some(&def.name.id),
+            DefinitionItem::Function(def) => Some(&def.name.id),
+            DefinitionItem::Rule(def) => Some(&def.name.id),
+            DefinitionItem::Alias(def) => Some(&def.name.id),
+            DefinitionItem::Test(..) => None,
+            DefinitionItem::Module(def) => Some(&def.name.id),
+        }
+    }
+
     pub fn as_module_mut(&mut self) -> Option<&mut ModuleDefinition> {
         match &mut self.item {
             DefinitionItem::Module(module) => Some(&mut *module),
