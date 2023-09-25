@@ -103,8 +103,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .cond_jump(on_fail)
                     .label(assigned);
             }
-            Binding::Chunk(..) => unreachable!(),
-            Binding::Static(..) => unreachable!(),
+            Binding::Static(..) | Binding::Chunk(..) => {
+                unreachable!("this is a new binding, so it cannot be static")
+            }
         },
         ir::Value::Application(application) => match unapply_2(application) {
             (None, ir::Value::Builtin(Builtin::Negate), value) => {
