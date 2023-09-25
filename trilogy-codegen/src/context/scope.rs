@@ -1,3 +1,4 @@
+use crate::entrypoint::StaticMember;
 use std::collections::HashMap;
 use trilogy_ir::Id;
 use trilogy_vm::Instruction;
@@ -6,12 +7,21 @@ use trilogy_vm::Instruction;
 pub(crate) enum Binding<'a> {
     Variable(u32),
     Static(&'a str),
+    Chunk(&'a str),
+}
+
+impl<'a> From<&'a StaticMember> for Binding<'a> {
+    fn from(value: &'a StaticMember) -> Self {
+        match &value {
+            StaticMember::Label(label) => Binding::Static(label),
+            StaticMember::Chunk(chunk) => Binding::Chunk(chunk),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct Scope<'a> {
-    statics: &'a HashMap<Id, String>,
-    modules: &'a HashMap<Id, String>,
+    statics: &'a HashMap<Id, StaticMember>,
     locals: HashMap<Id, u32>,
     parameters: usize,
 
@@ -22,14 +32,9 @@ pub(crate) struct Scope<'a> {
 }
 
 impl<'a> Scope<'a> {
-    pub fn new(
-        statics: &'a HashMap<Id, String>,
-        modules: &'a HashMap<Id, String>,
-        parameters: usize,
-    ) -> Self {
+    pub fn new(statics: &'a HashMap<Id, StaticMember>, parameters: usize) -> Self {
         Self {
             parameters,
-            modules,
             statics,
             locals: HashMap::default(),
             kw_resume: vec![],
@@ -57,15 +62,11 @@ impl<'a> Scope<'a> {
             .get(id)
             .copied()
             .map(Binding::Variable)
-            .or_else(|| self.lookup_static(id).map(Binding::Static))
+            .or_else(|| self.lookup_static(id).map(Into::into))
     }
 
-    pub fn lookup_static(&self, id: &Id) -> Option<&'_ str> {
-        self.statics.get(id).map(|s| s.as_str())
-    }
-
-    pub fn lookup_module(&self, id: &Id) -> Option<&str> {
-        self.modules.get(id).map(|s| s.as_str())
+    pub fn lookup_static(&self, id: &Id) -> Option<&'_ StaticMember> {
+        self.statics.get(id)
     }
 
     pub fn closure(&mut self, parameters: usize) -> u32 {

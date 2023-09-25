@@ -6,6 +6,12 @@ use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
 use trilogy_vm::{Atom, ChunkBuilder, Instruction};
 
+#[derive(Clone, Debug)]
+pub(crate) enum StaticMember {
+    Chunk(String),
+    Label(String),
+}
+
 pub(crate) struct ProgramContext<'a> {
     pub labeler: Labeler,
     builder: &'a mut ChunkBuilder,
@@ -25,20 +31,18 @@ pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
     write_preamble(&mut context);
 
     let mut statics = HashMap::default();
-    let mut modules = HashMap::default();
-    context.collect_static(module, &mut statics, &mut modules);
-    write_module_definitions(&mut context, module, &statics, &modules, Mode::Program);
+    context.collect_static(module, &mut statics);
+    write_module_definitions(&mut context, module, &statics, Mode::Program);
 }
 
 pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
     let mut context = ProgramContext::new(builder);
     let mut statics = HashMap::default();
-    let mut modules = HashMap::default();
-    context.collect_static(module, &mut statics, &mut modules);
+    context.collect_static(module, &mut statics);
     context.entrypoint();
-    let mut precontext = context.begin(&statics, &modules, 0);
+    let mut precontext = context.begin(&statics, 0);
     write_module_prelude(&mut precontext, module);
-    write_module_definitions(&mut context, module, &statics, &modules, Mode::Document);
+    write_module_definitions(&mut context, module, &statics, Mode::Document);
 }
 
 impl ProgramContext<'_> {
@@ -80,15 +84,14 @@ impl ProgramContext<'_> {
     /// on the stack in order.
     pub fn write_procedure(
         &mut self,
-        statics: &HashMap<Id, String>,
-        modules: &HashMap<Id, String>,
+        statics: &HashMap<Id, StaticMember>,
         procedure: &ir::ProcedureDefinition,
     ) {
         let for_id = self.labeler.for_id(&procedure.name.id);
         self.label(for_id);
         assert!(procedure.overloads.len() == 1);
         let overload = &procedure.overloads[0];
-        let context = self.begin(statics, modules, overload.parameters.len());
+        let context = self.begin(statics, overload.parameters.len());
         write_procedure(context, overload);
     }
 
@@ -101,16 +104,11 @@ impl ProgramContext<'_> {
     /// The return value is much like an iterator, either 'next(V) or 'done, where V will be a
     /// tuple of resulting bindings in argument order which are to be pattern matched against
     /// the input patterns.
-    pub fn write_rule(
-        &mut self,
-        statics: &HashMap<Id, String>,
-        modules: &HashMap<Id, String>,
-        rule: &ir::RuleDefinition,
-    ) {
+    pub fn write_rule(&mut self, statics: &HashMap<Id, StaticMember>, rule: &ir::RuleDefinition) {
         let for_id = self.labeler.for_id(&rule.name.id);
         self.label(for_id);
         let arity = rule.overloads[0].parameters.len();
-        let mut context = self.begin(statics, modules, 0);
+        let mut context = self.begin(statics, 0);
         context.instruction(Instruction::Const(((), 0).into()));
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
         context.close(RETURN);
@@ -155,14 +153,13 @@ impl ProgramContext<'_> {
     /// function.
     pub fn write_function(
         &mut self,
-        statics: &HashMap<Id, String>,
-        modules: &HashMap<Id, String>,
+        statics: &HashMap<Id, StaticMember>,
         function: &ir::FunctionDefinition,
     ) {
         let for_id = self.labeler.for_id(&function.name.id);
         self.label(for_id);
         let arity = function.overloads[0].parameters.len();
-        let mut context = self.begin(statics, modules, arity);
+        let mut context = self.begin(statics, arity);
         for _ in 1..arity {
             context.close(RETURN);
         }
@@ -180,68 +177,49 @@ impl ProgramContext<'_> {
     /// of the member to access, and returns that member.
     pub fn write_module(
         &mut self,
-        mut statics: HashMap<Id, String>,
-        mut modules: HashMap<Id, String>,
+        mut statics: HashMap<Id, StaticMember>,
         def: &ir::ModuleDefinition,
     ) {
         let for_id = self.labeler.for_id(&def.name.id);
         self.label(for_id);
         let module = def.module.as_module().unwrap();
-        self.collect_static(module, &mut statics, &mut modules);
-        let mut context = self.begin(&statics, &modules, module.parameters.len());
+        self.collect_static(module, &mut statics);
+        let mut context = self.begin(&statics, module.parameters.len());
         statics.extend(write_module_prelude(&mut context, module));
-        write_module_definitions(self, module, &statics, &modules, Mode::Module);
+        write_module_definitions(self, module, &statics, Mode::Module);
     }
 
-    fn collect_static(
-        &self,
-        module: &ir::Module,
-        statics: &mut HashMap<Id, String>,
-        modules: &mut HashMap<Id, String>,
-    ) {
-        statics.extend(
-            module
-                .definitions()
-                .iter()
-                .filter_map(|def| match &def.item {
-                    ir::DefinitionItem::Function(func) => Some(func.name.id.clone()),
-                    ir::DefinitionItem::Rule(rule) => Some(rule.name.id.clone()),
-                    ir::DefinitionItem::Procedure(proc) => Some(proc.name.id.clone()),
-                    // TODO: this is wrong for aliases, they are more of a compile-time transform.
-                    // Maybe they should be resolved at the IR phase so they can be omitted here.
-                    ir::DefinitionItem::Alias(alias) => Some(alias.name.id.clone()),
-                    ir::DefinitionItem::Module(module) if module.module.as_module().is_some() => {
-                        Some(module.name.id.clone())
+    fn collect_static(&self, module: &ir::Module, statics: &mut HashMap<Id, StaticMember>) {
+        statics.extend(module.definitions().iter().filter_map(|def| {
+            let id = match &def.item {
+                ir::DefinitionItem::Function(func) => Some(func.name.id.clone()),
+                ir::DefinitionItem::Rule(rule) => Some(rule.name.id.clone()),
+                ir::DefinitionItem::Procedure(proc) => Some(proc.name.id.clone()),
+                // TODO: this is wrong for aliases, they are more of a compile-time transform.
+                // Maybe they should be resolved at the IR phase so they can be omitted here.
+                ir::DefinitionItem::Alias(alias) => Some(alias.name.id.clone()),
+                ir::DefinitionItem::Module(module) if module.module.as_module().is_some() => {
+                    Some(module.name.id.clone())
+                }
+                ir::DefinitionItem::Module(module) => match &*module.module {
+                    ir::ModuleCell::External(path) => {
+                        return Some((module.name.id.clone(), StaticMember::Chunk(path.to_owned())))
                     }
-                    ir::DefinitionItem::Module(..) => None,
-                    ir::DefinitionItem::Test(..) => None,
-                })
-                .map(|id| {
-                    let label = self.labeler.for_id(&id);
-                    (id, label)
-                }),
-        );
-        modules.extend(
-            module
-                .definitions()
-                .iter()
-                .filter_map(|def| match &def.item {
-                    ir::DefinitionItem::Module(module) => {
-                        let path = module.module.as_external()?;
-                        Some((module.name.id.clone(), path.to_owned()))
-                    }
-                    _ => None,
-                }),
-        );
+                    ir::ModuleCell::Module(..) => Some(module.name.id.clone()),
+                },
+                ir::DefinitionItem::Test(..) => None,
+            }?;
+            let label = self.labeler.for_id(&id);
+            Some((id, StaticMember::Label(label)))
+        }));
     }
 
     fn begin<'a>(
         &'a mut self,
-        statics: &'a HashMap<Id, String>,
-        modules: &'a HashMap<Id, String>,
+        statics: &'a HashMap<Id, StaticMember>,
         parameters: usize,
     ) -> Context<'a> {
-        let scope = Scope::new(statics, modules, parameters);
+        let scope = Scope::new(statics, parameters);
         Context::new(self.builder, &mut self.labeler, scope)
     }
 }

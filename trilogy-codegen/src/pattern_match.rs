@@ -103,6 +103,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .cond_jump(on_fail)
                     .label(assigned);
             }
+            Binding::Chunk(..) => unreachable!(),
             Binding::Static(..) => unreachable!(),
         },
         ir::Value::Application(application) => match unapply_2(application) {

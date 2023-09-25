@@ -1,4 +1,4 @@
-use crate::entrypoint::ProgramContext;
+use crate::entrypoint::{ProgramContext, StaticMember};
 use crate::preamble::{END, RETURN};
 use crate::prelude::*;
 use std::collections::HashMap;
@@ -15,21 +15,20 @@ pub(crate) enum Mode {
 pub(crate) fn write_module_definitions(
     context: &mut ProgramContext,
     module: &ir::Module,
-    statics: &HashMap<Id, String>,
-    modules: &HashMap<Id, String>,
+    statics: &HashMap<Id, StaticMember>,
     mode: Mode,
 ) {
     // Here's where all the definitions follow.
     for def in module.definitions() {
         match &def.item {
             ir::DefinitionItem::Module(definition) if definition.module.as_module().is_some() => {
-                context.write_module(statics.clone(), modules.clone(), definition);
+                context.write_module(statics.clone(), definition);
             }
             ir::DefinitionItem::Function(function) => {
-                context.write_function(statics, modules, function);
+                context.write_function(statics, function);
             }
             ir::DefinitionItem::Rule(rule) => {
-                context.write_rule(statics, modules, rule);
+                context.write_rule(statics, rule);
             }
             ir::DefinitionItem::Procedure(procedure) => {
                 if mode == Mode::Program && procedure.name.id.name() == Some("main") {
@@ -39,7 +38,7 @@ pub(crate) fn write_module_definitions(
                     // If there is no main... we'll have to raise some error I suppose.
                     context.entrypoint();
                 }
-                context.write_procedure(statics, modules, procedure);
+                context.write_procedure(statics, procedure);
             }
             ir::DefinitionItem::Alias(..) => todo!(),
             ir::DefinitionItem::Test(..) => todo!(),
@@ -52,7 +51,7 @@ pub(crate) fn write_module_definitions(
 pub(crate) fn write_module_prelude(
     context: &mut Context,
     module: &ir::Module,
-) -> HashMap<Id, String> {
+) -> HashMap<Id, StaticMember> {
     // Start by extracting all the parameters. Declare them all up front so
     // that we can be sure about their ordering.
     let module_parameters = module
@@ -89,7 +88,7 @@ pub(crate) fn write_module_prelude(
             .instruction(Instruction::Const(i.into()))
             .instruction(Instruction::Access)
             .instruction(Instruction::Return);
-        statics_for_later.insert(var.clone(), label);
+        statics_for_later.insert(var.clone(), StaticMember::Label(label));
     }
     context.undeclare_variables(module_parameters, false);
 
@@ -123,11 +122,11 @@ pub(crate) fn write_module_prelude(
             match &def.item {
                 ir::DefinitionItem::Function(_func) => todo!("support exported functions"),
                 ir::DefinitionItem::Procedure(proc) => {
-                    let proc_label = context
-                        .scope
-                        .lookup_static(&proc.name.id)
-                        .expect("definitions must be found")
-                        .to_owned();
+                    let Some(StaticMember::Label(proc_label)) =
+                        context.scope.lookup_static(&proc.name.id).cloned()
+                    else {
+                        unreachable!("definitions will be found");
+                    };
                     // Procedure only has one overload. All overloads would have the same arity anyway.
                     let arity = proc.overloads[0].parameters.len();
                     context
