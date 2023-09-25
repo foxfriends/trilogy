@@ -61,9 +61,10 @@ pub(crate) fn write_module_prelude(
         .collect::<std::collections::HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    // TODO: modules with parameters should be defined like functions instead of
-    // like procedures. That's how they're called anyway.
     context.declare_variables(module_parameters.iter().cloned());
+    for _ in 1..module.parameters.len() {
+        context.close(RETURN);
+    }
     for (i, parameter) in module.parameters.iter().enumerate() {
         context.instruction(Instruction::LoadLocal(i as u32));
         write_pattern_match(context, parameter, END);
