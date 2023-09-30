@@ -37,6 +37,7 @@ pub(crate) fn write_module_definitions(
                     //
                     // If there is no main... we'll have to raise some error I suppose.
                     context.entrypoint();
+                    context.label("trilogy:__entrypoint__");
                 }
                 context.write_procedure(statics, procedure);
             }

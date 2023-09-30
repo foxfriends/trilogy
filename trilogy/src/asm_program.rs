@@ -25,7 +25,9 @@ impl AsmProgram {
 
 impl Program for AsmProgram {
     fn entrypoint(&self, chunk: &mut ChunkBuilder) {
-        chunk.parse(&self.source);
+        chunk
+            .parse(&self.source)
+            .entrypoint_existing("trilogy:__entrypoint__");
     }
 
     fn chunk(&self, locator: &Value, chunk: &mut ChunkBuilder) {
