@@ -1,8 +1,14 @@
+use super::error::ChunkError;
 use super::Chunk;
 use crate::atom::AtomInterner;
 use crate::bytecode::asm::{self, AsmReader};
 use crate::{Atom, Instruction, Offset, OpCode, Procedure, Value};
-use std::fmt::{self, Display};
+
+#[derive(Eq, PartialEq, Copy, Clone)]
+enum Entrypoint {
+    Line(usize),
+    Index(u32),
+}
 
 pub(super) enum Parameter {
     Value(Value),
@@ -21,35 +27,17 @@ struct Line {
 /// to execute.
 pub struct ChunkBuilder {
     prefix: Option<Chunk>,
-    entry_line: usize,
+    entrypoint: Entrypoint,
     interner: AtomInterner,
     lines: Vec<Line>,
     current_labels: Vec<String>,
     error: Option<ChunkError>,
 }
 
-/// An error that can occur when building a Chunk incorrectly.
-#[derive(Clone, Debug)]
-pub enum ChunkError {
-    /// A referenced label was not defined.
-    MissingLabel(String),
-    /// Parsed assembly string was invalid.
-    InvalidAsm,
-}
-
-impl Display for ChunkError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MissingLabel(label) => write!(f, "label `{label}` was not defined"),
-            Self::InvalidAsm => write!(f, "invalid assembly string was parsed"),
-        }
-    }
-}
-
 impl ChunkBuilder {
     pub(crate) fn new(interner: AtomInterner) -> Self {
         Self {
-            entry_line: 0,
+            entrypoint: Entrypoint::Line(0),
             prefix: None,
             interner,
             lines: vec![],
@@ -186,7 +174,28 @@ impl ChunkBuilder {
     /// By default, the entrypoint is the start of the chunk, but this option may
     /// be used to start code execution from some point in the middle.
     pub fn entrypoint(&mut self) -> &mut Self {
-        self.entry_line = self.lines.len();
+        self.entrypoint = Entrypoint::Line(self.lines.len());
+        self
+    }
+
+    /// Sets the entrypoint of this chunk to be at a label previously written.
+    pub fn entrypoint_existing(&mut self, label: &str) -> &mut Self {
+        let entry = self
+            .prefix
+            .as_ref()
+            .and_then(|pref| pref.labels.get(label).copied())
+            .map(Entrypoint::Index)
+            .or_else(|| {
+                self.lines
+                    .iter()
+                    .position(|line| line.labels.iter().any(|l| l == label))
+                    .map(Entrypoint::Line)
+            });
+        if let Some(entry) = entry {
+            self.entrypoint = entry;
+        } else {
+            self.error = Some(ChunkError::MissingLabel(label.to_owned()));
+        }
         self
     }
 
@@ -212,10 +221,13 @@ impl ChunkBuilder {
             }
         }
 
-        let mut entrypoint = 0;
+        let mut entrypoint = match self.entrypoint {
+            Entrypoint::Index(index) => index,
+            _ => 0,
+        };
         let mut distance = bytes.len() as u32;
         for (offset, line) in self.lines.iter_mut().enumerate() {
-            if offset == self.entry_line {
+            if Entrypoint::Line(offset) == self.entrypoint {
                 entrypoint = offset as u32 + distance;
             }
             for label in line.labels.drain(..) {
@@ -303,13 +315,13 @@ impl ChunkBuilder {
         let mut reader = AsmReader::new(source, self.interner.clone());
 
         while !reader.is_empty() {
-            while let Some(label) = reader.label_definition() {
+            while let Some(label) = reader.label_definition().map_err(ChunkError::InvalidAsm)? {
                 self.label(label);
             }
-            let opcode = reader.opcode().ok_or(ChunkError::InvalidAsm)?;
+            let opcode = reader.opcode().map_err(ChunkError::InvalidAsm)?;
             match opcode {
                 OpCode::Const => {
-                    let value = match reader.value().ok_or(ChunkError::InvalidAsm)? {
+                    let value = match reader.value().map_err(ChunkError::InvalidAsm)? {
                         asm::Value::Label(label) => Parameter::Reference(label),
                         asm::Value::Value(value) => Parameter::Value(value),
                     };
@@ -320,7 +332,7 @@ impl ChunkBuilder {
                         self.write_line(opcode, None);
                     }
                     1 => {
-                        let param = match reader.parameter().ok_or(ChunkError::InvalidAsm)? {
+                        let param = match reader.parameter().map_err(ChunkError::InvalidAsm)? {
                             asm::Parameter::Label(label) => Parameter::Label(label),
                             asm::Parameter::Offset(label) => Parameter::Offset(label),
                         };

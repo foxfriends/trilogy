@@ -4,4 +4,4 @@ pub(crate) mod chunk;
 mod instruction;
 
 pub use chunk::{Chunk, ChunkBuilder, ChunkError};
-pub use instruction::{Instruction, Offset, OpCode};
+pub use instruction::{Instruction, Offset, OpCode, OpCodeError};

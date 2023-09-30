@@ -1,9 +1,13 @@
+use crate::bytecode::{Offset, OpCode};
+use crate::runtime::atom::AtomInterner;
+use string::extract_string_prefix;
+
+mod error;
 mod string;
 mod value;
 
-use crate::runtime::atom::AtomInterner;
-use crate::{Offset, OpCode};
-use string::extract_string_prefix;
+pub use error::AsmError;
+use error::ErrorKind;
 
 pub(crate) struct AsmReader<'a> {
     source: &'a str,
@@ -30,14 +34,26 @@ impl<'a> AsmReader<'a> {
         }
     }
 
-    fn label(&mut self) -> Option<String> {
+    fn error<K>(&self, kind: K) -> AsmError
+    where
+        ErrorKind: From<K>,
+    {
+        AsmError {
+            position: self.position,
+            kind: kind.into(),
+        }
+    }
+
+    fn label(&mut self) -> Result<Option<String>, AsmError> {
         let src = &self.source[self.position..];
         if src.starts_with('"') {
-            let (prefix, rest) = extract_string_prefix(src)?;
+            let (prefix, rest) = extract_string_prefix(src)
+                .ok_or(ErrorKind::String)
+                .map_err(|e| self.error(e))?;
             self.position += src.len() - rest.len();
-            Some(prefix)
+            Ok(Some(prefix))
         } else {
-            self.token()
+            Ok(self.token())
         }
     }
 
@@ -74,73 +90,83 @@ impl<'a> AsmReader<'a> {
         }
     }
 
-    fn offset(&mut self) -> Option<Offset> {
+    fn offset(&mut self) -> Result<Offset, AsmError> {
         let src = &self.source[self.position..];
         let (index, _) = src
             .char_indices()
             .find(|(_, ch)| !ch.is_numeric())
             .unwrap_or((src.len(), '\0'));
-        let offset = src[..index].parse().ok()?;
+        let offset = src[..index].parse().map_err(|e| self.error(e))?;
         self.position += index;
-        Some(offset)
+        Ok(offset)
     }
 
-    fn label_reference(&mut self) -> Option<String> {
+    fn label_reference(&mut self) -> Result<String, AsmError> {
         let src = &self.source[self.position..];
-        if !src.starts_with('&') {
-            return None;
-        }
+        assert!(src.starts_with('&'));
         self.position += 1;
-        self.label().or_else(|| {
-            self.position -= 1;
-            None
-        })
+        match self.label() {
+            Err(err) => {
+                self.position -= 1;
+                Err(err)
+            }
+            Ok(None) => {
+                self.position -= 1;
+                Err(self.error(ErrorKind::Label))
+            }
+            Ok(Some(label)) => Ok(label),
+        }
     }
 
-    pub fn label_definition(&mut self) -> Option<String> {
+    pub fn label_definition(&mut self) -> Result<Option<String>, AsmError> {
         self.chomp();
         let start = self.position;
-        let label = self.label()?;
+        let Some(label) = self.label()? else {
+            return Ok(None);
+        };
         if self.source[self.position..].starts_with(':') {
             self.position += 1;
-            Some(label)
+            Ok(Some(label))
         } else {
             self.position = start;
-            None
+            Ok(None)
         }
     }
 
-    fn value_inner(&mut self) -> Option<crate::Value> {
+    fn value_inner(&mut self) -> Result<crate::Value, AsmError> {
         let src = &self.source[self.position..];
         match crate::Value::parse_prefix(src, &self.interner) {
             Some((value, s)) => {
                 self.position += src.len() - s.len();
-                Some(value)
+                Ok(value)
             }
-            None => None,
+            None => Err(self.error(ErrorKind::Value)),
         }
     }
 
-    pub fn value(&mut self) -> Option<Value> {
+    pub fn value(&mut self) -> Result<Value, AsmError> {
         self.chomp();
         if self.source[self.position..].starts_with('&') {
-            self.label_reference().map(Value::Label)
+            Ok(Value::Label(self.label_reference()?))
         } else {
             self.value_inner().map(Value::Value)
         }
     }
 
-    pub fn parameter(&mut self) -> Option<Parameter> {
+    pub fn parameter(&mut self) -> Result<Parameter, AsmError> {
         self.chomp();
         if self.source[self.position..].starts_with('&') {
-            self.label_reference().map(Parameter::Label)
+            Ok(Parameter::Label(self.label_reference()?))
         } else {
             self.offset().map(Parameter::Offset)
         }
     }
 
-    pub fn opcode(&mut self) -> Option<OpCode> {
-        self.token()?.parse().ok()
+    pub fn opcode(&mut self) -> Result<OpCode, AsmError> {
+        self.token()
+            .ok_or_else(|| self.error(ErrorKind::Token))?
+            .parse()
+            .map_err(|e| self.error(e))
     }
 
     pub fn is_empty(&mut self) -> bool {

@@ -1,8 +1,9 @@
 use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
+use std::io::stdin;
 use std::path::PathBuf;
-use trilogy::Trilogy;
-use trilogy_vm::Value;
+use trilogy::{RuntimeError, Trilogy};
+use trilogy_vm::{Value, VirtualMachine};
 
 #[cfg(feature = "dev")]
 mod dev;
@@ -19,12 +20,26 @@ enum Command {
     /// Start up the interactive Trilogy REPL.
     Repl,
     /// Run a Trilogy program.
-    ///
-    /// Expects a single path in which the `main!()` procedure is found.
     Run {
+        /// The path to the Trilogy source file containing the `main!()` procedure.
         file: PathBuf,
+        /// Run without including the standard library.
         #[arg(short = 'S', long)]
         no_std: bool,
+        /// Print the exit value instead of using it as the exit code.
+        #[arg(short, long)]
+        print: bool,
+    },
+    /// Runs a pre-compiled Trilogy program by interfacing with the VM directly.
+    Vm {
+        /// A path to a pre-compiled Trilogy ASM file.
+        ///
+        /// Omit to read from STDIN.
+        file: Option<PathBuf>,
+        #[arg(short = 'S', long)]
+        /// Run without the standard library.
+        no_std: bool,
+        /// Print the exit value instead of using it as the exit code.
         #[arg(short, long)]
         print: bool,
     },
@@ -34,11 +49,10 @@ enum Command {
     /// Expects a single path in which the `main!()` procedure is found.
     Compile { file: PathBuf },
     /// Check the syntax and warnings of a Trilogy program.
-    ///
-    /// Expects a single path, from which all imported modules will be
-    /// checked.
     Check {
+        /// The path to the Trilogy source file containing the `main!()` procedure.
         file: PathBuf,
+        /// Check without including the standard library.
         #[arg(short = 'S', long)]
         no_std: bool,
     },
@@ -69,8 +83,8 @@ enum Command {
     Dev(dev::Command),
 }
 
-fn run(mut trilogy: Trilogy, print: bool) {
-    match trilogy.run() {
+fn handle(result: Result<Value, RuntimeError>, print: bool) {
+    match result {
         Ok(value) if print => {
             println!("{}", value);
         }
@@ -98,6 +112,10 @@ fn run(mut trilogy: Trilogy, print: bool) {
     }
 }
 
+fn run(mut trilogy: Trilogy, print: bool) {
+    handle(trilogy.run(), print)
+}
+
 fn main() -> std::io::Result<()> {
     let args = Cli::parse();
 
@@ -113,6 +131,24 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
+        Command::Vm {
+            file: Some(path),
+            print,
+            no_std: _,
+        } => {
+            let program = trilogy::AsmProgram::from_file(path)?;
+            let mut vm = VirtualMachine::new();
+            handle(vm.run(&program).map_err(Into::into), print);
+        }
+        Command::Vm {
+            file: None,
+            print,
+            no_std: _,
+        } => {
+            let program = trilogy::AsmProgram::read(&mut stdin())?;
+            let mut vm = VirtualMachine::new();
+            handle(vm.run(&program).map_err(Into::into), print);
+        }
         Command::Compile { file } => match Trilogy::from_file(file) {
             Ok(trilogy) => match trilogy.compile() {
                 Ok(chunk) => println!("{}", chunk),

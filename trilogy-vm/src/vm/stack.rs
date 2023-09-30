@@ -82,7 +82,10 @@ impl Display for Stack {
             .enumerate()
             .rev()
         {
-            writeln!(f, "{}: {}", i, item)?;
+            if i != 0 {
+                writeln!(f)?;
+            }
+            write!(f, "{}: {}", i, item)?;
         }
         Ok(())
     }

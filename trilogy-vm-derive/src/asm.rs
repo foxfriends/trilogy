@@ -200,7 +200,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                         let bind = (0..count).map(|i| format_ident!("p{i}"));
                         let reference = bind.clone();
                         instr_format
-                            .push(quote! { #instruction::#ident(#(#bind),*) => write!(f, "{} {}", self.op_code(), #(#reference),*) });
+                            .push(quote! { #instruction::#ident(#(#bind),*) => write!(f, "{: <6} {}", self.op_code(), #(#reference),*) });
                     }
                     field @ Fields::Named(..) => {
                         let error =
@@ -242,13 +242,23 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
             }
         }
 
+        #[derive(Clone, Debug)]
+        pub struct OpCodeError(String);
+
+        impl std::error::Error for OpCodeError {}
+        impl std::fmt::Display for OpCodeError {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "invalid opcode `{}`", self.0)
+            }
+        }
+
         impl std::str::FromStr for #name {
-            type Err = ();
+            type Err = OpCodeError;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 Ok(match s {
                     #(#from_string,)*
-                    _ => return Err(())
+                    s => return Err(OpCodeError(s.to_owned()))
                 })
             }
         }
