@@ -3,11 +3,13 @@ use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::{ChunkError, OpCode};
 use crate::runtime::Number;
-use crate::{Atom, Chunk, ChunkBuilder, Procedure, Program, ReferentialEq, Struct, StructuralEq};
+use crate::{
+    Atom, Chunk, ChunkBuilder, Instruction, Procedure, Program, ReferentialEq, Struct, StructuralEq,
+};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 #[derive(Clone, Debug)]
 enum HeapCell {
@@ -89,10 +91,32 @@ impl VirtualMachine {
         self.atom_interner.intern(atom)
     }
 
+    /// Compiles a program to bytecode, returning the compiled [`Chunk`][].
     pub fn compile(&self, program: &dyn Program) -> Result<Chunk, ChunkError> {
+        let mut chunks_compiled = HashSet::new();
+        let mut dependencies = vec![];
+
         let mut chunk_builder = ChunkBuilder::new(self.atom_interner.clone());
         program.entrypoint(&mut chunk_builder);
-        chunk_builder.build().map(|(.., chunk)| chunk)
+        let (_, mut chunk) = chunk_builder.build()?;
+        loop {
+            dependencies.extend(
+                chunk
+                    .iter()
+                    .filter_map(|instruction| match instruction {
+                        Instruction::Chunk(val) => Some(val),
+                        _ => None,
+                    })
+                    .filter(|val| !chunks_compiled.contains(val)),
+            );
+            let Some(dep) = dependencies.pop() else {
+                return Ok(chunk);
+            };
+            let mut chunk_builder = ChunkBuilder::new_prefixed(self.atom_interner.clone(), chunk);
+            program.chunk(&dep, &mut chunk_builder);
+            chunks_compiled.insert(dep);
+            (_, chunk) = chunk_builder.build()?;
+        }
     }
 
     /// Run a [`Program`][] on this VM.
@@ -778,7 +802,7 @@ impl VirtualMachine {
                     return Ok(value);
                 }
                 OpCode::Chunk => {
-                    let locator = ex.stack_pop()?;
+                    let locator = ex.read_constant(&chunk)?;
                     match chunk_cache.get(&locator) {
                         Some(cached) => ex.stack_push(cached.clone()),
                         None => {

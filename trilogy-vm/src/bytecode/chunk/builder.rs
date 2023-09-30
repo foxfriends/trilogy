@@ -145,6 +145,7 @@ impl ChunkBuilder {
         let opcode = instruction.op_code();
         let value = match instruction {
             Instruction::Const(value) => Some(Parameter::Value(value)),
+            Instruction::Chunk(value) => Some(Parameter::Value(value)),
             Instruction::LoadLocal(offset) => Some(Parameter::Offset(offset)),
             Instruction::SetLocal(offset) => Some(Parameter::Offset(offset)),
             Instruction::InitLocal(offset) => Some(Parameter::Offset(offset)),

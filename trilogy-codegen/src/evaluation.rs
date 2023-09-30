@@ -556,8 +556,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
                 Binding::Chunk(path) => {
                     context
-                        .instruction(Instruction::Const(path.into()))
-                        .instruction(Instruction::Chunk)
+                        .instruction(Instruction::Chunk(path.into()))
                         .instruction(Instruction::Call(0));
                 }
             }

@@ -270,9 +270,10 @@ pub enum Instruction {
     Exit,
 
     // Meta
-    /// Using the value from the top of the stack as a locator, load the corresponding chunk from
-    /// the program currently being executed.
-    Chunk,
+    /// Using the value as its identifier, load the corresponding chunk from the program currently
+    /// being executed. Any value may be used, so long as the [`Program`][crate::Program]
+    /// implementation is able to handle it.
+    Chunk(Value),
 }
 
 impl TryFrom<u8> for OpCode {

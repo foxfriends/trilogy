@@ -28,6 +28,11 @@ enum Command {
         #[arg(short, long)]
         print: bool,
     },
+    /// Compile a Trilogy program, printing the ASM it compiles to.
+    /// Redirect to a file is recommended.
+    ///
+    /// Expects a single path in which the `main!()` procedure is found.
+    Compile { file: PathBuf },
     /// Check the syntax and warnings of a Trilogy program.
     ///
     /// Expects a single path, from which all imported modules will be
@@ -103,6 +108,16 @@ fn main() -> std::io::Result<()> {
             no_std: _,
         } => match Trilogy::from_file(file) {
             Ok(trilogy) => run(trilogy, print),
+            Err(errors) => {
+                eprintln!("{errors}");
+                std::process::exit(1);
+            }
+        },
+        Command::Compile { file } => match Trilogy::from_file(file) {
+            Ok(trilogy) => match trilogy.compile() {
+                Ok(chunk) => println!("{}", chunk),
+                Err(error) => eprintln!("{error}"),
+            },
             Err(errors) => {
                 eprintln!("{errors}");
                 std::process::exit(1);

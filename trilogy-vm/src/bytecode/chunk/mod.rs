@@ -1,6 +1,6 @@
 use crate::{Instruction, Offset, OpCode, Value};
 use std::collections::HashMap;
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 
 mod builder;
 
@@ -10,7 +10,7 @@ pub use builder::{ChunkBuilder, ChunkError};
 ///
 /// It is currently not defined as to what happens if you run a chunk on a
 /// [`VirtualMachine`][crate::VirtualMachine] instance that is not the one that compiled it.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Chunk {
     labels: HashMap<String, u32>,
     pub constants: Vec<Value>,
@@ -28,7 +28,7 @@ impl Display for Chunk {
                 writeln!(f, "{label}:")?;
             }
 
-            "    ".fmt(f)?;
+            Display::fmt("    ", f)?;
             match &instruction {
                 Instruction::Const(Value::Procedure(procedure)) => {
                     let offset = procedure.ip();
@@ -54,6 +54,45 @@ impl Display for Chunk {
     }
 }
 
+impl Debug for Chunk {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut print_offset = 0;
+        for (offset, instruction) in self.into_iter().offsets() {
+            let labels = self
+                .labels
+                .iter()
+                .filter(|&(.., &label_offset)| label_offset == offset);
+            for (label, ..) in labels {
+                writeln!(f, "{label}:")?;
+            }
+
+            write!(f, "{:>8}: ", print_offset)?;
+            match &instruction {
+                Instruction::Const(Value::Procedure(procedure)) => {
+                    let offset = procedure.ip();
+                    match self.labels.iter().find(|(.., pos)| **pos == offset) {
+                        Some((label, ..)) => writeln!(f, "{} &{}", instruction.op_code(), label)?,
+                        _ => writeln!(f, "{instruction}")?,
+                    }
+                }
+                Instruction::Jump(offset)
+                | Instruction::CondJump(offset)
+                | Instruction::Shift(offset)
+                | Instruction::Close(offset) => {
+                    match self.labels.iter().find(|(.., pos)| *pos == offset) {
+                        Some((label, ..)) => writeln!(f, "{} &{}", instruction.op_code(), label)?,
+                        _ => writeln!(f, "{instruction}")?,
+                    }
+                }
+                _ => writeln!(f, "{instruction}")?,
+            }
+            print_offset += instruction.byte_len();
+        }
+
+        Ok(())
+    }
+}
+
 impl Chunk {
     pub fn opcode(&self, offset: Offset) -> OpCode {
         OpCode::try_from(self.bytes[offset as usize]).unwrap()
@@ -70,6 +109,10 @@ impl Chunk {
     pub fn constant(&self, offset: Offset) -> Value {
         let index = self.offset(offset);
         self.constants[index as usize].clone()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = Instruction> + '_ {
+        self.into_iter()
     }
 }
 
