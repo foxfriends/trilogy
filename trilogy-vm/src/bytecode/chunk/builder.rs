@@ -320,7 +320,7 @@ impl ChunkBuilder {
             }
             let opcode = reader.opcode().map_err(ChunkError::InvalidAsm)?;
             match opcode {
-                OpCode::Const => {
+                OpCode::Const | OpCode::Chunk => {
                     let value = match reader.value().map_err(ChunkError::InvalidAsm)? {
                         asm::Value::Label(label) => Parameter::Reference(label),
                         asm::Value::Value(value) => Parameter::Value(value),
