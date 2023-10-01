@@ -73,16 +73,9 @@ pub(crate) struct Stack {
 
 impl Display for Stack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (i, item) in self
-            .cactus
-            .clone()
-            .into_iter()
-            .collect::<Vec<_>>()
-            .into_iter()
-            .enumerate()
-            .rev()
-        {
-            if i != 0 {
+        let items = self.cactus.clone().into_iter().collect::<Vec<_>>();
+        for (i, item) in items.iter().enumerate().rev() {
+            if i != items.len() - 1 {
                 writeln!(f)?;
             }
             write!(f, "{}: {}", i, item)?;
