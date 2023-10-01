@@ -331,3 +331,9 @@ fn sample_module_simple() {
     let mut program = include_tri!("modules/main.tri");
     assert_eq!(program.run().unwrap(), Value::from(10));
 }
+
+#[test]
+fn sample_module_params() {
+    let mut program = include_tri!("module_params.tri");
+    assert_eq!(program.run().unwrap(), Value::from(8));
+}

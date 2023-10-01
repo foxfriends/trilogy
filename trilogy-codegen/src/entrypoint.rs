@@ -9,6 +9,7 @@ use trilogy_vm::{Atom, ChunkBuilder, Instruction};
 #[derive(Clone, Debug)]
 pub(crate) enum StaticMember {
     Chunk(String),
+    Context(String),
     Label(String),
 }
 

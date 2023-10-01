@@ -80,20 +80,7 @@ pub(crate) fn write_module_prelude(
             .instruction(Instruction::Insert);
     }
 
-    // For definitions to actually access these parameters, they're defined as 0-arity
-    // functions. That are aware of the module convention.
-    let mut statics_for_later = HashMap::new();
-    for (i, var) in module_parameters.iter().rev().enumerate() {
-        let label = context.labeler.for_id(var);
-        context.label(&label);
-        context
-            .instruction(Instruction::LoadRegister(1))
-            .instruction(Instruction::Const(i.into()))
-            .instruction(Instruction::Access)
-            .instruction(Instruction::Return);
-        statics_for_later.insert(var.clone(), StaticMember::Label(label));
-    }
-    context.undeclare_variables(module_parameters, false);
+    context.undeclare_variables(module_parameters.iter().cloned(), false);
 
     // Next a closure is created that defines the exports of this module. This function
     // is the public reification of the module.
@@ -159,5 +146,19 @@ pub(crate) fn write_module_prelude(
 
     context.jump(END);
     context.scope.end_intermediate();
+
+    // For definitions to actually access the module parameters, they're defined as
+    // 0-arity functions that are aware of the module convention.
+    let mut statics_for_later = HashMap::new();
+    for (i, var) in module_parameters.iter().rev().enumerate() {
+        let label = context.labeler.for_id(var);
+        context.label(&label);
+        context
+            .instruction(Instruction::LoadRegister(1))
+            .instruction(Instruction::Const(i.into()))
+            .instruction(Instruction::Access)
+            .instruction(Instruction::Return);
+        statics_for_later.insert(var.clone(), StaticMember::Context(label));
+    }
     statics_for_later
 }

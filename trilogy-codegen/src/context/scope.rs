@@ -6,6 +6,7 @@ use trilogy_vm::Instruction;
 #[derive(Clone, Debug)]
 pub(crate) enum Binding<'a> {
     Variable(u32),
+    Context(&'a str),
     Static(&'a str),
     Chunk(&'a str),
 }
@@ -14,6 +15,7 @@ impl<'a> From<&'a StaticMember> for Binding<'a> {
     fn from(value: &'a StaticMember) -> Self {
         match &value {
             StaticMember::Label(label) => Binding::Static(label),
+            StaticMember::Context(label) => Binding::Context(label),
             StaticMember::Chunk(chunk) => Binding::Chunk(chunk),
         }
     }

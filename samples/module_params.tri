@@ -1,0 +1,9 @@
+module xyz n {
+    proc plus!(x) { return n + x }
+
+    export plus
+}
+
+proc main!() {
+    exit @xyz 3::plus!(5)
+}
