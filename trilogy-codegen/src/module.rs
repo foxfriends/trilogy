@@ -135,7 +135,7 @@ pub(crate) fn write_module_prelude(
                         .instruction(Instruction::SetLocal(current_module))
                         .instruction(Instruction::Return);
                 }
-                ir::DefinitionItem::Module(_submod) => {}
+                ir::DefinitionItem::Module(_submod) => todo!("support exported modules"),
                 ir::DefinitionItem::Alias(_alias) => todo!("support exported aliases"),
                 ir::DefinitionItem::Rule(_rule) => todo!("support exported rules"),
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
