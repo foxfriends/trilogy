@@ -29,7 +29,7 @@ impl Program for TrilogyProgram<'_> {
             .get(&location)
             .map(Either::Source)
             .or_else(|| self.libraries.get(&location).map(Either::Native))
-            .expect("unknown module location");
+            .unwrap_or_else(|| panic!("unknown module location `{location}`"));
         chunk.label(format!("location:{location}"));
         match module {
             Either::Source(module) => trilogy_codegen::write_module(chunk, module),

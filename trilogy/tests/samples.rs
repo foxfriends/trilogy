@@ -325,3 +325,9 @@ fn sample_occurs_check() {
     let mut program = include_tri!("occurs_check.tri");
     assert_eq!(program.run().unwrap(), Value::from(0));
 }
+
+#[test]
+fn sample_module_simple() {
+    let mut program = include_tri!("modules/main.tri");
+    assert_eq!(program.run().unwrap(), Value::from(10));
+}

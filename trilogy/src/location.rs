@@ -28,14 +28,33 @@ impl Location {
 
     // TODO: this should probably not be unwrapping so liberally
     pub(crate) fn relative(&self, path: &str) -> Self {
-        match path.parse::<Url>() {
+        let mut url = match path.parse::<Url>() {
             Ok(mut url) if url.scheme() == "file" => {
                 url.set_scheme(self.0.scheme()).unwrap();
-                Self(url)
+                url
             }
-            Ok(url) => Self(url),
-            Err(..) => Self(self.0.join(path.as_ref()).unwrap()),
+            Ok(url) => url,
+            Err(..) => self.0.join(path.as_ref()).unwrap(),
+        };
+        let mut skip = 0;
+        let mut segments = vec![];
+        for segment in url.path_segments().unwrap().rev() {
+            if segment == ".." {
+                skip += 1;
+                continue;
+            }
+            if segment == "." {
+                continue;
+            }
+            if skip > 0 {
+                skip -= 1;
+                continue;
+            }
+            segments.push(segment);
         }
+        segments.reverse();
+        url.set_path(&segments.join("/"));
+        Self(url)
     }
 }
 
