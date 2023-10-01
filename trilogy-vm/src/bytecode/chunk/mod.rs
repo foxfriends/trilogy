@@ -71,7 +71,7 @@ impl Debug for Chunk {
                 .iter()
                 .filter(|&(.., &label_offset)| label_offset == offset);
             for (label, ..) in labels {
-                writeln!(f, "{label}:")?;
+                writeln!(f, "{label:?}:")?;
             }
 
             write!(f, "{:>8}: ", print_offset)?;
@@ -80,7 +80,7 @@ impl Debug for Chunk {
                     let offset = procedure.ip();
                     match self.labels.iter().find(|(.., pos)| **pos == offset) {
                         Some((label, ..)) => {
-                            writeln!(f, "{: <6} &{}", instruction.op_code(), label)?
+                            writeln!(f, "{: <6} &{:?}", instruction.op_code(), label)?
                         }
                         _ => writeln!(f, "{instruction}")?,
                     }
@@ -91,7 +91,7 @@ impl Debug for Chunk {
                 | Instruction::Close(offset) => {
                     match self.labels.iter().find(|(.., pos)| *pos == offset) {
                         Some((label, ..)) => {
-                            writeln!(f, "{: <6} &{}", instruction.op_code(), label)?
+                            writeln!(f, "{: <6} &{:?}", instruction.op_code(), label)?
                         }
                         _ => writeln!(f, "{instruction}")?,
                     }
