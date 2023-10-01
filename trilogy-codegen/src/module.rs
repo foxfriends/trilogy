@@ -134,17 +134,18 @@ pub(crate) fn write_module_prelude(
                     let arity = proc.overloads[0].parameters.len();
                     context
                         .close(RETURN)
-                        .instruction(Instruction::LoadRegister(1))
-                        .instruction(Instruction::Slide(arity as u32));
-                    let previous_module = context.scope.intermediate();
+                        .instruction(Instruction::LoadRegister(1));
                     context
                         .instruction(Instruction::LoadLocal(current_module))
                         .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetLocal(current_module))
                         .write_procedure_reference(proc_label)
                         .instruction(Instruction::Slide(arity as u32))
                         .instruction(Instruction::Call(arity as u32))
-                        .instruction(Instruction::LoadLocal(previous_module))
+                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadLocal(current_module))
                         .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetLocal(current_module))
                         .instruction(Instruction::Return);
                 }
                 ir::DefinitionItem::Module(_submod) => {}
