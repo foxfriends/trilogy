@@ -1,0 +1,3 @@
+proc main!() {
+    # main is allowed to run off with no value, treated as exit 0
+}

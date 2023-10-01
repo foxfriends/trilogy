@@ -1,0 +1,4 @@
+proc main!() {
+    # return is treated same as exit in main
+    return 3
+}
