@@ -1,9 +1,9 @@
 use crate::entrypoint::{ProgramContext, StaticMember};
 use crate::preamble::{END, RETURN};
 use crate::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use trilogy_ir::{ir, visitor::HasBindings, Id};
-use trilogy_vm::Instruction;
+use trilogy_vm::{Instruction, Value};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Mode {
@@ -59,7 +59,7 @@ pub(crate) fn write_module_prelude(
         .parameters
         .iter()
         .flat_map(|param| param.bindings())
-        .collect::<std::collections::HashSet<_>>()
+        .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
     context.declare_variables(module_parameters.iter().cloned());
@@ -73,6 +73,7 @@ pub(crate) fn write_module_prelude(
     // Then save the extracted bindings into an array which will be stored in the
     // module object. Functions will be able to reference these variables by pulling
     // them from the array.
+    context.instruction(Instruction::Const(Vec::<Value>::new().into()));
     for _ in &module_parameters {
         context
             .instruction(Instruction::Swap)
@@ -101,11 +102,10 @@ pub(crate) fn write_module_prelude(
     // is called, its parameters can be located. Through this public interface that
     // invariant is upheld.
 
-    let module_end = context.labeler.unique_hint("module_end");
     let current_module = context.scope.intermediate();
     // Put in a case for each public method. The name of the method will be expected
     // as an atom.
-    context.close(&module_end);
+    context.close(RETURN);
     for def in module.definitions() {
         if def.is_exported {
             let next_export = context.labeler.unique_hint("next_export");
@@ -119,7 +119,8 @@ pub(crate) fn write_module_prelude(
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::Const(atom.into()))
                 .instruction(Instruction::ValEq)
-                .cond_jump(&next_export);
+                .cond_jump(&next_export)
+                .instruction(Instruction::Pop);
 
             match &def.item {
                 ir::DefinitionItem::Function(_func) => todo!("support exported functions"),
@@ -133,7 +134,8 @@ pub(crate) fn write_module_prelude(
                     let arity = proc.overloads[0].parameters.len();
                     context
                         .close(RETURN)
-                        .instruction(Instruction::LoadRegister(1));
+                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::Slide(arity as u32));
                     let previous_module = context.scope.intermediate();
                     context
                         .instruction(Instruction::LoadLocal(current_module))
@@ -154,10 +156,7 @@ pub(crate) fn write_module_prelude(
         }
     }
 
-    context
-        .jump(END)
-        .label(module_end)
-        .instruction(Instruction::Return);
+    context.jump(END);
     context.scope.end_intermediate();
     statics_for_later
 }
