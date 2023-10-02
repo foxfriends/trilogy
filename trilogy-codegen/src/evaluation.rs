@@ -553,6 +553,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
                 Binding::Static(label) => {
                     context.write_procedure_reference(label.to_owned());
+                    if matches!(value, ir::Value::Module(..)) {
+                        context.instruction(Instruction::Call(0));
+                    }
                 }
                 Binding::Context(label) => {
                     context

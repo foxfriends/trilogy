@@ -1,0 +1,12 @@
+proc main!() {
+    exit @abc::@xyz::inner!()
+}
+
+module abc {
+    module xyz {
+        proc inner!() { return 5 }
+        export inner
+    }
+
+    export xyz
+}

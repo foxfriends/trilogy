@@ -5,5 +5,7 @@ module xyz n {
 }
 
 proc main!() {
-    exit @xyz 3::plus!(5)
+    let a = @xyz 3::plus!(2)
+    let b = @xyz 1::plus!(2)
+    exit a + b
 }

@@ -1,0 +1,11 @@
+module xyz {
+    func double x = 2 * x
+
+    proc blackbox!(n) { return double n }
+
+    export blackbox
+}
+
+proc main!() {
+    exit @xyz::blackbox!(5)
+}

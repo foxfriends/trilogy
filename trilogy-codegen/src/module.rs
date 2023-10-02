@@ -62,12 +62,12 @@ pub(crate) fn write_module_prelude(
         .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    context.declare_variables(module_parameters.iter().cloned());
-    for _ in 1..module.parameters.len() {
+    let n = context.declare_variables(module_parameters.iter().cloned()) as u32;
+    for _ in 0..module.parameters.len() {
         context.close(RETURN);
     }
     for (i, parameter) in module.parameters.iter().enumerate() {
-        context.instruction(Instruction::LoadLocal(i as u32));
+        context.instruction(Instruction::LoadLocal(n + i as u32));
         write_pattern_match(context, parameter, END);
     }
     // Then save the extracted bindings into an array which will be stored in the
