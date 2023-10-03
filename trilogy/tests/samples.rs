@@ -364,6 +364,13 @@ fn sample_module_function() {
 
 #[test]
 #[ignore = "not yet working"]
+fn sample_module_rule() {
+    let mut program = include_tri!("module_rule.tri");
+    assert_eq!(program.run().unwrap(), Value::from(5));
+}
+
+#[test]
+#[ignore = "not yet working"]
 fn sample_main_no_exit() {
     let mut program = include_tri!("main_no_exit.tri");
     assert_eq!(program.run().unwrap(), Value::from(0));

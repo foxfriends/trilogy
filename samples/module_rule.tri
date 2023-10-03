@@ -1,0 +1,21 @@
+module xyz n {
+    rule above(x) <- is x > n
+
+    export above
+}
+
+module abc {
+    rule ns(1)
+    rule ns(2)
+    rule ns(3)
+
+    export ns
+}
+
+proc main!() {
+    let mut total = 0
+    for @abc::ns(n) and @xyz 1::above(n) {
+        total += n
+    }
+    exit total
+}
