@@ -345,9 +345,14 @@ fn sample_module_private_member() {
 }
 
 #[test]
-#[ignore = "not yet working"]
 fn sample_export_submodule() {
     let mut program = include_tri!("export_submodule.tri");
+    assert_eq!(program.run().unwrap(), Value::from(5));
+}
+
+#[test]
+fn sample_submodule_parameters() {
+    let mut program = include_tri!("submodule_parameters.tri");
     assert_eq!(program.run().unwrap(), Value::from(5));
 }
 

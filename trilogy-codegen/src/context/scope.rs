@@ -153,4 +153,11 @@ impl<'a> Scope<'a> {
         let offset = self.kw_resume.last()?;
         Some(Instruction::LoadLocal(*offset))
     }
+
+    pub fn context_size(&self) -> usize {
+        self.statics
+            .values()
+            .filter(|x| matches!(x, StaticMember::Context(..)))
+            .count()
+    }
 }

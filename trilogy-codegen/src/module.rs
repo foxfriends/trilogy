@@ -52,6 +52,7 @@ pub(crate) fn write_module_definitions(
 pub(crate) fn write_module_prelude(
     context: &mut Context,
     module: &ir::Module,
+    mode: Mode,
 ) -> HashMap<Id, StaticMember> {
     // Start by extracting all the parameters. Declare them all up front so
     // that we can be sure about their ordering.
@@ -73,7 +74,19 @@ pub(crate) fn write_module_prelude(
     // Then save the extracted bindings into an array which will be stored in the
     // module object. Functions will be able to reference these variables by pulling
     // them from the array.
-    context.instruction(Instruction::Const(Vec::<Value>::new().into()));
+    if mode == Mode::Document {
+        // Documents do not have access to their parent module's parameters, so they
+        // get a fresh context array.
+        context.instruction(Instruction::Const(Vec::<Value>::new().into()));
+    } else {
+        // Submodules do, and they are prefixed to the parameters. It so happens
+        // that the parent's statics will already cover these, so the only consideration
+        // is that the new module's parameter accessors need to know how many parameters
+        // are in the parent module such that they know which index to start pulling from.
+        context
+            .instruction(Instruction::LoadRegister(1))
+            .instruction(Instruction::Clone);
+    }
     for _ in &module_parameters {
         context
             .instruction(Instruction::Swap)
@@ -115,27 +128,69 @@ pub(crate) fn write_module_prelude(
                     let Some(StaticMember::Label(proc_label)) =
                         context.scope.lookup_static(&proc.name.id).cloned()
                     else {
-                        unreachable!("definitions will be found");
+                        unreachable!("definitions will be found as a local label");
                     };
                     // Procedure only has one overload. All overloads would have the same arity anyway.
                     let arity = proc.overloads[0].parameters.len();
                     context
                         .close(RETURN)
-                        .instruction(Instruction::LoadRegister(1));
-                    context
-                        .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
-                        .instruction(Instruction::SetLocal(current_module))
-                        .write_procedure_reference(proc_label)
-                        .instruction(Instruction::Slide(arity as u32))
-                        .instruction(Instruction::Call(arity as u32))
                         .instruction(Instruction::LoadRegister(1))
                         .instruction(Instruction::LoadLocal(current_module))
                         .instruction(Instruction::SetRegister(1))
-                        .instruction(Instruction::SetLocal(current_module))
+                        .instruction(Instruction::Slide(arity as u32))
+                        .write_procedure_reference(proc_label)
+                        .instruction(Instruction::Slide(arity as u32))
+                        .instruction(Instruction::Call(arity as u32))
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::SetRegister(1))
                         .instruction(Instruction::Return);
                 }
-                ir::DefinitionItem::Module(_submod) => todo!("support exported modules"),
+                ir::DefinitionItem::Module(submodule) => {
+                    let static_member = context
+                        .scope
+                        .lookup_static(&submodule.name.id)
+                        .unwrap()
+                        .clone();
+                    match static_member {
+                        StaticMember::Chunk(path) => {
+                            context
+                                .instruction(Instruction::Chunk(path.into()))
+                                .instruction(Instruction::Call(0))
+                                .instruction(Instruction::Return);
+                        }
+                        StaticMember::Label(label) => {
+                            let submodule_arity =
+                                submodule.module.as_module().unwrap().parameters.len();
+                            // Capture all the parameters up front.
+                            for _ in 0..submodule_arity {
+                                context.close(RETURN);
+                            }
+                            // Once all parameters are located, set up the context register
+                            // and call the module by applying the parameters one by one.
+                            context
+                                .instruction(Instruction::LoadRegister(1))
+                                .instruction(Instruction::LoadLocal(current_module))
+                                .instruction(Instruction::SetRegister(1))
+                                .write_procedure_reference(label)
+                                .instruction(Instruction::Call(0)); // First with no args (as it is a module)
+                            for i in 0..submodule_arity {
+                                // Then with each arg, in order
+                                context
+                                    .instruction(Instruction::LoadLocal(
+                                        current_module + i as u32 + 1,
+                                    ))
+                                    .instruction(Instruction::Call(1));
+                            }
+                            // After every parameter was passed, then we have the return value which is
+                            // no longer subject to the context rules, so return the context register.
+                            context
+                                .instruction(Instruction::Swap)
+                                .instruction(Instruction::SetRegister(1))
+                                .instruction(Instruction::Return);
+                        }
+                        StaticMember::Context(..) => unreachable!(),
+                    }
+                }
                 ir::DefinitionItem::Alias(_alias) => todo!("support exported aliases"),
                 ir::DefinitionItem::Rule(_rule) => todo!("support exported rules"),
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
@@ -150,12 +205,13 @@ pub(crate) fn write_module_prelude(
     // For definitions to actually access the module parameters, they're defined as
     // 0-arity functions that are aware of the module convention.
     let mut statics_for_later = HashMap::new();
+    let base = context.scope.context_size();
     for (i, var) in module_parameters.iter().rev().enumerate() {
         let label = context.labeler.for_id(var);
         context.label(&label);
         context
             .instruction(Instruction::LoadRegister(1))
-            .instruction(Instruction::Const(i.into()))
+            .instruction(Instruction::Const((base + i).into()))
             .instruction(Instruction::Access)
             .instruction(Instruction::Return);
         statics_for_later.insert(var.clone(), StaticMember::Context(label));

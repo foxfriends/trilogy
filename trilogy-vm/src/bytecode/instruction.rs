@@ -23,8 +23,11 @@ pub enum Instruction {
     /// previous value if it is of a reference type.
     Copy,
     /// Replace the value on the top of the stack with a structural clone
-    /// of itself. The new value will not be referentially equal to the
-    /// previous value if it was of a reference type.
+    /// of itself.
+    ///
+    /// The new value will not be referentially equal to the previous value if it was
+    /// of a compound reference type. Callable types will remain referentially equal,
+    /// as they cannot be further cloned.
     Clone,
     /// Remove the value from the top of the stack.
     Pop,
@@ -87,9 +90,13 @@ pub enum Instruction {
     #[asm(name = "INITL")] InitLocal(Offset),
     /// Unset the value of the "local variable at the given offset.
     #[asm(name = "UNSETL")] UnsetLocal(Offset),
-    /// Load the value from a given register. Registers are initially set to `unit`.
+    /// Load the value from a given register.
+    ///
+    /// Registers referenced by the bytecode must have been provided by the host program.
     #[asm(name = "LOADR")] LoadRegister(Offset),
     /// Set the value of a given register.
+    ///
+    /// Registers referenced by the bytecode must have been provided by the host program.
     #[asm(name = "SETR")] SetRegister(Offset),
 
     // Numbers

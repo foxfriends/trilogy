@@ -138,6 +138,7 @@ fn main() -> std::io::Result<()> {
         } => {
             let program = trilogy::AsmProgram::from_file(path)?;
             let mut vm = VirtualMachine::new();
+            vm.set_registers(vec![Value::Unit, Value::Array(vec![].into()), Value::Unit]);
             handle(vm.run(&program).map_err(Into::into), print);
         }
         Command::Vm {
@@ -147,6 +148,7 @@ fn main() -> std::io::Result<()> {
         } => {
             let program = trilogy::AsmProgram::read(&mut stdin())?;
             let mut vm = VirtualMachine::new();
+            vm.set_registers(vec![Value::Unit, Value::Array(vec![].into()), Value::Unit]);
             handle(vm.run(&program).map_err(Into::into), print);
         }
         Command::Compile { file } => match Trilogy::from_file(file) {

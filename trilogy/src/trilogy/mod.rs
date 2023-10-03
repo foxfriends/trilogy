@@ -28,7 +28,8 @@ impl Trilogy {
         libraries: HashMap<Location, NativeModule>,
         entrypoint: Location,
     ) -> Self {
-        let vm = VirtualMachine::new();
+        let mut vm = VirtualMachine::new();
+        vm.set_registers(vec![Value::Unit, Value::Array(vec![].into()), Value::Unit]);
         Self {
             modules,
             libraries,

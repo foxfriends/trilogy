@@ -1,0 +1,12 @@
+proc main!() {
+    exit @abc 2::@xyz 3::get!()
+}
+
+module abc a {
+    module xyz x {
+        proc get!() { return a + x }
+        export get
+    }
+
+    export xyz
+}

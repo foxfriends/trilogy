@@ -76,14 +76,21 @@ impl Default for VirtualMachine {
 }
 
 impl VirtualMachine {
-    /// Creates a new virtual machine with empty heap and registers.
+    /// Creates a new virtual machine with empty heap and no registers.
     pub fn new() -> Self {
         Self {
             atom_interner: AtomInterner::default(),
             executions: VecDeque::with_capacity(8),
-            registers: vec![Value::Unit; 8],
+            registers: vec![],
             heap: Vec::with_capacity(8),
         }
+    }
+
+    /// Set or update the current state of the registers.
+    ///
+    /// If not called, the VM has no registers available to the program.
+    pub fn set_registers(&mut self, registers: Vec<Value>) {
+        self.registers = registers;
     }
 
     /// Create an atom in the context of this VM.
@@ -224,7 +231,7 @@ impl VirtualMachine {
                 OpCode::LoadRegister => {
                     let offset = ex.read_offset(&chunk)? as usize;
                     if offset >= self.registers.len() {
-                        return Err(ex.error(InternalRuntimeError::InvalidRegister));
+                        return Err(ex.error(InternalRuntimeError::InvalidRegister(offset as u32)));
                     }
                     ex.stack_push(self.registers[offset].clone());
                 }
@@ -232,7 +239,7 @@ impl VirtualMachine {
                     let offset = ex.read_offset(&chunk)? as usize;
                     let value = ex.stack_pop()?;
                     if offset >= self.registers.len() {
-                        return Err(ex.error(InternalRuntimeError::InvalidRegister));
+                        return Err(ex.error(InternalRuntimeError::InvalidRegister(offset as u32)));
                     }
                     self.registers[offset] = value;
                 }

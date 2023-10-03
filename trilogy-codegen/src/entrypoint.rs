@@ -42,7 +42,7 @@ pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
     context.collect_static(module, &mut statics);
     context.entrypoint();
     let mut precontext = context.begin(&statics, 0);
-    write_module_prelude(&mut precontext, module);
+    write_module_prelude(&mut precontext, module, Mode::Document);
     write_module_definitions(&mut context, module, &statics, Mode::Document);
 }
 
@@ -186,7 +186,7 @@ impl ProgramContext<'_> {
         let module = def.module.as_module().unwrap();
         self.collect_static(module, &mut statics);
         let mut context = self.begin(&statics, module.parameters.len());
-        statics.extend(write_module_prelude(&mut context, module));
+        statics.extend(write_module_prelude(&mut context, module, Mode::Module));
         write_module_definitions(self, module, &statics, Mode::Module);
     }
 
