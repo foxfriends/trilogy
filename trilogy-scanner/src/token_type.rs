@@ -42,8 +42,6 @@ pub enum TokenType {
     KwGiven,
     /// `if`
     KwIf,
-    /// `import`
-    KwImport,
     /// `invert`
     KwInvert,
     /// `in`
@@ -82,8 +80,6 @@ pub enum TokenType {
     KwTrue,
     /// `unit`
     KwUnit,
-    /// `use`
-    KwUse,
     /// `when`
     KwWhen,
     /// `while`
@@ -116,6 +112,8 @@ pub enum TokenType {
     KwExtends,
     /// `implements`
     KwImplements,
+    /// `import`
+    KwImport,
     /// `inline`
     KwInline,
     /// `instanceof`
@@ -158,6 +156,8 @@ pub enum TokenType {
     KwUnless,
     /// `until`
     KwUntil,
+    /// `use`
+    KwUse,
     /// `var`
     KwVar,
     /// `where`
@@ -333,8 +333,6 @@ pub enum TokenType {
     OpGlueEq,
     /// `~=`
     OpTildeEq,
-    /// `@`
-    OpAt,
 
     /// `?`
     OpQuestion,

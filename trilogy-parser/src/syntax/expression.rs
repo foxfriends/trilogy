@@ -19,7 +19,7 @@ pub enum Expression {
     SetComprehension(Box<SetComprehension>),
     RecordComprehension(Box<RecordComprehension>),
     IteratorComprehension(Box<IteratorComprehension>),
-    Reference(Box<Path>),
+    Reference(Box<super::Identifier>),
     Keyword(Box<KeywordReference>),
     Application(Box<Application>),
     Call(Box<CallExpression>),
@@ -41,7 +41,7 @@ pub enum Expression {
     Template(Box<Template>),
     Handled(Box<HandledExpression>),
     Parenthesized(Box<ParenthesizedExpression>),
-    Module(Box<ModulePath>),
+    ModuleAccess(Box<ModuleAccess>),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -80,7 +80,7 @@ enum Context {
 }
 
 impl Expression {
-    pub(crate) const PREFIX: [TokenType; 34] = [
+    pub(crate) const PREFIX: [TokenType; 33] = [
         Numeric,
         String,
         Bits,
@@ -114,7 +114,6 @@ impl Expression {
         DollarString,
         TemplateStart,
         OParen,
-        OpAt,
     ];
 
     fn binary(parser: &mut Parser, lhs: Expression) -> SyntaxResult<Result<Self, Self>> {
@@ -177,6 +176,9 @@ impl Expression {
             OpPipe if precedence < Precedence::BitwiseOr => Self::binary(parser, lhs),
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
             OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
+            OpColonColon if precedence < Precedence::Path => Ok(Ok(Self::ModuleAccess(Box::new(
+                ModuleAccess::parse(parser, lhs)?,
+            )))),
             OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
             OpGtGt if precedence < Precedence::Compose => Self::binary(parser, lhs),
             OpLtLt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
@@ -290,9 +292,7 @@ impl Expression {
             KwContinue => Ok(Self::Continue(Box::new(ContinueExpression::parse(parser)?))),
             KwCancel => Ok(Self::Cancel(Box::new(CancelExpression::parse(parser)?))),
             KwLet => Ok(Self::Let(Box::new(LetExpression::parse(parser)?))),
-            Identifier => Ok(Self::Reference(Box::new(
-                super::Identifier::parse(parser)?.into(),
-            ))),
+            Identifier => Ok(Self::Reference(Box::new(super::Identifier::parse(parser)?))),
             KwWith => Ok(Self::Handled(Box::new(HandledExpression::parse(parser)?))),
             KwFn => Ok(Self::Fn(Box::new(FnExpression::parse(parser)?))),
             KwDo => Ok(Self::Do(Box::new(DoExpression::parse(parser)?))),
@@ -302,10 +302,6 @@ impl Expression {
                 None => Ok(Self::Parenthesized(Box::new(
                     ParenthesizedExpression::parse(parser)?,
                 ))),
-            },
-            OpAt => match ModulePath::parse_or_path(parser)? {
-                Ok(module) => Ok(Self::Module(Box::new(module))),
-                Err(path) => Ok(Self::Reference(Box::new(path))),
             },
             KwIs => Ok(Self::Is(Box::new(IsExpression::parse(parser)?))),
             _ => {
@@ -366,7 +362,7 @@ impl Expression {
 
     pub(crate) fn is_pattern(&self) -> bool {
         match self {
-            Self::Reference(path) if path.module.is_none() => true,
+            Self::Reference(..) => true,
             Self::Atom(..) => true,
             Self::Number(..) => true,
             Self::Boolean(..) => true,
@@ -637,11 +633,6 @@ mod test {
                   (BinaryOperator::Access _)
                   (Expression::Atom _)))
               (Expression::Number _)))))");
-    test_parse!(expr_prec_paths: "@a b::@c d::e f" => Expression::parse => "
-      (Expression::Application
-        (Application
-          (Expression::Reference _)
-          (Expression::Reference _)))");
     test_parse!(expr_let_seq: "b * 2, let a = b, a * 2, b * 2" => Expression::parse => "
       (Expression::Binary
         (BinaryOperation
@@ -655,4 +646,24 @@ mod test {
                   (Expression::Binary _)
                   (BinaryOperator::Sequence _)
                   (Expression::Binary _)))))))");
+    test_parse!(expr_mod_access: "mod1::mod2::member" => Expression::parse => "
+      (Expression::ModuleAccess
+        (ModuleAccess
+          (Expression::ModuleAccess
+            (ModuleAccess
+              (Expression::Reference _)
+              (Identifier)))
+          (Identifier)))");
+    test_parse!(expr_prec_paths: "a b::c d::e f" => Expression::parse => "
+      (Expression::Application
+        (Application
+          (Expression::ModuleAccess
+            (ModuleAccess
+              (Expression::Application
+                (Application
+                  (Expression::ModuleAccess _)
+                  (Expression::Reference _)))
+              (Identifier)))
+          (Expression::Reference _)))
+    ");
 }

@@ -60,7 +60,6 @@ macro_rules! visit_unit {
 pub trait IrVisitor: Sized {
     visit_node!(visit_definition, Definition);
     visit_node!(visit_test_definition, TestDefinition);
-    visit_node!(visit_alias, Alias);
     visit_node!(visit_procedure_definition, ProcedureDefinition);
     visit_node!(visit_procedure, Procedure);
     visit_node!(visit_function_definition, FunctionDefinition);
@@ -160,7 +159,6 @@ impl IrVisitable for Value {
             Fn(val) => visitor.visit_fn(val),
             Do(val) => visitor.visit_do(val),
             Handled(val) => visitor.visit_handled(val),
-            Module(val) => visitor.visit_module_reference(val),
             Reference(val) => visitor.visit_reference(val),
             Dynamic(val) => visitor.visit_dynamic(val),
             Assert(val) => visitor.visit_assert(val),
@@ -390,7 +388,6 @@ impl IrVisitable for Definition {
             Function(val) => visitor.visit_function_definition(val),
             Rule(val) => visitor.visit_rule_definition(val),
             Test(val) => visitor.visit_test_definition(val),
-            Alias(val) => visitor.visit_alias(val),
             Module(val) => visitor.visit_module_definition(val),
         }
     }
@@ -400,12 +397,5 @@ impl IrVisitable for TestDefinition {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         visitor.visit_string(&self.name);
         visitor.visit_expression(&self.body);
-    }
-}
-
-impl IrVisitable for Alias {
-    fn visit<V: IrVisitor>(&self, visitor: &mut V) {
-        visitor.visit_identifier(&self.name);
-        visitor.visit_expression(self.value.as_ref().unwrap());
     }
 }

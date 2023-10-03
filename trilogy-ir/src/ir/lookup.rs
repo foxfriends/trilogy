@@ -10,7 +10,7 @@ pub struct Lookup {
 
 impl Lookup {
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Lookup) -> Self {
-        let path = Expression::convert_path(analyzer, ast.path);
+        let path = Expression::convert(analyzer, ast.path);
         let patterns = ast
             .patterns
             .into_iter()

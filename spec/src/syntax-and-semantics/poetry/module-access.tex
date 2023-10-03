@@ -1,0 +1,32 @@
+\subsubsection{Module Access}
+\label{sec:module-access}
+
+The module access ``operator'' (\op{::}) is used to reference an exported member from
+another module. While intuitively this may appear to be similar to member access
+operator, module access is not truly an operator: right hand operand is not treated
+as an expression, nor is this operator something that can be referenced independently
+of its being used.
+
+\begin{bnf*}
+    \bnfprod{ModuleAccess}{
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfts{\op{::}}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfor
+    }
+\end{bnf*}
+
+The left hand side of the \op{::} is an expression evaluated like any other, but the
+right hand side must be an identifier, which is the identifier of the member to look
+up from the module that the left hand side evaluates to. If the expression does not
+evaluate to a module, it is considered a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E = \sigma : \ty{Module}$}
+    \AxiomC{$\Phi\vdash i : \tau$}
+    \AxiomC{$\sigma\ \text{exports}\ i$}
+    \LeftLabel{Module Access}
+    \TrinaryInfC{$\Gamma\vdash E\ \texttt{::}\ i : \tau$}
+\end{prooftree}

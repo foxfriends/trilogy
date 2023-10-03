@@ -5,7 +5,7 @@ use trilogy_scanner::{Token, TokenType};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Lookup {
-    pub path: Path,
+    pub path: Expression,
     pub patterns: Vec<Pattern>,
     end: Token,
 }
@@ -18,7 +18,7 @@ impl Spanned for Lookup {
 
 impl Lookup {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let path = Path::parse(parser)?;
+        let path = Expression::parse(parser)?;
         parser
             .expect(TokenType::OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;

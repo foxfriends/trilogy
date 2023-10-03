@@ -14,10 +14,8 @@ module Helpers {
     export twice, thrice, printEach
 }
 
-import twice, thrice, printEach! from @Helpers
-
 proc main!() {
     let numbers = [1, 2, 3, 4, 5]
-    printEach!(map twice numbers)
-    printEach!(map thrice numbers)
+    Helpers::printEach!(map Helpers::twice numbers)
+    Helpers::printEach!(map helpers::thrice numbers)
 }

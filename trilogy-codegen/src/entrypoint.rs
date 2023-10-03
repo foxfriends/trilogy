@@ -41,7 +41,8 @@ pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
     let mut statics = HashMap::default();
     context.collect_static(module, &mut statics);
     context.entrypoint();
-    let mut precontext = context.begin(&statics, 0);
+    // Parameters len will be 0, but let's write it out anyway
+    let mut precontext = context.begin(&statics, module.parameters.len() + 1);
     write_module_prelude(&mut precontext, module, Mode::Document);
     write_module_definitions(&mut context, module, &statics, Mode::Document);
 }
@@ -172,10 +173,11 @@ impl ProgramContext<'_> {
 
     /// Writes a module. Modules are prefixed with a single prelude function, which takes
     /// the module's parameters and returns a module object that can be used to access the
-    /// public members.
+    /// public members. If there are no parameters, the prelude function is the module object
+    /// already.
     ///
     /// The module object is a callable that takes one argument, an atom that is the identifier
-    /// of the member to access, and returns that member.
+    /// of the member to access, and returns that member bound to the module's context arguments.
     pub fn write_module(
         &mut self,
         mut statics: HashMap<Id, StaticMember>,
@@ -185,7 +187,7 @@ impl ProgramContext<'_> {
         self.label(for_id);
         let module = def.module.as_module().unwrap();
         self.collect_static(module, &mut statics);
-        let mut context = self.begin(&statics, module.parameters.len());
+        let mut context = self.begin(&statics, 1 + module.parameters.len());
         statics.extend(write_module_prelude(&mut context, module, Mode::Module));
         write_module_definitions(self, module, &statics, Mode::Module);
     }
@@ -196,9 +198,6 @@ impl ProgramContext<'_> {
                 ir::DefinitionItem::Function(func) => Some(func.name.id.clone()),
                 ir::DefinitionItem::Rule(rule) => Some(rule.name.id.clone()),
                 ir::DefinitionItem::Procedure(proc) => Some(proc.name.id.clone()),
-                // TODO: this is wrong for aliases, they are more of a compile-time transform.
-                // Maybe they should be resolved at the IR phase so they can be omitted here.
-                ir::DefinitionItem::Alias(alias) => Some(alias.name.id.clone()),
                 ir::DefinitionItem::Module(module) if module.module.as_module().is_some() => {
                     Some(module.name.id.clone())
                 }

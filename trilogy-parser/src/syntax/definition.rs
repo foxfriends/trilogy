@@ -10,8 +10,6 @@ pub enum DefinitionItem {
     Procedure(Box<ProcedureDefinition>),
     Function(Box<FunctionDefinition>),
     Rule(Box<RuleDefinition>),
-    Import(Box<ImportDefinition>),
-    ModuleImport(Box<ModuleImportDefinition>),
     Export(Box<ExportDefinition>),
     Test(Box<TestDefinition>),
 }
@@ -72,16 +70,6 @@ impl Definition {
                         parser.error(error.clone());
                         return Err(error);
                     }
-                }
-            }
-            KwImport => {
-                let start = parser.expect(KwImport).unwrap();
-                if parser.check(OpAt).is_ok() {
-                    DefinitionItem::ModuleImport(Box::new(ModuleImportDefinition::parse(
-                        parser, start,
-                    )?))
-                } else {
-                    DefinitionItem::Import(Box::new(ImportDefinition::parse(parser, start)?))
                 }
             }
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
@@ -146,11 +134,7 @@ mod test {
     test_parse_error!(def_module_invalid: "module X" => Definition::parse_in_document => "expected `at` for an external module, or `{` for a local module");
     test_parse_error!(def_module_invalid_in_module: "module X" => Definition::parse_in_module => "expected `at` for an external module, or `{` for a local module");
     test_parse!(def_export: "export a, b, c" => Definition::parse_in_document => "(Definition () (DefinitionItem::Export _))");
-    test_parse!(def_import: "import a, b, c from @X" => Definition::parse_in_document => "(Definition () (DefinitionItem::Import _))");
     test_parse!(def_export_in_module: "export a, b, c" => Definition::parse_in_module => "(Definition () (DefinitionItem::Export _))");
-    test_parse!(def_import_in_module: "import a, b, c from @X" => Definition::parse_in_module => "(Definition () (DefinitionItem::Import _))");
-    test_parse!(def_import_as: "import @X a b as Xab" => Definition::parse_in_document => "(Definition () (DefinitionItem::ModuleImport _))");
-    test_parse!(def_import_as_in_module: "import @X a b as Xab" => Definition::parse_in_module => "(Definition () (DefinitionItem::ModuleImport _))");
     test_parse!(def_test: "test \"hello\" {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Test _))");
     test_parse!(def_test_in_module: "test \"hello\" {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Test _))");
     test_parse!(def_documented: "## Hello this is a module\nmodule A {}" => Definition::parse_in_document => "(Definition (Documentation) (DefinitionItem::Module _))");

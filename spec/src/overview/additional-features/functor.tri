@@ -13,7 +13,7 @@ module OrdList(Ord) {
     }
 
     func insert v 'ordered(x : xs) =
-        if @Ord::cmp v x == 'lt then 'ordered(v : x : xs)
+        if Ord::cmp v x == 'lt then 'ordered(v : x : xs)
         else let 'ordered(oxs) = insert v xs
             'ordered(x : oxs)
 
@@ -27,19 +27,19 @@ module OrdList(Ord) {
 }
 
 proc collectInto!(Collection, iter) {
-    let mut collection = @Collection::empty!()
+    let mut collection = Collection::empty!()
     for item in iter {
         collection insert= item
     }
     return collection
 }
 
-import @OrdList(@Int) as OrdIntList
-import @OrdList(@ReverseInt) as ReverseIntList
+import OrdList(Int) as OrdIntList
+import OrdList(ReverseInt) as ReverseIntList
 
 proc main!() {
     let list = [1, 3, 2, 6, 4]
-    let ordered = collectInto!(@OrdIntList, list)
-    let reverseOrdered = collectInto!(@ReverseIntList, list)
+    let ordered = collectInto!(OrdIntList, list)
+    let reverseOrdered = collectInto!(ReverseIntList, list)
     OrdList::print!(reverseOrdered)
 }

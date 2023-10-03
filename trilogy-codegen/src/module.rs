@@ -41,7 +41,6 @@ pub(crate) fn write_module_definitions(
                 }
                 context.write_procedure(statics, procedure);
             }
-            ir::DefinitionItem::Alias(..) => todo!(),
             ir::DefinitionItem::Test(..) => todo!(),
             // Imported modules are not written
             ir::DefinitionItem::Module(..) => {}
@@ -54,8 +53,12 @@ pub(crate) fn write_module_prelude(
     module: &ir::Module,
     mode: Mode,
 ) -> HashMap<Id, StaticMember> {
-    // Start by extracting all the parameters. Declare them all up front so
-    // that we can be sure about their ordering.
+    // The parameters were all declared ahead of time +1 for the module member
+    for _ in 0..module.parameters.len() {
+        context.close(RETURN);
+    }
+    // Collect the module parameters before declaring them so we can be sure of their
+    // ordering.
     let module_parameters = module
         .parameters
         .iter()
@@ -63,12 +66,9 @@ pub(crate) fn write_module_prelude(
         .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    let n = context.declare_variables(module_parameters.iter().cloned()) as u32;
-    for _ in 0..module.parameters.len() {
-        context.close(RETURN);
-    }
+    context.declare_variables(module_parameters.iter().cloned());
     for (i, parameter) in module.parameters.iter().enumerate() {
-        context.instruction(Instruction::LoadLocal(n + i as u32));
+        context.instruction(Instruction::LoadLocal(i as u32));
         write_pattern_match(context, parameter, END);
     }
     // Then save the extracted bindings into an array which will be stored in the
@@ -95,17 +95,10 @@ pub(crate) fn write_module_prelude(
 
     context.undeclare_variables(module_parameters.iter().cloned(), false);
 
-    // Next a closure is created that defines the exports of this module. This function
-    // is the public reification of the module.
-    //
     // The current module's parameters are stored into register 1 such that when a function
     // is called, its parameters can be located. Through this public interface that
     // invariant is upheld.
-
     let current_module = context.scope.intermediate();
-    // Put in a case for each public method. The name of the method will be expected
-    // as an atom.
-    context.close(RETURN);
     for def in module.definitions() {
         if def.is_exported {
             let next_export = context.labeler.unique_hint("next_export");
@@ -116,11 +109,10 @@ pub(crate) fn write_module_prelude(
                 .expect("ids of definitions have names");
             let atom = context.atom(name);
             context
-                .instruction(Instruction::Copy)
+                .instruction(Instruction::LoadLocal(module.parameters.len() as u32))
                 .instruction(Instruction::Const(atom.into()))
                 .instruction(Instruction::ValEq)
-                .cond_jump(&next_export)
-                .instruction(Instruction::Pop);
+                .cond_jump(&next_export);
 
             match &def.item {
                 ir::DefinitionItem::Function(func) => {
@@ -185,14 +177,13 @@ pub(crate) fn write_module_prelude(
                         StaticMember::Chunk(path) => {
                             context
                                 .instruction(Instruction::Chunk(path.into()))
-                                .instruction(Instruction::Call(0))
                                 .instruction(Instruction::Return);
                         }
                         StaticMember::Label(label) => {
                             let submodule_arity =
                                 submodule.module.as_module().unwrap().parameters.len();
                             // Capture all the parameters up front.
-                            for _ in 0..submodule_arity {
+                            for _ in 0..submodule_arity + 1 {
                                 context.close(RETURN);
                             }
                             // Once all parameters are located, set up the context register
@@ -201,10 +192,9 @@ pub(crate) fn write_module_prelude(
                                 .instruction(Instruction::LoadRegister(1))
                                 .instruction(Instruction::LoadLocal(current_module))
                                 .instruction(Instruction::SetRegister(1))
-                                .write_procedure_reference(label)
-                                .instruction(Instruction::Call(0)); // First with no args (as it is a module)
-                            for i in 0..submodule_arity {
-                                // Then with each arg, in order
+                                .write_procedure_reference(label);
+                            for i in 0..submodule_arity + 1 {
+                                // Call with each arg, in order
                                 context
                                     .instruction(Instruction::LoadLocal(
                                         current_module + i as u32 + 1,
@@ -212,7 +202,7 @@ pub(crate) fn write_module_prelude(
                                     .instruction(Instruction::Call(1));
                             }
                             // After every parameter was passed, then we have the return value which is
-                            // no longer subject to the context rules, so return the context register.
+                            // no longer subject to the context rules, so replace the context register.
                             context
                                 .instruction(Instruction::Swap)
                                 .instruction(Instruction::SetRegister(1))
@@ -221,7 +211,6 @@ pub(crate) fn write_module_prelude(
                         StaticMember::Context(..) => unreachable!(),
                     }
                 }
-                ir::DefinitionItem::Alias(_alias) => todo!("support exported aliases"),
                 ir::DefinitionItem::Rule(_rule) => todo!("support exported rules"),
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
             }

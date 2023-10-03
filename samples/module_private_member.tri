@@ -7,5 +7,5 @@ module xyz {
 }
 
 proc main!() {
-    exit @xyz::blackbox!(5)
+    exit xyz::blackbox!(5)
 }

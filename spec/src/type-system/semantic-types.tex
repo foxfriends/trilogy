@@ -77,12 +77,12 @@ other modules may implement. None of that requires particular handling in the ty
 however, as modules are restricted to being applied statically.
 
 In type annotation, the module type is written as \texttt{Module}, and a module function
-as \texttt{Module -> Module}. This is not exactly the most strongly typed of descriptors,
+as \texttt{T -> Module}. This is not exactly the most strongly typed of descriptors,
 but suffices for the purposes of \Trilogy{} as a dynamically typed language. While it may
 be useful at times to be able to describe the signature of these modules, in practice it
 is unnecessary as the interpreter will be able to determine statically whether a module
 call is valid or not.
 
 That said, modules can still be converted to string representation, which is the
-of the module followed by the names of its parameter modules, if any, in parentheses,
-such as \texttt{ModuleA(ModuleB, ModuleC(ModuleD))}.
+of the module followed by the string representations of its parameters, if any
+such as \texttt{ModuleA 1 (ModuleB 2 3)}.

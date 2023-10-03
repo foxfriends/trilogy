@@ -177,8 +177,6 @@ syntax tree, so having the documentation inside is simply useful.
         \bnfpn{RuleDefinition}\bnfor
     } \\
     \bnfmore*{
-        \bnfpn{Import}
-        \bnfor
         \bnfpn{Export}
         \bnfor
         \bnfpn{Test}
@@ -190,9 +188,9 @@ syntax tree, so having the documentation inside is simply useful.
 Modules act as containers for definitions, including procedures,
 functions, rules, and further submodules. Every \Trilogy{} document is
 implicitly a module, meaning a document may export any of its defined items,
-to make them available to other modules that import that document. Any item
+to make them available to other modules that reference that document. Any item
 defined at the top level of a module may be exported: procedures, functions,
-rules, modules, and imported items.
+rules, and modules.
 
 The \Trilogy{} module system is modelled after that of OCaml: modules may
 be defined as functions which accept one or more other modules as parameters,
@@ -245,25 +243,6 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfor
         \bnfes
     } \\
-    \bnfprod*{Import}{
-        \bnfts{\kw{import}}
-        \bnfsp
-        \bnfpn{ModulePath}
-        \bnfsp
-        \bnfts{\kw{as}}
-        \bnfsp
-        \bnfpn{Identifier}
-        \bnfor
-    } \\
-    \bnfmore*{
-        \bnfts{\kw{import}}
-        \bnfsp
-        \bnfpn{NameList}
-        \bnfsp
-        \bnfts{\kw{from}}
-        \bnfsp
-        \bnfpn{ModulePath}
-    } \\
     \bnfprod*{Export}{
         \bnfts{\kw{export}}
         \bnfsp
@@ -288,38 +267,11 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfts{\kw{as}}
         \bnfsp
         \bnfpn{Identifier}
-    } \\
-    \bnfprod*{ModulePath}{
-        \bnfpn{ModuleReference}
-        \bnfsp
-        \bnfts{\op{::}}
-        \bnfsp
-        \bnfpn{ModulePath}
-        \bnfor
-    } \\
-    \bnfmore*{
-        \bnfpn{ModuleReference}
-    } \\
-    \bnfprod*{ModuleReference}{
-        \bnfts{@}
-        \bnfsp
-        \bnfpn{Identifier}
-        \bnfsp
-        \bnfpn{ModuleArguments}
-    } \\
-    \bnfprod*{ModuleArguments}{
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfpn{ModuleArguments}
-        \bnfor
-        \bnfes
     }
 \end{bnf}
 
 A \kw{module} definition puts into scope a namespace in which all
 \kw{export}ed definitions contained within the module may be accessed.
-An \kw{import} may be used to bring specific items from such a namespace
-into scope, or to rename a module something more convenient.
 
 When a module is defined locally (directly in the same file as its parent
 module), the definitions within the module may access all definitions (including
@@ -333,7 +285,7 @@ externally also may not access members of the module in which they are declared.
     \AxiomC{$\kw{module}\ m\ m_{1\hdots n}\ \block{K}$}
     \AxiomC{$K \Rightarrow \kw{export}\ p$}
     \LeftLabel{Local Module}
-    \TrinaryInfC{$\Gamma \vdash m\ \op{::}\ p$}
+    \TrinaryInfC{$\Gamma \vdash m\ \text{exports}\ p$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -341,21 +293,7 @@ externally also may not access members of the module in which they are declared.
     \AxiomC{$\kw{module}\ m\ \kw{at}\ \sigma$}
     \AxiomC{$\text{read}(\sigma) \Rightarrow \kw{export}\ p$}
     \LeftLabel{External Module}
-    \TrinaryInfC{$\Gamma \vdash m\ \op{::}\ p$}
-\end{prooftree}
-
-\begin{prooftree}
-    \AxiomC{$\Gamma \vdash m.p$}
-    \AxiomC{$\kw{import}\ m\ \kw{as}\ n$}
-    \LeftLabel{Import As}
-    \BinaryInfC{$\Gamma \vdash n\ \op{::}\ p$}
-\end{prooftree}
-
-\begin{prooftree}
-    \AxiomC{$\Gamma \vdash m.p$}
-    \AxiomC{$\kw{import}\ p\ \kw{from}\ m$}
-    \LeftLabel{Import From}
-    \BinaryInfC{$\Gamma \vdash p$}
+    \TrinaryInfC{$\Gamma \vdash m\ \text{exports}\ p$}
 \end{prooftree}
 
 \subsubsection{Definitions}

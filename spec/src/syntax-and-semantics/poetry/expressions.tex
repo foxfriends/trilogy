@@ -22,42 +22,44 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
         \bnfor
         \bnfpn{MemberAccess}
         \bnfor
-        \bnfpn{Application}
+        \bnfpn{ModuleAccess}
         \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Application}
+        \bnfor
         \bnfpn{ProcedureCall}
         \bnfor
         \bnfpn{BinOp}
         \bnfor
+    } \\
+    \bnfmore{
         \bnfpn{UnaryOp}
         \bnfor
         \bnfpn{Let}
         \bnfor
-    } \\
-    \bnfmore{
         \bnfpn{IfElse}
         \bnfor
         \bnfpn{Match}
         \bnfor
         \bnfpn{Is}
         \bnfor
+    } \\
+    \bnfmore{
         \bnfpn{End}
         \bnfor
         \bnfpn{Exit}
         \bnfor
-    } \\
-    \bnfmore{
         \bnfpn{Resume}
         \bnfor
         \bnfpn{Cancel}
         \bnfor
         \bnfpn{Return}
         \bnfor
-        \bnfpn{Break}
-        \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Break}
+        \bnfor
         \bnfpn{Continue}
         \bnfor
         \bnfpn{FnClosure}

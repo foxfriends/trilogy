@@ -1,24 +1,15 @@
 \subsubsection{Lookup}
 
-The lookup case is the most powerful of the unifications, where a rule is looked up
-in the current scope and its definitions are applied by unifying each parameter with
-the arguments provided.
+The lookup case is the most powerful of the unifications, where a rule is looked up in
+(or computed from) the current scope and its definitions are applied by unifying each
+parameter with the arguments provided.
 
 For all its flexibility, the syntax is very simple. Recall Rule~\ref{bnf:patternlist}
 from earlier.
 
 \begin{bnf*}
-    \bnfprod{Path}{
-        \bnfpn{ModulePath}
-        \bnfsp
-        \bnfts{\op{::}}
-        \bnfsp
-        \bnfpn{Identifier}
-        \bnfor
-        \bnfpn{Identifier}
-    } \\
     \bnfprod{Lookup}{
-        \bnfpn{Path}
+        \bnfpn{Expression}
         \bnfsp
         \bnfts{(}
         \bnfsp

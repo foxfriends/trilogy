@@ -32,7 +32,7 @@ module OrdList {
 }
 
 proc collectInto!(Collection, iter) {
-    let mut collection = @Collection::empty!()
+    let mut collection = Collection::empty!()
     for item in iter {
         collection insert= item
     }
@@ -40,8 +40,8 @@ proc collectInto!(Collection, iter) {
 }
 
 proc main!() {
-    let unordered = collectInto!(@UnordList, [1, 3, 2, 6, 4])
-    let ordered = collectInto!(@OrdList, [1, 3, 2, 6, 4])
+    let unordered = collectInto!(UnordList, [1, 3, 2, 6, 4])
+    let ordered = collectInto!(OrdList, [1, 3, 2, 6, 4])
     UnordList.print!(unordered)
     OrdList.print!(ordered)
 }

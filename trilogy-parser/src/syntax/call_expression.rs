@@ -61,7 +61,7 @@ mod test {
 
     test_parse!(callexpr_empty: "hello!()" => Expression::parse => "(Expression::Call (CallExpression _ []))");
     test_parse!(callexpr_params: "hello!(a, b)" => Expression::parse => "(Expression::Call (CallExpression _ [_ _]))");
-    test_parse!(callexpr_path: "@hello world::@inner::hello!(2)" => Expression::parse => "(Expression::Call (CallExpression _ [_]))");
+    test_parse!(callexpr_path: "hello world::inner::hello!(2)" => Expression::parse => "(Expression::Call (CallExpression _ [_]))");
     test_parse!(callexpr_expr: "(a |> b |> c)!(1)" => Expression::parse => "(Expression::Call (CallExpression _ [_]))");
     test_parse_error!(callexpr_spaced: "hello! (1)" => Expression::parse => "expected `!(` in procedure call, there may not be a space");
     test_parse_error!(callexpr_missing_end: "hello!(1" => Expression::parse => "expected `,` or `)` in argument list");

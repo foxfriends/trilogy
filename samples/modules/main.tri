@@ -1,5 +1,5 @@
 module xyz at "./xyz.tri"
 
 proc main!() {
-    exit @xyz::double!(5)
+    exit xyz::double!(5)
 }

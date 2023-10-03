@@ -1,5 +1,5 @@
 proc main!() {
-    exit @abc::@xyz::inner!()
+    exit abc::xyz::inner!()
 }
 
 module abc {

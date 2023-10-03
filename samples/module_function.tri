@@ -9,5 +9,5 @@ module xyz {
 }
 
 proc main!() {
-    exit @xyz::add (@abc 3::mult 4) 5
+    exit xyz::add (abc 3::mult 4) 5
 }

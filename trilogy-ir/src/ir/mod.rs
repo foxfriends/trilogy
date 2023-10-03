@@ -1,4 +1,3 @@
-mod alias;
 mod application;
 mod assert;
 mod assignment;
@@ -31,7 +30,6 @@ mod test_definition;
 mod unification;
 mod r#while;
 
-pub use alias::Alias;
 pub use application::Application;
 pub use assert::Assert;
 pub use assignment::Assignment;

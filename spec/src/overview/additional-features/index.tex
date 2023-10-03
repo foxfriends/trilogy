@@ -14,16 +14,15 @@ the module system of OCaml.
 Beginning with the \kw{module} keyword, we can define a simple module. A
 module may contain any number of declarations of any type (procedures,
 rules, functions, and even nested modules). Names listed in an \kw{export}
-statement are available to other modules that \kw{import} the module and
-\kw{use} those declarations.
+statement are made available to modules that reference this module.
 
 \inputcode{adt.tri}
 
-Modules may alternatively (or additionally) be imported ``whole''. \Trilogy{}
-modules are first class values, somewhat similar to read-only records, so they
-can be passed to functions or procedures, allowing the contents to be used
-generically. This technique can be used to build something similar to ADTs
-and generic functions.
+Modules may additionally be manipulated at runtime. \Trilogy{} modules are
+first class values, somewhat similar to read-only records, so they can be
+passed to functions or procedures, allowing the contents to be used generically.
+This technique can be used to build something similar to ADTs and generic
+functions.
 
 \inputcode{functor.tri}
 

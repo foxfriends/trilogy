@@ -667,8 +667,6 @@ impl Iterator for Scanner<'_> {
             '>' if self.expect('=').is_some() => self.make_token(OpGtEq),
             '>' => self.make_token(OpGt),
 
-            '@' => self.make_token(OpAt),
-
             '%' if self.expect('=').is_some() => self.make_token(OpPercentEq),
             '%' => self.make_token(OpPercent),
 

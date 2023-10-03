@@ -92,7 +92,15 @@ impl Expression {
             IteratorComprehension(ast) => {
                 Self::convert_iterator(analyzer, ast.query, ast.expression)
             }
-            Reference(ast) => Self::convert_path(analyzer, *ast),
+            Reference(ast) => Self::reference(
+                ast.span(),
+                Identifier::declared(analyzer, &ast).unwrap_or_else(|| {
+                    analyzer.error(Error::UnboundIdentifier {
+                        name: (*ast).clone(),
+                    });
+                    Identifier::declare(analyzer, *ast)
+                }),
+            ),
             Keyword(ast) => Builtin::convert(*ast),
             Application(ast) => Self::application(
                 ast.span(),
@@ -167,7 +175,13 @@ impl Expression {
             Template(ast) => Self::convert_template(analyzer, *ast),
             Handled(ast) => crate::ir::Handled::convert_expression(analyzer, *ast),
             Parenthesized(ast) => Self::convert(analyzer, ast.expression),
-            Module(ast) => Self::convert_module_path(analyzer, *ast),
+            ModuleAccess(ast) => {
+                let span = ast.span();
+                let lhs_span = ast.lhs.span().union(ast.access_token().span());
+                Self::builtin(ast.access_token().span, Builtin::ModuleAccess)
+                    .apply_to(lhs_span, Self::convert(analyzer, ast.lhs))
+                    .apply_to(span, Self::dynamic(ast.rhs))
+            }
         }
     }
 
@@ -418,63 +432,6 @@ impl Expression {
         }
     }
 
-    pub(super) fn convert_module_path(analyzer: &mut Analyzer, ast: syntax::ModulePath) -> Self {
-        let value = Self::convert_module_reference(analyzer, ast.first);
-        ast.modules.into_iter().fold(value, |module, (token, ast)| {
-            let module_span = module.span;
-            let module = Self::builtin(token.span, Builtin::ModuleAccess)
-                .apply_to(module_span.union(token.span), module)
-                .apply_to(module_span.union(ast.name.span()), Self::dynamic(ast.name));
-            ast.arguments.into_iter().fold(module, |function, ast| {
-                let span = function.span.union(ast.span());
-                function.apply_to(span, Expression::convert(analyzer, ast))
-            })
-        })
-    }
-
-    pub(super) fn convert_path(analyzer: &mut Analyzer, ast: syntax::Path) -> Self {
-        let span = ast.span();
-        let join_token = ast.join_token().map(|token| token.span);
-        match ast.module {
-            Some(module) => {
-                let module_span = module.span();
-                let join_span = join_token.unwrap();
-                Self::builtin(join_span, Builtin::ModuleAccess)
-                    .apply_to(
-                        module_span.union(join_span),
-                        Self::convert_module_path(analyzer, module),
-                    )
-                    .apply_to(span, Self::dynamic(ast.member))
-            }
-            None => Identifier::declared(analyzer, &ast.member)
-                .map(|identifier| Self::reference(span, identifier))
-                .unwrap_or_else(|| {
-                    analyzer.error(Error::UnboundIdentifier {
-                        name: ast.member.clone(),
-                    });
-                    Expression::reference(
-                        ast.member.span(),
-                        Identifier::declare(analyzer, ast.member),
-                    )
-                }),
-        }
-    }
-
-    fn convert_module_reference(analyzer: &mut Analyzer, ast: syntax::ModuleReference) -> Self {
-        let id = Identifier::declared(analyzer, &ast.name).unwrap_or_else(|| {
-            analyzer.error(Error::UnknownModule {
-                name: ast.name.clone(),
-            });
-            Identifier::declare(analyzer, ast.name.clone())
-        });
-        ast.arguments
-            .into_iter()
-            .fold(Expression::module(ast.name.span(), id), |function, ast| {
-                let span = function.span.union(ast.span());
-                function.apply_to(span, Expression::convert(analyzer, ast))
-            })
-    }
-
     fn convert_for_statement(analyzer: &mut Analyzer, ast: syntax::ForStatement) -> Self {
         let else_block = ast
             .else_block
@@ -653,10 +610,6 @@ impl Expression {
         Self::new(identifier.span(), Value::Dynamic(Box::new(identifier)))
     }
 
-    pub(super) fn module(span: Span, id: Identifier) -> Self {
-        Self::new(span, Value::Module(Box::new(id)))
-    }
-
     pub(super) fn sequence(span: Span, sequence: Vec<Expression>) -> Self {
         Self::new(span, Value::Sequence(sequence))
     }
@@ -740,7 +693,6 @@ pub enum Value {
     Fn(Box<Function>),
     Do(Box<Procedure>),
     Handled(Box<Handled>),
-    Module(Box<Identifier>),
     Reference(Box<Identifier>),
     Dynamic(Box<syntax::Identifier>),
     Assert(Box<Assert>),

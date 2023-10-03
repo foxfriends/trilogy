@@ -11,7 +11,6 @@ pub enum DefinitionItem {
     Function(Box<FunctionDefinition>),
     Rule(Box<RuleDefinition>),
     Test(Box<TestDefinition>),
-    Alias(Box<Alias>),
     Module(Box<ModuleDefinition>),
 }
 
@@ -28,7 +27,6 @@ impl Definition {
             DefinitionItem::Procedure(def) => Some(&def.name.id),
             DefinitionItem::Function(def) => Some(&def.name.id),
             DefinitionItem::Rule(def) => Some(&def.name.id),
-            DefinitionItem::Alias(def) => Some(&def.name.id),
             DefinitionItem::Test(..) => None,
             DefinitionItem::Module(def) => Some(&def.name.id),
         }
@@ -68,26 +66,6 @@ impl Definition {
                 };
                 function.overloads.push(Function::convert(analyzer, *ast))
             }
-            syntax::DefinitionItem::Import(ast) => {
-                let from_span = ast.from_token().span;
-                let expression = Expression::convert_module_path(analyzer, ast.module);
-                for alias in &ast.names {
-                    let (from, to) = match alias {
-                        syntax::Alias::Same(name) => (name, name),
-                        syntax::Alias::Rename(from, to) => (from, to),
-                    };
-                    let id = analyzer.declared(to.as_ref()).unwrap();
-                    let definition = definitions.get_mut(id).unwrap();
-                    let DefinitionItem::Alias(alias) = &mut definition.item else {
-                        unreachable!()
-                    };
-                    alias.value = Some(
-                        Expression::builtin(from_span, Builtin::Access)
-                            .apply_to(from.span(), expression.clone())
-                            .apply_to(to.span(), Expression::dynamic(to.clone())),
-                    );
-                }
-            }
             syntax::DefinitionItem::Module(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
@@ -95,15 +73,6 @@ impl Definition {
                     unreachable!()
                 };
                 module.module = Arc::new(ModuleCell::new(Module::convert_module(analyzer, *ast)));
-            }
-            syntax::DefinitionItem::ModuleImport(ast) => {
-                let id = analyzer.declared(ast.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(id).unwrap();
-                let DefinitionItem::Alias(alias) = &mut definition.item else {
-                    unreachable!()
-                };
-                let expression = Expression::convert_module_path(analyzer, ast.module);
-                alias.value = Some(expression);
             }
             syntax::DefinitionItem::Procedure(ast) => {
                 let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
@@ -163,28 +132,6 @@ impl Definition {
                     is_exported: false,
                 }
             }
-            syntax::DefinitionItem::Import(ast) => {
-                return ast
-                    .names
-                    .iter()
-                    .map(|alias| {
-                        let span = alias.span();
-                        let name = match alias {
-                            syntax::Alias::Same(name) => name,
-                            syntax::Alias::Rename(_, name) => name,
-                        };
-                        if analyzer.declared(name.as_ref()).is_some() {
-                            analyzer.error(Error::DuplicateDefinition { name: name.clone() });
-                        }
-                        let name = Identifier::declare(analyzer, name.clone());
-                        Self {
-                            span,
-                            item: DefinitionItem::Alias(Box::new(Alias::declare(name))),
-                            is_exported: false,
-                        }
-                    })
-                    .collect();
-            }
             syntax::DefinitionItem::Module(ast) => {
                 if analyzer.declared(ast.head.name.as_ref()).is_some() {
                     analyzer.error(Error::DuplicateDefinition {
@@ -196,20 +143,6 @@ impl Definition {
                 Self {
                     span: ast.span(),
                     item: DefinitionItem::Module(Box::new(ModuleDefinition::declare(name))),
-                    is_exported: false,
-                }
-            }
-            syntax::DefinitionItem::ModuleImport(ast) => {
-                if analyzer.declared(ast.name.as_ref()).is_some() {
-                    analyzer.error(Error::DuplicateDefinition {
-                        name: ast.name.clone(),
-                    });
-                    return vec![];
-                }
-                let name = Identifier::declare(analyzer, ast.name.clone());
-                Self {
-                    span: ast.span(),
-                    item: DefinitionItem::Alias(Box::new(Alias::declare(name))),
                     is_exported: false,
                 }
             }
