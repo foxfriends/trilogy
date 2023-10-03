@@ -357,6 +357,12 @@ fn sample_submodule_parameters() {
 }
 
 #[test]
+fn sample_module_function() {
+    let mut program = include_tri!("module_function.tri");
+    assert_eq!(program.run().unwrap(), Value::from(17));
+}
+
+#[test]
 #[ignore = "not yet working"]
 fn sample_main_no_exit() {
     let mut program = include_tri!("main_no_exit.tri");

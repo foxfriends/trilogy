@@ -123,7 +123,37 @@ pub(crate) fn write_module_prelude(
                 .instruction(Instruction::Pop);
 
             match &def.item {
-                ir::DefinitionItem::Function(_func) => todo!("support exported functions"),
+                ir::DefinitionItem::Function(func) => {
+                    // All overloads must have the same arity, so get from the first one.
+                    let function_arity = func.overloads[0].parameters.len();
+                    let Some(StaticMember::Label(label)) =
+                        context.scope.lookup_static(&func.name.id).cloned()
+                    else {
+                        unreachable!("definitions will be found as a local label");
+                    };
+                    // Capture all the parameters up front.
+                    for _ in 0..function_arity {
+                        context.close(RETURN);
+                    }
+                    // Once all parameters are located, set up the context register
+                    // and call the function by applying the parameters one by one.
+                    context
+                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadLocal(current_module))
+                        .instruction(Instruction::SetRegister(1))
+                        .write_procedure_reference(label);
+                    for i in 0..function_arity {
+                        context
+                            .instruction(Instruction::LoadLocal(current_module + i as u32 + 1))
+                            .instruction(Instruction::Call(1));
+                    }
+                    // After every parameter was passed, then we have the return value which is
+                    // no longer subject to the context rules, so return the context register.
+                    context
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::Return);
+                }
                 ir::DefinitionItem::Procedure(proc) => {
                     let Some(StaticMember::Label(proc_label)) =
                         context.scope.lookup_static(&proc.name.id).cloned()

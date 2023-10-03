@@ -1,0 +1,13 @@
+module abc n {
+    func mult x = n * x
+    export mult
+}
+
+module xyz {
+    func add x y = x + y
+    export add
+}
+
+proc main!() {
+    exit @xyz::add (@abc 3::mult 4) 5
+}
