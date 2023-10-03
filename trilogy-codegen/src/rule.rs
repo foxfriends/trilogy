@@ -97,7 +97,6 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // Finally, put the return value into 'next()
     context
         .instruction(Instruction::Const(next.into()))
-        .instruction(Instruction::Swap)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Return);
     // This ends with 2 expected values on the stack ([state, retval])

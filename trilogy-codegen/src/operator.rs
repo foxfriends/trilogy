@@ -181,7 +181,7 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
     match builtin {
         Builtin::Negate => context.write_procedure_reference(NEGATE.to_owned()),
         Builtin::Not => context.write_procedure_reference(NOT.to_owned()),
-        Builtin::Access => todo!(),
+        Builtin::Access => context.write_procedure_reference(ACCESS.to_owned()),
         Builtin::And => context.write_procedure_reference(AND.to_owned()),
         Builtin::Or => context.write_procedure_reference(OR.to_owned()),
         Builtin::Add => context.write_procedure_reference(ADD.to_owned()),

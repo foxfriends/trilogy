@@ -11,6 +11,7 @@ pub const POW: &str = "core::pow";
 pub const NEGATE: &str = "core::neg";
 
 pub const GLUE: &str = "core::glue";
+pub const ACCESS: &str = "core::access";
 
 pub const AND: &str = "core::and";
 pub const OR: &str = "core::or";
@@ -93,6 +94,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     unop!(builder, NEGATE, Instruction::Negate);
 
     binop!(builder, GLUE, Instruction::Glue);
+    binop!(builder, ACCESS, Instruction::Access);
 
     binop!(builder, AND, Instruction::And);
     binop!(builder, OR, Instruction::Or);
@@ -195,7 +197,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .cond_jump(&iter_done)
         .instruction(Instruction::Access)
         .instruction(Instruction::Const(next.clone().into()))
-        .instruction(Instruction::Swap)
         .instruction(Instruction::Construct)
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Uncons)
@@ -216,7 +217,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Uncons)
         .instruction(Instruction::SetLocal(0))
         .instruction(Instruction::Const(next.into()))
-        .instruction(Instruction::Swap)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Return);
 

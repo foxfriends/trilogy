@@ -21,11 +21,11 @@ impl Expression {
             Unit(ast) => Self::unit(ast.span()),
             Atom(ast) => Self::atom(ast.span(), ast.value()),
             Struct(ast) => Self::builtin(ast.span(), Builtin::Construct)
+                .apply_to(ast.value.span(), Self::convert(analyzer, ast.value))
                 .apply_to(
                     ast.atom.span(),
                     Self::atom(ast.atom.span(), ast.atom.value()),
-                )
-                .apply_to(ast.value.span(), Self::convert(analyzer, ast.value)),
+                ),
             Array(ast) => {
                 let start_span = ast.start_token().span;
                 let span = ast.span();
@@ -329,12 +329,12 @@ impl Expression {
             }
             Struct(ast) => Self::builtin(ast.span(), Builtin::Construct)
                 .apply_to(
-                    ast.atom.span(),
-                    Self::atom(ast.atom.span(), ast.atom.value()),
-                )
-                .apply_to(
                     ast.pattern.span(),
                     Self::convert_pattern(analyzer, ast.pattern),
+                )
+                .apply_to(
+                    ast.atom.span(),
+                    Self::atom(ast.atom.span(), ast.atom.value()),
                 ),
             Tuple(ast) => {
                 let cons_span = ast.cons_token().span;

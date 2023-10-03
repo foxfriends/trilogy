@@ -125,7 +125,6 @@ fn write_query_value(
                 .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup)
                 .instruction(Instruction::Destruct)
-                .instruction(Instruction::Swap)
                 .instruction(Instruction::Const(next.into()))
                 .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
@@ -393,7 +392,6 @@ fn write_query_value(
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&cleanup)
                 .instruction(Instruction::Destruct)
-                .instruction(Instruction::Swap)
                 .instruction(Instruction::Const(next.into()))
                 .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);

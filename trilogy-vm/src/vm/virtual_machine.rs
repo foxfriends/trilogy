@@ -660,20 +660,20 @@ impl VirtualMachine {
                     ex.stack_push(first);
                 }
                 OpCode::Construct => {
-                    let rhs = ex.stack_pop()?;
                     let atom = ex.stack_pop().and_then(|val| match val {
                         Value::Atom(atom) => Ok(atom),
                         _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
                     })?;
-                    ex.stack_push(Value::Struct(Struct::new(atom, rhs)));
+                    let value = ex.stack_pop()?;
+                    ex.stack_push(Value::Struct(Struct::new(atom, value)));
                 }
                 OpCode::Destruct => {
                     let (atom, value) = ex.stack_pop().and_then(|val| match val {
                         Value::Struct(val) => Ok(val.destruct()),
                         _ => Err(ex.error(ErrorKind::RuntimeTypeError)),
                     })?;
-                    ex.stack_push(atom.into());
                     ex.stack_push(value);
+                    ex.stack_push(atom.into());
                 }
                 OpCode::Leq => {
                     let rhs = ex.stack_pop()?;

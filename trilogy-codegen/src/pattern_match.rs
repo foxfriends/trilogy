@@ -218,10 +218,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::Const("struct".into()))
                     .instruction(Instruction::ValEq)
                     .cond_jump(&cleanup)
-                    .instruction(Instruction::Destruct)
-                    .instruction(Instruction::Swap);
+                    .instruction(Instruction::Destruct);
                 // Match the atom, very easy
-                write_pattern(context, lhs, &cleanup);
+                write_pattern(context, rhs, &cleanup);
                 // If the atom matching fails, we have to clean up the extra value
                 let match_value = context.labeler.unique_hint("structvalue");
                 context
@@ -230,7 +229,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::Pop)
                     .jump(on_fail)
                     .label(match_value);
-                write_pattern(context, rhs, on_fail);
+                write_pattern(context, lhs, on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
                 let cleanup = context.labeler.unique_hint("cleanup");
