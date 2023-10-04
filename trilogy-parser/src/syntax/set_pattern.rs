@@ -82,3 +82,32 @@ impl Spanned for SetPattern {
         self.start.span.union(self.end.span)
     }
 }
+
+impl TryFrom<SetLiteral> for SetPattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: SetLiteral) -> Result<Self, Self::Error> {
+        let mut head = vec![];
+        let mut rest = None;
+
+        for element in value.elements {
+            match element {
+                SetElement::Element(val) if rest.is_none() => head.push(val.try_into()?),
+                SetElement::Spread(_, val) if rest.is_none() => rest = Some(val.try_into()?),
+                SetElement::Element(val) | SetElement::Spread(_, val) => {
+                    return Err(SyntaxError::new(
+                        val.span(),
+                        "no elements may follow the rest (`..`) element in a set pattern",
+                    ))
+                }
+            }
+        }
+
+        Ok(Self {
+            start: value.start,
+            elements: head,
+            rest,
+            end: value.end,
+        })
+    }
+}

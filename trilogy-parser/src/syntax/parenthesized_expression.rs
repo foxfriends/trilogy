@@ -4,9 +4,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ParenthesizedExpression {
-    start: Token,
+    pub start: Token,
     pub expression: Expression,
-    end: Token,
+    pub end: Token,
 }
 
 impl ParenthesizedExpression {

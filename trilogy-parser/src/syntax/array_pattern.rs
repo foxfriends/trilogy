@@ -91,6 +91,38 @@ impl ArrayPattern {
     }
 }
 
+impl TryFrom<ArrayLiteral> for ArrayPattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: ArrayLiteral) -> Result<Self, Self::Error> {
+        let mut head = vec![];
+        let mut tail = vec![];
+        let mut rest = None;
+
+        for element in value.elements {
+            match element {
+                ArrayElement::Element(val) if rest.is_none() => head.push(val.try_into()?),
+                ArrayElement::Element(val) => tail.push(val.try_into()?),
+                ArrayElement::Spread(.., val) if rest.is_none() => rest = Some(val.try_into()?),
+                ArrayElement::Spread(.., val) => {
+                    return Err(SyntaxError::new(
+                        val.span(),
+                        "an array pattern may contain only a single spread element",
+                    ))
+                }
+            }
+        }
+
+        Ok(Self {
+            start: value.start,
+            head,
+            rest,
+            tail,
+            end: value.end,
+        })
+    }
+}
+
 impl Spanned for ArrayPattern {
     fn span(&self) -> Span {
         self.start.span.union(self.end.span)

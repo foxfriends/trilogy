@@ -1,5 +1,5 @@
 use super::{pattern::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -24,6 +24,24 @@ impl GluePattern {
 
     pub fn glue_token(&self) -> &Token {
         &self.glue_token
+    }
+}
+
+impl TryFrom<BinaryOperation> for GluePattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: BinaryOperation) -> Result<Self, Self::Error> {
+        match value.operator {
+            BinaryOperator::Glue(token) => Ok(Self {
+                lhs: value.lhs.try_into()?,
+                glue_token: token,
+                rhs: value.rhs.try_into()?,
+            }),
+            _ => Err(SyntaxError::new(
+                value.span(),
+                "incorrect operator for glue pattern",
+            )),
+        }
     }
 }
 

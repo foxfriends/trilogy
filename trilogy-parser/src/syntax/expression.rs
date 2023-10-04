@@ -353,6 +353,10 @@ impl Expression {
         Self::parse_precedence(parser, Precedence::None)
     }
 
+    pub(crate) fn parse_or_pattern(_parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
+        todo!("this will be the real hard one, but actually just big and clunky, more than hard")
+    }
+
     pub(crate) fn is_lvalue(&self) -> bool {
         match self {
             Self::Binary(op) if matches!(op.operator, BinaryOperator::Access(..)) => true,

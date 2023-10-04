@@ -92,3 +92,34 @@ impl Spanned for RecordPattern {
         self.start.span.union(self.end.span)
     }
 }
+
+impl TryFrom<RecordLiteral> for RecordPattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: RecordLiteral) -> Result<Self, Self::Error> {
+        let mut head = vec![];
+        let mut rest = None;
+
+        for element in value.elements {
+            match element {
+                RecordElement::Element(key, val) if rest.is_none() => {
+                    head.push((key.try_into()?, val.try_into()?))
+                }
+                RecordElement::Spread(_, val) if rest.is_none() => rest = Some(val.try_into()?),
+                RecordElement::Element(..) | RecordElement::Spread(..) => {
+                    return Err(SyntaxError::new(
+                        element.span(),
+                        "no elements may follow the rest (`..`) element in a set pattern",
+                    ))
+                }
+            }
+        }
+
+        Ok(Self {
+            start: value.start,
+            elements: head,
+            rest,
+            end: value.end,
+        })
+    }
+}

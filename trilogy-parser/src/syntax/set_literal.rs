@@ -5,9 +5,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SetLiteral {
-    start: Token,
+    pub start: Token,
     pub elements: Vec<SetElement>,
-    end: Token,
+    pub end: Token,
 }
 
 impl Spanned for SetLiteral {

@@ -70,14 +70,23 @@ impl Query {
             },
             KwNot => Ok(Self::Not(Box::new(NotQuery::parse(parser)?))),
             Identifier => {
-                // When it's an identifier, we have to check if it's actually
-                // a lookup, or really just a simple identifier pattern, by
-                // peeking an extra token.
-                if parser.predict([OParen, OpColonColon]) {
-                    Ok(Self::Lookup(Box::new(Lookup::parse(parser)?)))
-                } else {
-                    let pattern = Pattern::parse(parser)?;
-                    Self::unification(parser, pattern)
+                // When it's an identifier it may be a lookup (which starts with any expression),
+                // or just a very long and complicated pattern. Parse it as an expression until
+                // it cannot be, then assume it is a pattern. If the expression completes
+                match Expression::parse_or_pattern(parser)? {
+                    Ok(expr) if parser.check(OParen).is_ok() => {
+                        // If the next character is `(`, then this is a lookup
+                        Ok(Self::Lookup(Box::new(Lookup::parse_rest(parser, expr)?)))
+                    }
+                    Ok(expr) => {
+                        // It was not a lookup, so let's try to convert it to a pattern
+                        let pattern = expr.try_into()?;
+                        Self::unification(parser, pattern)
+                    }
+                    Err(pattern) => {
+                        // It was not an expression, so is a pattern
+                        Self::unification(parser, pattern)
+                    }
                 }
             }
             _ => {

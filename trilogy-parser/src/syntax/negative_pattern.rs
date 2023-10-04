@@ -1,5 +1,5 @@
 use super::{pattern::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -19,5 +19,22 @@ impl NegativePattern {
 
     pub fn minus_token(&self) -> &Token {
         &self.start
+    }
+}
+
+impl TryFrom<UnaryOperation> for NegativePattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: UnaryOperation) -> Result<Self, Self::Error> {
+        match value.operator {
+            UnaryOperator::Negate(token) => Ok(Self {
+                start: token,
+                pattern: value.operand.try_into()?,
+            }),
+            _ => Err(SyntaxError::new(
+                value.span(),
+                "incorrect operator for negative pattern",
+            )),
+        }
     }
 }

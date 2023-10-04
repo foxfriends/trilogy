@@ -5,9 +5,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct RecordLiteral {
-    start: Token,
+    pub start: Token,
     pub elements: Vec<RecordElement>,
-    end: Token,
+    pub end: Token,
 }
 
 impl Spanned for RecordLiteral {
