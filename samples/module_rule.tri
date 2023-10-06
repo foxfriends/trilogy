@@ -14,7 +14,7 @@ module abc {
 
 proc main!() {
     let mut total = 0
-    for abc::ns(n) and (xyz 1::above)(n) {
+    for abc::ns(n) and xyz 1::above(n) {
         total += n
     }
     exit total
