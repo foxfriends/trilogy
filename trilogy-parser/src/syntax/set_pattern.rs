@@ -109,13 +109,19 @@ impl SetPattern {
                         elements.push(element.try_into()?)
                     }
                     SetElement::Element(element) => {
-                        return Err(SyntaxError::new(element.span(), "no elements may follow the rest element of a set pattern, you might have meant this to be an expression"));
+                        return Err(SyntaxError::new(
+                            element.span(),
+                            "no elements may follow the rest element of a set pattern, you might have meant this to be an expression",
+                        ));
                     }
                     SetElement::Spread(_, element) if spread.is_none() => {
                         spread = Some(element.try_into()?);
                     }
                     SetElement::Spread(token, element) => {
-                        return Err(SyntaxError::new(token.span.union(element.span()), "a set pattern may contain only one rest element, you might have meant this to be an expression"));
+                        return Err(SyntaxError::new(
+                            token.span.union(element.span()),
+                            "a set pattern may contain only one rest element, you might have meant this to be an expression",
+                        ));
                     }
                 }
                 Ok((elements, spread))
@@ -132,7 +138,10 @@ impl SetPattern {
             None => Self::parse_rest(parser, start, elements, next),
             Some(rest) if spread.is_none() => Self::parse_rest(parser, start, elements, rest),
             Some(rest) => {
-                return Err(SyntaxError::new(rest.span().union(spread.unwrap().span()), "a set pattern may contain only one rest element, you might have meant this to be an expression"));
+                Err(SyntaxError::new(
+                    rest.span().union(spread.unwrap().span()),
+                    "a set pattern may contain only one rest element, you might have meant this to be an expression",
+                ))
             }
         }
     }
