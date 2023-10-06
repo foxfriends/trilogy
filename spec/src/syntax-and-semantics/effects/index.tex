@@ -60,21 +60,6 @@ handlers.
         \bnfpn{Handler}
         \bnfor
     } \\
-    \bnfmore{
-        \bnfts{\kw{given}}
-        \bnfsp
-        \bnfpn{RuleHead}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{given}}
-        \bnfsp
-        \bnfpn{RuleHead}
-        \bnfsp
-        \bnfts{\op{<-}}
-        \bnfsp
-        \bnfpn{RuleBody}
-    } \\
     \bnfprod{Handler}{
         \bnfts{\kw{resume}}
         \bnfsp
@@ -108,14 +93,11 @@ handlers.
     }
 \end{bnf*}
 
-Effect handlers come in two varieties: the \kw{when} form for functional
-or imperative effect handlers; and the \kw{given} form for dynamic rules,
-which take the place of both closures and predicate-level effects in \Law{}
-(\Poetry{}'s \kw{yield} expression may be used in expressions in \Law{}
-in the conventional effect system way). At the end of a chain of handlers,
-the \kw{else} clause is included to describe what to do in the case of no
-handler matching; the default choice should be \kw{else yield}, but in some
-situations there may be reason to do otherwise.
+Effect handlers are defined with \kw{when} and are either written in functional
+or imperative style. At the end of a chain of handlers, the \kw{else} clause is
+included to describe what to do in the case of no handler matching; the default
+choice should be \kw{else yield}, but in some situations there may be reason to
+do otherwise.
 
 It is worth noting that dynamic rules are not necessarily here to stay, as
 they may be a hack given my relative lack of experience with both practical
@@ -126,26 +108,6 @@ meant to be part of the effect system at all and I have just smashed its syntax
 into the effect handler syntax because it was convenient. This constrained
 version of \texttt{assertz/1} is likely a good idea though, so it will make
 it into the first version of \Trilogy{}.
-
-To get it out of the way, the semantics of the \kw{given} clause
-will be discussed first, as they are basically exactly like rule definitions,
-only limited to the scope of one expression or block rather than the entire
-program.
-
-\begin{prooftree}
-    \AxiomC{$\Gamma, R(P_{1\hdots n}) \Rightarrow \Phi\vdash E : \tau$}
-    \LeftLabel{Given}
-    \UnaryInfC{$E\ \kw{given}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{)} : \tau$}
-\end{prooftree}
-
-\begin{prooftree}
-    \def\extraVskip{3.5pt}
-    \AxiomC{$A_i = P_i$}
-    \AxiomC{$\Gamma,\setof{a \given a \defby P_i}\vdash B \Rightarrow \top$}
-    \BinaryInfC{$\Gamma,R(P_{1\hdots n}) \Rightarrow \Phi \vdash E : \tau$}
-    \LeftLabel{Given}
-    \UnaryInfC{$E\ \kw{given}\ R\ \texttt{(}\ P_{1\hdots n}\ \texttt{)}\ \op{<-}\ B : \tau$}
-\end{prooftree}
 
 Effects are similar in that they install a contextual handler around a piece
 of code. When an effect is yielded, the ``nearest'' handler with a matching pattern

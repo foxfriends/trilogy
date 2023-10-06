@@ -4,7 +4,6 @@ use trilogy_scanner::TokenType::*;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Handler {
-    Given(Box<GivenHandler>),
     When(Box<WhenHandler>),
     Else(Box<ElseHandler>),
 }
@@ -12,7 +11,6 @@ pub enum Handler {
 impl Handler {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         match parser.peek().token_type {
-            KwGiven => Ok(Self::Given(Box::new(GivenHandler::parse(parser)?))),
             KwWhen => Ok(Self::When(Box::new(WhenHandler::parse(parser)?))),
             KwElse => Ok(Self::Else(Box::new(ElseHandler::parse(parser)?))),
             _ => unreachable!("Caller should have checked the first token"),
@@ -24,7 +22,6 @@ impl Handler {
 mod test {
     use super::*;
 
-    test_parse!(handler_given: "given hello(1)" => Handler::parse => "(Handler::Given (GivenHandler (RuleHead _ [_]) ()))");
     test_parse!(handler_when: "when 'NAN resume 5" => Handler::parse => "(Handler::When (WhenHandler _ _ _ _))");
     test_parse!(handler_else: "else n resume 5" => Handler::parse => "(Handler::Else (ElseHandler _ _ _))");
 }

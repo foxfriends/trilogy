@@ -14,7 +14,6 @@ pub struct Handler {
 impl Handler {
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Handler) -> Self {
         match ast {
-            syntax::Handler::Given(..) => todo!(), // This doesn't really belong here..?
             syntax::Handler::When(handler) => {
                 let span = handler.span();
                 let effect = Identifier::temporary(analyzer, handler.pattern.span());

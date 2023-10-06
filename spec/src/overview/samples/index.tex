@@ -227,23 +227,6 @@ later, what appears to be nondeterminism can be implemented very
 easily, and without the function even needing to know that it is
 maybe running nondeterministically.
 
-While all that is fun and cool, this particular problem would be
-more easily and obviously implemented using dynamic rules
-and the natural nondeterminism introduced by \Law{}.
-
-\inputcode{dynamic_rules.tri}
-
-The \kw{given} keyword annotates an expression in which one or more
-rules (\kw{rl}) are made available, similarly to how the \kw{when}
-keyword annotates the expression with an effect handler.
-
-Meanwhile, the \kw{is} keyword seen here introduces a Boolean context,
-converting the result of calling a rule of \Law{} into a Boolean,
-rather than letting it act as a branch in control flow as it would
-have by default. An \kw{if} statement acts similarly, but with the
-capability of conditionally introducing bindings for its branches,
-similar to the \texttt{if let} statement of some other languages.
-
 \inputcode{fizzle.tri}
 
 Omitting the \kw{is} keyword, rules of \Law{} may still be called

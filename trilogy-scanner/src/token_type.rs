@@ -38,8 +38,6 @@ pub enum TokenType {
     KwFrom,
     /// `func`
     KwFunc,
-    /// `given`
-    KwGiven,
     /// `if`
     KwIf,
     /// `invert`

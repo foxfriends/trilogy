@@ -66,7 +66,6 @@ impl Token {
             "for" => TokenType::KwFor,
             "from" => TokenType::KwFrom,
             "func" => TokenType::KwFunc,
-            "given" => TokenType::KwGiven,
             "if" => TokenType::KwIf,
             "implements" => TokenType::KwImplements,
             "import" => TokenType::KwImport,

@@ -30,10 +30,10 @@ impl HandledBlock {
 
         let mut handlers = vec![];
         loop {
-            if let Err(token) = parser.check([KwGiven, KwWhen, KwElse]) {
+            if let Err(token) = parser.check([KwWhen, KwElse]) {
                 let error = SyntaxError::new(
                     token.span,
-                    "expected `when`, `given`, or `else` to start an effect handler",
+                    "expected `when`, or `else` to start an effect handler",
                 );
                 parser.error(error.clone());
                 return Err(error);

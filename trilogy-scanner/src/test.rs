@@ -179,7 +179,6 @@ test_tokenize!(kw_fn => "fn" = [KwFn]);
 test_tokenize!(kw_for => "for" = [KwFor]);
 test_tokenize!(kw_from => "from" = [KwFrom]);
 test_tokenize!(kw_func => "func" = [KwFunc]);
-test_tokenize!(kw_given => "given" = [KwGiven]);
 test_tokenize!(kw_if => "if" = [KwIf]);
 test_tokenize!(kw_invert => "invert" = [KwInvert]);
 test_tokenize!(kw_in => "in" = [KwIn]);
