@@ -29,14 +29,14 @@ impl RecordLiteral {
         parser: &mut Parser,
         start: Token,
         first: RecordElement,
-    ) -> SyntaxResult<Self> {
+    ) -> SyntaxResult<Result<Self, RecordPattern>> {
         let mut elements = vec![first];
         if let Ok(end) = parser.expect(CBracePipe) {
-            return Ok(Self {
+            return Ok(Ok(Self {
                 start,
                 elements,
                 end,
-            });
+            }));
         };
         let end = loop {
             parser.expect(OpComma).map_err(|token| {
@@ -51,7 +51,11 @@ impl RecordLiteral {
             let element = RecordElement::parse(parser)?;
             match element {
                 Ok(element) => elements.push(element),
-                Err(_next) => todo!("pass to record pattern"),
+                Err(next) => {
+                    return Ok(Err(RecordPattern::parse_from_expression(
+                        parser, start, elements, next,
+                    )?));
+                }
             }
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
@@ -65,11 +69,11 @@ impl RecordLiteral {
                 break end;
             };
         };
-        Ok(Self {
+        Ok(Ok(Self {
             start,
             elements,
             end,
-        })
+        }))
     }
 
     pub fn start_token(&self) -> &Token {

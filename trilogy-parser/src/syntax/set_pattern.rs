@@ -102,7 +102,7 @@ impl SetPattern {
         let (mut elements, rest) = elements
             .into_iter()
             .try_fold(
-                (vec![], None),
+                (vec![], None::<Pattern>),
                 |(mut elements, mut spread), element| {
                 match element {
                     SetElement::Element(element) if spread.is_none() => {
@@ -136,7 +136,12 @@ impl SetPattern {
                 Self::parse_elements(parser, start, elements)
             }
             None => Self::parse_rest(parser, start, elements, next),
-            Some(rest) if spread.is_none() => Self::parse_rest(parser, start, elements, rest),
+            Some(..) if spread.is_none() => {
+                Err(SyntaxError::new(
+                    next.span().union(spread.unwrap().span()),
+                    "no elements may follow the rest element of a set pattern, you might have meant this to be an expression",
+                ))
+            }
             Some(rest) => {
                 Err(SyntaxError::new(
                     rest.span().union(spread.unwrap().span()),

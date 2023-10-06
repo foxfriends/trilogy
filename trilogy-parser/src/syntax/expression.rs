@@ -269,11 +269,8 @@ impl Expression {
                         Ok(expr) => Ok(Ok(Self::Array(Box::new(expr)))),
                         Err(patt) => Ok(Err(Pattern::Array(Box::new(patt)))),
                     },
-                    Err((Some(..), element)) => Ok(Err(Pattern::Array(Box::new(
-                        ArrayPattern::parse_rest(parser, start, vec![], element, vec![])?,
-                    )))),
-                    Err((None, element)) => Ok(Err(Pattern::Array(Box::new(
-                        ArrayPattern::parse_elements(parser, start, vec![element])?,
+                    Err(next) => Ok(Err(Pattern::Array(Box::new(
+                        ArrayPattern::parse_from_expression(parser, start, vec![], next)?,
                     )))),
                 }
             }
@@ -295,11 +292,8 @@ impl Expression {
                             Err(patt) => Ok(Err(Pattern::Set(Box::new(patt)))),
                         }
                     }
-                    Err((None, pattern)) => Ok(Err(Pattern::Set(Box::new(
-                        SetPattern::parse_elements(parser, start, vec![pattern])?,
-                    )))),
-                    Err((Some(..), pattern)) => Ok(Err(Pattern::Set(Box::new(
-                        SetPattern::parse_rest(parser, start, vec![], pattern)?,
+                    Err(next) => Ok(Err(Pattern::Set(Box::new(
+                        SetPattern::parse_from_expression(parser, start, vec![], next)?,
                     )))),
                 }
             }
@@ -316,10 +310,16 @@ impl Expression {
                             RecordComprehension::parse_rest(parser, start, key, value)?,
                         ))))
                     }
-                    Ok(element) => Ok(Ok(Self::Record(Box::new(RecordLiteral::parse_rest(
-                        parser, start, element,
-                    )?)))),
-                    _ => todo!("pass to record pattern parser"),
+                    Ok(element) => {
+                        let result = RecordLiteral::parse_rest(parser, start, element)?;
+                        match result {
+                            Ok(literal) => Ok(Ok(Self::Record(Box::new(literal)))),
+                            Err(pattern) => Ok(Err(Pattern::Record(Box::new(pattern)))),
+                        }
+                    }
+                    Err(next) => Ok(Err(Pattern::Record(Box::new(
+                        RecordPattern::parse_from_expression(parser, start, vec![], next)?,
+                    )))),
                 }
             }
             DollarOParen => Ok(Ok(Self::IteratorComprehension(Box::new(
