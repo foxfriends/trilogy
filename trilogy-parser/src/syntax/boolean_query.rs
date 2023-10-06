@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -13,7 +13,14 @@ impl BooleanQuery {
         let start = parser
             .expect(KwIs)
             .map_err(|token| parser.expected(token, "expected `is`"))?;
-        let expression = Expression::parse_parameter_list(parser)?; // this isn't a parameter list, but we don't allow commas
+        let expression = Expression::parse_parameter_list(parser)?.map_err(|patt| {
+            let error = SyntaxError::new(
+                patt.span(),
+                "expected an expression after `is`, but found a pattern",
+            );
+            parser.error(error.clone());
+            error
+        })?; // this isn't a parameter list, but we don't allow commas
         Ok(Self { start, expression })
     }
 }

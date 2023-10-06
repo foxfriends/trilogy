@@ -23,14 +23,14 @@ impl ArrayLiteral {
         parser: &mut Parser,
         start: Token,
         first: ArrayElement,
-    ) -> SyntaxResult<Self> {
+    ) -> SyntaxResult<Result<Self, ArrayPattern>> {
         let mut elements = vec![first];
         if let Ok(end) = parser.expect(CBrack) {
-            return Ok(Self {
+            return Ok(Ok(Self {
                 start,
                 elements,
                 end,
-            });
+            }));
         }
 
         let end = loop {
@@ -43,7 +43,14 @@ impl ArrayLiteral {
             if let Ok(end) = parser.expect(CBrack) {
                 break end;
             };
-            elements.push(ArrayElement::parse(parser)?);
+            match ArrayElement::parse(parser)? {
+                Ok(element) => elements.push(element),
+                Err(next) => {
+                    return Ok(Err(ArrayPattern::parse_from_expression(
+                        parser, start, elements, next,
+                    )?))
+                }
+            }
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -56,11 +63,11 @@ impl ArrayLiteral {
                 break end;
             };
         };
-        Ok(Self {
+        Ok(Ok(Self {
             start,
             elements,
             end,
-        })
+        }))
     }
 
     pub fn start_token(&self) -> &Token {
@@ -85,12 +92,17 @@ pub enum ArrayElement {
 }
 
 impl ArrayElement {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse(
+        parser: &mut Parser,
+    ) -> SyntaxResult<Result<Self, (Option<Token>, Pattern)>> {
         let spread = parser.expect(OpDotDot).ok();
         let expression = Expression::parse_parameter_list(parser)?;
-        match spread {
-            None => Ok(Self::Element(expression)),
-            Some(spread) => Ok(Self::Spread(spread, expression)),
+        match expression {
+            Ok(expression) => match spread {
+                None => Ok(Ok(Self::Element(expression))),
+                Some(spread) => Ok(Ok(Self::Spread(spread, expression))),
+            },
+            Err(pattern) => Ok(Err((spread, pattern))),
         }
     }
 }

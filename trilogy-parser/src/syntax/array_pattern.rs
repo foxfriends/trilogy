@@ -5,20 +5,19 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayPattern {
-    start: Token,
+    pub start: Token,
     pub head: Vec<Pattern>,
     pub rest: Option<Pattern>,
     pub tail: Vec<Pattern>,
-    end: Token,
+    pub end: Token,
 }
 
 impl ArrayPattern {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
-            .expect(OBrack)
-            .expect("Caller should have found this");
-
-        let mut head = vec![];
+    pub(crate) fn parse_elements(
+        parser: &mut Parser,
+        start: Token,
+        mut head: Vec<Pattern>,
+    ) -> SyntaxResult<Self> {
         let rest = loop {
             if parser.check(CBrack).is_ok() {
                 break None;
@@ -38,12 +37,35 @@ impl ArrayPattern {
             })?;
         };
 
-        let mut tail = vec![];
+        if let Some(rest) = rest {
+            return Self::parse_rest(parser, start, head, rest, vec![]);
+        }
+
+        let end = parser
+            .expect(CBrack)
+            .map_err(|token| parser.expected(token, "expected `]` to end array pattern"))?;
+
+        Ok(Self {
+            start,
+            head,
+            rest: None,
+            tail: vec![],
+            end,
+        })
+    }
+
+    pub(crate) fn parse_rest(
+        parser: &mut Parser,
+        start: Token,
+        head: Vec<Pattern>,
+        rest: Pattern,
+        mut tail: Vec<Pattern>,
+    ) -> SyntaxResult<Self> {
         // at this point, either we:
         // *   saw the `]`, so there will be no rest; or
         // *   parsed a rest pattern, so there must be a comma next before allowing
         //     more elements, or there is no comma so we must be at end of array.
-        if rest.is_some() && parser.expect(OpComma).is_ok() {
+        if parser.expect(OpComma).is_ok() {
             loop {
                 if parser.check(CBrack).is_ok() {
                     break;
@@ -76,10 +98,60 @@ impl ArrayPattern {
         Ok(Self {
             start,
             head,
-            rest,
+            rest: Some(rest),
             tail,
             end,
         })
+    }
+
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        let start = parser
+            .expect(OBrack)
+            .expect("Caller should have found this");
+        Self::parse_elements(parser, start, vec![])
+    }
+
+    pub(crate) fn parse_from_expression(
+        parser: &mut Parser,
+        start: Token,
+        elements: Vec<ArrayElement>,
+        (spread, next): (Option<Token>, Pattern),
+    ) -> SyntaxResult<Self> {
+        let (head, rest, tail) = elements.into_iter().try_fold(
+            (vec![], None, vec![]),
+            |(mut head, mut spread, mut tail), element| {
+                match element {
+                    ArrayElement::Element(expr) if spread.is_none() => {
+                        head.push(expr.try_into()?);
+                    }
+                    ArrayElement::Element(expr) => tail.push(expr.try_into()?),
+                    ArrayElement::Spread(_, expr) if spread.is_none() => {
+                        spread = Some(expr.try_into()?)
+                    }
+                    ArrayElement::Spread(token, element) => return Err(SyntaxError::new(
+                        token.span.union(element.span()),
+                        "an array pattern may contain only one rest element, or you might have meant this to be an array expression",
+                    )),
+                }
+                Ok((head, spread, tail))
+            },
+        ).map_err(|error| {
+            parser.error(error.clone());
+            error
+        })?;
+        match (spread, rest) {
+            (None, None) => Self::parse_elements(parser, start, head),
+            (None, Some(rest)) => Self::parse_rest(parser, start, head, rest, tail),
+            (Some(..), None) => Self::parse_rest(parser, start, head, next, tail),
+            (Some(token), Some(..)) => {
+                let error = SyntaxError::new(
+                    token.span.union(next.span()),
+                    "an array pattern may only contain a single spread element, or you might have meant this to be an array expression",
+                );
+                parser.error(error.clone());
+                Err(error)
+            }
+        }
     }
 
     pub fn start_token(&self) -> &Token {

@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::TokenType::*;
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -11,7 +11,14 @@ pub struct DirectUnification {
 impl DirectUnification {
     pub(crate) fn parse(parser: &mut Parser, pattern: Pattern) -> SyntaxResult<Self> {
         parser.expect(OpEq).expect("Caller should have found this");
-        let expression = Expression::parse_parameter_list(parser)?;
+        let expression = Expression::parse_parameter_list(parser)?.map_err(|patt| {
+            let error = SyntaxError::new(
+                patt.span(),
+                "expected an expression on the right side of `=`, but found a pattern",
+            );
+            parser.error(error.clone());
+            error
+        })?;
         Ok(Self {
             pattern,
             expression,

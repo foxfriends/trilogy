@@ -260,14 +260,21 @@ impl Expression {
                     )))));
                 }
                 match ArrayElement::parse(parser)? {
-                    ArrayElement::Element(expression) if parser.expect(KwFor).is_ok() => {
+                    Ok(ArrayElement::Element(expression)) if parser.expect(KwFor).is_ok() => {
                         Ok(Ok(Self::ArrayComprehension(Box::new(
                             ArrayComprehension::parse_rest(parser, start, expression)?,
                         ))))
                     }
-                    element => Ok(Ok(Self::Array(Box::new(ArrayLiteral::parse_rest(
-                        parser, start, element,
-                    )?)))),
+                    Ok(element) => match ArrayLiteral::parse_rest(parser, start, element)? {
+                        Ok(expr) => Ok(Ok(Self::Array(Box::new(expr)))),
+                        Err(patt) => Ok(Err(Pattern::Array(Box::new(patt)))),
+                    },
+                    Err((Some(..), element)) => Ok(Err(Pattern::Array(Box::new(
+                        ArrayPattern::parse_rest(parser, start, vec![], element, vec![])?,
+                    )))),
+                    Err((None, element)) => Ok(Err(Pattern::Array(Box::new(
+                        ArrayPattern::parse_elements(parser, start, vec![element])?,
+                    )))),
                 }
             }
             OBrackPipe => {
@@ -276,14 +283,24 @@ impl Expression {
                     return Ok(Ok(Self::Set(Box::new(SetLiteral::new_empty(start, end)))));
                 }
                 match SetElement::parse(parser)? {
-                    SetElement::Element(expression) if parser.expect(KwFor).is_ok() => {
+                    Ok(SetElement::Element(expression)) if parser.expect(KwFor).is_ok() => {
                         Ok(Ok(Self::SetComprehension(Box::new(
                             SetComprehension::parse_rest(parser, start, expression)?,
                         ))))
                     }
-                    element => Ok(Ok(Self::Set(Box::new(SetLiteral::parse_rest(
-                        parser, start, element,
-                    )?)))),
+                    Ok(element) => {
+                        let result = SetLiteral::parse_rest(parser, start, element)?;
+                        match result {
+                            Ok(expr) => Ok(Ok(Self::Set(Box::new(expr)))),
+                            Err(patt) => Ok(Err(Pattern::Set(Box::new(patt)))),
+                        }
+                    }
+                    Err((None, pattern)) => Ok(Err(Pattern::Set(Box::new(
+                        SetPattern::parse_elements(parser, start, vec![pattern])?,
+                    )))),
+                    Err((Some(..), pattern)) => Ok(Err(Pattern::Set(Box::new(
+                        SetPattern::parse_rest(parser, start, vec![], pattern)?,
+                    )))),
                 }
             }
             OBracePipe => {
@@ -294,14 +311,15 @@ impl Expression {
                     )))));
                 }
                 match RecordElement::parse(parser)? {
-                    RecordElement::Element(key, value) if parser.expect(KwFor).is_ok() => {
+                    Ok(RecordElement::Element(key, value)) if parser.expect(KwFor).is_ok() => {
                         Ok(Ok(Self::RecordComprehension(Box::new(
                             RecordComprehension::parse_rest(parser, start, key, value)?,
                         ))))
                     }
-                    element => Ok(Ok(Self::Record(Box::new(RecordLiteral::parse_rest(
+                    Ok(element) => Ok(Ok(Self::Record(Box::new(RecordLiteral::parse_rest(
                         parser, start, element,
                     )?)))),
+                    _ => todo!("pass to record pattern parser"),
                 }
             }
             DollarOParen => Ok(Ok(Self::IteratorComprehension(Box::new(
@@ -403,15 +421,8 @@ impl Expression {
         })
     }
 
-    pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, Precedence::None, Context::ParameterList)?.map_err(
-            |patt| {
-                SyntaxError::new(
-                    patt.span(),
-                    "expected an expression in parameter list, but found a pattern",
-                )
-            },
-        )
+    pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
+        Self::parse_precedence_inner(parser, Precedence::None, Context::ParameterList)
     }
 
     pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {

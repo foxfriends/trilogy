@@ -48,7 +48,11 @@ impl RecordLiteral {
             if let Ok(end) = parser.expect(CBracePipe) {
                 break end;
             };
-            elements.push(RecordElement::parse(parser)?);
+            let element = RecordElement::parse(parser)?;
+            match element {
+                Ok(element) => elements.push(element),
+                Err(_next) => todo!("pass to record pattern"),
+            }
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -84,17 +88,27 @@ pub enum RecordElement {
 }
 
 impl RecordElement {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse(
+        parser: &mut Parser,
+    ) -> SyntaxResult<Result<Self, (Option<Pattern>, Pattern)>> {
         if let Ok(spread) = parser.expect(OpDotDot) {
             let expression = Expression::parse_parameter_list(parser)?;
-            Ok(Self::Spread(spread, expression))
+            match expression {
+                Ok(expression) => Ok(Ok(Self::Spread(spread, expression))),
+                Err(pattern) => Ok(Err((None, pattern))),
+            }
         } else {
             let key = Expression::parse_parameter_list(parser)?;
             parser.expect(OpFatArrow).map_err(|token| {
                 parser.expected(token, "expected `=>` in key value pair of record literal")
             })?;
             let value = Expression::parse_parameter_list(parser)?;
-            Ok(Self::Element(key, value))
+            match (key, value) {
+                (Ok(key), Ok(value)) => Ok(Ok(Self::Element(key, value))),
+                (Ok(key), Err(value)) => Ok(Err((Some(key.try_into()?), value))),
+                (Err(key), Ok(value)) => Ok(Err((Some(key), value.try_into()?))),
+                (Err(key), Err(value)) => Ok(Err((Some(key), value))),
+            }
         }
     }
 }

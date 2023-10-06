@@ -30,7 +30,14 @@ impl CallExpression {
             if let Ok(end) = parser.expect(CParen) {
                 break end;
             }
-            arguments.push(Expression::parse_parameter_list(parser)?);
+            arguments.push(Expression::parse_parameter_list(parser)?.map_err(|patt| {
+                let error = SyntaxError::new(
+                    patt.span(),
+                    "expected an expression in procedure call arguments, but found a pattern",
+                );
+                parser.error(error.clone());
+                error
+            })?);
             if parser.expect(OpComma).is_ok() {
                 continue;
             }
