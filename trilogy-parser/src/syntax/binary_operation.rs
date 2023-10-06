@@ -1,5 +1,5 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -10,14 +10,31 @@ pub struct BinaryOperation {
 }
 
 impl BinaryOperation {
-    pub(crate) fn parse(parser: &mut Parser, lhs: impl Into<Expression>) -> SyntaxResult<Self> {
+    pub(crate) fn parse(
+        parser: &mut Parser,
+        lhs: Expression,
+    ) -> SyntaxResult<Result<Self, Pattern>> {
         let operator = BinaryOperator::parse(parser);
-        let rhs = Expression::parse_precedence(parser, operator.precedence())?;
-        Ok(BinaryOperation {
-            lhs: lhs.into(),
-            operator,
-            rhs,
-        })
+        let rhs = Expression::parse_or_pattern_precedence(parser, operator.precedence())?;
+        match rhs {
+            Ok(rhs) => Ok(Ok(BinaryOperation { lhs, operator, rhs })),
+            Err(rhs) => match operator {
+                BinaryOperator::Glue(token) => Ok(Err(Pattern::Glue(Box::new(GluePattern {
+                    lhs: lhs.try_into()?,
+                    glue_token: token,
+                    rhs,
+                })))),
+                BinaryOperator::Cons(token) => Ok(Err(Pattern::Tuple(Box::new(TuplePattern {
+                    lhs: lhs.try_into()?,
+                    cons_token: token,
+                    rhs,
+                })))),
+                _ => Err(SyntaxError::new(
+                    rhs.span(),
+                    "expected an expression, but found a pattern",
+                )),
+            },
+        }
     }
 }
 

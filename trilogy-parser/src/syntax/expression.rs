@@ -79,6 +79,12 @@ enum Context {
     Default,
 }
 
+enum ExpressionResult {
+    Continue(Expression),
+    Done(Expression),
+    Pattern(Pattern),
+}
+
 impl Expression {
     pub(crate) const PREFIX: [TokenType; 33] = [
         Numeric,
@@ -116,11 +122,12 @@ impl Expression {
         OParen,
     ];
 
-    fn binary(parser: &mut Parser, lhs: Expression) -> SyntaxResult<Result<Self, Self>> {
-        BinaryOperation::parse(parser, lhs)
-            .map(Box::new)
-            .map(Self::Binary)
-            .map(Ok)
+    fn binary(parser: &mut Parser, lhs: Expression) -> SyntaxResult<ExpressionResult> {
+        let binary = BinaryOperation::parse(parser, lhs)?;
+        match binary {
+            Ok(binary) => Ok(ExpressionResult::Continue(Self::Binary(Box::new(binary)))),
+            Err(pattern) => Ok(ExpressionResult::Pattern(pattern)),
+        }
     }
 
     fn parse_follow(
@@ -128,7 +135,7 @@ impl Expression {
         precedence: Precedence,
         lhs: Expression,
         context: Context,
-    ) -> SyntaxResult<Result<Self, Self>> {
+    ) -> SyntaxResult<ExpressionResult> {
         // A bit of strangeness here because `peek()` takes a mutable reference,
         // so we can't use the fields afterwards... but we need their value after
         // and I'd really rather not clone every token of every expression, so
@@ -137,6 +144,9 @@ impl Expression {
         let is_spaced = parser.is_spaced;
         let is_line_start = parser.is_line_start;
         let token = parser.force_peek();
+
+        use ExpressionResult::{Continue, Done};
+
         match token.token_type {
             OpDot if precedence < Precedence::Access => Self::binary(parser, lhs),
             OpAmpAmp if precedence < Precedence::And => Self::binary(parser, lhs),
@@ -148,7 +158,7 @@ impl Expression {
             OpStarStar if precedence <= Precedence::Exponent => Self::binary(parser, lhs),
             OpLt | OpGt | OpLtEq | OpGtEq if precedence == Precedence::Comparison => {
                 let expr = Self::binary(parser, lhs);
-                if let Ok(Ok(expr)) = &expr {
+                if let Ok(Continue(expr)) = &expr {
                     parser.error(SyntaxError::new(
                         expr.span(),
                         "comparison operators cannot be chained, use parentheses to disambiguate",
@@ -161,7 +171,7 @@ impl Expression {
             }
             OpEqEq | OpEqEqEq if precedence == Precedence::Equality => {
                 let expr = Self::binary(parser, lhs);
-                if let Ok(Ok(expr)) = &expr {
+                if let Ok(Continue(expr)) = &expr {
                     parser.error(SyntaxError::new(
                         expr.span(),
                         "equality operators cannot be chained, use parentheses to disambiguate",
@@ -176,21 +186,29 @@ impl Expression {
             OpPipe if precedence < Precedence::BitwiseOr => Self::binary(parser, lhs),
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
             OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
-            OpColonColon if precedence < Precedence::Path => Ok(Ok(Self::ModuleAccess(Box::new(
-                ModuleAccess::parse(parser, lhs)?,
-            )))),
+            OpColonColon if precedence < Precedence::Path => Ok(Continue(Self::ModuleAccess(
+                Box::new(ModuleAccess::parse(parser, lhs)?),
+            ))),
             OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
             OpGtGt if precedence < Precedence::Compose => Self::binary(parser, lhs),
             OpLtLt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
             OpLtPipe if precedence < Precedence::RPipe => Self::binary(parser, lhs),
             OpGlue if precedence < Precedence::Glue => Self::binary(parser, lhs),
-            OpBang if precedence < Precedence::Call && !is_spaced => Ok(Ok(Self::Call(Box::new(
-                CallExpression::parse(parser, lhs)?,
-            )))),
+            OpBang if precedence < Precedence::Call && !is_spaced => Ok(Continue(Self::Call(
+                Box::new(CallExpression::parse(parser, lhs)?),
+            ))),
             OpComma if precedence <= Precedence::Sequence && context == Context::Default => {
                 Self::binary(parser, lhs)
             }
+
+            // NOTE: despite and/or being allowed in patterns, we can't accept them here because
+            // they are also allowed in queries, in which case an expression was never an option,
+            // unless that expression was the start of a lookup, in which case the and/or is not
+            // permitted, so... if we're parsing as maybe expression or pattern, we aren't
+            // expecting and/or...
+            KwAnd | KwOr => Ok(Done(lhs)),
+
             // A function application never spans across two lines. Furthermore,
             // the application requires a space, even when the parse would be
             // otherwise unambiguous.
@@ -202,108 +220,129 @@ impl Expression {
                 && !is_line_start
                 && is_spaced =>
             {
-                Ok(Ok(Self::Application(Box::new(Application::parse(
+                Ok(Continue(Self::Application(Box::new(Application::parse(
                     parser, lhs,
                 )?))))
             }
             // If nothing matched, it must be the end of the expression
-            _ => Ok(Err(lhs)),
+            _ => Ok(Done(lhs)),
         }
     }
 
-    fn parse_prefix(parser: &mut Parser) -> SyntaxResult<Self> {
+    fn parse_prefix(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
         let token = parser.peek();
         match token.token_type {
-            Numeric => Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?))),
-            String => Ok(Self::String(Box::new(StringLiteral::parse(parser)?))),
-            Bits => Ok(Self::Bits(Box::new(BitsLiteral::parse(parser)?))),
-            KwTrue | KwFalse => Ok(Self::Boolean(Box::new(BooleanLiteral::parse(parser)?))),
+            Numeric => Ok(Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?)))),
+            String => Ok(Ok(Self::String(Box::new(StringLiteral::parse(parser)?)))),
+            Bits => Ok(Ok(Self::Bits(Box::new(BitsLiteral::parse(parser)?)))),
+            KwTrue | KwFalse => Ok(Ok(Self::Boolean(Box::new(BooleanLiteral::parse(parser)?)))),
             Atom => {
                 let atom = AtomLiteral::parse(parser)?;
                 if parser.check(OParen).is_ok() {
-                    Ok(Self::Struct(Box::new(StructLiteral::parse(parser, atom)?)))
+                    let result = StructLiteral::parse(parser, atom)?;
+                    match result {
+                        Ok(expr) => Ok(Ok(Self::Struct(Box::new(expr)))),
+                        Err(patt) => Ok(Err(Pattern::Struct(Box::new(patt)))),
+                    }
                 } else {
-                    Ok(Self::Atom(Box::new(atom)))
+                    Ok(Ok(Self::Atom(Box::new(atom))))
                 }
             }
-            Character => Ok(Self::Character(Box::new(CharacterLiteral::parse(parser)?))),
-            KwUnit => Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?))),
+            Character => Ok(Ok(Self::Character(Box::new(CharacterLiteral::parse(
+                parser,
+            )?)))),
+            KwUnit => Ok(Ok(Self::Unit(Box::new(UnitLiteral::parse(parser)?)))),
             OBrack => {
                 let start = parser.expect(OBrack).unwrap();
                 if let Ok(end) = parser.expect(CBrack) {
-                    return Ok(Self::Array(Box::new(ArrayLiteral::new_empty(start, end))));
+                    return Ok(Ok(Self::Array(Box::new(ArrayLiteral::new_empty(
+                        start, end,
+                    )))));
                 }
                 match ArrayElement::parse(parser)? {
                     ArrayElement::Element(expression) if parser.expect(KwFor).is_ok() => {
-                        Ok(Self::ArrayComprehension(Box::new(
+                        Ok(Ok(Self::ArrayComprehension(Box::new(
                             ArrayComprehension::parse_rest(parser, start, expression)?,
-                        )))
+                        ))))
                     }
-                    element => Ok(Self::Array(Box::new(ArrayLiteral::parse_rest(
+                    element => Ok(Ok(Self::Array(Box::new(ArrayLiteral::parse_rest(
                         parser, start, element,
-                    )?))),
+                    )?)))),
                 }
             }
             OBrackPipe => {
                 let start = parser.expect(OBrackPipe).unwrap();
                 if let Ok(end) = parser.expect(CBrackPipe) {
-                    return Ok(Self::Set(Box::new(SetLiteral::new_empty(start, end))));
+                    return Ok(Ok(Self::Set(Box::new(SetLiteral::new_empty(start, end)))));
                 }
                 match SetElement::parse(parser)? {
                     SetElement::Element(expression) if parser.expect(KwFor).is_ok() => {
-                        Ok(Self::SetComprehension(Box::new(
+                        Ok(Ok(Self::SetComprehension(Box::new(
                             SetComprehension::parse_rest(parser, start, expression)?,
-                        )))
+                        ))))
                     }
-                    element => Ok(Self::Set(Box::new(SetLiteral::parse_rest(
+                    element => Ok(Ok(Self::Set(Box::new(SetLiteral::parse_rest(
                         parser, start, element,
-                    )?))),
+                    )?)))),
                 }
             }
             OBracePipe => {
                 let start = parser.expect(OBracePipe).unwrap();
                 if let Ok(end) = parser.expect(CBracePipe) {
-                    return Ok(Self::Record(Box::new(RecordLiteral::new_empty(start, end))));
+                    return Ok(Ok(Self::Record(Box::new(RecordLiteral::new_empty(
+                        start, end,
+                    )))));
                 }
                 match RecordElement::parse(parser)? {
                     RecordElement::Element(key, value) if parser.expect(KwFor).is_ok() => {
-                        Ok(Self::RecordComprehension(Box::new(
+                        Ok(Ok(Self::RecordComprehension(Box::new(
                             RecordComprehension::parse_rest(parser, start, key, value)?,
-                        )))
+                        ))))
                     }
-                    element => Ok(Self::Record(Box::new(RecordLiteral::parse_rest(
+                    element => Ok(Ok(Self::Record(Box::new(RecordLiteral::parse_rest(
                         parser, start, element,
-                    )?))),
+                    )?)))),
                 }
             }
-            DollarOParen => Ok(Self::IteratorComprehension(Box::new(
+            DollarOParen => Ok(Ok(Self::IteratorComprehension(Box::new(
                 IteratorComprehension::parse(parser)?,
-            ))),
-            OpBang | OpMinus | OpTilde | KwYield => {
-                Ok(Self::Unary(Box::new(UnaryOperation::parse(parser)?)))
-            }
-            KwIf => Ok(Self::IfElse(Box::new(IfElseExpression::parse(parser)?))),
-            KwMatch => Ok(Self::Match(Box::new(MatchExpression::parse(parser)?))),
-            KwEnd => Ok(Self::End(Box::new(EndExpression::parse(parser)?))),
-            KwExit => Ok(Self::Exit(Box::new(ExitExpression::parse(parser)?))),
-            KwReturn => Ok(Self::Return(Box::new(ReturnExpression::parse(parser)?))),
-            KwResume => Ok(Self::Resume(Box::new(ResumeExpression::parse(parser)?))),
-            KwBreak => Ok(Self::Break(Box::new(BreakExpression::parse(parser)?))),
-            KwContinue => Ok(Self::Continue(Box::new(ContinueExpression::parse(parser)?))),
-            KwCancel => Ok(Self::Cancel(Box::new(CancelExpression::parse(parser)?))),
-            KwLet => Ok(Self::Let(Box::new(LetExpression::parse(parser)?))),
-            Identifier => Ok(Self::Reference(Box::new(super::Identifier::parse(parser)?))),
-            KwWith => Ok(Self::Handled(Box::new(HandledExpression::parse(parser)?))),
-            KwFn => Ok(Self::Fn(Box::new(FnExpression::parse(parser)?))),
-            KwDo => Ok(Self::Do(Box::new(DoExpression::parse(parser)?))),
-            DollarString | TemplateStart => Ok(Self::Template(Box::new(Template::parse(parser)?))),
-            OParen => match KeywordReference::try_parse(parser) {
-                Some(keyword) => Ok(Self::Keyword(Box::new(keyword))),
-                None => Ok(Self::Parenthesized(Box::new(
-                    ParenthesizedExpression::parse(parser)?,
-                ))),
+            )))),
+            OpBang | OpMinus | OpTilde | KwYield => match UnaryOperation::parse(parser)? {
+                Ok(expr) => Ok(Ok(Self::Unary(Box::new(expr)))),
+                Err(patt) => Ok(Err(patt)),
             },
-            KwIs => Ok(Self::Is(Box::new(IsExpression::parse(parser)?))),
+            KwIf => Ok(Ok(Self::IfElse(Box::new(IfElseExpression::parse(parser)?)))),
+            KwMatch => Ok(Ok(Self::Match(Box::new(MatchExpression::parse(parser)?)))),
+            KwEnd => Ok(Ok(Self::End(Box::new(EndExpression::parse(parser)?)))),
+            KwExit => Ok(Ok(Self::Exit(Box::new(ExitExpression::parse(parser)?)))),
+            KwReturn => Ok(Ok(Self::Return(Box::new(ReturnExpression::parse(parser)?)))),
+            KwResume => Ok(Ok(Self::Resume(Box::new(ResumeExpression::parse(parser)?)))),
+            KwBreak => Ok(Ok(Self::Break(Box::new(BreakExpression::parse(parser)?)))),
+            KwContinue => Ok(Ok(Self::Continue(Box::new(ContinueExpression::parse(
+                parser,
+            )?)))),
+            KwCancel => Ok(Ok(Self::Cancel(Box::new(CancelExpression::parse(parser)?)))),
+            KwLet => Ok(Ok(Self::Let(Box::new(LetExpression::parse(parser)?)))),
+            Identifier => Ok(Ok(Self::Reference(Box::new(super::Identifier::parse(
+                parser,
+            )?)))),
+            KwWith => Ok(Ok(Self::Handled(Box::new(HandledExpression::parse(
+                parser,
+            )?)))),
+            KwFn => Ok(Ok(Self::Fn(Box::new(FnExpression::parse(parser)?)))),
+            KwDo => Ok(Ok(Self::Do(Box::new(DoExpression::parse(parser)?)))),
+            DollarString | TemplateStart => {
+                Ok(Ok(Self::Template(Box::new(Template::parse(parser)?))))
+            }
+            OParen => match KeywordReference::try_parse(parser) {
+                Some(keyword) => Ok(Ok(Self::Keyword(Box::new(keyword)))),
+                None => match ParenthesizedExpression::parse(parser)? {
+                    Ok(expression) => Ok(Ok(Self::Parenthesized(Box::new(expression)))),
+                    Err(pattern) => Ok(Err(Pattern::Parenthesized(Box::new(pattern)))),
+                },
+            },
+            KwIs => Ok(Ok(Self::Is(Box::new(IsExpression::parse(parser)?)))),
+            KwMut | Discard | OpCaret => Ok(Err(Pattern::parse(parser)?)),
             _ => {
                 let error = SyntaxError::new(
                     token.span,
@@ -320,11 +359,12 @@ impl Expression {
         precedence: Precedence,
         context: Context,
         mut expr: Expression,
-    ) -> SyntaxResult<Self> {
+    ) -> SyntaxResult<Result<Self, Pattern>> {
         loop {
             match Self::parse_follow(parser, precedence, expr, context)? {
-                Ok(updated) => expr = updated,
-                Err(expr) => return Ok(expr),
+                ExpressionResult::Continue(updated) => expr = updated,
+                ExpressionResult::Done(expr) => return Ok(Ok(expr)),
+                ExpressionResult::Pattern(patt) => return Ok(Err(patt)),
             }
         }
     }
@@ -333,28 +373,53 @@ impl Expression {
         parser: &mut Parser,
         precedence: Precedence,
         context: Context,
-    ) -> SyntaxResult<Self> {
-        let expr = Self::parse_prefix(parser)?;
-        Self::parse_suffix(parser, precedence, context, expr)
+    ) -> SyntaxResult<Result<Self, Pattern>> {
+        match Self::parse_prefix(parser)? {
+            Ok(expr) => Self::parse_suffix(parser, precedence, context, expr),
+            Err(patt) => Ok(Err(Pattern::parse_suffix(
+                parser,
+                pattern::Precedence::None,
+                patt,
+            )?)),
+        }
+    }
+
+    pub(crate) fn parse_or_pattern_precedence(
+        parser: &mut Parser,
+        precedence: Precedence,
+    ) -> SyntaxResult<Result<Self, Pattern>> {
+        Self::parse_precedence_inner(parser, precedence, Context::Default)
     }
 
     pub(crate) fn parse_precedence(
         parser: &mut Parser,
         precedence: Precedence,
     ) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, precedence, Context::Default)
+        Self::parse_or_pattern_precedence(parser, precedence)?.map_err(|patt| {
+            SyntaxError::new(
+                patt.span(),
+                "expected an expression in parameter list, but found a pattern",
+            )
+        })
     }
 
     pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, Precedence::None, Context::ParameterList)
+        Self::parse_precedence_inner(parser, Precedence::None, Context::ParameterList)?.map_err(
+            |patt| {
+                SyntaxError::new(
+                    patt.span(),
+                    "expected an expression in parameter list, but found a pattern",
+                )
+            },
+        )
+    }
+
+    pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
+        Self::parse_or_pattern_precedence(parser, Precedence::None)
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence(parser, Precedence::None)
-    }
-
-    pub(crate) fn parse_or_pattern(_parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
-        todo!("this will be the real hard one, but actually just big and clunky, more than hard")
     }
 
     pub(crate) fn is_lvalue(&self) -> bool {

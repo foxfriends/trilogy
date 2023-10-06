@@ -1,5 +1,5 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -9,10 +9,24 @@ pub struct UnaryOperation {
 }
 
 impl UnaryOperation {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
         let operator = UnaryOperator::parse(parser);
-        let operand = Expression::parse_precedence(parser, operator.precedence())?;
-        Ok(Self { operator, operand })
+        let operand = Expression::parse_or_pattern_precedence(parser, operator.precedence())?;
+        match operand {
+            Ok(operand) => Ok(Ok(Self { operator, operand })),
+            Err(pattern) => match operator {
+                UnaryOperator::Negate(token) => {
+                    Ok(Err(Pattern::Negative(Box::new(NegativePattern {
+                        minus: token,
+                        pattern,
+                    }))))
+                }
+                _ => Err(SyntaxError::new(
+                    pattern.span(),
+                    "expected an expression for the unary operation, but found a pattern",
+                )),
+            },
+        }
     }
 }
 

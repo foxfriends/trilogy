@@ -5,7 +5,7 @@ use trilogy_scanner::{Token, TokenType::*};
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct TuplePattern {
     pub lhs: Pattern,
-    cons_token: Token,
+    pub cons_token: Token,
     pub rhs: Pattern,
 }
 

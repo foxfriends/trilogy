@@ -45,7 +45,7 @@ impl Pattern {
         OBrack, OBrackPipe, OBracePipe, Discard, Identifier, KwMut,
     ];
 
-    fn parse_follow(
+    pub(crate) fn parse_follow(
         parser: &mut Parser,
         precedence: Precedence,
         lhs: Pattern,
@@ -103,17 +103,25 @@ impl Pattern {
         }
     }
 
+    pub(crate) fn parse_suffix(
+        parser: &mut Parser,
+        precedence: Precedence,
+        mut lhs: Pattern,
+    ) -> SyntaxResult<Self> {
+        loop {
+            match Self::parse_follow(parser, precedence, lhs)? {
+                Ok(updated) => lhs = updated,
+                Err(lhs) => return Ok(lhs),
+            }
+        }
+    }
+
     pub(crate) fn parse_precedence(
         parser: &mut Parser,
         precedence: Precedence,
     ) -> SyntaxResult<Self> {
-        let mut expr = Self::parse_prefix(parser)?;
-        loop {
-            match Self::parse_follow(parser, precedence, expr)? {
-                Ok(updated) => expr = updated,
-                Err(expr) => return Ok(expr),
-            }
-        }
+        let lhs = Self::parse_prefix(parser)?;
+        Self::parse_suffix(parser, precedence, lhs)
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
