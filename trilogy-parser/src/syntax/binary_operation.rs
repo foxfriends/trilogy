@@ -20,19 +20,27 @@ impl BinaryOperation {
             Ok(rhs) => Ok(Ok(BinaryOperation { lhs, operator, rhs })),
             Err(rhs) => match operator {
                 BinaryOperator::Glue(token) => Ok(Err(Pattern::Glue(Box::new(GluePattern {
-                    lhs: lhs.try_into()?,
+                    lhs: lhs.try_into().map_err(|err: SyntaxError| {
+                        parser.error(err.clone());
+                        err
+                    })?,
                     glue_token: token,
                     rhs,
                 })))),
                 BinaryOperator::Cons(token) => Ok(Err(Pattern::Tuple(Box::new(TuplePattern {
-                    lhs: lhs.try_into()?,
+                    lhs: lhs.try_into().map_err(|err: SyntaxError| {
+                        parser.error(err.clone());
+                        err
+                    })?,
                     cons_token: token,
                     rhs,
                 })))),
-                _ => Err(SyntaxError::new(
-                    rhs.span(),
-                    "expected an expression, but found a pattern",
-                )),
+                _ => {
+                    let err =
+                        SyntaxError::new(rhs.span(), "expected an expression, but found a pattern");
+                    parser.error(err.clone());
+                    Err(err)
+                }
             },
         }
     }

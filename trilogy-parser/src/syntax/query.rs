@@ -80,7 +80,10 @@ impl Query {
                     }
                     Ok(expr) => {
                         // It was not a lookup, so let's try to convert it to a pattern
-                        let pattern = expr.try_into()?;
+                        let pattern = expr.try_into().map_err(|err: SyntaxError| {
+                            parser.error(err.clone());
+                            err
+                        })?;
                         Self::unification(parser, pattern)
                     }
                     Err(pattern) => {
