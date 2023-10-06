@@ -16,8 +16,14 @@ impl SetPattern {
         let start = parser
             .expect(OBrackPipe)
             .expect("Caller should have found this");
+        Self::parse_elements(parser, start, vec![])
+    }
 
-        let mut elements = vec![];
+    pub(crate) fn parse_elements(
+        parser: &mut Parser,
+        start: Token,
+        mut elements: Vec<Pattern>,
+    ) -> SyntaxResult<Self> {
         let rest = loop {
             if parser.check(CBrackPipe).is_ok() {
                 break None;
@@ -34,6 +40,27 @@ impl SetPattern {
             })?;
         };
 
+        if let Some(rest) = rest {
+            return Self::parse_rest(parser, start, elements, rest);
+        }
+        let end = parser
+            .expect(CBrackPipe)
+            .map_err(|token| parser.expected(token, "expected `|]` to end set pattern"))?;
+
+        Ok(Self {
+            start,
+            elements,
+            rest,
+            end,
+        })
+    }
+
+    pub(crate) fn parse_rest(
+        parser: &mut Parser,
+        start: Token,
+        elements: Vec<Pattern>,
+        rest: Pattern,
+    ) -> SyntaxResult<Self> {
         // We'll consume this trailing comma anyway as if it was going to work,
         // and report an appropriate error. One of few attempts at smart error
         // handling in this parser so far!
@@ -51,21 +78,77 @@ impl SetPattern {
             return Ok(Self {
                 start,
                 elements,
-                rest,
+                rest: Some(rest),
                 end,
             });
         }
-
         let end = parser
             .expect(CBrackPipe)
             .map_err(|token| parser.expected(token, "expected `|]` to end set pattern"))?;
-
         Ok(Self {
             start,
             elements,
-            rest,
+            rest: Some(rest),
             end,
         })
+    }
+
+    pub(crate) fn parse_from_expression(
+        parser: &mut Parser,
+        start: Token,
+        elements: Vec<SetElement>,
+        (spread, next): (Option<Token>, Pattern),
+    ) -> SyntaxResult<Self> {
+        let (mut elements, rest) = elements
+            .into_iter()
+            .try_fold(
+                (vec![], None::<Pattern>),
+                |(mut elements, mut spread), element| {
+                match element {
+                    SetElement::Element(element) if spread.is_none() => {
+                        elements.push(element.try_into()?)
+                    }
+                    SetElement::Element(element) => {
+                        return Err(SyntaxError::new(
+                            element.span(),
+                            "no elements may follow the rest element of a set pattern, you might have meant this to be an expression",
+                        ));
+                    }
+                    SetElement::Spread(_, element) if spread.is_none() => {
+                        spread = Some(element.try_into()?);
+                    }
+                    SetElement::Spread(token, element) => {
+                        return Err(SyntaxError::new(
+                            token.span.union(element.span()),
+                            "a set pattern may contain only one rest element, you might have meant this to be an expression",
+                        ));
+                    }
+                }
+                Ok((elements, spread))
+            })
+            .map_err(|error| {
+                parser.error(error.clone());
+                error
+            })?;
+        match rest {
+            None if spread.is_none() => {
+                elements.push(next);
+                Self::parse_elements(parser, start, elements)
+            }
+            None => Self::parse_rest(parser, start, elements, next),
+            Some(..) if spread.is_none() => {
+                Err(SyntaxError::new(
+                    next.span().union(spread.unwrap().span()),
+                    "no elements may follow the rest element of a set pattern, you might have meant this to be an expression",
+                ))
+            }
+            Some(rest) => {
+                Err(SyntaxError::new(
+                    rest.span().union(spread.unwrap().span()),
+                    "a set pattern may contain only one rest element, you might have meant this to be an expression",
+                ))
+            }
+        }
     }
 
     pub fn start_token(&self) -> &Token {
@@ -80,5 +163,34 @@ impl SetPattern {
 impl Spanned for SetPattern {
     fn span(&self) -> Span {
         self.start.span.union(self.end.span)
+    }
+}
+
+impl TryFrom<SetLiteral> for SetPattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: SetLiteral) -> Result<Self, Self::Error> {
+        let mut head = vec![];
+        let mut rest = None;
+
+        for element in value.elements {
+            match element {
+                SetElement::Element(val) if rest.is_none() => head.push(val.try_into()?),
+                SetElement::Spread(_, val) if rest.is_none() => rest = Some(val.try_into()?),
+                SetElement::Element(val) | SetElement::Spread(_, val) => {
+                    return Err(SyntaxError::new(
+                        val.span(),
+                        "no elements may follow the rest (`..`) element in a set pattern",
+                    ))
+                }
+            }
+        }
+
+        Ok(Self {
+            start: value.start,
+            elements: head,
+            rest,
+            end: value.end,
+        })
     }
 }

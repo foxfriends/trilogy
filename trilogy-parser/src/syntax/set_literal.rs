@@ -5,9 +5,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SetLiteral {
-    start: Token,
+    pub start: Token,
     pub elements: Vec<SetElement>,
-    end: Token,
+    pub end: Token,
 }
 
 impl Spanned for SetLiteral {
@@ -29,14 +29,14 @@ impl SetLiteral {
         parser: &mut Parser,
         start: Token,
         first: SetElement,
-    ) -> SyntaxResult<Self> {
+    ) -> SyntaxResult<Result<Self, SetPattern>> {
         let mut elements = vec![first];
         if let Ok(end) = parser.expect(CBrackPipe) {
-            return Ok(Self {
+            return Ok(Ok(Self {
                 start,
                 elements,
                 end,
-            });
+            }));
         };
         let end = loop {
             parser.expect(OpComma).map_err(|token| {
@@ -45,7 +45,14 @@ impl SetLiteral {
             if let Ok(end) = parser.expect(CBrackPipe) {
                 break end;
             };
-            elements.push(SetElement::parse(parser)?);
+            match SetElement::parse(parser)? {
+                Ok(element) => elements.push(element),
+                Err(next) => {
+                    return Ok(Err(SetPattern::parse_from_expression(
+                        parser, start, elements, next,
+                    )?));
+                }
+            }
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -58,11 +65,11 @@ impl SetLiteral {
                 break end;
             };
         };
-        Ok(Self {
+        Ok(Ok(Self {
             start,
             elements,
             end,
-        })
+        }))
     }
 
     pub fn start_token(&self) -> &Token {
@@ -81,12 +88,17 @@ pub enum SetElement {
 }
 
 impl SetElement {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse(
+        parser: &mut Parser,
+    ) -> SyntaxResult<Result<Self, (Option<Token>, Pattern)>> {
         let spread = parser.expect(OpDotDot).ok();
         let expression = Expression::parse_parameter_list(parser)?;
-        match spread {
-            None => Ok(Self::Element(expression)),
-            Some(spread) => Ok(Self::Spread(spread, expression)),
+        match expression {
+            Ok(expression) => match spread {
+                None => Ok(Ok(Self::Element(expression))),
+                Some(spread) => Ok(Ok(Self::Spread(spread, expression))),
+            },
+            Err(pattern) => Ok(Err((spread, pattern))),
         }
     }
 }

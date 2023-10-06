@@ -4,24 +4,31 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ParenthesizedExpression {
-    start: Token,
+    pub start: Token,
     pub expression: Expression,
-    end: Token,
+    pub end: Token,
 }
 
 impl ParenthesizedExpression {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Result<Self, ParenthesizedPattern>> {
         let start = parser
             .expect(OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;
-        let expression = Expression::parse(parser)?;
+        let expression = Expression::parse_or_pattern(parser)?;
         let end = parser
             .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `)`"))?;
-        Ok(Self {
-            start,
-            expression,
-            end,
+        Ok(match expression {
+            Ok(expression) => Ok(Self {
+                start,
+                expression,
+                end,
+            }),
+            Err(pattern) => Err(ParenthesizedPattern {
+                start,
+                pattern,
+                end,
+            }),
         })
     }
 }

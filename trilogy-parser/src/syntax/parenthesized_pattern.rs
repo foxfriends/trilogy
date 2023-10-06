@@ -4,9 +4,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ParenthesizedPattern {
-    start: Token,
+    pub start: Token,
     pub pattern: Pattern,
-    end: Token,
+    pub end: Token,
 }
 
 impl ParenthesizedPattern {
@@ -31,5 +31,17 @@ impl ParenthesizedPattern {
             .map_err(|token| parser.expected(token, "expected `(`"))?;
         let pattern = Pattern::parse(parser)?;
         Self::finish(parser, start, pattern)
+    }
+}
+
+impl TryFrom<ParenthesizedExpression> for ParenthesizedPattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: ParenthesizedExpression) -> Result<Self, Self::Error> {
+        Ok(Self {
+            start: value.start,
+            pattern: value.expression.try_into()?,
+            end: value.end,
+        })
     }
 }

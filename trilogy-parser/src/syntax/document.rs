@@ -14,7 +14,7 @@ impl Spanned for Document {
         self.documentation
             .as_ref()
             .map(Spanned::span)
-            .unwrap_or(Span::default())
+            .unwrap_or_default()
             .union(if self.definitions.is_empty() {
                 Span::default()
             } else {

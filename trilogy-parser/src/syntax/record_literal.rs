@@ -5,9 +5,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct RecordLiteral {
-    start: Token,
+    pub start: Token,
     pub elements: Vec<RecordElement>,
-    end: Token,
+    pub end: Token,
 }
 
 impl Spanned for RecordLiteral {
@@ -29,14 +29,14 @@ impl RecordLiteral {
         parser: &mut Parser,
         start: Token,
         first: RecordElement,
-    ) -> SyntaxResult<Self> {
+    ) -> SyntaxResult<Result<Self, RecordPattern>> {
         let mut elements = vec![first];
         if let Ok(end) = parser.expect(CBracePipe) {
-            return Ok(Self {
+            return Ok(Ok(Self {
                 start,
                 elements,
                 end,
-            });
+            }));
         };
         let end = loop {
             parser.expect(OpComma).map_err(|token| {
@@ -48,7 +48,15 @@ impl RecordLiteral {
             if let Ok(end) = parser.expect(CBracePipe) {
                 break end;
             };
-            elements.push(RecordElement::parse(parser)?);
+            let element = RecordElement::parse(parser)?;
+            match element {
+                Ok(element) => elements.push(element),
+                Err(next) => {
+                    return Ok(Err(RecordPattern::parse_from_expression(
+                        parser, start, elements, next,
+                    )?));
+                }
+            }
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -61,11 +69,11 @@ impl RecordLiteral {
                 break end;
             };
         };
-        Ok(Self {
+        Ok(Ok(Self {
             start,
             elements,
             end,
-        })
+        }))
     }
 
     pub fn start_token(&self) -> &Token {
@@ -84,17 +92,27 @@ pub enum RecordElement {
 }
 
 impl RecordElement {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse(
+        parser: &mut Parser,
+    ) -> SyntaxResult<Result<Self, (Option<Pattern>, Pattern)>> {
         if let Ok(spread) = parser.expect(OpDotDot) {
             let expression = Expression::parse_parameter_list(parser)?;
-            Ok(Self::Spread(spread, expression))
+            match expression {
+                Ok(expression) => Ok(Ok(Self::Spread(spread, expression))),
+                Err(pattern) => Ok(Err((None, pattern))),
+            }
         } else {
             let key = Expression::parse_parameter_list(parser)?;
             parser.expect(OpFatArrow).map_err(|token| {
                 parser.expected(token, "expected `=>` in key value pair of record literal")
             })?;
             let value = Expression::parse_parameter_list(parser)?;
-            Ok(Self::Element(key, value))
+            match (key, value) {
+                (Ok(key), Ok(value)) => Ok(Ok(Self::Element(key, value))),
+                (Ok(key), Err(value)) => Ok(Err((Some(key.try_into()?), value))),
+                (Err(key), Ok(value)) => Ok(Err((Some(key), value.try_into()?))),
+                (Err(key), Err(value)) => Ok(Err((Some(key), value))),
+            }
         }
     }
 }

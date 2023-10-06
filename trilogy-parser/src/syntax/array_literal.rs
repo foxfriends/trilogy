@@ -5,9 +5,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayLiteral {
-    start: Token,
+    pub start: Token,
     pub elements: Vec<ArrayElement>,
-    end: Token,
+    pub end: Token,
 }
 
 impl ArrayLiteral {
@@ -23,14 +23,14 @@ impl ArrayLiteral {
         parser: &mut Parser,
         start: Token,
         first: ArrayElement,
-    ) -> SyntaxResult<Self> {
+    ) -> SyntaxResult<Result<Self, ArrayPattern>> {
         let mut elements = vec![first];
         if let Ok(end) = parser.expect(CBrack) {
-            return Ok(Self {
+            return Ok(Ok(Self {
                 start,
                 elements,
                 end,
-            });
+            }));
         }
 
         let end = loop {
@@ -43,7 +43,14 @@ impl ArrayLiteral {
             if let Ok(end) = parser.expect(CBrack) {
                 break end;
             };
-            elements.push(ArrayElement::parse(parser)?);
+            match ArrayElement::parse(parser)? {
+                Ok(element) => elements.push(element),
+                Err(next) => {
+                    return Ok(Err(ArrayPattern::parse_from_expression(
+                        parser, start, elements, next,
+                    )?))
+                }
+            }
             if let Ok(token) = parser.check(KwFor) {
                 let error = SyntaxError::new(
                     token.span,
@@ -56,11 +63,11 @@ impl ArrayLiteral {
                 break end;
             };
         };
-        Ok(Self {
+        Ok(Ok(Self {
             start,
             elements,
             end,
-        })
+        }))
     }
 
     pub fn start_token(&self) -> &Token {
@@ -85,12 +92,17 @@ pub enum ArrayElement {
 }
 
 impl ArrayElement {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+    pub(crate) fn parse(
+        parser: &mut Parser,
+    ) -> SyntaxResult<Result<Self, (Option<Token>, Pattern)>> {
         let spread = parser.expect(OpDotDot).ok();
         let expression = Expression::parse_parameter_list(parser)?;
-        match spread {
-            None => Ok(Self::Element(expression)),
-            Some(spread) => Ok(Self::Spread(spread, expression)),
+        match expression {
+            Ok(expression) => match spread {
+                None => Ok(Ok(Self::Element(expression))),
+                Some(spread) => Ok(Ok(Self::Spread(spread, expression))),
+            },
+            Err(pattern) => Ok(Err((spread, pattern))),
         }
     }
 }
@@ -99,14 +111,14 @@ impl ArrayElement {
 mod test {
     use super::*;
 
-    test_parse!(arraylit_empty: "[]" => Expression::parse => "(Expression::Array (ArrayLiteral []))");
-    test_parse!(arraylit_one: "[1]" => Expression::parse => "(Expression::Array (ArrayLiteral [_]))");
-    test_parse!(arraylit_one_tc: "[1, ]" => Expression::parse => "(Expression::Array (ArrayLiteral [_]))");
-    test_parse!(arraylit_many: "[1, 2, 3]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
-    test_parse!(arraylit_many_tc: "[1, 2, 3, ]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
-    test_parse!(arraylit_nested: "[[1, 2], [3, 4], [5, 6]]" => Expression::parse => "(Expression::Array (ArrayLiteral [_ _ _]))");
-    test_parse!(arraylit_no_comma: "[f 2]" => Expression::parse => "(Expression::Array (ArrayLiteral [(_ (Expression::Application _))]))");
-    test_parse!(arraylit_spread: "[..a, b]" => Expression::parse => "(Expression::Array (ArrayLiteral [(ArrayElement::Spread _ _) (ArrayElement::Element _)]))");
+    test_parse!(arraylit_empty: "[]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [] _))");
+    test_parse!(arraylit_one: "[1]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_] _))");
+    test_parse!(arraylit_one_tc: "[1, ]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_] _))");
+    test_parse!(arraylit_many: "[1, 2, 3]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_ _ _] _))");
+    test_parse!(arraylit_many_tc: "[1, 2, 3, ]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_ _ _] _))");
+    test_parse!(arraylit_nested: "[[1, 2], [3, 4], [5, 6]]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_ _ _] _))");
+    test_parse!(arraylit_no_comma: "[f 2]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [(_ (Expression::Application _))] _))");
+    test_parse!(arraylit_spread: "[..a, b]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [(ArrayElement::Spread _ _) (ArrayElement::Element _)] _))");
 
     test_parse_error!(arraylit_empty_tc: "[,]" => Expression::parse);
     test_parse_error!(arraylit_missing_item: "[1,,]" => Expression::parse);

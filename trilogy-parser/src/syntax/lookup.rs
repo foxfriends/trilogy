@@ -17,8 +17,7 @@ impl Spanned for Lookup {
 }
 
 impl Lookup {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let path = Expression::parse(parser)?;
+    pub(crate) fn parse_rest(parser: &mut Parser, path: Expression) -> SyntaxResult<Self> {
         parser
             .expect(TokenType::OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;

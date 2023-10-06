@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{
     Token,
     TokenType::{self, *},
@@ -45,7 +45,7 @@ impl Pattern {
         OBrack, OBrackPipe, OBracePipe, Discard, Identifier, KwMut,
     ];
 
-    fn parse_follow(
+    pub(crate) fn parse_follow(
         parser: &mut Parser,
         precedence: Precedence,
         lhs: Pattern,
@@ -103,20 +103,74 @@ impl Pattern {
         }
     }
 
-    pub(crate) fn parse_precedence(
+    pub(crate) fn parse_suffix(
         parser: &mut Parser,
         precedence: Precedence,
+        mut lhs: Pattern,
     ) -> SyntaxResult<Self> {
-        let mut expr = Self::parse_prefix(parser)?;
         loop {
-            match Self::parse_follow(parser, precedence, expr)? {
-                Ok(updated) => expr = updated,
-                Err(expr) => return Ok(expr),
+            match Self::parse_follow(parser, precedence, lhs)? {
+                Ok(updated) => lhs = updated,
+                Err(lhs) => return Ok(lhs),
             }
         }
     }
 
+    pub(crate) fn parse_precedence(
+        parser: &mut Parser,
+        precedence: Precedence,
+    ) -> SyntaxResult<Self> {
+        let lhs = Self::parse_prefix(parser)?;
+        Self::parse_suffix(parser, precedence, lhs)
+    }
+
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence(parser, Precedence::None)
+    }
+}
+
+impl TryFrom<Expression> for Pattern {
+    type Error = SyntaxError;
+
+    fn try_from(value: Expression) -> Result<Self, Self::Error> {
+        match value {
+            Expression::Reference(identifier) => Ok(Pattern::Binding(Box::new(BindingPattern {
+                identifier: *identifier,
+                mutable: MutModifier::Not,
+            }))),
+            Expression::Atom(val) => Ok(Pattern::Atom(val)),
+            Expression::Number(val) => Ok(Pattern::Number(val)),
+            Expression::Boolean(val) => Ok(Pattern::Boolean(val)),
+            Expression::Unit(val) => Ok(Pattern::Unit(val)),
+            Expression::Bits(val) => Ok(Pattern::Bits(val)),
+            Expression::String(val) => Ok(Pattern::String(val)),
+            Expression::Character(val) => Ok(Pattern::Character(val)),
+            Expression::Unary(op) if matches!(op.operator, UnaryOperator::Negate(..)) => {
+                Ok(Pattern::Negative(Box::new(NegativePattern::try_from(*op)?)))
+            }
+            Expression::Binary(op) if matches!(op.operator, BinaryOperator::Glue(..)) => {
+                Ok(Pattern::Glue(Box::new(GluePattern::try_from(*op)?)))
+            }
+            Expression::Binary(op) if matches!(op.operator, BinaryOperator::Cons(..)) => {
+                Ok(Pattern::Tuple(Box::new(TuplePattern::try_from(*op)?)))
+            }
+            Expression::Struct(inner) => {
+                Ok(Pattern::Struct(Box::new(StructPattern::try_from(*inner)?)))
+            }
+            Expression::Array(array) => {
+                Ok(Pattern::Array(Box::new(ArrayPattern::try_from(*array)?)))
+            }
+            Expression::Set(set) => Ok(Pattern::Set(Box::new(SetPattern::try_from(*set)?))),
+            Expression::Record(record) => {
+                Ok(Pattern::Record(Box::new(RecordPattern::try_from(*record)?)))
+            }
+            Expression::Parenthesized(paren) => Ok(Pattern::Parenthesized(Box::new(
+                ParenthesizedPattern::try_from(*paren)?,
+            ))),
+            _ => Err(SyntaxError::new(
+                value.span(),
+                "expression is not valid in pattern context",
+            )),
+        }
     }
 }
