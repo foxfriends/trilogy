@@ -181,7 +181,11 @@ impl From<BigUint> for Number {
 
 impl Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        if self.0.im.is_zero() {
+            self.0.re.fmt(f)
+        } else {
+            self.0.fmt(f)
+        }
     }
 }
 
