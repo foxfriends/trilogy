@@ -166,7 +166,7 @@ impl Expression {
 
     fn unwrap_reference(&self) -> &Identifier {
         match &self.value {
-            expression::Value::Reference(id) => &*id,
+            expression::Value::Reference(id) => id,
             _ => unreachable!(),
         }
     }

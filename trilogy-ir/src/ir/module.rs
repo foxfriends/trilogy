@@ -28,9 +28,7 @@ impl Module {
             .head
             .parameters
             .into_iter()
-            .map(|param| {
-                Expression::reference(param.span(), Identifier::declare(analyzer, param))
-            })
+            .map(|param| Expression::reference(param.span(), Identifier::declare(analyzer, param)))
             .collect();
         let definitions = Definitions::convert(analyzer, ast.definitions);
         analyzer.pop_scope();
