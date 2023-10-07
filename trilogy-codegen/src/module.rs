@@ -211,7 +211,54 @@ pub(crate) fn write_module_prelude(
                         StaticMember::Context(..) => unreachable!(),
                     }
                 }
-                ir::DefinitionItem::Rule(_rule) => todo!("support exported rules"),
+                ir::DefinitionItem::Rule(rule) => {
+                    let Some(StaticMember::Label(static_member)) =
+                        context.scope.lookup_static(&rule.name.id).cloned()
+                    else {
+                        unreachable!("definitions will be found as a local label");
+                    };
+                    let arity = rule.overloads[0].parameters.len();
+                    // It's a rule, so it will be immediately called to perform setup.
+                    // That setup does not require the context... I think. But it's easy
+                    // to pass anyway and better safe than sorry, I suppose.
+                    context
+                        .close(RETURN)
+                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadLocal(current_module))
+                        .instruction(Instruction::SetRegister(1))
+                        .write_procedure_reference(static_member)
+                        .instruction(Instruction::Call(0))
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::SetRegister(1))
+                        // That will produce the rule's closure, but we need to re-close that
+                        // over the module scope
+                        .close(RETURN);
+                    let closure = context.scope.intermediate();
+                    context
+                        // When called again, it's to pass the parameters. Again, might not need
+                        // the context, but let's pass it anyway.
+                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadLocal(current_module))
+                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::Slide(1 + arity as u32))
+                        .instruction(Instruction::LoadLocal(closure))
+                        .instruction(Instruction::Slide(1 + arity as u32))
+                        .instruction(Instruction::Call(1 + arity as u32))
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::SetRegister(1))
+                        // That needs to be closed over to keep passing context too
+                        .close(RETURN);
+                    let iterator = context.scope.intermediate();
+                    context
+                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadLocal(current_module))
+                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::LoadLocal(iterator))
+                        .instruction(Instruction::Call(0))
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::Return);
+                }
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
             }
             context.label(next_export);

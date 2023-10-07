@@ -363,7 +363,6 @@ fn sample_module_function() {
 }
 
 #[test]
-#[ignore = "not yet working"]
 fn sample_module_rule() {
     let mut program = include_tri!("module_rule.tri");
     assert_eq!(program.run().unwrap(), Value::from(5));
