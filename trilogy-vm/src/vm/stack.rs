@@ -19,7 +19,11 @@ impl InternalValue {
     fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
         match self {
             InternalValue::Value(value) => Ok(value),
-            _ => Err(InternalRuntimeError::ExpectedValue),
+            InternalValue::Unset => Err(InternalRuntimeError::ExpectedValue("empty cell")),
+            InternalValue::Return { .. } => {
+                Err(InternalRuntimeError::ExpectedValue("return pointer"))
+            }
+            InternalValue::Pointer(..) => Err(InternalRuntimeError::ExpectedValue("pointer")),
         }
     }
 
@@ -27,7 +31,10 @@ impl InternalValue {
         match self {
             InternalValue::Value(value) => Ok(Some(value)),
             InternalValue::Unset => Ok(None),
-            _ => Err(InternalRuntimeError::ExpectedValue),
+            InternalValue::Return { .. } => {
+                Err(InternalRuntimeError::ExpectedValue("return pointer"))
+            }
+            InternalValue::Pointer(..) => Err(InternalRuntimeError::ExpectedValue("pointer")),
         }
     }
 
@@ -172,14 +179,14 @@ impl Stack {
     pub(crate) fn pop(&mut self) -> Result<Option<Value>, InternalRuntimeError> {
         self.cactus
             .pop()
-            .ok_or(InternalRuntimeError::ExpectedValue)
+            .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))
             .and_then(InternalValue::try_into_value_maybe)
     }
 
     pub(crate) fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
         self.cactus
             .at(index)
-            .ok_or(InternalRuntimeError::ExpectedValue)
+            .ok_or(InternalRuntimeError::ExpectedValue("out of bounds"))
             .and_then(InternalValue::try_into_value)
     }
 
@@ -197,7 +204,7 @@ impl Stack {
         }
         self.cactus
             .at(register)
-            .ok_or(InternalRuntimeError::ExpectedValue)
+            .ok_or(InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(InternalValue::try_into_value)
     }
 
@@ -264,12 +271,8 @@ impl Stack {
         }
         self.cactus
             .replace_at(register, InternalValue::Value(value))
-            .map_err(|_| InternalRuntimeError::ExpectedValue)
-            .and_then(|val| match val {
-                InternalValue::Value(value) => Ok(Some(value)),
-                InternalValue::Unset => Ok(None),
-                _ => Err(InternalRuntimeError::ExpectedValue),
-            })
+            .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
+            .and_then(|val| val.try_into_value_maybe())
     }
 
     pub(crate) fn unset_local(
@@ -299,12 +302,8 @@ impl Stack {
         }
         self.cactus
             .replace_at(register, InternalValue::Unset)
-            .map_err(|_| InternalRuntimeError::ExpectedValue)
-            .and_then(|val| match val {
-                InternalValue::Value(value) => Ok(Some(value)),
-                InternalValue::Unset => Ok(None),
-                _ => Err(InternalRuntimeError::ExpectedValue),
-            })
+            .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
+            .and_then(|val| val.try_into_value_maybe())
     }
 
     pub(crate) fn init_local(
@@ -349,7 +348,7 @@ impl Stack {
         let internal_values = self
             .cactus
             .detach_at(arity)
-            .ok_or(InternalRuntimeError::ExpectedValue)?;
+            .ok_or(InternalRuntimeError::ExpectedValue("stack too short"))?;
         internal_values
             .into_iter()
             .map(InternalValue::try_into_value)

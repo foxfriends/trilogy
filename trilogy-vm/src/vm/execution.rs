@@ -148,8 +148,9 @@ impl Execution {
     }
 
     pub fn stack_pop(&mut self) -> Result<Value, Error> {
-        self.stack_discard()
-            .and_then(|v| v.ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue)))
+        self.stack_discard().and_then(|v| {
+            v.ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))
+        })
     }
 
     pub fn stack_discard(&mut self) -> Result<Option<Value>, Error> {

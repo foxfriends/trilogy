@@ -166,7 +166,9 @@ impl VirtualMachine {
                             .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
                             .as_value()
                             .map_err(|er| ex.error(er))?
-                            .ok_or_else(|| ex.error(InternalRuntimeError::ExpectedValue))?,
+                            .ok_or_else(|| {
+                                ex.error(InternalRuntimeError::ExpectedHeapValue("empty cell"))
+                            })?,
                     );
                 }
                 OpCode::Set => {
