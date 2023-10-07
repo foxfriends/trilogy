@@ -98,7 +98,7 @@ impl Expression {
                     analyzer.error(Error::UnboundIdentifier {
                         name: (*ast).clone(),
                     });
-                    Identifier::declare(analyzer, *ast)
+                    Identifier::unresolved(analyzer, *ast)
                 }),
             ),
             Keyword(ast) => Builtin::convert(*ast),
@@ -422,11 +422,11 @@ impl Expression {
                     });
                     Self::reference(
                         ast.identifier.span(),
-                        Identifier::declare(analyzer, ast.identifier),
+                        Identifier::unresolved(analyzer, ast.identifier),
                     )
                 }),
             Binding(ast) => {
-                Self::reference(ast.span(), Identifier::declare(analyzer, ast.identifier))
+                Self::reference(ast.span(), Identifier::declare_binding(analyzer, *ast))
             }
             Parenthesized(ast) => Self::convert_pattern(analyzer, ast.pattern),
         }
@@ -498,7 +498,7 @@ impl Expression {
                     .map(|tag| Expression::reference(tag.span, tag))
                     .unwrap_or_else(|| {
                         analyzer.error(Error::UnboundIdentifier { name: tag.clone() });
-                        Expression::reference(tag.span(), Identifier::declare(analyzer, tag))
+                        Expression::reference(tag.span(), Identifier::unresolved(analyzer, tag))
                     });
                 let strings = Self::builtin(span, Builtin::Array)
                     .apply_to(span, Self::pack(span, Pack::from_iter(strings)));

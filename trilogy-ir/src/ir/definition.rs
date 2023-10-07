@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::*;
-use crate::{Analyzer, Error, Id};
+use crate::{symbol::Symbol, Analyzer, Error, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -48,7 +48,7 @@ impl Definition {
             syntax::DefinitionItem::Export(ast) => {
                 for name in ast.names {
                     match analyzer.declared(name.as_ref()) {
-                        Some(id) => {
+                        Some(Symbol { id, .. }) => {
                             definitions.get_mut(id).unwrap().is_exported = true;
                         }
                         None => {
@@ -59,7 +59,7 @@ impl Definition {
             }
             syntax::DefinitionItem::ExternalModule(..) => {}
             syntax::DefinitionItem::Function(ast) => {
-                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Function(function) = &mut definition.item else {
                     unreachable!()
@@ -67,7 +67,7 @@ impl Definition {
                 function.overloads.push(Function::convert(analyzer, *ast))
             }
             syntax::DefinitionItem::Module(ast) => {
-                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Module(module) = &mut definition.item else {
                     unreachable!()
@@ -75,7 +75,7 @@ impl Definition {
                 module.module = Arc::new(ModuleCell::new(Module::convert_module(analyzer, *ast)));
             }
             syntax::DefinitionItem::Procedure(ast) => {
-                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Procedure(procedure) = &mut definition.item else {
                     unreachable!()
@@ -83,7 +83,7 @@ impl Definition {
                 procedure.overloads.push(Procedure::convert(analyzer, *ast))
             }
             syntax::DefinitionItem::Rule(ast) => {
-                let id = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(id).unwrap();
                 let DefinitionItem::Rule(rule) = &mut definition.item else {
                     unreachable!()

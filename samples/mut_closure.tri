@@ -1,5 +1,5 @@
 proc main!() {
-    let x = 0
+    let mut x = 0
     let count = do() { x += 1 }
 
     count!()

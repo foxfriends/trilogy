@@ -68,6 +68,10 @@ impl Assignment {
                     .in_let(span, receiver_query)
             }
             Err(lhs) => {
+                let id = lhs.unwrap_reference();
+                if !id.is_mutable {
+                    analyzer.error(Error::AssignedImmutableBinding { name: id.clone() });
+                }
                 let op_span = op.span;
                 let rhs = op
                     .apply_to(op_span.union(lhs.span), lhs.clone())
@@ -126,6 +130,10 @@ impl Assignment {
                     .in_let(span, receiver_query)
             }
             Err(lhs) => {
+                let id = lhs.unwrap_reference();
+                if !id.is_mutable {
+                    analyzer.error(Error::AssignedImmutableBinding { name: id.clone() });
+                }
                 let rhs = function.apply_to(span, lhs.clone());
                 Expression::assignment(span, Self { lhs, rhs })
             }
@@ -153,6 +161,13 @@ impl Expression {
                 Ok((receiver, access_span, property))
             }
             _ => panic!("lvalue is not valid: not an application or reference"),
+        }
+    }
+
+    fn unwrap_reference(&self) -> &Identifier {
+        match &self.value {
+            expression::Value::Reference(id) => &*id,
+            _ => unreachable!(),
         }
     }
 }

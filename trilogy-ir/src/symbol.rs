@@ -3,6 +3,8 @@ use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
+use source_span::Span;
+
 #[derive(Clone, Debug)]
 pub struct Id(Arc<Option<String>>);
 
@@ -40,9 +42,17 @@ impl Hash for Id {
     }
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct Symbol {
+    #[allow(dead_code)]
+    pub declaration_span: Span,
+    pub id: Id,
+    pub is_mutable: bool,
+}
+
 #[derive(Default, Debug)]
 pub(crate) struct SymbolTable {
-    symbols: HashMap<String, Id>,
+    symbols: HashMap<String, Symbol>,
 }
 
 impl SymbolTable {
@@ -50,14 +60,15 @@ impl SymbolTable {
         Id::new(String::from("<intermediate value>"))
     }
 
-    pub fn reusable(&mut self, tag: String) -> Id {
-        self.symbols
-            .entry(tag.clone())
-            .or_insert_with(|| Id::new(tag))
-            .clone()
+    pub fn reusable(&mut self, tag: String, is_mutable: bool, span: Span) -> &Symbol {
+        self.symbols.entry(tag.clone()).or_insert_with(|| Symbol {
+            declaration_span: span,
+            is_mutable,
+            id: Id::new(tag),
+        })
     }
 
-    pub fn reuse(&self, tag: &str) -> Option<&Id> {
+    pub fn reuse(&self, tag: &str) -> Option<&Symbol> {
         self.symbols.get(tag)
     }
 }

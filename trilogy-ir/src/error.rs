@@ -10,4 +10,5 @@ pub enum Error {
     DuplicateDefinition { name: syntax::Identifier },
     IdentifierInOwnDefinition { name: ir::Identifier },
     DisjointBindings { span: Span },
+    AssignedImmutableBinding { name: ir::Identifier },
 }

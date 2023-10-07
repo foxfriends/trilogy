@@ -1,10 +1,10 @@
 proc make_iterator!() {
-    let n = 0
-    
+    let mut n = 0
+
     return do() {
         n += 1
         if n == 5 {
-            return 'done 
+            return 'done
         } else {
             return 'next(n)
         }

@@ -1,5 +1,5 @@
 proc main!() {
-    let out = "";
+    let mut out = "";
 
     match "hello world"
         case "hello " <> world { out <>= world; }

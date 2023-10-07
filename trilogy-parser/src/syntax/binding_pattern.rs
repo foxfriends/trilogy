@@ -18,8 +18,12 @@ impl BindingPattern {
         })
     }
 
-    pub(crate) fn is_immutable(&self) -> bool {
+    pub fn is_immutable(&self) -> bool {
         matches!(self.mutable, MutModifier::Not)
+    }
+
+    pub fn is_mutable(&self) -> bool {
+        matches!(self.mutable, MutModifier::Mut(..))
     }
 }
 

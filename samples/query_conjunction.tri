@@ -1,5 +1,5 @@
 proc main!() {
-    let total = 0
+    let mut total = 0
     for x in [1, 2] and y in [3, 4] {
         total += x + y
     }

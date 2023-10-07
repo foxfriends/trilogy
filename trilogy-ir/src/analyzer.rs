@@ -1,6 +1,8 @@
 use crate::ir::Module;
 use crate::scope::Scope;
+use crate::symbol::Symbol;
 use crate::{Error, Id};
+use source_span::Span;
 use trilogy_parser::syntax;
 
 pub trait Resolver {
@@ -42,15 +44,15 @@ impl<'a> Analyzer<'a> {
         self.scope.pop();
     }
 
-    pub(crate) fn declare(&mut self, name: String) -> Id {
-        self.scope.declare(name)
+    pub(crate) fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> &Symbol {
+        self.scope.declare(name, is_mutable, span)
     }
 
     pub(crate) fn temporary(&mut self) -> Id {
         self.scope.invent()
     }
 
-    pub(crate) fn declared(&mut self, name: &str) -> Option<&Id> {
+    pub(crate) fn declared(&mut self, name: &str) -> Option<&Symbol> {
         self.scope.declared(name)
     }
 

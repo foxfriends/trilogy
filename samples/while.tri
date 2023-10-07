@@ -1,6 +1,6 @@
 proc main!() {
-    let out = 1;
-    let x = 5;
+    let mut out = 1;
+    let mut x = 5;
     while x > 0 {
         x -= 1;
         out *= 2;
