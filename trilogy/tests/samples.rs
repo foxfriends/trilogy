@@ -369,6 +369,12 @@ fn sample_module_rule() {
 }
 
 #[test]
+fn sample_is_expr() {
+    let mut program = include_tri!("is_expr.tri");
+    assert_eq!(program.run().unwrap(), Value::from(true));
+}
+
+#[test]
 #[ignore = "not yet working"]
 fn sample_main_no_exit() {
     let mut program = include_tri!("main_no_exit.tri");

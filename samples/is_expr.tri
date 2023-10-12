@@ -1,0 +1,5 @@
+proc main!() {
+    let x = is 1 in [1, 2, 3]
+    let y = is end or pass
+    exit x && y
+}
