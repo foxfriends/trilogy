@@ -1,5 +1,6 @@
 proc main!() {
     let x = is 1 in [1, 2, 3]
     let y = is end or pass
-    exit x && y
+    let z = is 5 = 4
+    exit x && y && !z
 }
