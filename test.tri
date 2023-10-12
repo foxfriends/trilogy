@@ -1,0 +1,6 @@
+rule isel(_, []) <- end
+rule isel(x, [y, ..r]) <- if x = y then pass else isel(x, r)
+
+proc main!() {
+    exit is isel(1, [1, 2, 3])
+}
