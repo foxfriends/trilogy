@@ -373,6 +373,25 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     .instruction(Instruction::Pop);
                 context.scope.end_intermediate();
             }
+            (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
+                let is_fail = context.labeler.unique_hint("is_fail");
+                let is_end = context.labeler.unique_hint("is_end");
+                let var_count = context.declare_variables(query.bindings());
+                write_query_state(context, query);
+                write_query(context, query, &is_fail, None);
+                context
+                    .instruction(Instruction::Const(true.into()))
+                    .instruction(Instruction::Slide(var_count as u32 + 1))
+                    .jump(&is_end)
+                    .label(&is_fail)
+                    .instruction(Instruction::Const(false.into()))
+                    .instruction(Instruction::Slide(var_count as u32 + 1))
+                    .label(is_end);
+                for _ in 0..=var_count {
+                    // One extra POP to discard the query state
+                    context.instruction(Instruction::Pop);
+                }
+            }
             _ => {
                 write_expression(context, &application.function);
                 context.scope.intermediate();
