@@ -267,6 +267,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     if spread.is_none() {
                         context
                             .instruction(Instruction::Copy)
+                            .instruction(Instruction::Length)
+                            .instruction(Instruction::Const(0.into()))
+                            .instruction(Instruction::ValNeq)
+                            .cond_jump(&cleanup)
+                            .instruction(Instruction::Copy)
                             .instruction(Instruction::Const(0.into()))
                             .instruction(Instruction::Access);
                         write_pattern_match(context, &element.expression, &cleanup);
