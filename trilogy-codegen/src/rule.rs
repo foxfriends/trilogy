@@ -21,13 +21,6 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         .instruction(Instruction::ValNeq)
         .cond_jump(&setup)
         .jump(&call)
-        // Following setup, we return here.
-        .label(&precall)
-        // In the case that we just did the setup, not only is the iterator on the
-        // stack but also the iterator's state (which has already been closed into
-        // the iterator), so we have to discard that extra state.
-        .instruction(Instruction::Swap)
-        .instruction(Instruction::Pop)
         // Once setup is complete, we end up here where the rule's iterator is actually
         // called. The state (that is not unit) is that iterator.
         .label(&call)
@@ -65,6 +58,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // Happy path: we continue by writing the query state down, and then
     // encapsulating all that into a closure which will be the iterator for
     // this overload of the rule.
+    let declared_vars = context.declare_variables(rule.body.bindings());
     write_query_state(context, &rule.body);
     context.close(&precall);
 
@@ -128,7 +122,15 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.label(cleanup.pop().unwrap());
         context.undeclare_variables(parameter.bindings(), true);
     }
-    context.jump(on_fail);
-
-    context.label(end);
+    context
+        .jump(on_fail)
+        // Following setup, we go here, clearing all the closed up state that was put
+        // on the stack before going to `call`.
+        //
+        // That state is the query state + all the query's bindings that were declared
+        .label(&precall)
+        .instruction(Instruction::Slide(declared_vars as u32 + 1))
+        .instruction(Instruction::Pop)
+        .undeclare_variables(rule.body.bindings(), true);
+    context.jump(call).label(end);
 }

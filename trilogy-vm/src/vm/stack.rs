@@ -4,7 +4,7 @@ use crate::{cactus::Cactus, Value};
 use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]
-enum InternalValue {
+pub(crate) enum InternalValue {
     Unset,
     Value(Value),
     Return {
@@ -16,7 +16,7 @@ enum InternalValue {
 }
 
 impl InternalValue {
-    fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
+    pub(crate) fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
         match self {
             InternalValue::Value(value) => Ok(value),
             InternalValue::Unset => Err(InternalRuntimeError::ExpectedValue("empty cell")),
@@ -171,9 +171,8 @@ impl Stack {
 
     /// Pushes many values at once, not reversing their order as they would be if they
     /// were each pushed individually.
-    pub(crate) fn push_many(&mut self, values: Vec<Value>) {
-        self.cactus
-            .attach(values.into_iter().map(InternalValue::Value).collect());
+    pub(crate) fn push_many(&mut self, values: Vec<InternalValue>) {
+        self.cactus.attach(values);
     }
 
     pub(crate) fn pop(&mut self) -> Result<Option<Value>, InternalRuntimeError> {
@@ -228,7 +227,12 @@ impl Stack {
         }
     }
 
-    pub(crate) fn push_frame(&mut self, ip: Offset, arguments: Vec<Value>, stack: Option<Stack>) {
+    pub(crate) fn push_frame(
+        &mut self,
+        ip: Offset,
+        arguments: Vec<InternalValue>,
+        stack: Option<Stack>,
+    ) {
         let frame = self.frame;
         self.cactus.push(InternalValue::Return {
             ip,
@@ -344,15 +348,15 @@ impl Stack {
 
     /// Pops `n` values from the stack at once, returning them in an array __not__ in reverse order
     /// the way they would be if they were popped individually one after the other.
-    pub(crate) fn pop_n(&mut self, arity: usize) -> Result<Vec<Value>, InternalRuntimeError> {
+    pub(crate) fn pop_n(
+        &mut self,
+        arity: usize,
+    ) -> Result<Vec<InternalValue>, InternalRuntimeError> {
         let internal_values = self
             .cactus
             .detach_at(arity)
             .ok_or(InternalRuntimeError::ExpectedValue("stack too short"))?;
-        internal_values
-            .into_iter()
-            .map(InternalValue::try_into_value)
-            .collect()
+        Ok(internal_values)
     }
 
     fn len(&self) -> usize {

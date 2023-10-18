@@ -1,4 +1,5 @@
 use super::error::{ErrorKind, InternalRuntimeError};
+use super::stack::InternalValue;
 use super::{Error, Stack};
 use crate::bytecode::chunk::Chunk;
 use crate::{Continuation, Offset, OpCode, Procedure, Value};
@@ -69,7 +70,7 @@ impl Execution {
     pub fn call_continuation(
         &mut self,
         continuation: Continuation,
-        args: Vec<Value>,
+        args: Vec<InternalValue>,
     ) -> Result<(), Error> {
         let running_stack = continuation.stack();
         let paused_stack = std::mem::replace(&mut self.stack, running_stack);
@@ -79,7 +80,7 @@ impl Execution {
         Ok(())
     }
 
-    pub fn become_continuation(&mut self, continuation: Continuation, args: Vec<Value>) {
+    pub fn become_continuation(&mut self, continuation: Continuation, args: Vec<InternalValue>) {
         self.stack = continuation.stack();
         self.stack.push_many(args);
         self.ip = continuation.ip();
@@ -96,12 +97,16 @@ impl Execution {
         Ok(())
     }
 
-    fn call_procedure(&mut self, procedure: Procedure, args: Vec<Value>) {
+    fn call_procedure(&mut self, procedure: Procedure, args: Vec<InternalValue>) {
         self.stack.push_frame(self.ip, args, procedure.stack());
         self.ip = procedure.ip();
     }
 
-    fn become_procedure(&mut self, procedure: Procedure, args: Vec<Value>) -> Result<(), Error> {
+    fn become_procedure(
+        &mut self,
+        procedure: Procedure,
+        args: Vec<InternalValue>,
+    ) -> Result<(), Error> {
         let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
         self.stack.push_frame(ip, args, procedure.stack());
         self.ip = procedure.ip();
@@ -184,7 +189,13 @@ impl Execution {
                 self.call_procedure(procedure, arguments);
             }
             Some(Value::Native(native)) => {
-                let ret_val = native.call(arguments);
+                let ret_val = native.call(
+                    arguments
+                        .into_iter()
+                        .map(|val| val.try_into_value())
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|k| self.error(k))?,
+                );
                 self.stack.push(ret_val);
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
@@ -203,7 +214,13 @@ impl Execution {
                 self.become_procedure(procedure, arguments)?;
             }
             Some(Value::Native(native)) => {
-                let ret_val = native.call(arguments);
+                let ret_val = native.call(
+                    arguments
+                        .into_iter()
+                        .map(|val| val.try_into_value())
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|k| self.error(k))?,
+                );
                 self.r#return()?;
                 self.stack.push(ret_val);
             }

@@ -98,6 +98,14 @@ fn write_query_value(
                 .cond_jump(on_fail);
             write_expression(context, &unification.expression);
             unbind(context, bound, unification.pattern.bindings());
+            // TODO: seems like... we have to insert into the bindset that the variables
+            // just set are now bound. but have to confirm that mutating the bindset is
+            // going to be ok and not cause issues... Probably have to un-mutate it when
+            // backtracking past this matching (for disjunctions in particular). That's
+            // probably going to be the responsibility of the disjunction, to properly
+            // maintain the bindset when backtracking.
+            //
+            // Too tired to figure that out right now though.
             write_pattern_match(context, &unification.pattern, on_fail);
         }
         ir::QueryValue::Element(unification) => {
@@ -373,7 +381,7 @@ fn write_query_value(
         }
         ir::QueryValue::Lookup(lookup) => {
             let setup = context.labeler.unique_hint("setup");
-            let enter = context.labeler.unique_hint("enter");
+            let enter = context.labeler.unique_hint("enter_lookup");
             let cleanup = context.labeler.unique_hint("cleanup");
             let end = context.labeler.unique_hint("end");
 
@@ -452,7 +460,7 @@ fn unbind(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
                         .instruction(Instruction::Const(index.into()))
                         .instruction(Instruction::Contains)
                         .instruction(Instruction::Not)
-                        .jump(&skip);
+                        .cond_jump(&skip);
                 }
                 context
                     .instruction(Instruction::UnsetLocal(index))

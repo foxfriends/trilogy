@@ -258,7 +258,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let mut spread = None;
                 context.instruction(Instruction::Clone);
                 let array = context.scope.intermediate();
-                for element in &pack.values {
+                for (i, element) in pack.values.iter().enumerate() {
                     if element.is_spread {
                         spread = Some(&element.expression);
                         continue;
@@ -283,7 +283,12 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         context
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::Length)
-                            .instruction(Instruction::Const(1.into()))
+                            .instruction(Instruction::Const(pack.values.len().into()))
+                            .instruction(Instruction::Gt)
+                            .cond_jump(&cleanup)
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Length)
+                            .instruction(Instruction::Const((pack.values.len() - i).into()))
                             .instruction(Instruction::Subtract)
                             .instruction(Instruction::LoadLocal(array))
                             .instruction(Instruction::LoadLocal(index))
