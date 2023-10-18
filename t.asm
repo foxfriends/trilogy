@@ -277,7 +277,7 @@
      646: RETURN
 "#temp::2::yielding":
      647: BECOME 2
-"isel#556be4ac8550":
+"isel#56343246b550":
      652: CONST  (unit:0)
      657: CLOSE  &"core::return"
      662: CLOSE  &"core::return"
@@ -292,490 +292,498 @@
      687: CONST  unit
      692: VALNEQ
      693: JUMPF  &"#temp::5::setup"
-"#temp::7::call":
-     698: COPY
-     699: CALL   0
-     704: COPY
-     705: CONST  'done
-     710: VALEQ
-     711: JUMPF  &"#temp::6::end"
-     716: POP
-     717: POP
-     718: JUMP   &"#temp::4::fail"
-"#temp::5::setup":
+     698: JUMP   &"#temp::8::call"
+"#temp::7::precall":
+     703: SWAP
+     704: POP
+"#temp::8::call":
+     705: COPY
+     706: CALL   0
+     711: COPY
+     712: CONST  'done
+     717: VALEQ
+     718: JUMPF  &"#temp::6::end"
      723: POP
-     724: LOADL  1
-     729: CONST  0
-     734: CONTAINS
-     735: JUMPF  &"#temp::8::skip"
-     740: LOADL  2
-     745: POP
-"#temp::8::skip":
-     746: LOADL  1
-     751: CONST  1
-     756: CONTAINS
-     757: JUMPF  &"#temp::10::skip"
-     762: LOADL  3
-     767: CLONE
-     768: POP
-     769: JUMP   &"#temp::10::skip"
-"#temp::12::array_cleanup":
-     774: POP
+     724: POP
+     725: JUMP   &"#temp::4::fail"
+"#temp::5::setup":
+     730: POP
+     731: LOADL  1
+     736: CONST  0
+     741: CONTAINS
+     742: JUMPF  &"#temp::9::skip"
+     747: LOADL  2
+     752: POP
+"#temp::9::skip":
+     753: LOADL  1
+     758: CONST  1
+     763: CONTAINS
+     764: JUMPF  &"#temp::14::array_end"
+     769: LOADL  3
+     774: CLONE
      775: POP
-     776: JUMP   &"#temp::9::cleanup"
-"#temp::10::skip":
-"#temp::13::array_end":
-     781: CONST  true
-     786: CLOSE  &"#temp::7::call"
-     791: LOADL  4
-     796: JUMP   &"#temp::14::on_done"
-     801: SETL   4
-     806: LOADL  1
-     811: CONST  0
-     816: CONTAINS
-     817: JUMPF  &"#temp::15::eval"
-     822: LOADL  2
-     827: JUMP   &"#temp::16::next"
-"#temp::15::eval":
-     832: FIZZLE
-"#temp::16::next":
-     833: LOADL  1
-     838: CONST  1
-     843: CONTAINS
-     844: JUMPF  &"#temp::17::eval"
-     849: LOADL  3
-     854: JUMP   &"#temp::18::next"
-"#temp::17::eval":
-     859: CONST  []
-"#temp::18::next":
-     864: CONST  unit
-     869: SWAP
-     870: CONS
-     871: SWAP
-     872: CONS
-     873: CONST  'next
-     878: CONSTRUCT
-     879: RETURN
-"#temp::14::on_done":
-     880: CONST  'done
-     885: RETURN
-"#temp::9::cleanup":
-"#temp::11::cleanup":
-     886: JUMP   &"#temp::4::fail"
+     776: JUMP   &"#temp::14::array_end"
+"#temp::13::array_cleanup":
+     781: POP
+     782: POP
+     783: JUMP   &"#temp::10::cleanup"
+"#temp::14::array_end":
+"#temp::11::skip":
+     788: CONST  true
+     793: CLOSE  &"#temp::7::precall"
+     798: LOADL  4
+     803: JUMP   &"#temp::15::on_done"
+     808: SETL   4
+     813: LOADL  1
+     818: CONST  0
+     823: CONTAINS
+     824: JUMPF  &"#temp::16::eval"
+     829: LOADL  2
+     834: JUMP   &"#temp::17::next"
+"#temp::16::eval":
+     839: FIZZLE
+"#temp::17::next":
+     840: LOADL  1
+     845: CONST  1
+     850: CONTAINS
+     851: JUMPF  &"#temp::18::eval"
+     856: LOADL  3
+     861: JUMP   &"#temp::19::next"
+"#temp::18::eval":
+     866: CONST  []
+"#temp::19::next":
+     871: CONST  unit
+     876: SWAP
+     877: CONS
+     878: SWAP
+     879: CONS
+     880: CONST  'next
+     885: CONSTRUCT
+     886: RETURN
+"#temp::15::on_done":
+     887: CONST  'done
+     892: RETURN
+"#temp::10::cleanup":
+"#temp::12::cleanup":
+     893: JUMP   &"#temp::4::fail"
 "#temp::6::end":
-     891: SWAP
-     892: CONST  0
-     897: CONS
-     898: SETL   0
-     903: RETURN
+     898: SWAP
+     899: CONST  0
+     904: CONS
+     905: SETL   0
+     910: RETURN
 "#temp::4::fail":
-     904: CONST  (unit:1)
-     909: SETL   0
-     914: LOADL  0
-     919: UNCONS
+     911: CONST  (unit:1)
+     916: SETL   0
+     921: LOADL  0
+     926: UNCONS
 "#temp::3::next_overload":
-     920: COPY
-     921: CONST  1
-     926: VALEQ
-     927: JUMPF  &"#temp::19::next_overload"
-     932: POP
-     933: COPY
-     934: CONST  unit
-     939: VALNEQ
-     940: JUMPF  &"#temp::21::setup"
-"#temp::23::call":
-     945: COPY
-     946: CALL   0
-     951: COPY
-     952: CONST  'done
-     957: VALEQ
-     958: JUMPF  &"#temp::22::end"
-     963: POP
-     964: POP
-     965: JUMP   &"#temp::20::fail"
-"#temp::21::setup":
-     970: POP
-"#var::26::x::0x0000556be4ac5080":
-     971: VAR
-     972: LOADL  1
-     977: CONST  0
-     982: CONTAINS
-     983: JUMPF  &"#temp::28::assigned"
-     988: LOADL  2
-     993: COPY
-     994: INITL  4
-     999: JUMPF  &"#temp::27::compare"
-    1004: POP
-    1005: JUMP   &"#temp::28::assigned"
-"#temp::27::compare":
-    1010: LOADL  4
-    1015: VALEQ
-    1016: JUMPF  &"#temp::25::cleanup"
-"#temp::28::assigned":
-"#temp::24::skip":
-"#var::31::r::0x0000556be4ac1920":
-    1021: VAR
-"#var::32::y::0x0000556be4aca0c0":
-    1022: VAR
-    1023: LOADL  1
-    1028: CONST  1
-    1033: CONTAINS
-    1034: JUMPF  &"#temp::34::array_end"
-    1039: LOADL  3
-    1044: CLONE
-    1045: COPY
-    1046: CONST  0
-    1051: ACCESS
-    1052: COPY
-    1053: INITL  6
-    1058: JUMPF  &"#temp::35::compare"
-    1063: POP
-    1064: JUMP   &"#temp::36::assigned"
-"#temp::35::compare":
-    1069: LOADL  6
-    1074: VALEQ
-    1075: JUMPF  &"#temp::33::array_cleanup"
-"#temp::36::assigned":
-    1080: CONST  1
-    1085: SKIP
-    1086: COPY
-    1087: INITL  5
-    1092: JUMPF  &"#temp::37::compare"
-    1097: POP
-    1098: JUMP   &"#temp::38::assigned"
+     927: COPY
+     928: CONST  1
+     933: VALEQ
+     934: JUMPF  &"#temp::20::next_overload"
+     939: POP
+     940: COPY
+     941: CONST  unit
+     946: VALNEQ
+     947: JUMPF  &"#temp::22::setup"
+     952: JUMP   &"#temp::25::call"
+"#temp::24::precall":
+     957: SWAP
+     958: POP
+"#temp::25::call":
+     959: COPY
+     960: CALL   0
+     965: COPY
+     966: CONST  'done
+     971: VALEQ
+     972: JUMPF  &"#temp::23::end"
+     977: POP
+     978: POP
+     979: JUMP   &"#temp::21::fail"
+"#temp::22::setup":
+     984: POP
+"#var::28::x::0x0000563432468080":
+     985: VAR
+     986: LOADL  1
+     991: CONST  0
+     996: CONTAINS
+     997: JUMPF  &"#temp::26::skip"
+    1002: LOADL  2
+    1007: COPY
+    1008: INITL  4
+    1013: JUMPF  &"#temp::29::compare"
+    1018: POP
+    1019: JUMP   &"#temp::26::skip"
+"#temp::29::compare":
+    1024: LOADL  4
+    1029: VALEQ
+    1030: JUMPF  &"#temp::27::cleanup"
+"#temp::26::skip":
+"#temp::30::assigned":
+"#var::33::y::0x000056343246d0c0":
+    1035: VAR
+"#var::34::r::0x0000563432464920":
+    1036: VAR
+    1037: LOADL  1
+    1042: CONST  1
+    1047: CONTAINS
+    1048: JUMPF  &"#temp::36::array_end"
+    1053: LOADL  3
+    1058: CLONE
+    1059: COPY
+    1060: CONST  0
+    1065: ACCESS
+    1066: COPY
+    1067: INITL  5
+    1072: JUMPF  &"#temp::37::compare"
+    1077: POP
+    1078: JUMP   &"#temp::38::assigned"
 "#temp::37::compare":
-    1103: LOADL  5
-    1108: VALEQ
-    1109: JUMPF  &"#temp::30::cleanup"
+    1083: LOADL  5
+    1088: VALEQ
+    1089: JUMPF  &"#temp::35::array_cleanup"
 "#temp::38::assigned":
-    1114: JUMP   &"#temp::34::array_end"
-"#temp::33::array_cleanup":
-    1119: POP
-    1120: POP
-    1121: JUMP   &"#temp::30::cleanup"
-"#temp::34::array_end":
-"#temp::29::skip":
-    1126: CONST  true
-    1131: CONST  false
-    1136: CONS
-    1137: CONST  unit
-    1142: CONS
-    1143: CLOSE  &"#temp::23::call"
-    1148: LOADL  7
-    1153: CONST  false
-    1158: SWAP
-    1159: UNCONS
-    1160: COPY
-    1161: CONST  unit
-    1166: VALEQ
-    1167: SETL   8
-    1172: CONST  false
-    1177: VALNEQ
-    1178: JUMPF  &"#temp::41::alt_second"
-    1183: UNCONS
-    1184: JUMPF  &"#temp::48::impl_outer"
-"#temp::49::impl_inner":
-    1189: CONST  false
-    1194: SWAP
-    1195: JUMPF  &"#temp::47::impl_cleans"
-    1200: CONST  true
-    1205: CONS
-    1206: JUMP   &"#temp::45::impl_out"
-"#temp::48::impl_outer":
-    1211: CONST  false
-    1216: SWAP
-    1217: JUMPF  &"#temp::46::impl_cleanf"
-    1222: LOADL  6
-    1227: LOADL  1
-    1232: CONST  4
-    1237: CONTAINS
-    1238: NOT
-    1239: JUMP   &"#temp::50::skip"
-    1244: UNSETL 4
-"#temp::50::skip":
-    1249: COPY
-    1250: INITL  4
-    1255: JUMPF  &"#temp::51::compare"
-    1260: POP
-    1261: JUMP   &"#temp::52::assigned"
-"#temp::51::compare":
-    1266: LOADL  4
-    1271: VALEQ
-    1272: JUMPF  &"#temp::46::impl_cleanf"
-"#temp::52::assigned":
-    1277: POP
-    1278: CONST  true
-    1283: JUMP   &"#temp::49::impl_inner"
-"#temp::46::impl_cleanf":
-    1288: CONST  false
-    1293: CONS
-    1294: JUMP   &"#temp::40::alt_maybe"
-"#temp::47::impl_cleans":
-    1299: CONST  true
-    1304: CONS
-    1305: JUMP   &"#temp::40::alt_maybe"
-"#temp::45::impl_out":
-    1310: CONST  true
-    1315: CONS
-    1316: JUMP   &"#temp::42::alt_out"
-"#temp::41::alt_second":
-    1321: UNCONS
-    1322: JUMPF  &"#temp::53::setup"
-"#temp::54::enter":
-    1327: COPY
-    1328: CALL   0
-    1333: COPY
-    1334: CONST  'done
-    1339: VALNEQ
-    1340: JUMPF  &"#temp::55::cleanup"
-    1345: DESTRUCT
-    1346: CONST  'next
-    1351: VALEQ
-    1352: JUMPF  &"#temp::55::cleanup"
-    1357: UNCONS
-    1358: LOADL  1
-    1363: CONST  4
-    1368: CONTAINS
-    1369: NOT
-    1370: JUMP   &"#temp::57::skip"
-    1375: UNSETL 4
-"#temp::57::skip":
-    1380: COPY
-    1381: INITL  4
-    1386: JUMPF  &"#temp::58::compare"
-    1391: POP
-    1392: JUMP   &"#temp::59::assigned"
-"#temp::58::compare":
-    1397: LOADL  4
-    1402: VALEQ
-    1403: JUMPF  &"#temp::55::cleanup"
-"#temp::59::assigned":
-    1408: UNCONS
-    1409: LOADL  1
-    1414: CONST  5
-    1419: CONTAINS
-    1420: NOT
-    1421: JUMP   &"#temp::60::skip"
-    1426: UNSETL 5
-"#temp::60::skip":
-    1431: COPY
-    1432: INITL  5
-    1437: JUMPF  &"#temp::61::compare"
-    1442: POP
-    1443: JUMP   &"#temp::62::assigned"
-"#temp::61::compare":
-    1448: LOADL  5
-    1453: VALEQ
-    1454: JUMPF  &"#temp::55::cleanup"
-"#temp::62::assigned":
-    1459: POP
-    1460: CONST  true
-    1465: CONS
-    1466: JUMP   &"#temp::56::end"
-"#temp::55::cleanup":
-    1471: POP
-    1472: CONST  true
-    1477: CONS
-    1478: JUMP   &"#temp::44::alt_cleans"
-"#temp::53::setup":
-    1483: CONST  [||]
-    1488: LOADL  1
-    1493: CONST  4
-    1498: CONTAINS
-    1499: JUMPF  &"#temp::63::nope"
-    1504: LOADL  4
-    1509: LOADL  10
-    1514: CONST  0
-    1519: INSERT
-    1520: POP
-    1521: JUMP   &"#temp::64::next"
-"#temp::63::nope":
-    1526: CONST  unit
-"#temp::64::next":
-    1531: LOADL  1
-    1536: CONST  5
-    1541: CONTAINS
-    1542: JUMPF  &"#temp::65::nope"
-    1547: LOADL  5
-    1552: LOADL  10
-    1557: CONST  1
-    1562: INSERT
-    1563: POP
-    1564: JUMP   &"#temp::66::next"
+    1094: CONST  1
+    1099: SKIP
+    1100: COPY
+    1101: INITL  6
+    1106: JUMPF  &"#temp::39::compare"
+    1111: POP
+    1112: JUMP   &"#temp::40::assigned"
+"#temp::39::compare":
+    1117: LOADL  6
+    1122: VALEQ
+    1123: JUMPF  &"#temp::32::cleanup"
+"#temp::40::assigned":
+    1128: JUMP   &"#temp::36::array_end"
+"#temp::35::array_cleanup":
+    1133: POP
+    1134: POP
+    1135: JUMP   &"#temp::32::cleanup"
+"#temp::36::array_end":
+"#temp::31::skip":
+    1140: CONST  true
+    1145: CONST  false
+    1150: CONS
+    1151: CONST  unit
+    1156: CONS
+    1157: CLOSE  &"#temp::24::precall"
+    1162: LOADL  7
+    1167: CONST  false
+    1172: SWAP
+    1173: UNCONS
+    1174: COPY
+    1175: CONST  unit
+    1180: VALEQ
+    1181: SETL   8
+    1186: CONST  false
+    1191: VALNEQ
+    1192: JUMPF  &"#temp::43::alt_second"
+    1197: UNCONS
+    1198: JUMPF  &"#temp::50::impl_outer"
+"#temp::51::impl_inner":
+    1203: CONST  false
+    1208: SWAP
+    1209: JUMPF  &"#temp::49::impl_cleans"
+    1214: CONST  true
+    1219: CONS
+    1220: JUMP   &"#temp::47::impl_out"
+"#temp::50::impl_outer":
+    1225: CONST  false
+    1230: SWAP
+    1231: JUMPF  &"#temp::48::impl_cleanf"
+    1236: LOADL  5
+    1241: LOADL  1
+    1246: CONST  4
+    1251: CONTAINS
+    1252: NOT
+    1253: JUMP   &"#temp::52::skip"
+    1258: UNSETL 4
+"#temp::52::skip":
+    1263: COPY
+    1264: INITL  4
+    1269: JUMPF  &"#temp::53::compare"
+    1274: POP
+    1275: JUMP   &"#temp::54::assigned"
+"#temp::53::compare":
+    1280: LOADL  4
+    1285: VALEQ
+    1286: JUMPF  &"#temp::48::impl_cleanf"
+"#temp::54::assigned":
+    1291: POP
+    1292: CONST  true
+    1297: JUMP   &"#temp::51::impl_inner"
+"#temp::48::impl_cleanf":
+    1302: CONST  false
+    1307: CONS
+    1308: JUMP   &"#temp::42::alt_maybe"
+"#temp::49::impl_cleans":
+    1313: CONST  true
+    1318: CONS
+    1319: JUMP   &"#temp::42::alt_maybe"
+"#temp::47::impl_out":
+    1324: CONST  true
+    1329: CONS
+    1330: JUMP   &"#temp::44::alt_out"
+"#temp::43::alt_second":
+    1335: UNCONS
+    1336: JUMPF  &"#temp::55::setup"
+"#temp::56::enter":
+    1341: COPY
+    1342: CALL   0
+    1347: COPY
+    1348: CONST  'done
+    1353: VALNEQ
+    1354: JUMPF  &"#temp::57::cleanup"
+    1359: DESTRUCT
+    1360: CONST  'next
+    1365: VALEQ
+    1366: JUMPF  &"#temp::57::cleanup"
+    1371: UNCONS
+    1372: LOADL  1
+    1377: CONST  4
+    1382: CONTAINS
+    1383: NOT
+    1384: JUMP   &"#temp::59::skip"
+    1389: UNSETL 4
+"#temp::59::skip":
+    1394: COPY
+    1395: INITL  4
+    1400: JUMPF  &"#temp::60::compare"
+    1405: POP
+    1406: JUMP   &"#temp::61::assigned"
+"#temp::60::compare":
+    1411: LOADL  4
+    1416: VALEQ
+    1417: JUMPF  &"#temp::57::cleanup"
+"#temp::61::assigned":
+    1422: UNCONS
+    1423: LOADL  1
+    1428: CONST  6
+    1433: CONTAINS
+    1434: NOT
+    1435: JUMP   &"#temp::62::skip"
+    1440: UNSETL 6
+"#temp::62::skip":
+    1445: COPY
+    1446: INITL  6
+    1451: JUMPF  &"#temp::63::compare"
+    1456: POP
+    1457: JUMP   &"#temp::64::assigned"
+"#temp::63::compare":
+    1462: LOADL  6
+    1467: VALEQ
+    1468: JUMPF  &"#temp::57::cleanup"
+"#temp::64::assigned":
+    1473: POP
+    1474: CONST  true
+    1479: CONS
+    1480: JUMP   &"#temp::58::end"
+"#temp::57::cleanup":
+    1485: POP
+    1486: CONST  true
+    1491: CONS
+    1492: JUMP   &"#temp::46::alt_cleans"
+"#temp::55::setup":
+    1497: CONST  [||]
+    1502: LOADL  1
+    1507: CONST  4
+    1512: CONTAINS
+    1513: JUMPF  &"#temp::65::nope"
+    1518: LOADL  4
+    1523: LOADL  10
+    1528: CONST  0
+    1533: INSERT
+    1534: POP
+    1535: JUMP   &"#temp::66::next"
 "#temp::65::nope":
-    1569: CONST  unit
+    1540: CONST  unit
 "#temp::66::next":
-    1574: CALL   3
-    1579: JUMP   &"#temp::54::enter"
-"#temp::56::end":
-    1584: CONST  false
-    1589: CONS
-    1590: JUMP   &"#temp::42::alt_out"
-"#temp::40::alt_maybe":
-    1595: LOADL  8
-    1600: JUMPF  &"#temp::43::alt_cleanf"
-    1605: POP
-    1606: CONST  &"isel#556be4ac8550"
-    1611: CALL   0
-    1616: CONST  false
-    1621: CONS
-    1622: JUMP   &"#temp::41::alt_second"
-"#temp::43::alt_cleanf":
-    1627: CONST  true
-    1632: CONS
-    1633: SWAP
-    1634: POP
-    1635: JUMP   &"#temp::39::on_done"
-"#temp::44::alt_cleans":
-    1640: CONST  false
-    1645: CONS
-    1646: SWAP
-    1647: POP
-    1648: JUMP   &"#temp::39::on_done"
-"#temp::42::alt_out":
-    1653: SWAP
-    1654: POP
-    1655: SETL   7
-    1660: LOADL  1
-    1665: CONST  0
-    1670: CONTAINS
-    1671: JUMPF  &"#temp::67::eval"
-    1676: LOADL  2
-    1681: JUMP   &"#temp::68::next"
-"#temp::67::eval":
-    1686: LOADL  4
+    1545: LOADL  1
+    1550: CONST  6
+    1555: CONTAINS
+    1556: JUMPF  &"#temp::67::nope"
+    1561: LOADL  6
+    1566: LOADL  10
+    1571: CONST  1
+    1576: INSERT
+    1577: POP
+    1578: JUMP   &"#temp::68::next"
+"#temp::67::nope":
+    1583: CONST  unit
 "#temp::68::next":
-    1691: LOADL  1
-    1696: CONST  1
-    1701: CONTAINS
-    1702: JUMPF  &"#temp::69::eval"
-    1707: LOADL  3
-    1712: JUMP   &"#temp::70::next"
+    1588: CALL   3
+    1593: JUMP   &"#temp::56::enter"
+"#temp::58::end":
+    1598: CONST  false
+    1603: CONS
+    1604: JUMP   &"#temp::44::alt_out"
+"#temp::42::alt_maybe":
+    1609: LOADL  8
+    1614: JUMPF  &"#temp::45::alt_cleanf"
+    1619: POP
+    1620: CONST  &"isel#56343246b550"
+    1625: CALL   0
+    1630: CONST  false
+    1635: CONS
+    1636: JUMP   &"#temp::43::alt_second"
+"#temp::45::alt_cleanf":
+    1641: CONST  true
+    1646: CONS
+    1647: SWAP
+    1648: POP
+    1649: JUMP   &"#temp::41::on_done"
+"#temp::46::alt_cleans":
+    1654: CONST  false
+    1659: CONS
+    1660: SWAP
+    1661: POP
+    1662: JUMP   &"#temp::41::on_done"
+"#temp::44::alt_out":
+    1667: SWAP
+    1668: POP
+    1669: SETL   7
+    1674: LOADL  1
+    1679: CONST  0
+    1684: CONTAINS
+    1685: JUMPF  &"#temp::69::eval"
+    1690: LOADL  2
+    1695: JUMP   &"#temp::70::next"
 "#temp::69::eval":
-    1717: CONST  []
-    1722: LOADL  6
-    1727: INSERT
-    1728: LOADL  5
-    1733: GLUE
+    1700: LOADL  4
 "#temp::70::next":
-    1734: CONST  unit
-    1739: SWAP
-    1740: CONS
-    1741: SWAP
-    1742: CONS
-    1743: CONST  'next
-    1748: CONSTRUCT
-    1749: RETURN
-"#temp::39::on_done":
-    1750: CONST  'done
-    1755: RETURN
-"#temp::30::cleanup":
-    1756: POP
-    1757: POP
-"#temp::25::cleanup":
-    1758: POP
-    1759: JUMP   &"#temp::20::fail"
-"#temp::22::end":
-    1764: SWAP
-    1765: CONST  1
-    1770: CONS
-    1771: SETL   0
-    1776: RETURN
-"#temp::20::fail":
-    1777: CONST  (unit:2)
-    1782: SETL   0
-    1787: LOADL  0
-    1792: UNCONS
-"#temp::19::next_overload":
-    1793: CONST  'done
-    1798: RETURN
-"main#556be4ac5f10":
+    1705: LOADL  1
+    1710: CONST  1
+    1715: CONTAINS
+    1716: JUMPF  &"#temp::71::eval"
+    1721: LOADL  3
+    1726: JUMP   &"#temp::72::next"
+"#temp::71::eval":
+    1731: CONST  []
+    1736: LOADL  5
+    1741: INSERT
+    1742: LOADL  6
+    1747: GLUE
+"#temp::72::next":
+    1748: CONST  unit
+    1753: SWAP
+    1754: CONS
+    1755: SWAP
+    1756: CONS
+    1757: CONST  'next
+    1762: CONSTRUCT
+    1763: RETURN
+"#temp::41::on_done":
+    1764: CONST  'done
+    1769: RETURN
+"#temp::32::cleanup":
+    1770: POP
+    1771: POP
+"#temp::27::cleanup":
+    1772: POP
+    1773: JUMP   &"#temp::21::fail"
+"#temp::23::end":
+    1778: SWAP
+    1779: CONST  1
+    1784: CONS
+    1785: SETL   0
+    1790: RETURN
+"#temp::21::fail":
+    1791: CONST  (unit:2)
+    1796: SETL   0
+    1801: LOADL  0
+    1806: UNCONS
+"#temp::20::next_overload":
+    1807: CONST  'done
+    1812: RETURN
+"main#563432468f10":
 "trilogy:__entrypoint__":
-    1799: CONST  &"isel#556be4ac8550"
-    1804: CALL   0
-    1809: CONST  false
-    1814: CONS
-    1815: UNCONS
-    1816: JUMPF  &"#temp::73::setup"
-"#temp::74::enter":
-    1821: COPY
-    1822: CALL   0
-    1827: COPY
-    1828: CONST  'done
-    1833: VALNEQ
-    1834: JUMPF  &"#temp::75::cleanup"
-    1839: DESTRUCT
-    1840: CONST  'next
-    1845: VALEQ
-    1846: JUMPF  &"#temp::75::cleanup"
-    1851: UNCONS
-    1852: CONST  1
-    1857: VALEQ
-    1858: JUMPF  &"#temp::75::cleanup"
-    1863: UNCONS
-    1864: CLONE
-    1865: COPY
-    1866: CONST  0
-    1871: ACCESS
-    1872: CONST  1
-    1877: VALEQ
-    1878: JUMPF  &"#temp::77::array_cleanup"
-    1883: CONST  1
-    1888: SKIP
-    1889: COPY
-    1890: CONST  0
-    1895: ACCESS
-    1896: CONST  2
-    1901: VALEQ
-    1902: JUMPF  &"#temp::77::array_cleanup"
-    1907: CONST  1
-    1912: SKIP
-    1913: COPY
-    1914: CONST  0
-    1919: ACCESS
-    1920: CONST  3
-    1925: VALEQ
-    1926: JUMPF  &"#temp::77::array_cleanup"
-    1931: CONST  1
-    1936: SKIP
-    1937: POP
-    1938: JUMP   &"#temp::78::array_end"
-"#temp::77::array_cleanup":
-    1943: POP
-    1944: POP
-    1945: JUMP   &"#temp::75::cleanup"
-"#temp::78::array_end":
-    1950: POP
-    1951: CONST  true
-    1956: CONS
-    1957: JUMP   &"#temp::76::end"
-"#temp::75::cleanup":
-    1962: POP
-    1963: CONST  true
-    1968: CONS
-    1969: JUMP   &"#temp::71::is_fail"
-"#temp::73::setup":
-    1974: CONST  [|0,1,|]
-    1979: CONST  1
-    1984: CONST  []
-    1989: CONST  1
-    1994: INSERT
-    1995: CONST  2
-    2000: INSERT
-    2001: CONST  3
-    2006: INSERT
-    2007: CALL   3
-    2012: JUMP   &"#temp::74::enter"
-"#temp::76::end":
-    2017: CONST  true
-    2022: SLIDE  1
-    2027: JUMP   &"#temp::72::is_end"
-"#temp::71::is_fail":
-    2032: CONST  false
-    2037: SLIDE  1
-"#temp::72::is_end":
-    2042: POP
-    2043: EXIT
-    2044: CONST  unit
-    2049: RETURN
+    1813: CONST  &"isel#56343246b550"
+    1818: CALL   0
+    1823: CONST  false
+    1828: CONS
+    1829: UNCONS
+    1830: JUMPF  &"#temp::75::setup"
+"#temp::76::enter":
+    1835: COPY
+    1836: CALL   0
+    1841: COPY
+    1842: CONST  'done
+    1847: VALNEQ
+    1848: JUMPF  &"#temp::77::cleanup"
+    1853: DESTRUCT
+    1854: CONST  'next
+    1859: VALEQ
+    1860: JUMPF  &"#temp::77::cleanup"
+    1865: UNCONS
+    1866: CONST  1
+    1871: VALEQ
+    1872: JUMPF  &"#temp::77::cleanup"
+    1877: UNCONS
+    1878: CLONE
+    1879: COPY
+    1880: CONST  0
+    1885: ACCESS
+    1886: CONST  1
+    1891: VALEQ
+    1892: JUMPF  &"#temp::79::array_cleanup"
+    1897: CONST  1
+    1902: SKIP
+    1903: COPY
+    1904: CONST  0
+    1909: ACCESS
+    1910: CONST  2
+    1915: VALEQ
+    1916: JUMPF  &"#temp::79::array_cleanup"
+    1921: CONST  1
+    1926: SKIP
+    1927: COPY
+    1928: CONST  0
+    1933: ACCESS
+    1934: CONST  3
+    1939: VALEQ
+    1940: JUMPF  &"#temp::79::array_cleanup"
+    1945: CONST  1
+    1950: SKIP
+    1951: POP
+    1952: JUMP   &"#temp::80::array_end"
+"#temp::79::array_cleanup":
+    1957: POP
+    1958: POP
+    1959: JUMP   &"#temp::77::cleanup"
+"#temp::80::array_end":
+    1964: POP
+    1965: CONST  true
+    1970: CONS
+    1971: JUMP   &"#temp::78::end"
+"#temp::77::cleanup":
+    1976: POP
+    1977: CONST  true
+    1982: CONS
+    1983: JUMP   &"#temp::73::is_fail"
+"#temp::75::setup":
+    1988: CONST  [|0,1,|]
+    1993: CONST  1
+    1998: CONST  []
+    2003: CONST  1
+    2008: INSERT
+    2009: CONST  2
+    2014: INSERT
+    2015: CONST  3
+    2020: INSERT
+    2021: CALL   3
+    2026: JUMP   &"#temp::76::enter"
+"#temp::78::end":
+    2031: CONST  true
+    2036: SLIDE  1
+    2041: JUMP   &"#temp::74::is_end"
+"#temp::73::is_fail":
+    2046: CONST  false
+    2051: SLIDE  1
+"#temp::74::is_end":
+    2056: POP
+    2057: EXIT
+    2058: CONST  unit
+    2063: RETURN
 

@@ -10,14 +10,27 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
 
     let setup = context.labeler.unique_hint("setup");
     let end = context.labeler.unique_hint("end");
+    let precall = context.labeler.unique_hint("precall");
     let call = context.labeler.unique_hint("call");
 
+    // On calling a rule, check if the state is `unit`. If it is, that means it's the
+    // first time into this branch of the rule, so we have to run setup.
     context
         .instruction(Instruction::Copy)
         .instruction(Instruction::Const(().into()))
         .instruction(Instruction::ValNeq)
         .cond_jump(&setup)
-        .label(call.clone())
+        .jump(&call)
+        // Following setup, we return here.
+        .label(&precall)
+        // In the case that we just did the setup, not only is the iterator on the
+        // stack but also the iterator's state (which has already been closed into
+        // the iterator), so we have to discard that extra state.
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Pop)
+        // Once setup is complete, we end up here where the rule's iterator is actually
+        // called. The state (that is not unit) is that iterator.
+        .label(&call)
         .instruction(Instruction::Copy)
         .instruction(Instruction::Call(0))
         // After calling this overload's iterator, flatten failures into the parent.
@@ -27,8 +40,8 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         .instruction(Instruction::Const(done.clone().into()))
         .instruction(Instruction::ValEq)
         .cond_jump(&end)
-        .instruction(Instruction::Pop)
-        .instruction(Instruction::Pop)
+        .instruction(Instruction::Pop) // The 'done
+        .instruction(Instruction::Pop) // The closure itself
         .jump(on_fail);
 
     context.label(setup).instruction(Instruction::Pop);
@@ -53,7 +66,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // encapsulating all that into a closure which will be the iterator for
     // this overload of the rule.
     write_query_state(context, &rule.body);
-    context.close(&call);
+    context.close(&precall);
 
     // The actual body of the rule involves running the query, then
     // returning the return value in 'next. We convert failure to
