@@ -203,12 +203,12 @@
      457: TYPEOF
      458: CONST  "set"
      463: VALNEQ
-     464: JUMPF  &"core::iter_record"
+     464: JUMPF  &"core::iter_set"
      469: COPY
      470: TYPEOF
      471: CONST  "record"
      476: VALNEQ
-     477: JUMPF  &"core::iter_record"
+     477: JUMPF  &"core::iter_set"
      482: COPY
      483: TYPEOF
      484: CONST  "tuple"
@@ -219,8 +219,8 @@
      501: VALNEQ
      502: JUMPF  &"core::iter_list"
      507: FIZZLE
-"core::iter_record":
 "core::iter_set":
+"core::iter_record":
      508: ENTRIES
 "core::iter_array":
      509: CONST  0
@@ -277,7 +277,7 @@
      646: RETURN
 "#temp::2::yielding":
      647: BECOME 2
-"isel#560ba62c1550":
+"isel#556be4ac8550":
      652: CONST  (unit:0)
      657: CLOSE  &"core::return"
      662: CLOSE  &"core::return"
@@ -322,7 +322,7 @@
 "#temp::12::array_cleanup":
      774: POP
      775: POP
-     776: JUMP   &"#temp::11::cleanup"
+     776: JUMP   &"#temp::9::cleanup"
 "#temp::10::skip":
 "#temp::13::array_end":
      781: CONST  true
@@ -359,8 +359,8 @@
 "#temp::14::on_done":
      880: CONST  'done
      885: RETURN
-"#temp::11::cleanup":
 "#temp::9::cleanup":
+"#temp::11::cleanup":
      886: JUMP   &"#temp::4::fail"
 "#temp::6::end":
      891: SWAP
@@ -395,7 +395,7 @@
      965: JUMP   &"#temp::20::fail"
 "#temp::21::setup":
      970: POP
-"#var::26::x::0x0000560ba62be080":
+"#var::26::x::0x0000556be4ac5080":
      971: VAR
      972: LOADL  1
      977: CONST  0
@@ -412,15 +412,15 @@
     1015: VALEQ
     1016: JUMPF  &"#temp::25::cleanup"
 "#temp::28::assigned":
-"#var::31::r::0x0000560ba62ba920":
 "#temp::24::skip":
+"#var::31::r::0x0000556be4ac1920":
     1021: VAR
-"#var::32::y::0x0000560ba62c30c0":
+"#var::32::y::0x0000556be4aca0c0":
     1022: VAR
     1023: LOADL  1
     1028: CONST  1
     1033: CONTAINS
-    1034: JUMPF  &"#temp::29::skip"
+    1034: JUMPF  &"#temp::34::array_end"
     1039: LOADL  3
     1044: CLONE
     1045: COPY
@@ -448,13 +448,13 @@
     1108: VALEQ
     1109: JUMPF  &"#temp::30::cleanup"
 "#temp::38::assigned":
-    1114: JUMP   &"#temp::29::skip"
+    1114: JUMP   &"#temp::34::array_end"
 "#temp::33::array_cleanup":
     1119: POP
     1120: POP
     1121: JUMP   &"#temp::30::cleanup"
-"#temp::29::skip":
 "#temp::34::array_end":
+"#temp::29::skip":
     1126: CONST  true
     1131: CONST  false
     1136: CONS
@@ -615,7 +615,7 @@
     1595: LOADL  8
     1600: JUMPF  &"#temp::43::alt_cleanf"
     1605: POP
-    1606: CONST  &"isel#560ba62c1550"
+    1606: CONST  &"isel#556be4ac8550"
     1611: CALL   0
     1616: CONST  false
     1621: CONS
@@ -689,9 +689,9 @@
 "#temp::19::next_overload":
     1793: CONST  'done
     1798: RETURN
-"main#560ba62bef10":
+"main#556be4ac5f10":
 "trilogy:__entrypoint__":
-    1799: CONST  &"isel#560ba62c1550"
+    1799: CONST  &"isel#556be4ac8550"
     1804: CALL   0
     1809: CONST  false
     1814: CONS
@@ -709,7 +709,7 @@
     1845: VALEQ
     1846: JUMPF  &"#temp::75::cleanup"
     1851: UNCONS
-    1852: CONST  2
+    1852: CONST  1
     1857: VALEQ
     1858: JUMPF  &"#temp::75::cleanup"
     1863: UNCONS
@@ -756,7 +756,7 @@
     1969: JUMP   &"#temp::71::is_fail"
 "#temp::73::setup":
     1974: CONST  [|0,1,|]
-    1979: CONST  2
+    1979: CONST  1
     1984: CONST  []
     1989: CONST  1
     1994: INSERT
