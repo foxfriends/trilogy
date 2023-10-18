@@ -128,6 +128,10 @@ impl Execution {
         self.stack.at_local(index).map_err(|k| self.error(k))
     }
 
+    pub fn is_set_local(&self, index: usize) -> Result<bool, Error> {
+        self.stack.is_set_local(index).map_err(|k| self.error(k))
+    }
+
     pub fn set_local(&mut self, index: usize, value: Value) -> Result<Option<Value>, Error> {
         self.stack
             .set_local(index, value)

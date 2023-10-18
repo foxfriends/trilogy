@@ -38,6 +38,17 @@ impl InternalValue {
         }
     }
 
+    fn is_set(self) -> Result<bool, InternalRuntimeError> {
+        match self {
+            InternalValue::Value(..) => Ok(true),
+            InternalValue::Unset => Ok(false),
+            InternalValue::Return { .. } => {
+                Err(InternalRuntimeError::ExpectedValue("return pointer"))
+            }
+            InternalValue::Pointer(..) => Err(InternalRuntimeError::ExpectedValue("pointer")),
+        }
+    }
+
     fn try_into_pointer(self) -> Result<usize, InternalRuntimeError> {
         match self {
             InternalValue::Pointer(pointer) => Ok(pointer),
@@ -205,6 +216,24 @@ impl Stack {
             .at(register)
             .ok_or(InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(InternalValue::try_into_value)
+    }
+
+    pub(crate) fn is_set_local(&self, index: usize) -> Result<bool, InternalRuntimeError> {
+        let register = self.count_locals() - index - 1;
+        let local_locals = self.len() - self.frame;
+        if register >= local_locals {
+            let InternalValue::Return {
+                ghost: Some(stack), ..
+            } = self.cactus.at(self.len() - self.frame).unwrap()
+            else {
+                panic!()
+            };
+            return stack.is_set_local(index);
+        }
+        self.cactus
+            .at(register)
+            .ok_or(InternalRuntimeError::ExpectedValue("local out of bounds"))
+            .and_then(InternalValue::is_set)
     }
 
     pub(crate) fn pop_pointer(&mut self) -> Result<usize, InternalRuntimeError> {

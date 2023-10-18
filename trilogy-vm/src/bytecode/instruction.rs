@@ -67,6 +67,9 @@ pub enum Instruction {
     #[asm(name = "INIT")] Init,
     /// Unsets the value pointed to by the pointer at the top of the stack.
     #[asm(name = "UNSET")] Unset,
+    /// Check whether the value pointed to by the pointer at the top of the stack is set
+    /// or not.
+    #[asm(name = "ISSET")] IsSet,
     /// Allocates a new pointer, pushing the pointer to the top of the stack. The pointer
     /// initially points to an empty slot on the heap.
     Alloc,
@@ -88,8 +91,10 @@ pub enum Instruction {
     /// top of the stack. Pushes a boolean value: `true` if the initialization succeeded, or
     /// `false` if the initialization failed due to the variable having already been set.
     #[asm(name = "INITL")] InitLocal(Offset),
-    /// Unset the value of the "local variable at the given offset.
+    /// Unset the value of the "local variable" at the given offset.
     #[asm(name = "UNSETL")] UnsetLocal(Offset),
+    /// Check whether the "local variable" at the given offset is set or not.
+    #[asm(name = "ISSETL")] IsSetLocal(Offset),
     /// Load the value from a given register.
     ///
     /// Registers referenced by the bytecode must have been provided by the host program.

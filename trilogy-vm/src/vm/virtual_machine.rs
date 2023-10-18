@@ -28,6 +28,14 @@ impl HeapCell {
         }
     }
 
+    fn is_set(&mut self) -> Result<bool, InternalRuntimeError> {
+        match self {
+            Self::Unset => Ok(false),
+            Self::Value(..) => Ok(true),
+            Self::Freed => Err(InternalRuntimeError::UseAfterFree),
+        }
+    }
+
     fn set(&mut self, value: Value) -> Result<(), InternalRuntimeError> {
         if matches!(self, HeapCell::Freed) {
             Err(InternalRuntimeError::UseAfterFree)
@@ -199,6 +207,14 @@ impl VirtualMachine {
                         .unset()
                         .map_err(|er| ex.error(er))?;
                 }
+                OpCode::IsSet => {
+                    let pointer = ex.stack_pop_pointer()?;
+                    self.heap
+                        .get_mut(pointer)
+                        .ok_or_else(|| ex.error(InternalRuntimeError::InvalidPointer))?
+                        .is_set()
+                        .map_err(|er| ex.error(er))?;
+                }
                 OpCode::Alloc => {
                     let pointer = self.heap.len();
                     self.heap.push(HeapCell::Unset);
@@ -229,6 +245,11 @@ impl VirtualMachine {
                     let value = ex.stack_pop()?;
                     let did_set = ex.init_local(offset, value)?;
                     ex.stack_push(did_set.into());
+                }
+                OpCode::IsSetLocal => {
+                    let offset = ex.read_offset(&chunk)? as usize;
+                    let is_set = ex.is_set_local(offset)?;
+                    ex.stack_push(is_set.into());
                 }
                 OpCode::LoadRegister => {
                     let offset = ex.read_offset(&chunk)? as usize;
