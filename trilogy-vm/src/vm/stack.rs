@@ -38,7 +38,7 @@ impl InternalValue {
         }
     }
 
-    fn is_set(self) -> Result<bool, InternalRuntimeError> {
+    fn is_set(&self) -> Result<bool, InternalRuntimeError> {
         match self {
             InternalValue::Value(..) => Ok(true),
             InternalValue::Unset => Ok(false),
@@ -233,7 +233,7 @@ impl Stack {
         self.cactus
             .at(register)
             .ok_or(InternalRuntimeError::ExpectedValue("local out of bounds"))
-            .and_then(InternalValue::is_set)
+            .and_then(|val| val.is_set())
     }
 
     pub(crate) fn pop_pointer(&mut self) -> Result<usize, InternalRuntimeError> {

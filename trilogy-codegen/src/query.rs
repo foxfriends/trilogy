@@ -1,4 +1,5 @@
 use crate::{preamble::ITERATE_COLLECTION, prelude::*};
+use std::borrow::Cow;
 use std::collections::HashSet;
 use trilogy_ir::visitor::{HasBindings, HasReferences};
 use trilogy_ir::{ir, Id};
@@ -60,22 +61,26 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
         context,
         &query.value,
         on_fail,
-        Bindings {
-            compile_time: &HashSet::default(),
-            run_time: None,
-        },
+        &Bindings(Cow::Owned(HashSet::default())),
     );
 }
 
-#[derive(Copy, Clone)]
-pub(crate) struct Bindings<'a> {
-    compile_time: &'a HashSet<Id>,
-    run_time: Option<u32>,
-}
+#[derive(Clone)]
+pub(crate) struct Bindings<'a>(Cow<'a, HashSet<Id>>);
 
 impl Bindings<'_> {
     fn is_bound(&self, var: &Id) -> bool {
-        self.compile_time.contains(var)
+        self.0.contains(var)
+    }
+
+    fn union(&self, other: &HashSet<Id>) -> Self {
+        Self(Cow::Owned(self.0.union(other).cloned().collect()))
+    }
+}
+
+impl<'a> AsRef<HashSet<Id>> for Bindings<'a> {
+    fn as_ref(&self) -> &HashSet<Id> {
+        &self.0
     }
 }
 
@@ -83,7 +88,7 @@ fn write_query_value(
     context: &mut Context,
     value: &ir::QueryValue,
     on_fail: &str,
-    bound: Bindings<'_>,
+    bound: &Bindings<'_>,
 ) {
     match &value {
         ir::QueryValue::Direct(unification) => {
@@ -179,15 +184,7 @@ fn write_query_value(
             let reset = context.labeler.unique_hint("conj_reset");
 
             let lhs_vars = conj.0.bindings();
-            let rhs_bound = bound
-                .compile_time
-                .union(&lhs_vars)
-                .cloned()
-                .collect::<HashSet<_>>();
-            let rhs_bound = Bindings {
-                compile_time: &rhs_bound,
-                run_time: bound.run_time,
-            };
+            let rhs_bound = bound.union(&lhs_vars);
 
             context.instruction(Instruction::Uncons).cond_jump(&outer);
 
@@ -195,7 +192,7 @@ fn write_query_value(
                 .label(inner.clone())
                 .instruction(Instruction::Uncons);
             context.scope.intermediate();
-            write_query_value(context, &conj.1.value, &reset, rhs_bound);
+            write_query_value(context, &conj.1.value, &reset, &rhs_bound);
             context.scope.end_intermediate();
             context
                 .instruction(Instruction::Cons)
@@ -238,20 +235,12 @@ fn write_query_value(
             let inner = context.labeler.unique_hint("impl_inner");
 
             let lhs_vars = imp.0.bindings();
-            let rhs_bound = bound
-                .compile_time
-                .union(&lhs_vars)
-                .cloned()
-                .collect::<HashSet<_>>();
-            let rhs_bound = Bindings {
-                compile_time: &rhs_bound,
-                run_time: bound.run_time,
-            };
+            let rhs_bound = bound.union(&lhs_vars);
 
             context.instruction(Instruction::Uncons).cond_jump(&outer);
 
             context.label(inner.clone());
-            write_query_value(context, &imp.1.value, &cleanup_second, rhs_bound);
+            write_query_value(context, &imp.1.value, &cleanup_second, &rhs_bound);
             context
                 .instruction(Instruction::Const(true.into()))
                 .instruction(Instruction::Cons)
@@ -432,20 +421,20 @@ fn write_query_value(
     }
 }
 
-fn unbind(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
-    let newly_bound = vars.difference(bindset.compile_time);
+fn unbind(context: &mut Context, bindset: &Bindings<'_>, vars: HashSet<Id>) {
+    let newly_bound = vars.difference(bindset.0.as_ref());
     for var in newly_bound {
         match context.scope.lookup(var).unwrap() {
             Binding::Variable(index) => {
                 let skip = context.labeler.unique_hint("skip");
-                if let Some(bindings) = bindset.run_time {
-                    context
-                        .instruction(Instruction::LoadLocal(bindings))
-                        .instruction(Instruction::Const(index.into()))
-                        .instruction(Instruction::Contains)
-                        .instruction(Instruction::Not)
-                        .cond_jump(&skip);
-                }
+                // if let Some(bindings) = bindset.run_time {
+                //     context
+                //         .instruction(Instruction::LoadLocal(bindings))
+                //         .instruction(Instruction::Const(index.into()))
+                //         .instruction(Instruction::Contains)
+                //         .instruction(Instruction::Not)
+                //         .cond_jump(&skip);
+                // }
                 context
                     .instruction(Instruction::UnsetLocal(index))
                     .label(skip);
@@ -455,7 +444,7 @@ fn unbind(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
     }
 }
 
-fn evaluate(context: &mut Context, bindset: Bindings<'_>, value: &ir::Expression) {
+fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expression) {
     let vars = value.references();
     if vars.iter().all(|var| bindset.is_bound(var)) {
         // When all variables in this expression are statically determined to be bound,
@@ -473,7 +462,7 @@ fn evaluate(context: &mut Context, bindset: Bindings<'_>, value: &ir::Expression
             match context.scope.lookup(var).unwrap() {
                 Binding::Variable(index) => {
                     context
-                        .instruction(Instruction::IsSetLocal(index.into()))
+                        .instruction(Instruction::IsSetLocal(index))
                         .cond_jump(&nope);
                 }
                 _ => unreachable!(),
