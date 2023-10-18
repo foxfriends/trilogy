@@ -46,11 +46,9 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         cleanup.push(context.labeler.unique_hint("cleanup"));
         context.declare_variables(parameter.bindings());
         context
-            .instruction(Instruction::LoadLocal(1))
-            .instruction(Instruction::Const(i.into()))
-            .instruction(Instruction::Contains)
+            .instruction(Instruction::IsSetLocal(1 + i as u32))
             .cond_jump(&skip)
-            .instruction(Instruction::LoadLocal(2 + i as u32));
+            .instruction(Instruction::LoadLocal(1 + i as u32));
         write_pattern_match(context, parameter, &cleanup[i]);
         context.label(skip);
     }
@@ -68,7 +66,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     let on_done = context.labeler.unique_hint("on_done");
     let actual_state = context.scope.intermediate();
     context.instruction(Instruction::LoadLocal(actual_state));
-    write_query(context, &rule.body, &on_done, Some(1));
+    write_query(context, &rule.body, &on_done, None);
     context.instruction(Instruction::SetLocal(actual_state));
     context.scope.end_intermediate();
     // The query is normal, then the value is computed by evaluating
@@ -78,11 +76,11 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         let eval = context.labeler.unique_hint("eval");
         let next = context.labeler.unique_hint("next");
         context
-            .instruction(Instruction::LoadLocal(1))
-            .instruction(Instruction::Const(i.into()))
-            .instruction(Instruction::Contains)
+            .instruction(Instruction::IsSetLocal(1 + i as u32))
+            // Previously unset parameters get evaluated into
             .cond_jump(&eval)
-            .instruction(Instruction::LoadLocal(2 + i as u32))
+            // Previously set parameters are just loaded back up directly
+            .instruction(Instruction::LoadLocal(1 + i as u32))
             .jump(&next);
         context.label(eval);
         if param.can_evaluate() {

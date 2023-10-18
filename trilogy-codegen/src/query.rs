@@ -422,27 +422,16 @@ fn write_query_value(
                 .jump(on_fail);
 
             context.label(setup);
-            // We can predetermine all the statically assigned expressions
-            let mut set = HashSet::new();
-            for (i, pattern) in lookup.patterns.iter().enumerate() {
-                let vars = pattern.references();
-                if vars.iter().all(|var| bound.is_bound(var)) {
-                    set.insert(i.into());
-                }
-            }
-            context.instruction(Instruction::Const(set.into()));
-            let save_into = context.scope.intermediate();
-            for (i, pattern) in lookup.patterns.iter().enumerate() {
+            for pattern in &lookup.patterns {
                 pattern.bindings();
-                evaluate(context, bound, pattern, i as u32, save_into);
+                evaluate(context, bound, pattern);
                 context.scope.intermediate();
             }
 
-            context.instruction(Instruction::Call(lookup.patterns.len() as u32 + 1));
+            context.instruction(Instruction::Call(lookup.patterns.len() as u32));
             for _ in &lookup.patterns {
                 context.scope.end_intermediate();
             }
-            context.scope.end_intermediate();
             context.jump(&enter).label(end);
         }
     }
@@ -471,17 +460,16 @@ fn unbind(context: &mut Context, bindset: Bindings<'_>, vars: HashSet<Id>) {
     }
 }
 
-fn evaluate(
-    context: &mut Context,
-    bindset: Bindings<'_>,
-    value: &ir::Expression,
-    expr_index: u32,
-    save_into: u32,
-) {
+fn evaluate(context: &mut Context, bindset: Bindings<'_>, value: &ir::Expression) {
     let vars = value.references();
     if vars.iter().all(|var| bindset.is_bound(var)) {
+        // When all variables in this expression are statically determined to be bound,
+        // no checking needs to be done
         write_expression(context, value);
-    } else if bindset.run_time.is_some() {
+    } else {
+        // If some variables are not known statically, then those variables are checked
+        // at runtime. If any are unset, then we just skip this expression and push an
+        // empty cell on to the stack in its place.
         let nope = context.labeler.unique_hint("nope");
         for var in &vars {
             if bindset.is_bound(var) {
@@ -489,11 +477,8 @@ fn evaluate(
             }
             match context.scope.lookup(var).unwrap() {
                 Binding::Variable(index) => {
-                    let runtime_bound = bindset.run_time.unwrap();
                     context
-                        .instruction(Instruction::LoadLocal(runtime_bound))
-                        .instruction(Instruction::Const(index.into()))
-                        .instruction(Instruction::Contains)
+                        .instruction(Instruction::IsSetLocal(index.into()))
                         .cond_jump(&nope);
                 }
                 _ => unreachable!(),
@@ -502,15 +487,9 @@ fn evaluate(
         let next = context.labeler.unique_hint("next");
         write_expression(context, value);
         context
-            .instruction(Instruction::LoadLocal(save_into))
-            .instruction(Instruction::Const(expr_index.into()))
-            .instruction(Instruction::Insert)
-            .instruction(Instruction::Pop)
             .jump(&next)
             .label(nope)
-            .instruction(Instruction::Const(().into()))
+            .instruction(Instruction::Variable)
             .label(next);
-    } else {
-        context.instruction(Instruction::Const(().into()));
     }
 }

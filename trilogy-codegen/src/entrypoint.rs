@@ -98,10 +98,9 @@ impl ProgramContext<'_> {
     }
 
     /// Writes a rule. Calling convention of rules is to call once with no arguments to
-    /// perform setup, then call the returned closure with the input arguments prefixed with one
-    /// extra argument which is a Set listing the indexes of the parameters which are to
-    /// be treated as "fixed" for the purpose of backtracking. "Incomplete" parameters (entirely
-    /// or partially unbound) may be passed with any value as they will be treated as unset.
+    /// perform setup, then call the returned closure with the input arguments. "Incomplete"
+    /// parameters (entirely or partially unbound) should be passed as empty cells (create
+    /// via the VAR instruction) so that they appear unbound within the rule body.
     ///
     /// The return value is much like an iterator, either 'next(V) or 'done, where V will be a
     /// tuple of resulting bindings in argument order which are to be pattern matched against
@@ -114,7 +113,7 @@ impl ProgramContext<'_> {
         context.instruction(Instruction::Const(((), 0).into()));
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
         context.close(RETURN);
-        context.scope.closure(arity + 1); // TODO: do we need to know the index of these (1 + n)?
+        context.scope.closure(arity); // TODO: do we need to know the index of these (1...n)?
         context.close(RETURN);
 
         context
