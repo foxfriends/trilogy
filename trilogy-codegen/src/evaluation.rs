@@ -102,7 +102,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let state = context.scope.intermediate();
             context.close(&end);
             context.instruction(Instruction::LoadLocal(state));
-            write_query(context, &iterator.query, &on_fail, None);
+            write_query(context, &iterator.query, &on_fail);
             context.instruction(Instruction::SetLocal(state));
             match &iterator.value.value {
                 ir::Value::Mapping(mapping) => {
@@ -378,7 +378,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let is_end = context.labeler.unique_hint("is_end");
                 let var_count = context.declare_variables(query.bindings());
                 write_query_state(context, query);
-                write_query(context, query, &is_fail, None);
+                write_query(context, query, &is_fail);
                 context
                     .instruction(Instruction::Const(true.into()))
                     .instruction(Instruction::Slide(var_count as u32 + 1))
@@ -413,7 +413,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_query_state(context, &decl.query);
             context.scope.intermediate();
             context.label(reenter.clone());
-            write_query(context, &decl.query, END, None);
+            write_query(context, &decl.query, END);
             write_expression(context, &decl.body);
             // TODO: would be really nice to move this pop one line up, but the shared
             // stack thing with closures makes it not work
@@ -429,7 +429,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.intermediate();
 
             context.label(reenter.clone());
-            write_query(context, &decl.query, END, None);
+            write_query(context, &decl.query, END);
             context
                 .instruction(Instruction::Const(Value::Bool(true)))
                 .instruction(Instruction::Const(Value::Bool(false)))

@@ -66,7 +66,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     let on_done = context.labeler.unique_hint("on_done");
     let actual_state = context.scope.intermediate();
     context.instruction(Instruction::LoadLocal(actual_state));
-    write_query(context, &rule.body, &on_done, None);
+    write_query(context, &rule.body, &on_done);
     context.instruction(Instruction::SetLocal(actual_state));
     context.scope.end_intermediate();
     // The query is normal, then the value is computed by evaluating

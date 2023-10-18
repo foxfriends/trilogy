@@ -55,19 +55,14 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
 /// It's up to the user of the query to call `write_query_state` to ensure that the
 /// initial state is set, as well as to ensure that the state value is carried around
 /// so that next time we enter the query it is set correctly.
-pub(crate) fn write_query(
-    context: &mut Context,
-    query: &ir::Query,
-    on_fail: &str,
-    runtime_bindset: Option<u32>,
-) {
+pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &str) {
     write_query_value(
         context,
         &query.value,
         on_fail,
         Bindings {
             compile_time: &HashSet::default(),
-            run_time: runtime_bindset,
+            run_time: None,
         },
     );
 }
