@@ -266,8 +266,10 @@ fn write_query_value(
                 .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
+            context.scope.intermediate(); // state
             write_expression(context, &unification.expression);
             write_pattern_match(context, &unification.pattern, on_fail);
+            context.scope.end_intermediate(); // state
         }
         ir::QueryValue::Element(unification) => {
             let cleanup = context.labeler.unique_hint("in_cleanup");
@@ -280,6 +282,8 @@ fn write_query_value(
             // iterator (closure) we don't need to update it manually
             // later, so just keep it in its place.
             context.instruction(Instruction::Copy);
+            context.scope.intermediate(); // state copy
+
             // Reset to the previous binding state
             context.instruction(Instruction::Uncons);
             unbind(context, bound, unification.pattern.bindings());
@@ -316,6 +320,7 @@ fn write_query_value(
                 .instruction(Instruction::Pop) // The 'done token
                 .jump(on_fail)
                 .label(continuation);
+            context.scope.end_intermediate(); // state copy
         }
         ir::QueryValue::Is(expr) => {
             // Set the state marker to false so we can't re-enter here.
@@ -323,8 +328,11 @@ fn write_query_value(
                 .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
+            context.scope.intermediate(); // state
+
             // Then it's just failed if the evaluation is false.
             write_expression(context, expr);
+            context.scope.end_intermediate(); // state
             context.cond_jump(on_fail);
         }
         ir::QueryValue::End => {
@@ -536,18 +544,19 @@ fn write_query_value(
                 .label(outer.clone())
                 // Detach the state from the bindset
                 .instruction(Instruction::Uncons);
-            context.scope.intermediate();
+            context.scope.intermediate(); // bindset
+
             // Don't need to unbind anything because we'll never backtrack if it succeeds.
             // Pretty simple after that, just run it.
             write_query_value(context, &imp.0.value, &cleanup_first, bound);
             // If it succeeds, discard the outer query's state, we don't need it
             // anymore because we'll never come back to it.
             context.instruction(Instruction::Pop);
-            context.scope.end_intermediate();
-            // We're replacing it with the inner query's state. It does need the context
-            // of the bindset though, which is conveniently on the stack already. Again, we
-            // don't need to keep the bindset, so can just roll it up into the subquery.
-            // We do need to add the bindings that were just set by the condition though.
+            context.scope.end_intermediate(); // bindset
+                                              // We're replacing it with the inner query's state. It does need the context
+                                              // of the bindset though, which is conveniently on the stack already. Again, we
+                                              // don't need to keep the bindset, so can just roll it up into the subquery.
+                                              // We do need to add the bindings that were just set by the condition though.
             for var in imp.0.value.bindings() {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
                 context
@@ -675,8 +684,8 @@ fn write_query_value(
                 .instruction(Instruction::Cons)
                 .jump(&out);
 
-            // If doing the right side, it's much the same as the left, but... the bindset doesn't need
-            // to be managed directly because it will be handled by the subquery itself.
+            // If doing the right side, it's much the same as the left, but there is no bindset
+            // because that will be handled by the subquery directly.
             context.label(second.clone());
             write_query_value(context, &alt.1.value, &cleanup_second, bound);
             context
@@ -816,6 +825,7 @@ fn write_query_value(
             // First detach the bindset
             context.instruction(Instruction::Uncons);
             context.scope.intermediate(); // bindset
+            context.scope.intermediate(); // rule closure
 
             // Then do the evaluation. Patterns with unbound variables will evaluate to
             // being unbound, as they are being used as output parameters at this time.
@@ -829,6 +839,7 @@ fn write_query_value(
             for _ in &lookup.patterns {
                 context.scope.end_intermediate();
             }
+            context.scope.end_intermediate(); // rule closure
             context.scope.end_intermediate(); // bindset
             context
                 // Bindset gets reattached to scope

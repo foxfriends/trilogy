@@ -332,7 +332,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::Pop)
                     .jump(on_fail)
                     .label(end);
-                context.scope.end_intermediate();
+                context.scope.end_intermediate(); // array
             }
             (None, ir::Value::Builtin(Builtin::Record), ir::Value::Pack(pack)) => {
                 let cleanup = context.labeler.unique_hint("record_cleanup");

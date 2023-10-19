@@ -411,14 +411,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let reenter = context.labeler.unique_hint("let");
             context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
-            context.scope.intermediate();
             context.label(reenter.clone());
             write_query(context, &decl.query, END);
+            context.scope.intermediate(); // after running the query, its state is an intermediate
             write_expression(context, &decl.body);
-            // TODO: would be really nice to move this pop one line up, but the shared
-            // stack thing with closures makes it not work
+
+            // TODO: would be really nice to move this pop (of the query state) one
+            // line up, but the shared stack thing with closures makes it not work
             context.instruction(Instruction::Pop);
-            context.scope.end_intermediate();
+            context.scope.end_intermediate(); // query state
+
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::Let(decl) => {

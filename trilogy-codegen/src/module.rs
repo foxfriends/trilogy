@@ -258,6 +258,10 @@ pub(crate) fn write_module_prelude(
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(1))
                         .instruction(Instruction::Return);
+                    // NOTE: should confirm at some point that these two intermediates need to be ended...
+                    // I would assume so, but I added them late without much thought
+                    context.scope.end_intermediate();
+                    context.scope.end_intermediate();
                 }
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
             }
