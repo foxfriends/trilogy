@@ -200,6 +200,12 @@ impl Stack {
             .and_then(InternalValue::try_into_value)
     }
 
+    pub(crate) fn at_raw(&self, index: usize) -> Result<InternalValue, InternalRuntimeError> {
+        self.cactus
+            .at(index)
+            .ok_or(InternalRuntimeError::ExpectedValue("out of bounds"))
+    }
+
     pub(crate) fn at_local(&self, index: usize) -> Result<Value, InternalRuntimeError> {
         let register = self.count_locals() - index - 1;
         let local_locals = self.len() - self.frame;

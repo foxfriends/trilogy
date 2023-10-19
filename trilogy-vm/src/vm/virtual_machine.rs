@@ -849,6 +849,10 @@ impl VirtualMachine {
                         }
                     }
                 }
+                OpCode::Debug => {
+                    let val = ex.stack_peek_raw()?;
+                    eprintln!("{}", val);
+                }
             }
         };
         Err(last_ex.error(ErrorKind::ExecutionFizzledError))

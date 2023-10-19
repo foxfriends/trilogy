@@ -156,6 +156,10 @@ impl Execution {
         self.stack.at(0).map_err(|k| self.error(k))
     }
 
+    pub fn stack_peek_raw(&self) -> Result<InternalValue, Error> {
+        self.stack.at_raw(0).map_err(|k| self.error(k))
+    }
+
     pub fn stack_pop(&mut self) -> Result<Value, Error> {
         self.stack_discard().and_then(|v| {
             v.ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))

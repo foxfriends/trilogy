@@ -1,8 +1,0 @@
-# rule isel(_, []) <- end
-# rule isel(x, [y, ..r]) <- if x = y then pass else isel(x, r)
-rule isel(x, a) <- [_, ..r] = a and isel(x, r)
-rule isel(x, [x, .._])
-
-proc main!() {
-    exit is isel(1, [1, 2, 3])
-}

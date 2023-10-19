@@ -76,6 +76,11 @@ impl ReferentialEq for Set {
 
 impl StructuralEq for Set {
     fn eq(&self, other: &Self) -> bool {
+        // Check pointer equality first: if it's the same instance, we can't
+        // do structural comparison like this because of the locks
+        if Arc::ptr_eq(&self.0, &other.0) {
+            return true;
+        }
         let Ok(lhs) = self.0.lock() else { return false };
         let Ok(rhs) = other.0.lock() else {
             return false;

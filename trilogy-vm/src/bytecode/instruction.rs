@@ -286,13 +286,16 @@ pub enum Instruction {
     /// being executed. Any value may be used, so long as the [`Program`][crate::Program]
     /// implementation is able to handle it.
     Chunk(Value),
+    /// Print the value currently on the top of the stack to stderr using a
+    /// debug representation. The value is not removed from the stack.
+    Debug,
 }
 
 impl TryFrom<u8> for OpCode {
     type Error = u8;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value <= Self::Chunk as u8 {
+        if value <= Self::Debug as u8 {
             Ok(unsafe { std::mem::transmute(value) })
         } else {
             Err(value)
