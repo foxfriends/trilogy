@@ -6,41 +6,200 @@ use trilogy_ir::{ir, Id};
 use trilogy_vm::Instruction;
 
 pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
+    // Prepare the initial bindset and store it in a register. We'll be
+    // referring to this register throughout.
+    //
+    // It is possible that as part of setting up a query state we need to
+    // execute (including setup) a whole other query, so preserve the previous
+    // register value.
+    context.instruction(Instruction::LoadRegister(2));
+    context.scope.intermediate();
+    context
+        // The initial bindset is empty for generic queries. Only for rules it's
+        // a bit different, as the initial bindset is based on the boundness of the
+        // parameters. Rule calls can just set that up and start from continue.
+        .instruction(Instruction::Const(HashSet::new().into()))
+        .instruction(Instruction::SetRegister(2));
+    continue_query_state(context, query);
+    // After writing out the query state, the final bindset doesn't matter (it's everything)
+    // and the intermediate bindsets have been integrated with the state, so just reset the
+    // register.
+    context
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::SetRegister(2));
+    context.scope.end_intermediate();
+}
+
+// A continued query state is like a query state but the current bindset is currently on the
+// top of the stack already.
+//
+// Outside of this file, other than for rule definitions, it is better to just
+// call `write_query_state`, as there is no bindset. Inside this file, we use it for
+// subqueries of queries.
+pub(crate) fn write_continued_query_state(context: &mut Context, query: &ir::Query) {
+    // The same saving of previous bindset, in case we are mid way setting up a query.
+    context
+        .instruction(Instruction::LoadRegister(2))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::SetRegister(2));
+    context.scope.intermediate();
+    continue_query_state(context, query);
+    // Again the final continued bindset does not matter, just get rid of it and reset
+    // to the previous one.
+    context
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::SetRegister(2));
+    context.scope.end_intermediate();
+}
+
+// The actual writing of the query state happens here. The query state generally consists
+// of two things:
+// 1. Enough information that the query can be continued from where it left off
+// 2. A bindset so that, during backtracking, we can unbind the variables that were bound
+//    at each step.
+//
+// The delta to a bindset can be determined statically, and does not require backtracking,
+// but the initial bindset cannot, in general, as it may depend on the arguments to a rule
+// lookup. The only thing to be careful of is to store a clone of the bindset in any state
+// that needs it, as otherwise it may get mutated in passing.
+//
+// "Continuing" the query state assumes that the current runtime bindset is in register 2.
+//
+fn continue_query_state(context: &mut Context, query: &ir::Query) {
     match &query.value {
-        ir::QueryValue::Is(..)
-        | ir::QueryValue::End
-        | ir::QueryValue::Pass
-        | ir::QueryValue::Not(..)
-        | ir::QueryValue::Direct(..) => {
+        ir::QueryValue::Is(..) | ir::QueryValue::End | ir::QueryValue::Pass => {
+            // These don't require much state and do not care about the bindset as they won't
+            // backtrack, even internally. They will occur at most once, switching to false to
+            // indicate that they should not occur again.
             context.instruction(Instruction::Const(true.into()));
         }
+        ir::QueryValue::Not(..) => {
+            // While a `not` query doesn't require much state (it's just an at most once query),
+            // it actually can backtrack internally, so we have to keep the bindset. We also
+            // have to reset the bindset back to the previous state once complete, since the
+            // variables bound within a not query are not available outside.
+            context
+                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::Clone)
+                .instruction(Instruction::Const(true.into()))
+                .instruction(Instruction::Cons);
+        }
+        ir::QueryValue::Direct(unification) => {
+            // A direct unification does affect the bindset, in passing, but only requires
+            // the same "once-only" state as above.
+            context.instruction(Instruction::Const(true.into()));
+
+            context.instruction(Instruction::LoadRegister(2));
+            for var in unification.pattern.bindings() {
+                let index = context.scope.lookup(&var).unwrap().unwrap_local();
+                context
+                    .instruction(Instruction::Const(index.into()))
+                    .instruction(Instruction::Insert);
+            }
+            context.instruction(Instruction::Pop);
+        }
+        ir::QueryValue::Element(unification) => {
+            // Element unification iterates a collection. The state is an iterator
+            // over this collection, which will eventually run out. Since this is
+            // a potentially many times operation, we do need to store the bindset
+            // as well.
+            write_expression(context, &unification.expression);
+            context
+                .write_procedure_reference(ITERATE_COLLECTION.to_owned())
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Call(1))
+                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::Clone)
+                .instruction(Instruction::Cons);
+
+            // Bindset updates happen *after* the state is computed because the backtracker
+            // needs to be able to go back to the previous bindset.
+            context.instruction(Instruction::LoadRegister(2));
+            for var in unification.pattern.bindings() {
+                let index = context.scope.lookup(&var).unwrap().unwrap_local();
+                context
+                    .instruction(Instruction::Const(index.into()))
+                    .instruction(Instruction::Insert);
+            }
+            context.instruction(Instruction::Pop);
+        }
+        ir::QueryValue::Alternative(alt) => {
+            // An alternative attempts the left side, and only if it fails attempts the right side.
+            // Its state is the left side's state, and a marker to indicate that we've not yet
+            // chosen a side. The `unit` becomes `true` or `false` later to indicate which side
+            // has been chosen, once it has been chosen.
+            //
+            // Since there is no backtracking that happens at this node directly, the bindset
+            // does not need to be kept.
+            continue_query_state(context, &alt.0);
+            context
+                .instruction(Instruction::Const(().into()))
+                .instruction(Instruction::Cons);
+        }
+        ir::QueryValue::Implication(alt) => {
+            // Similarly, the state of the implication is its left side's state, and a marker
+            // to indicate whether it was successfully matched or not. If it was not successfully
+            // matched, the marker will remain false (under the assumption that it will fail to
+            // match again if we come back in [might be a bad assumption?]). When it succeeds,
+            // the marker becomes true.
+            //
+            // In either case, there's no backtracking done directly at this node, so no need to
+            // keep a bindset.
+            continue_query_state(context, &alt.0);
+            context
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons);
+        }
+        ir::QueryValue::Conjunction(alt) | ir::QueryValue::Disjunction(alt) => {
+            // Conjuection and disjunction both work basically the same. The state is the
+            // left state and a marker for whether we're on the first or second branch on
+            // this iteration. The marker just changes on different conditions.
+            //
+            // Also in both cases, the bindset must be kept because there will be backtracking.
+            //
+            // It's kind of just a coincidence that these can be represented with the same
+            // data.
+            continue_query_state(context, &alt.0);
+            context
+                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Cons)
+                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::Clone)
+                .instruction(Instruction::Cons);
+        }
         ir::QueryValue::Lookup(lookup) => {
+            // Lookups require setting up the rule. All the values of the expression must be
+            // bound ahead of time; there is no way to do something like `anything(x) and things(anything)`
+            // it would have to go in reverse (`things(anything) and anything(x)`). This makes more
+            // sense anyway. Works out because conjunctions and the like only prepare the state of their
+            // first branch ahead of time, so by the time we need anything from a previous clause, it
+            // will be bound already.
+            //
+            // Does require maintaining the bindset though.
             write_expression(context, &lookup.path);
             context
                 .instruction(Instruction::Call(0))
                 .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Cons);
-        }
-        ir::QueryValue::Element(unification) => {
-            write_expression(context, &unification.expression);
-            context
-                .write_procedure_reference(ITERATE_COLLECTION.to_owned())
-                .instruction(Instruction::Swap)
-                .instruction(Instruction::Call(1));
-        }
-        ir::QueryValue::Alternative(alt) => {
-            write_query_state(context, &alt.0);
-            context
-                .instruction(Instruction::Const(().into()))
-                .instruction(Instruction::Cons);
-        }
-        ir::QueryValue::Conjunction(alt)
-        | ir::QueryValue::Implication(alt)
-        | ir::QueryValue::Disjunction(alt) => {
-            write_query_state(context, &alt.0);
-            context
-                .instruction(Instruction::Const(false.into()))
-                .instruction(Instruction::Cons);
+
+            // After a lookup, all its patterns will be bound. This implies that we must iterate
+            // every possible case for unbound patterns eagerly... but that's a sacrifice we have
+            // to make. Doesn't really hurt correctness I think, but it is a bit less performant
+            // than the optimal case, but... the optimal case gives SAT vibes so maybe it isn't
+            // feasible anyway. (What does Prolog do?)
+            context.instruction(Instruction::LoadRegister(2));
+            for var in lookup
+                .patterns
+                .iter()
+                .flat_map(|pat| pat.bindings())
+                .collect::<HashSet<_>>()
+            {
+                let index = context.scope.lookup(&var).unwrap().unwrap_local();
+                context
+                    .instruction(Instruction::Const(index.into()))
+                    .instruction(Instruction::Insert);
+            }
+            context.instruction(Instruction::Pop);
         }
     }
 }
@@ -65,6 +224,10 @@ pub(crate) fn write_query(context: &mut Context, query: &ir::Query, on_fail: &st
     );
 }
 
+/// Tracks statically which variables have been bound so far. Some variables may
+/// additionally be bound due to runtime state, so this is not a complete view.
+/// Runtime bindsets are tracked separately and used to properly un-bind variables
+/// during the backtracking phase.
 #[derive(Clone)]
 pub(crate) struct Bindings<'a>(Cow<'a, HashSet<Id>>);
 
@@ -92,20 +255,12 @@ fn write_query_value(
 ) {
     match &value {
         ir::QueryValue::Direct(unification) => {
+            // Set the state marker to false so we can't re-enter here.
             context
                 .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             write_expression(context, &unification.expression);
-            unbind(context, bound, unification.pattern.bindings());
-            // TODO: seems like... we have to insert into the bindset that the variables
-            // just set are now bound. but have to confirm that mutating the bindset is
-            // going to be ok and not cause issues... Probably have to un-mutate it when
-            // backtracking past this matching (for disjunctions in particular). That's
-            // probably going to be the responsibility of the disjunction, to properly
-            // maintain the bindset when backtracking.
-            //
-            // Too tired to figure that out right now though.
             write_pattern_match(context, &unification.pattern, on_fail);
         }
         ir::QueryValue::Element(unification) => {
@@ -115,64 +270,110 @@ fn write_query_value(
             let next = context.atom("next");
             let done = context.atom("done");
 
+            // Copy the state whole and work on a copy. Since it's an
+            // iterator (closure) we don't need to update it manually
+            // later, so just keep it in its place.
+            context.instruction(Instruction::Copy);
+            // Reset to the previous binding state
+            context.instruction(Instruction::Uncons);
+            unbind(context, bound, unification.pattern.bindings());
+            // Then the query operates on the closure that is left.
             context
                 // Done if done
-                .instruction(Instruction::Copy)
                 .instruction(Instruction::Call(0))
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::Const(done.into()))
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&cleanup)
                 // Runtime type error is probably expected if it's not an iterator when an
-                // iterator is expected, but we just go to  fail instead anyway because it
-                // seems easier for now. Maybe come back to that later, a panic instruction
-                // is added or something.
+                // iterator is expected, but we just go to fail instead anyway because it
+                // seems easier for now.
+                //
+                // TODO: Maybe come back to that later, when a panic instruction is added?
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::TypeOf)
                 .instruction(Instruction::Const("struct".into()))
                 .instruction(Instruction::ValEq)
-                .cond_jump(&cleanup)
+                .cond_jump(&cleanup) // Not a struct, so it is 'done
                 .instruction(Instruction::Destruct)
                 .instruction(Instruction::Const(next.into()))
                 .instruction(Instruction::ValEq)
-                .cond_jump(&cleanup);
-            unbind(context, bound, unification.pattern.bindings());
+                .cond_jump(&cleanup); // Not a 'next, so invalid (fail as per comment above)
+
+            // Success: bind the pattern to the value
             write_pattern_match(context, &unification.pattern, on_fail);
+
+            // Then we're just done. The state is already fine. Lucky.
             context
                 .jump(&continuation)
                 .label(cleanup)
-                .instruction(Instruction::Pop)
+                .instruction(Instruction::Pop) // The 'done token
                 .jump(on_fail)
                 .label(continuation);
         }
         ir::QueryValue::Is(expr) => {
+            // Set the state marker to false so we can't re-enter here.
             context
                 .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
+            // Then it's just failed if the evaluation is false.
             write_expression(context, expr);
             context.cond_jump(on_fail);
         }
         ir::QueryValue::End => {
+            // Always fail. The state isn't required at all.
             context.jump(on_fail);
         }
         ir::QueryValue::Pass => {
+            // Always pass (the first time). We still don't re-enter
+            // here, so it does "fail" the second time.
             context
                 .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
         }
         ir::QueryValue::Not(query) => {
-            let on_pass = context.labeler.unique_hint("not_fail");
+            let cleanup = context.labeler.unique_hint("not_cleanup");
             context
+                // Take up the bindset for later
+                .instruction(Instruction::Uncons)
+                // Set the state marker to false so we can't re-enter here.
                 .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Swap)
-                .cond_jump(on_fail);
-            context.scope.intermediate();
-            write_query_state(context, query);
+                .cond_jump(&cleanup);
+
+            // The work here is to run the subquery as if it was a whole new query,
+            // starting from scratch. We do need to pass along the current bindset
+            // though, because a `not` subquery is treated as part of the parent
+            // query in terms of scoping.
+            let on_pass = context.labeler.unique_hint("not_fail");
+            let bindset = context.scope.intermediate();
+            context.scope.intermediate(); // Marker
+
+            // The inner query state must continue from the current bindset,
+            // without mutating it by accident.
+            context
+                .instruction(Instruction::LoadLocal(bindset))
+                .instruction(Instruction::Clone);
+            write_continued_query_state(context, query);
+            // Then just immediately attempt the subquery.
             write_query_value(context, &query.value, &on_pass, bound);
-            context.instruction(Instruction::Pop).jump(on_fail);
-            context.label(on_pass).instruction(Instruction::Pop);
+            // If the subquery passes, it's actually supposed to be a fail.
+            context
+                .instruction(Instruction::Pop) // Discard the subquery state
+                .label(&cleanup) // Then we leave via failure, fixing the `not` state back up
+                .instruction(Instruction::Cons)
+                .jump(on_fail);
+            // Meanwhile, if the subquery fails, then that's a pass.
+            context.label(on_pass).instruction(Instruction::Pop); // Again discard the internal state
+
+            // First reset the bindset
+            context.instruction(Instruction::LoadLocal(bindset));
+            unbind(context, bound, query.value.bindings());
+            // And finally fix the state
+            context.instruction(Instruction::Cons);
+            context.scope.end_intermediate();
             context.scope.end_intermediate();
         }
         ir::QueryValue::Conjunction(conj) => {
@@ -421,27 +622,27 @@ fn write_query_value(
     }
 }
 
+/// Unbinds the variables in `vars` that are runtime unbound but statically bound.
+/// The runtime bindset is expected on top of stack, and will be consumed.
 fn unbind(context: &mut Context, bindset: &Bindings<'_>, vars: HashSet<Id>) {
     let newly_bound = vars.difference(bindset.0.as_ref());
     for var in newly_bound {
         match context.scope.lookup(var).unwrap() {
             Binding::Variable(index) => {
                 let skip = context.labeler.unique_hint("skip");
-                // if let Some(bindings) = bindset.run_time {
-                //     context
-                //         .instruction(Instruction::LoadLocal(bindings))
-                //         .instruction(Instruction::Const(index.into()))
-                //         .instruction(Instruction::Contains)
-                //         .instruction(Instruction::Not)
-                //         .cond_jump(&skip);
-                // }
                 context
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::Const(index.into()))
+                    .instruction(Instruction::Contains)
+                    .instruction(Instruction::Not)
+                    .cond_jump(&skip)
                     .instruction(Instruction::UnsetLocal(index))
                     .label(skip);
             }
             _ => unreachable!(),
         }
     }
+    context.instruction(Instruction::Pop);
 }
 
 fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expression) {
