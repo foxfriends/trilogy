@@ -240,10 +240,10 @@ pub(crate) fn write_module_prelude(
                         .instruction(Instruction::LoadRegister(1))
                         .instruction(Instruction::LoadLocal(current_module))
                         .instruction(Instruction::SetRegister(1))
-                        .instruction(Instruction::Slide(1 + arity as u32))
+                        .instruction(Instruction::Slide(arity as u32))
                         .instruction(Instruction::LoadLocal(closure))
-                        .instruction(Instruction::Slide(1 + arity as u32))
-                        .instruction(Instruction::Call(1 + arity as u32))
+                        .instruction(Instruction::Slide(arity as u32))
+                        .instruction(Instruction::Call(arity as u32))
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(1))
                         // That needs to be closed over to keep passing context too
@@ -258,6 +258,10 @@ pub(crate) fn write_module_prelude(
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(1))
                         .instruction(Instruction::Return);
+                    // NOTE: should confirm at some point that these two intermediates need to be ended...
+                    // I would assume so, but I added them late without much thought
+                    context.scope.end_intermediate();
+                    context.scope.end_intermediate();
                 }
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
             }

@@ -255,52 +255,84 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             (None, ir::Value::Builtin(Builtin::Array), ir::Value::Pack(pack)) => {
                 let cleanup = context.labeler.unique_hint("array_cleanup");
                 let end = context.labeler.unique_hint("array_end");
-                let mut spread = None;
+                // Before even attempting to match this array, check its length and the length of
+                // the pattern. If the pattern is longer than the array, then give up already.
+                // The spread element doesn't count towards length since it can be 0.
+                let needed = pack
+                    .values
+                    .iter()
+                    .filter(|element| !element.is_spread)
+                    .count();
+                context
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::Length)
+                    .instruction(Instruction::Const(needed.into()))
+                    .instruction(Instruction::Geq)
+                    .cond_jump(&cleanup);
+                // If that worked, then we'll have enough elements and won't have to check that
+                // below at all.
+
+                // Going to be modifying this array in place, so clone it before we begin.
+                // Trilogy does not have slices.
                 context.instruction(Instruction::Clone);
                 let array = context.scope.intermediate();
-                for element in &pack.values {
+                for (i, element) in pack.values.iter().enumerate() {
                     if element.is_spread {
-                        spread = Some(&element.expression);
-                        continue;
-                    }
-                    // TODO: this could be way more efficient
-                    if spread.is_none() {
+                        // When it's the spread element, take all the elements we aren't going to
+                        // need for the tail of this pattern from the array.
+                        let next = context.labeler.unique_hint("spread_next");
+                        let cleanup_spread = context.labeler.unique_hint("cleanup_spread");
+                        let elements_in_tail = pack.values.len() - i - 1;
+                        context
+                            // First determine the runtime length to find out how many elements
+                            // we don't need later.
+                            .instruction(Instruction::Copy)
+                            .instruction(Instruction::Length)
+                            .instruction(Instruction::Const(elements_in_tail.into()))
+                            .instruction(Instruction::Subtract);
+                        let length = context.scope.intermediate();
+                        context
+                            // Take that many elements from (a copy of) the array
+                            .instruction(Instruction::LoadLocal(array))
+                            .instruction(Instruction::LoadLocal(length))
+                            .instruction(Instruction::Take);
+                        // And match that prefix with the element pattern
+                        write_pattern_match(context, &element.expression, &cleanup_spread);
+                        // Then use the copy of length that's still on the stack to drop those
+                        // elements we just took from the original array.
+                        context.instruction(Instruction::Skip).jump(&next);
+                        // If we fail during the spread matching, the length that's on the stack has
+                        // to be discarded still.
+                        context
+                            .label(cleanup_spread)
+                            .instruction(Instruction::Pop)
+                            .jump(&cleanup)
+                            .label(next);
+                        context.scope.end_intermediate(); // length
+                    } else {
+                        // When it's not the spread element, just match the first element.
                         context
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::Const(0.into()))
                             .instruction(Instruction::Access);
                         write_pattern_match(context, &element.expression, &cleanup);
+                        // And then we drop that element from the array and leave just the tail on
+                        // the stack.
                         context
                             .instruction(Instruction::Const(1.into()))
                             .instruction(Instruction::Skip);
-                    } else {
-                        let index = context.scope.intermediate();
-                        context
-                            .instruction(Instruction::Copy)
-                            .instruction(Instruction::Length)
-                            .instruction(Instruction::Const(1.into()))
-                            .instruction(Instruction::Subtract)
-                            .instruction(Instruction::LoadLocal(array))
-                            .instruction(Instruction::LoadLocal(index))
-                            .instruction(Instruction::Access);
-                        write_pattern_match(context, &element.expression, &cleanup);
-                        context.instruction(Instruction::Take);
-                        context.scope.end_intermediate();
                     }
                 }
-                if let Some(spread) = spread {
-                    write_pattern_match(context, spread, on_fail);
-                } else {
-                    context.instruction(Instruction::Pop);
-                }
-                context.scope.end_intermediate();
+                // There should now be an empty array on the stack, so get rid of it before continuing.
+                context.instruction(Instruction::Pop);
                 context
                     .jump(&end)
                     .label(cleanup)
-                    .instruction(Instruction::Pop)
+                    // Otherwise, we have to cleanup. The only thing on the stack is the array.
                     .instruction(Instruction::Pop)
                     .jump(on_fail)
                     .label(end);
+                context.scope.end_intermediate(); // array
             }
             (None, ir::Value::Builtin(Builtin::Record), ir::Value::Pack(pack)) => {
                 let cleanup = context.labeler.unique_hint("record_cleanup");

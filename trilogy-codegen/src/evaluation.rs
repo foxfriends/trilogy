@@ -102,7 +102,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let state = context.scope.intermediate();
             context.close(&end);
             context.instruction(Instruction::LoadLocal(state));
-            write_query(context, &iterator.query, &on_fail, None);
+            write_query(context, &iterator.query, &on_fail);
             context.instruction(Instruction::SetLocal(state));
             match &iterator.value.value {
                 ir::Value::Mapping(mapping) => {
@@ -378,7 +378,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let is_end = context.labeler.unique_hint("is_end");
                 let var_count = context.declare_variables(query.bindings());
                 write_query_state(context, query);
-                write_query(context, query, &is_fail, None);
+                write_query(context, query, &is_fail);
                 context
                     .instruction(Instruction::Const(true.into()))
                     .instruction(Instruction::Slide(var_count as u32 + 1))
@@ -411,14 +411,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let reenter = context.labeler.unique_hint("let");
             context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
-            context.scope.intermediate();
             context.label(reenter.clone());
-            write_query(context, &decl.query, END, None);
+            write_query(context, &decl.query, END);
+            context.scope.intermediate(); // after running the query, its state is an intermediate
             write_expression(context, &decl.body);
-            // TODO: would be really nice to move this pop one line up, but the shared
-            // stack thing with closures makes it not work
+
+            // TODO: would be really nice to move this pop (of the query state) one
+            // line up, but the shared stack thing with closures makes it not work
             context.instruction(Instruction::Pop);
-            context.scope.end_intermediate();
+            context.scope.end_intermediate(); // query state
+
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::Let(decl) => {
@@ -429,7 +431,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.intermediate();
 
             context.label(reenter.clone());
-            write_query(context, &decl.query, END, None);
+            write_query(context, &decl.query, END);
             context
                 .instruction(Instruction::Const(Value::Bool(true)))
                 .instruction(Instruction::Const(Value::Bool(false)))

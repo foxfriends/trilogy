@@ -313,7 +313,6 @@ fn sample_rule_fancy() {
 }
 
 #[test]
-#[ignore = "not yet working"]
 fn sample_rule_rec() {
     let mut program = include_tri!("rule_rec.tri");
     assert_eq!(program.run().unwrap(), Value::from(6));

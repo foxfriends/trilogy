@@ -138,6 +138,7 @@ impl ChunkBuilder {
             Instruction::SetLocal(offset) => Some(Parameter::Offset(offset)),
             Instruction::InitLocal(offset) => Some(Parameter::Offset(offset)),
             Instruction::UnsetLocal(offset) => Some(Parameter::Offset(offset)),
+            Instruction::IsSetLocal(offset) => Some(Parameter::Offset(offset)),
             Instruction::LoadRegister(offset) => Some(Parameter::Offset(offset)),
             Instruction::SetRegister(offset) => Some(Parameter::Offset(offset)),
             Instruction::Slide(offset) => Some(Parameter::Offset(offset)),

@@ -11,6 +11,15 @@ pub(crate) enum Binding<'a> {
     Chunk(&'a str),
 }
 
+impl Binding<'_> {
+    pub fn unwrap_local(&self) -> u32 {
+        match self {
+            Self::Variable(index) => *index,
+            _ => panic!("attemped to unwrap local, but {self:?} is not a local"),
+        }
+    }
+}
+
 impl<'a> From<&'a StaticMember> for Binding<'a> {
     fn from(value: &'a StaticMember) -> Self {
         match &value {
