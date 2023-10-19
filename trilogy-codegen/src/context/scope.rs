@@ -15,7 +15,7 @@ impl Binding<'_> {
     pub fn unwrap_local(&self) -> u32 {
         match self {
             Self::Variable(index) => *index,
-            _ => panic!("attemped to unwrap local, but it was not a local"),
+            _ => panic!("attemped to unwrap local, but {self:?} is not a local"),
         }
     }
 }

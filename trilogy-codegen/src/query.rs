@@ -176,17 +176,23 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // will be bound already.
             //
             // Does require maintaining the bindset though.
+            context
+                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::Clone);
+            context.scope.intermediate();
             write_expression(context, &lookup.path);
             context
-                .instruction(Instruction::Call(0))
-                .instruction(Instruction::Const(false.into()))
+                .instruction(Instruction::Call(0)) // The state is the closure
+                .instruction(Instruction::Cons) // with the bindset
+                .instruction(Instruction::Const(false.into())) // and a flag to keep track of whether the closure is initialized or not
                 .instruction(Instruction::Cons);
+            context.scope.end_intermediate();
 
             // After a lookup, all its patterns will be bound. This implies that we must iterate
             // every possible case for unbound patterns eagerly... but that's a sacrifice we have
             // to make. Doesn't really hurt correctness I think, but it is a bit less performant
             // than the optimal case, but... the optimal case gives SAT vibes so maybe it isn't
-            // feasible anyway. (What does Prolog do?)
+            // even possible anyway. (What does Prolog do?)
             context.instruction(Instruction::LoadRegister(2));
             for var in lookup
                 .patterns
@@ -731,12 +737,35 @@ fn write_query_value(
             let next = context.atom("next");
             let done = context.atom("done");
 
-            context.scope.intermediate();
             context
                 .instruction(Instruction::Uncons)
-                .cond_jump(&setup)
+                // The first field of the state is whether we've done set up already or not. If not,
+                // then let's do the setup.
+                .cond_jump(&setup);
+
+            // If things are already ready to go, it's a matter of calling the query.
+            context
                 .label(enter.clone())
+                // Begin by unbinding all the variables of all parameters, just because it's convenient to
+                // do up front in one shot.
+                .instruction(Instruction::Uncons);
+            let bindset = context.scope.intermediate();
+            context.instruction(Instruction::LoadLocal(bindset));
+            unbind(
+                context,
+                bound,
+                lookup
+                    .patterns
+                    .iter()
+                    .flat_map(|pat| pat.bindings())
+                    .collect(),
+            );
+            // Then we do the actual iteration of the lookup. Since it's just an iterator, we do the
+            // iterator thing, pretty normally.
+            context
+                // Copy the iterator, it will just remain here for reconstructing the state
                 .instruction(Instruction::Copy)
+                // Then iterate the iterator
                 .instruction(Instruction::Call(0))
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::Const(done.into()))
@@ -746,36 +775,67 @@ fn write_query_value(
                 .instruction(Instruction::Const(next.into()))
                 .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
-            context.scope.intermediate();
+            // If the iterator has yielded something, we have to destructure it into all the variables
+            // of the unbound parameters.
+            context.scope.intermediate(); // return value
             for pattern in &lookup.patterns {
                 context.instruction(Instruction::Uncons);
-                unbind(context, bound, pattern.bindings());
                 write_pattern_match(context, pattern, &cleanup);
             }
-            context.scope.end_intermediate();
+            context.scope.end_intermediate(); // return value
+            context.scope.end_intermediate(); // bindset
             context
+                // Discard the now empty yielded return value
                 .instruction(Instruction::Pop)
+                // Reconstruct the bindset:state
+                .instruction(Instruction::Cons)
+                // Put the marker back in too
                 .instruction(Instruction::Const(true.into()))
                 .instruction(Instruction::Cons)
-                .jump(&end)
+                // And we're done!
+                .jump(&end);
+
+            // In the failure case, just reconstruct the state too
+            context
                 .label(cleanup)
+                // Discard the invalid return value
                 .instruction(Instruction::Pop)
+                // Reattach the bindset:state
+                .instruction(Instruction::Cons)
+                // Put the marker back in too
                 .instruction(Instruction::Const(true.into()))
                 .instruction(Instruction::Cons)
+                // And then call it failure
                 .jump(on_fail);
 
             context.label(setup);
+            // The setup of a lookup is to evaluate all the patterns and call the closure
+            // that's currently in the state field, which will return an iterator that is
+            // the actual query's state.
+            //
+            // First detach the bindset
+            context.instruction(Instruction::Uncons);
+            context.scope.intermediate(); // bindset
+
+            // Then do the evaluation. Patterns with unbound variables will evaluate to
+            // being unbound, as they are being used as output parameters at this time.
             for pattern in &lookup.patterns {
-                pattern.bindings();
                 evaluate(context, bound, pattern);
                 context.scope.intermediate();
             }
-
+            // Then we do the call, with all those arguments
             context.instruction(Instruction::Call(lookup.patterns.len() as u32));
+            // Clean up the scope
             for _ in &lookup.patterns {
                 context.scope.end_intermediate();
             }
-            context.jump(&enter).label(end);
+            context.scope.end_intermediate(); // bindset
+            context
+                // Bindset gets reattached to scope
+                .instruction(Instruction::Cons)
+                // Then continue as if we didn't just set up
+                .jump(&enter)
+                .label(end);
         }
     }
 }
@@ -785,20 +845,16 @@ fn write_query_value(
 fn unbind(context: &mut Context, bindset: &Bindings<'_>, vars: HashSet<Id>) {
     let newly_bound = vars.difference(bindset.0.as_ref());
     for var in newly_bound {
-        match context.scope.lookup(var).unwrap() {
-            Binding::Variable(index) => {
-                let skip = context.labeler.unique_hint("skip");
-                context
-                    .instruction(Instruction::Copy)
-                    .instruction(Instruction::Const(index.into()))
-                    .instruction(Instruction::Contains)
-                    .instruction(Instruction::Not)
-                    .cond_jump(&skip)
-                    .instruction(Instruction::UnsetLocal(index))
-                    .label(skip);
-            }
-            _ => unreachable!(),
-        }
+        let index = context.scope.lookup(var).unwrap().unwrap_local();
+        let skip = context.labeler.unique_hint("skip");
+        context
+            .instruction(Instruction::Copy)
+            .instruction(Instruction::Const(index.into()))
+            .instruction(Instruction::Contains)
+            .instruction(Instruction::Not)
+            .cond_jump(&skip)
+            .instruction(Instruction::UnsetLocal(index))
+            .label(skip);
     }
     context.instruction(Instruction::Pop);
 }
