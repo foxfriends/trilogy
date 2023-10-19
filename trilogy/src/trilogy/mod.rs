@@ -29,7 +29,20 @@ impl Trilogy {
         entrypoint: Location,
     ) -> Self {
         let mut vm = VirtualMachine::new();
-        vm.set_registers(vec![Value::Unit, Value::Array(vec![].into()), Value::Unit]);
+        // The registers of Trilogy are as follows.
+        //
+        // Be sure to update them in the few places in main.rs as well, where we run ASM
+        // directly on a VM instead of using the Trilogy wrapper.
+        vm.set_registers(vec![
+            // Global effect handler resume continuation
+            Value::Unit,
+            // Module parameters
+            Value::Array(vec![].into()),
+            // Query state construction bindset
+            Value::Unit,
+            // Local temporary
+            Value::Unit,
+        ]);
         Self {
             modules,
             libraries,

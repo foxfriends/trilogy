@@ -155,17 +155,19 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // left state and a marker for whether we're on the first or second branch on
             // this iteration. The marker just changes on different conditions.
             //
-            // Also in both cases, the bindset must be kept because there will be backtracking.
+            // Also, in both cases, the bindset must be kept because there will be backtracking.
             //
-            // It's kind of just a coincidence that these can be represented with the same
-            // data.
+            // It's kind of just a coincidence that these can be represented with the same data.
+            context
+                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::Clone);
+            context.scope.intermediate();
             continue_query_state(context, &alt.0);
             context
-                .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::LoadRegister(2))
-                .instruction(Instruction::Clone)
+                .instruction(Instruction::Const(false.into()))
                 .instruction(Instruction::Cons);
+            context.scope.end_intermediate();
         }
         ir::QueryValue::Lookup(lookup) => {
             // Lookups require setting up the rule. All the values of the expression must be
@@ -387,45 +389,118 @@ fn write_query_value(
             let lhs_vars = conj.0.bindings();
             let rhs_bound = bound.union(&lhs_vars);
 
-            context.instruction(Instruction::Uncons).cond_jump(&outer);
+            context
+                // The first field determines if we are on inner (true) or outer (false)
+                .instruction(Instruction::Uncons)
+                .cond_jump(&outer);
 
+            // The inner query has its own state which got set up at the end of the outer
+            // branch.
+            //
+            // Recommend reading the `outer` section first for context. The `inner` part
+            // is executed in a continuation from there.
             context
                 .label(inner.clone())
+                // The state at this point is ((outer_bindset:outer_state):inner_state).
+                // The outer state is just stored so we can reset with it when the inner
+                // query finally fails, so we only need to carry it around.
+                //
+                // Pop the inner state off as it is all that is needed.
                 .instruction(Instruction::Uncons);
-            context.scope.intermediate();
+            context.scope.intermediate(); // Outer state
+
+            // There's nothing to reset to at this point, the inner query will do that
+            // internally already, if needed.
             write_query_value(context, &conj.1.value, &reset, &rhs_bound);
+
+            // On success, reconstruct the state
             context.scope.end_intermediate();
             context
+                // Reattach the outer state
                 .instruction(Instruction::Cons)
+                // Put the marker on top
                 .instruction(Instruction::Const(true.into()))
                 .instruction(Instruction::Cons)
                 .jump(&out);
 
+            // On failure, simply reset with the outer query's state. It'll continue from
+            // where it left off!
             context
                 .label(reset)
+                // Discard the inner state, it's garbage now.
                 .instruction(Instruction::Pop)
+                // The outer state is already on the stack.
                 .instruction(Instruction::Reset);
 
-            context.label(outer.clone());
-            write_query_value(context, &conj.0.value, &cleanup, bound);
-            write_query_state(context, &conj.1);
             context
+                .label(outer.clone())
+                // Take out the bindset from the state. We will have to reset to this
+                // one every time the outer query gets evaluated.
+                .instruction(Instruction::Uncons);
+
+            // Load up that bindset we just took out of the state and reset the bindings
+            // accordingly.
+            let outer_bindset = context.scope.intermediate();
+            context.instruction(Instruction::LoadLocal(outer_bindset));
+            unbind(context, bound, conj.0.value.bindings());
+            // Then run the outer query as normal.
+            write_query_value(context, &conj.0.value, &cleanup, bound);
+            // When it succeeds, proceed to running the inner query.
+            //
+            // First, set up the inner query's state. This must continue from the current
+            // bindset, which is the bindset from AFTER the outer query has been run. Add
+            // all the outer query's bindings into the set now.
+            context
+                .instruction(Instruction::LoadLocal(outer_bindset))
+                .instruction(Instruction::Clone);
+            for var in conj.0.bindings() {
+                let index = context.scope.lookup(&var).unwrap().unwrap_local();
+                context
+                    .instruction(Instruction::Const(index.into()))
+                    .instruction(Instruction::Insert);
+            }
+            // Then build the state for the right hand query out of that.
+            write_continued_query_state(context, &conj.1);
+
+            // Next we do a bit of witchcraft with continuations.
+            context
+                // The state of the inner query is reconstructed as if it were fully brand new
+                // and we weren't already halfway through the query.
+                //
+                // At this point the stack is outer_bindset, outer_state, inner_state.
+                // We need to construct ((outer_bindset : outer_state):inner_state) so that things are easy later.
+                .instruction(Instruction::Slide(2))
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::SetRegister(2))
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Cons)
+                // Then we put that big tuple into register 3 briefly...
+                .instruction(Instruction::SetRegister(3))
+                // Create a continuation from here
                 .shift(&next)
+                // The continuation is the inner query.
                 .jump(&inner);
             context
                 .label(next)
-                .instruction(Instruction::LoadRegister(2))
+                // After creating that continuation, immediately call it with the the temp
+                // state as argument. This continuation will reset when the inner query finally
+                // fails, at which point we continue as if it was outer being called.
+                //
+                // So long as the inner query succeeds, it will just... continue out into the
+                // continuation, as it should.
+                //
+                // Tricky, but works.
+                .instruction(Instruction::LoadRegister(3))
                 .instruction(Instruction::Call(1))
                 .jump(&outer);
 
+            // We go here if the outer query fails. Once that happens, the whole conjunction is failed.
             context
                 .label(cleanup)
+                .instruction(Instruction::Cons) // Attach the state to the bindset
                 .instruction(Instruction::Const(false.into()))
-                .instruction(Instruction::Cons)
+                .instruction(Instruction::Cons) // Then attach the marker
                 .jump(on_fail);
-
+            context.scope.end_intermediate(); // outer_bindset
             context.label(out);
         }
         ir::QueryValue::Implication(imp) => {
