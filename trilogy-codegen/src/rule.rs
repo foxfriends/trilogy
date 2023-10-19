@@ -1,5 +1,6 @@
 use crate::context::Context;
 use crate::prelude::*;
+use std::collections::HashSet;
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
 use trilogy_vm::Instruction;
@@ -20,7 +21,6 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         .instruction(Instruction::Const(().into()))
         .instruction(Instruction::ValNeq)
         .cond_jump(&setup)
-        .jump(&call)
         // Once setup is complete, we end up here where the rule's iterator is actually
         // called. The state (that is not unit) is that iterator.
         .label(&call)
@@ -37,34 +37,58 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         .instruction(Instruction::Pop) // The closure itself
         .jump(on_fail);
 
+    // Begin setup by throwing away the `unit` placeholder state
     context.label(setup).instruction(Instruction::Pop);
+    // Set up the initial bindset for this rule. It starts empty, but gets
+    // filled right away from the parameters.
+    context.instruction(Instruction::Const(HashSet::new().into()));
+    // Just using temp register to help keep the bindset on top of stack.
+    // Probably could have done this any number of ways... but temp
+    // register is easy
+    context.instruction(Instruction::SetRegister(3));
     // First check all the parameters, make sure they work. If they don't
     // match, we can fail without even constructing the state.
     let mut cleanup = vec![];
     for (i, parameter) in rule.parameters.iter().enumerate() {
         let skip = context.labeler.unique_hint("skip");
         cleanup.push(context.labeler.unique_hint("cleanup"));
+        // Variables of this binding must be declared, whether they are about to
+        // be set or not.
         context.declare_variables(parameter.bindings());
+        // Then we only set those bindings if the parameter was passed.
         context
             .instruction(Instruction::IsSetLocal(1 + i as u32))
-            .cond_jump(&skip)
-            .instruction(Instruction::LoadLocal(1 + i as u32));
+            .cond_jump(&skip);
+        // Parameter *was* passed, so update the bindset and the bindings together.
+        context.instruction(Instruction::LoadRegister(3));
+        for var in parameter.bindings() {
+            let index = context.scope.lookup(&var).unwrap().unwrap_local();
+            context
+                .instruction(Instruction::Const(index.into()))
+                .instruction(Instruction::Insert);
+        }
+        context.scope.intermediate(); // Bindset
+        context.instruction(Instruction::LoadLocal(1 + i as u32));
         write_pattern_match(context, parameter, &cleanup[i]);
+        context.scope.end_intermediate();
+        context.instruction(Instruction::SetRegister(3));
         context.label(skip);
     }
-
     // Happy path: we continue by writing the query state down, and then
     // encapsulating all that into a closure which will be the iterator for
     // this overload of the rule.
     let declared_vars = context.declare_variables(rule.body.bindings());
-    write_query_state(context, &rule.body);
+    // Put the final bindset down here. Register 3 no longer matters after
+    // this.
+    context.instruction(Instruction::LoadRegister(3));
+    write_continued_query_state(context, &rule.body);
+    let actual_state = context.scope.intermediate();
     context.close(&precall);
 
     // The actual body of the rule involves running the query, then
     // returning the return value in 'next. We convert failure to
     // returning 'done, as in a regular iterator.
     let on_done = context.labeler.unique_hint("on_done");
-    let actual_state = context.scope.intermediate();
     context.instruction(Instruction::LoadLocal(actual_state));
     write_query(context, &rule.body, &on_done);
     context.instruction(Instruction::SetLocal(actual_state));
@@ -121,6 +145,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.undeclare_variables(parameter.bindings(), true);
     }
     context
+        .instruction(Instruction::Pop) // The bindset is still on the stack during cleanup!
         .jump(on_fail)
         // Following setup, we go here, clearing all the closed up state that was put
         // on the stack before going to `call`.

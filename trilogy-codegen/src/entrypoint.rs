@@ -137,14 +137,16 @@ impl ProgramContext<'_> {
                 .instruction(Instruction::Return);
             context
                 .label(fail)
-                .instruction(Instruction::Const(((), i + 1).into()))
-                .instruction(Instruction::SetLocal(0))
-                .instruction(Instruction::LoadLocal(0))
-                .instruction(Instruction::Uncons)
+                // The 'done and the state are discarded by write_rule, so here we just
+                // have to create the next state
+                .instruction(Instruction::Const(().into()))
+                .instruction(Instruction::Const((i + 1).into()))
                 .label(skip);
         }
         let done = context.atom("done");
         context
+            .instruction(Instruction::Cons)
+            .instruction(Instruction::SetLocal(0))
             .instruction(Instruction::Const(done.into()))
             .instruction(Instruction::Return);
     }
