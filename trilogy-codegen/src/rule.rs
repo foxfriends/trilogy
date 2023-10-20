@@ -49,12 +49,16 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // First check all the parameters, make sure they work. If they don't
     // match, we can fail without even constructing the state.
     let mut cleanup = vec![];
+    // Track how many variables get declared in the parameters so that they
+    // can properly be cleaned up at the end. These parameters only need to
+    // exist inside the closure, and must not exist on stack outside the closure.
+    let mut total_declared = 0;
     for (i, parameter) in rule.parameters.iter().enumerate() {
         let skip = context.labeler.unique_hint("skip");
         cleanup.push(context.labeler.unique_hint("cleanup"));
         // Variables of this binding must be declared, whether they are about to
         // be set or not.
-        context.declare_variables(parameter.bindings());
+        total_declared += context.declare_variables(parameter.bindings());
         // Then we only set those bindings if the parameter was passed.
         context
             .instruction(Instruction::IsSetLocal(1 + i as u32))
@@ -77,7 +81,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // Happy path: we continue by writing the query state down, and then
     // encapsulating all that into a closure which will be the iterator for
     // this overload of the rule.
-    let declared_vars = context.declare_variables(rule.body.bindings());
+    total_declared += context.declare_variables(rule.body.bindings());
     // Put the final bindset down here. Register 3 no longer matters after
     // this.
     context.instruction(Instruction::LoadRegister(3));
@@ -150,10 +154,16 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         // Following setup, we go here, clearing all the closed up state that was put
         // on the stack before going to `call`.
         //
-        // That state is the query state + all the query's bindings that were declared
+        // That state is the query state + all the query's parameters + all the query's body variables
         .label(&precall)
-        .instruction(Instruction::Slide(declared_vars as u32 + 1))
-        .instruction(Instruction::Pop)
-        .undeclare_variables(rule.body.bindings(), true);
+        .instruction(Instruction::Slide(total_declared as u32 + 1))
+        .instruction(Instruction::Pop);
+    for _ in 0..total_declared {
+        // The query's parameters and body variables are popped manually,
+        // as the parameters were already undeclared above, so using
+        // undeclare on those is not going to work. :shrug:
+        context.instruction(Instruction::Pop);
+    }
+    context.undeclare_variables(rule.body.bindings(), false);
     context.jump(call).label(end);
 }
