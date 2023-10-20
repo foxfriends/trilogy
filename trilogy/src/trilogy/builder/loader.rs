@@ -1,5 +1,6 @@
 use crate::cache::Cache;
 use crate::location::Location;
+use crate::trilogy::load_error::ErrorKind;
 use crate::LoadError;
 use reqwest::blocking::Client;
 use std::collections::{HashMap, VecDeque};
@@ -152,7 +153,7 @@ pub fn load<E: std::error::Error + 'static>(
         };
         let Some(source) = loader
             .load_source(&location)
-            .map_err(|er| LoadError::Resolver(vec![er]))?
+            .map_err(|er| LoadError::new(vec![ErrorKind::Resolver(er)]))?
         else {
             continue;
         };
@@ -166,11 +167,17 @@ pub fn load<E: std::error::Error + 'static>(
     // TODO: warnings are lost here...
 
     if modules.values().any(|module| module.contents.has_errors()) {
-        Err(LoadError::Syntax(
+        Err(LoadError::new(
             modules
-                .values()
-                .flat_map(|module| module.contents.errors())
-                .cloned()
+                .iter()
+                .flat_map(|(location, module)| {
+                    module
+                        .contents
+                        .errors()
+                        .iter()
+                        .cloned()
+                        .map(|error| ErrorKind::Syntax(location.clone(), error))
+                })
                 .collect(),
         ))
     } else {

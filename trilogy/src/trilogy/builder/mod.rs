@@ -82,7 +82,7 @@ impl<E: std::error::Error + 'static> Builder<E> {
             self.root_dir
                 .map(Ok)
                 .unwrap_or_else(std::env::current_dir)
-                .map_err(|error| LoadError::Resolver(vec![ResolverError::external(error)]))?,
+                .map_err(|error| LoadError::new(vec![ResolverError::external(error).into()]))?,
             file,
         );
         let documents = loader::load(&*self.cache, &entrypoint)?;

@@ -8,7 +8,7 @@ pub use trilogy_vm::runtime::*;
 mod cache;
 mod location;
 mod native_module;
-mod trilogy;
+pub(crate) mod trilogy;
 
 pub use cache::{Cache, FileSystemCache, NoopCache};
 pub use native_module::{NativeModule, NativeModuleBuilder};
