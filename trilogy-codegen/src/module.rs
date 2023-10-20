@@ -21,7 +21,8 @@ pub(crate) fn write_module_definitions(
     // Here's where all the definitions follow.
     for def in module.definitions() {
         match &def.item {
-            ir::DefinitionItem::Module(definition) if definition.module.as_module().is_some() => {
+            ir::DefinitionItem::Module(definition) if definition.module.as_module().is_none() => {} // Imported modules are not written
+            ir::DefinitionItem::Module(definition) => {
                 context.write_module(statics.clone(), definition);
             }
             ir::DefinitionItem::Function(function) => {
@@ -42,8 +43,6 @@ pub(crate) fn write_module_definitions(
                 context.write_procedure(statics, procedure);
             }
             ir::DefinitionItem::Test(..) => todo!(),
-            // Imported modules are not written
-            ir::DefinitionItem::Module(..) => {}
         }
     }
 }
