@@ -1,6 +1,6 @@
 proc main!() {
-    let three = 3;
-    let array = [4, 5, 6];
-    let longer = [1, 2, three, ..array];
-    exit longer;
+    let three = 3
+    let array = [4, 5, 6]
+    let longer = [1, 2, three, ..array]
+    exit longer
 }
