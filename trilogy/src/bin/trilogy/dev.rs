@@ -101,7 +101,7 @@ pub fn run(command: Command) -> std::io::Result<()> {
         }
         Command::Ir { .. } => todo!(),
         Command::Asm { file } => match Trilogy::from_file(file) {
-            Ok(trilogy) => match trilogy.compile() {
+            Ok(trilogy) => match trilogy.compile(true) {
                 Ok(chunk) => println!("{:?}", chunk),
                 Err(error) => eprintln!("{error}"),
             },

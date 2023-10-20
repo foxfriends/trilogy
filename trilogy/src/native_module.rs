@@ -50,7 +50,6 @@ impl NativeModuleBuilder {
 
 impl NativeModule {
     pub(crate) fn write_to_chunk(&self, location: &Location, chunk: &mut ChunkBuilder) {
-        chunk.close(trilogy_codegen::RETURN);
         for (name, proc) in &self.procedures {
             let atom = chunk.atom(name);
             let next = format!("#skip::{location}::{name}");

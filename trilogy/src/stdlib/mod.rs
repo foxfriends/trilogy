@@ -4,6 +4,9 @@ pub mod std {
 
     #[trilogy_derive::proc(crate_name=crate)]
     pub fn print(value: Value) {
-        println!("{}", value);
+        match value {
+            Value::String(s) => println!("{s}"),
+            _ => println!("{value}"),
+        }
     }
 }

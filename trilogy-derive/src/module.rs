@@ -10,6 +10,7 @@ fn is_proc(attribute: &Attribute) -> bool {
     }
     match &attribute.meta {
         Meta::Path(path) => path.segments.last().unwrap().ident == "proc",
+        Meta::List(list) => list.path.segments.last().unwrap().ident == "proc",
         _ => false,
     }
 }
@@ -20,6 +21,7 @@ fn is_module(attribute: &Attribute) -> bool {
     }
     match &attribute.meta {
         Meta::Path(path) => path.segments.last().unwrap().ident == "module",
+        Meta::List(list) => list.path.segments.last().unwrap().ident == "module",
         _ => false,
     }
 }
@@ -50,11 +52,12 @@ pub(crate) fn impl_attr(
             "Trilogy native module must have a body",
         ));
     };
+
     let items = content.1.iter().filter_map(|item| match item {
         Item::Fn(fn_item) if fn_item.attrs.iter().any(is_proc) => {
             let fn_name = &fn_item.sig.ident;
             Some(quote! {
-                module = module.add_procedure(#name::#fn_name);
+                module = module.add_procedure(stringify!(#fn_name), #name::#fn_name);
             })
         }
         Item::Mod(module_item) if module_item.attrs.iter().any(is_module) => {

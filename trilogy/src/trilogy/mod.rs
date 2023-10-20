@@ -93,7 +93,7 @@ impl Trilogy {
         self.vm.run(program).map_err(|error| RuntimeError { error })
     }
 
-    pub fn compile(&self) -> Result<Chunk, ChunkError> {
+    pub fn compile(&self, debug: bool) -> Result<Chunk, ChunkError> {
         let trilogy_program;
         let asm_program;
         let program: &dyn Program;
@@ -113,7 +113,7 @@ impl Trilogy {
                     libraries: &self.libraries,
                     modules: modules,
                     entrypoint: entrypoint,
-                    to_asm: true,
+                    to_asm: !debug,
                 };
                 program = &trilogy_program;
             }
