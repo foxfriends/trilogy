@@ -13,6 +13,15 @@ pub(crate) enum StaticMember {
     Label(String),
 }
 
+impl StaticMember {
+    pub fn unwrap_label(self) -> String {
+        match self {
+            Self::Label(label) => label,
+            _ => panic!("expected static member to be a label, but it was {self:?}"),
+        }
+    }
+}
+
 pub(crate) struct ProgramContext<'a> {
     pub labeler: Labeler,
     builder: &'a mut ChunkBuilder,

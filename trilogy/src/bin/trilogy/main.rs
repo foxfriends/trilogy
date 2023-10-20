@@ -3,7 +3,7 @@ use num::{bigint::Sign, BigInt};
 use std::io::stdin;
 use std::path::PathBuf;
 use trilogy::{RuntimeError, Trilogy};
-use trilogy_vm::{Value, VirtualMachine};
+use trilogy_vm::Value;
 
 #[cfg(feature = "dev")]
 mod dev;
@@ -135,32 +135,24 @@ fn main() -> std::io::Result<()> {
             file: Some(path),
             print,
             no_std: _,
-        } => {
-            let program = trilogy::AsmProgram::from_file(path)?;
-            let mut vm = VirtualMachine::new();
-            vm.set_registers(vec![
-                Value::Unit,
-                Value::Array(vec![].into()),
-                Value::Unit,
-                Value::Unit,
-            ]);
-            handle(vm.run(&program).map_err(Into::into), print);
-        }
+        } => match Trilogy::from_asm(&mut std::fs::File::open(path)?) {
+            Ok(trilogy) => run(trilogy, print),
+            Err(errors) => {
+                eprintln!("{errors}");
+                std::process::exit(1);
+            }
+        },
         Command::Vm {
             file: None,
             print,
             no_std: _,
-        } => {
-            let program = trilogy::AsmProgram::read(&mut stdin())?;
-            let mut vm = VirtualMachine::new();
-            vm.set_registers(vec![
-                Value::Unit,
-                Value::Array(vec![].into()),
-                Value::Unit,
-                Value::Unit,
-            ]);
-            handle(vm.run(&program).map_err(Into::into), print);
-        }
+        } => match Trilogy::from_asm(&mut stdin()) {
+            Ok(trilogy) => run(trilogy, print),
+            Err(errors) => {
+                eprintln!("{errors}");
+                std::process::exit(1);
+            }
+        },
         Command::Compile { file } => match Trilogy::from_file(file) {
             Ok(trilogy) => match trilogy.compile() {
                 Ok(chunk) => println!("{}", chunk),

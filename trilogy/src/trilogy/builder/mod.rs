@@ -8,9 +8,10 @@ use crate::stdlib;
 
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use super::Trilogy;
+use super::{Source, Trilogy};
 
 mod analyzer;
 mod loader;
@@ -76,7 +77,7 @@ impl<E: std::error::Error + 'static> Builder<E> {
         }
     }
 
-    pub(super) fn build_from_file(self, file: impl AsRef<Path>) -> Result<Trilogy, LoadError<E>> {
+    pub(super) fn build_from_source(self, file: impl AsRef<Path>) -> Result<Trilogy, LoadError<E>> {
         let entrypoint = Location::entrypoint(
             self.root_dir
                 .map(Ok)
@@ -86,6 +87,18 @@ impl<E: std::error::Error + 'static> Builder<E> {
         );
         let documents = loader::load(&*self.cache, &entrypoint)?;
         let modules = analyzer::analyze(documents)?;
-        Ok(Trilogy::new(modules, self.libraries, entrypoint))
+        Ok(Trilogy::new(
+            Source::Trilogy {
+                modules,
+                entrypoint,
+            },
+            self.libraries,
+        ))
+    }
+
+    pub(super) fn build_from_asm(self, file: &mut dyn Read) -> Result<Trilogy, std::io::Error> {
+        let mut asm = String::new();
+        file.read_to_string(&mut asm)?;
+        Ok(Trilogy::new(Source::Asm { asm }, self.libraries))
     }
 }

@@ -113,11 +113,12 @@ pub(crate) fn write_module_prelude(
                 ir::DefinitionItem::Function(func) => {
                     // All overloads must have the same arity, so get from the first one.
                     let function_arity = func.overloads[0].parameters.len();
-                    let Some(StaticMember::Label(label)) =
-                        context.scope.lookup_static(&func.name.id).cloned()
-                    else {
-                        unreachable!("definitions will be found as a local label");
-                    };
+                    let label = context
+                        .scope
+                        .lookup_static(&func.name.id)
+                        .unwrap()
+                        .clone()
+                        .unwrap_label();
                     // Capture all the parameters up front.
                     for _ in 0..function_arity {
                         context.close(RETURN);
@@ -142,11 +143,12 @@ pub(crate) fn write_module_prelude(
                         .instruction(Instruction::Return);
                 }
                 ir::DefinitionItem::Procedure(proc) => {
-                    let Some(StaticMember::Label(proc_label)) =
-                        context.scope.lookup_static(&proc.name.id).cloned()
-                    else {
-                        unreachable!("definitions will be found as a local label");
-                    };
+                    let proc_label = context
+                        .scope
+                        .lookup_static(&proc.name.id)
+                        .unwrap()
+                        .clone()
+                        .unwrap_label();
                     // Procedure only has one overload. All overloads would have the same arity anyway.
                     let arity = proc.overloads[0].parameters.len();
                     context
@@ -207,11 +209,12 @@ pub(crate) fn write_module_prelude(
                     }
                 }
                 ir::DefinitionItem::Rule(rule) => {
-                    let Some(StaticMember::Label(static_member)) =
-                        context.scope.lookup_static(&rule.name.id).cloned()
-                    else {
-                        unreachable!("definitions will be found as a local label");
-                    };
+                    let static_member = context
+                        .scope
+                        .lookup_static(&rule.name.id)
+                        .unwrap()
+                        .clone()
+                        .unwrap_label();
                     let arity = rule.overloads[0].parameters.len();
                     // It's a rule, so it will be immediately called to perform setup.
                     // That setup does not require the context... I think. But it's easy
@@ -253,8 +256,6 @@ pub(crate) fn write_module_prelude(
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(1))
                         .instruction(Instruction::Return);
-                    // NOTE: should confirm at some point that these two intermediates need to be ended...
-                    // I would assume so, but I added them late without much thought
                     context.scope.end_intermediate();
                     context.scope.end_intermediate();
                 }
@@ -264,7 +265,7 @@ pub(crate) fn write_module_prelude(
         }
     }
 
-    context.jump(END);
+    context.instruction(Instruction::Fizzle);
     context.scope.end_intermediate();
 
     // For definitions to actually access the module parameters, they're defined as

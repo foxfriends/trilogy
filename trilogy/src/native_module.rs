@@ -1,5 +1,6 @@
+use crate::location::Location;
 use std::collections::HashMap;
-use trilogy_vm::{Native, NativeFunction};
+use trilogy_vm::{ChunkBuilder, Instruction, Native, NativeFunction};
 
 #[derive(Clone, Debug)]
 pub struct NativeModule {
@@ -44,5 +45,24 @@ impl NativeModuleBuilder {
 
     pub fn build(self) -> NativeModule {
         self.inner
+    }
+}
+
+impl NativeModule {
+    pub(crate) fn write_to_chunk(&self, location: &Location, chunk: &mut ChunkBuilder) {
+        chunk.close(trilogy_codegen::RETURN);
+        for (name, proc) in &self.procedures {
+            let atom = chunk.atom(name);
+            let next = format!("#skip::{location}::{name}");
+            chunk
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(atom.into()))
+                .instruction(Instruction::ValEq)
+                .cond_jump(&next)
+                .instruction(Instruction::Const(proc.clone().into()))
+                .instruction(Instruction::Return)
+                .label(next);
+        }
+        chunk.instruction(Instruction::Fizzle);
     }
 }

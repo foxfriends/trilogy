@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use trilogy_ir::ir::Module;
 use trilogy_vm::{ChunkBuilder, Program, Value};
 
-pub(crate) struct TrilogyProgram<'a> {
+pub(super) struct TrilogyProgram<'a> {
     pub modules: &'a HashMap<Location, Module>,
     pub libraries: &'a HashMap<Location, NativeModule>,
     pub entrypoint: &'a Location,
+    pub to_asm: bool,
 }
 
 impl Program for TrilogyProgram<'_> {
@@ -30,10 +31,18 @@ impl Program for TrilogyProgram<'_> {
             .map(Either::Source)
             .or_else(|| self.libraries.get(&location).map(Either::Native))
             .unwrap_or_else(|| panic!("unknown module location `{location}`"));
-        chunk.label(format!("location:{location}"));
         match module {
-            Either::Source(module) => trilogy_codegen::write_module(chunk, module),
-            Either::Native(..) => todo!("native modules"),
+            Either::Source(module) => {
+                chunk.label(format!("location:{location}"));
+                trilogy_codegen::write_module(chunk, module)
+            }
+            Either::Native(module) => {
+                if self.to_asm {
+                    return;
+                }
+                chunk.label(format!("location:{location}"));
+                module.write_to_chunk(&location, chunk);
+            }
         }
     }
 }

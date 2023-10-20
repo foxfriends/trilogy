@@ -1,38 +1,43 @@
 use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::Path;
 use trilogy_ir::ir::Module;
-use trilogy_vm::{Atom, Chunk, ChunkError, Value, VirtualMachine};
+use trilogy_vm::{Atom, Chunk, ChunkError, Program, Value, VirtualMachine};
 
+mod asm_program;
 mod builder;
 mod load_error;
 mod runtime_error;
 mod trilogy_program;
 
+use asm_program::AsmProgram;
 pub use builder::Builder;
 pub use load_error::LoadError;
 pub use runtime_error::RuntimeError;
 use trilogy_program::TrilogyProgram;
 
 #[derive(Clone, Debug)]
+enum Source {
+    Trilogy {
+        modules: HashMap<Location, Module>,
+        entrypoint: Location,
+    },
+    Asm {
+        asm: String,
+    },
+}
+
+#[derive(Clone, Debug)]
 pub struct Trilogy {
-    modules: HashMap<Location, Module>,
+    source: Source,
     libraries: HashMap<Location, NativeModule>,
-    entrypoint: Location,
     vm: VirtualMachine,
 }
 
 impl Trilogy {
-    fn new(
-        modules: HashMap<Location, Module>,
-        libraries: HashMap<Location, NativeModule>,
-        entrypoint: Location,
-    ) -> Self {
+    fn new(source: Source, libraries: HashMap<Location, NativeModule>) -> Self {
         let mut vm = VirtualMachine::new();
-        // The registers of Trilogy are as follows.
-        //
-        // Be sure to update them in the few places in main.rs as well, where we run ASM
-        // directly on a VM instead of using the Trilogy wrapper.
         vm.set_registers(vec![
             // Global effect handler resume continuation
             Value::Unit,
@@ -44,36 +49,76 @@ impl Trilogy {
             Value::Unit,
         ]);
         Self {
-            modules,
+            source,
             libraries,
             vm,
-            entrypoint,
         }
     }
 
     #[cfg(feature = "std")]
     pub fn from_file(file: impl AsRef<Path>) -> Result<Self, LoadError<std::io::Error>> {
-        Builder::std().build_from_file(file)
+        Builder::std().build_from_source(file)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_asm(file: &mut dyn Read) -> Result<Self, std::io::Error> {
+        Builder::std().build_from_asm(file)
     }
 
     pub fn run(&mut self) -> Result<Value, RuntimeError> {
-        let program = TrilogyProgram {
-            modules: &self.modules,
-            libraries: &self.libraries,
-            entrypoint: &self.entrypoint,
-        };
-        self.vm
-            .run(&program)
-            .map_err(|error| RuntimeError { error })
+        let trilogy_program;
+        let asm_program;
+        let program: &dyn Program;
+        match &self.source {
+            Source::Asm { asm } => {
+                asm_program = AsmProgram {
+                    source: asm,
+                    libraries: &self.libraries,
+                };
+                program = &asm_program;
+            }
+            Source::Trilogy {
+                modules,
+                entrypoint,
+            } => {
+                trilogy_program = TrilogyProgram {
+                    libraries: &self.libraries,
+                    modules: modules,
+                    entrypoint: entrypoint,
+                    to_asm: false,
+                };
+                program = &trilogy_program;
+            }
+        }
+        self.vm.run(program).map_err(|error| RuntimeError { error })
     }
 
     pub fn compile(&self) -> Result<Chunk, ChunkError> {
-        let program = TrilogyProgram {
-            modules: &self.modules,
-            libraries: &self.libraries,
-            entrypoint: &self.entrypoint,
-        };
-        self.vm.compile(&program)
+        let trilogy_program;
+        let asm_program;
+        let program: &dyn Program;
+        match &self.source {
+            Source::Asm { asm } => {
+                asm_program = AsmProgram {
+                    source: asm,
+                    libraries: &self.libraries,
+                };
+                program = &asm_program;
+            }
+            Source::Trilogy {
+                modules,
+                entrypoint,
+            } => {
+                trilogy_program = TrilogyProgram {
+                    libraries: &self.libraries,
+                    modules: modules,
+                    entrypoint: entrypoint,
+                    to_asm: true,
+                };
+                program = &trilogy_program;
+            }
+        }
+        self.vm.compile(program)
     }
 
     pub fn atom(&self, atom: &str) -> Atom {

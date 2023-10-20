@@ -2,9 +2,9 @@ use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
 use trilogy_vm::{ChunkBuilder, Program, Value};
 
-pub struct AsmProgram<'a> {
-    pub(crate) source: &'a str,
-    pub(crate) libraries: &'a HashMap<Location, NativeModule>,
+pub(super) struct AsmProgram<'a> {
+    pub source: &'a str,
+    pub libraries: &'a HashMap<Location, NativeModule>,
 }
 
 impl Program for AsmProgram<'_> {

@@ -295,3 +295,4 @@ impl_from!(<num::BigRational> for Number via Number);
 impl_from!(<num::BigInt> for Number via Number);
 impl_from!(<num::BigUint> for Number via Number);
 impl_from!(<num::Complex<num::BigRational>> for Number via Number);
+impl_from!(<Native> for Native);
