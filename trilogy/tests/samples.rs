@@ -380,14 +380,12 @@ fn sample_proc_auto_return_unit() {
 }
 
 #[test]
-#[ignore = "not yet working"]
 fn sample_main_no_exit() {
     let mut program = include_tri!("main_no_exit.tri");
     assert_eq!(program.run().unwrap(), Value::from(0));
 }
 
 #[test]
-#[ignore = "not yet working"]
 fn sample_main_return() {
     let mut program = include_tri!("main_return.tri");
     assert_eq!(program.run().unwrap(), Value::from(3));

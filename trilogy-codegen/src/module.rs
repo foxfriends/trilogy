@@ -33,14 +33,10 @@ pub(crate) fn write_module_definitions(
             }
             ir::DefinitionItem::Procedure(procedure) => {
                 if mode == Mode::Program && procedure.name.id.name() == Some("main") {
-                    // When this is the entrypoint of the program, the entrypoint of the chunk
-                    // is the main function, which we have just found here.
-                    //
-                    // If there is no main... we'll have to raise some error I suppose.
-                    context.entrypoint();
-                    context.label("trilogy:__entrypoint__");
+                    context.write_main(statics, procedure)
+                } else {
+                    context.write_procedure(statics, procedure);
                 }
-                context.write_procedure(statics, procedure);
             }
             ir::DefinitionItem::Test(..) => todo!(),
         }

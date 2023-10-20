@@ -82,6 +82,31 @@ impl ProgramContext<'_> {
         self
     }
 
+    /// Writes the main procedure of this program. The main procedure is written like a regular
+    /// procedure, but a little wrapper is inserted that immediately calls that main procedure
+    /// and handles its return value as an exit.
+    pub fn write_main(
+        &mut self,
+        statics: &HashMap<Id, StaticMember>,
+        procedure: &ir::ProcedureDefinition,
+    ) {
+        let for_id = self.labeler.for_id(&procedure.name.id);
+        self.builder
+            .entrypoint()
+            .label("trilogy:__entrypoint__")
+            .reference(for_id)
+            .instruction(Instruction::Call(0))
+            .instruction(Instruction::Copy)
+            .instruction(Instruction::Const(().into()))
+            .instruction(Instruction::ValEq)
+            .cond_jump("trilogy:__exit_runoff__")
+            .instruction(Instruction::Const(0.into()))
+            .label("trilogy:__exit_runoff__")
+            .instruction(Instruction::Exit);
+
+        self.write_procedure(statics, procedure)
+    }
+
     /// Writes a procedure. Calling convention of procedures is to simply call with all arguments
     /// on the stack in order.
     pub fn write_procedure(
