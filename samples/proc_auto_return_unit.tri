@@ -1,0 +1,5 @@
+proc this_is_unit!() {}
+
+proc main!() {
+    exit this_is_unit!()
+}

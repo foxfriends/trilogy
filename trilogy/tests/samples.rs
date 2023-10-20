@@ -374,6 +374,12 @@ fn sample_is_expr() {
 }
 
 #[test]
+fn sample_proc_auto_return_unit() {
+    let mut program = include_tri!("proc_auto_return_unit.tri");
+    assert_eq!(program.run().unwrap(), Value::from(()));
+}
+
+#[test]
 #[ignore = "not yet working"]
 fn sample_main_no_exit() {
     let mut program = include_tri!("main_no_exit.tri");
