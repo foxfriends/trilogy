@@ -83,8 +83,8 @@ impl Trilogy {
             } => {
                 trilogy_program = TrilogyProgram {
                     libraries: &self.libraries,
-                    modules: modules,
-                    entrypoint: entrypoint,
+                    modules,
+                    entrypoint,
                     to_asm: false,
                 };
                 program = &trilogy_program;
@@ -111,8 +111,8 @@ impl Trilogy {
             } => {
                 trilogy_program = TrilogyProgram {
                     libraries: &self.libraries,
-                    modules: modules,
-                    entrypoint: entrypoint,
+                    modules,
+                    entrypoint,
                     to_asm: !debug,
                 };
                 program = &trilogy_program;
