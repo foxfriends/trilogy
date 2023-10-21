@@ -17,7 +17,16 @@ impl Assignment {
         let rhs = Expression::convert(analyzer, ast.rhs);
 
         let op = match ast.strategy {
-            Direct(..) => return Expression::assignment(span, Self { lhs, rhs }),
+            Direct(..) => {
+                let id = lhs.unwrap_reference();
+                if !id.is_mutable {
+                    analyzer.error(Error::AssignedImmutableBinding {
+                        name: id.clone(),
+                        assignment: span,
+                    });
+                }
+                return Expression::assignment(span, Self { lhs, rhs });
+            }
             And(token) => Expression::builtin(token.span, Builtin::And),
             Or(token) => Expression::builtin(token.span, Builtin::Or),
             Add(token) => Expression::builtin(token.span, Builtin::Add),
@@ -70,7 +79,10 @@ impl Assignment {
             Err(lhs) => {
                 let id = lhs.unwrap_reference();
                 if !id.is_mutable {
-                    analyzer.error(Error::AssignedImmutableBinding { name: id.clone() });
+                    analyzer.error(Error::AssignedImmutableBinding {
+                        name: id.clone(),
+                        assignment: span,
+                    });
                 }
                 let op_span = op.span;
                 let rhs = op
@@ -132,7 +144,10 @@ impl Assignment {
             Err(lhs) => {
                 let id = lhs.unwrap_reference();
                 if !id.is_mutable {
-                    analyzer.error(Error::AssignedImmutableBinding { name: id.clone() });
+                    analyzer.error(Error::AssignedImmutableBinding {
+                        name: id.clone(),
+                        assignment: span,
+                    });
                 }
                 let rhs = function.apply_to(span, lhs.clone());
                 Expression::assignment(span, Self { lhs, rhs })

@@ -1,14 +1,17 @@
+use super::error::ErrorKind;
+use super::loader::Loader;
 use super::Error;
-use super::{error::ErrorKind, loader::Loader};
 use crate::location::Location;
 use crate::Cache;
-use ariadne::{ColorGenerator, Fmt, FnCache, Label, ReportKind};
+use ariadne::{ColorGenerator, Config, Fmt, FnCache, Label, ReportKind};
 use source_span::Span;
 use std::fmt::{self, Debug};
 use std::ops::Range;
+use std::path::{Path, PathBuf};
 use trilogy_parser::Spanned;
 
 pub struct Report<E: std::error::Error> {
+    relative_base: PathBuf,
     cache: Box<dyn Cache<Error = E>>,
     errors: Vec<Error<E>>,
     warnings: Vec<Error<E>>,
@@ -38,18 +41,47 @@ trait CacheExt<'a>: ariadne::Cache<&'a Location> {
 
 impl<'a, C> CacheExt<'a> for C where C: ariadne::Cache<&'a Location> {}
 
+struct LoaderCache<'a, F> {
+    relative_base: &'a Path,
+    inner: FnCache<&'a Location, F>,
+}
+
+impl<'a, F> ariadne::Cache<&'a Location> for LoaderCache<'a, F>
+where
+    F: for<'b> FnMut(&'b &'a Location) -> Result<String, Box<dyn Debug>>,
+{
+    fn fetch(&mut self, id: &&'a Location) -> Result<&ariadne::Source, Box<dyn fmt::Debug + '_>> {
+        self.inner.fetch(id)
+    }
+
+    fn display<'b>(&self, id: &'b &'a Location) -> Option<Box<dyn fmt::Display + 'a>> {
+        if id.as_ref().scheme() != "file" {
+            return Some(Box::new(id.to_owned()));
+        }
+        match Path::new(id.as_ref().path()).strip_prefix(&self.relative_base) {
+            Ok(path) => Some(Box::new(path.display().to_string())),
+            Err(..) => Some(Box::new(id.to_owned())),
+        }
+    }
+}
+
 impl<E: std::error::Error + 'static> Report<E> {
     pub fn eprint(&self) {
         let loader = Loader::new(self.cache.as_ref());
-        let mut cache = FnCache::new(move |loc: &&Location| {
+        let cache = FnCache::new(move |loc: &&Location| {
             loader
                 .load_source(*loc)
                 .map(|s| s.unwrap())
                 .map_err(|e| Box::new(e) as Box<dyn Debug>)
         });
+        let mut cache = LoaderCache {
+            relative_base: &self.relative_base,
+            inner: cache,
+        };
 
-        let mut colors = ColorGenerator::from_state([30000, 15000, 35000], 0.35);
+        let mut colors = ColorGenerator::new();
         let primary = colors.next();
+        let secondary = colors.next();
 
         for error in &self.errors {
             let report = match &error.0 {
@@ -64,7 +96,7 @@ impl<E: std::error::Error + 'static> Report<E> {
                             let span = cache.span(location, name.span());
                             ariadne::Report::build(ReportKind::Error, location, span.1.start)
                                 .with_message(format!(
-                                    "Exporting undeclared identifier `{}`",
+                                    "exporting undeclared identifier `{}`",
                                     name.as_ref().fg(primary)
                                 ))
                                 .with_label(
@@ -77,7 +109,7 @@ impl<E: std::error::Error + 'static> Report<E> {
                             let span = cache.span(location, name.span());
                             ariadne::Report::build(ReportKind::Error, location, span.1.start)
                                 .with_message(format!(
-                                    "Reference to undeclared identifier `{}`",
+                                    "reference to undeclared identifier `{}`",
                                     name.as_ref().fg(primary),
                                 ))
                                 .with_label(
@@ -86,20 +118,74 @@ impl<E: std::error::Error + 'static> Report<E> {
                                         .with_message("referenced here"),
                                 )
                         }
-                        UnknownModule { name } => {
-                            ariadne::Report::build(ReportKind::Error, location, 0)
-                        }
-                        DuplicateDefinition { name } => {
-                            ariadne::Report::build(ReportKind::Error, location, 0)
+                        DuplicateDefinition {
+                            original,
+                            duplicate,
+                        } => {
+                            let span = cache.span(location, duplicate.span());
+                            let original = cache.span(location, *original);
+                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
+                                .with_message(format!(
+                                    "duplicate declaration of `{}` conflicts with {}",
+                                    duplicate.as_ref().fg(primary),
+                                    "original declaration".fg(secondary),
+                                ))
+                                .with_label(
+                                    Label::new(span)
+                                        .with_color(primary)
+                                        .with_message("this declaration...")
+                                        .with_order(1)
+                                )
+                                .with_label(
+                                    Label::new(original)
+                                        .with_color(secondary)
+                                        .with_message("... conflicts with the original declaration here")
+                                        .with_order(2)
+                                )
+                                .with_note("all declarations in the same scope with the same name must be of the same type and arity")
                         }
                         IdentifierInOwnDefinition { name } => {
-                            ariadne::Report::build(ReportKind::Error, location, 0)
+                            let span = cache.span(location, name.span);
+                            let declaration_span = cache.span(location, name.declaration_span);
+                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
+                                .with_message(format!(
+                                    "declaration of `{}` references itself in its own initializer",
+                                    name.id.name().unwrap().fg(primary),
+                                ))
+                                .with_label(
+                                    Label::new(declaration_span)
+                                        .with_color(primary)
+                                        .with_message("variable being declared here"),
+                                )
+                                .with_label(
+                                    Label::new(span)
+                                        .with_color(primary)
+                                        .with_message("is referenced in its own initializer"),
+                                )
+                                .with_config(Config::default().with_cross_gap(false))
                         }
-                        DisjointBindings { span } => {
-                            ariadne::Report::build(ReportKind::Error, location, 0)
-                        }
-                        AssignedImmutableBinding { name } => {
-                            ariadne::Report::build(ReportKind::Error, location, 0)
+                        AssignedImmutableBinding { name, assignment } => {
+                            let span = cache.span(location, *assignment);
+                            let declaration_span = cache.span(location, name.declaration_span);
+                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
+                                .with_message(format!(
+                                    "cannot reassign immutable variable `{}`",
+                                    name.id.name().unwrap().fg(primary)
+                                ))
+                                .with_label(
+                                    Label::new(declaration_span)
+                                        .with_color(primary)
+                                        .with_message("variable declared immutably"),
+                                )
+                                .with_label(
+                                    Label::new(span)
+                                        .with_color(primary)
+                                        .with_message("is being reassigned here"),
+                                )
+                                .with_help(format!(
+                                    "consider making this binding mutable: `mut {}`",
+                                    name.id.name().unwrap(),
+                                ))
                         }
                     }
                 }
@@ -142,17 +228,26 @@ impl<E: std::error::Error> ReportBuilder<E> {
         !self.errors.is_empty()
     }
 
-    pub fn report<C: Cache<Error = E> + 'static>(self, cache: C) -> Report<E> {
+    pub fn report<C: Cache<Error = E> + 'static>(
+        self,
+        relative_base: PathBuf,
+        cache: C,
+    ) -> Report<E> {
         Report {
+            relative_base,
             cache: Box::new(cache),
             errors: self.errors,
             warnings: self.warnings,
         }
     }
 
-    pub fn checkpoint<C: Cache<Error = E> + 'static>(&mut self, cache: C) -> Result<C, Report<E>> {
+    pub fn checkpoint<C: Cache<Error = E> + 'static>(
+        &mut self,
+        relative_base: &Path,
+        cache: C,
+    ) -> Result<C, Report<E>> {
         if self.has_errors() {
-            Err(std::mem::take(self).report(cache))
+            Err(std::mem::take(self).report(relative_base.to_owned(), cache))
         } else {
             Ok(cache)
         }

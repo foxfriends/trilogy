@@ -83,21 +83,21 @@ impl<C: Cache> Builder<C> {
             libraries,
         } = self;
         let mut report = ReportBuilder::default();
-        let entrypoint = match root_dir {
+        let root_path = match root_dir {
             Some(root_dir) => root_dir,
             None => match std::env::current_dir() {
                 Ok(dir) => dir,
                 Err(error) => {
                     report.error(Error::external(error));
-                    return Err(report.report(cache));
+                    return Err(report.report(file.as_ref().to_owned(), cache));
                 }
             },
         };
-        let entrypoint = Location::entrypoint(entrypoint, file);
+        let entrypoint = Location::entrypoint(root_path.clone(), file);
         let documents = loader::load(&cache, &entrypoint, &mut report);
-        cache = report.checkpoint(cache)?;
+        cache = report.checkpoint(&root_path, cache)?;
         let modules = analyzer::analyze(documents, &mut report);
-        report.checkpoint(cache)?;
+        report.checkpoint(&root_path, cache)?;
         Ok(Trilogy::new(
             Source::Trilogy {
                 modules,

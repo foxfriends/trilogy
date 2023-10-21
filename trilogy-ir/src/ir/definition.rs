@@ -59,34 +59,54 @@ impl Definition {
             }
             syntax::DefinitionItem::ExternalModule(..) => {}
             syntax::DefinitionItem::Function(ast) => {
-                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(id).unwrap();
+                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Function(function) = &mut definition.item else {
-                    unreachable!()
+                    let error = Error::DuplicateDefinition {
+                        original: symbol.declaration_span,
+                        duplicate: ast.head.name,
+                    };
+                    analyzer.error(error);
+                    return;
                 };
                 function.overloads.push(Function::convert(analyzer, *ast))
             }
             syntax::DefinitionItem::Module(ast) => {
-                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(id).unwrap();
+                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Module(module) = &mut definition.item else {
-                    unreachable!()
+                    let error = Error::DuplicateDefinition {
+                        original: symbol.declaration_span,
+                        duplicate: ast.head.name,
+                    };
+                    analyzer.error(error);
+                    return;
                 };
                 module.module = Arc::new(ModuleCell::new(Module::convert_module(analyzer, *ast)));
             }
             syntax::DefinitionItem::Procedure(ast) => {
-                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(id).unwrap();
+                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Procedure(procedure) = &mut definition.item else {
-                    unreachable!()
+                    let error = Error::DuplicateDefinition {
+                        original: symbol.declaration_span,
+                        duplicate: ast.head.name,
+                    };
+                    analyzer.error(error);
+                    return;
                 };
                 procedure.overloads.push(Procedure::convert(analyzer, *ast))
             }
             syntax::DefinitionItem::Rule(ast) => {
-                let Symbol { id, .. } = analyzer.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(id).unwrap();
+                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Rule(rule) = &mut definition.item else {
-                    unreachable!()
+                    let error = Error::DuplicateDefinition {
+                        original: symbol.declaration_span,
+                        duplicate: ast.head.name,
+                    };
+                    analyzer.error(error);
+                    return;
                 };
                 rule.overloads.push(Rule::convert(analyzer, *ast))
             }
@@ -104,9 +124,11 @@ impl Definition {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
             syntax::DefinitionItem::ExternalModule(ast) => {
-                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                if let Some(original) = analyzer.declared(ast.head.name.as_ref()) {
+                    let original = original.declaration_span;
                     analyzer.error(Error::DuplicateDefinition {
-                        name: ast.head.name.clone(),
+                        original,
+                        duplicate: ast.head.name.clone(),
                     });
                     return vec![];
                 }
@@ -133,9 +155,11 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Module(ast) => {
-                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                if let Some(original) = analyzer.declared(ast.head.name.as_ref()) {
+                    let original = original.declaration_span;
                     analyzer.error(Error::DuplicateDefinition {
-                        name: ast.head.name.clone(),
+                        original,
+                        duplicate: ast.head.name.clone(),
                     });
                     return vec![];
                 }
@@ -147,9 +171,11 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Procedure(ast) => {
-                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                if let Some(original) = analyzer.declared(ast.head.name.as_ref()) {
+                    let original = original.declaration_span;
                     analyzer.error(Error::DuplicateDefinition {
-                        name: ast.head.name.clone(),
+                        original,
+                        duplicate: ast.head.name.clone(),
                     });
                     return vec![];
                 }
