@@ -65,66 +65,53 @@ where
     }
 }
 
-impl<E: std::error::Error + 'static> Report<E> {
-    pub fn eprint(&self) {
-        let loader = Loader::new(self.cache.as_ref());
-        let cache = FnCache::new(move |loc: &&Location| {
-            loader
-                .load_source(loc)
-                .map(|s| s.unwrap())
-                .map_err(|e| Box::new(e) as Box<dyn Debug>)
-        });
-        let mut cache = LoaderCache {
-            relative_base: &self.relative_base,
-            inner: cache,
-        };
-
+impl<E: std::error::Error> Error<E> {
+    fn eprint<'a, C: ariadne::Cache<&'a Location>>(&'a self, mut cache: C, kind: ReportKind) {
         let mut colors = ColorGenerator::new();
         let primary = colors.next();
         let secondary = colors.next();
 
-        for error in &self.errors {
-            let report = match &error.0 {
-                ErrorKind::External(error) => {
-                    eprintln!("{}", error);
-                    continue;
-                }
-                ErrorKind::Analyzer(location, error) => {
-                    use trilogy_ir::Error::*;
-                    match error {
-                        UnknownExport { name } => {
-                            let span = cache.span(location, name.span());
-                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
-                                .with_message(format!(
-                                    "exporting undeclared identifier `{}`",
-                                    name.as_ref().fg(primary)
-                                ))
-                                .with_label(
-                                    Label::new(span)
-                                        .with_color(primary)
-                                        .with_message("listed here"),
-                                )
-                        }
-                        UnboundIdentifier { name } => {
-                            let span = cache.span(location, name.span());
-                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
-                                .with_message(format!(
-                                    "reference to undeclared identifier `{}`",
-                                    name.as_ref().fg(primary),
-                                ))
-                                .with_label(
-                                    Label::new(span)
-                                        .with_color(primary)
-                                        .with_message("referenced here"),
-                                )
-                        }
-                        DuplicateDefinition {
-                            original,
-                            duplicate,
-                        } => {
-                            let span = cache.span(location, duplicate.span());
-                            let original = cache.span(location, *original);
-                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
+        let report = match &self.0 {
+            ErrorKind::External(error) => {
+                eprintln!("{}", error);
+                return;
+            }
+            ErrorKind::Analyzer(location, error) => {
+                use trilogy_ir::Error::*;
+                match error {
+                    UnknownExport { name } => {
+                        let span = cache.span(location, name.span());
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message(format!(
+                                "exporting undeclared identifier `{}`",
+                                name.as_ref().fg(primary)
+                            ))
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("listed here"),
+                            )
+                    }
+                    UnboundIdentifier { name } => {
+                        let span = cache.span(location, name.span());
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message(format!(
+                                "reference to undeclared identifier `{}`",
+                                name.as_ref().fg(primary),
+                            ))
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("referenced here"),
+                            )
+                    }
+                    DuplicateDefinition {
+                        original,
+                        duplicate,
+                    } => {
+                        let span = cache.span(location, duplicate.span());
+                        let original = cache.span(location, *original);
+                        ariadne::Report::build(kind, location, span.1.start)
                                 .with_message(format!(
                                     "duplicate declaration of `{}` conflicts with {}",
                                     duplicate.as_ref().fg(primary),
@@ -143,73 +130,95 @@ impl<E: std::error::Error + 'static> Report<E> {
                                         .with_order(2)
                                 )
                                 .with_note("all declarations in the same scope with the same name must be of the same type and arity")
-                        }
-                        IdentifierInOwnDefinition { name } => {
-                            let span = cache.span(location, name.span);
-                            let declaration_span = cache.span(location, name.declaration_span);
-                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
-                                .with_message(format!(
-                                    "declaration of `{}` references itself in its own initializer",
-                                    name.id.name().unwrap().fg(primary),
-                                ))
-                                .with_label(
-                                    Label::new(declaration_span)
-                                        .with_color(primary)
-                                        .with_message("variable being declared here"),
-                                )
-                                .with_label(
-                                    Label::new(span)
-                                        .with_color(primary)
-                                        .with_message("is referenced in its own initializer"),
-                                )
-                                .with_config(Config::default().with_cross_gap(false))
-                        }
-                        AssignedImmutableBinding { name, assignment } => {
-                            let span = cache.span(location, *assignment);
-                            let declaration_span = cache.span(location, name.declaration_span);
-                            ariadne::Report::build(ReportKind::Error, location, span.1.start)
-                                .with_message(format!(
-                                    "cannot reassign immutable variable `{}`",
-                                    name.id.name().unwrap().fg(primary)
-                                ))
-                                .with_label(
-                                    Label::new(declaration_span)
-                                        .with_color(primary)
-                                        .with_message("variable declared immutably"),
-                                )
-                                .with_label(
-                                    Label::new(span)
-                                        .with_color(primary)
-                                        .with_message("is being reassigned here"),
-                                )
-                                .with_help(format!(
-                                    "consider making this binding mutable: `mut {}`",
-                                    name.id.name().unwrap(),
-                                ))
-                        }
+                    }
+                    IdentifierInOwnDefinition { name } => {
+                        let span = cache.span(location, name.span);
+                        let declaration_span = cache.span(location, name.declaration_span);
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message(format!(
+                                "declaration of `{}` references itself in its own initializer",
+                                name.id.name().unwrap().fg(primary),
+                            ))
+                            .with_label(
+                                Label::new(declaration_span)
+                                    .with_color(primary)
+                                    .with_message("variable being declared here"),
+                            )
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("is referenced in its own initializer"),
+                            )
+                            .with_config(Config::default().with_cross_gap(false))
+                    }
+                    AssignedImmutableBinding { name, assignment } => {
+                        let span = cache.span(location, *assignment);
+                        let declaration_span = cache.span(location, name.declaration_span);
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message(format!(
+                                "cannot reassign immutable variable `{}`",
+                                name.id.name().unwrap().fg(primary)
+                            ))
+                            .with_label(
+                                Label::new(declaration_span)
+                                    .with_color(primary)
+                                    .with_message("variable declared immutably"),
+                            )
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("is being reassigned here"),
+                            )
+                            .with_help(format!(
+                                "consider making this binding mutable: `mut {}`",
+                                name.id.name().unwrap(),
+                            ))
                     }
                 }
-                ErrorKind::Syntax(location, error) => {
-                    let span = cache.span(location, error.span());
-                    ariadne::Report::build(ReportKind::Error, location, span.1.start)
-                        .with_message(error.message())
-                        .with_label(Label::new(span).with_color(primary))
-                }
-                ErrorKind::Resolver(location, error) => {
-                    let span = cache.span(location, error.span);
-                    ariadne::Report::build(ReportKind::Error, location, span.1.start)
-                        .with_message(format!(
-                            "module resolution failed for module {}: {error}",
-                            error.location.as_ref().fg(primary)
-                        ))
-                        .with_label(
-                            Label::new(span)
-                                .with_message("module referenced here")
-                                .with_color(primary),
-                        )
-                }
-            };
-            report.finish().eprint(&mut cache).unwrap();
+            }
+            ErrorKind::Syntax(location, error) => {
+                let span = cache.span(location, error.span());
+                ariadne::Report::build(kind, location, span.1.start)
+                    .with_message(error.message())
+                    .with_label(Label::new(span).with_color(primary))
+            }
+            ErrorKind::Resolver(location, error) => {
+                let span = cache.span(location, error.span);
+                ariadne::Report::build(kind, location, span.1.start)
+                    .with_message(format!(
+                        "module resolution failed for module {}: {error}",
+                        error.location.as_ref().fg(primary)
+                    ))
+                    .with_label(
+                        Label::new(span)
+                            .with_message("module referenced here")
+                            .with_color(primary),
+                    )
+            }
+        };
+        report.finish().eprint(cache).unwrap();
+    }
+}
+
+impl<E: std::error::Error + 'static> Report<E> {
+    pub fn eprint(&self) {
+        let loader = Loader::new(self.cache.as_ref());
+        let cache = FnCache::new(move |loc: &&Location| {
+            loader
+                .load_source(loc)
+                .map(|s| s.unwrap())
+                .map_err(|e| Box::new(e) as Box<dyn Debug>)
+        });
+        let mut cache = LoaderCache {
+            relative_base: &self.relative_base,
+            inner: cache,
+        };
+
+        for warning in &self.warnings {
+            warning.eprint(&mut cache, ReportKind::Warning);
+        }
+        for error in &self.errors {
+            error.eprint(&mut cache, ReportKind::Error);
         }
     }
 }
