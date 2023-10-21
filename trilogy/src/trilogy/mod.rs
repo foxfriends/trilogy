@@ -1,4 +1,5 @@
-use crate::{location::Location, NativeModule};
+use crate::location::Location;
+use crate::NativeModule;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
@@ -6,14 +7,12 @@ use trilogy_ir::ir::Module;
 use trilogy_vm::{Atom, Chunk, ChunkError, Program, Value, VirtualMachine};
 
 mod asm_program;
-mod builder;
-mod load_error;
+pub mod builder;
 mod runtime_error;
 mod trilogy_program;
 
 use asm_program::AsmProgram;
-pub use builder::Builder;
-pub use load_error::LoadError;
+use builder::{Builder, Report};
 pub use runtime_error::RuntimeError;
 use trilogy_program::TrilogyProgram;
 
@@ -56,7 +55,7 @@ impl Trilogy {
     }
 
     #[cfg(feature = "std")]
-    pub fn from_file(file: impl AsRef<Path>) -> Result<Self, LoadError<std::io::Error>> {
+    pub fn from_file(file: impl AsRef<Path>) -> Result<Self, Report<std::io::Error>> {
         Builder::std().build_from_source(file)
     }
 

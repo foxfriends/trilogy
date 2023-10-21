@@ -1,31 +1,35 @@
 use home::home_dir;
 
 use crate::location::Location;
-use crate::{Cache, FileSystemCache, LoadError, NativeModule, NoopCache};
+use crate::{Cache, FileSystemCache, NativeModule, NoopCache};
 
 #[cfg(feature = "std")]
 use crate::stdlib;
 
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+
+use self::report::ReportBuilder;
 
 use super::{Source, Trilogy};
 
 mod analyzer;
+mod error;
 mod loader;
+mod report;
 
-pub(crate) use loader::ResolverError;
+pub use error::Error;
+pub use report::Report;
 
-pub struct Builder<E> {
+pub struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
     libraries: HashMap<Location, NativeModule>,
-    cache: Box<dyn Cache<Error = E>>,
+    cache: C,
 }
 
 #[cfg(feature = "std")]
-impl Builder<std::io::Error> {
+impl Builder<FileSystemCache> {
     pub fn std() -> Self {
         let home = home_dir()
             .expect("home dir should exist")
@@ -39,60 +43,67 @@ impl Builder<std::io::Error> {
     }
 }
 
-impl Default for Builder<Infallible> {
+impl Default for Builder<NoopCache> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Builder<Infallible> {
+impl Builder<NoopCache> {
     pub fn new() -> Self {
         Self {
             root_dir: None,
             libraries: HashMap::new(),
-            cache: Box::new(NoopCache),
-        }
-    }
-
-    pub fn at_root<P: AsRef<Path>>(root_dir: P) -> Self {
-        Self {
-            root_dir: Some(root_dir.as_ref().to_owned()),
-            libraries: HashMap::new(),
-            cache: Box::new(NoopCache),
+            cache: NoopCache,
         }
     }
 }
 
-impl<E: std::error::Error + 'static> Builder<E> {
+impl<C: Cache> Builder<C> {
     pub fn library(mut self, location: Location, library: NativeModule) -> Self {
         self.libraries.insert(location, library);
         self
     }
 
-    pub fn with_cache<C: Cache + 'static>(self, cache: C) -> Builder<C::Error> {
+    pub fn with_cache<C2: Cache>(self, cache: C2) -> Builder<C2> {
         Builder {
             root_dir: self.root_dir,
             libraries: self.libraries,
-            cache: Box::new(cache),
+            cache,
         }
     }
 
-    pub(super) fn build_from_source(self, file: impl AsRef<Path>) -> Result<Trilogy, LoadError<E>> {
-        let entrypoint = Location::entrypoint(
-            self.root_dir
-                .map(Ok)
-                .unwrap_or_else(std::env::current_dir)
-                .map_err(|error| LoadError::new(vec![ResolverError::external(error).into()]))?,
-            file,
-        );
-        let documents = loader::load(&*self.cache, &entrypoint)?;
-        let modules = analyzer::analyze(documents)?;
+    pub(super) fn build_from_source(
+        self,
+        file: impl AsRef<Path>,
+    ) -> Result<Trilogy, Report<C::Error>> {
+        let Self {
+            mut cache,
+            root_dir,
+            libraries,
+        } = self;
+        let mut report = ReportBuilder::default();
+        let entrypoint = match root_dir {
+            Some(root_dir) => root_dir,
+            None => match std::env::current_dir() {
+                Ok(dir) => dir,
+                Err(error) => {
+                    report.error(Error::resolution(loader::ResolverError::external(error)));
+                    return Err(report.report(cache));
+                }
+            },
+        };
+        let entrypoint = Location::entrypoint(entrypoint, file);
+        let documents = loader::load(&cache, &entrypoint, &mut report);
+        cache = report.checkpoint(cache)?;
+        let modules = analyzer::analyze(documents, &mut report);
+        report.checkpoint(cache)?;
         Ok(Trilogy::new(
             Source::Trilogy {
                 modules,
                 entrypoint,
             },
-            self.libraries,
+            libraries,
         ))
     }
 

@@ -105,8 +105,8 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 Ok(chunk) => println!("{:?}", chunk),
                 Err(error) => eprintln!("{error}"),
             },
-            Err(errors) => {
-                eprintln!("{errors}");
+            Err(report) => {
+                eprintln!("{}", report.display()?);
                 std::process::exit(1);
             }
         },

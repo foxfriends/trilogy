@@ -126,8 +126,8 @@ fn main() -> std::io::Result<()> {
             no_std: _,
         } => match Trilogy::from_file(file) {
             Ok(trilogy) => run(trilogy, print),
-            Err(errors) => {
-                eprintln!("{errors}");
+            Err(report) => {
+                eprintln!("{}", report.display()?);
                 std::process::exit(1);
             }
         },
@@ -158,15 +158,15 @@ fn main() -> std::io::Result<()> {
                 Ok(chunk) => println!("{}", chunk),
                 Err(error) => eprintln!("{error}"),
             },
-            Err(errors) => {
-                eprintln!("{errors}");
+            Err(report) => {
+                eprintln!("{}", report.display()?);
                 std::process::exit(1);
             }
         },
         Command::Check { file, no_std: _ } => match Trilogy::from_file(file) {
             Ok(..) => {}
-            Err(errors) => {
-                eprintln!("{errors}");
+            Err(report) => {
+                eprintln!("{}", report.display()?);
                 std::process::exit(1);
             }
         },

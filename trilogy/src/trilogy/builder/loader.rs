@@ -1,7 +1,7 @@
+use super::report::ReportBuilder;
+use super::Error;
 use crate::cache::Cache;
 use crate::location::Location;
-use crate::trilogy::load_error::ErrorKind;
-use crate::LoadError;
 use reqwest::blocking::Client;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::{self, Display};
@@ -12,13 +12,13 @@ use trilogy_scanner::Scanner;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub struct Module {
+struct Module {
     location: Location,
     contents: Parse<Document>,
 }
 
 #[derive(Debug)]
-pub enum ResolverError<E: std::error::Error> {
+pub(super) enum ResolverError<E: std::error::Error> {
     InvalidScheme(String),
     Cache(E),
     External(Box<dyn std::error::Error>),
@@ -53,14 +53,14 @@ impl<E: std::error::Error> std::error::Error for ResolverError<E> {
 }
 
 impl Module {
-    pub fn new(location: Location, source: &str) -> Self {
+    fn new(location: Location, source: &str) -> Self {
         let scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
         let contents = parser.parse();
         Self { location, contents }
     }
 
-    pub fn imported_modules(&self) -> impl Iterator<Item = Location> + '_ {
+    fn imported_modules(&self) -> impl Iterator<Item = Location> + '_ {
         fn module_imported_modules(module_def: &ModuleDefinition) -> Vec<&str> {
             module_def
                 .definitions
@@ -137,25 +137,28 @@ where
     }
 }
 
-pub fn load<E: std::error::Error + 'static>(
-    cache: &dyn Cache<Error = E>,
+pub(super) fn load<C: Cache>(
+    cache: &C,
     entrypoint: &Location,
-) -> Result<Vec<(Location, Document)>, LoadError<E>> {
+    report: &mut ReportBuilder<C::Error>,
+) -> Vec<(Location, Document)> {
     let mut modules = HashMap::new();
     let mut loader = Loader::new(cache);
+
     let mut module_queue = VecDeque::with_capacity(8);
     module_queue.push_back(entrypoint.clone());
-
     while let Some(location) = module_queue.pop_front() {
         let url = location.as_ref();
         if modules.contains_key(url) {
             continue;
         };
-        let Some(source) = loader
-            .load_source(&location)
-            .map_err(|er| LoadError::new(vec![ErrorKind::Resolver(er)]))?
-        else {
-            continue;
+        let source = match loader.load_source(&location).map_err(Error::resolution) {
+            Ok(Some(source)) => source,
+            Ok(None) => continue,
+            Err(error) => {
+                report.error(error);
+                continue;
+            }
         };
         let module = Module::new(location.clone(), &source);
         for import in module.imported_modules() {
@@ -164,26 +167,17 @@ pub fn load<E: std::error::Error + 'static>(
         modules.insert(location, module);
     }
 
-    // TODO: warnings are lost here...
-
-    if modules.values().any(|module| module.contents.has_errors()) {
-        Err(LoadError::new(
-            modules
-                .iter()
-                .flat_map(|(location, module)| {
-                    module
-                        .contents
-                        .errors()
-                        .iter()
-                        .cloned()
-                        .map(|error| ErrorKind::Syntax(location.clone(), error))
-                })
-                .collect(),
-        ))
-    } else {
-        Ok(modules
-            .into_iter()
-            .map(|(k, item)| (k, item.contents.into_ast()))
-            .collect())
+    for (location, module) in &modules {
+        for error in module.contents.errors() {
+            report.error(Error::syntax(location.clone(), error.clone()))
+        }
+        for error in module.contents.warnings() {
+            report.warning(Error::syntax(location.clone(), error.clone()))
+        }
     }
+
+    modules
+        .into_iter()
+        .map(|(k, item)| (k, item.contents.into_ast()))
+        .collect()
 }

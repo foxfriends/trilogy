@@ -1,5 +1,6 @@
-use crate::LoadError;
-use crate::{location::Location, trilogy::load_error::ErrorKind};
+use super::report::ReportBuilder;
+use super::Error;
+use crate::location::Location;
 use std::collections::HashMap;
 use trilogy_ir::{ir, Analyzer, Resolver};
 use trilogy_parser::syntax::Document;
@@ -10,24 +11,20 @@ impl Resolver for Location {
     }
 }
 
-pub fn analyze<E: std::error::Error>(
+pub(super) fn analyze<E: std::error::Error>(
     documents: Vec<(Location, Document)>,
-) -> Result<HashMap<Location, ir::Module>, LoadError<E>> {
+    report: &mut ReportBuilder<E>,
+) -> HashMap<Location, ir::Module> {
     let mut analyzed = HashMap::default();
-    let mut errors = LoadError::new_empty();
 
     for (location, document) in documents {
         let mut analyzer = Analyzer::new(&location);
         let module = analyzer.analyze(document);
         for error in analyzer.errors() {
-            errors.add(ErrorKind::Analyzer(location.clone(), error));
+            report.error(Error::semantic(location.clone(), error));
         }
         analyzed.insert(location, module);
     }
 
-    if errors.is_empty() {
-        Ok(analyzed)
-    } else {
-        Err(errors)
-    }
+    analyzed
 }
