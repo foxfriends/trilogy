@@ -163,14 +163,12 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        Command::Check { file, no_std: _ } => match Trilogy::from_file(file) {
-            Ok(..) => {}
-            Err(report) => {
+        Command::Check { file, no_std: _ } => {
+            if let Err(report) = Trilogy::from_file(file) {
                 eprintln!("{}", report.display()?);
                 std::process::exit(1);
             }
-        },
-
+        }
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;
