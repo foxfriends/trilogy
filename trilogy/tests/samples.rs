@@ -390,3 +390,15 @@ fn sample_main_return() {
     let mut program = include_tri!("main_return.tri");
     assert_eq!(program.run().unwrap(), Value::from(3));
 }
+
+#[test]
+fn sample_evaluate_unbound() {
+    let mut program = include_tri!("evaluate_unbound.tri");
+    assert_eq!(program.run().unwrap(), Value::from(0));
+}
+
+#[test]
+fn sample_evaluate_unbound_iter() {
+    let mut program = include_tri!("evaluate_unbound_iter.tri");
+    assert_eq!(program.run().unwrap(), Value::from(0));
+}

@@ -100,16 +100,16 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
         }
         ir::QueryValue::Element(unification) => {
             // Element unification iterates a collection. The state is an iterator
-            // over this collection, which will eventually run out. Since this is
-            // a potentially many times operation, we do need to store the bindset
-            // as well.
-            write_expression(context, &unification.expression);
+            // over this collection, which will eventually run out, but we can't evaluate
+            // that yet because it might need some of its parameters bound still, so we
+            // just put a unit as a placeholder.
+            //
+            // Since this is a potentially many times operation, we do need to store the
+            // bindset as well.
             context
-                .write_procedure_reference(ITERATE_COLLECTION.to_owned())
-                .instruction(Instruction::Swap)
-                .instruction(Instruction::Call(1))
                 .instruction(Instruction::LoadRegister(2))
                 .instruction(Instruction::Clone)
+                .instruction(Instruction::Const(().into()))
                 .instruction(Instruction::Cons);
 
             // Bindset updates happen *after* the state is computed because the backtracker
@@ -267,7 +267,7 @@ fn write_query_value(
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             context.scope.intermediate(); // state
-            write_expression(context, &unification.expression);
+            evaluate_or_fail(context, bound, &unification.expression, on_fail);
             write_pattern_match(context, &unification.pattern, on_fail);
             context.scope.end_intermediate(); // state
         }
@@ -275,22 +275,44 @@ fn write_query_value(
             let cleanup = context.labeler.unique_hint("in_cleanup");
             let continuation = context.labeler.unique_hint("in_cont");
 
+            let body = context.labeler.unique_hint("in_body");
             let next = context.atom("next");
             let done = context.atom("done");
 
-            // Copy the state whole and work on a copy. Since it's an
-            // iterator (closure) we don't need to update it manually
-            // later, so just keep it in its place.
-            context.instruction(Instruction::Copy);
-            context.scope.intermediate(); // state copy
+            // First check to see if the state is `unit`, meaning we have to set up the
+            // iterator still.
+            context.instruction(Instruction::Uncons);
+            let bindset = context.scope.intermediate();
+            context
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(().into()))
+                .instruction(Instruction::ValEq)
+                .cond_jump(&body)
+                // State was unit, discard it
+                .instruction(Instruction::Pop);
+            // Then create the actual iterator
+            let cleanup_setup = context.labeler.unique_hint("in_setup_fail");
+            evaluate_or_fail(context, bound, &unification.expression, &cleanup_setup);
+            context
+                .write_procedure_reference(ITERATE_COLLECTION)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Call(1))
+                .jump(&body)
+                .label(&cleanup_setup)
+                .instruction(Instruction::Const(().into()))
+                .instruction(Instruction::Cons)
+                .jump(on_fail);
+
+            context.label(&body);
+            context.scope.intermediate(); // state iterator
 
             // Reset to the previous binding state
-            context.instruction(Instruction::Uncons);
+            context.instruction(Instruction::LoadLocal(bindset));
             unbind(context, bound, unification.pattern.bindings());
-            // Then the query operates on the closure that is left.
             context
-                // Done if done
+                .instruction(Instruction::Copy)
                 .instruction(Instruction::Call(0))
+                // Done if done
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::Const(done.into()))
                 .instruction(Instruction::ValNeq)
@@ -313,14 +335,16 @@ fn write_query_value(
             // Success: bind the pattern to the value
             write_pattern_match(context, &unification.pattern, on_fail);
 
-            // Then we're just done. The state is already fine. Lucky.
             context
+                .instruction(Instruction::Cons)
                 .jump(&continuation)
                 .label(cleanup)
                 .instruction(Instruction::Pop) // The 'done token
+                .instruction(Instruction::Cons)
                 .jump(on_fail)
                 .label(continuation);
-            context.scope.end_intermediate(); // state copy
+            context.scope.end_intermediate(); // state iterator
+            context.scope.end_intermediate(); // bindset
         }
         ir::QueryValue::Is(expr) => {
             // Set the state marker to false so we can't re-enter here.
@@ -683,6 +707,7 @@ fn write_query_value(
                 .instruction(Instruction::Const(true.into()))
                 .instruction(Instruction::Cons)
                 .jump(&out);
+            context.scope.end_intermediate(); // bindset
 
             // If doing the right side, it's much the same as the left, but there is no bindset
             // because that will be handled by the subquery directly.
@@ -705,7 +730,6 @@ fn write_query_value(
                 .instruction(Instruction::Pop);
             // Then build up the right's state. The bindset is the same and conveniently already
             // on the top of stack.
-            context.scope.end_intermediate();
             write_continued_query_state(context, &alt.1);
             // Then we can just run the second like normal.
             context.jump(&second);
@@ -870,6 +894,8 @@ fn unbind(context: &mut Context, bindset: &Bindings<'_>, vars: HashSet<Id>) {
     context.instruction(Instruction::Pop);
 }
 
+// Evaluate an expression for use in a lookup - in lookups the expressions might actually
+// be patterns which are being un-evaluated later.
 fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expression) {
     let vars = value.references();
     if vars.iter().all(|var| bindset.is_bound(var)) {
@@ -901,5 +927,45 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
             .label(nope)
             .instruction(Instruction::Variable)
             .label(next);
+    }
+}
+
+// Very similar to evaluate, but instead of writing an empty cell, just end. This is for
+// use in unifications where some of the variables may not be bound due to them being
+// used as output parameters for a rule.
+fn evaluate_or_fail(
+    context: &mut Context,
+    bindset: &Bindings<'_>,
+    value: &ir::Expression,
+    on_fail: &str,
+) {
+    let vars = value.references();
+    if vars.iter().all(|var| bindset.is_bound(var)) {
+        // When all variables in this expression are statically determined to be bound,
+        // no checking needs to be done
+        write_expression(context, value);
+    } else {
+        // If some variables are not known statically, then those variables are checked
+        // at runtime. If any are unset, then we just skip this expression and push an
+        // empty cell on to the stack in its place.
+        for var in &vars {
+            if bindset.is_bound(var) {
+                continue;
+            }
+            match context.scope.lookup(var) {
+                Some(Binding::Variable(index)) => {
+                    context
+                        .instruction(Instruction::IsSetLocal(index))
+                        .cond_jump(on_fail);
+                }
+
+                // TODO: None should be illegal but the reference finder is a bit loose
+                // None => panic!("{:?} not in scope", var),
+
+                // If it's not a variable, then it's definitely bound already
+                _ => {}
+            }
+        }
+        write_expression(context, value);
     }
 }

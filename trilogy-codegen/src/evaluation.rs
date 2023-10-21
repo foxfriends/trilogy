@@ -420,7 +420,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             // line up, but the shared stack thing with closures makes it not work
             context.instruction(Instruction::Pop);
             context.scope.end_intermediate(); // query state
-
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::Let(decl) => {
@@ -428,10 +427,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
 
             context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
-            context.scope.intermediate();
-
             context.label(reenter.clone());
             write_query(context, &decl.query, END);
+            context.scope.intermediate();
             context
                 .instruction(Instruction::Const(Value::Bool(true)))
                 .instruction(Instruction::Const(Value::Bool(false)))

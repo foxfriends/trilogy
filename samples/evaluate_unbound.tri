@@ -1,0 +1,8 @@
+rule add(a, b, c) <- c = a + b
+
+proc main!() {
+    for add(1, a, 3) {
+        exit a
+    }
+    exit 0
+}

@@ -1,0 +1,8 @@
+rule add_sub(a, b, c) <- c in [a + b, a - b]
+
+proc main!() {
+    for add_sub(1, a, 3) {
+        exit a
+    }
+    exit 0
+}
