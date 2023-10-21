@@ -952,15 +952,12 @@ fn evaluate_or_fail(
             if bindset.is_bound(var) {
                 continue;
             }
-            match context.scope.lookup(var) {
-                Some(Binding::Variable(index)) => {
+            match context.scope.lookup(var).unwrap() {
+                Binding::Variable(index) => {
                     context
                         .instruction(Instruction::IsSetLocal(index))
                         .cond_jump(on_fail);
                 }
-
-                // TODO: None should be illegal but the reference finder is a bit loose
-                // None => panic!("{:?} not in scope", var),
 
                 // If it's not a variable, then it's definitely bound already
                 _ => {}
