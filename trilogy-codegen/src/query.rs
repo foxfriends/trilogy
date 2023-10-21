@@ -952,15 +952,13 @@ fn evaluate_or_fail(
             if bindset.is_bound(var) {
                 continue;
             }
-            match context.scope.lookup(var).unwrap() {
-                Binding::Variable(index) => {
-                    context
-                        .instruction(Instruction::IsSetLocal(index))
-                        .cond_jump(on_fail);
-                }
 
-                // If it's not a variable, then it's definitely bound already
-                _ => {}
+            // If it's not a local variable, then it's definitely bound already because
+            // it's static.
+            if let Binding::Variable(index) = context.scope.lookup(var).unwrap() {
+                context
+                    .instruction(Instruction::IsSetLocal(index))
+                    .cond_jump(on_fail);
             }
         }
         write_expression(context, value);
