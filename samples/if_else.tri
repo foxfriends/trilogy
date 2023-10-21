@@ -1,5 +1,5 @@
 proc main!() {
-    let value = 5;
+    let mut value = 5;
     if value == 3 {
         value = 6;
     } else {

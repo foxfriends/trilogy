@@ -1,68 +1,91 @@
 use super::report::ReportBuilder;
-use super::Error;
 use crate::cache::Cache;
 use crate::location::Location;
 use reqwest::blocking::Client;
+use source_span::Span;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::{self, Display};
 use std::fs;
-use trilogy_parser::syntax::{DefinitionItem, Document, ModuleDefinition};
-use trilogy_parser::{Parse, Parser};
+use trilogy_parser::syntax::{DefinitionItem, Document, ModuleDefinition, StringLiteral};
+use trilogy_parser::{Parse, Parser, Spanned};
 use trilogy_scanner::Scanner;
 use url::Url;
 
 #[derive(Clone, Debug)]
 struct Module {
-    location: Location,
     contents: Parse<Document>,
 }
 
 #[derive(Debug)]
-pub(super) enum ResolverError<E: std::error::Error> {
+pub(super) struct Error<E: std::error::Error> {
+    pub(super) location: Location,
+    pub(super) span: Span,
+    pub(super) kind: ErrorKind<E>,
+}
+
+#[derive(Debug)]
+pub(super) enum ErrorKind<E> {
     InvalidScheme(String),
     Network(reqwest::Error),
     Io(std::io::Error),
     Cache(E),
 }
 
-impl<E: std::error::Error> Display for ResolverError<E> {
+impl<E: std::error::Error> Display for Error<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Cache(error) => write!(f, "{error}"),
-            Self::Io(error) => write!(f, "{error}"),
-            Self::Network(error) => write!(f, "{error}"),
-            Self::InvalidScheme(scheme) => {
+        match &self.kind {
+            ErrorKind::Cache(error) => write!(f, "{error}"),
+            ErrorKind::Io(error) => write!(f, "{error}"),
+            ErrorKind::Network(error) => write!(f, "{error}"),
+            ErrorKind::InvalidScheme(scheme) => {
                 write!(f, "invalid scheme in module location `{}`", scheme)
             }
         }
     }
 }
 
-impl<E: std::error::Error> std::error::Error for ResolverError<E> {
+impl<E: std::error::Error + 'static> std::error::Error for Error<E> {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        self.kind.cause()
+    }
+}
+
+impl<E: std::error::Error + 'static> ErrorKind<E> {
     fn cause(&self) -> Option<&dyn std::error::Error> {
         match self {
-            Self::Cache(e) => Some(e),
+            ErrorKind::Cache(e) => Some(e),
+            ErrorKind::Network(e) => Some(e),
+            ErrorKind::Io(e) => Some(e),
+            _ => None,
+        }
+    }
+
+    fn into_cause(self) -> Option<Box<dyn std::error::Error + 'static>> {
+        match self {
+            ErrorKind::Cache(e) => Some(Box::new(e)),
+            ErrorKind::Network(e) => Some(Box::new(e)),
+            ErrorKind::Io(e) => Some(Box::new(e)),
             _ => None,
         }
     }
 }
 
 impl Module {
-    fn new(location: Location, source: &str) -> Self {
+    fn new(source: &str) -> Self {
         let scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
         let contents = parser.parse();
-        Self { location, contents }
+        Self { contents }
     }
 
-    fn imported_modules(&self) -> impl Iterator<Item = Location> + '_ {
-        fn module_imported_modules(module_def: &ModuleDefinition) -> Vec<&str> {
+    fn imported_modules(&self) -> impl Iterator<Item = StringLiteral> + '_ {
+        fn module_imported_modules(module_def: &ModuleDefinition) -> Vec<&StringLiteral> {
             module_def
                 .definitions
                 .iter()
                 .flat_map(|def| match &def.item {
                     DefinitionItem::Module(module_def) => module_imported_modules(module_def),
-                    DefinitionItem::ExternalModule(module_def) => vec![module_def.locator.as_ref()],
+                    DefinitionItem::ExternalModule(module_def) => vec![&module_def.locator],
                     _ => vec![],
                 })
                 .collect()
@@ -74,10 +97,10 @@ impl Module {
             .iter()
             .flat_map(|def| match &def.item {
                 DefinitionItem::Module(module_def) => module_imported_modules(module_def),
-                DefinitionItem::ExternalModule(module_def) => vec![module_def.locator.as_ref()],
+                DefinitionItem::ExternalModule(module_def) => vec![&module_def.locator],
                 _ => vec![],
             })
-            .map(|import| self.location.relative(import))
+            .cloned()
     }
 }
 
@@ -98,36 +121,32 @@ where
         }
     }
 
-    fn download(&self, url: &Url) -> Result<String, ResolverError<E>> {
+    fn download(&self, url: &Url) -> Result<String, ErrorKind<E>> {
         self.client
             .get(url.clone())
             .header("Accept", "text/x-trilogy")
             .send()
-            .map_err(ResolverError::Network)?
+            .map_err(ErrorKind::Network)?
             .text()
-            .map_err(ResolverError::Network)
+            .map_err(ErrorKind::Network)
     }
 
-    pub fn load_source(&self, location: &Location) -> Result<Option<String>, ResolverError<E>> {
+    pub fn load_source(&self, location: &Location) -> Result<Option<String>, ErrorKind<E>> {
         if self.cache.has(location) {
-            return Ok(Some(
-                self.cache.load(location).map_err(ResolverError::Cache)?,
-            ));
+            return Ok(Some(self.cache.load(location).map_err(ErrorKind::Cache)?));
         }
         let url = location.as_ref();
         match url.scheme() {
-            "file" => Ok(Some(
-                fs::read_to_string(url.path()).map_err(ResolverError::Io)?,
-            )),
+            "file" => Ok(Some(fs::read_to_string(url.path()).map_err(ErrorKind::Io)?)),
             "http" | "https" => {
                 let source = self.download(url)?;
                 self.cache
                     .save(location, &source)
-                    .map_err(ResolverError::Cache)?;
+                    .map_err(ErrorKind::Cache)?;
                 Ok(Some(source))
             }
             "trilogy" => Ok(None),
-            scheme => Err(ResolverError::InvalidScheme(scheme.to_owned())),
+            scheme => Err(ErrorKind::InvalidScheme(scheme.to_owned())),
         }
     }
 }
@@ -141,16 +160,37 @@ pub(super) fn load<C: Cache>(
     let loader = Loader::new(cache);
 
     let mut module_queue = VecDeque::with_capacity(8);
-    module_queue.push_back((entrypoint.clone(), entrypoint.clone()));
-    while let Some((from_location, location)) = module_queue.pop_front() {
+
+    let source = match loader.load_source(entrypoint) {
+        Ok(Some(source)) => source,
+        Ok(None) => unreachable!(),
+        Err(error) => {
+            report.error(error.into_cause().unwrap().into());
+            return vec![];
+        }
+    };
+    let entrymodule = Module::new(&source);
+    for import in entrymodule.imported_modules() {
+        module_queue.push_back((entrypoint.clone(), import));
+    }
+    modules.insert(entrypoint.clone(), entrymodule);
+    while let Some((from_location, locator)) = module_queue.pop_front() {
+        let span = locator.span();
+        let location = from_location.relative(locator.as_ref());
         let url = location.as_ref();
         if modules.contains_key(url) {
             continue;
         };
-        let source = match loader
-            .load_source(&location)
-            .map_err(|e| Error::resolution(from_location.clone(), e))
-        {
+        let source = match loader.load_source(&location).map_err(|kind| {
+            super::Error::resolution(
+                from_location.clone(),
+                Error {
+                    span,
+                    location: location.clone(),
+                    kind,
+                },
+            )
+        }) {
             Ok(Some(source)) => source,
             Ok(None) => continue,
             Err(error) => {
@@ -158,7 +198,7 @@ pub(super) fn load<C: Cache>(
                 continue;
             }
         };
-        let module = Module::new(location.clone(), &source);
+        let module = Module::new(&source);
         for import in module.imported_modules() {
             module_queue.push_back((location.clone(), import));
         }
@@ -167,10 +207,10 @@ pub(super) fn load<C: Cache>(
 
     for (location, module) in &modules {
         for error in module.contents.errors() {
-            report.error(Error::syntax(location.clone(), error.clone()))
+            report.error(super::Error::syntax(location.clone(), error.clone()))
         }
         for error in module.contents.warnings() {
-            report.warning(Error::syntax(location.clone(), error.clone()))
+            report.warning(super::Error::syntax(location.clone(), error.clone()))
         }
     }
 

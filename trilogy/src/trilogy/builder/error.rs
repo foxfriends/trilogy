@@ -1,8 +1,8 @@
-use super::loader::ResolverError;
+use super::loader;
 use crate::location::Location;
 use std::fmt::{self, Display};
-use trilogy_ir::Error as IrError;
-use trilogy_parser::{syntax::SyntaxError, Spanned};
+use trilogy_parser::syntax::SyntaxError;
+use trilogy_parser::Spanned;
 
 #[derive(Debug)]
 pub struct Error<E: std::error::Error>(pub(super) ErrorKind<E>);
@@ -10,9 +10,9 @@ pub struct Error<E: std::error::Error>(pub(super) ErrorKind<E>);
 #[derive(Debug)]
 pub(super) enum ErrorKind<E: std::error::Error> {
     External(Box<dyn std::error::Error>),
-    Resolver(Location, ResolverError<E>),
+    Resolver(Location, loader::Error<E>),
     Syntax(Location, SyntaxError),
-    Analyzer(Location, IrError),
+    Analyzer(Location, trilogy_ir::Error),
 }
 
 impl<E: std::error::Error> Error<E> {
@@ -20,7 +20,7 @@ impl<E: std::error::Error> Error<E> {
         Self(ErrorKind::External(Box::new(e)))
     }
 
-    pub(super) fn resolution(location: Location, error: ResolverError<E>) -> Self {
+    pub(super) fn resolution(location: Location, error: loader::Error<E>) -> Self {
         Self(ErrorKind::Resolver(location, error))
     }
 
@@ -28,8 +28,14 @@ impl<E: std::error::Error> Error<E> {
         Self(ErrorKind::Syntax(location, error))
     }
 
-    pub(super) fn semantic(location: Location, error: IrError) -> Self {
+    pub(super) fn semantic(location: Location, error: trilogy_ir::Error) -> Self {
         Self(ErrorKind::Analyzer(location, error))
+    }
+}
+
+impl<E: std::error::Error> From<Box<dyn std::error::Error>> for Error<E> {
+    fn from(value: Box<dyn std::error::Error>) -> Self {
+        Self(ErrorKind::External(value))
     }
 }
 

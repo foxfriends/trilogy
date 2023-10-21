@@ -18,14 +18,15 @@ impl Assignment {
 
         let op = match ast.strategy {
             Direct(..) => {
-                let id = lhs.unwrap_reference();
-                if !id.is_mutable {
-                    analyzer.error(Error::AssignedImmutableBinding {
-                        name: id.clone(),
-                        assignment: span,
-                    });
+                if let expression::Value::Reference(id) = &lhs.value {
+                    if !id.is_mutable {
+                        analyzer.error(Error::AssignedImmutableBinding {
+                            name: *id.clone(),
+                            assignment: span,
+                        });
+                    }
                 }
-                return Expression::assignment(span, Self { lhs, rhs });
+                return Expression::assignment(span, Assignment { lhs, rhs });
             }
             And(token) => Expression::builtin(token.span, Builtin::And),
             Or(token) => Expression::builtin(token.span, Builtin::Or),

@@ -58,7 +58,7 @@ where
         if id.as_ref().scheme() != "file" {
             return Some(Box::new(id.to_owned()));
         }
-        match Path::new(id.as_ref().path()).strip_prefix(&self.relative_base) {
+        match Path::new(id.as_ref().path()).strip_prefix(self.relative_base) {
             Ok(path) => Some(Box::new(path.display().to_string())),
             Err(..) => Some(Box::new(id.to_owned())),
         }
@@ -70,7 +70,7 @@ impl<E: std::error::Error + 'static> Report<E> {
         let loader = Loader::new(self.cache.as_ref());
         let cache = FnCache::new(move |loc: &&Location| {
             loader
-                .load_source(*loc)
+                .load_source(loc)
                 .map(|s| s.unwrap())
                 .map_err(|e| Box::new(e) as Box<dyn Debug>)
         });
@@ -196,7 +196,17 @@ impl<E: std::error::Error + 'static> Report<E> {
                         .with_label(Label::new(span).with_color(primary))
                 }
                 ErrorKind::Resolver(location, error) => {
-                    ariadne::Report::build(ReportKind::Error, location, 0)
+                    let span = cache.span(location, error.span);
+                    ariadne::Report::build(ReportKind::Error, location, span.1.start)
+                        .with_message(format!(
+                            "module resolution failed for module {}: {error}",
+                            error.location.as_ref().fg(primary)
+                        ))
+                        .with_label(
+                            Label::new(span)
+                                .with_message("module referenced here")
+                                .with_color(primary),
+                        )
                 }
             };
             report.finish().eprint(&mut cache).unwrap();
