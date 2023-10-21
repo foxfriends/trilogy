@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// It is not possible to construct a value of this type except from within a
 /// Trilogy program.
 #[derive(Clone)]
-pub struct Continuation(Arc<InnerContinuation>);
+pub(crate) struct Continuation(Arc<InnerContinuation>);
 
 impl Debug for Continuation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

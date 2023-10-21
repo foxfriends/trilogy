@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// It is not possible to construct a value of this type except from within a
 /// Trilogy program.
 #[derive(Clone)]
-pub struct Procedure(Arc<InnerProcedure>);
+pub(crate) struct Procedure(Arc<InnerProcedure>);
 
 impl Debug for Procedure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -1,3 +1,4 @@
+use crate::callable::{Callable, CallableKind};
 use crate::{Instruction, Offset, OpCode, Value};
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display};
@@ -34,7 +35,9 @@ impl Display for Chunk {
 
             write!(f, "    ")?;
             match &instruction {
-                Instruction::Const(Value::Procedure(procedure)) => {
+                Instruction::Const(Value::Callable(Callable(CallableKind::Procedure(
+                    procedure,
+                )))) => {
                     let offset = procedure.ip();
                     match self.labels.iter().find(|(.., pos)| **pos == offset) {
                         Some((label, ..)) => {
@@ -76,7 +79,9 @@ impl Debug for Chunk {
 
             write!(f, "{:>8}: ", print_offset)?;
             match &instruction {
-                Instruction::Const(Value::Procedure(procedure)) => {
+                Instruction::Const(Value::Callable(Callable(CallableKind::Procedure(
+                    procedure,
+                )))) => {
                     let offset = procedure.ip();
                     match self.labels.iter().find(|(.., pos)| **pos == offset) {
                         Some((label, ..)) => {

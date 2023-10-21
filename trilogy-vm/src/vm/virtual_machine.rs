@@ -2,10 +2,9 @@ use super::error::{ErrorKind, InternalRuntimeError};
 use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::{ChunkError, OpCode};
+use crate::callable::Procedure;
 use crate::runtime::Number;
-use crate::{
-    Atom, Chunk, ChunkBuilder, Instruction, Procedure, Program, ReferentialEq, Struct, StructuralEq,
-};
+use crate::{Atom, Chunk, ChunkBuilder, Instruction, Program, ReferentialEq, Struct, StructuralEq};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -299,9 +298,7 @@ impl VirtualMachine {
                         Value::Record(..) => ex.stack_push("record".into()),
                         Value::Atom(..) => ex.stack_push("atom".into()),
                         Value::Struct(..) => ex.stack_push("struct".into()),
-                        Value::Procedure(..) | Value::Continuation(..) | Value::Native(..) => {
-                            ex.stack_push("callable".into())
-                        }
+                        Value::Callable(..) => ex.stack_push("callable".into()),
                     }
                 }
                 OpCode::Add => {
@@ -774,13 +771,13 @@ impl VirtualMachine {
                 OpCode::Close => {
                     let offset = ex.read_offset(&chunk)?;
                     let closure = ex.current_closure();
-                    ex.stack_push(Value::Procedure(closure));
+                    ex.stack_push(Value::from(closure));
                     ex.ip = offset;
                 }
                 OpCode::Shift => {
                     let offset = ex.read_offset(&chunk)?;
                     let continuation = ex.current_continuation();
-                    ex.stack_push(Value::Continuation(continuation));
+                    ex.stack_push(Value::from(continuation));
                     ex.ip = offset;
                 }
                 OpCode::Reset => {
@@ -843,7 +840,7 @@ impl VirtualMachine {
                             (entrypoint, chunk) = builder
                                 .build()
                                 .map_err(|err| ex.error(ErrorKind::InvalidBytecode(err)))?;
-                            let chunk_procedure = Value::Procedure(Procedure::new(entrypoint));
+                            let chunk_procedure = Value::from(Procedure::new(entrypoint));
                             chunk_cache.insert(locator, chunk_procedure.clone());
                             ex.stack_push(chunk_procedure);
                         }

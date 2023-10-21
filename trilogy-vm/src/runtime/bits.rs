@@ -37,6 +37,46 @@ impl From<Vec<bool>> for Bits {
     }
 }
 
+impl FromIterator<u8> for Bits {
+    fn from_iter<T: IntoIterator<Item = u8>>(value: T) -> Self {
+        value
+            .into_iter()
+            .flat_map(|byte| {
+                [
+                    byte & 0b10000000 > 0,
+                    byte & 0b01000000 > 0,
+                    byte & 0b00100000 > 0,
+                    byte & 0b00010000 > 0,
+                    byte & 0b00001000 > 0,
+                    byte & 0b00000100 > 0,
+                    byte & 0b00000010 > 0,
+                    byte & 0b00000001 > 0,
+                ]
+            })
+            .collect()
+    }
+}
+
+impl<'a> FromIterator<&'a u8> for Bits {
+    fn from_iter<T: IntoIterator<Item = &'a u8>>(value: T) -> Self {
+        value
+            .into_iter()
+            .flat_map(|byte| {
+                [
+                    byte & 0b10000000 > 0,
+                    byte & 0b01000000 > 0,
+                    byte & 0b00100000 > 0,
+                    byte & 0b00010000 > 0,
+                    byte & 0b00001000 > 0,
+                    byte & 0b00000100 > 0,
+                    byte & 0b00000010 > 0,
+                    byte & 0b00000001 > 0,
+                ]
+            })
+            .collect()
+    }
+}
+
 impl From<BitVec> for Bits {
     fn from(value: BitVec) -> Self {
         Self(value)

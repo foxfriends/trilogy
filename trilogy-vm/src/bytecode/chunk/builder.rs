@@ -2,7 +2,8 @@ use super::error::ChunkError;
 use super::Chunk;
 use crate::atom::AtomInterner;
 use crate::bytecode::asm::{self, AsmReader};
-use crate::{Atom, Instruction, Offset, OpCode, Procedure, Value};
+use crate::callable::Procedure;
+use crate::{Atom, Instruction, Offset, OpCode, Value};
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 enum Entrypoint {
@@ -265,7 +266,7 @@ impl ChunkBuilder {
                     let offset = *label_offsets
                         .get(&label)
                         .ok_or_else(|| ChunkError::MissingLabel(label.to_owned()))?;
-                    let value = Value::Procedure(Procedure::new(offset));
+                    let value = Value::from(Procedure::new(offset));
                     let index = match constants.iter().position(|val| *val == value) {
                         None => {
                             let index = constants.len() as u32;

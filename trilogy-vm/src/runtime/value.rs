@@ -1,6 +1,6 @@
+use super::callable::{Continuation, Native, Procedure};
 use super::{
-    Array, Atom, Bits, Continuation, Native, Number, Procedure, Record, ReferentialEq, Set, Struct,
-    StructuralEq, Tuple,
+    Array, Atom, Bits, Callable, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple,
 };
 use num::ToPrimitive;
 use std::collections::{HashMap, HashSet};
@@ -23,9 +23,344 @@ pub enum Value {
     Array(Array),
     Set(Set),
     Record(Record),
-    Procedure(Procedure),
-    Continuation(Continuation),
-    Native(Native),
+    Callable(Callable),
+}
+
+impl Value {
+    /// Returns true if the `Value` is `unit`. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert!(Value::Unit.is_unit());
+    /// assert!(!Value::Bool(false).is_unit());
+    /// ```
+    pub fn is_unit(&self) -> bool {
+        matches!(self, Value::Unit)
+    }
+
+    /// If the `Value` is `unit`, returns a `()`. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert_eq!(Value::Unit.as_unit(), Some(()));
+    /// assert_eq!(Value::Bool(false).as_unit(), None);
+    /// ```
+    pub fn as_unit(&self) -> Option<()> {
+        match self {
+            Value::Unit => Some(()),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a boolean. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert!(Value::Bool(false).is_bool());
+    /// assert!(!Value::Unit.is_bool());
+    /// ```
+    pub fn is_bool(&self) -> bool {
+        matches!(self, Value::Bool(..))
+    }
+
+    /// If the `Value` is a boolean, returns the boolean value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert_eq!(Value::Bool(false).as_bool(), Some(false));
+    /// assert_eq!(Value::Unit.as_bool(), None);
+    /// ```
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Value::Bool(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a char. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert!(Value::Char('a').is_char());
+    /// assert!(!Value::Unit.is_char());
+    /// ```
+    pub fn is_char(&self) -> bool {
+        matches!(self, Value::Char(..))
+    }
+
+    /// If the `Value` is a char, returns the char value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert_eq!(Value::Char('a').as_char(), Some('a'));
+    /// assert_eq!(Value::Unit.as_char(), None);
+    /// ```
+    pub fn as_char(&self) -> Option<char> {
+        match self {
+            Value::Char(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a string. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert!(Value::String("hello world".into()).is_string());
+    /// assert!(!Value::Unit.is_string());
+    /// ```
+    pub fn is_string(&self) -> bool {
+        matches!(self, Value::String(..))
+    }
+
+    /// If the `Value` is a String, returns the str value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::Value;
+    /// assert_eq!(Value::String("hello world".into()).as_str(), Some("hello world"));
+    /// assert_eq!(Value::Unit.as_str(), None);
+    /// ```
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Value::String(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a number. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Number};
+    /// assert!(Value::Number(Number::from(1)).is_number());
+    /// assert!(!Value::Unit.is_number());
+    /// ```
+    pub fn is_number(&self) -> bool {
+        matches!(self, Value::Number(..))
+    }
+
+    /// If the `Value` is a Number, returns the number value. Returns None otherwise.
+    ///
+    /// Note that the return [`Number`][] is still a Trilogy number, and so is capable
+    /// of representing arbitrary precision real numbers and imaginary numbers. Further
+    /// conversion to a Rust number type is likely necessary.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Number};
+    /// assert_eq!(Value::Number(Number::from(1)).as_number(), Some(&Number::from(1)));
+    /// assert_eq!(Value::Unit.as_number(), None);
+    /// ```
+    pub fn as_number(&self) -> Option<&Number> {
+        match self {
+            Value::Number(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a bits. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Bits};
+    /// assert!(Value::Bits(Bits::from_iter(b"123")).is_bits());
+    /// assert!(!Value::Unit.is_bits());
+    /// ```
+    pub fn is_bits(&self) -> bool {
+        matches!(self, Value::Bits(..))
+    }
+
+    /// If the `Value` is a Bits, returns the bits value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Bits};
+    /// assert_eq!(Value::Bits(Bits::from_iter(b"123")).as_bits(), Some(&Bits::from_iter(b"123")));
+    /// assert_eq!(Value::Unit.as_bits(), None);
+    /// ```
+    pub fn as_bits(&self) -> Option<&Bits> {
+        match self {
+            Value::Bits(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is an atom. Returns false otherwise.
+    ///
+    /// Note that atoms are tied to an instance of the `VirtualMachine`, and cannot
+    /// be created in isolation.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, VirtualMachine};
+    /// let vm = VirtualMachine::new();
+    /// let atom = vm.atom("atom");
+    /// assert_eq!(Value::Atom(atom).is_atom(), true);
+    /// assert_eq!(Value::Unit.is_atom(), false);
+    /// ```
+    pub fn is_atom(&self) -> bool {
+        matches!(self, Value::Atom(..))
+    }
+
+    /// If the `Value` is an Atom, returns the atom. Returns None otherwise.
+    ///
+    /// Note that atoms are tied to an instance of the `VirtualMachine`, and cannot
+    /// be created in isolation.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, VirtualMachine};
+    /// let vm = VirtualMachine::new();
+    /// let atom = vm.atom("atom");
+    /// assert_eq!(Value::Atom(atom.clone()).as_atom(), Some(&atom));
+    /// assert_eq!(Value::Unit.as_atom(), None);
+    /// ```
+    pub fn as_atom(&self) -> Option<&Atom> {
+        match self {
+            Value::Atom(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a Trilogy struct. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Struct, VirtualMachine};
+    /// let vm = VirtualMachine::new();
+    /// let val = Struct::new(vm.atom("mystruct"), Value::Unit);
+    /// assert_eq!(Value::Struct(val.clone()).is_struct(), true);
+    /// assert_eq!(Value::Unit.is_struct(), false);
+    /// ```
+    pub fn is_struct(&self) -> bool {
+        matches!(self, Value::Struct(..))
+    }
+
+    /// If the `Value` is a Trilogy struct, returns the struct value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Struct, VirtualMachine};
+    /// let vm = VirtualMachine::new();
+    /// let val = Struct::new(vm.atom("mystruct"), Value::Unit);
+    /// assert_eq!(Value::Struct(val.clone()).as_struct(), Some(&val));
+    /// assert_eq!(Value::Unit.as_struct(), None);
+    /// ```
+    pub fn as_struct(&self) -> Option<&Struct> {
+        match self {
+            Value::Struct(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a tuple. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Tuple};
+    /// assert_eq!(Value::Tuple(Tuple::from((1, 2))).is_tuple(), true);
+    /// assert_eq!(Value::Unit.is_tuple(), false);
+    /// ```
+    pub fn is_tuple(&self) -> bool {
+        matches!(self, Value::Tuple(..))
+    }
+
+    /// If the `Value` is a tuple, returns the tuple value. Returns None otherwise.
+    ///
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Tuple};
+    /// assert_eq!(Value::Tuple(Tuple::from((1, 2))).as_tuple(), Some(&Tuple::from((1, 2))));
+    /// assert_eq!(Value::Unit.as_tuple(), None);
+    /// ```
+    pub fn as_tuple(&self) -> Option<&Tuple> {
+        match self {
+            Value::Tuple(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a set. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Set};
+    /// assert_eq!(Value::Set(Set::new()).is_set(), true);
+    /// assert_eq!(Value::Unit.is_set(), false);
+    /// ```
+    pub fn is_set(&self) -> bool {
+        matches!(self, Value::Set(..))
+    }
+
+    /// If the `Value` is a set, returns the set value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Set};
+    /// let set = Set::new();
+    /// assert_eq!(Value::Set(set.clone()).as_set(), Some(&set));
+    /// assert_eq!(Value::Unit.as_set(), None);
+    /// ```
+    pub fn as_set(&self) -> Option<&Set> {
+        match self {
+            Value::Set(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is an array. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Array};
+    /// assert_eq!(Value::Array(Array::new()).is_array(), true);
+    /// assert_eq!(Value::Unit.is_array(), false);
+    /// ```
+    pub fn is_array(&self) -> bool {
+        matches!(self, Value::Array(..))
+    }
+
+    /// If the `Value` is an array, returns the array value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Array};
+    /// let array = Array::new();
+    /// assert_eq!(Value::Array(array.clone()).as_array(), Some(&array));
+    /// assert_eq!(Value::Unit.as_array(), None);
+    /// ```
+    pub fn as_array(&self) -> Option<&Array> {
+        match self {
+            Value::Array(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a record. Returns false otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Record};
+    /// assert_eq!(Value::Record(Record::new()).is_record(), true);
+    /// assert_eq!(Value::Unit.is_record(), false);
+    /// ```
+    pub fn is_record(&self) -> bool {
+        matches!(self, Value::Record(..))
+    }
+
+    /// If the `Value` is a record, returns the record value. Returns None otherwise.
+    ///
+    /// ```
+    /// # use trilogy_vm::{Value, Record};
+    /// let array = Record::new();
+    /// assert_eq!(Value::Record(array.clone()).as_record(), Some(&array));
+    /// assert_eq!(Value::Unit.as_record(), None);
+    /// ```
+    pub fn as_record(&self) -> Option<&Record> {
+        match self {
+            Value::Record(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns true if the `Value` is a callable. Returns false otherwise.
+    pub fn is_callable(&self) -> bool {
+        matches!(self, Value::Callable(..))
+    }
+
+    /// If the `Value` is a callable, returns the callable value. Returns None otherwise.
+    pub fn as_callable(&self) -> Option<&Callable> {
+        match self {
+            Value::Callable(value) => Some(value),
+            _ => None,
+        }
+    }
 }
 
 impl Value {
@@ -217,9 +552,7 @@ impl Display for Value {
             Self::Array(value) => write!(f, "{value}"),
             Self::Set(value) => write!(f, "{value}"),
             Self::Record(value) => write!(f, "{value}"),
-            Self::Procedure(value) => write!(f, "{value}"),
-            Self::Continuation(..) => write!(f, "<anonymous continuation>"),
-            Self::Native(..) => write!(f, "<native code>"),
+            Self::Callable(value) => write!(f, "{value}"),
         }
     }
 }
@@ -242,12 +575,6 @@ macro_rules! impl_from {
     };
 }
 
-impl From<()> for Value {
-    fn from(_: ()) -> Self {
-        Self::Unit
-    }
-}
-
 impl_from!(<String> for String);
 impl_from!(<Number> for Number);
 impl_from!(<char> for Char);
@@ -259,19 +586,6 @@ impl_from!(<Set> for Set);
 impl_from!(<Record> for Record);
 impl_from!(<Array> for Array);
 impl_from!(<Tuple> for Tuple);
-impl_from!(<Procedure> for Procedure);
-impl_from!(<Continuation> for Continuation);
-
-impl<T, U> From<(T, U)> for Value
-where
-    Value: From<T>,
-    Value: From<U>,
-{
-    fn from(value: (T, U)) -> Self {
-        Self::Tuple(Tuple::from(value))
-    }
-}
-
 impl_from!(<HashMap<Value, Value>> for Record via Record);
 impl_from!(<HashSet<Value>> for Set via Set);
 impl_from!(<Vec<Value>> for Array via Array);
@@ -295,4 +609,23 @@ impl_from!(<num::BigRational> for Number via Number);
 impl_from!(<num::BigInt> for Number via Number);
 impl_from!(<num::BigUint> for Number via Number);
 impl_from!(<num::Complex<num::BigRational>> for Number via Number);
-impl_from!(<Native> for Native);
+impl_from!(<Callable> for Callable);
+impl_from!(<Procedure> for Callable via Callable);
+impl_from!(<Continuation> for Callable via Callable);
+impl_from!(<Native> for Callable via Callable);
+
+impl From<()> for Value {
+    fn from(_: ()) -> Self {
+        Self::Unit
+    }
+}
+
+impl<T, U> From<(T, U)> for Value
+where
+    Value: From<T>,
+    Value: From<U>,
+{
+    fn from(value: (T, U)) -> Self {
+        Self::Tuple(Tuple::from(value))
+    }
+}

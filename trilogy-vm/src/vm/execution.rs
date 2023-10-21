@@ -2,7 +2,9 @@ use super::error::{ErrorKind, InternalRuntimeError};
 use super::stack::InternalValue;
 use super::{Error, Stack};
 use crate::bytecode::chunk::Chunk;
-use crate::{Continuation, Offset, OpCode, Procedure, Value};
+use crate::callable::{Continuation, Procedure};
+use crate::runtime::callable::{Callable, CallableKind};
+use crate::{Offset, OpCode, Value};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Execution {
@@ -190,13 +192,13 @@ impl Execution {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
-            Some(Value::Continuation(continuation)) => {
+            Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
                 self.call_continuation(continuation, arguments)?;
             }
-            Some(Value::Procedure(procedure)) => {
+            Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
                 self.call_procedure(procedure, arguments);
             }
-            Some(Value::Native(native)) => {
+            Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
                     arguments
                         .into_iter()
@@ -215,13 +217,13 @@ impl Execution {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
-            Some(Value::Continuation(continuation)) => {
+            Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
                 self.become_continuation(continuation, arguments);
             }
-            Some(Value::Procedure(procedure)) => {
+            Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
                 self.become_procedure(procedure, arguments)?;
             }
-            Some(Value::Native(native)) => {
+            Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
                     arguments
                         .into_iter()
