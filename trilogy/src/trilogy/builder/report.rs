@@ -190,7 +190,10 @@ impl<E: std::error::Error + 'static> Report<E> {
                     }
                 }
                 ErrorKind::Syntax(location, error) => {
-                    ariadne::Report::build(ReportKind::Error, location, 0)
+                    let span = cache.span(location, error.span());
+                    ariadne::Report::build(ReportKind::Error, location, span.1.start)
+                        .with_message(error.message())
+                        .with_label(Label::new(span).with_color(primary))
                 }
                 ErrorKind::Resolver(location, error) => {
                     ariadne::Report::build(ReportKind::Error, location, 0)
