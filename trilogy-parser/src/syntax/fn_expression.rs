@@ -5,31 +5,33 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct FnExpression {
-    start: Token,
+    pub r#fn: Token,
     pub parameters: Vec<Pattern>,
+    pub dot: Token,
     pub body: Expression,
 }
 
 impl Spanned for FnExpression {
     fn span(&self) -> Span {
-        self.start.span.union(self.body.span())
+        self.r#fn.span.union(self.body.span())
     }
 }
 
 impl FnExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser.expect(KwFn).expect("Caller should have found this");
+        let r#fn = parser.expect(KwFn).expect("Caller should have found this");
         let mut parameters = vec![];
-        loop {
+        let dot = loop {
             parameters.push(Pattern::parse(parser)?);
-            if parser.expect(OpDot).is_ok() {
-                break;
+            if let Ok(dot) = parser.expect(OpDot) {
+                break dot;
             }
-        }
+        };
         let body = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
-            start,
+            r#fn,
             parameters,
+            dot,
             body,
         })
     }

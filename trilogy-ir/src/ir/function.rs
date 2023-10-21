@@ -6,6 +6,7 @@ use trilogy_parser::{syntax, Spanned};
 #[derive(Clone, Debug)]
 pub struct Function {
     pub span: Span,
+    pub head_span: Span,
     pub parameters: Vec<Expression>,
     pub body: Expression,
 }
@@ -13,6 +14,7 @@ pub struct Function {
 impl Function {
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::FunctionDefinition) -> Self {
         let span = ast.span();
+        let head_span = ast.head.span();
         let parameters: Vec<_> = ast
             .head
             .parameters
@@ -23,6 +25,7 @@ impl Function {
             .apply_to(span, Expression::convert(analyzer, ast.body));
         Self {
             span,
+            head_span,
             parameters,
             body,
         }
@@ -38,6 +41,7 @@ impl Function {
         let body = Expression::builtin(span, Builtin::Return)
             .apply_to(span, Expression::convert(analyzer, ast.body));
         Self {
+            head_span: ast.r#fn.span.union(ast.dot.span),
             span,
             parameters,
             body,

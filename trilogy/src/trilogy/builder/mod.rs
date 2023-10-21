@@ -1,7 +1,6 @@
-use home::home_dir;
-
 use crate::location::Location;
 use crate::{Cache, FileSystemCache, NativeModule, NoopCache};
+use home::home_dir;
 
 #[cfg(feature = "std")]
 use crate::stdlib;
@@ -97,6 +96,30 @@ impl<C: Cache> Builder<C> {
         let documents = loader::load(&cache, &entrypoint, &mut report);
         cache = report.checkpoint(&root_path, cache)?;
         let modules = analyzer::analyze(documents, &mut report);
+
+        // A bit hacky to be construction IR errors here, and not in the IR crate,
+        // but... whatever, it's easier, and this is a nice one-off check for now.
+        let entrymodule = modules.get(&entrypoint);
+        let main = entrymodule.unwrap().definitions().iter().find(|def| {
+            def.name()
+                .and_then(|id| id.name())
+                .map(|name| name == "main")
+                .unwrap_or(false)
+        });
+        match main {
+            None => report.error(Error::semantic(
+                entrypoint.clone(),
+                trilogy_ir::Error::NoMainProcedure,
+            )),
+            Some(def) => match &def.item {
+                trilogy_ir::ir::DefinitionItem::Procedure(..) => {}
+                item => report.error(Error::semantic(
+                    entrypoint.clone(),
+                    trilogy_ir::Error::MainNotProcedure { item: item.clone() },
+                )),
+            },
+        }
+
         report.checkpoint(&root_path, cache)?;
         Ok(Trilogy::new(
             Source::Trilogy {

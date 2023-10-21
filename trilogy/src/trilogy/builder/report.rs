@@ -8,6 +8,7 @@ use source_span::Span;
 use std::fmt::{self, Debug};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
+use trilogy_ir::ir::DefinitionItem;
 use trilogy_parser::Spanned;
 
 pub struct Report<E: std::error::Error> {
@@ -174,6 +175,36 @@ impl<E: std::error::Error> Error<E> {
                                 name.id.name().unwrap(),
                             ))
                     }
+                    NoMainProcedure => ariadne::Report::build(kind, location, 0)
+                        .with_message("no definition of `proc main!()` was found"),
+                    MainNotProcedure { item } => match item {
+                        DefinitionItem::Function(func) => {
+                            let span = cache.span(location, func.overloads[0].head_span);
+                            ariadne::Report::build(kind, location, span.1.start)
+                                .with_message("no definition of `proc main!()` was found")
+                                .with_label(Label::new(span).with_color(primary).with_message(
+                                    "`func main` was found, but main must be a procedure",
+                                ))
+                        }
+                        DefinitionItem::Rule(rule) => {
+                            let span = cache.span(location, rule.overloads[0].head_span);
+                            ariadne::Report::build(kind, location, span.1.start)
+                                .with_message("no definition of `proc main!()` was found")
+                                .with_label(Label::new(span).with_color(primary).with_message(
+                                    "`rule main` was found, but main must be a procedure",
+                                ))
+                        }
+                        DefinitionItem::Module(module) => {
+                            let span = cache.span(location, module.name.span);
+                            ariadne::Report::build(kind, location, span.1.start)
+                                .with_message("no definition of `proc main!()` was found")
+                                .with_label(Label::new(span).with_color(primary).with_message(
+                                    "`module main` was found, but main must be a procedure",
+                                ))
+                        }
+                        DefinitionItem::Test(..) => unreachable!(),
+                        DefinitionItem::Procedure(..) => unreachable!(),
+                    },
                 }
             }
             ErrorKind::Syntax(location, error) => {

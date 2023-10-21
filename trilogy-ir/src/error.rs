@@ -4,6 +4,10 @@ use trilogy_parser::syntax;
 
 #[derive(Debug)]
 pub enum Error {
+    NoMainProcedure,
+    MainNotProcedure {
+        item: ir::DefinitionItem,
+    },
     UnknownExport {
         name: syntax::Identifier,
     },

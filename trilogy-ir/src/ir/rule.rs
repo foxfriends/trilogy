@@ -6,6 +6,7 @@ use trilogy_parser::{syntax, Spanned};
 #[derive(Clone, Debug)]
 pub struct Rule {
     pub span: Span,
+    pub head_span: Span,
     pub parameters: Vec<Expression>,
     pub body: Query,
 }
@@ -13,6 +14,7 @@ pub struct Rule {
 impl Rule {
     pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::RuleDefinition) -> Self {
         let span = ast.span();
+        let head_span = ast.head.span();
         let parameters = ast
             .head
             .parameters
@@ -25,6 +27,7 @@ impl Rule {
             .unwrap_or_else(|| Query::pass(span));
         Self {
             span,
+            head_span,
             parameters,
             body,
         }
