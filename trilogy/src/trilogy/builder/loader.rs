@@ -20,24 +20,20 @@ struct Module {
 #[derive(Debug)]
 pub(super) enum ResolverError<E: std::error::Error> {
     InvalidScheme(String),
+    Network(reqwest::Error),
+    Io(std::io::Error),
     Cache(E),
-    External(Box<dyn std::error::Error>),
-}
-
-impl<E: std::error::Error> ResolverError<E> {
-    pub(super) fn external(e: impl std::error::Error + 'static) -> Self {
-        Self::External(Box::new(e))
-    }
 }
 
 impl<E: std::error::Error> Display for ResolverError<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Cache(error) => write!(f, "{error}"),
+            Self::Io(error) => write!(f, "{error}"),
+            Self::Network(error) => write!(f, "{error}"),
             Self::InvalidScheme(scheme) => {
                 write!(f, "invalid scheme in module location `{}`", scheme)
             }
-            Self::External(error) => write!(f, "{error}"),
         }
     }
 }
@@ -46,7 +42,6 @@ impl<E: std::error::Error> std::error::Error for ResolverError<E> {
     fn cause(&self) -> Option<&dyn std::error::Error> {
         match self {
             Self::Cache(e) => Some(e),
-            Self::External(e) => Some(&**e),
             _ => None,
         }
     }
@@ -87,7 +82,7 @@ impl Module {
 }
 
 #[derive(Clone)]
-struct Loader<'a, E> {
+pub(super) struct Loader<'a, E> {
     client: Client, // TODO: generic resolver
     cache: &'a dyn Cache<Error = E>,
 }
@@ -96,7 +91,7 @@ impl<'a, E> Loader<'a, E>
 where
     E: std::error::Error + 'static,
 {
-    fn new(cache: &'a dyn Cache<Error = E>) -> Self {
+    pub fn new(cache: &'a dyn Cache<Error = E>) -> Self {
         Self {
             client: Client::default(),
             cache,
@@ -108,12 +103,12 @@ where
             .get(url.clone())
             .header("Accept", "text/x-trilogy")
             .send()
-            .map_err(ResolverError::external)?
+            .map_err(ResolverError::Network)?
             .text()
-            .map_err(ResolverError::external)
+            .map_err(ResolverError::Network)
     }
 
-    fn load_source(&mut self, location: &Location) -> Result<Option<String>, ResolverError<E>> {
+    pub fn load_source(&self, location: &Location) -> Result<Option<String>, ResolverError<E>> {
         if self.cache.has(location) {
             return Ok(Some(
                 self.cache.load(location).map_err(ResolverError::Cache)?,
@@ -122,10 +117,10 @@ where
         let url = location.as_ref();
         match url.scheme() {
             "file" => Ok(Some(
-                fs::read_to_string(url.path()).map_err(ResolverError::external)?,
+                fs::read_to_string(url.path()).map_err(ResolverError::Io)?,
             )),
             "http" | "https" => {
-                let source = self.download(url).map_err(ResolverError::external)?;
+                let source = self.download(url)?;
                 self.cache
                     .save(location, &source)
                     .map_err(ResolverError::Cache)?;
@@ -143,16 +138,19 @@ pub(super) fn load<C: Cache>(
     report: &mut ReportBuilder<C::Error>,
 ) -> Vec<(Location, Document)> {
     let mut modules = HashMap::new();
-    let mut loader = Loader::new(cache);
+    let loader = Loader::new(cache);
 
     let mut module_queue = VecDeque::with_capacity(8);
-    module_queue.push_back(entrypoint.clone());
-    while let Some(location) = module_queue.pop_front() {
+    module_queue.push_back((entrypoint.clone(), entrypoint.clone()));
+    while let Some((from_location, location)) = module_queue.pop_front() {
         let url = location.as_ref();
         if modules.contains_key(url) {
             continue;
         };
-        let source = match loader.load_source(&location).map_err(Error::resolution) {
+        let source = match loader
+            .load_source(&location)
+            .map_err(|e| Error::resolution(from_location.clone(), e))
+        {
             Ok(Some(source)) => source,
             Ok(None) => continue,
             Err(error) => {
@@ -162,7 +160,7 @@ pub(super) fn load<C: Cache>(
         };
         let module = Module::new(location.clone(), &source);
         for import in module.imported_modules() {
-            module_queue.push_back(import);
+            module_queue.push_back((location.clone(), import));
         }
         modules.insert(location, module);
     }

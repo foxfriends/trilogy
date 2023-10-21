@@ -1142,6 +1142,7 @@ dependencies = [
  "num",
  "pretty",
  "reqwest",
+ "source-span",
  "trilogy-codegen",
  "trilogy-derive",
  "trilogy-ir",

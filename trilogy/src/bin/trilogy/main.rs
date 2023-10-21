@@ -127,7 +127,7 @@ fn main() -> std::io::Result<()> {
         } => match Trilogy::from_file(file) {
             Ok(trilogy) => run(trilogy, print),
             Err(report) => {
-                eprintln!("{}", report.display()?);
+                report.eprint();
                 std::process::exit(1);
             }
         },
@@ -159,13 +159,13 @@ fn main() -> std::io::Result<()> {
                 Err(error) => eprintln!("{error}"),
             },
             Err(report) => {
-                eprintln!("{}", report.display()?);
+                report.eprint();
                 std::process::exit(1);
             }
         },
         Command::Check { file, no_std: _ } => {
             if let Err(report) = Trilogy::from_file(file) {
-                eprintln!("{}", report.display()?);
+                report.eprint();
                 std::process::exit(1);
             }
         }

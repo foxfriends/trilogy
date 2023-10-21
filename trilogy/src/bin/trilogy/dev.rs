@@ -106,7 +106,7 @@ pub fn run(command: Command) -> std::io::Result<()> {
                 Err(error) => eprintln!("{error}"),
             },
             Err(report) => {
-                eprintln!("{}", report.display()?);
+                report.eprint();
                 std::process::exit(1);
             }
         },

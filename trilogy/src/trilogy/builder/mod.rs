@@ -88,7 +88,7 @@ impl<C: Cache> Builder<C> {
             None => match std::env::current_dir() {
                 Ok(dir) => dir,
                 Err(error) => {
-                    report.error(Error::resolution(loader::ResolverError::external(error)));
+                    report.error(Error::external(error));
                     return Err(report.report(cache));
                 }
             },
