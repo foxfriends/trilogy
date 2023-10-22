@@ -1,4 +1,4 @@
-use crate::{ReferentialEq, Runtime, StructuralEq, Value};
+use crate::{Execution, ReferentialEq, StructuralEq, Value};
 use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::Arc;
@@ -14,7 +14,7 @@ pub trait NativeFunction: Send + Sync {
         Self: Sized;
 
     #[doc(hidden)]
-    fn call(&self, runtime: Runtime, input: Vec<Value>) -> Value;
+    fn call(&self, ex: Execution, input: Vec<Value>) -> Value;
 
     #[doc(hidden)]
     fn arity(&self) -> usize;
@@ -59,9 +59,9 @@ impl StructuralEq for Native {
 }
 
 impl Native {
-    pub(crate) fn call(&self, runtime: Runtime, args: Vec<Value>) -> Value {
+    pub(crate) fn call(&self, ex: Execution, args: Vec<Value>) -> Value {
         assert_eq!(args.len(), self.0.arity());
-        self.0.call(runtime, args)
+        self.0.call(ex, args)
     }
 }
 

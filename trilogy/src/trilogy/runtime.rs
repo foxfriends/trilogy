@@ -1,10 +1,10 @@
 use trilogy_vm::{Atom, Value};
 
-pub struct Runtime<'a>(trilogy_vm::runtime::Runtime<'a>);
+pub struct Runtime<'a>(trilogy_vm::Execution<'a>);
 
 impl<'a> Runtime<'a> {
     #[doc(hidden)]
-    pub fn new(inner: trilogy_vm::runtime::Runtime<'a>) -> Self {
+    pub fn new(inner: trilogy_vm::Execution<'a>) -> Self {
         Self(inner)
     }
 }

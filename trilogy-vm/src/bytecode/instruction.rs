@@ -53,29 +53,28 @@ pub enum Instruction {
     TypeOf,
 
     // Heap (why?)
-
-    /// Replace the pointer at the top of the stack with the value to which it points,
-    /// from the heap.
-    #[asm(name = "LOAD")] Load,
-    /// Set the value pointed to by the pointer at the top of the stack with the value
-    /// that is stored second from the top of the stack.
-    #[asm(name = "SET")] Set,
-    /// Initialize the value pointed to by the pointer at the top of the stack with
-    /// the value that is stored second from the top of the stack. Pushes a boolean
-    /// value: `true` if the initialization succeeded, or `false` if the initialization
-    /// failed due to the pointer having already been set.
-    #[asm(name = "INIT")] Init,
-    /// Unsets the value pointed to by the pointer at the top of the stack.
-    #[asm(name = "UNSET")] Unset,
-    /// Check whether the value pointed to by the pointer at the top of the stack is set
-    /// or not.
-    #[asm(name = "ISSET")] IsSet,
-    /// Allocates a new pointer, pushing the pointer to the top of the stack. The pointer
-    /// initially points to an empty slot on the heap.
-    Alloc,
-    /// Frees the slot on the heap pointed to by the pointer at the top of the stack. It
-    /// is invalid to use a pointer after it has been freed.
-    Free,
+    // /// Replace the pointer at the top of the stack with the value to which it points,
+    // /// from the heap.
+    // #[asm(name = "LOAD")] Load,
+    // /// Set the value pointed to by the pointer at the top of the stack with the value
+    // /// that is stored second from the top of the stack.
+    // #[asm(name = "SET")] Set,
+    // /// Initialize the value pointed to by the pointer at the top of the stack with
+    // /// the value that is stored second from the top of the stack. Pushes a boolean
+    // /// value: `true` if the initialization succeeded, or `false` if the initialization
+    // /// failed due to the pointer having already been set.
+    // #[asm(name = "INIT")] Init,
+    // /// Unsets the value pointed to by the pointer at the top of the stack.
+    // #[asm(name = "UNSET")] Unset,
+    // /// Check whether the value pointed to by the pointer at the top of the stack is set
+    // /// or not.
+    // #[asm(name = "ISSET")] IsSet,
+    // /// Allocates a new pointer, pushing the pointer to the top of the stack. The pointer
+    // /// initially points to an empty slot on the heap.
+    // Alloc,
+    // /// Frees the slot on the heap pointed to by the pointer at the top of the stack. It
+    // /// is invalid to use a pointer after it has been freed.
+    // Free,
 
     // Variables
 

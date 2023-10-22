@@ -38,21 +38,10 @@ pub struct Trilogy {
 
 impl Trilogy {
     fn new(source: Source, libraries: HashMap<Location, NativeModule>) -> Self {
-        let mut vm = VirtualMachine::new();
-        vm.set_registers(vec![
-            // Global effect handler resume continuation
-            Value::Unit,
-            // Module parameters
-            Value::Array(vec![].into()),
-            // Query state construction bindset
-            Value::Unit,
-            // Local temporary
-            Value::Unit,
-        ]);
         Self {
             source,
             libraries,
-            vm,
+            vm: VirtualMachine::new(),
         }
     }
 
@@ -67,31 +56,38 @@ impl Trilogy {
     }
 
     pub fn run(&mut self) -> Result<Value, RuntimeError> {
-        let trilogy_program;
-        let asm_program;
-        let program: &dyn Program;
-        match &self.source {
-            Source::Asm { asm } => {
-                asm_program = AsmProgram {
+        let registers = vec![
+            // Global effect handler resume continuation
+            Value::Unit,
+            // Module parameters
+            Value::Array(vec![].into()),
+            // Query state construction bindset
+            Value::Unit,
+            // Local temporary
+            Value::Unit,
+        ];
+        let result = match &self.source {
+            Source::Asm { asm } => self.vm.run_with_registers(
+                &AsmProgram {
                     source: asm,
                     libraries: &self.libraries,
-                };
-                program = &asm_program;
-            }
+                },
+                registers,
+            ),
             Source::Trilogy {
                 modules,
                 entrypoint,
-            } => {
-                trilogy_program = TrilogyProgram {
+            } => self.vm.run_with_registers(
+                &TrilogyProgram {
                     libraries: &self.libraries,
                     modules,
                     entrypoint,
                     to_asm: false,
-                };
-                program = &trilogy_program;
-            }
-        }
-        self.vm.run(program).map_err(|error| RuntimeError { error })
+                },
+                registers,
+            ),
+        };
+        result.map_err(|er| er.into())
     }
 
     pub fn compile(&self, debug: bool) -> Result<Chunk, ChunkError> {

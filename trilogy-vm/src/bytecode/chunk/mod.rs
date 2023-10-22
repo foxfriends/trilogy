@@ -18,8 +18,8 @@ pub use iter::ChunkIter;
 #[derive(Clone)]
 pub struct Chunk {
     labels: HashMap<String, u32>,
-    pub constants: Vec<Value>,
-    pub bytes: Vec<u8>,
+    pub(crate) constants: Vec<Value>,
+    pub(crate) bytes: Vec<u8>,
 }
 
 impl Display for Chunk {
@@ -111,11 +111,11 @@ impl Debug for Chunk {
 }
 
 impl Chunk {
-    pub fn opcode(&self, offset: Offset) -> OpCode {
+    pub(crate) fn opcode(&self, offset: Offset) -> OpCode {
         OpCode::try_from(self.bytes[offset as usize]).unwrap()
     }
 
-    pub fn offset(&self, offset: Offset) -> Offset {
+    pub(crate) fn offset(&self, offset: Offset) -> Offset {
         Offset::from_be_bytes(
             self.bytes[offset as usize..offset as usize + 4]
                 .try_into()
@@ -123,12 +123,12 @@ impl Chunk {
         )
     }
 
-    pub fn constant(&self, offset: Offset) -> Value {
+    pub(crate) fn constant(&self, offset: Offset) -> Value {
         let index = self.offset(offset);
         self.constants[index as usize].clone()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = Instruction> + '_ {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = Instruction> + '_ {
         self.into_iter()
     }
 }

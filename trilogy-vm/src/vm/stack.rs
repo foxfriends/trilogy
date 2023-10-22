@@ -12,7 +12,6 @@ pub(crate) enum InternalValue {
         frame: usize,
         ghost: Option<Stack>,
     },
-    Pointer(usize),
 }
 
 impl InternalValue {
@@ -23,7 +22,6 @@ impl InternalValue {
             InternalValue::Return { .. } => {
                 Err(InternalRuntimeError::ExpectedValue("return pointer"))
             }
-            InternalValue::Pointer(..) => Err(InternalRuntimeError::ExpectedValue("pointer")),
         }
     }
 
@@ -34,7 +32,6 @@ impl InternalValue {
             InternalValue::Return { .. } => {
                 Err(InternalRuntimeError::ExpectedValue("return pointer"))
             }
-            InternalValue::Pointer(..) => Err(InternalRuntimeError::ExpectedValue("pointer")),
         }
     }
 
@@ -45,14 +42,6 @@ impl InternalValue {
             InternalValue::Return { .. } => {
                 Err(InternalRuntimeError::ExpectedValue("return pointer"))
             }
-            InternalValue::Pointer(..) => Err(InternalRuntimeError::ExpectedValue("pointer")),
-        }
-    }
-
-    fn try_into_pointer(self) -> Result<usize, InternalRuntimeError> {
-        match self {
-            InternalValue::Pointer(pointer) => Ok(pointer),
-            _ => Err(InternalRuntimeError::ExpectedPointer),
         }
     }
 }
@@ -78,7 +67,6 @@ impl Display for InternalValue {
                 writeln!(f, "{}", ghost_str)?;
                 write!(f, "-> {ip}\t[closure]")
             }
-            InternalValue::Pointer(offset) => write!(f, "&{offset}"),
         }
     }
 }
@@ -242,13 +230,6 @@ impl Stack {
             .and_then(|val| val.is_set())
     }
 
-    pub(crate) fn pop_pointer(&mut self) -> Result<usize, InternalRuntimeError> {
-        self.cactus
-            .pop()
-            .ok_or(InternalRuntimeError::ExpectedPointer)
-            .and_then(InternalValue::try_into_pointer)
-    }
-
     pub(crate) fn pop_frame(&mut self) -> Result<Offset, InternalRuntimeError> {
         loop {
             let popped = self
@@ -276,10 +257,6 @@ impl Stack {
         });
         self.frame = self.len();
         self.push_many(arguments);
-    }
-
-    pub(crate) fn push_pointer(&mut self, pointer: usize) {
-        self.cactus.push(InternalValue::Pointer(pointer));
     }
 
     pub(crate) fn set_local(

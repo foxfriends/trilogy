@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::error::ChunkError;
 use super::Chunk;
 use crate::atom::AtomInterner;
@@ -5,10 +7,11 @@ use crate::bytecode::asm::{self, AsmReader};
 use crate::callable::Procedure;
 use crate::{Atom, Instruction, Offset, OpCode, Value};
 
-#[derive(Eq, PartialEq, Copy, Clone)]
+#[derive(Eq, PartialEq, Clone)]
 enum Entrypoint {
     Line(usize),
     Index(u32),
+    Label(String),
 }
 
 pub(super) enum Parameter {
@@ -27,7 +30,6 @@ struct Line {
 /// Builder for constructing a chunk of bytecode for the [`VirtualMachine`][crate::VirtualMachine]
 /// to execute.
 pub struct ChunkBuilder {
-    prefix: Option<Chunk>,
     entrypoint: Entrypoint,
     interner: AtomInterner,
     lines: Vec<Line>,
@@ -39,18 +41,10 @@ impl ChunkBuilder {
     pub(crate) fn new(interner: AtomInterner) -> Self {
         Self {
             entrypoint: Entrypoint::Line(0),
-            prefix: None,
             interner,
             lines: vec![],
             current_labels: vec![],
             error: None,
-        }
-    }
-
-    pub(crate) fn new_prefixed(interner: AtomInterner, prefix: Chunk) -> Self {
-        Self {
-            prefix: Some(prefix),
-            ..Self::new(interner)
         }
     }
 
@@ -182,119 +176,14 @@ impl ChunkBuilder {
 
     /// Sets the entrypoint of this chunk to be at a label previously written.
     pub fn entrypoint_existing(&mut self, label: &str) -> &mut Self {
-        let entry = self
-            .prefix
-            .as_ref()
-            .and_then(|pref| pref.labels.get(label).copied())
-            .map(Entrypoint::Index)
-            .or_else(|| {
-                self.lines
-                    .iter()
-                    .position(|line| line.labels.iter().any(|l| l == label))
-                    .map(Entrypoint::Line)
-            });
-        if let Some(entry) = entry {
-            self.entrypoint = entry;
-        } else {
-            self.error = Some(ChunkError::MissingLabel(label.to_owned()));
-        }
+        self.entrypoint = Entrypoint::Label(label.to_owned());
         self
-    }
-
-    /// Construct the [`Chunk`][] that was being built. Fails if any labels were referenced
-    /// but not defined.
-    pub(crate) fn build(mut self) -> Result<(Offset, Chunk), ChunkError> {
-        if let Some(error) = self.error {
-            return Err(error);
-        }
-        let mut label_offsets;
-        let mut constants;
-        let mut bytes;
-        match self.prefix {
-            Some(chunk) => {
-                label_offsets = chunk.labels;
-                constants = chunk.constants;
-                bytes = chunk.bytes;
-            }
-            None => {
-                label_offsets = std::collections::HashMap::default();
-                constants = vec![];
-                bytes = vec![];
-            }
-        }
-
-        let mut entrypoint = match self.entrypoint {
-            Entrypoint::Index(index) => index,
-            _ => 0,
-        };
-        let mut distance = bytes.len() as u32;
-        for (offset, line) in self.lines.iter_mut().enumerate() {
-            if Entrypoint::Line(offset) == self.entrypoint {
-                entrypoint = offset as u32 + distance;
-            }
-            for label in line.labels.drain(..) {
-                label_offsets.insert(label, offset as u32 + distance);
-            }
-            if line.value.is_some() {
-                distance += 4;
-            }
-        }
-
-        for line in self.lines.into_iter() {
-            bytes.push(line.opcode as u8);
-            match line.value {
-                None => {}
-                Some(Parameter::Offset(offset)) => bytes.extend(offset.to_be_bytes()),
-                Some(Parameter::Label(label)) => {
-                    let offset = *label_offsets
-                        .get(&label)
-                        .ok_or_else(|| ChunkError::MissingLabel(label.to_owned()))?;
-                    bytes.extend(offset.to_be_bytes());
-                }
-                Some(Parameter::Value(value)) => {
-                    let index = match constants.iter().position(|val| *val == value) {
-                        None => {
-                            let index = constants.len() as u32;
-                            constants.push(value);
-                            index
-                        }
-                        Some(index) => index as u32,
-                    };
-                    bytes.extend(index.to_be_bytes());
-                }
-                Some(Parameter::Reference(label)) => {
-                    let offset = *label_offsets
-                        .get(&label)
-                        .ok_or_else(|| ChunkError::MissingLabel(label.to_owned()))?;
-                    let value = Value::from(Procedure::new(offset));
-                    let index = match constants.iter().position(|val| *val == value) {
-                        None => {
-                            let index = constants.len() as u32;
-                            constants.push(value);
-                            index
-                        }
-                        Some(index) => index as u32,
-                    };
-                    bytes.extend(index.to_be_bytes());
-                }
-            }
-        }
-
-        Ok((
-            entrypoint,
-            Chunk {
-                labels: label_offsets,
-                constants,
-                bytes,
-            },
-        ))
     }
 
     /// Parse a string of written ASM.
     ///
-    /// Returns a `SyntaxError` if the string is not valid.
-    ///
-    /// # Examples
+    /// If an error is encountered while parsing the string, the builder will be set to
+    /// an invalid state, and will cause an `Err` to be returned when calling `build`.
     ///
     /// ```ignore
     /// builder
@@ -304,7 +193,6 @@ impl ChunkBuilder {
     ///         ADD
     ///         EXIT
     ///     "#)
-    ///     .unwrap()
     ///     .build()
     ///     .unwrap()
     /// ```
@@ -346,5 +234,89 @@ impl ChunkBuilder {
         }
 
         Ok(())
+    }
+
+    /// Construct the [`Chunk`][] that was being built. Fails if any labels were referenced
+    /// but not defined.
+    pub(crate) fn build(self) -> Result<(Offset, Chunk), ChunkError> {
+        let mut chunk = Chunk {
+            labels: HashMap::default(),
+            constants: vec![],
+            bytes: vec![],
+        };
+        let offset = self.build_from(&mut chunk)?;
+        Ok((offset, chunk))
+    }
+
+    pub(crate) fn build_from(mut self, chunk: &mut Chunk) -> Result<Offset, ChunkError> {
+        if let Some(error) = self.error {
+            return Err(error);
+        }
+
+        let mut distance = chunk.bytes.len() as u32;
+        for (i, line) in self.lines.iter_mut().enumerate() {
+            if Entrypoint::Line(i) == self.entrypoint {
+                self.entrypoint = Entrypoint::Index(i as u32 + distance);
+            }
+            for label in line.labels.drain(..) {
+                chunk.labels.insert(label, i as u32 + distance);
+            }
+            if line.value.is_some() {
+                distance += 4;
+            }
+        }
+
+        for line in self.lines.into_iter() {
+            chunk.bytes.push(line.opcode as u8);
+            match line.value {
+                None => {}
+                Some(Parameter::Offset(offset)) => chunk.bytes.extend(offset.to_be_bytes()),
+                Some(Parameter::Label(label)) => {
+                    let offset = *chunk
+                        .labels
+                        .get(&label)
+                        .ok_or_else(|| ChunkError::MissingLabel(label.to_owned()))?;
+                    chunk.bytes.extend(offset.to_be_bytes());
+                }
+                Some(Parameter::Value(value)) => {
+                    let index = match chunk.constants.iter().position(|val| *val == value) {
+                        None => {
+                            let index = chunk.constants.len() as u32;
+                            chunk.constants.push(value);
+                            index
+                        }
+                        Some(index) => index as u32,
+                    };
+                    chunk.bytes.extend(index.to_be_bytes());
+                }
+                Some(Parameter::Reference(label)) => {
+                    let offset = *chunk
+                        .labels
+                        .get(&label)
+                        .ok_or_else(|| ChunkError::MissingLabel(label.to_owned()))?;
+                    let value = Value::from(Procedure::new(offset));
+                    let index = match chunk.constants.iter().position(|val| *val == value) {
+                        None => {
+                            let index = chunk.constants.len() as u32;
+                            chunk.constants.push(value);
+                            index
+                        }
+                        Some(index) => index as u32,
+                    };
+                    chunk.bytes.extend(index.to_be_bytes());
+                }
+            }
+        }
+
+        let entry = match self.entrypoint {
+            Entrypoint::Line(..) => 0,
+            Entrypoint::Label(label) => chunk
+                .labels
+                .get(&label)
+                .copied()
+                .ok_or(ChunkError::MissingLabel(label))?,
+            Entrypoint::Index(index) => index,
+        };
+        Ok(entry)
     }
 }

@@ -6,7 +6,7 @@ pub mod std {
 
     /// Prints a value to stdout. The value will be printed using its string representation.
     #[trilogy_derive::proc(crate_name=crate)]
-    pub fn print(_: Runtime, value: Value) {
+    pub fn print(_: &mut Runtime, value: Value) {
         match value {
             Value::String(s) => println!("{s}"),
             _ => println!("{value}"),
@@ -15,7 +15,7 @@ pub mod std {
 
     /// Prints a value to stderr. The value will be printed using its string representation.
     #[trilogy_derive::proc(crate_name=crate)]
-    pub fn eprint(_: Runtime, value: Value) {
+    pub fn eprint(_: &mut Runtime, value: Value) {
         match value {
             Value::String(s) => eprintln!("{s}"),
             _ => eprintln!("{value}"),
@@ -24,7 +24,7 @@ pub mod std {
 
     /// Reads a full line from stdin, as a string.
     #[trilogy_derive::proc(crate_name=crate)]
-    pub fn readline(runtime: Runtime) -> Value {
+    pub fn readline(runtime: &mut Runtime) -> Value {
         use std::io;
         let mut s = String::new();
         match io::stdin().read_line(&mut s) {

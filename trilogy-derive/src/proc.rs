@@ -51,11 +51,11 @@ pub(crate) fn impl_attr(
         impl #trilogy::NativeFunction for #name {
             fn name() -> &'static str { stringify!(#name) }
 
-            fn call(&self, runtime: #trilogy_vm::runtime::Runtime, input: Vec<Value>) -> Value {
-                let runtime = #trilogy::Runtime::new(runtime);
+            fn call(&self, runtime: #trilogy_vm::Execution, input: Vec<Value>) -> Value {
+                let mut runtime = #trilogy::Runtime::new(runtime);
                 let mut input = input.into_iter();
                 #function
-                #name(runtime, #(#inputs),*).into()
+                #name(&mut runtime, #(#inputs),*).into()
             }
 
             fn arity(&self) -> usize { #arity }
