@@ -33,14 +33,14 @@ As you can see, progress at this time is limited:
     - https://www.sciencedirect.com/science/article/pii/S0890540197926432/pdf?md5=30965cec6dd7605a865bbec4076f65e4&pid=1-s2.0-S0890540197926432-main.pdf
 - [x] Design the language: Check out the [spec](./spec/)!
 - [x] Read the [book](https://craftinginterpreters.com/)
-- [ ] Specify the language (In progress)
+- [x] Specify the language (Living document)
 - [x] Start the project:
     - [x] Scanning
     - [x] Parsing
     - [x] Syntactic analysis
     - [x] Name resolution
-    - [ ] Bytecode generation (In progress)
+    - [x] Bytecode generation
     - [x] Virtual machine
     - [ ] Testing (In progress)
-    - [ ] Standard library
+    - [ ] Standard library (In progress)
     - [ ] Optimization
