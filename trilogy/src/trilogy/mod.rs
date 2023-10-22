@@ -8,11 +8,13 @@ use trilogy_vm::{Atom, Chunk, ChunkError, Program, Value, VirtualMachine};
 
 mod asm_program;
 pub mod builder;
+mod runtime;
 mod runtime_error;
 mod trilogy_program;
 
 use asm_program::AsmProgram;
 use builder::{Builder, Report};
+pub use runtime::Runtime;
 pub use runtime_error::RuntimeError;
 use trilogy_program::TrilogyProgram;
 
@@ -120,7 +122,15 @@ impl Trilogy {
         self.vm.compile(program)
     }
 
+    /// Creates an atom in the context of this Trilogy engine, in the same way that atom
+    /// literals are created within the Trilogy program.
     pub fn atom(&self, atom: &str) -> Atom {
         self.vm.atom(atom)
+    }
+
+    /// Creates a new, anonymous atom. This atom has never been created before, and can
+    /// never be created again, even other atoms with the same tag will not be equivalent.
+    pub fn atom_anon(&self, atom: &str) -> Atom {
+        self.vm.atom_anon(atom)
     }
 }

@@ -4,7 +4,9 @@ use crate::atom::AtomInterner;
 use crate::bytecode::{ChunkError, OpCode};
 use crate::callable::Procedure;
 use crate::runtime::Number;
-use crate::{Atom, Chunk, ChunkBuilder, Instruction, Program, ReferentialEq, Struct, StructuralEq};
+use crate::{
+    Atom, Chunk, ChunkBuilder, Instruction, Program, ReferentialEq, Runtime, Struct, StructuralEq,
+};
 use crate::{Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -71,7 +73,6 @@ impl HeapCell {
 #[derive(Clone, Debug)]
 pub struct VirtualMachine {
     atom_interner: AtomInterner,
-    executions: VecDeque<Execution>,
     registers: Vec<Value>,
     heap: Vec<HeapCell>,
 }
@@ -87,7 +88,6 @@ impl VirtualMachine {
     pub fn new() -> Self {
         Self {
             atom_interner: AtomInterner::default(),
-            executions: VecDeque::with_capacity(8),
             registers: vec![],
             heap: Vec::with_capacity(8),
         }
@@ -103,6 +103,11 @@ impl VirtualMachine {
     /// Create an atom in the context of this VM.
     pub fn atom(&self, atom: &str) -> Atom {
         self.atom_interner.intern(atom)
+    }
+
+    /// Create an anonymous atom, that can never be recreated.
+    pub fn atom_anon(&self, label: &str) -> Atom {
+        Atom::new_unique(label.to_owned())
     }
 
     /// Compiles a program to bytecode, returning the compiled [`Chunk`][].
@@ -140,13 +145,16 @@ impl VirtualMachine {
     pub fn run(&mut self, program: &dyn Program) -> Result<Value, Error> {
         let mut chunk_builder = ChunkBuilder::new(self.atom_interner.clone());
         let mut chunk_cache = HashMap::<Value, Value>::new();
-        program.entrypoint(&mut chunk_builder);
+        let mut executions = VecDeque::with_capacity(1);
+
         let mut ex = Execution::new();
+        program.entrypoint(&mut chunk_builder);
         let (entrypoint, mut chunk) = chunk_builder
             .build()
             .map_err(|err| ex.error(ErrorKind::InvalidBytecode(err)))?;
         ex.ip = entrypoint;
-        self.executions.push_back(ex);
+
+        executions.push_back(ex);
         // In future, multiple executions will likely be run in parallel on different
         // threads. Maybe this should be a compile time option, where the alternatives
         // are depth-first, or breadth-first multitasking.
@@ -157,7 +165,7 @@ impl VirtualMachine {
         // VM remains a (relative) toy.
         let ep = 0;
         let last_ex = loop {
-            let ex = &mut self.executions[ep];
+            let ex = &mut executions[ep];
             let instruction = ex.read_opcode(&chunk)?;
             match instruction {
                 OpCode::Const => {
@@ -757,11 +765,11 @@ impl VirtualMachine {
                 }
                 OpCode::Call => {
                     let arity = ex.read_offset(&chunk)?;
-                    ex.call(arity as usize)?;
+                    ex.call(Runtime::new(self), arity as usize)?;
                 }
                 OpCode::Become => {
                     let arity = ex.read_offset(&chunk)?;
-                    ex.r#become(arity as usize)?;
+                    ex.r#become(Runtime::new(self), arity as usize)?;
                 }
                 OpCode::Return => {
                     let return_value = ex.stack_pop()?;
@@ -806,7 +814,7 @@ impl VirtualMachine {
                     let mut branch = ex.branch();
                     ex.stack_push(left);
                     branch.stack_push(right);
-                    self.executions.push_back(branch);
+                    executions.push_back(branch);
                 }
                 OpCode::Fizzle => {
                     // This just ends the execution.
@@ -815,8 +823,8 @@ impl VirtualMachine {
                     // RAII cause that cleanup to happen automatically?
                     //
                     // I suspect it is automatic.
-                    let ex = self.executions.remove(ep).unwrap();
-                    if self.executions.is_empty() {
+                    let ex = executions.remove(ep).unwrap();
+                    if executions.is_empty() {
                         break ex;
                     }
                 }
@@ -825,7 +833,7 @@ impl VirtualMachine {
                     // interpreter binary can decide how to handle that exit value when
                     // passing off to the OS.
                     let value = ex.stack_pop()?;
-                    self.executions.clear();
+                    executions.clear();
                     return Ok(value);
                 }
                 OpCode::Chunk => {

@@ -9,10 +9,13 @@ pub struct Struct {
 }
 
 impl Struct {
-    pub fn new(name: Atom, value: Value) -> Self {
+    pub fn new<V>(name: Atom, value: V) -> Self
+    where
+        Value: From<V>,
+    {
         Self {
             name,
-            value: Box::new(value),
+            value: Box::new(value.into()),
         }
     }
 

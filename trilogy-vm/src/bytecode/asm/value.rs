@@ -204,10 +204,7 @@ mod test {
         let mut atom_interner = AtomInterner::default();
         let atom = atom_interner.intern("hello");
         let (value, tail) = Value::parse_prefix("'hello(123)", &mut atom_interner).unwrap();
-        assert!(StructuralEq::eq(
-            &value,
-            &Struct::new(atom, 123.into()).into()
-        ));
+        assert!(StructuralEq::eq(&value, &Struct::new(atom, 123).into()));
         assert_eq!(tail, "");
     }
 }

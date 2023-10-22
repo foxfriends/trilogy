@@ -1,0 +1,7 @@
+module std at "trilogy:std"
+
+proc main!() {
+    while true {
+        with print(readline()) when 'EOF cancel break
+    }
+}

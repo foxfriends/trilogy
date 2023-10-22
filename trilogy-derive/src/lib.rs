@@ -19,11 +19,17 @@ mod proc;
 
 mod kw {
     syn::custom_keyword!(crate_name);
+    syn::custom_keyword!(vm_crate_name);
 }
 
 pub(crate) enum Argument {
     CrateName {
         _crate_token: kw::crate_name,
+        _eq_token: Token![=],
+        value: Path,
+    },
+    VmCrateName {
+        _crate_token: kw::vm_crate_name,
         _eq_token: Token![=],
         value: Path,
     },
@@ -33,6 +39,14 @@ impl Argument {
     fn crate_name(&self) -> Option<&Path> {
         match self {
             Self::CrateName { value, .. } => Some(value),
+            _ => None,
+        }
+    }
+
+    fn vm_crate_name(&self) -> Option<&Path> {
+        match self {
+            Self::VmCrateName { value, .. } => Some(value),
+            _ => None,
         }
     }
 }
@@ -43,6 +57,12 @@ impl Parse for Argument {
         if lookahead.peek(kw::crate_name) {
             Ok(Argument::CrateName {
                 _crate_token: input.parse::<kw::crate_name>()?,
+                _eq_token: input.parse()?,
+                value: input.parse()?,
+            })
+        } else if lookahead.peek(kw::vm_crate_name) {
+            Ok(Argument::VmCrateName {
+                _crate_token: input.parse::<kw::vm_crate_name>()?,
                 _eq_token: input.parse()?,
                 value: input.parse()?,
             })

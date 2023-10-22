@@ -12,6 +12,11 @@ pub(crate) fn impl_attr(
         .find_map(|arg| arg.crate_name())
         .map(|id| quote! { #id })
         .unwrap_or_else(|| quote! { trilogy });
+    let trilogy_vm = options
+        .iter()
+        .find_map(|arg| arg.vm_crate_name())
+        .map(|id| quote! { #id })
+        .unwrap_or_else(|| quote! { trilogy_vm });
     let Item::Fn(function) = item else {
         return Err(syn::Error::new_spanned(
             item,
@@ -22,20 +27,23 @@ pub(crate) fn impl_attr(
     let name = &function.sig.ident;
     let vis = &function.vis;
     let attrs = &function.attrs;
-    let arity = function.sig.inputs.len();
+    let arity = function.sig.inputs.len() - 1;
+    let mut errors = vec![];
 
-    let inputs = function.sig.inputs.iter().map(|param| match param {
-        FnArg::Receiver(..) => {
-            quote! {
-                compile_error!("a fn item used with this attribute may not have a receiver");
-            }
-        }
-        FnArg::Typed(..) => {
-            quote! { input.next().unwrap() }
-        }
+    if matches!(function.sig.inputs.first(), Some(FnArg::Receiver(..))) {
+        errors.push(quote! {
+            compile_error!("a fn item used with this attribute may not have a receiver");
+        });
+    }
+
+    let inputs = function.sig.inputs.iter().skip(1).map(|param| match param {
+        FnArg::Receiver(..) => unreachable!(),
+        FnArg::Typed(..) => quote! { input.next().unwrap() },
     });
 
     Ok(quote! {
+        #(#errors)*
+
         #[allow(non_camel_case_types)]
         #(#attrs)*
         #vis struct #name;
@@ -43,10 +51,11 @@ pub(crate) fn impl_attr(
         impl #trilogy::NativeFunction for #name {
             fn name() -> &'static str { stringify!(#name) }
 
-            fn call(&self, input: Vec<Value>) -> Value {
+            fn call(&self, runtime: #trilogy_vm::runtime::Runtime, input: Vec<Value>) -> Value {
+                let runtime = #trilogy::Runtime::new(runtime);
                 let mut input = input.into_iter();
                 #function
-                #name(#(#inputs),*).into()
+                #name(runtime, #(#inputs),*).into()
             }
 
             fn arity(&self) -> usize { #arity }

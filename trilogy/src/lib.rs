@@ -13,4 +13,4 @@ pub(crate) mod trilogy;
 pub use cache::{Cache, FileSystemCache, NoopCache};
 pub use native_module::{NativeModule, NativeModuleBuilder};
 pub use trilogy::builder::{Builder, Error, Report};
-pub use trilogy::{RuntimeError, Trilogy};
+pub use trilogy::{Runtime, RuntimeError, Trilogy};

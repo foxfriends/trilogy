@@ -4,7 +4,7 @@ use super::{Error, Stack};
 use crate::bytecode::chunk::Chunk;
 use crate::callable::{Continuation, Procedure};
 use crate::runtime::callable::{Callable, CallableKind};
-use crate::{Offset, OpCode, Value};
+use crate::{Offset, OpCode, Runtime, Value};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Execution {
@@ -188,7 +188,7 @@ impl Execution {
         self.stack.push_pointer(pointer);
     }
 
-    pub fn call(&mut self, arity: usize) -> Result<(), Error> {
+    pub fn call(&mut self, runtime: Runtime, arity: usize) -> Result<(), Error> {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
@@ -200,6 +200,7 @@ impl Execution {
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
+                    runtime,
                     arguments
                         .into_iter()
                         .map(|val| val.try_into_value())
@@ -213,7 +214,7 @@ impl Execution {
         Ok(())
     }
 
-    pub fn r#become(&mut self, arity: usize) -> Result<(), Error> {
+    pub fn r#become(&mut self, runtime: Runtime, arity: usize) -> Result<(), Error> {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
@@ -225,6 +226,7 @@ impl Execution {
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
+                    runtime,
                     arguments
                         .into_iter()
                         .map(|val| val.try_into_value())
