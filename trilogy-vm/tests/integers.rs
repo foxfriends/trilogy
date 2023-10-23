@@ -10,7 +10,7 @@ fn test_const() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(
         vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
         Value::from(12)
@@ -26,7 +26,7 @@ fn test_add() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(
         vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
         Value::from(26)
@@ -42,7 +42,7 @@ fn test_sub() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(
         vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
         Value::from(-2)
@@ -58,7 +58,7 @@ fn test_div() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(
         vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
         Value::Number(Number::rational(12, 14))
@@ -74,7 +74,7 @@ fn test_mul() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(
         vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
         Value::from(168)
@@ -90,7 +90,7 @@ fn test_intdiv() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(2));
 }
 
@@ -103,7 +103,7 @@ fn test_rem() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(2));
 }
 
@@ -117,7 +117,7 @@ fn test_pow() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
+    let vm = VirtualMachine::new();
     assert_eq!(
         vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
         Value::from(248832)

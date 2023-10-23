@@ -13,8 +13,8 @@ fn test_noop() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
-    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::Unit);
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::Unit);
 }
 
 #[test]
@@ -29,8 +29,8 @@ fn test_basic() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
-    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(4));
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(4));
 }
 
 #[test]
@@ -48,8 +48,8 @@ after:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
-    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(5));
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(5));
 }
 
 #[test]
@@ -69,8 +69,8 @@ fn test_capture() {
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
-    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(4));
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(4));
 }
 
 #[test]
@@ -104,8 +104,8 @@ after:
     # yield
     CALL 3
     "#;
-    let mut vm = VirtualMachine::new();
-    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(3));
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(3));
 }
 
 #[test]
@@ -126,6 +126,6 @@ fn test_same_stack_twice() {
     CONST true
     CALL 2
     "#;
-    let mut vm = VirtualMachine::new();
-    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(1));
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(1));
 }

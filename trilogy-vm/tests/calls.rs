@@ -18,8 +18,8 @@ main:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
-    assert_eq!(vm.run(&mut StaticProgram(PROGRAM)).unwrap(), Value::from(3));
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(3));
 }
 
 #[test]
@@ -50,11 +50,8 @@ main:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
-    assert_eq!(
-        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
-        Value::from(15)
-    );
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(15));
 }
 
 #[test]
@@ -84,9 +81,6 @@ main:
     EXIT
     "#;
 
-    let mut vm = VirtualMachine::new();
-    assert_eq!(
-        vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
-        Value::from(15)
-    );
+    let vm = VirtualMachine::new();
+    assert_eq!(vm.run(&StaticProgram(PROGRAM)).unwrap(), Value::from(15));
 }
