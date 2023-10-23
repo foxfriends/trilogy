@@ -1,21 +1,21 @@
 use super::error::InternalRuntimeError;
-use crate::bytecode::Offset;
+use super::execution::Cont;
 use crate::{cactus::Cactus, Value};
 use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]
-pub(crate) enum InternalValue {
+pub(super) enum InternalValue {
     Unset,
     Value(Value),
     Return {
-        ip: Offset,
+        cont: Cont,
         frame: usize,
         ghost: Option<Stack>,
     },
 }
 
 impl InternalValue {
-    pub(crate) fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
+    pub fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
         match self {
             InternalValue::Value(value) => Ok(value),
             InternalValue::Unset => Err(InternalRuntimeError::ExpectedValue("empty cell")),
@@ -52,10 +52,10 @@ impl Display for InternalValue {
             InternalValue::Unset => write!(f, "<unset>"),
             InternalValue::Value(value) => write!(f, "{value}"),
             InternalValue::Return {
-                ip, ghost: None, ..
-            } => write!(f, "-> {ip}"),
+                cont, ghost: None, ..
+            } => write!(f, "-> {cont:?}"),
             InternalValue::Return {
-                ip,
+                cont,
                 ghost: Some(ghost),
                 ..
             } => {
@@ -65,7 +65,7 @@ impl Display for InternalValue {
                     .collect::<Vec<_>>()
                     .join("\n");
                 writeln!(f, "{}", ghost_str)?;
-                write!(f, "-> {ip}\t[closure]")
+                write!(f, "-> {cont:?}\t[closure]")
             }
         }
     }
@@ -153,18 +153,18 @@ impl Display for StackTrace {
 }
 
 impl Stack {
-    pub(crate) fn branch(&mut self) -> Self {
+    pub(super) fn branch(&mut self) -> Self {
         Self {
             cactus: self.cactus.branch(),
             frame: self.frame,
         }
     }
 
-    pub(crate) fn push_unset(&mut self) {
+    pub(super) fn push_unset(&mut self) {
         self.cactus.push(InternalValue::Unset);
     }
 
-    pub(crate) fn push<V>(&mut self, value: V)
+    pub(super) fn push<V>(&mut self, value: V)
     where
         V: Into<Value>,
     {
@@ -173,18 +173,18 @@ impl Stack {
 
     /// Pushes many values at once, not reversing their order as they would be if they
     /// were each pushed individually.
-    pub(crate) fn push_many(&mut self, values: Vec<InternalValue>) {
+    pub(super) fn push_many(&mut self, values: Vec<InternalValue>) {
         self.cactus.attach(values);
     }
 
-    pub(crate) fn pop(&mut self) -> Result<Option<Value>, InternalRuntimeError> {
+    pub(super) fn pop(&mut self) -> Result<Option<Value>, InternalRuntimeError> {
         self.cactus
             .pop()
             .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))
             .and_then(InternalValue::try_into_value_maybe)
     }
 
-    pub(crate) fn slide(&mut self, count: usize) -> Result<(), InternalRuntimeError> {
+    pub(super) fn slide(&mut self, count: usize) -> Result<(), InternalRuntimeError> {
         let top = self
             .pop()?
             .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))?;
@@ -194,20 +194,20 @@ impl Stack {
         Ok(())
     }
 
-    pub(crate) fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
+    pub(super) fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
         self.cactus
             .at(index)
             .ok_or(InternalRuntimeError::ExpectedValue("out of bounds"))
             .and_then(InternalValue::try_into_value)
     }
 
-    pub(crate) fn at_raw(&self, index: usize) -> Result<InternalValue, InternalRuntimeError> {
+    pub(super) fn at_raw(&self, index: usize) -> Result<InternalValue, InternalRuntimeError> {
         self.cactus
             .at(index)
             .ok_or(InternalRuntimeError::ExpectedValue("out of bounds"))
     }
 
-    pub(crate) fn at_local(&self, index: usize) -> Result<Value, InternalRuntimeError> {
+    pub(super) fn at_local(&self, index: usize) -> Result<Value, InternalRuntimeError> {
         let register = self.count_locals() - index - 1;
         let local_locals = self.len() - self.frame;
         if register >= local_locals {
@@ -225,7 +225,7 @@ impl Stack {
             .and_then(InternalValue::try_into_value)
     }
 
-    pub(crate) fn is_set_local(&self, index: usize) -> Result<bool, InternalRuntimeError> {
+    pub(super) fn is_set_local(&self, index: usize) -> Result<bool, InternalRuntimeError> {
         let register = self.count_locals() - index - 1;
         let local_locals = self.len() - self.frame;
         if register >= local_locals {
@@ -243,28 +243,28 @@ impl Stack {
             .and_then(|val| val.is_set())
     }
 
-    pub(crate) fn pop_frame(&mut self) -> Result<Offset, InternalRuntimeError> {
+    pub(super) fn pop_frame(&mut self) -> Result<Cont, InternalRuntimeError> {
         loop {
             let popped = self
                 .cactus
                 .pop()
                 .ok_or(InternalRuntimeError::ExpectedReturn)?;
-            if let InternalValue::Return { ip, frame, .. } = popped {
+            if let InternalValue::Return { cont, frame, .. } = popped {
                 self.frame = frame;
-                return Ok(ip);
+                return Ok(cont);
             }
         }
     }
 
-    pub(crate) fn push_frame(
+    pub(super) fn push_frame<C: Into<Cont>>(
         &mut self,
-        ip: Offset,
+        c: C,
         arguments: Vec<InternalValue>,
         stack: Option<Stack>,
     ) {
         let frame = self.frame;
         self.cactus.push(InternalValue::Return {
-            ip,
+            cont: c.into(),
             frame,
             ghost: stack,
         });
@@ -272,7 +272,7 @@ impl Stack {
         self.push_many(arguments);
     }
 
-    pub(crate) fn set_local(
+    pub(super) fn set_local(
         &mut self,
         index: usize,
         value: Value,
@@ -304,7 +304,7 @@ impl Stack {
             .and_then(|val| val.try_into_value_maybe())
     }
 
-    pub(crate) fn unset_local(
+    pub(super) fn unset_local(
         &mut self,
         index: usize,
     ) -> Result<Option<Value>, InternalRuntimeError> {
@@ -335,7 +335,7 @@ impl Stack {
             .and_then(|val| val.try_into_value_maybe())
     }
 
-    pub(crate) fn init_local(
+    pub(super) fn init_local(
         &mut self,
         index: usize,
         value: Value,
@@ -373,7 +373,7 @@ impl Stack {
 
     /// Pops `n` values from the stack at once, returning them in an array __not__ in reverse order
     /// the way they would be if they were popped individually one after the other.
-    pub(crate) fn pop_n(
+    pub(super) fn pop_n(
         &mut self,
         arity: usize,
     ) -> Result<Vec<InternalValue>, InternalRuntimeError> {

@@ -1,9 +1,12 @@
 use std::cmp::Ordering;
+use std::fmt::{self, Debug};
+use std::sync::{Arc, Mutex};
 
 use num::ToPrimitive;
 
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::program::ProgramReader;
+use super::stack::InternalValue;
 use super::{Error, Stack};
 use crate::atom::AtomInterner;
 use crate::callable::{Continuation, Procedure};
@@ -19,6 +22,40 @@ pub(super) enum Step<E> {
     Exit(Value),
 }
 
+#[allow(clippy::type_complexity)]
+#[derive(Clone)]
+pub(super) struct Callback(Arc<Mutex<dyn FnMut(Execution, Value) + Sync + Send + 'static>>);
+
+#[derive(Clone)]
+pub(super) enum Cont {
+    Offset(Offset),
+    Callback(Callback),
+}
+
+impl Debug for Cont {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Offset(ip) => write!(f, "{ip}"),
+            Self::Callback(..) => write!(f, "rust"),
+        }
+    }
+}
+
+impl<F> From<F> for Cont
+where
+    F: FnMut(Execution, Value) + Sync + Send + 'static,
+{
+    fn from(value: F) -> Self {
+        Cont::Callback(Callback(Arc::new(Mutex::new(value))))
+    }
+}
+
+impl From<Offset> for Cont {
+    fn from(value: Offset) -> Self {
+        Cont::Offset(value)
+    }
+}
+
 /// Represents a currently active execution of the Trilogy VM on a program.
 ///
 /// Native functions are provided with an execution, allowing them to call back into the
@@ -29,7 +66,7 @@ pub struct Execution<'a> {
     ip: Offset,
     stack: Stack,
     registers: Vec<Value>,
-    stack_stack: Vec<(Offset, Stack)>,
+    stack_stack: Vec<(Cont, Stack)>,
 }
 
 impl<'a> Execution<'a> {
@@ -62,6 +99,48 @@ impl<'a> Execution<'a> {
         Atom::new_unique(label.to_owned())
     }
 
+    /// Call back into the Trilogy runtime from outside by invoking another Trilogy Callable
+    /// value.
+    ///
+    /// Due to Trilogy control flow being more powerful than Rust control flow, instead of this
+    /// call returning any values, it instead calls a provided callback with the return value
+    /// of the call. If the call returns more or less than once, the callback will be called as
+    /// many times.
+    ///
+    /// Be careful to call with the right number of arguments, as this cannot be checked statically.
+    /// If a callable is called with incorrect arity, strange things may occur.
+    pub fn callback<F: FnMut(Execution, Value) + Sync + Send + 'static>(
+        &mut self,
+        callable: Value,
+        arguments: Vec<Value>,
+        callback: F,
+    ) -> Result<(), Error> {
+        match callable {
+            Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
+                let running_stack = continuation.stack();
+                let paused_stack = std::mem::replace(&mut self.stack, running_stack);
+                self.stack_stack.push((Cont::from(callback), paused_stack));
+                self.stack
+                    .push_many(arguments.into_iter().map(InternalValue::Value).collect());
+                self.ip = continuation.ip();
+            }
+            Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
+                self.stack.push_frame(
+                    callback,
+                    arguments.into_iter().map(InternalValue::Value).collect(),
+                    procedure.stack(),
+                );
+                self.ip = procedure.ip();
+            }
+            Value::Callable(Callable(CallableKind::Native(native))) => {
+                let ret_val = native.call(self.branch(), arguments);
+                self.stack.push(ret_val);
+            }
+            _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+        }
+        Ok(())
+    }
+
     fn branch(&mut self) -> Self {
         let branch = self.stack.branch();
         Self {
@@ -91,9 +170,18 @@ impl<'a> Execution<'a> {
         })
     }
 
-    fn r#return(&mut self) -> Result<(), Error> {
-        let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-        self.ip = ip;
+    fn r#return(&mut self, return_value: Value) -> Result<(), Error> {
+        let cont = self.stack.pop_frame().map_err(|k| self.error(k))?;
+        match cont {
+            Cont::Offset(ip) => {
+                self.ip = ip;
+                self.stack.push(return_value);
+            }
+            Cont::Callback(cb) => {
+                let mut callback = cb.0.lock().unwrap();
+                callback(self.branch(), return_value);
+            }
+        }
         Ok(())
     }
 
@@ -104,7 +192,7 @@ impl<'a> Execution<'a> {
             Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
                 let running_stack = continuation.stack();
                 let paused_stack = std::mem::replace(&mut self.stack, running_stack);
-                self.stack_stack.push((self.ip, paused_stack));
+                self.stack_stack.push((Cont::Offset(self.ip), paused_stack));
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
@@ -151,8 +239,7 @@ impl<'a> Execution<'a> {
                         .collect::<Result<Vec<_>, _>>()
                         .map_err(|k| self.error(k))?,
                 );
-                self.r#return()?;
-                self.stack.push(ret_val);
+                self.r#return(ret_val)?;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
@@ -709,8 +796,7 @@ impl<'a> Execution<'a> {
             }
             Instruction::Return => {
                 let return_value = self.stack_pop()?;
-                self.r#return()?;
-                self.stack.push(return_value);
+                self.r#return(return_value)?;
             }
             Instruction::Close(offset) => {
                 let closure = Procedure::new_closure(self.ip, self.stack.branch());
@@ -724,14 +810,22 @@ impl<'a> Execution<'a> {
             }
             Instruction::Reset => {
                 let return_value = self.stack_pop()?;
-                let (ip, running_stack) = self.stack_stack.pop().ok_or_else(|| {
+                let (cont, running_stack) = self.stack_stack.pop().ok_or_else(|| {
                     self.error(ErrorKind::InternalRuntimeError(
                         InternalRuntimeError::ExpectedStack,
                     ))
                 })?;
-                self.ip = ip;
                 self.stack = running_stack;
-                self.stack.push(return_value);
+                match cont {
+                    Cont::Offset(ip) => {
+                        self.ip = ip;
+                        self.stack.push(return_value);
+                    }
+                    Cont::Callback(cb) => {
+                        let mut callback = cb.0.lock().unwrap();
+                        callback(self.branch(), return_value);
+                    }
+                }
             }
             Instruction::Jump(offset) => {
                 self.ip = offset;
