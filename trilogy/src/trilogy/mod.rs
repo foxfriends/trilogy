@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
 use trilogy_ir::ir::Module;
-use trilogy_vm::{Atom, Chunk, ChunkError, Program, Value, VirtualMachine};
+use trilogy_vm::{Atom, Chunk, ChunkError, Value, VirtualMachine};
 
 mod asm_program;
 pub mod builder;
@@ -91,31 +91,21 @@ impl Trilogy {
     }
 
     pub fn compile(&self, debug: bool) -> Result<Chunk, ChunkError> {
-        let trilogy_program;
-        let asm_program;
-        let program: &dyn Program;
         match &self.source {
-            Source::Asm { asm } => {
-                asm_program = AsmProgram {
-                    source: asm,
-                    libraries: &self.libraries,
-                };
-                program = &asm_program;
-            }
+            Source::Asm { asm } => self.vm.compile(&AsmProgram {
+                source: asm,
+                libraries: &self.libraries,
+            }),
             Source::Trilogy {
                 modules,
                 entrypoint,
-            } => {
-                trilogy_program = TrilogyProgram {
-                    libraries: &self.libraries,
-                    modules,
-                    entrypoint,
-                    to_asm: !debug,
-                };
-                program = &trilogy_program;
-            }
+            } => self.vm.compile(&TrilogyProgram {
+                libraries: &self.libraries,
+                modules,
+                entrypoint,
+                to_asm: !debug,
+            }),
         }
-        self.vm.compile(program)
     }
 
     /// Creates an atom in the context of this Trilogy engine, in the same way that atom
