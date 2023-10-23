@@ -8,6 +8,11 @@ pub(crate) use continuation::Continuation;
 pub use native::{Native, NativeFunction};
 pub(crate) use procedure::Procedure;
 
+/// An opaque Trilogy "callable" value.
+///
+/// This may be a procedure, continuation, closurem, or native function. Such a function may
+/// not be called directly from Rust, but can be (or... will someday maybe) processed by a
+/// [`VirtualMachine`][crate::VirtualMachine] or [`Execution`][crate::Execution].
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Callable(pub(crate) CallableKind);
 
