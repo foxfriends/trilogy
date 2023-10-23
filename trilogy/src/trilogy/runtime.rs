@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use trilogy_vm::{Atom, Execution, Native, NativeFunction, Value};
+use trilogy_vm::{Atom, ErrorKind, Execution, Native, NativeFunction, Value};
 
 /// A handle to the Trilogy language runtime, allowing native functions written
 /// in Rust to interact effectively with the running Trilogy program.
@@ -79,7 +79,8 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
                     let args = values.try_into().unwrap();
                     self.0(&mut Runtime::new(ex), args)
                 } else {
-                    Ok(())
+                    // TODO: better error here... arity mismatch?
+                    Err(ex.error(ErrorKind::RuntimeTypeError))
                 }
             }
         }

@@ -156,7 +156,7 @@ impl<'a> Execution<'a> {
         }
     }
 
-    pub(super) fn error<K>(&self, kind: K) -> Error
+    pub fn error<K>(&self, kind: K) -> Error
     where
         ErrorKind: From<K>,
     {
