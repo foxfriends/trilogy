@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use trilogy_vm::{Atom, ErrorKind, Execution, Native, NativeFunction, Value};
 
 /// A handle to the Trilogy language runtime, allowing native functions written
@@ -57,7 +56,7 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
     where
         F: FnMut(&mut Runtime, [Value; N]) -> crate::Result<()> + Sync + Send + 'static,
     {
-        struct Callback<F, const N: usize>(F, PhantomData<[(); N]>);
+        struct Callback<F, const N: usize>(F);
 
         impl<F, const N: usize> NativeFunction for Callback<F, N>
         where
@@ -85,6 +84,6 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
             }
         }
 
-        Value::from(Native::from(Callback(cb, PhantomData)))
+        Value::from(Native::from(Callback(cb)))
     }
 }
