@@ -253,7 +253,7 @@ impl<'a> Execution<'a> {
         self.eval(instruction)
     }
 
-    pub(super) fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
+    fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
         match instruction {
             Instruction::Const(value) => {
                 self.stack.push(value.structural_clone());
