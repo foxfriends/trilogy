@@ -250,6 +250,10 @@ impl<'a> Execution<'a> {
     pub(super) fn step(&mut self) -> Result<Step<Self>, Error> {
         let instruction = self.program.read_instruction(self.ip);
         self.ip += instruction.byte_len() as u32;
+        self.eval(instruction)
+    }
+
+    pub(super) fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
         match instruction {
             Instruction::Const(value) => {
                 self.stack.push(value.structural_clone());
