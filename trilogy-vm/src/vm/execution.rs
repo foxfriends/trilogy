@@ -204,6 +204,7 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
+                self.stack.push_frame(self.ip, vec![], None);
                 native.call(
                     self,
                     arguments
@@ -233,6 +234,8 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
+                let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
+                self.stack.push_frame(ip, vec![], None);
                 native.call(
                     self,
                     arguments
