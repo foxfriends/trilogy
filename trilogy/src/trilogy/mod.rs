@@ -55,7 +55,7 @@ impl Trilogy {
         Builder::std().build_from_asm(file)
     }
 
-    pub fn run(&mut self) -> Result<Value, RuntimeError> {
+    pub fn run(&self) -> Result<Value, RuntimeError> {
         let registers = vec![
             // Global effect handler resume continuation
             Value::Unit,

@@ -24,7 +24,7 @@ pub(super) enum Step<E> {
 /// Native functions are provided with an execution, allowing them to call back into the
 /// Trilogy runtime to emulate features that pure programs would have access to.
 pub struct Execution<'a> {
-    pub(super) atom_interner: AtomInterner,
+    atom_interner: AtomInterner,
     program: ProgramReader<'a>,
     ip: Offset,
     stack: Stack,
@@ -48,12 +48,16 @@ impl<'a> Execution<'a> {
         }
     }
 
-    /// Create an atom in the context of the VM that this Execution belongs to..
+    /// Create an atom in the context of the VM that this Execution belongs to.
+    ///
+    /// See [`Atom`][] for more details.
     pub fn atom(&self, atom: &str) -> Atom {
         self.atom_interner.intern(atom)
     }
 
     /// Create an anonymous atom, that can never be recreated.
+    ///
+    /// See [`Atom`][] for more details.
     pub fn atom_anon(&self, label: &str) -> Atom {
         Atom::new_unique(label.to_owned())
     }

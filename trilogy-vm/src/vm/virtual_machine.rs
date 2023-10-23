@@ -32,17 +32,28 @@ impl VirtualMachine {
     }
 
     /// Create an atom in the context of this VM.
+    ///
+    /// See [`Atom`][] for more details.
     pub fn atom(&self, atom: &str) -> Atom {
         self.atom_interner.intern(atom)
     }
 
     /// Create an anonymous atom, that can never be recreated.
+    ///
+    /// See [`Atom`][] for more details.
     pub fn atom_anon(&self, label: &str) -> Atom {
         Atom::new_unique(label.to_owned())
     }
 
     /// Compiles a program to bytecode, returning the compiled [`Chunk`][].
-    pub fn compile(&self, program: &dyn Program) -> Result<Chunk, ChunkError> {
+    ///
+    /// As each chunk is loaded, its bytecode will be scanned for any further
+    /// chunk references which will be loaded immediately. Those loaded pieces will
+    /// be concatenated into the resulting single chunk.
+    ///
+    /// This chunk can be printed to a file and later run on another VM, given
+    /// you can write a suitable [`Program`][] implementation to load it back in.
+    pub fn compile<P: Program>(&self, program: &P) -> Result<Chunk, ChunkError> {
         let mut chunks_compiled = HashSet::new();
         let mut dependencies = vec![];
 
@@ -69,20 +80,19 @@ impl VirtualMachine {
         }
     }
 
-    /// Run a [`Program`][] on this VM.
+    /// Run a [`Program`][] on this VM, returning the [Value][] it exits with.
     ///
-    /// This mutates the VM's internal state (heap and registers), so if reusing `VirtualMachine`
-    /// instances, be sure this is the expected behaviour.
-    pub fn run<P: Program>(&mut self, program: &P) -> Result<Value, Error> {
+    /// When run in this way, the program will be run with 0 registers. If your program
+    /// uses registers, use [`run_with_registers`][VirtualMachine::run_with_registers]
+    /// instead to provide the initial values of those registers.
+    pub fn run<P: Program>(&self, program: &P) -> Result<Value, Error> {
         self.run_with_registers(program, vec![])
     }
 
-    /// Run a [`Program`][] on this VM.
-    ///
-    /// This mutates the VM's internal state (heap and registers), so if reusing `VirtualMachine`
-    /// instances, be sure this is the expected behaviour.
+    /// Run a [`Program`][] on this VM using the provided initial register state. Returns
+    /// the [Value][] the program exits with.
     pub fn run_with_registers<P: Program>(
-        &mut self,
+        &self,
         program: &P,
         registers: Vec<Value>,
     ) -> Result<Value, Error> {

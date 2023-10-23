@@ -112,7 +112,7 @@ fn handle(result: Result<Value, RuntimeError>, print: bool) {
     }
 }
 
-fn run(mut trilogy: Trilogy, print: bool) {
+fn run(trilogy: Trilogy, print: bool) {
     handle(trilogy.run(), print)
 }
 
