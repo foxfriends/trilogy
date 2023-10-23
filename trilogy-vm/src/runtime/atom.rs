@@ -6,6 +6,39 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 
 /// A Trilogy Atom value.
+///
+/// Atoms are similar to what might also be called a symbol in other languages.
+/// In particular Atoms are comparable in constant time, unlike using a string
+/// of the same contents.
+///
+/// Two atoms created from the same literal (on the same VM) will be equal.
+///
+/// ```
+/// # use trilogy_vm::VirtualMachine;
+/// # let vm = VirtualMachine::default();
+/// // Atoms created with the `vm.atom()` function are the same as atom literals created
+/// // in source code.
+/// let hello = vm.atom("hello");
+/// let hello_again = vm.atom("hello");
+/// let world = vm.atom("world");
+/// assert_eq!(hello, hello_again);
+/// assert_ne!(hello, world);
+/// ```
+///
+/// It is possible for atoms to be created anonymously as well. Such atoms still
+/// have a string representation, but they will *not* be equal to another atom
+/// created separately, even if that string representation is the same. Such
+/// unique atoms cannot be created from literals.
+///
+/// ```
+/// # use trilogy_vm::VirtualMachine;
+/// # let vm = VirtualMachine::default();
+/// let hello = vm.atom("hello");
+/// let hello_2 = vm.atom_anon("hello");
+/// let hello_3 = vm.atom_anon("hello");
+/// assert_ne!(hello, hello_2);
+/// assert_ne!(hello_2, hello_3);
+/// ```
 #[derive(Clone)]
 pub struct Atom(Arc<String>);
 

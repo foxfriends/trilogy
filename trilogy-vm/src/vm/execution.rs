@@ -21,7 +21,8 @@ pub(super) enum Step<E> {
 
 /// Represents a currently active execution of the Trilogy VM on a program.
 ///
-/// This is received from within
+/// Native functions are provided with an execution, allowing them to call back into the
+/// Trilogy runtime to emulate features that pure programs would have access to.
 pub struct Execution<'a> {
     pub(super) atom_interner: AtomInterner,
     program: ProgramReader<'a>,
@@ -86,6 +87,12 @@ impl<'a> Execution<'a> {
         })
     }
 
+    fn r#return(&mut self) -> Result<(), Error> {
+        let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
+        self.ip = ip;
+        Ok(())
+    }
+
     fn call(&mut self, arity: usize) -> Result<(), Error> {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
@@ -145,12 +152,6 @@ impl<'a> Execution<'a> {
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
-        Ok(())
-    }
-
-    fn r#return(&mut self) -> Result<(), Error> {
-        let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-        self.ip = ip;
         Ok(())
     }
 
