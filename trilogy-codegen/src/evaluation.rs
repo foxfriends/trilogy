@@ -203,6 +203,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         let loop_exit = context.labeler.unique_hint("record_collect_end");
                         let next = context.atom("next");
                         let done = context.atom("done");
+                        let struct_atom = context.atom("struct");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
@@ -213,7 +214,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .cond_jump(&loop_exit)
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::TypeOf)
-                            .instruction(Instruction::Const("struct".into()))
+                            .instruction(Instruction::Const(struct_atom.into()))
                             .instruction(Instruction::ValEq)
                             .cond_jump(END)
                             .instruction(Instruction::Destruct)
@@ -256,6 +257,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         let loop_exit = context.labeler.unique_hint("set_collect_end");
                         let next = context.atom("next");
                         let done = context.atom("done");
+                        let struct_atom = context.atom("struct");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
@@ -266,7 +268,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .cond_jump(&loop_exit)
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::TypeOf)
-                            .instruction(Instruction::Const("struct".into()))
+                            .instruction(Instruction::Const(struct_atom.into()))
                             .instruction(Instruction::ValEq)
                             .cond_jump(END)
                             .instruction(Instruction::Destruct)
@@ -308,6 +310,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         let loop_exit = context.labeler.unique_hint("array_collect_end");
                         let next = context.atom("next");
                         let done = context.atom("done");
+                        let struct_atom = context.atom("struct");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
@@ -318,7 +321,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .cond_jump(&loop_exit)
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::TypeOf)
-                            .instruction(Instruction::Const("struct".into()))
+                            .instruction(Instruction::Const(struct_atom.into()))
                             .instruction(Instruction::ValEq)
                             .cond_jump(END)
                             .instruction(Instruction::Destruct)
@@ -347,6 +350,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let loop_exit = context.labeler.unique_hint("for_end");
                 let next = context.atom("next");
                 let done = context.atom("done");
+                let struct_atom = context.atom("struct");
                 context
                     .label(loop_begin.clone())
                     .instruction(Instruction::Copy)
@@ -357,7 +361,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     .cond_jump(&loop_exit)
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
-                    .instruction(Instruction::Const("struct".into()))
+                    .instruction(Instruction::Const(struct_atom.into()))
                     .instruction(Instruction::ValEq)
                     .cond_jump(END)
                     .instruction(Instruction::Destruct)

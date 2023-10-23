@@ -145,31 +145,37 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Call(1))
         .instruction(Instruction::Return);
 
+    let callable = builder.atom("callable");
+    let array = builder.atom("array");
+    let set = builder.atom("set");
+    let record = builder.atom("record");
+    let tuple = builder.atom("tuple");
+
     builder
         .label(ITERATE_COLLECTION.to_owned())
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const("callable".into()))
+        .instruction(Instruction::Const(callable.into()))
         .instruction(Instruction::ValNeq)
         .cond_jump(RETURN) // already an iterator (probably)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const("array".into()))
+        .instruction(Instruction::Const(array.into()))
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_ARRAY)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const("set".into()))
+        .instruction(Instruction::Const(set.into()))
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_SET)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const("record".into()))
+        .instruction(Instruction::Const(record.into()))
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_RECORD)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const("tuple".into()))
+        .instruction(Instruction::Const(tuple.into()))
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_LIST)
         .instruction(Instruction::Copy)

@@ -111,10 +111,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             (None, ir::Value::Builtin(Builtin::Negate), value) => {
                 let end = context.labeler.unique_hint("negate_end");
                 let cleanup = context.labeler.unique_hint("negate_cleanup");
+                let atom = context.atom("number");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
-                    .instruction(Instruction::Const("number".into()))
+                    .instruction(Instruction::Const(atom.into()))
                     .instruction(Instruction::ValEq)
                     .cond_jump(&cleanup)
                     .instruction(Instruction::Negate);
@@ -134,10 +135,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let end = context.labeler.unique_hint("glue_end");
                 let cleanup = context.labeler.unique_hint("glue_cleanup");
                 let double_cleanup = context.labeler.unique_hint("glue_cleanup2");
+                let atom = context.atom("string");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
-                    .instruction(Instruction::Const("string".into()))
+                    .instruction(Instruction::Const(atom.into()))
                     .instruction(Instruction::ValEq)
                     .cond_jump(&cleanup);
                 let original = context.scope.intermediate();
@@ -170,10 +172,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let end = context.labeler.unique_hint("glue_end");
                 let cleanup = context.labeler.unique_hint("glue_cleanup");
                 let double_cleanup = context.labeler.unique_hint("glue_cleanup2");
+                let atom = context.atom("string");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
-                    .instruction(Instruction::Const("string".into()))
+                    .instruction(Instruction::Const(atom.into()))
                     .instruction(Instruction::ValEq)
                     .cond_jump(&cleanup);
                 let original = context.scope.intermediate();
@@ -212,10 +215,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             }
             (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
                 let cleanup = context.labeler.unique_hint("cleanup");
+                let atom = context.atom("struct");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
-                    .instruction(Instruction::Const("struct".into()))
+                    .instruction(Instruction::Const(atom.into()))
                     .instruction(Instruction::ValEq)
                     .cond_jump(&cleanup)
                     .instruction(Instruction::Destruct);
@@ -233,10 +237,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
             }
             (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
                 let cleanup = context.labeler.unique_hint("cleanup");
+                let atom = context.atom("tuple");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
-                    .instruction(Instruction::Const("tuple".into()))
+                    .instruction(Instruction::Const(atom.into()))
                     .instruction(Instruction::ValEq)
                     .cond_jump(&cleanup)
                     .instruction(Instruction::Uncons)

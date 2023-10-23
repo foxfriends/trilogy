@@ -309,6 +309,7 @@ fn write_query_value(
             // Reset to the previous binding state
             context.instruction(Instruction::LoadLocal(bindset));
             unbind(context, bound, unification.pattern.bindings());
+            let atom = context.atom("struct");
             context
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::Call(0))
@@ -324,7 +325,7 @@ fn write_query_value(
                 // TODO: Maybe come back to that later, when a panic instruction is added?
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::TypeOf)
-                .instruction(Instruction::Const("struct".into()))
+                .instruction(Instruction::Const(atom.into()))
                 .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup) // Not a struct, so it is 'done
                 .instruction(Instruction::Destruct)

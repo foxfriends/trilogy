@@ -329,19 +329,19 @@ impl<'a> Execution<'a> {
             Instruction::TypeOf => {
                 let value = self.stack_pop()?;
                 match value {
-                    Value::Unit => self.stack.push("unit"),
-                    Value::Number(..) => self.stack.push("number"),
-                    Value::Bits(..) => self.stack.push("bits"),
-                    Value::Bool(..) => self.stack.push("boolean"),
-                    Value::String(..) => self.stack.push("string"),
-                    Value::Char(..) => self.stack.push("character"),
-                    Value::Tuple(..) => self.stack.push("tuple"),
-                    Value::Array(..) => self.stack.push("array"),
-                    Value::Set(..) => self.stack.push("set"),
-                    Value::Record(..) => self.stack.push("record"),
-                    Value::Atom(..) => self.stack.push("atom"),
-                    Value::Struct(..) => self.stack.push("struct"),
-                    Value::Callable(..) => self.stack.push("callable"),
+                    Value::Unit => self.stack.push(self.atom("unit")),
+                    Value::Number(..) => self.stack.push(self.atom("number")),
+                    Value::Bits(..) => self.stack.push(self.atom("bits")),
+                    Value::Bool(..) => self.stack.push(self.atom("boolean")),
+                    Value::String(..) => self.stack.push(self.atom("string")),
+                    Value::Char(..) => self.stack.push(self.atom("character")),
+                    Value::Tuple(..) => self.stack.push(self.atom("tuple")),
+                    Value::Array(..) => self.stack.push(self.atom("array")),
+                    Value::Set(..) => self.stack.push(self.atom("set")),
+                    Value::Record(..) => self.stack.push(self.atom("record")),
+                    Value::Atom(..) => self.stack.push(self.atom("atom")),
+                    Value::Struct(..) => self.stack.push(self.atom("struct")),
+                    Value::Callable(..) => self.stack.push(self.atom("callable")),
                 }
             }
             Instruction::Add => {

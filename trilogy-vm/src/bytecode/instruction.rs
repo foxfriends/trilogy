@@ -35,21 +35,21 @@ pub enum Instruction {
     Swap,
     /// Slide the value on the top of the stack a number of places backwards.
     Slide(Offset),
-    /// Replace the value on the top of the stack with a string value representing
-    /// the value's type. The new string will be one of:
-    /// * `"unit"`
-    /// * `"number"`
-    /// * `"bits"`
-    /// * `"boolean"`
-    /// * `"string"`
-    /// * `"character"`
-    /// * `"tuple"`
-    /// * `"array"`
-    /// * `"set"`
-    /// * `"record"`
-    /// * `"atom"`
-    /// * `"struct"`
-    /// * `"callable"`
+    /// Replace the value on the top of the stack with an atom value representing
+    /// the value's type. The atom will be one of:
+    /// * `'unit`
+    /// * `'number`
+    /// * `'bits`
+    /// * `'boolean`
+    /// * `'string`
+    /// * `'character`
+    /// * `'tuple`
+    /// * `'array`
+    /// * `'set`
+    /// * `'record`
+    /// * `'atom`
+    /// * `'struct`
+    /// * `'callable`
     TypeOf,
 
     // Heap (why?)
