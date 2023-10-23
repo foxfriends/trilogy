@@ -14,3 +14,5 @@ pub use cache::{Cache, FileSystemCache, NoopCache};
 pub use native_module::{NativeModule, NativeModuleBuilder};
 pub use trilogy::builder::{Builder, Error, Report};
 pub use trilogy::{Runtime, RuntimeError, Trilogy};
+
+pub type Result<T> = std::result::Result<T, trilogy_vm::Error>;

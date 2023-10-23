@@ -24,7 +24,9 @@ pub(super) enum Step<E> {
 
 #[allow(clippy::type_complexity)]
 #[derive(Clone)]
-pub(super) struct Callback(Arc<Mutex<dyn FnMut(&mut Execution, Value) + Sync + Send + 'static>>);
+pub(super) struct Callback(
+    Arc<Mutex<dyn FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static>>,
+);
 
 #[derive(Clone)]
 pub(super) enum Cont {
@@ -43,7 +45,7 @@ impl Debug for Cont {
 
 impl<F> From<F> for Cont
 where
-    F: FnMut(&mut Execution, Value) + Sync + Send + 'static,
+    F: FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static,
 {
     fn from(value: F) -> Self {
         Cont::Callback(Callback(Arc::new(Mutex::new(value))))
@@ -109,7 +111,9 @@ impl<'a> Execution<'a> {
     ///
     /// Be careful to call with the right number of arguments, as this cannot be checked statically.
     /// If a callable is called with incorrect arity, strange things may occur.
-    pub fn callback<F: FnMut(&mut Execution, Value) + Sync + Send + 'static>(
+    pub fn callback<
+        F: FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static,
+    >(
         &mut self,
         callable: Value,
         arguments: Vec<Value>,
@@ -133,8 +137,7 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
-                let ret_val = native.call(self, arguments);
-                self.stack.push(ret_val);
+                native.call(self, arguments)?;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
@@ -176,13 +179,13 @@ impl<'a> Execution<'a> {
             Cont::Offset(ip) => {
                 self.ip = ip;
                 self.stack.push(return_value);
+                Ok(())
             }
             Cont::Callback(cb) => {
                 let mut callback = cb.0.lock().unwrap();
-                callback(self, return_value);
+                callback(self, return_value)
             }
         }
-        Ok(())
     }
 
     fn call(&mut self, arity: usize) -> Result<(), Error> {
@@ -201,15 +204,14 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
-                let ret_val = native.call(
+                native.call(
                     self,
                     arguments
                         .into_iter()
                         .map(|val| val.try_into_value())
                         .collect::<Result<Vec<_>, _>>()
                         .map_err(|k| self.error(k))?,
-                );
-                self.stack.push(ret_val);
+                )?;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
@@ -231,15 +233,14 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
-                let ret_val = native.call(
+                native.call(
                     self,
                     arguments
                         .into_iter()
                         .map(|val| val.try_into_value())
                         .collect::<Result<Vec<_>, _>>()
                         .map_err(|k| self.error(k))?,
-                );
-                self.r#return(ret_val)?;
+                )?;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
@@ -823,7 +824,7 @@ impl<'a> Execution<'a> {
                     }
                     Cont::Callback(cb) => {
                         let mut callback = cb.0.lock().unwrap();
-                        callback(self, return_value);
+                        callback(self, return_value)?;
                     }
                 }
             }

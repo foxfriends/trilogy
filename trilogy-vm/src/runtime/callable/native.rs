@@ -1,7 +1,7 @@
-use crate::{Execution, ReferentialEq, StructuralEq, Value};
+use crate::{Error, Execution, ReferentialEq, StructuralEq, Value};
 use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// Trait allowing Rust functions to be called by Trilogy programs.
 ///
@@ -14,7 +14,7 @@ pub trait NativeFunction: Send + Sync {
         Self: Sized;
 
     #[doc(hidden)]
-    fn call(&self, ex: &mut Execution, input: Vec<Value>) -> Value;
+    fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), Error>;
 
     #[doc(hidden)]
     fn arity(&self) -> usize;
@@ -24,7 +24,7 @@ pub trait NativeFunction: Send + Sync {
 ///
 /// From within the program this is seen as an opaque "callable" value.
 #[derive(Clone)]
-pub struct Native(Arc<dyn NativeFunction + 'static>);
+pub struct Native(Arc<Mutex<dyn NativeFunction + 'static>>);
 
 impl Debug for Native {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -59,14 +59,15 @@ impl StructuralEq for Native {
 }
 
 impl Native {
-    pub(crate) fn call(&self, ex: &mut Execution, args: Vec<Value>) -> Value {
-        assert_eq!(args.len(), self.0.arity());
-        self.0.call(ex, args)
+    pub(crate) fn call(&self, ex: &mut Execution, args: Vec<Value>) -> Result<(), Error> {
+        let mut native = self.0.lock().unwrap();
+        assert_eq!(args.len(), native.arity());
+        native.call(ex, args)
     }
 }
 
 impl<T: NativeFunction + 'static> From<T> for Native {
     fn from(value: T) -> Self {
-        Self(Arc::new(value))
+        Self(Arc::new(Mutex::new(value)))
     }
 }
