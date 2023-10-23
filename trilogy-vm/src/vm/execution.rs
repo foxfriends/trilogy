@@ -4,7 +4,6 @@ use num::ToPrimitive;
 
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::program::ProgramReader;
-use super::stack::InternalValue;
 use super::{Error, Stack};
 use crate::atom::AtomInterner;
 use crate::callable::{Continuation, Procedure};
@@ -70,60 +69,6 @@ impl<'a> Execution<'a> {
         }
     }
 
-    fn current_continuation(&mut self) -> Continuation {
-        Continuation::new(self.ip, self.stack.branch())
-    }
-
-    fn current_closure(&mut self) -> Procedure {
-        Procedure::new_closure(self.ip, self.stack.branch())
-    }
-
-    fn call_continuation(
-        &mut self,
-        continuation: Continuation,
-        args: Vec<InternalValue>,
-    ) -> Result<(), Error> {
-        let running_stack = continuation.stack();
-        let paused_stack = std::mem::replace(&mut self.stack, running_stack);
-        self.stack_stack.push((self.ip, paused_stack));
-        self.stack.push_many(args);
-        self.ip = continuation.ip();
-        Ok(())
-    }
-
-    fn become_continuation(&mut self, continuation: Continuation, args: Vec<InternalValue>) {
-        self.stack = continuation.stack();
-        self.stack.push_many(args);
-        self.ip = continuation.ip();
-    }
-
-    fn reset_continuation(&mut self) -> Result<(), Error> {
-        let (ip, running_stack) = self.stack_stack.pop().ok_or_else(|| {
-            self.error(ErrorKind::InternalRuntimeError(
-                InternalRuntimeError::ExpectedStack,
-            ))
-        })?;
-        self.ip = ip;
-        self.stack = running_stack;
-        Ok(())
-    }
-
-    fn call_procedure(&mut self, procedure: Procedure, args: Vec<InternalValue>) {
-        self.stack.push_frame(self.ip, args, procedure.stack());
-        self.ip = procedure.ip();
-    }
-
-    fn become_procedure(
-        &mut self,
-        procedure: Procedure,
-        args: Vec<InternalValue>,
-    ) -> Result<(), Error> {
-        let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-        self.stack.push_frame(ip, args, procedure.stack());
-        self.ip = procedure.ip();
-        Ok(())
-    }
-
     pub(super) fn error<K>(&self, kind: K) -> Error
     where
         ErrorKind: From<K>,
@@ -146,10 +91,15 @@ impl<'a> Execution<'a> {
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
             Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
-                self.call_continuation(continuation, arguments)?;
+                let running_stack = continuation.stack();
+                let paused_stack = std::mem::replace(&mut self.stack, running_stack);
+                self.stack_stack.push((self.ip, paused_stack));
+                self.stack.push_many(arguments);
+                self.ip = continuation.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
-                self.call_procedure(procedure, arguments);
+                self.stack.push_frame(self.ip, arguments, procedure.stack());
+                self.ip = procedure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
@@ -172,10 +122,14 @@ impl<'a> Execution<'a> {
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
             Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
-                self.become_continuation(continuation, arguments);
+                self.stack = continuation.stack();
+                self.stack.push_many(arguments);
+                self.ip = continuation.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
-                self.become_procedure(procedure, arguments)?;
+                let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
+                self.stack.push_frame(ip, arguments, procedure.stack());
+                self.ip = procedure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
@@ -754,18 +708,24 @@ impl<'a> Execution<'a> {
                 self.stack.push(return_value);
             }
             Instruction::Close(offset) => {
-                let closure = self.current_closure();
+                let closure = Procedure::new_closure(self.ip, self.stack.branch());
                 self.stack.push(Value::from(closure));
                 self.ip = offset;
             }
             Instruction::Shift(offset) => {
-                let continuation = self.current_continuation();
+                let continuation = Continuation::new(self.ip, self.stack.branch());
                 self.stack.push(Value::from(continuation));
                 self.ip = offset;
             }
             Instruction::Reset => {
                 let return_value = self.stack_pop()?;
-                self.reset_continuation()?;
+                let (ip, running_stack) = self.stack_stack.pop().ok_or_else(|| {
+                    self.error(ErrorKind::InternalRuntimeError(
+                        InternalRuntimeError::ExpectedStack,
+                    ))
+                })?;
+                self.ip = ip;
+                self.stack = running_stack;
                 self.stack.push(return_value);
             }
             Instruction::Jump(offset) => {
