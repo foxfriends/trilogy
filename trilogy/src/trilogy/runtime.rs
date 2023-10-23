@@ -1,15 +1,15 @@
 use trilogy_vm::{Atom, Value};
 
-pub struct Runtime<'a>(trilogy_vm::Execution<'a>);
+pub struct Runtime<'prog, 'ex>(&'ex mut trilogy_vm::Execution<'prog>);
 
-impl<'a> Runtime<'a> {
+impl<'prog, 'ex> Runtime<'prog, 'ex> {
     #[doc(hidden)]
-    pub fn new(inner: trilogy_vm::Execution<'a>) -> Self {
+    pub fn new(inner: &'ex mut trilogy_vm::Execution<'prog>) -> Self {
         Self(inner)
     }
 }
 
-impl Runtime<'_> {
+impl<'prog, 'ex> Runtime<'prog, 'ex> {
     pub fn atom(&self, tag: &str) -> Atom {
         self.0.atom(tag)
     }

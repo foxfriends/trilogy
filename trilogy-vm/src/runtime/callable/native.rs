@@ -14,7 +14,7 @@ pub trait NativeFunction: Send + Sync {
         Self: Sized;
 
     #[doc(hidden)]
-    fn call(&self, ex: Execution, input: Vec<Value>) -> Value;
+    fn call(&self, ex: &mut Execution, input: Vec<Value>) -> Value;
 
     #[doc(hidden)]
     fn arity(&self) -> usize;
@@ -59,7 +59,7 @@ impl StructuralEq for Native {
 }
 
 impl Native {
-    pub(crate) fn call(&self, ex: Execution, args: Vec<Value>) -> Value {
+    pub(crate) fn call(&self, ex: &mut Execution, args: Vec<Value>) -> Value {
         assert_eq!(args.len(), self.0.arity());
         self.0.call(ex, args)
     }

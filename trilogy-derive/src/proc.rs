@@ -51,7 +51,7 @@ pub(crate) fn impl_attr(
         impl #trilogy::NativeFunction for #name {
             fn name() -> &'static str { stringify!(#name) }
 
-            fn call(&self, runtime: #trilogy_vm::Execution, input: Vec<Value>) -> Value {
+            fn call(&self, runtime: &mut #trilogy_vm::Execution, input: Vec<Value>) -> Value {
                 let mut runtime = #trilogy::Runtime::new(runtime);
                 let mut input = input.into_iter();
                 #function

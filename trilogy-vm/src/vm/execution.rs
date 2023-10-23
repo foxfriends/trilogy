@@ -24,7 +24,7 @@ pub(super) enum Step<E> {
 
 #[allow(clippy::type_complexity)]
 #[derive(Clone)]
-pub(super) struct Callback(Arc<Mutex<dyn FnMut(Execution, Value) + Sync + Send + 'static>>);
+pub(super) struct Callback(Arc<Mutex<dyn FnMut(&mut Execution, Value) + Sync + Send + 'static>>);
 
 #[derive(Clone)]
 pub(super) enum Cont {
@@ -43,7 +43,7 @@ impl Debug for Cont {
 
 impl<F> From<F> for Cont
 where
-    F: FnMut(Execution, Value) + Sync + Send + 'static,
+    F: FnMut(&mut Execution, Value) + Sync + Send + 'static,
 {
     fn from(value: F) -> Self {
         Cont::Callback(Callback(Arc::new(Mutex::new(value))))
@@ -109,7 +109,7 @@ impl<'a> Execution<'a> {
     ///
     /// Be careful to call with the right number of arguments, as this cannot be checked statically.
     /// If a callable is called with incorrect arity, strange things may occur.
-    pub fn callback<F: FnMut(Execution, Value) + Sync + Send + 'static>(
+    pub fn callback<F: FnMut(&mut Execution, Value) + Sync + Send + 'static>(
         &mut self,
         callable: Value,
         arguments: Vec<Value>,
@@ -133,7 +133,7 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
-                let ret_val = native.call(self.branch(), arguments);
+                let ret_val = native.call(self, arguments);
                 self.stack.push(ret_val);
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
@@ -179,7 +179,7 @@ impl<'a> Execution<'a> {
             }
             Cont::Callback(cb) => {
                 let mut callback = cb.0.lock().unwrap();
-                callback(self.branch(), return_value);
+                callback(self, return_value);
             }
         }
         Ok(())
@@ -202,7 +202,7 @@ impl<'a> Execution<'a> {
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
-                    self.branch(),
+                    self,
                     arguments
                         .into_iter()
                         .map(|val| val.try_into_value())
@@ -232,7 +232,7 @@ impl<'a> Execution<'a> {
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ret_val = native.call(
-                    self.branch(),
+                    self,
                     arguments
                         .into_iter()
                         .map(|val| val.try_into_value())
@@ -823,7 +823,7 @@ impl<'a> Execution<'a> {
                     }
                     Cont::Callback(cb) => {
                         let mut callback = cb.0.lock().unwrap();
-                        callback(self.branch(), return_value);
+                        callback(self, return_value);
                     }
                 }
             }
