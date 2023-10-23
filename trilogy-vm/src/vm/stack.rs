@@ -164,8 +164,11 @@ impl Stack {
         self.cactus.push(InternalValue::Unset);
     }
 
-    pub(crate) fn push(&mut self, value: Value) {
-        self.cactus.push(InternalValue::Value(value));
+    pub(crate) fn push<V>(&mut self, value: V)
+    where
+        V: Into<Value>,
+    {
+        self.cactus.push(InternalValue::Value(value.into()));
     }
 
     /// Pushes many values at once, not reversing their order as they would be if they
@@ -179,6 +182,16 @@ impl Stack {
             .pop()
             .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))
             .and_then(InternalValue::try_into_value_maybe)
+    }
+
+    pub(crate) fn slide(&mut self, count: usize) -> Result<(), InternalRuntimeError> {
+        let top = self
+            .pop()?
+            .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))?;
+        let slide = self.pop_n(count)?;
+        self.push(top);
+        self.push_many(slide);
+        Ok(())
     }
 
     pub(crate) fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
