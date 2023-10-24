@@ -150,6 +150,7 @@ impl<'a> Execution<'a> {
                 self.ip = closure.ip();
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
+                self.stack.push_frame(callback, vec![], None);
                 native.call(self, arguments)?;
             }
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
@@ -195,6 +196,14 @@ impl<'a> Execution<'a> {
         })
     }
 
+    /// Return a value from the current procedure.
+    ///
+    /// The returned value will become the result of the `CALL` instruction for
+    /// this call.
+    ///
+    /// When used in a native function, return must only be called once. It is impossible
+    /// to return more than once from a native function, despite return being provided as
+    /// a function instead of using the functions actual return value.
     pub fn r#return(&mut self, return_value: Value) -> Result<(), Error> {
         let cont = self.stack.pop_frame().map_err(|k| self.error(k))?;
         match cont {
