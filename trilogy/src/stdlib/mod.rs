@@ -1,5 +1,3 @@
-#![allow(clippy::never_loop)]
-
 #[trilogy_derive::module(crate_name=crate)]
 pub mod std {
     use crate::{Result, Runtime, Struct, Value};
