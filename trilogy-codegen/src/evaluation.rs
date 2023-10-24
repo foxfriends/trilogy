@@ -520,16 +520,26 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let when = context.labeler.unique_hint("when");
             let end = context.labeler.unique_hint("with_end");
             let body = context.labeler.unique_hint("with_body");
+
+            // Register 0 holds the current effect handler, which corresponds to the `yield` keyword.
+            // To register a new one we must first store the parent handler.
             context.instruction(Instruction::LoadRegister(0));
             let stored_yield = context.scope.intermediate();
 
+            // Second on the stack is the cancel continuation.
             context.shift(&when).jump(&end);
             context.scope.push_cancel();
 
+            // The new yield is created next, but it's not kept on stack.
             context.label(when).shift(&body);
+
+            // That new yield will be called with the effect and the resume continuation.
             let effect = context.scope.intermediate();
             context.scope.push_resume();
 
+            // Immediately restore the context of the parent `yield`, as a handler may use it.
+            // The `yield` used to arrive here isn't needed though, as the `yield` expression
+            // itself takes care of saving that to restore it when resumed.
             context
                 .instruction(Instruction::LoadLocal(stored_yield))
                 .instruction(Instruction::SetRegister(0));
@@ -548,17 +558,27 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             context.instruction(Instruction::Fizzle);
             context.scope.pop_resume();
-            context.scope.end_intermediate();
+            context.scope.end_intermediate(); // effect
 
+            // The body of the `when` statement involves saving the `yield` that was just created,
+            // running the expression, and then cleaning up.
             context.label(body).instruction(Instruction::SetRegister(0));
             write_expression(context, &handled.expression);
             context
+                // When the expression finishes evaluation, we reset from any shifted continuations.
+                // If there were none, then `reset` should be noop, in which case we have to remove
+                // the cancel from the stack.
                 .instruction(Instruction::Reset)
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Pop);
+            context.scope.pop_cancel();
+            context
                 .label(end)
+                // Once we're out of the handler (due to runoff or cancel), reset the state of the
+                // `yield` register and finally done!
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::SetRegister(0));
-            context.scope.pop_cancel();
-            context.scope.end_intermediate();
+            context.scope.end_intermediate(); // stored yield
         }
         ir::Value::Reference(ident) => {
             let binding = context

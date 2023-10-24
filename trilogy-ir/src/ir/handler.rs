@@ -36,8 +36,11 @@ impl Handler {
                     syntax::HandlerStrategy::Invert(..) => body.unwrap(),
                     syntax::HandlerStrategy::Resume(token) => {
                         let body = body.unwrap();
-                        Expression::builtin(token.span, Builtin::Resume)
-                            .apply_to(token.span.union(body.span), body)
+                        Expression::builtin(token.span, Builtin::Cancel).apply_to(
+                            token.span,
+                            Expression::builtin(token.span, Builtin::Resume)
+                                .apply_to(token.span.union(body.span), body),
+                        )
                     }
                     syntax::HandlerStrategy::Cancel(token) => {
                         let body = body.unwrap();

@@ -243,7 +243,7 @@ fn sample_collect_iterator() {
 #[test]
 fn sample_handler() {
     let program = include_tri!("handler.tri");
-    assert_eq!(program.run().unwrap(), Value::from(12));
+    assert_eq!(program.run().unwrap(), Value::from(14));
 }
 
 #[test]

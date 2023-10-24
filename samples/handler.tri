@@ -4,14 +4,19 @@ func divBy x y = x / y
 
 proc main!() {
     let x = with divBy 3 0
-        when 'NAN invert { cancel 0 }
-        when 'INF invert { cancel resume 1 }
+        when 'NAN cancel { 0 }
+        when 'INF resume { 1 }
         else yield
 
     let y = with divBy 4 "y"
-        when 'NAN invert { cancel 9 }
-        when 'INF invert { cancel resume 2 }
+        when 'NAN cancel { 9 }
+        when 'INF resume { 2 }
         else yield
 
-    exit x + y
+    let z = with divBy 4 2
+        when 'NAN cancel { 9 }
+        when 'INF resume { 4 }
+        else yield
+
+    exit x + y + z
 }

@@ -254,6 +254,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Swap)
         .shift(&yielding)
+        // This is where we go when "resumed"
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::SetRegister(0))
         .instruction(Instruction::Return)

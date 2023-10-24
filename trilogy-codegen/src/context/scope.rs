@@ -80,23 +80,26 @@ impl<'a> Scope<'a> {
         self.statics.get(id)
     }
 
+    #[inline]
     pub fn closure(&mut self, parameters: usize) -> u32 {
         let offset = self.parameters + self.locals.len();
         self.parameters += parameters;
         offset as u32
     }
 
+    #[inline]
     pub fn unclosure(&mut self, parameters: usize) {
         self.parameters -= parameters;
     }
 
+    #[inline]
     pub fn intermediate(&mut self) -> u32 {
-        self.parameters += 1;
-        (self.parameters + self.locals.len() - 1) as u32
+        self.closure(1)
     }
 
+    #[inline]
     pub fn end_intermediate(&mut self) {
-        self.parameters -= 1;
+        self.unclosure(1)
     }
 
     pub fn push_break(&mut self) -> u32 {

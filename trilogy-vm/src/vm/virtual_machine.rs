@@ -126,10 +126,10 @@ impl VirtualMachine {
                 }
                 Step::End => {
                     let ex = executions.remove(ep);
-                    ep %= executions.len();
                     if executions.is_empty() {
                         break ex;
                     }
+                    ep %= executions.len();
                 }
                 Step::Spawn(ex) => executions.push(ex),
                 Step::Exit(value) => return Ok(value),

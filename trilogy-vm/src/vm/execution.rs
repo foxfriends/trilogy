@@ -850,21 +850,26 @@ impl<'a> Execution<'a> {
                 self.ip = offset;
             }
             Instruction::Reset => {
-                let return_value = self.stack_pop()?;
-                let (cont, running_stack) = self.stack_stack.pop().ok_or_else(|| {
-                    self.error(ErrorKind::InternalRuntimeError(
-                        InternalRuntimeError::ExpectedStack,
-                    ))
-                })?;
-                self.stack = running_stack;
-                match cont {
-                    Cont::Offset(ip) => {
-                        self.ip = ip;
-                        self.stack.push(return_value);
-                    }
-                    Cont::Callback(cb) => {
-                        let mut callback = cb.0.lock().unwrap();
-                        callback(self, return_value)?;
+                // Reset does nothing if there is no currently shifted stack.
+                // Reaching the end of the wrapped expression is equivalent to
+                // cancelling, which is to go past the reset.
+                //
+                // This is a bit of a stretch for the VM instruction to take
+                // care of as it does assume a bit how the RESET instruction is
+                // being used, but... I think it's accurate. I've come to this
+                // conclusion multiple times already.
+                if let Some((cont, running_stack)) = self.stack_stack.pop() {
+                    let return_value = self.stack_pop()?;
+                    self.stack = running_stack;
+                    match cont {
+                        Cont::Offset(ip) => {
+                            self.ip = ip;
+                            self.stack.push(return_value);
+                        }
+                        Cont::Callback(cb) => {
+                            let mut callback = cb.0.lock().unwrap();
+                            callback(self, return_value)?;
+                        }
                     }
                 }
             }
