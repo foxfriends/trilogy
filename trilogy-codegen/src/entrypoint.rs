@@ -116,8 +116,9 @@ impl ProgramContext<'_> {
         self.write_procedure(statics, procedure)
     }
 
-    /// Writes a procedure. Calling convention of procedures is to simply call with all arguments
-    /// on the stack in order.
+    /// Writes a procedure.
+    ///
+    /// The calling convention of procedures is to call with all arguments on the stack in order.
     pub fn write_procedure(
         &mut self,
         statics: &HashMap<Id, StaticMember>,
@@ -131,14 +132,16 @@ impl ProgramContext<'_> {
         write_procedure(context, overload);
     }
 
-    /// Writes a rule. Calling convention of rules is to call once with no arguments to
-    /// perform setup, then call the returned closure with the input arguments. "Incomplete"
-    /// parameters (entirely or partially unbound) should be passed as empty cells (create
-    /// via the VAR instruction) so that they appear unbound within the rule body.
+    /// Writes a rule.
     ///
-    /// The return value is much like an iterator, either 'next(V) or 'done, where V will be a
-    /// tuple of resulting bindings in argument order which are to be pattern matched against
-    /// the input patterns.
+    /// The calling convention of rules is to call once with no arguments to perform setup,
+    /// then call the returned closure with the input arguments. "Incomplete" parameters
+    /// (entirely or partially unbound) should be passed as empty cells (created via the
+    /// `VAR` instruction) so that they appear unbound within the rule body.
+    ///
+    /// The return value is much like an iterator, a 0 arity callable that returns either
+    /// `'next(V)` or `'done`, where `V` will be a list of resulting bindings in argument
+    /// order which are to be pattern matched against the input patterns.
     pub fn write_rule(&mut self, statics: &HashMap<Id, StaticMember>, rule: &ir::RuleDefinition) {
         let for_id = self.labeler.for_id(&rule.name.id);
         self.label(for_id);
