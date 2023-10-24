@@ -59,10 +59,7 @@ impl NativeModule {
         path: Vec<&str>,
         chunk: &mut ChunkBuilder,
     ) {
-        let pathstr = path
-            .iter()
-            .map(|seg| format!("{seg}::"))
-            .collect::<String>();
+        let pathstr = path.iter().fold(String::new(), |s, seg| s + seg + "::");
         for (name, proc) in &self.procedures {
             let atom = chunk.atom(name);
             let next = format!("#skip::{location}::{pathstr}{name}");
