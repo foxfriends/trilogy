@@ -12,14 +12,19 @@ pub struct IfStatement {
 impl IfStatement {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let mut branches = vec![];
-        while parser.check(TokenType::KwIf).is_ok() {
+        let if_false = loop {
             branches.push(IfBranch::parse(parser)?);
-        }
-        let if_false = parser
-            .expect(TokenType::KwElse)
-            .ok()
-            .map(|_| Block::parse(parser))
-            .transpose()?;
+            match parser.expect(TokenType::KwElse) {
+                Ok(..) => {
+                    if parser.check(TokenType::KwIf).is_ok() {
+                        continue;
+                    } else {
+                        break Some(Block::parse(parser)?);
+                    }
+                }
+                Err(..) => break None,
+            }
+        };
         Ok(Self { branches, if_false })
     }
 }
