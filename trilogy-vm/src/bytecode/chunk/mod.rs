@@ -17,7 +17,7 @@ pub use iter::ChunkIter;
 /// [`VirtualMachine`][crate::VirtualMachine] instance that is not the one that compiled it.
 #[derive(Clone)]
 pub struct Chunk {
-    labels: HashMap<String, u32>,
+    pub(crate) labels: HashMap<String, u32>,
     pub(crate) constants: Vec<Value>,
     pub(crate) bytes: Vec<u8>,
 }

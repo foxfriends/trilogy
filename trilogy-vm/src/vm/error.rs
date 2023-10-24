@@ -101,6 +101,12 @@ impl From<InternalRuntimeError> for ErrorKind {
     }
 }
 
+impl From<ChunkError> for ErrorKind {
+    fn from(value: ChunkError) -> Self {
+        Self::InvalidBytecode(value)
+    }
+}
+
 impl Display for InternalRuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

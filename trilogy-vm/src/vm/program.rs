@@ -104,4 +104,14 @@ impl<'a> ProgramReader<'a> {
     pub(super) fn entrypoint(&self) -> Offset {
         self.entrypoint
     }
+
+    pub(super) fn procedure(&self, label: &str) -> Result<Value, ChunkError> {
+        self.chunk
+            .read()
+            .unwrap()
+            .labels
+            .get(label)
+            .map(|ip| Value::from(Procedure::new(*ip)))
+            .ok_or_else(|| ChunkError::MissingLabel(label.to_owned()))
+    }
 }

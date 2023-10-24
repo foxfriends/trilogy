@@ -60,8 +60,15 @@ impl From<Offset> for Cont {
 
 /// Represents a currently active execution of the Trilogy VM on a program.
 ///
-/// Native functions are provided with an execution, allowing them to call back into the
-/// Trilogy runtime to emulate features that pure programs would have access to.
+/// Each execution has its own stack, continuations, and registers. Any invocation
+/// of a Trilogy program may have more than one execution, as an execution can be
+/// split at any point by using the `BRANCH` instruction.
+///
+/// Native functions, in their raw form, are provided with an execution, allowing them
+/// to call back into the Trilogy runtime to emulate features that pure programs would
+/// have access to. In practice there should be no need to work with an Execution directly
+/// as the implementation of the language frontend and FFI layer should safely wrap the
+/// Execution's low level operations in a more runtime appropriate way.
 pub struct Execution<'a> {
     atom_interner: AtomInterner,
     program: ProgramReader<'a>,
@@ -142,6 +149,15 @@ impl<'a> Execution<'a> {
             _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
         }
         Ok(())
+    }
+
+    /// Creates a callable value that corresponds to a specific label in the Program.
+    ///
+    /// This is a very low-level operation, which is treated as part of the code-generation
+    /// process. It is up to the code generator to ensure that all labels that might be
+    /// referenced in this way are in fact pre-compiled into the bytecode.
+    pub fn procedure(&self, label: &str) -> Result<Value, Error> {
+        self.program.procedure(label).map_err(|k| self.error(k))
     }
 
     fn branch(&mut self) -> Self {
@@ -865,10 +881,7 @@ impl<'a> Execution<'a> {
                 return Ok(Step::Exit(value));
             }
             Instruction::Chunk(locator) => {
-                let value = self
-                    .program
-                    .locate(locator)
-                    .map_err(|er| self.error(ErrorKind::InvalidBytecode(er)))?;
+                let value = self.program.locate(locator).map_err(|er| self.error(er))?;
                 self.stack.push(value);
             }
             Instruction::Debug => {
