@@ -50,6 +50,7 @@ pub const RETURN: &str = "core::return";
 pub const RESET: &str = "core::reset";
 pub const END: &str = "core::end";
 pub const YIELD: &str = "core::yield";
+pub const EXIT: &str = "core::exit";
 
 macro_rules! binop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
@@ -238,7 +239,9 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .label(END.to_owned())
         .instruction(Instruction::Fizzle)
         .label(RETURN.to_owned())
-        .instruction(Instruction::Return);
+        .instruction(Instruction::Return)
+        .label(EXIT.to_owned())
+        .instruction(Instruction::Exit);
 
     let yielding = builder.labeler.unique_hint("yielding");
 
