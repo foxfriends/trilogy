@@ -12,7 +12,7 @@ mod query;
 mod rule;
 
 pub use entrypoint::{write_module, write_program};
-pub use preamble::RETURN;
+pub use preamble::*;
 
 mod prelude {
     pub(crate) use crate::context::{Binding, Context};

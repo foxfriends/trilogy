@@ -2,6 +2,8 @@ module std at "trilogy:std"
 
 proc main!() {
     while true {
-        with print(readline()) when 'EOF cancel break
+        with std::print!(std::readline!())
+            when 'EOF cancel { break }
+            else yield
     }
 }

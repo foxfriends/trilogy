@@ -6,7 +6,7 @@ pub mod std {
 
     /// Prints a value to stdout. The value will be printed using its string representation.
     #[trilogy_derive::proc(crate_name=crate)]
-    pub fn print(_: &mut Runtime, value: Value) -> Result<()> {
+    pub fn print(_: Runtime, value: Value) -> Result<()> {
         match value {
             Value::String(s) => println!("{s}"),
             _ => println!("{value}"),
@@ -16,7 +16,7 @@ pub mod std {
 
     /// Prints a value to stderr. The value will be printed using its string representation.
     #[trilogy_derive::proc(crate_name=crate)]
-    pub fn eprint(_: &mut Runtime, value: Value) -> Result<()> {
+    pub fn eprint(_: Runtime, value: Value) -> Result<()> {
         match value {
             Value::String(s) => eprintln!("{s}"),
             _ => eprintln!("{value}"),
@@ -26,11 +26,14 @@ pub mod std {
 
     /// Reads a full line from stdin, as a string.
     #[trilogy_derive::proc(crate_name=crate)]
-    pub fn readline(runtime: &mut Runtime) -> Result<()> {
+    pub fn readline(runtime: Runtime) -> Result<()> {
         use std::io;
         let mut s = String::new();
         match io::stdin().read_line(&mut s) {
-            Ok(0) => runtime.r#yield(runtime.atom("EOF"), |rt, val| rt.r#return(val)),
+            Ok(0) => {
+                let atom = runtime.atom("EOF");
+                runtime.r#yield(atom, |rt, val| rt.r#return(val))
+            }
             Err(error) => {
                 let atom = runtime.atom("ERR");
                 let error = Struct::new(atom, error.to_string());

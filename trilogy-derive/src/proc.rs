@@ -52,10 +52,10 @@ pub(crate) fn impl_attr(
             fn name() -> &'static str { stringify!(#name) }
 
             fn call(&mut self, runtime: &mut #trilogy_vm::Execution, input: std::vec::Vec<#trilogy_vm::Value>) -> std::result::Result<(), #trilogy_vm::Error> {
-                let mut runtime = #trilogy::Runtime::new(runtime);
+                let runtime = #trilogy::Runtime::new(runtime);
                 let mut input = input.into_iter();
                 #function
-                #name(&mut runtime, #(#inputs),*)
+                #name(runtime, #(#inputs),*)
             }
 
             fn arity(&self) -> usize { #arity }

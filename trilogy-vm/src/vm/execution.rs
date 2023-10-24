@@ -195,7 +195,7 @@ impl<'a> Execution<'a> {
         })
     }
 
-    fn r#return(&mut self, return_value: Value) -> Result<(), Error> {
+    pub fn r#return(&mut self, return_value: Value) -> Result<(), Error> {
         let cont = self.stack.pop_frame().map_err(|k| self.error(k))?;
         match cont {
             Cont::Offset(ip) => {
