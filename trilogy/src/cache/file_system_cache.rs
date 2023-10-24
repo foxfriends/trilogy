@@ -3,11 +3,30 @@ use crate::location::Location;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
+/// The usual cache for Trilogy, based on the file system.
+///
+/// When downloading Trilogy modules from the Internet, the file system is checked
+/// first for a cached copy of that module.
+///
+/// If the module is not found in the cache, it will be downloaded and saved for later.
 pub struct FileSystemCache {
     cache_dir: PathBuf,
 }
 
 impl FileSystemCache {
+    /// Creates a new file system cache backed by a provided directory.
+    ///
+    /// # Errors
+    ///
+    /// The directory will be created if it does not exist. If the directory
+    /// cannot be created, or if exists but cannot be read, an Err is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy::FileSystemCache;
+    /// let cache = FileSystemCache::new("./.trilogy");
+    /// ```
     pub fn new(cache_dir: impl AsRef<Path>) -> io::Result<Self> {
         if !cache_dir.as_ref().exists() {
             fs::create_dir_all(&cache_dir)?;

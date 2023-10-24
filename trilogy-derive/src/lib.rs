@@ -91,7 +91,7 @@ pub fn proc(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// Functions within this module marked with the `#[proc]` attribute are exported as
 /// procedures which may be called from the Trilogy program.
 ///
-/// The resulting value is a NativeModule that can be installed as a library into the
+/// The resulting value is a `NativeModule` that can be installed as a library into the
 /// Trilogy runtime via the builder API.
 #[proc_macro_attribute]
 pub fn module(attr: TokenStream, item: TokenStream) -> TokenStream {

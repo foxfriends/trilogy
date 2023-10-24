@@ -1,5 +1,8 @@
 use std::fmt::{self, Display};
 
+/// A black box of failure that occurred during the execution of a Trilogy program.
+///
+/// Making runtime errors more accessible is a task of future implementation.
 #[derive(Debug)]
 pub struct RuntimeError {
     pub(super) error: trilogy_vm::Error,

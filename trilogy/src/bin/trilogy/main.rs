@@ -154,7 +154,7 @@ fn main() -> std::io::Result<()> {
             }
         },
         Command::Compile { file } => match Trilogy::from_file(file) {
-            Ok(trilogy) => match trilogy.compile(false) {
+            Ok(trilogy) => match trilogy.compile() {
                 Ok(chunk) => println!("{}", chunk),
                 Err(error) => eprintln!("{error}"),
             },

@@ -16,4 +16,5 @@ pub use native_module::{NativeModule, NativeModuleBuilder};
 pub use trilogy::builder::Report;
 pub use trilogy::{Runtime, RuntimeError, Trilogy};
 
+/// The result type to use for native functions.
 pub type Result<T> = std::result::Result<T, trilogy_vm::Error>;

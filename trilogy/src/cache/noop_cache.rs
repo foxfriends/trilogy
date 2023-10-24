@@ -1,6 +1,7 @@
 use super::Cache;
 use crate::location::Location;
 
+/// A Trilogy module cache that does not cache anything.
 pub struct NoopCache;
 
 impl Cache for NoopCache {
