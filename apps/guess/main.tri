@@ -1,0 +1,28 @@
+module std at "trilogy:std"
+
+proc play!() {
+    let answer = 42
+    while true {
+        std::io::print!("Guess: ")
+        let guess = with std::num::cast!(std::io::readline!())
+            when 'NAN cancel {
+                std::io::println!("That's not a valid number")
+                continue
+            }
+            else yield
+        if guess == answer {
+            std::io::println!("Congratulations, that's right!")
+            break
+        } else if guess < answer {
+            std::io::println!("Wrong, too low.")
+        } else {
+            std::io::println!("Wrong, too high.")
+        }
+    }
+}
+
+proc main!() {
+    with play!()
+        when 'EOF cancel { std::io::println!("Give up? Too bad.") }
+        else cancel { exit 1 }
+}

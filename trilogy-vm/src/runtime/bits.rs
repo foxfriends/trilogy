@@ -1,13 +1,22 @@
+use crate::Number;
 use bitvec::order::Lsb0;
+use bitvec::slice::BitSlice;
 use bitvec::vec::BitVec;
+use num::BigUint;
 use std::fmt::{self, Display};
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
 /// A Trilogy Bits value.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+///
+/// Bits values are represented internally using types from the [`bitvec`][] crate.
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Bits(BitVec);
 
 impl Bits {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -22,6 +31,70 @@ impl Bits {
 
     pub fn set(&mut self, index: usize, value: bool) {
         self.0.set(index, value);
+    }
+
+    pub fn to_bitvec(self) -> BitVec {
+        self.0
+    }
+
+    pub fn as_bitslice(&self) -> &BitSlice {
+        &self.0
+    }
+}
+
+/// Converts this bits value to a number, interpreting it as an unsized integer.
+///
+/// # Examples
+///
+/// ```
+/// # use bitvec::prelude::*;
+/// # use trilogy_vm::{Bits, Number};
+/// //         0bb00000001 => 1
+/// let b = Bits::from(bits![0, 0, 0, 0, 0, 0, 0, 1]);
+/// assert_eq!(Number::from(b), Number::from(1));
+/// // 0bb0000000100000000 => 256
+/// let b = Bits::from(bits![0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]);
+/// assert_eq!(Number::from(b), Number::from(256));
+/// //     0bb000100000001 => 257
+/// let b = Bits::from(bits![0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1]);
+/// assert_eq!(Number::from(b), Number::from(257));
+/// ```
+impl From<Bits> for Number {
+    fn from(value: Bits) -> Number {
+        fn bit(slice: &BitSlice, index: usize) -> u8 {
+            if slice.get(index).as_deref().copied().unwrap_or(false) {
+                0b00000001 << (slice.len() - 1 - index)
+            } else {
+                0
+            }
+        }
+
+        let bytes = value
+            .0
+            .rchunks(8)
+            .map(|slice| {
+                u8::from_be(
+                    bit(slice, 0)
+                        | bit(slice, 1)
+                        | bit(slice, 2)
+                        | bit(slice, 3)
+                        | bit(slice, 4)
+                        | bit(slice, 5)
+                        | bit(slice, 6)
+                        | bit(slice, 7),
+                )
+            })
+            .collect::<Vec<_>>();
+        Number::from(BigUint::from_bytes_le(&bytes))
+    }
+}
+
+impl IntoIterator for Bits {
+    type Item = <BitVec as IntoIterator>::Item;
+    type IntoIter = <BitVec as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -80,6 +153,12 @@ impl<'a> FromIterator<&'a u8> for Bits {
 impl From<BitVec> for Bits {
     fn from(value: BitVec) -> Self {
         Self(value)
+    }
+}
+
+impl From<&BitSlice> for Bits {
+    fn from(value: &BitSlice) -> Self {
+        Self(value.to_bitvec())
     }
 }
 
