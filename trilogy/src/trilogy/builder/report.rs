@@ -11,6 +11,14 @@ use std::path::{Path, PathBuf};
 use trilogy_ir::ir::DefinitionItem;
 use trilogy_parser::Spanned;
 
+/// A report of the errors and warnings raised when compiling a Trilogy program.
+///
+/// Use this report to display to end users what is wrong with their code. The
+/// report is not intended for handling errors from Rust, as something wrong with
+/// Trilogy source code likely cannot be solved without developer intervention.
+///
+/// The only way to really consume a Report is to print it out using the provided
+/// methods.
 pub struct Report<E: std::error::Error> {
     relative_base: PathBuf,
     cache: Box<dyn Cache<Error = E>>,
@@ -24,6 +32,32 @@ impl<E: std::error::Error> Debug for Report<E> {
             .field("errors", &self.errors)
             .field("warnings", &self.warnings)
             .finish_non_exhaustive()
+    }
+}
+
+impl<E: std::error::Error + 'static> Report<E> {
+    /// Print this report to standard error.
+    ///
+    /// This is the intended way of consuming a Report.
+    pub fn eprint(&self) {
+        let loader = Loader::new(self.cache.as_ref());
+        let cache = FnCache::new(move |loc: &&Location| {
+            loader
+                .load_source(loc)
+                .map(|s| s.unwrap())
+                .map_err(|e| Box::new(e) as Box<dyn Debug>)
+        });
+        let mut cache = LoaderCache {
+            relative_base: &self.relative_base,
+            inner: cache,
+        };
+
+        for warning in &self.warnings {
+            warning.eprint(&mut cache, ReportKind::Warning);
+        }
+        for error in &self.errors {
+            error.eprint(&mut cache, ReportKind::Error);
+        }
     }
 }
 
@@ -228,29 +262,6 @@ impl<E: std::error::Error> Error<E> {
             }
         };
         report.finish().eprint(cache).unwrap();
-    }
-}
-
-impl<E: std::error::Error + 'static> Report<E> {
-    pub fn eprint(&self) {
-        let loader = Loader::new(self.cache.as_ref());
-        let cache = FnCache::new(move |loc: &&Location| {
-            loader
-                .load_source(loc)
-                .map(|s| s.unwrap())
-                .map_err(|e| Box::new(e) as Box<dyn Debug>)
-        });
-        let mut cache = LoaderCache {
-            relative_base: &self.relative_base,
-            inner: cache,
-        };
-
-        for warning in &self.warnings {
-            warning.eprint(&mut cache, ReportKind::Warning);
-        }
-        for error in &self.errors {
-            error.eprint(&mut cache, ReportKind::Error);
-        }
     }
 }
 

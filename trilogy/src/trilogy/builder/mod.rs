@@ -21,7 +21,11 @@ mod report;
 pub use error::Error;
 pub use report::Report;
 
-pub struct Builder<C: Cache + 'static> {
+/// Builder for instances of [`Trilogy`][].
+///
+/// If looking to supply your own native modules to a Trilogy program you have written,
+/// you will be using this Builder to provide those.
+pub(crate) struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
     libraries: HashMap<Location, NativeModule>,
     cache: C,
@@ -29,6 +33,13 @@ pub struct Builder<C: Cache + 'static> {
 
 #[cfg(feature = "std")]
 impl Builder<FileSystemCache> {
+    /// Creates a new Trilogy builder that is configured as "standard".
+    ///
+    /// Programs created from this builder use the default resolver and come
+    /// loaded with the standard library (imported as `trilogy:std`).
+    ///
+    /// The default resolver expects the existence of a file system with a home directory and uses
+    /// the directory `$HOME/.trilogy/cache` to cache Trilogy modules downloaded from the Internet.
     pub fn std() -> Self {
         let home = home_dir()
             .expect("home dir should exist")
@@ -49,6 +60,12 @@ impl Default for Builder<NoopCache> {
 }
 
 impl Builder<NoopCache> {
+    /// Creates a new Trilogy builder with nothing added.
+    ///
+    /// Programs created from this builder will not have the standard library (unless you manually
+    /// re-add it).
+    ///
+    /// This builder also does not come with a cache for some reason.
     pub fn new() -> Self {
         Self {
             root_dir: None,
@@ -59,11 +76,17 @@ impl Builder<NoopCache> {
 }
 
 impl<C: Cache> Builder<C> {
+    /// Adds a native module to this builder as a library.
+    ///
+    /// The location describes how Trilogy code should reference this library.
     pub fn library(mut self, location: Location, library: NativeModule) -> Self {
         self.libraries.insert(location, library);
         self
     }
 
+    /// Sets the module cache for this Builder. The module cache is used when building
+    /// the Trilogy instance to load modules previously loaded from the Internet from
+    /// somewhere hopefully faster to reach.
     pub fn with_cache<C2: Cache>(self, cache: C2) -> Builder<C2> {
         Builder {
             root_dir: self.root_dir,

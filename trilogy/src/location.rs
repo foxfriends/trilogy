@@ -5,10 +5,35 @@ use std::{
 };
 use url::Url;
 
+/// A Location describes where to find a Trilogy source file.
+///
+/// Typically locations are created from `module` statements in Trilogy programs,
+/// and correspond to files on your local file system or the Internet.
+///
+/// Internally, locations are represented as `Url`s, and so any location created
+/// must be a valid URL .
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Location(Url);
 
 impl Location {
+    /// Creates a Location that corresponds to an externally provided library.
+    ///
+    /// Such libraries are prefixed with `trilogy:`, reference them in your Trilogy
+    /// programs accordingly. For example, the Trilogy standard library is a library
+    /// with name `std`, and is declared from Trilogy programs as `module std at "trilogy:std"`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an Err if the string formed by by prefixing the name with `trilogy:`
+    /// cannot be parsed as a URL (with scheme `trilogy`)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy::Location;
+    /// let location = Location::library("std").unwrap();
+    /// assert_eq!(location.to_string(), "trilogy:std");
+    /// ```
     pub fn library(name: impl Display) -> Result<Self, url::ParseError> {
         let url = format!("trilogy:{name}").parse()?;
         Ok(Self(url))
