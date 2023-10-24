@@ -1,3 +1,5 @@
+use crate::callable::Closure;
+
 use super::callable::{Continuation, Native, Procedure};
 use super::{
     Array, Atom, Bits, Callable, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple,
@@ -611,6 +613,7 @@ impl_from!(<num::BigUint> for Number via Number);
 impl_from!(<num::Complex<num::BigRational>> for Number via Number);
 impl_from!(<Callable> for Callable);
 impl_from!(<Procedure> for Callable via Callable);
+impl_from!(<Closure> for Callable via Callable);
 impl_from!(<Continuation> for Callable via Callable);
 impl_from!(<Native> for Callable via Callable);
 

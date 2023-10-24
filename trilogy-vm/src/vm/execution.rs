@@ -3,7 +3,7 @@ use super::program_reader::ProgramReader;
 use super::stack::{InternalValue, Stack};
 use super::Error;
 use crate::atom::AtomInterner;
-use crate::callable::{Continuation, Procedure};
+use crate::callable::{Closure, Continuation};
 use crate::runtime::callable::{Callable, CallableKind};
 use crate::{Atom, Instruction, Number, Offset, ReferentialEq, Struct, StructuralEq, Tuple, Value};
 use num::ToPrimitive;
@@ -137,9 +137,17 @@ impl<'a> Execution<'a> {
                 self.stack.push_frame(
                     callback,
                     arguments.into_iter().map(InternalValue::Value).collect(),
-                    procedure.stack(),
+                    None,
                 );
                 self.ip = procedure.ip();
+            }
+            Value::Callable(Callable(CallableKind::Closure(closure))) => {
+                self.stack.push_frame(
+                    callback,
+                    arguments.into_iter().map(InternalValue::Value).collect(),
+                    Some(closure.stack().clone()),
+                );
+                self.ip = closure.ip();
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 native.call(self, arguments)?;
@@ -214,8 +222,13 @@ impl<'a> Execution<'a> {
                 self.ip = continuation.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
-                self.stack.push_frame(self.ip, arguments, procedure.stack());
+                self.stack.push_frame(self.ip, arguments, None);
                 self.ip = procedure.ip();
+            }
+            Some(Value::Callable(Callable(CallableKind::Closure(closure)))) => {
+                self.stack
+                    .push_frame(self.ip, arguments, Some(closure.stack().clone()));
+                self.ip = closure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 self.stack.push_frame(self.ip, vec![], None);
@@ -244,8 +257,14 @@ impl<'a> Execution<'a> {
             }
             Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-                self.stack.push_frame(ip, arguments, procedure.stack());
+                self.stack.push_frame(ip, arguments, None);
                 self.ip = procedure.ip();
+            }
+            Some(Value::Callable(Callable(CallableKind::Closure(closure)))) => {
+                let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
+                self.stack
+                    .push_frame(ip, arguments, Some(closure.stack().clone()));
+                self.ip = closure.ip();
             }
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
@@ -821,7 +840,7 @@ impl<'a> Execution<'a> {
                 self.r#return(return_value)?;
             }
             Instruction::Close(offset) => {
-                let closure = Procedure::new_closure(self.ip, self.stack.branch());
+                let closure = Closure::new(self.ip, self.stack.branch());
                 self.stack.push(Value::from(closure));
                 self.ip = offset;
             }
