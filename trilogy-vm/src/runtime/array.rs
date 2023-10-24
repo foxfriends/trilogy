@@ -10,7 +10,9 @@ use std::sync::{Arc, Mutex};
 ///
 /// ```
 /// # use trilogy_vm::runtime::{Array, Value};
-/// let array = Array::from(vec![Value::from(1), Value::from(2)]);
+/// let array = Array::new();
+/// array.push(1);
+/// array.push(2);
 /// let copy = array.clone();
 /// array.push(3);
 /// assert_eq!(copy.get(2), Some(Value::from(3)));
@@ -96,15 +98,14 @@ impl Array {
     }
 
     /// Performs a shallow clone of the array, returning a new array
-    /// instance over the same elements
+    /// instance over the same elements. The elements will not be cloned.
     ///
     /// # Examples
     ///
     /// ```
     /// # use trilogy_vm::runtime::{Array, Value};
-    /// let array = Array::from(vec![
-    ///     Value::from(Array::new()),
-    /// ]);
+    /// let array = Array::new();
+    /// array.push(Array::new());
     /// let clone = array.shallow_clone();
     /// assert_ne!(array, clone);
     /// assert_eq!(array.get(0), clone.get(0));
@@ -114,28 +115,26 @@ impl Array {
     }
 
     /// Performs a deep structural clone of the array, returning a completely
-    /// fresh copy of the same value.
+    /// fresh copy of the same value. All elements are recursively structural
+    /// cloned.
     ///
     /// # Examples
     ///
     /// ```
     /// # use trilogy_vm::runtime::{Array, Value};
-    /// let array = Array::from(vec![
-    ///     Value::from(Array::new()),
-    /// ]);
+    /// let array = Array::new();
+    /// array.push(Array::new());
     /// let clone = array.structural_clone();
     /// assert_ne!(array, clone);
     /// assert_ne!(array.get(0), clone.get(0));
     /// ```
     pub fn structural_clone(&self) -> Self {
-        Self::from(
-            self.0
-                .lock()
-                .unwrap()
-                .iter()
-                .map(|value| value.structural_clone())
-                .collect::<Vec<_>>(),
-        )
+        self.0
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|value| value.structural_clone())
+            .collect()
     }
 
     /// Gets the value from a particular index in this array. Returns None
