@@ -1,11 +1,14 @@
 module std at "trilogy:std"
 
+func chomp s <> "\n" = s
+func chomp s = s
+
 proc play!() {
     let answer = 42
     while true {
         std::io::print!("Guess: ")
-        let guess = with std::num::cast!(std::io::readline!())
-            when 'NAN cancel {
+        let guess = with std::io::readline!() |> chomp |> std::num::cast
+            when 'NAN invert {
                 std::io::println!("That's not a valid number")
                 continue
             }
