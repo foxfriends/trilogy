@@ -2,7 +2,7 @@ module std at "trilogy:std"
 
 proc main!() {
     while true {
-        with std::print!(std::readline!())
+        with std::io::print!(std::io::readline!())
             when 'EOF cancel { break }
             else yield
     }

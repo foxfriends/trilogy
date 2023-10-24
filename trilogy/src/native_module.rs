@@ -50,9 +50,22 @@ impl NativeModuleBuilder {
 
 impl NativeModule {
     pub(crate) fn write_to_chunk(&self, location: &Location, chunk: &mut ChunkBuilder) {
+        self.write_to_chunk_at_path(location, vec![], chunk)
+    }
+
+    fn write_to_chunk_at_path(
+        &self,
+        location: &Location,
+        path: Vec<&str>,
+        chunk: &mut ChunkBuilder,
+    ) {
+        let pathstr = path
+            .iter()
+            .map(|seg| format!("{seg}::"))
+            .collect::<String>();
         for (name, proc) in &self.procedures {
             let atom = chunk.atom(name);
-            let next = format!("#skip::{location}::{name}");
+            let next = format!("#skip::{location}::{pathstr}{name}");
             chunk
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::Const(atom.into()))
@@ -61,6 +74,21 @@ impl NativeModule {
                 .instruction(Instruction::Const(proc.clone().into()))
                 .instruction(Instruction::Return)
                 .label(next);
+        }
+        for (name, module) in &self.modules {
+            let atom = chunk.atom(name);
+            let next = format!("#skip::{location}::{pathstr}{name}");
+            let module_label = format!("{location}::{pathstr}{name}");
+            chunk
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(atom.into()))
+                .instruction(Instruction::ValEq)
+                .cond_jump(&next)
+                .reference(&module_label)
+                .instruction(Instruction::Return)
+                .label(module_label);
+            module.write_to_chunk(location, chunk);
+            chunk.label(next);
         }
         chunk.instruction(Instruction::Fizzle);
     }

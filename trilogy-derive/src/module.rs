@@ -63,7 +63,7 @@ pub(crate) fn impl_attr(
         Item::Mod(module_item) if module_item.attrs.iter().any(is_module) => {
             let child_name = &module_item.ident;
             Some(quote! {
-                module = module.add_submodule(#name::#child_name());
+                module = module.add_submodule(stringify!(#child_name), #name::#child_name());
             })
         }
         _ => None,
