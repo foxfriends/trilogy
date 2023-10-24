@@ -1,4 +1,4 @@
-use super::Stack;
+use super::stack::Stack;
 use crate::bytecode::{ChunkError, Offset};
 use std::fmt::{self, Display};
 

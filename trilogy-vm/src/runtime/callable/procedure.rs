@@ -1,5 +1,5 @@
 use crate::bytecode::Offset;
-use crate::vm::Stack;
+use crate::vm::stack::Stack;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
 use std::sync::Arc;

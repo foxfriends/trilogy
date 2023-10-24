@@ -1,6 +1,7 @@
 use super::error::InternalRuntimeError;
 use super::execution::Cont;
-use crate::{cactus::Cactus, Value};
+use crate::cactus::Cactus;
+use crate::Value;
 use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]

@@ -1,7 +1,8 @@
 use super::error::ErrorKind;
 use super::execution::Step;
-use super::program::ProgramReader;
-use super::{Error, Execution, Stack};
+use super::program_reader::ProgramReader;
+use super::stack::Stack;
+use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::ChunkError;
 use crate::Value;

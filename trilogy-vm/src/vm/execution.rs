@@ -1,17 +1,15 @@
-use std::cmp::Ordering;
-use std::fmt::{self, Debug};
-use std::sync::{Arc, Mutex};
-
-use num::ToPrimitive;
-
 use super::error::{ErrorKind, InternalRuntimeError};
-use super::program::ProgramReader;
-use super::stack::InternalValue;
-use super::{Error, Stack};
+use super::program_reader::ProgramReader;
+use super::stack::{InternalValue, Stack};
+use super::Error;
 use crate::atom::AtomInterner;
 use crate::callable::{Continuation, Procedure};
 use crate::runtime::callable::{Callable, CallableKind};
 use crate::{Atom, Instruction, Number, Offset, ReferentialEq, Struct, StructuralEq, Tuple, Value};
+use num::ToPrimitive;
+use std::cmp::Ordering;
+use std::fmt::{self, Debug};
+use std::sync::{Arc, Mutex};
 
 pub(super) enum Step<E> {
     End,
