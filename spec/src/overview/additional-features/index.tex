@@ -13,8 +13,9 @@ the module system of OCaml.
 
 Beginning with the \kw{module} keyword, we can define a simple module. A
 module may contain any number of declarations of any type (procedures,
-rules, functions, and even nested modules). Names listed in an \kw{export}
-statement are made available to modules that reference this module.
+rules, functions, constants, and even nested modules). Names listed in an
+\kw{export} statement are made available to modules that reference this
+module.
 
 \inputcode{adt.tri}
 
@@ -26,17 +27,13 @@ functions.
 
 \inputcode{functor.tri}
 
-Modules may also take parameters, granted that those parameters can be found
-and applied statically. When doing so, \kw{from} must be used to denote that
-module application and separate it from the final name.
+Modules may also take parameters. These parameters may be any Trilogy value,
+and they will be made available to the definitions within that module.
 
-This module system is \emph{applicative}; that is, when applied to the same
-(resolved) arguments, a module function will return the exact same module.
-Given the lack of named and structured data types in \Trilogy{}, this is
-naturally the only option - there is nothing that could be made generative.
-Supposing syntactically named types were eventually added to \Trilogy{},
-such applicativity will be preserved, following similar semantics to that of
-OCaml.
+This module system is \emph{generative}; that is, each time the module is applied,
+it will generate a new version of that module, such that the definitions inside
+are not referentially equal to each other. All constants in the module will be
+computed immediately upon instantiating the module.
 
 Of course, no code sharing solution is complete without allowing code
 to be split into files and shared between projects. A \kw{module} declaration

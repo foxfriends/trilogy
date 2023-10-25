@@ -7,7 +7,7 @@ module ReverseInt {
     export cmp
 }
 
-module OrdList(Ord) {
+module OrdList Ord {
     proc empty!() {
         return 'ordered(unit)
     }
@@ -34,8 +34,8 @@ proc collectInto!(Collection, iter) {
     return collection
 }
 
-import OrdList(Int) as OrdIntList
-import OrdList(ReverseInt) as ReverseIntList
+const OrdListInt = OrdList Int
+const ReverseIntList = OrdList ReverseInt
 
 proc main!() {
     let list = [1, 3, 2, 6, 4]

@@ -177,6 +177,8 @@ syntax tree, so having the documentation inside is simply useful.
         \bnfpn{RuleDefinition}\bnfor
     } \\
     \bnfmore*{
+        \bnfpn{ConstantDefinition}
+        \bnfor
         \bnfpn{Export}
         \bnfor
         \bnfpn{Test}
@@ -294,6 +296,31 @@ externally also may not access members of the module in which they are declared.
     \AxiomC{$\text{read}(\sigma) \Rightarrow \kw{export}\ p$}
     \LeftLabel{External Module}
     \TrinaryInfC{$\Gamma \vdash m\ \text{exports}\ p$}
+\end{prooftree}
+
+\subsubsection{Constants}
+
+Constants are the most basic type of definition, consisting of a name and an expression
+to bind as the value for that name. The expression is evaluated once, at the time the
+module in which the constant is declared is instantiated.
+
+\begin{bnf*}
+    \bnfprod{ConstantDefinition}{
+        \bnfts{\kw{const}}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfts{=}
+        \bnfsp
+        \bnfpn{Expression}
+    }
+\end{bnf*}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash E : \tau$}
+    \AxiomC{$\kw{const}\ k\ \texttt{=}\ E$}
+    \LeftLabel{Constant}
+    \BinaryInfC{$\Gamma \vdash k : \tau$}
 \end{prooftree}
 
 \subsubsection{Definitions}

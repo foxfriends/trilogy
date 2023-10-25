@@ -62,6 +62,10 @@ pub(crate) fn write_module_prelude(
         write_pattern_match(context, parameter, END);
     }
 
+    // NOTE: constants and the module's parameters should probably be saved more properly...
+    // Currently, they are actually being matched and computed each time a member is looked
+    // up, as the module object itself is just a closure that contains the raw parameters.
+
     // Constants are evaluated ahead of time and stored very much the same
     // as parameter variables. They are just like derived values after all.
     for def in module.definitions() {
