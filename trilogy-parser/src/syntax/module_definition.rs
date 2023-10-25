@@ -12,7 +12,7 @@ pub struct ModuleDefinition {
 impl ModuleDefinition {
     fn synchronize(parser: &mut Parser) {
         parser.synchronize([
-            DocOuter, KwModule, KwFunc, KwProc, KwRule, KwImport, KwExport, CBrace, EndOfFile,
+            DocOuter, KwModule, KwFunc, KwProc, KwRule, KwConst, KwExport, CBrace, EndOfFile,
         ]);
     }
 

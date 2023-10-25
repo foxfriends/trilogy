@@ -7,7 +7,6 @@ use trilogy_vm::{Instruction, Value};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Mode {
-    Program,
     Module,
     Document,
 }
@@ -16,11 +15,11 @@ pub(crate) fn write_module_definitions(
     context: &mut ProgramContext,
     module: &ir::Module,
     statics: &HashMap<Id, StaticMember>,
-    mode: Mode,
 ) {
     // Here's where all the definitions follow.
     for def in module.definitions() {
         match &def.item {
+            ir::DefinitionItem::Constant(..) => {} // Constants are written directly in the prelude
             ir::DefinitionItem::Module(definition) if definition.module.as_module().is_none() => {} // Imported modules are not written
             ir::DefinitionItem::Module(definition) => {
                 context.write_module(statics.clone(), definition);
@@ -32,11 +31,7 @@ pub(crate) fn write_module_definitions(
                 context.write_rule(statics, rule);
             }
             ir::DefinitionItem::Procedure(procedure) => {
-                if mode == Mode::Program && procedure.name.id.name() == Some("main") {
-                    context.write_main(statics, procedure)
-                } else {
-                    context.write_procedure(statics, procedure);
-                }
+                context.write_procedure(statics, procedure);
             }
             ir::DefinitionItem::Test(..) => todo!(),
         }
@@ -54,17 +49,27 @@ pub(crate) fn write_module_prelude(
     }
     // Collect the module parameters before declaring them so we can be sure of their
     // ordering.
-    let module_parameters = module
+    let mut variables = module
         .parameters
         .iter()
         .flat_map(|param| param.bindings())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    context.declare_variables(module_parameters.iter().cloned());
+    context.declare_variables(variables.iter().cloned());
     for (i, parameter) in module.parameters.iter().enumerate() {
         context.instruction(Instruction::LoadLocal(i as u32));
         write_pattern_match(context, parameter, END);
+    }
+
+    // Constants are evaluated ahead of time and stored very much the same
+    // as parameter variables. They are just like derived values after all.
+    for def in module.definitions() {
+        if let ir::DefinitionItem::Constant(constant) = &def.item {
+            write_evaluation(context, &constant.value.value);
+            assert!(context.scope.declare_variable(constant.name.id.clone()));
+            variables.push(constant.name.id.clone());
+        }
     }
     // Then save the extracted bindings into an array which will be stored in the
     // module object. Functions will be able to reference these variables by pulling
@@ -82,13 +87,12 @@ pub(crate) fn write_module_prelude(
             .instruction(Instruction::LoadRegister(1))
             .instruction(Instruction::Clone);
     }
-    for _ in &module_parameters {
+    for _ in 0..variables.len() {
         context
             .instruction(Instruction::Swap)
             .instruction(Instruction::Insert);
     }
-
-    context.undeclare_variables(module_parameters.iter().cloned(), false);
+    context.undeclare_variables(variables.clone(), false);
 
     // The current module's parameters are stored into register 1 such that when a function
     // is called, its parameters can be located. Through this public interface that
@@ -110,6 +114,18 @@ pub(crate) fn write_module_prelude(
                 .cond_jump(&next_export);
 
             match &def.item {
+                ir::DefinitionItem::Constant(constant) => {
+                    let label = context
+                        .scope
+                        .lookup_static(&constant.name.id)
+                        .unwrap()
+                        .clone()
+                        .unwrap_label();
+                    context
+                        // Context shenanigans are not required as constants have already been evaluated
+                        .write_procedure_reference(label)
+                        .instruction(Instruction::Return);
+                }
                 ir::DefinitionItem::Function(func) => {
                     // All overloads must have the same arity, so get from the first one.
                     let function_arity = func.overloads[0].parameters.len();
@@ -268,11 +284,11 @@ pub(crate) fn write_module_prelude(
     context.instruction(Instruction::Fizzle);
     context.scope.end_intermediate();
 
-    // For definitions to actually access the module parameters, they're defined as
+    // For definitions to actually access the module parameters and constants, they're defined as
     // 0-arity functions that are aware of the module convention.
     let mut statics_for_later = HashMap::new();
     let base = context.scope.context_size();
-    for (i, var) in module_parameters.iter().rev().enumerate() {
+    for (i, var) in variables.iter().rev().enumerate() {
         let label = context.labeler.for_id(var);
         context.label(&label);
         context

@@ -38,11 +38,21 @@ impl<'a> ProgramContext<'a> {
 
 pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
     let mut context = ProgramContext::new(builder);
+    context.write_main();
     write_preamble(&mut context);
 
     let mut statics = HashMap::default();
     context.collect_static(module, &mut statics);
-    write_module_definitions(&mut context, module, &statics, Mode::Program);
+
+    // Parameters len will be 0, but let's write it out anyway
+    context.label("trilogy:__entrymodule__");
+    let mut precontext = context.begin(&statics, module.parameters.len() + 1);
+    statics.extend(write_module_prelude(
+        &mut precontext,
+        module,
+        Mode::Document,
+    ));
+    write_module_definitions(&mut context, module, &statics);
 }
 
 pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
@@ -52,8 +62,12 @@ pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
     context.entrypoint();
     // Parameters len will be 0, but let's write it out anyway
     let mut precontext = context.begin(&statics, module.parameters.len() + 1);
-    write_module_prelude(&mut precontext, module, Mode::Document);
-    write_module_definitions(&mut context, module, &statics, Mode::Document);
+    statics.extend(write_module_prelude(
+        &mut precontext,
+        module,
+        Mode::Document,
+    ));
+    write_module_definitions(&mut context, module, &statics);
 }
 
 impl ProgramContext<'_> {
@@ -91,19 +105,15 @@ impl ProgramContext<'_> {
         self
     }
 
-    /// Writes the main procedure of this program. The main procedure is written like a regular
-    /// procedure, but a little wrapper is inserted that immediately calls that main procedure
-    /// and handles its return value as an exit.
-    pub fn write_main(
-        &mut self,
-        statics: &HashMap<Id, StaticMember>,
-        procedure: &ir::ProcedureDefinition,
-    ) {
-        let for_id = self.labeler.for_id(&procedure.name.id);
+    /// Writes the entrypoint of the program.
+    pub fn write_main(&mut self) {
+        let main = self.builder.atom("main");
         self.builder
             .entrypoint()
             .label("trilogy:__entrypoint__")
-            .reference(for_id)
+            .reference("trilogy:__entrymodule__")
+            .instruction(Instruction::Const(main.into()))
+            .instruction(Instruction::Call(1))
             .instruction(Instruction::Call(0))
             .instruction(Instruction::Copy)
             .instruction(Instruction::Const(().into()))
@@ -112,8 +122,6 @@ impl ProgramContext<'_> {
             .instruction(Instruction::Const(0.into()))
             .label("trilogy:__exit_runoff__")
             .instruction(Instruction::Exit);
-
-        self.write_procedure(statics, procedure)
     }
 
     /// Writes a procedure.
@@ -227,12 +235,13 @@ impl ProgramContext<'_> {
         self.collect_static(module, &mut statics);
         let mut context = self.begin(&statics, 1 + module.parameters.len());
         statics.extend(write_module_prelude(&mut context, module, Mode::Module));
-        write_module_definitions(self, module, &statics, Mode::Module);
+        write_module_definitions(self, module, &statics);
     }
 
     fn collect_static(&self, module: &ir::Module, statics: &mut HashMap<Id, StaticMember>) {
         statics.extend(module.definitions().iter().filter_map(|def| {
             let id = match &def.item {
+                ir::DefinitionItem::Constant(..) => None,
                 ir::DefinitionItem::Function(func) => Some(func.name.id.clone()),
                 ir::DefinitionItem::Rule(rule) => Some(rule.name.id.clone()),
                 ir::DefinitionItem::Procedure(proc) => Some(proc.name.id.clone()),

@@ -220,6 +220,14 @@ impl<E: std::error::Error> Error<E> {
                                     "`func main` was found, but main must be a procedure",
                                 ))
                         }
+                        DefinitionItem::Constant(constant) => {
+                            let span = cache.span(location, constant.name.span);
+                            ariadne::Report::build(kind, location, span.1.start)
+                                .with_message("no definition of `proc main!()` was found")
+                                .with_label(Label::new(span).with_color(primary).with_message(
+                                    "`const main` was found, but main must be a procedure",
+                                ))
+                        }
                         DefinitionItem::Rule(rule) => {
                             let span = cache.span(location, rule.overloads[0].head_span);
                             ariadne::Report::build(kind, location, span.1.start)

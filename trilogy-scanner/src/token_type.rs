@@ -18,6 +18,8 @@ pub enum TokenType {
     KwContinue,
     /// `case`
     KwCase,
+    /// `const`
+    KwConst,
     /// `do`
     KwDo,
     /// `else`
@@ -96,8 +98,6 @@ pub enum TokenType {
     KwCatch,
     /// `class`
     KwClass,
-    /// `const`
-    KwConst,
     /// `data`
     KwData,
     /// `defer`

@@ -9,6 +9,7 @@ pub struct Definitions(pub(crate) Vec<Definition>);
 impl Definitions {
     pub(super) fn get_mut(&mut self, id: &Id) -> Option<&mut Definition> {
         self.0.iter_mut().find(|def| match &def.item {
+            DefinitionItem::Constant(def) => def.name.id == *id,
             DefinitionItem::Function(def) => def.name.id == *id,
             DefinitionItem::Procedure(def) => def.name.id == *id,
             DefinitionItem::Rule(def) => def.name.id == *id,

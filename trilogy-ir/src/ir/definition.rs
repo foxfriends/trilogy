@@ -11,6 +11,7 @@ pub enum DefinitionItem {
     Function(Box<FunctionDefinition>),
     Rule(Box<RuleDefinition>),
     Test(Box<TestDefinition>),
+    Constant(Box<ConstantDefinition>),
     Module(Box<ModuleDefinition>),
 }
 
@@ -27,6 +28,7 @@ impl Definition {
             DefinitionItem::Procedure(def) => Some(&def.name.id),
             DefinitionItem::Function(def) => Some(&def.name.id),
             DefinitionItem::Rule(def) => Some(&def.name.id),
+            DefinitionItem::Constant(def) => Some(&def.name.id),
             DefinitionItem::Test(..) => None,
             DefinitionItem::Module(def) => Some(&def.name.id),
         }
@@ -56,6 +58,19 @@ impl Definition {
                         }
                     }
                 }
+            }
+            syntax::DefinitionItem::Constant(ast) => {
+                let symbol = analyzer.declared(ast.name.as_ref()).unwrap();
+                let definition = definitions.get_mut(&symbol.id).unwrap();
+                let DefinitionItem::Constant(constant) = &mut definition.item else {
+                    let error = Error::DuplicateDefinition {
+                        original: symbol.declaration_span,
+                        duplicate: ast.name,
+                    };
+                    analyzer.error(error);
+                    return;
+                };
+                constant.value = Expression::convert(analyzer, ast.body);
             }
             syntax::DefinitionItem::ExternalModule(..) => {}
             syntax::DefinitionItem::Function(ast) => {
@@ -123,6 +138,22 @@ impl Definition {
     pub(super) fn declare(analyzer: &mut Analyzer, ast: &syntax::Definition) -> Vec<Self> {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
+            syntax::DefinitionItem::Constant(ast) => {
+                if let Some(original) = analyzer.declared(ast.name.as_ref()) {
+                    let original = original.declaration_span;
+                    analyzer.error(Error::DuplicateDefinition {
+                        original,
+                        duplicate: ast.name.clone(),
+                    });
+                    return vec![];
+                }
+                let name = Identifier::declare(analyzer, ast.name.clone());
+                Self {
+                    span: ast.span(),
+                    item: DefinitionItem::Constant(Box::new(ConstantDefinition::declare(name))),
+                    is_exported: false,
+                }
+            }
             syntax::DefinitionItem::ExternalModule(ast) => {
                 if let Some(original) = analyzer.declared(ast.head.name.as_ref()) {
                     let original = original.declaration_span;

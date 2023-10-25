@@ -1,0 +1,12 @@
+func items 0 = []
+func items 1 = [1]
+func items 2 = [1, 2]
+
+const mostimportant = items 2
+
+proc main!() {
+    let original_value = mostimportant.1
+    mostimportant.1 = 5
+    let later_value = mostimportant.1
+    exit original_value + later_value
+}

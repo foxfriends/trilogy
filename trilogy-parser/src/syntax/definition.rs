@@ -8,6 +8,7 @@ pub enum DefinitionItem {
     Module(Box<ModuleDefinition>),
     ExternalModule(Box<ExternalModuleDefinition>),
     Procedure(Box<ProcedureDefinition>),
+    Constant(Box<ConstantDefinition>),
     Function(Box<FunctionDefinition>),
     Rule(Box<RuleDefinition>),
     Export(Box<ExportDefinition>),
@@ -73,6 +74,7 @@ impl Definition {
                 }
             }
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
+            KwConst => DefinitionItem::Constant(Box::new(ConstantDefinition::parse(parser)?)),
             KwRule => DefinitionItem::Rule(Box::new(RuleDefinition::parse(parser)?)),
             KwProc => DefinitionItem::Procedure(Box::new(ProcedureDefinition::parse(parser)?)),
             KwFunc => DefinitionItem::Function(Box::new(FunctionDefinition::parse(parser)?)),
