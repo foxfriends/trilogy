@@ -8,7 +8,7 @@ proc play!() {
     while true {
         std::io::print!("Guess: ")
         let guess = with std::io::readline!() |> chomp |> std::num::cast
-            when 'NAN invert {
+            when 'NAN cancel {
                 std::io::println!("That's not a valid number")
                 continue
             }

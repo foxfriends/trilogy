@@ -141,21 +141,27 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .instruction(Instruction::Const(Value::Unit))
                 .instruction(Instruction::Const(Value::Unit))
                 .shift(&continuation)
+                // Continue is called with a value that is ignored. This is definitely an oversight
+                // that I should get around to fixing... or maybe there's a way to use that value?
+                .instruction(Instruction::Pop)
                 .label(begin.to_owned());
             write_expression(context, &stmt.condition);
             context.cond_jump(&cond_fail);
             write_expression(context, &stmt.body);
             context
                 .instruction(Instruction::LoadLocal(r#continue))
-                .instruction(Instruction::Become(0))
+                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Become(1))
                 .label(cond_fail)
                 .instruction(Instruction::LoadLocal(r#break))
-                .instruction(Instruction::Become(0))
+                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Become(1))
                 .label(continuation)
                 .instruction(Instruction::SetLocal(r#continue))
                 .shift(&setup)
-                .instruction(Instruction::Pop)
-                .instruction(Instruction::Pop)
+                .instruction(Instruction::Pop) // Value passed to break
+                .instruction(Instruction::Pop) // Break
+                .instruction(Instruction::Pop) // Continue
                 .jump(&end)
                 .label(setup)
                 .instruction(Instruction::SetLocal(r#break))
