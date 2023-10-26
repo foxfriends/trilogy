@@ -18,7 +18,10 @@ That makes a trilogy. Hopefully I produce something useful. Third time's the cha
 
 ## Status
 
-As you can see, progress at this time is limited:
+The 0.1 "barely functioning" version of Trilogy and all its components is nearing
+readiness. Though from a fully working ecosystem, at least the language will soon
+work, for the most part, enough to begin experimenting with its usability and
+iterating on the design.
 
 - [x] Read some papers and instructions on programming languages
     - https://www.eff-lang.org/handlers-tutorial.pdf
@@ -34,7 +37,7 @@ As you can see, progress at this time is limited:
 - [x] Design the language: Check out the [spec](./spec/)!
 - [x] Read the [book](https://craftinginterpreters.com/)
 - [x] Specify the language (Living document)
-- [x] Start the project:
+- [ ] Implement the language:
     - [x] Scanning
     - [x] Parsing
     - [x] Syntactic analysis
@@ -43,4 +46,7 @@ As you can see, progress at this time is limited:
     - [x] Virtual machine
     - [ ] Testing (In progress)
     - [ ] Standard library (In progress)
+- [ ] Future experimental features:
     - [ ] Optimization
+    - [ ] Try out IC based VM (HVM)
+    - [ ] Add another level between current IR and code generation
