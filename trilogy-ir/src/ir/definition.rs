@@ -41,6 +41,14 @@ impl Definition {
         }
     }
 
+    pub fn is_module(&self) -> bool {
+        matches!(self.item, DefinitionItem::Module(..))
+    }
+
+    pub fn is_constant(&self) -> bool {
+        matches!(self.item, DefinitionItem::Constant(..))
+    }
+
     pub(super) fn convert_into(
         analyzer: &mut Analyzer,
         ast: syntax::Definition,

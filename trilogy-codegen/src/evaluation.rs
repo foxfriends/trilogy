@@ -603,9 +603,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         .write_procedure_reference(label.to_owned())
                         .instruction(Instruction::Call(0));
                 }
-                Binding::Chunk(path) => {
-                    context.instruction(Instruction::Chunk(path.into()));
-                }
             }
         }
         ir::Value::Dynamic(..) => {

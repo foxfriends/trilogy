@@ -8,7 +8,6 @@ pub(crate) enum Binding<'a> {
     Variable(u32),
     Context(&'a str),
     Static(&'a str),
-    Chunk(&'a str),
 }
 
 impl Binding<'_> {
@@ -25,14 +24,16 @@ impl<'a> From<&'a StaticMember> for Binding<'a> {
         match &value {
             StaticMember::Label(label) => Binding::Static(label),
             StaticMember::Context(label) => Binding::Context(label),
-            StaticMember::Chunk(chunk) => Binding::Chunk(chunk),
+            StaticMember::Chunk(..) => {
+                panic!("chunks should be evaluated ahead of time and converted to context")
+            }
         }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct Scope<'a> {
-    statics: &'a HashMap<Id, StaticMember>,
+    statics: &'a mut HashMap<Id, StaticMember>,
     locals: HashMap<Id, u32>,
     parameters: usize,
 
@@ -43,7 +44,7 @@ pub(crate) struct Scope<'a> {
 }
 
 impl<'a> Scope<'a> {
-    pub fn new(statics: &'a HashMap<Id, StaticMember>, parameters: usize) -> Self {
+    pub fn new(statics: &'a mut HashMap<Id, StaticMember>, parameters: usize) -> Self {
         Self {
             parameters,
             statics,
@@ -78,6 +79,10 @@ impl<'a> Scope<'a> {
 
     pub fn lookup_static(&self, id: &Id) -> Option<&'_ StaticMember> {
         self.statics.get(id)
+    }
+
+    pub fn declare_static(&mut self, id: Id, static_member: StaticMember) {
+        self.statics.insert(id, static_member);
     }
 
     #[inline]

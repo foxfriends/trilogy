@@ -20,6 +20,13 @@ impl StaticMember {
             _ => panic!("expected static member to be a label, but it was {self:?}"),
         }
     }
+
+    pub fn unwrap_context(self) -> String {
+        match self {
+            Self::Context(label) => label,
+            _ => panic!("expected static member to be in context, but it was {self:?}"),
+        }
+    }
 }
 
 pub(crate) struct ProgramContext<'a> {
@@ -46,13 +53,9 @@ pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
 
     // Parameters len will be 0, but let's write it out anyway
     context.label("trilogy:__entrymodule__");
-    let mut precontext = context.begin(&statics, module.parameters.len() + 1);
-    statics.extend(write_module_prelude(
-        &mut precontext,
-        module,
-        Mode::Document,
-    ));
-    write_module_definitions(&mut context, module, &statics);
+    let mut precontext = context.begin(&mut statics, module.parameters.len());
+    write_module_prelude(&mut precontext, module, Mode::Document);
+    write_module_definitions(&mut context, module, &mut statics);
 }
 
 pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
@@ -61,13 +64,9 @@ pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
     context.collect_static(module, &mut statics);
     context.entrypoint();
     // Parameters len will be 0, but let's write it out anyway
-    let mut precontext = context.begin(&statics, module.parameters.len() + 1);
-    statics.extend(write_module_prelude(
-        &mut precontext,
-        module,
-        Mode::Document,
-    ));
-    write_module_definitions(&mut context, module, &statics);
+    let mut precontext = context.begin(&mut statics, module.parameters.len());
+    write_module_prelude(&mut precontext, module, Mode::Document);
+    write_module_definitions(&mut context, module, &mut statics);
 }
 
 impl ProgramContext<'_> {
@@ -112,6 +111,7 @@ impl ProgramContext<'_> {
             .entrypoint()
             .label("trilogy:__entrypoint__")
             .reference("trilogy:__entrymodule__")
+            .instruction(Instruction::Call(0))
             .instruction(Instruction::Const(main.into()))
             .instruction(Instruction::Call(1))
             .instruction(Instruction::Call(0))
@@ -129,7 +129,7 @@ impl ProgramContext<'_> {
     /// The calling convention of procedures is to call with all arguments on the stack in order.
     pub fn write_procedure(
         &mut self,
-        statics: &HashMap<Id, StaticMember>,
+        statics: &mut HashMap<Id, StaticMember>,
         procedure: &ir::ProcedureDefinition,
     ) {
         let for_id = self.labeler.for_id(&procedure.name.id);
@@ -150,7 +150,11 @@ impl ProgramContext<'_> {
     /// The return value is much like an iterator, a 0 arity callable that returns either
     /// `'next(V)` or `'done`, where `V` will be a list of resulting bindings in argument
     /// order which are to be pattern matched against the input patterns.
-    pub fn write_rule(&mut self, statics: &HashMap<Id, StaticMember>, rule: &ir::RuleDefinition) {
+    pub fn write_rule(
+        &mut self,
+        statics: &mut HashMap<Id, StaticMember>,
+        rule: &ir::RuleDefinition,
+    ) {
         let for_id = self.labeler.for_id(&rule.name.id);
         self.label(for_id);
         let arity = rule.overloads[0].parameters.len();
@@ -201,7 +205,7 @@ impl ProgramContext<'_> {
     /// function.
     pub fn write_function(
         &mut self,
-        statics: &HashMap<Id, StaticMember>,
+        statics: &mut HashMap<Id, StaticMember>,
         function: &ir::FunctionDefinition,
     ) {
         let for_id = self.labeler.for_id(&function.name.id);
@@ -233,15 +237,15 @@ impl ProgramContext<'_> {
         self.label(for_id);
         let module = def.module.as_module().unwrap();
         self.collect_static(module, &mut statics);
-        let mut context = self.begin(&statics, 1 + module.parameters.len());
-        statics.extend(write_module_prelude(&mut context, module, Mode::Module));
-        write_module_definitions(self, module, &statics);
+        let mut context = self.begin(&mut statics, module.parameters.len());
+        write_module_prelude(&mut context, module, Mode::Module);
+        write_module_definitions(self, module, &mut statics);
     }
 
     fn collect_static(&self, module: &ir::Module, statics: &mut HashMap<Id, StaticMember>) {
         statics.extend(module.definitions().iter().filter_map(|def| {
             let id = match &def.item {
-                ir::DefinitionItem::Constant(..) => None,
+                ir::DefinitionItem::Constant(def) => Some(def.name.id.clone()),
                 ir::DefinitionItem::Function(func) => Some(func.name.id.clone()),
                 ir::DefinitionItem::Rule(rule) => Some(rule.name.id.clone()),
                 ir::DefinitionItem::Procedure(proc) => Some(proc.name.id.clone()),
@@ -263,7 +267,7 @@ impl ProgramContext<'_> {
 
     fn begin<'a>(
         &'a mut self,
-        statics: &'a HashMap<Id, StaticMember>,
+        statics: &'a mut HashMap<Id, StaticMember>,
         parameters: usize,
     ) -> Context<'a> {
         let scope = Scope::new(statics, parameters);

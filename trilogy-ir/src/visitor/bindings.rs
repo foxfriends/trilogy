@@ -35,6 +35,26 @@ impl IrVisitor for Bindings {
         }
     }
 
+    fn visit_constant_definition(&mut self, node: &ConstantDefinition) {
+        self.bindings.insert(node.name.id.clone());
+    }
+
+    fn visit_module_definition(&mut self, node: &ModuleDefinition) {
+        self.bindings.insert(node.name.id.clone());
+    }
+
+    fn visit_function_definition(&mut self, node: &FunctionDefinition) {
+        self.bindings.insert(node.name.id.clone());
+    }
+
+    fn visit_procedure_definition(&mut self, node: &ProcedureDefinition) {
+        self.bindings.insert(node.name.id.clone());
+    }
+
+    fn visit_rule_definition(&mut self, node: &RuleDefinition) {
+        self.bindings.insert(node.name.id.clone());
+    }
+
     fn visit_application(&mut self, node: &Application) {
         match &node.function.value {
             Value::Builtin(Builtin::Pin) => {}

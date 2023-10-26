@@ -10,7 +10,7 @@ impl Labeler {
         Self { counter: 0 }
     }
 
-    pub fn unique_hint(&mut self, hint: &'static str) -> String {
+    pub fn unique_hint(&mut self, hint: &str) -> String {
         self.counter += 1;
         format!("#temp::{}::{hint}", self.counter)
     }
