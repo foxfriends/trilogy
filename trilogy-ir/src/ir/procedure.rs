@@ -6,6 +6,7 @@ use trilogy_parser::{syntax, Spanned};
 #[derive(Clone, Debug)]
 pub struct Procedure {
     pub span: Span,
+    pub head_span: Span,
     pub parameters: Vec<Expression>,
     pub body: Expression,
 }
@@ -13,6 +14,7 @@ pub struct Procedure {
 impl Procedure {
     pub(super) fn convert(converter: &mut Converter, ast: syntax::ProcedureDefinition) -> Self {
         let span = ast.span();
+        let head_span = ast.head.span();
         let parameters: Vec<_> = ast
             .head
             .parameters
@@ -22,6 +24,7 @@ impl Procedure {
         let body = Expression::convert_block(converter, ast.body);
         Self {
             span,
+            head_span,
             parameters,
             body,
         }
@@ -42,6 +45,7 @@ impl Procedure {
         };
         Self {
             span,
+            head_span: do_span.union(ast.cparen.span),
             parameters,
             body,
         }

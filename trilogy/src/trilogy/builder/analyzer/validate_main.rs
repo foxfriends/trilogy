@@ -1,6 +1,7 @@
 use super::prelude::*;
 use trilogy_ir::ir;
 
+/// Every program must have a definition for `proc main!()`.
 pub(super) fn validate_main<E: std::error::Error>(
     modules: &mut Modules,
     entrypoint: &Location,
@@ -23,11 +24,19 @@ pub(super) fn validate_main<E: std::error::Error>(
             ErrorKind::NoMainProcedure,
         )),
         Some(def) => match &def.item {
-            ir::DefinitionItem::Procedure(..) => {
+            ir::DefinitionItem::Procedure(proc) => {
                 // Force main to be exported. It needs to be accessible because
                 // programs are really just modules with a wrapper that automatically
                 // imports and calls `main`.
                 def.is_exported = true;
+                if !proc.overloads[0].parameters.is_empty() {
+                    report.error(Error::analysis(
+                        entrypoint.clone(),
+                        ErrorKind::MainHasParameters {
+                            proc: *proc.clone(),
+                        },
+                    ))
+                }
             }
             item => report.error(Error::analysis(
                 entrypoint.clone(),

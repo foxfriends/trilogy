@@ -216,6 +216,15 @@ impl<E: std::error::Error> Error<E> {
                 match error {
                     NoMainProcedure => ariadne::Report::build(kind, location, 0)
                         .with_message("no definition of `proc main!()` was found"),
+                    MainHasParameters { proc } => {
+                        let span = cache.span(location, proc.overloads[0].span);
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message("definition of `proc main!()` must not accept parameters")
+                            .with_label(Label::new(span).with_color(primary).with_message(format!(
+                                "procedure accepts {} parameters",
+                                proc.overloads[0].parameters.len()
+                            )))
+                    }
                     MainNotProcedure { item } => match item {
                         DefinitionItem::Function(func) => {
                             let span = cache.span(location, func.overloads[0].head_span);
