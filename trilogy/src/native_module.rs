@@ -164,6 +164,10 @@ impl NativeModule {
             module.write_to_chunk_at_path(location, child_path, chunk);
             chunk.label(next);
         }
-        chunk.instruction(Instruction::Fizzle);
+        let atom = chunk.atom("UnresolvedImport");
+        chunk
+            .instruction(Instruction::Const(atom.into()))
+            .instruction(Instruction::Construct)
+            .instruction(Instruction::Panic);
     }
 }

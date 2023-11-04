@@ -39,7 +39,7 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "runtime error: {}", self.kind)
+        write!(f, "{}", self.kind)
     }
 }
 
