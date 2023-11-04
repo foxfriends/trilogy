@@ -152,6 +152,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     let record = builder.atom("record");
     let tuple = builder.atom("tuple");
 
+    let not_iterable = builder.atom("NotIterable");
     builder
         .label(ITERATE_COLLECTION.to_owned())
         .instruction(Instruction::Copy)
@@ -183,7 +184,9 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_LIST)
-        .instruction(Instruction::Fizzle);
+        .instruction(Instruction::Const(not_iterable.into()))
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
 
     let iter_done = builder.labeler.unique_hint("iter_done");
     let next = builder.atom("next");
@@ -244,13 +247,15 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Exit);
 
     let yielding = builder.labeler.unique_hint("yielding");
+    let no_handler = builder.labeler.unique_hint("no_handler");
+    let unhandled_effect = builder.atom("UnhandledEffect");
 
     builder
         .label(YIELD.to_owned())
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
-        .cond_jump(END)
+        .cond_jump(&no_handler)
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Swap)
         .shift(&yielding)
@@ -259,5 +264,9 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::SetRegister(0))
         .instruction(Instruction::Return)
         .label(yielding)
-        .instruction(Instruction::Become(2));
+        .instruction(Instruction::Become(2))
+        .label(no_handler)
+        .instruction(Instruction::Const(unhandled_effect.into()))
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
 }
