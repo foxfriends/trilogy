@@ -39,6 +39,28 @@ pub(crate) fn write_module_definitions(
     }
 }
 
+/// Writes the prelude of the module. The prelude consists of:
+/// 1. Accepting all parameters
+/// 2. Binding the parameters to their variables
+/// 3. Evaluating constants
+/// 4. Initializing submodules
+/// 5. Creating the exported member lookup function
+///
+/// During constant evaluation, variables must be checked for boundness. If they
+/// are not yet bound, then execution fizzles.
+///
+/// This does *not* take into account the order in which declarations should
+/// be evaluated. That must be resolved ahead of time... by someone else.
+/// Really all that matters is that every value is evaluated before any
+/// expression that references it. The better that resolution, the less likely
+/// we have false-positive circular dependencies.
+///
+/// The tricky part is that inline modules may reference a lot of things from
+/// their parent module while the parent module may also be referencing things
+/// from the child... The suggested ordering then:
+/// 1. Constants that don't reference child modules
+/// 2. Constants that reference parameterless child modules
+/// 3. Constants that reference parameterized child modules
 pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, mode: Mode) {
     // Record how many values are in the parent context ahead of time. We'll be modifying
     // the context with new entries shortly.

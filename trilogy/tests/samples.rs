@@ -338,7 +338,6 @@ fn sample_module_private_member() {
 }
 
 #[test]
-#[ignore = "currently broken"]
 fn sample_export_submodule() {
     let program = include_tri!("export_submodule.tri");
     assert_eq!(program.run().unwrap(), Value::from(5));

@@ -120,7 +120,7 @@ impl<C: Cache> Builder<C> {
         cache = report.checkpoint(&root_path, cache)?;
         let mut modules = analyzer::analyze(documents, &mut report);
 
-        // A bit hacky to be construction IR errors here, and not in the IR crate,
+        // A bit hacky to be constructing IR errors here, and not in the IR crate,
         // but... whatever, it's easier, and this is a nice one-off check for now.
         let entrymodule = modules.get_mut(&entrypoint);
         let main = entrymodule
