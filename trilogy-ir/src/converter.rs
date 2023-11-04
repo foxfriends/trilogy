@@ -9,13 +9,13 @@ pub trait Resolver {
     fn resolve(&self, locator: &str) -> String;
 }
 
-pub struct Analyzer<'a> {
+pub struct Converter<'a> {
     resolver: &'a dyn Resolver,
     errors: Vec<Error>,
     scope: Scope,
 }
 
-impl<'a> Analyzer<'a> {
+impl<'a> Converter<'a> {
     pub fn new(resolver: &'a dyn Resolver) -> Self {
         Self {
             resolver,
@@ -24,7 +24,7 @@ impl<'a> Analyzer<'a> {
         }
     }
 
-    pub fn analyze(&mut self, document: syntax::Document) -> Module {
+    pub fn convert(&mut self, document: syntax::Document) -> Module {
         Module::convert(self, document)
     }
 

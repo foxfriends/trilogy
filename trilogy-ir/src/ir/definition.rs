@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::*;
-use crate::{symbol::Symbol, Analyzer, Error, Id};
+use crate::{symbol::Symbol, Converter, Error, Id};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -100,112 +100,114 @@ impl Definition {
     }
 
     pub(super) fn convert_into(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         ast: syntax::Definition,
         definitions: &mut Definitions,
     ) {
         match ast.item {
             syntax::DefinitionItem::Export(ast) => {
                 for name in ast.names {
-                    match analyzer.declared(name.as_ref()) {
+                    match converter.declared(name.as_ref()) {
                         Some(Symbol { id, .. }) => {
                             definitions.get_mut(id).unwrap().is_exported = true;
                         }
                         None => {
-                            analyzer.error(Error::UnknownExport { name: name.clone() });
+                            converter.error(Error::UnknownExport { name: name.clone() });
                         }
                     }
                 }
             }
             syntax::DefinitionItem::Constant(ast) => {
-                let symbol = analyzer.declared(ast.name.as_ref()).unwrap();
+                let symbol = converter.declared(ast.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Constant(constant) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
                         duplicate: ast.name,
                     };
-                    analyzer.error(error);
+                    converter.error(error);
                     return;
                 };
-                constant.value = Expression::convert(analyzer, ast.body);
+                constant.value = Expression::convert(converter, ast.body);
             }
             syntax::DefinitionItem::ExternalModule(..) => {}
             syntax::DefinitionItem::Function(ast) => {
-                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Function(function) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
                         duplicate: ast.head.name,
                     };
-                    analyzer.error(error);
+                    converter.error(error);
                     return;
                 };
-                function.overloads.push(Function::convert(analyzer, *ast))
+                function.overloads.push(Function::convert(converter, *ast))
             }
             syntax::DefinitionItem::Module(ast) => {
-                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Module(module) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
                         duplicate: ast.head.name,
                     };
-                    analyzer.error(error);
+                    converter.error(error);
                     return;
                 };
-                module.module = Arc::new(ModuleCell::new(Module::convert_module(analyzer, *ast)));
+                module.module = Arc::new(ModuleCell::new(Module::convert_module(converter, *ast)));
             }
             syntax::DefinitionItem::Procedure(ast) => {
-                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Procedure(procedure) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
                         duplicate: ast.head.name,
                     };
-                    analyzer.error(error);
+                    converter.error(error);
                     return;
                 };
-                procedure.overloads.push(Procedure::convert(analyzer, *ast))
+                procedure
+                    .overloads
+                    .push(Procedure::convert(converter, *ast))
             }
             syntax::DefinitionItem::Rule(ast) => {
-                let symbol = analyzer.declared(ast.head.name.as_ref()).unwrap();
+                let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
                 let DefinitionItem::Rule(rule) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
                         duplicate: ast.head.name,
                     };
-                    analyzer.error(error);
+                    converter.error(error);
                     return;
                 };
-                rule.overloads.push(Rule::convert(analyzer, *ast))
+                rule.overloads.push(Rule::convert(converter, *ast))
             }
             syntax::DefinitionItem::Test(ast) => {
                 definitions.push(Definition {
                     span: ast.span(),
-                    item: DefinitionItem::Test(Box::new(TestDefinition::convert(analyzer, *ast))),
+                    item: DefinitionItem::Test(Box::new(TestDefinition::convert(converter, *ast))),
                     is_exported: false,
                 });
             }
         }
     }
 
-    pub(super) fn declare(analyzer: &mut Analyzer, ast: &syntax::Definition) -> Vec<Self> {
+    pub(super) fn declare(converter: &mut Converter, ast: &syntax::Definition) -> Vec<Self> {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
             syntax::DefinitionItem::Constant(ast) => {
-                if let Some(original) = analyzer.declared(ast.name.as_ref()) {
+                if let Some(original) = converter.declared(ast.name.as_ref()) {
                     let original = original.declaration_span;
-                    analyzer.error(Error::DuplicateDefinition {
+                    converter.error(Error::DuplicateDefinition {
                         original,
                         duplicate: ast.name.clone(),
                     });
                     return vec![];
                 }
-                let name = Identifier::declare(analyzer, ast.name.clone());
+                let name = Identifier::declare(converter, ast.name.clone());
                 Self {
                     span: ast.span(),
                     item: DefinitionItem::Constant(Box::new(ConstantDefinition::declare(name))),
@@ -213,30 +215,30 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::ExternalModule(ast) => {
-                if let Some(original) = analyzer.declared(ast.head.name.as_ref()) {
+                if let Some(original) = converter.declared(ast.head.name.as_ref()) {
                     let original = original.declaration_span;
-                    analyzer.error(Error::DuplicateDefinition {
+                    converter.error(Error::DuplicateDefinition {
                         original,
                         duplicate: ast.head.name.clone(),
                     });
                     return vec![];
                 }
-                let name = Identifier::declare(analyzer, ast.head.name.clone());
+                let name = Identifier::declare(converter, ast.head.name.clone());
                 Self {
                     span: ast.span(),
                     item: DefinitionItem::Module(Box::new(ModuleDefinition::external(
                         name,
-                        analyzer.resolve(&ast.locator.value()),
+                        converter.resolve(&ast.locator.value()),
                     ))),
                     is_exported: false,
                 }
             }
             syntax::DefinitionItem::Function(ast) => {
-                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                if converter.declared(ast.head.name.as_ref()).is_some() {
                     return vec![];
                 }
                 let span = ast.span();
-                let name = Identifier::declare(analyzer, ast.head.name.clone());
+                let name = Identifier::declare(converter, ast.head.name.clone());
                 Self {
                     span,
                     item: DefinitionItem::Function(Box::new(FunctionDefinition::declare(name))),
@@ -244,15 +246,15 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Module(ast) => {
-                if let Some(original) = analyzer.declared(ast.head.name.as_ref()) {
+                if let Some(original) = converter.declared(ast.head.name.as_ref()) {
                     let original = original.declaration_span;
-                    analyzer.error(Error::DuplicateDefinition {
+                    converter.error(Error::DuplicateDefinition {
                         original,
                         duplicate: ast.head.name.clone(),
                     });
                     return vec![];
                 }
-                let name = Identifier::declare(analyzer, ast.head.name.clone());
+                let name = Identifier::declare(converter, ast.head.name.clone());
                 Self {
                     span: ast.span(),
                     item: DefinitionItem::Module(Box::new(ModuleDefinition::declare(name))),
@@ -260,16 +262,16 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Procedure(ast) => {
-                if let Some(original) = analyzer.declared(ast.head.name.as_ref()) {
+                if let Some(original) = converter.declared(ast.head.name.as_ref()) {
                     let original = original.declaration_span;
-                    analyzer.error(Error::DuplicateDefinition {
+                    converter.error(Error::DuplicateDefinition {
                         original,
                         duplicate: ast.head.name.clone(),
                     });
                     return vec![];
                 }
                 let span = ast.span();
-                let name = Identifier::declare(analyzer, ast.head.name.clone());
+                let name = Identifier::declare(converter, ast.head.name.clone());
                 Self {
                     span,
                     item: DefinitionItem::Procedure(Box::new(ProcedureDefinition::declare(name))),
@@ -277,11 +279,11 @@ impl Definition {
                 }
             }
             syntax::DefinitionItem::Rule(ast) => {
-                if analyzer.declared(ast.head.name.as_ref()).is_some() {
+                if converter.declared(ast.head.name.as_ref()).is_some() {
                     return vec![];
                 }
                 let span = ast.span();
-                let name = Identifier::declare(analyzer, ast.head.name.clone());
+                let name = Identifier::declare(converter, ast.head.name.clone());
                 Self {
                     span,
                     item: DefinitionItem::Rule(Box::new(RuleDefinition::declare(name))),

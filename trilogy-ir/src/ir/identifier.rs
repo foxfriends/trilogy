@@ -1,4 +1,4 @@
-use crate::{symbol::Symbol, Analyzer, Id};
+use crate::{symbol::Symbol, Converter, Id};
 use source_span::Span;
 use std::fmt::Display;
 use trilogy_parser::{syntax, Spanned};
@@ -12,8 +12,8 @@ pub struct Identifier {
 }
 
 impl Identifier {
-    pub(super) fn temporary(analyzer: &mut Analyzer, span: Span) -> Self {
-        let id = analyzer.temporary();
+    pub(super) fn temporary(converter: &mut Converter, span: Span) -> Self {
+        let id = converter.temporary();
         Self {
             declaration_span: span,
             span,
@@ -23,7 +23,7 @@ impl Identifier {
     }
 
     pub(crate) fn declare_binding(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         binding: syntax::BindingPattern,
     ) -> Identifier {
         let span = binding.span();
@@ -32,7 +32,7 @@ impl Identifier {
             id,
             declaration_span,
             ..
-        } = analyzer
+        } = converter
             .declare(binding.identifier.into(), is_mutable, span)
             .clone();
         Self {
@@ -43,13 +43,13 @@ impl Identifier {
         }
     }
 
-    pub(crate) fn declare(analyzer: &mut Analyzer, identifier: syntax::Identifier) -> Identifier {
+    pub(crate) fn declare(converter: &mut Converter, identifier: syntax::Identifier) -> Identifier {
         let span = identifier.span();
         let Symbol {
             id,
             is_mutable,
             declaration_span,
-        } = analyzer.declare(identifier.into(), false, span).clone();
+        } = converter.declare(identifier.into(), false, span).clone();
         Self {
             span,
             declaration_span,
@@ -59,15 +59,15 @@ impl Identifier {
     }
 
     pub(crate) fn unresolved(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         identifier: syntax::Identifier,
     ) -> Identifier {
         // Quietly this is the same thing, but we call it unresolved out there so it looks better.
-        Self::declare(analyzer, identifier)
+        Self::declare(converter, identifier)
     }
 
     pub(crate) fn declared(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         identifier: &syntax::Identifier,
     ) -> Option<Identifier> {
         let span = identifier.span();
@@ -76,7 +76,7 @@ impl Identifier {
             declaration_span,
             is_mutable,
             ..
-        } = analyzer.declared(identifier.as_ref())?.clone();
+        } = converter.declared(identifier.as_ref())?.clone();
         Some(Self {
             span,
             declaration_span,

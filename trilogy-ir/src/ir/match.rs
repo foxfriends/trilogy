@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -11,35 +11,35 @@ pub struct Match {
 
 impl Match {
     pub(super) fn convert_statement(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         ast: syntax::MatchStatement,
     ) -> Expression {
         let span = ast.span();
-        let expression = Expression::convert(analyzer, ast.expression);
+        let expression = Expression::convert(converter, ast.expression);
         let else_case = ast
             .else_case
-            .map(|ast| Expression::convert_block(analyzer, ast))
+            .map(|ast| Expression::convert_block(converter, ast))
             .unwrap_or_else(|| Expression::unit(span));
         let mut cases: Vec<_> = ast
             .cases
             .into_iter()
-            .map(|ast| Case::convert_statement(analyzer, ast))
+            .map(|ast| Case::convert_statement(converter, ast))
             .collect();
         cases.push(Case::new_fallback(else_case));
         Expression::r#match(span, Self { expression, cases })
     }
 
     pub(super) fn convert_expression(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         ast: syntax::MatchExpression,
     ) -> Expression {
         let span = ast.span();
-        let expression = Expression::convert(analyzer, ast.expression);
-        let else_case = Expression::convert(analyzer, ast.no_match);
+        let expression = Expression::convert(converter, ast.expression);
+        let else_case = Expression::convert(converter, ast.no_match);
         let mut cases: Vec<_> = ast
             .cases
             .into_iter()
-            .map(|ast| Case::convert_expression(analyzer, ast))
+            .map(|ast| Case::convert_expression(converter, ast))
             .collect();
         cases.push(Case::new_fallback(else_case));
         Expression::r#match(span, Self { expression, cases })
@@ -65,20 +65,20 @@ impl Case {
         }
     }
 
-    fn convert_statement(analyzer: &mut Analyzer, ast: syntax::MatchStatementCase) -> Self {
+    fn convert_statement(converter: &mut Converter, ast: syntax::MatchStatementCase) -> Self {
         let case_span = ast.case_token().span;
         let span = ast.span();
-        analyzer.push_scope();
+        converter.push_scope();
         let pattern = ast
             .pattern
-            .map(|ast| Expression::convert_pattern(analyzer, ast))
+            .map(|ast| Expression::convert_pattern(converter, ast))
             .unwrap_or_else(|| Expression::wildcard(case_span));
         let guard = ast
             .guard
-            .map(|ast| Expression::convert(analyzer, ast))
+            .map(|ast| Expression::convert(converter, ast))
             .unwrap_or_else(|| Expression::boolean(case_span, true));
-        let body = Expression::convert_block(analyzer, ast.body);
-        analyzer.pop_scope();
+        let body = Expression::convert_block(converter, ast.body);
+        converter.pop_scope();
         Self {
             span,
             pattern,
@@ -87,20 +87,20 @@ impl Case {
         }
     }
 
-    fn convert_expression(analyzer: &mut Analyzer, ast: syntax::MatchExpressionCase) -> Self {
+    fn convert_expression(converter: &mut Converter, ast: syntax::MatchExpressionCase) -> Self {
         let case_span = ast.case_token().span;
         let span = ast.span();
-        analyzer.push_scope();
+        converter.push_scope();
         let pattern = ast
             .pattern
-            .map(|ast| Expression::convert_pattern(analyzer, ast))
+            .map(|ast| Expression::convert_pattern(converter, ast))
             .unwrap_or_else(|| Expression::wildcard(case_span));
         let guard = ast
             .guard
-            .map(|ast| Expression::convert(analyzer, ast))
+            .map(|ast| Expression::convert(converter, ast))
             .unwrap_or_else(|| Expression::boolean(case_span, true));
-        let body = Expression::convert(analyzer, ast.body);
-        analyzer.pop_scope();
+        let body = Expression::convert(converter, ast.body);
+        converter.pop_scope();
         Self {
             span,
             pattern,

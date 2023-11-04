@@ -1,7 +1,7 @@
 use trilogy_parser::syntax;
 
 use super::*;
-use crate::{Analyzer, Id};
+use crate::{Converter, Id};
 
 #[derive(Clone, Debug)]
 pub struct Definitions(pub(crate) Vec<Definition>);
@@ -22,13 +22,13 @@ impl Definitions {
         self.0.push(definition);
     }
 
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: Vec<syntax::Definition>) -> Self {
+    pub(super) fn convert(converter: &mut Converter, ast: Vec<syntax::Definition>) -> Self {
         let mut definitions = ast
             .iter()
-            .flat_map(|ast| Definition::declare(analyzer, ast))
+            .flat_map(|ast| Definition::declare(converter, ast))
             .collect::<Self>();
         for definition in ast {
-            Definition::convert_into(analyzer, definition, &mut definitions);
+            Definition::convert_into(converter, definition, &mut definitions);
         }
         definitions
     }

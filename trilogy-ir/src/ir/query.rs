@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -10,13 +10,13 @@ pub struct Query {
 }
 
 impl Query {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Query) -> Self {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::Query) -> Self {
         use syntax::Query::*;
         match ast {
             Disjunction(ast) => {
                 let span = ast.span();
-                let lhs = Self::convert(analyzer, ast.lhs);
-                let rhs = Self::convert(analyzer, ast.rhs);
+                let lhs = Self::convert(converter, ast.lhs);
+                let rhs = Self::convert(converter, ast.rhs);
                 // NOTE: checking for disjoint bindings here is not
                 // correct, as variables may be used in the pattern
                 // more than once, and then not used in the body,
@@ -28,28 +28,30 @@ impl Query {
             }
             Conjunction(ast) => Self::conjunction(
                 ast.span(),
-                Self::convert(analyzer, ast.lhs),
-                Self::convert(analyzer, ast.rhs),
+                Self::convert(converter, ast.lhs),
+                Self::convert(converter, ast.rhs),
             ),
             Implication(ast) => Self::implication(
                 ast.span(),
-                Self::convert(analyzer, ast.lhs),
-                Self::convert(analyzer, ast.rhs),
+                Self::convert(converter, ast.lhs),
+                Self::convert(converter, ast.rhs),
             ),
             Alternative(ast) => {
                 let span = ast.span();
-                let lhs = Self::convert(analyzer, ast.lhs);
-                let rhs = Self::convert(analyzer, ast.rhs);
+                let lhs = Self::convert(converter, ast.lhs);
+                let rhs = Self::convert(converter, ast.rhs);
                 Self::alternative(span, lhs, rhs)
             }
-            Direct(ast) => Self::direct(ast.span(), Unification::convert_direct(analyzer, *ast)),
-            Element(ast) => Self::element(ast.span(), Unification::convert_element(analyzer, *ast)),
-            Parenthesized(ast) => Self::convert(analyzer, ast.query),
-            Lookup(ast) => Self::lookup(ast.span(), crate::ir::Lookup::convert(analyzer, *ast)),
+            Direct(ast) => Self::direct(ast.span(), Unification::convert_direct(converter, *ast)),
+            Element(ast) => {
+                Self::element(ast.span(), Unification::convert_element(converter, *ast))
+            }
+            Parenthesized(ast) => Self::convert(converter, ast.query),
+            Lookup(ast) => Self::lookup(ast.span(), crate::ir::Lookup::convert(converter, *ast)),
             Pass(token) => Self::pass(token.span()),
             End(token) => Self::end(token.span()),
-            Is(ast) => Self::is(ast.span(), Expression::convert(analyzer, ast.expression)),
-            Not(ast) => Self::not(ast.span(), Self::convert(analyzer, ast.query)),
+            Is(ast) => Self::is(ast.span(), Expression::convert(converter, ast.expression)),
+            Not(ast) => Self::not(ast.span(), Self::convert(converter, ast.query)),
         }
     }
 

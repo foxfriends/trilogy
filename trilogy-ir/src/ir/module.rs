@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -11,9 +11,9 @@ pub struct Module {
 }
 
 impl Module {
-    pub(crate) fn convert(analyzer: &mut Analyzer, ast: syntax::Document) -> Self {
+    pub(crate) fn convert(converter: &mut Converter, ast: syntax::Document) -> Self {
         let span = ast.span();
-        let definitions = Definitions::convert(analyzer, ast.definitions);
+        let definitions = Definitions::convert(converter, ast.definitions);
         Self {
             span,
             parameters: vec![],
@@ -21,17 +21,17 @@ impl Module {
         }
     }
 
-    pub(crate) fn convert_module(analyzer: &mut Analyzer, ast: syntax::ModuleDefinition) -> Self {
-        analyzer.push_scope();
+    pub(crate) fn convert_module(converter: &mut Converter, ast: syntax::ModuleDefinition) -> Self {
+        converter.push_scope();
         let span = ast.span();
         let parameters: Vec<_> = ast
             .head
             .parameters
             .into_iter()
-            .map(|param| Expression::reference(param.span(), Identifier::declare(analyzer, param)))
+            .map(|param| Expression::reference(param.span(), Identifier::declare(converter, param)))
             .collect();
-        let definitions = Definitions::convert(analyzer, ast.definitions);
-        analyzer.pop_scope();
+        let definitions = Definitions::convert(converter, ast.definitions);
+        converter.pop_scope();
         Self {
             span,
             parameters,

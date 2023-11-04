@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -9,10 +9,10 @@ pub struct TestDefinition {
 }
 
 impl TestDefinition {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::TestDefinition) -> Self {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::TestDefinition) -> Self {
         Self {
             name: ast.name.value(),
-            body: Expression::convert_block(analyzer, ast.body),
+            body: Expression::convert_block(converter, ast.body),
         }
     }
 }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Error};
+use crate::{Converter, Error};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -10,7 +10,7 @@ pub struct Expression {
 }
 
 impl Expression {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Expression) -> Self {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::Expression) -> Self {
         use syntax::Expression::*;
         match ast {
             Number(ast) => Self::number(ast.span(), crate::ir::Number::convert(*ast)),
@@ -21,7 +21,7 @@ impl Expression {
             Unit(ast) => Self::unit(ast.span()),
             Atom(ast) => Self::atom(ast.span(), ast.value()),
             Struct(ast) => Self::builtin(ast.span(), Builtin::Construct)
-                .apply_to(ast.value.span(), Self::convert(analyzer, ast.value))
+                .apply_to(ast.value.span(), Self::convert(converter, ast.value))
                 .apply_to(
                     ast.atom.span(),
                     Self::atom(ast.atom.span(), ast.atom.value()),
@@ -32,7 +32,7 @@ impl Expression {
                 let elements = ast
                     .elements
                     .into_iter()
-                    .map(|element| Element::convert_array(analyzer, element))
+                    .map(|element| Element::convert_array(converter, element))
                     .collect::<Pack>();
                 Self::builtin(start_span, Builtin::Array).apply_to(span, Self::pack(span, elements))
             }
@@ -42,7 +42,7 @@ impl Expression {
                 let elements = ast
                     .elements
                     .into_iter()
-                    .map(|element| Element::convert_set(analyzer, element))
+                    .map(|element| Element::convert_set(converter, element))
                     .collect::<Pack>();
                 Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
             }
@@ -52,7 +52,7 @@ impl Expression {
                 let elements = ast
                     .elements
                     .into_iter()
-                    .map(|element| Element::convert_record(analyzer, element))
+                    .map(|element| Element::convert_record(converter, element))
                     .collect::<Pack>();
                 Self::builtin(start_span, Builtin::Record)
                     .apply_to(span, Self::pack(span, elements))
@@ -60,13 +60,13 @@ impl Expression {
             ArrayComprehension(ast) => {
                 let start_span = ast.start_token().span;
                 let span = ast.span();
-                let iterator = Self::convert_iterator(analyzer, ast.query, ast.expression);
+                let iterator = Self::convert_iterator(converter, ast.query, ast.expression);
                 Self::builtin(start_span, Builtin::Array).apply_to(span, iterator)
             }
             SetComprehension(ast) => {
                 let start_span = ast.start_token().span;
                 let span = ast.span();
-                let iterator = Self::convert_iterator(analyzer, ast.query, ast.expression);
+                let iterator = Self::convert_iterator(converter, ast.query, ast.expression);
                 Self::builtin(start_span, Builtin::Set).apply_to(span, iterator)
             }
             RecordComprehension(ast) => {
@@ -77,11 +77,11 @@ impl Expression {
                     .span()
                     .union(ast.key_expression.span())
                     .union(ast.expression.span());
-                analyzer.push_scope();
-                let query = Query::convert(analyzer, ast.query);
-                let key = Self::convert(analyzer, ast.key_expression);
-                let value = Self::convert(analyzer, ast.expression);
-                analyzer.pop_scope();
+                converter.push_scope();
+                let query = Query::convert(converter, ast.query);
+                let key = Self::convert(converter, ast.key_expression);
+                let value = Self::convert(converter, ast.expression);
+                converter.pop_scope();
                 let iterator = Self::iterator(
                     iter_span,
                     query,
@@ -90,31 +90,31 @@ impl Expression {
                 Self::builtin(start_span, Builtin::Set).apply_to(span, iterator)
             }
             IteratorComprehension(ast) => {
-                Self::convert_iterator(analyzer, ast.query, ast.expression)
+                Self::convert_iterator(converter, ast.query, ast.expression)
             }
             Reference(ast) => Self::reference(
                 ast.span(),
-                Identifier::declared(analyzer, &ast).unwrap_or_else(|| {
-                    analyzer.error(Error::UnboundIdentifier {
+                Identifier::declared(converter, &ast).unwrap_or_else(|| {
+                    converter.error(Error::UnboundIdentifier {
                         name: (*ast).clone(),
                     });
-                    Identifier::unresolved(analyzer, *ast)
+                    Identifier::unresolved(converter, *ast)
                 }),
             ),
             Keyword(ast) => Builtin::convert(*ast),
             Application(ast) => Self::application(
                 ast.span(),
-                Self::convert(analyzer, ast.function),
-                Self::convert(analyzer, ast.argument),
+                Self::convert(converter, ast.function),
+                Self::convert(converter, ast.argument),
             ),
             Call(ast) => {
                 let span = ast.span();
                 let argument_span = ast.start_token().span.union(ast.end_token().span);
-                let proc = Self::convert(analyzer, ast.procedure);
+                let proc = Self::convert(converter, ast.procedure);
                 let arguments = ast
                     .arguments
                     .into_iter()
-                    .map(|ast| Self::convert(analyzer, ast))
+                    .map(|ast| Self::convert(converter, ast))
                     .collect::<Pack>();
                 let arguments = Self::pack(argument_span, arguments);
                 Self::application(span, proc, arguments)
@@ -123,112 +123,112 @@ impl Expression {
                 let span = ast.span();
                 let lhs_span = ast.operator.span().union(ast.lhs.span());
                 let op = Builtin::convert_binary(ast.operator);
-                op.apply_to(lhs_span, Self::convert(analyzer, ast.lhs))
-                    .apply_to(span, Self::convert(analyzer, ast.rhs))
+                op.apply_to(lhs_span, Self::convert(converter, ast.lhs))
+                    .apply_to(span, Self::convert(converter, ast.rhs))
             }
             Unary(ast) => {
                 let span = ast.span();
                 let op = Builtin::convert_unary(ast.operator);
-                op.apply_to(span, Self::convert(analyzer, ast.operand))
+                op.apply_to(span, Self::convert(converter, ast.operand))
             }
-            Let(ast) => crate::ir::Let::convert(analyzer, *ast),
-            IfElse(ast) => crate::ir::IfElse::convert_expression(analyzer, *ast),
-            Match(ast) => crate::ir::Match::convert_expression(analyzer, *ast),
+            Let(ast) => crate::ir::Let::convert(converter, *ast),
+            IfElse(ast) => crate::ir::IfElse::convert_expression(converter, *ast),
+            Match(ast) => crate::ir::Match::convert_expression(converter, *ast),
             Is(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.is_token().span, Builtin::Is),
-                Self::convert_query(analyzer, ast.query),
+                Self::convert_query(converter, ast.query),
             ),
             End(ast) => Self::end(ast.span()),
             Exit(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.exit_token().span, Builtin::Exit),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
             Resume(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.resume_token().span, Builtin::Resume),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
             Cancel(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.cancel_token().span, Builtin::Cancel),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
             Return(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.return_token().span, Builtin::Return),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
             Break(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.break_token().span, Builtin::Break),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
             Continue(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.continue_token().span, Builtin::Continue),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
-            Fn(ast) => Self::function(ast.span(), Function::convert_fn(analyzer, *ast)),
-            Do(ast) => Self::procedure(ast.span(), Procedure::convert_do(analyzer, *ast)),
-            Template(ast) => Self::convert_template(analyzer, *ast),
-            Handled(ast) => crate::ir::Handled::convert_expression(analyzer, *ast),
-            Parenthesized(ast) => Self::convert(analyzer, ast.expression),
+            Fn(ast) => Self::function(ast.span(), Function::convert_fn(converter, *ast)),
+            Do(ast) => Self::procedure(ast.span(), Procedure::convert_do(converter, *ast)),
+            Template(ast) => Self::convert_template(converter, *ast),
+            Handled(ast) => crate::ir::Handled::convert_expression(converter, *ast),
+            Parenthesized(ast) => Self::convert(converter, ast.expression),
             ModuleAccess(ast) => {
                 let span = ast.span();
                 let lhs_span = ast.lhs.span().union(ast.access_token().span());
                 Self::builtin(ast.access_token().span, Builtin::ModuleAccess)
-                    .apply_to(lhs_span, Self::convert(analyzer, ast.lhs))
+                    .apply_to(lhs_span, Self::convert(converter, ast.lhs))
                     .apply_to(span, Self::dynamic(ast.rhs))
             }
         }
     }
 
-    pub(super) fn convert_block(analyzer: &mut Analyzer, ast: syntax::Block) -> Self {
+    pub(super) fn convert_block(converter: &mut Converter, ast: syntax::Block) -> Self {
         let span = ast.span();
-        analyzer.push_scope();
-        let sequence = Self::convert_sequence(analyzer, &mut ast.statements.into_iter());
-        analyzer.pop_scope();
+        converter.push_scope();
+        let sequence = Self::convert_sequence(converter, &mut ast.statements.into_iter());
+        converter.pop_scope();
         Self::sequence(span, sequence)
     }
 
     pub(super) fn convert_sequence(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         statements: &mut impl std::iter::Iterator<Item = syntax::Statement>,
     ) -> Vec<Self> {
         let mut sequence = vec![];
-        Self::convert_sequence_into(analyzer, statements, &mut sequence);
+        Self::convert_sequence_into(converter, statements, &mut sequence);
         sequence
     }
 
     fn convert_sequence_into(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         statements: &mut impl std::iter::Iterator<Item = syntax::Statement>,
         sequence: &mut Vec<Self>,
     ) {
         let statement = match statements.next() {
-            Some(ast) => Self::convert_statement(analyzer, ast, statements),
+            Some(ast) => Self::convert_statement(converter, ast, statements),
             None => return,
         };
         sequence.push(statement);
-        Self::convert_sequence_into(analyzer, statements, sequence);
+        Self::convert_sequence_into(converter, statements, sequence);
     }
 
     fn convert_statement(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         ast: syntax::Statement,
         rest: &mut impl std::iter::Iterator<Item = syntax::Statement>,
     ) -> Self {
         use syntax::Statement::*;
         match ast {
-            Let(ast) => crate::ir::Let::convert_statement(analyzer, *ast, rest),
-            Assignment(ast) => crate::ir::Assignment::convert(analyzer, *ast),
-            FunctionAssignment(ast) => crate::ir::Assignment::convert_function(analyzer, *ast),
-            If(ast) => IfElse::convert_statement(analyzer, *ast),
-            Match(ast) => crate::ir::Match::convert_statement(analyzer, *ast),
-            While(ast) => crate::ir::While::convert(analyzer, *ast),
-            For(ast) => Self::convert_for_statement(analyzer, *ast),
+            Let(ast) => crate::ir::Let::convert_statement(converter, *ast, rest),
+            Assignment(ast) => crate::ir::Assignment::convert(converter, *ast),
+            FunctionAssignment(ast) => crate::ir::Assignment::convert_function(converter, *ast),
+            If(ast) => IfElse::convert_statement(converter, *ast),
+            Match(ast) => crate::ir::Match::convert_statement(converter, *ast),
+            While(ast) => crate::ir::While::convert(converter, *ast),
+            For(ast) => Self::convert_for_statement(converter, *ast),
             Break(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.span(), Builtin::Break),
@@ -245,7 +245,7 @@ impl Expression {
                     span,
                     Self::builtin(ast.resume_token().span, Builtin::Resume),
                     ast.expression
-                        .map(|ast| Self::convert(analyzer, ast))
+                        .map(|ast| Self::convert(converter, ast))
                         .unwrap_or_else(|| Self::unit(span)),
                 )
             }
@@ -255,7 +255,7 @@ impl Expression {
                     span,
                     Self::builtin(ast.cancel_token().span, Builtin::Cancel),
                     ast.expression
-                        .map(|ast| Self::convert(analyzer, ast))
+                        .map(|ast| Self::convert(converter, ast))
                         .unwrap_or_else(|| Self::unit(span)),
                 )
             }
@@ -265,7 +265,7 @@ impl Expression {
                     span,
                     Self::builtin(ast.return_token().span, Builtin::Return),
                     ast.expression
-                        .map(|ast| Self::convert(analyzer, ast))
+                        .map(|ast| Self::convert(converter, ast))
                         .unwrap_or_else(|| Self::unit(span)),
                 )
             }
@@ -273,38 +273,38 @@ impl Expression {
             Exit(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.exit_token().span, Builtin::Exit),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
             Yield(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.yield_token().span, Builtin::Yield),
-                Self::convert(analyzer, ast.expression),
+                Self::convert(converter, ast.expression),
             ),
-            Expression(ast) => Self::convert(analyzer, *ast),
-            Assert(ast) => Self::assert(ast.span(), crate::ir::Assert::convert(analyzer, *ast)),
-            Handled(ast) => crate::ir::Handled::convert_block(analyzer, *ast),
-            Block(ast) => Self::convert_block(analyzer, *ast),
+            Expression(ast) => Self::convert(converter, *ast),
+            Assert(ast) => Self::assert(ast.span(), crate::ir::Assert::convert(converter, *ast)),
+            Handled(ast) => crate::ir::Handled::convert_block(converter, *ast),
+            Block(ast) => Self::convert_block(converter, *ast),
         }
     }
 
-    pub(super) fn convert_query(analyzer: &mut Analyzer, ast: syntax::Query) -> Self {
+    pub(super) fn convert_query(converter: &mut Converter, ast: syntax::Query) -> Self {
         let span = ast.span();
-        let query = Query::convert(analyzer, ast);
+        let query = Query::convert(converter, ast);
         Self::query(span, query)
     }
 
-    pub(super) fn convert_pattern(analyzer: &mut Analyzer, ast: syntax::Pattern) -> Self {
+    pub(super) fn convert_pattern(converter: &mut Converter, ast: syntax::Pattern) -> Self {
         use syntax::Pattern::*;
         match ast {
             Conjunction(ast) => Self::conjunction(
                 ast.span(),
-                Self::convert_pattern(analyzer, ast.lhs),
-                Self::convert_pattern(analyzer, ast.rhs),
+                Self::convert_pattern(converter, ast.lhs),
+                Self::convert_pattern(converter, ast.rhs),
             ),
             Disjunction(ast) => Self::disjunction(
                 ast.span(),
-                Self::convert_pattern(analyzer, ast.lhs),
-                Self::convert_pattern(analyzer, ast.rhs),
+                Self::convert_pattern(converter, ast.lhs),
+                Self::convert_pattern(converter, ast.rhs),
             ),
             Number(ast) => Self::number(ast.span(), crate::ir::Number::convert(*ast)),
             Character(ast) => Self::character(ast.span(), ast.value()),
@@ -315,7 +315,7 @@ impl Expression {
             Atom(ast) => Self::atom(ast.span(), ast.value()),
             Wildcard(ast) => Self::wildcard(ast.span()),
             Negative(ast) => Self::builtin(ast.minus_token().span, Builtin::Negate)
-                .apply_to(ast.span(), Self::convert_pattern(analyzer, ast.pattern)),
+                .apply_to(ast.span(), Self::convert_pattern(converter, ast.pattern)),
             Glue(ast) => {
                 let glue_span = ast.glue_token().span;
                 let lhs_span = ast.lhs.span();
@@ -323,14 +323,14 @@ impl Expression {
                 Self::builtin(glue_span, Builtin::Glue)
                     .apply_to(
                         lhs_span.union(glue_span),
-                        Self::convert_pattern(analyzer, ast.lhs),
+                        Self::convert_pattern(converter, ast.lhs),
                     )
-                    .apply_to(span, Self::convert_pattern(analyzer, ast.rhs))
+                    .apply_to(span, Self::convert_pattern(converter, ast.rhs))
             }
             Struct(ast) => Self::builtin(ast.span(), Builtin::Construct)
                 .apply_to(
                     ast.pattern.span(),
-                    Self::convert_pattern(analyzer, ast.pattern),
+                    Self::convert_pattern(converter, ast.pattern),
                 )
                 .apply_to(
                     ast.atom.span(),
@@ -343,9 +343,9 @@ impl Expression {
                 Self::builtin(cons_span, Builtin::Cons)
                     .apply_to(
                         lhs_span.union(cons_span),
-                        Self::convert_pattern(analyzer, ast.lhs),
+                        Self::convert_pattern(converter, ast.lhs),
                     )
-                    .apply_to(span, Self::convert_pattern(analyzer, ast.rhs))
+                    .apply_to(span, Self::convert_pattern(converter, ast.rhs))
             }
             Array(ast) => {
                 let start_span = ast.start_token().span;
@@ -353,19 +353,19 @@ impl Expression {
                 let mut elements: Pack = ast
                     .head
                     .into_iter()
-                    .map(|element| Self::convert_pattern(analyzer, element))
+                    .map(|element| Self::convert_pattern(converter, element))
                     .map(Element::from)
                     .collect();
                 elements.extend(
                     ast.rest
                         .into_iter()
-                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(|element| Self::convert_pattern(converter, element))
                         .map(Element::spread),
                 );
                 elements.extend(
                     ast.tail
                         .into_iter()
-                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(|element| Self::convert_pattern(converter, element))
                         .map(Element::from),
                 );
                 Self::builtin(start_span, Builtin::Array).apply_to(span, Self::pack(span, elements))
@@ -376,13 +376,13 @@ impl Expression {
                 let mut elements: Pack = ast
                     .elements
                     .into_iter()
-                    .map(|element| Self::convert_pattern(analyzer, element))
+                    .map(|element| Self::convert_pattern(converter, element))
                     .map(Element::from)
                     .collect();
                 elements.extend(
                     ast.rest
                         .into_iter()
-                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(|element| Self::convert_pattern(converter, element))
                         .map(Element::spread),
                 );
                 Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
@@ -396,8 +396,8 @@ impl Expression {
                     .map(|(key, value)| {
                         Self::mapping(
                             key.span().union(value.span()),
-                            Self::convert_pattern(analyzer, key),
-                            Self::convert_pattern(analyzer, value),
+                            Self::convert_pattern(converter, key),
+                            Self::convert_pattern(converter, value),
                         )
                     })
                     .map(Element::from)
@@ -405,47 +405,47 @@ impl Expression {
                 elements.extend(
                     ast.rest
                         .into_iter()
-                        .map(|element| Self::convert_pattern(analyzer, element))
+                        .map(|element| Self::convert_pattern(converter, element))
                         .map(Element::spread),
                 );
                 Self::builtin(start_span, Builtin::Record)
                     .apply_to(span, Self::pack(span, elements))
             }
-            Pinned(ast) => Identifier::declared(analyzer, &ast.identifier)
+            Pinned(ast) => Identifier::declared(converter, &ast.identifier)
                 .map(|identifier| {
                     Self::builtin(ast.span(), Builtin::Pin)
                         .apply_to(ast.span(), Self::reference(ast.span(), identifier))
                 })
                 .unwrap_or_else(|| {
-                    analyzer.error(Error::UnboundIdentifier {
+                    converter.error(Error::UnboundIdentifier {
                         name: ast.identifier.clone(),
                     });
                     Self::reference(
                         ast.identifier.span(),
-                        Identifier::unresolved(analyzer, ast.identifier),
+                        Identifier::unresolved(converter, ast.identifier),
                     )
                 }),
             Binding(ast) => {
-                Self::reference(ast.span(), Identifier::declare_binding(analyzer, *ast))
+                Self::reference(ast.span(), Identifier::declare_binding(converter, *ast))
             }
-            Parenthesized(ast) => Self::convert_pattern(analyzer, ast.pattern),
+            Parenthesized(ast) => Self::convert_pattern(converter, ast.pattern),
         }
     }
 
-    fn convert_for_statement(analyzer: &mut Analyzer, ast: syntax::ForStatement) -> Self {
+    fn convert_for_statement(converter: &mut Converter, ast: syntax::ForStatement) -> Self {
         let else_block = ast
             .else_block
-            .map(|ast| Expression::convert_block(analyzer, ast));
+            .map(|ast| Expression::convert_block(converter, ast));
 
         else_block
             .into_iter()
             .chain(ast.branches.into_iter().rev().map(|branch| {
                 let for_span = branch.for_token().span;
                 let span = branch.span();
-                analyzer.push_scope();
-                let query = Query::convert(analyzer, branch.query);
-                let value = Expression::convert_block(analyzer, branch.body);
-                analyzer.pop_scope();
+                converter.push_scope();
+                let query = Query::convert(converter, branch.query);
+                let value = Expression::convert_block(converter, branch.body);
+                converter.pop_scope();
                 Expression::builtin(for_span, Builtin::For)
                     .apply_to(span, Expression::iterator(span, query, value))
             }))
@@ -460,19 +460,19 @@ impl Expression {
     }
 
     fn convert_iterator(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         query: syntax::Query,
         expression: syntax::Expression,
     ) -> Self {
         let span = query.span().union(expression.span());
-        analyzer.push_scope();
-        let query = Query::convert(analyzer, query);
-        let body = Self::convert(analyzer, expression);
-        analyzer.pop_scope();
+        converter.push_scope();
+        let query = Query::convert(converter, query);
+        let body = Self::convert(converter, expression);
+        converter.pop_scope();
         Self::iterator(span, query, body)
     }
 
-    fn convert_template(analyzer: &mut Analyzer, ast: syntax::Template) -> Self {
+    fn convert_template(converter: &mut Converter, ast: syntax::Template) -> Self {
         let span = ast.span();
         let prefix = Self::string(ast.prefix_token().span, ast.prefix());
         match ast.tag {
@@ -482,7 +482,7 @@ impl Expression {
                     .into_iter()
                     .map(|seg| {
                         let suffix = Self::string(seg.suffix_token().span, seg.suffix());
-                        let interpolation = Self::convert(analyzer, seg.interpolation);
+                        let interpolation = Self::convert(converter, seg.interpolation);
                         (interpolation, suffix)
                     })
                     .fold(
@@ -494,11 +494,11 @@ impl Expression {
                         },
                     );
 
-                let tag = Identifier::declared(analyzer, &tag)
+                let tag = Identifier::declared(converter, &tag)
                     .map(|tag| Expression::reference(tag.span, tag))
                     .unwrap_or_else(|| {
-                        analyzer.error(Error::UnboundIdentifier { name: tag.clone() });
-                        Expression::reference(tag.span(), Identifier::unresolved(analyzer, tag))
+                        converter.error(Error::UnboundIdentifier { name: tag.clone() });
+                        Expression::reference(tag.span(), Identifier::unresolved(converter, tag))
                     });
                 let strings = Self::builtin(span, Builtin::Array)
                     .apply_to(span, Self::pack(span, Pack::from_iter(strings)));
@@ -513,7 +513,7 @@ impl Expression {
                     .into_iter()
                     .map(|seg| {
                         let suffix = Self::string(seg.suffix_token().span, seg.suffix());
-                        let interpolation = Self::convert(analyzer, seg.interpolation);
+                        let interpolation = Self::convert(converter, seg.interpolation);
                         (interpolation, suffix)
                     })
                     .fold(prefix, |expr, (interpolation, suffix)| {

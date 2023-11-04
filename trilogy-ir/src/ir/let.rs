@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -15,13 +15,13 @@ impl Let {
     }
 
     pub(super) fn convert_statement(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         ast: syntax::LetStatement,
         rest: &mut impl std::iter::Iterator<Item = syntax::Statement>,
     ) -> Expression {
         let span = ast.span();
-        let query = Query::convert(analyzer, ast.query);
-        let body = Expression::convert_sequence(analyzer, rest);
+        let query = Query::convert(converter, ast.query);
+        let body = Expression::convert_sequence(converter, rest);
         // TODO: Span::default() is not best here, but there's not really a proper span for
         // this, so what to do?
         Expression::r#let(
@@ -30,10 +30,10 @@ impl Let {
         )
     }
 
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::LetExpression) -> Expression {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::LetExpression) -> Expression {
         let span = ast.span();
-        let query = Query::convert(analyzer, ast.query);
-        let body = Expression::convert(analyzer, ast.body);
+        let query = Query::convert(converter, ast.query);
+        let body = Expression::convert(converter, ast.body);
         Expression::r#let(span, Self::new(query, body))
     }
 }

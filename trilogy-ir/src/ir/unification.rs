@@ -1,6 +1,6 @@
 use super::*;
 use crate::visitor::{Bindings, Identifiers};
-use crate::{Analyzer, Error};
+use crate::{Converter, Error};
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -17,29 +17,32 @@ impl Unification {
         }
     }
 
-    pub(super) fn convert_direct(analyzer: &mut Analyzer, ast: syntax::DirectUnification) -> Self {
-        Self::convert(analyzer, ast.pattern, ast.expression)
+    pub(super) fn convert_direct(
+        converter: &mut Converter,
+        ast: syntax::DirectUnification,
+    ) -> Self {
+        Self::convert(converter, ast.pattern, ast.expression)
     }
 
     pub(super) fn convert_element(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         ast: syntax::ElementUnification,
     ) -> Self {
-        Self::convert(analyzer, ast.pattern, ast.expression)
+        Self::convert(converter, ast.pattern, ast.expression)
     }
 
     fn convert(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         pattern: syntax::Pattern,
         expression: syntax::Expression,
     ) -> Self {
-        let pattern = Expression::convert_pattern(analyzer, pattern);
-        let expression = Expression::convert(analyzer, expression);
+        let pattern = Expression::convert_pattern(converter, pattern);
+        let expression = Expression::convert(converter, expression);
 
         let unification = Self::new(pattern, expression);
         let violations = validate_unification(&unification);
         for violation in violations {
-            analyzer.error(Error::IdentifierInOwnDefinition { name: violation });
+            converter.error(Error::IdentifierInOwnDefinition { name: violation });
         }
         unification
     }

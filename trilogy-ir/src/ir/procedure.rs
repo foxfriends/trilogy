@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -11,15 +11,15 @@ pub struct Procedure {
 }
 
 impl Procedure {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::ProcedureDefinition) -> Self {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::ProcedureDefinition) -> Self {
         let span = ast.span();
         let parameters: Vec<_> = ast
             .head
             .parameters
             .into_iter()
-            .map(|param| Expression::convert_pattern(analyzer, param))
+            .map(|param| Expression::convert_pattern(converter, param))
             .collect();
-        let body = Expression::convert_block(analyzer, ast.body);
+        let body = Expression::convert_block(converter, ast.body);
         Self {
             span,
             parameters,
@@ -27,18 +27,18 @@ impl Procedure {
         }
     }
 
-    pub(super) fn convert_do(analyzer: &mut Analyzer, ast: syntax::DoExpression) -> Self {
+    pub(super) fn convert_do(converter: &mut Converter, ast: syntax::DoExpression) -> Self {
         let span = ast.span();
         let do_span = ast.do_token().span();
         let parameters: Vec<_> = ast
             .parameters
             .into_iter()
-            .map(|param| Expression::convert_pattern(analyzer, param))
+            .map(|param| Expression::convert_pattern(converter, param))
             .collect();
         let body = match ast.body {
-            syntax::DoBody::Block(ast) => Expression::convert_block(analyzer, *ast),
+            syntax::DoBody::Block(ast) => Expression::convert_block(converter, *ast),
             syntax::DoBody::Expression(expr) => Expression::builtin(do_span, Builtin::Return)
-                .apply_to(span, Expression::convert(analyzer, *expr)),
+                .apply_to(span, Expression::convert(converter, *expr)),
         };
         Self {
             span,

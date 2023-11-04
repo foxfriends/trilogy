@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -9,12 +9,12 @@ pub struct Assert {
 }
 
 impl Assert {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::AssertStatement) -> Self {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::AssertStatement) -> Self {
         let message = ast
             .message
-            .map(|ast| Expression::convert(analyzer, ast))
+            .map(|ast| Expression::convert(converter, ast))
             .unwrap_or_else(|| todo!("pretty print the expression?"));
-        let assertion = Expression::convert(analyzer, ast.assertion);
+        let assertion = Expression::convert(converter, ast.assertion);
         Self { message, assertion }
     }
 }

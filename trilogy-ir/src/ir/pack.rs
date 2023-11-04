@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -27,15 +27,15 @@ pub struct Element {
 }
 
 impl Element {
-    pub(super) fn convert_array(analyzer: &mut Analyzer, ast: syntax::ArrayElement) -> Self {
+    pub(super) fn convert_array(converter: &mut Converter, ast: syntax::ArrayElement) -> Self {
         match ast {
             syntax::ArrayElement::Element(ast) => {
-                let expression = Expression::convert(analyzer, ast);
+                let expression = Expression::convert(converter, ast);
                 Self::from(expression)
             }
             syntax::ArrayElement::Spread(token, ast) => {
                 let span = ast.span().union(token.span);
-                let expression = Expression::convert(analyzer, ast);
+                let expression = Expression::convert(converter, ast);
                 Self {
                     span,
                     expression,
@@ -45,15 +45,15 @@ impl Element {
         }
     }
 
-    pub(super) fn convert_set(analyzer: &mut Analyzer, ast: syntax::SetElement) -> Self {
+    pub(super) fn convert_set(converter: &mut Converter, ast: syntax::SetElement) -> Self {
         match ast {
             syntax::SetElement::Element(ast) => {
-                let expression = Expression::convert(analyzer, ast);
+                let expression = Expression::convert(converter, ast);
                 Self::from(expression)
             }
             syntax::SetElement::Spread(token, ast) => {
                 let span = ast.span().union(token.span);
-                let expression = Expression::convert(analyzer, ast);
+                let expression = Expression::convert(converter, ast);
                 Self {
                     span,
                     expression,
@@ -63,17 +63,17 @@ impl Element {
         }
     }
 
-    pub(super) fn convert_record(analyzer: &mut Analyzer, ast: syntax::RecordElement) -> Self {
+    pub(super) fn convert_record(converter: &mut Converter, ast: syntax::RecordElement) -> Self {
         match ast {
             syntax::RecordElement::Element(key, value) => {
-                let key = Expression::convert(analyzer, key);
-                let value = Expression::convert(analyzer, value);
+                let key = Expression::convert(converter, key);
+                let value = Expression::convert(converter, value);
                 let expression = Expression::mapping(key.span.union(value.span), key, value);
                 Self::from(expression)
             }
             syntax::RecordElement::Spread(token, ast) => {
                 let span = ast.span().union(token.span);
-                let expression = Expression::convert(analyzer, ast);
+                let expression = Expression::convert(converter, ast);
                 Self {
                     span,
                     expression,

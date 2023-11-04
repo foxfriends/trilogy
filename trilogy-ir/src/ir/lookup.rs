@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
@@ -9,12 +9,12 @@ pub struct Lookup {
 }
 
 impl Lookup {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Lookup) -> Self {
-        let path = Expression::convert(analyzer, ast.path);
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::Lookup) -> Self {
+        let path = Expression::convert(converter, ast.path);
         let patterns = ast
             .patterns
             .into_iter()
-            .map(|pat| Expression::convert_pattern(analyzer, pat))
+            .map(|pat| Expression::convert_pattern(converter, pat))
             .collect();
         Self { path, patterns }
     }

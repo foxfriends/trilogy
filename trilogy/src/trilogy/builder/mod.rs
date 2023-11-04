@@ -13,7 +13,7 @@ use self::report::ReportBuilder;
 
 use super::{Source, Trilogy};
 
-mod analyzer;
+mod converter;
 mod error;
 mod loader;
 mod report;
@@ -118,7 +118,7 @@ impl<C: Cache> Builder<C> {
         let entrypoint = Location::entrypoint(root_path.clone(), file);
         let documents = loader::load(&cache, &entrypoint, &mut report);
         cache = report.checkpoint(&root_path, cache)?;
-        let mut modules = analyzer::analyze(documents, &mut report);
+        let mut modules = converter::convert(documents, &mut report);
 
         // A bit hacky to be constructing IR errors here, and not in the IR crate,
         // but... whatever, it's easier, and this is a nice one-off check for now.

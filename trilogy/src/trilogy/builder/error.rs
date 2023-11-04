@@ -12,7 +12,7 @@ pub(super) enum ErrorKind<E: std::error::Error> {
     External(Box<dyn std::error::Error>),
     Resolver(Location, loader::Error<E>),
     Syntax(Location, SyntaxError),
-    Analyzer(Location, trilogy_ir::Error),
+    Ir(Location, trilogy_ir::Error),
 }
 
 impl<E: std::error::Error> Error<E> {
@@ -29,7 +29,7 @@ impl<E: std::error::Error> Error<E> {
     }
 
     pub(super) fn semantic(location: Location, error: trilogy_ir::Error) -> Self {
-        Self(ErrorKind::Analyzer(location, error))
+        Self(ErrorKind::Ir(location, error))
     }
 }
 
@@ -55,7 +55,7 @@ impl<E: std::error::Error> Display for Error<E> {
                 let message = error.message();
                 writeln!(f, "{location} ({span}): {message}")?;
             }
-            ErrorKind::Analyzer(location, error) => {
+            ErrorKind::Ir(location, error) => {
                 writeln!(f, "{location}: {error:?}")?;
             }
         }

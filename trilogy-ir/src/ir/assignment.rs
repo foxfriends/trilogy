@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Analyzer, Error};
+use crate::{Converter, Error};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -10,17 +10,20 @@ pub struct Assignment {
 }
 
 impl Assignment {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::AssignmentStatement) -> Expression {
+    pub(super) fn convert(
+        converter: &mut Converter,
+        ast: syntax::AssignmentStatement,
+    ) -> Expression {
         use syntax::AssignmentStrategy::*;
         let span = ast.span();
-        let lhs = Expression::convert(analyzer, ast.lhs);
-        let rhs = Expression::convert(analyzer, ast.rhs);
+        let lhs = Expression::convert(converter, ast.lhs);
+        let rhs = Expression::convert(converter, ast.rhs);
 
         let op = match ast.strategy {
             Direct(..) => {
                 if let expression::Value::Reference(id) = &lhs.value {
                     if !id.is_mutable {
-                        analyzer.error(Error::AssignedImmutableBinding {
+                        converter.error(Error::AssignedImmutableBinding {
                             name: *id.clone(),
                             assignment: span,
                         });
@@ -52,14 +55,14 @@ impl Assignment {
         match lhs.deconstruct_lvalue() {
             Ok((receiver, access_span, property)) => {
                 let receiver_span = receiver.span;
-                let receiver_id = Identifier::temporary(analyzer, receiver_span);
+                let receiver_id = Identifier::temporary(converter, receiver_span);
                 let receiver_expression = Expression::reference(receiver_span, receiver_id.clone());
                 let receiver_pattern = Expression::reference(receiver_span, receiver_id);
                 let receiver_query =
                     Query::direct(receiver_span, Unification::new(receiver_pattern, receiver));
 
                 let property_span = property.span;
-                let property_id = Identifier::temporary(analyzer, property_span);
+                let property_id = Identifier::temporary(converter, property_span);
                 let property_expression = Expression::reference(property_span, property_id.clone());
                 let property_pattern = Expression::reference(property_span, property_id);
                 let property_query =
@@ -80,7 +83,7 @@ impl Assignment {
             Err(lhs) => {
                 let id = lhs.unwrap_reference();
                 if !id.is_mutable {
-                    analyzer.error(Error::AssignedImmutableBinding {
+                    converter.error(Error::AssignedImmutableBinding {
                         name: id.clone(),
                         assignment: span,
                     });
@@ -95,24 +98,24 @@ impl Assignment {
     }
 
     pub(super) fn convert_function(
-        analyzer: &mut Analyzer,
+        converter: &mut Converter,
         ast: syntax::FunctionAssignment,
     ) -> Expression {
         let span = ast.span();
-        let lhs = Expression::convert(analyzer, ast.lhs);
-        let function = Identifier::declared(analyzer, &ast.function).unwrap_or_else(|| {
-            analyzer.error(Error::UnboundIdentifier {
+        let lhs = Expression::convert(converter, ast.lhs);
+        let function = Identifier::declared(converter, &ast.function).unwrap_or_else(|| {
+            converter.error(Error::UnboundIdentifier {
                 name: ast.function.clone(),
             });
             // TODO: All these missed declarations probably shouldn't just declare it?
             // Maybe some smarter recovery is possible.
-            Identifier::declare(analyzer, ast.function.clone())
+            Identifier::declare(converter, ast.function.clone())
         });
         let function = Expression::reference(function.span, function);
         let function = ast
             .arguments
             .into_iter()
-            .map(|arg| Expression::convert(analyzer, arg))
+            .map(|arg| Expression::convert(converter, arg))
             .fold(function, |func, arg| {
                 let span = func.span.union(arg.span);
                 func.apply_to(span, arg)
@@ -121,14 +124,14 @@ impl Assignment {
         match lhs.deconstruct_lvalue() {
             Ok((receiver, access_span, property)) => {
                 let receiver_span = receiver.span;
-                let receiver_id = Identifier::temporary(analyzer, receiver_span);
+                let receiver_id = Identifier::temporary(converter, receiver_span);
                 let receiver_expression = Expression::reference(receiver_span, receiver_id.clone());
                 let receiver_pattern = Expression::reference(receiver_span, receiver_id);
                 let receiver_query =
                     Query::direct(receiver_span, Unification::new(receiver_pattern, receiver));
 
                 let property_span = property.span;
-                let property_id = Identifier::temporary(analyzer, property_span);
+                let property_id = Identifier::temporary(converter, property_span);
                 let property_expression = Expression::reference(property_span, property_id.clone());
                 let property_pattern = Expression::reference(property_span, property_id);
                 let property_query =
@@ -145,7 +148,7 @@ impl Assignment {
             Err(lhs) => {
                 let id = lhs.unwrap_reference();
                 if !id.is_mutable {
-                    analyzer.error(Error::AssignedImmutableBinding {
+                    converter.error(Error::AssignedImmutableBinding {
                         name: id.clone(),
                         assignment: span,
                     });

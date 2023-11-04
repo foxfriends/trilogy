@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -12,24 +12,24 @@ pub struct Handler {
 }
 
 impl Handler {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::Handler) -> Self {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::Handler) -> Self {
         match ast {
             syntax::Handler::When(handler) => {
                 let span = handler.span();
-                let effect = Identifier::temporary(analyzer, handler.pattern.span());
-                let pattern = Expression::convert_pattern(analyzer, handler.pattern);
+                let effect = Identifier::temporary(converter, handler.pattern.span());
+                let pattern = Expression::convert_pattern(converter, handler.pattern);
                 let pattern =
                     Expression::reference(pattern.span, effect.clone()).and(pattern.span, pattern);
                 let guard = handler
                     .guard
-                    .map(|ast| Expression::convert(analyzer, ast))
+                    .map(|ast| Expression::convert(converter, ast))
                     .unwrap_or_else(|| Expression::boolean(span, true));
                 let body = handler.body.map(|body| match body {
                     syntax::HandlerBody::Block(block) => {
-                        Expression::convert_block(analyzer, *block)
+                        Expression::convert_block(converter, *block)
                     }
                     syntax::HandlerBody::Expression(expression) => {
-                        Expression::convert(analyzer, *expression)
+                        Expression::convert(converter, *expression)
                     }
                 });
                 let body = match handler.strategy {
@@ -66,20 +66,20 @@ impl Handler {
                 let span = handler.span();
                 let else_span = handler.else_token().span;
 
-                let effect = Identifier::temporary(analyzer, else_span);
+                let effect = Identifier::temporary(converter, else_span);
                 let pattern = handler
                     .identifier
-                    .map(|id| Expression::reference(id.span(), Identifier::declare(analyzer, id)))
+                    .map(|id| Expression::reference(id.span(), Identifier::declare(converter, id)))
                     .unwrap_or_else(|| Expression::wildcard(else_span));
                 let pattern = Expression::reference(else_span, effect.clone())
                     .and(else_span.union(pattern.span), pattern);
                 let guard = Expression::boolean(else_span, true);
                 let body = handler.body.map(|body| match body {
                     syntax::HandlerBody::Block(block) => {
-                        Expression::convert_block(analyzer, *block)
+                        Expression::convert_block(converter, *block)
                     }
                     syntax::HandlerBody::Expression(expression) => {
-                        Expression::convert(analyzer, *expression)
+                        Expression::convert(converter, *expression)
                     }
                 });
 

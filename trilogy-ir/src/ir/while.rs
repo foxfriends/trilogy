@@ -1,5 +1,5 @@
 use super::*;
-use crate::Analyzer;
+use crate::Converter;
 use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
@@ -9,10 +9,10 @@ pub struct While {
 }
 
 impl While {
-    pub(super) fn convert(analyzer: &mut Analyzer, ast: syntax::WhileStatement) -> Expression {
+    pub(super) fn convert(converter: &mut Converter, ast: syntax::WhileStatement) -> Expression {
         let span = ast.span();
-        let condition = Expression::convert(analyzer, ast.condition);
-        let body = Expression::convert_block(analyzer, ast.body);
+        let condition = Expression::convert(converter, ast.condition);
+        let body = Expression::convert_block(converter, ast.body);
         Expression::r#while(span, Self { condition, body })
     }
 }

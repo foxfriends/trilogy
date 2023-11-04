@@ -111,7 +111,7 @@ impl<E: std::error::Error> Error<E> {
                 eprintln!("{}", error);
                 return;
             }
-            ErrorKind::Analyzer(location, error) => {
+            ErrorKind::Ir(location, error) => {
                 use trilogy_ir::Error::*;
                 match error {
                     UnknownExport { name } => {
