@@ -19,8 +19,8 @@ That makes a trilogy. Hopefully I produce something useful. Third time's the cha
 ## Status
 
 The 0.1 "barely functioning" version of Trilogy and all its components is nearing
-readiness. Though from a fully working ecosystem, at least the language will soon
-work, for the most part, enough to begin experimenting with its usability and
+readiness. Though far from a fully working ecosystem, at least the language will
+soon work, for the most part, enough to begin experimenting with its usability and
 iterating on the design.
 
 - [x] Read some papers and instructions on programming languages
