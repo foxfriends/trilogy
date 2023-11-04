@@ -134,7 +134,7 @@ impl<C: Cache> Builder<C> {
                     .unwrap_or(false)
             });
         match main {
-            None => report.error(Error::semantic(
+            None => report.error(Error::ir(
                 entrypoint.clone(),
                 trilogy_ir::Error::NoMainProcedure,
             )),
@@ -145,7 +145,7 @@ impl<C: Cache> Builder<C> {
                     // imports and calls `main`.
                     def.is_exported = true;
                 }
-                item => report.error(Error::semantic(
+                item => report.error(Error::ir(
                     entrypoint.clone(),
                     trilogy_ir::Error::MainNotProcedure { item: item.clone() },
                 )),

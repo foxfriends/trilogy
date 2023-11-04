@@ -21,7 +21,7 @@ pub(super) fn convert<E: std::error::Error>(
         let mut converter = Converter::new(&location);
         let module = converter.convert(document);
         for error in converter.errors() {
-            report.error(Error::semantic(location.clone(), error));
+            report.error(Error::ir(location.clone(), error));
         }
         converted.insert(location, module);
     }

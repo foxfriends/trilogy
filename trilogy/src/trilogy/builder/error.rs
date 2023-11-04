@@ -28,7 +28,7 @@ impl<E: std::error::Error> Error<E> {
         Self(ErrorKind::Syntax(location, error))
     }
 
-    pub(super) fn semantic(location: Location, error: trilogy_ir::Error) -> Self {
+    pub(super) fn ir(location: Location, error: trilogy_ir::Error) -> Self {
         Self(ErrorKind::Ir(location, error))
     }
 }
