@@ -72,8 +72,9 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
                     let args = values.try_into().unwrap();
                     self.0(Runtime::new(ex), args)
                 } else {
-                    // TODO: better error here... arity mismatch?
-                    Err(ex.error(ErrorKind::RuntimeTypeError))
+                    Err(ex.error(ErrorKind::RuntimeError(
+                        "a native closure was called with the incorrect arity".to_owned(),
+                    )))
                 }
             }
         }

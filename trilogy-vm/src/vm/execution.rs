@@ -153,7 +153,7 @@ impl<'a> Execution<'a> {
                 self.stack.push_frame(callback, vec![], None);
                 native.call(self, arguments)?;
             }
-            _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+            _ => return Err(self.error(InternalRuntimeError::TypeError)),
         }
         Ok(())
     }
@@ -250,7 +250,7 @@ impl<'a> Execution<'a> {
                         .map_err(|k| self.error(k))?,
                 )?;
             }
-            _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+            _ => return Err(self.error(InternalRuntimeError::TypeError)),
         }
         Ok(())
     }
@@ -287,7 +287,7 @@ impl<'a> Execution<'a> {
                         .map_err(|k| self.error(k))?,
                 )?;
             }
-            _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+            _ => return Err(self.error(InternalRuntimeError::TypeError)),
         }
         Ok(())
     }
@@ -394,7 +394,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs + rhs {
                     Ok(val) => self.stack.push(val),
-                    Err(..) => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Subtract => {
@@ -402,7 +402,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs - rhs {
                     Ok(val) => self.stack.push(val),
-                    Err(..) => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Multiply => {
@@ -410,7 +410,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs * rhs {
                     Ok(val) => self.stack.push(val),
-                    Err(..) => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Divide => {
@@ -418,7 +418,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs / rhs {
                     Ok(val) => self.stack.push(val),
-                    Err(..) => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Remainder => {
@@ -426,7 +426,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs % rhs {
                     Ok(val) => self.stack.push(val),
-                    Err(..) => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::IntDivide => {
@@ -436,7 +436,7 @@ impl<'a> Execution<'a> {
                     Ok(Value::Number(val)) => {
                         self.stack.push(Number::from(val.as_complex().re.floor()));
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Power => {
@@ -446,14 +446,14 @@ impl<'a> Execution<'a> {
                     (Value::Number(lhs), Value::Number(rhs)) => {
                         self.stack.push(Value::Number(lhs.pow(&rhs)));
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Negate => {
                 let val = self.stack_pop()?;
                 match -val {
                     Ok(val) => self.stack.push(val),
-                    Err(..) => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Glue => {
@@ -475,7 +475,7 @@ impl<'a> Execution<'a> {
                         lhs.union(&rhs);
                         self.stack.push(Value::Record(lhs));
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Skip => {
@@ -486,8 +486,8 @@ impl<'a> Execution<'a> {
                         .as_uinteger()
                         .unwrap()
                         .to_usize()
-                        .ok_or(self.error(ErrorKind::RuntimeTypeError))?,
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                        .ok_or(self.error(InternalRuntimeError::TypeError))?,
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 };
                 match lhs {
                     Value::String(lhs) => self
@@ -496,7 +496,7 @@ impl<'a> Execution<'a> {
                     Value::Array(lhs) => {
                         self.stack.push(Value::Array(lhs.range(count..).to_owned()))
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Take => {
@@ -507,8 +507,8 @@ impl<'a> Execution<'a> {
                         .as_uinteger()
                         .unwrap()
                         .to_usize()
-                        .ok_or(self.error(ErrorKind::RuntimeTypeError))?,
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                        .ok_or(self.error(InternalRuntimeError::TypeError))?,
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 };
                 match lhs {
                     Value::String(lhs) => {
@@ -518,7 +518,7 @@ impl<'a> Execution<'a> {
                     Value::Array(lhs) => {
                         self.stack.push(Value::Array(lhs.range(..count).to_owned()));
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Access => {
@@ -527,7 +527,7 @@ impl<'a> Execution<'a> {
                 match (lhs, rhs) {
                     (Value::Record(record), rhs) => match record.get(&rhs) {
                         Some(value) => self.stack.push(value),
-                        None => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                        None => return Err(self.error(InternalRuntimeError::TypeError)),
                     },
                     (Value::String(lhs), Value::Number(rhs)) => {
                         let ch = rhs
@@ -536,7 +536,7 @@ impl<'a> Execution<'a> {
                             .and_then(|index| lhs.chars().nth(index));
                         match ch {
                             Some(ch) => self.stack.push(Value::Char(ch)),
-                            None => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                            None => return Err(self.error(InternalRuntimeError::TypeError)),
                         }
                     }
                     (Value::Bits(lhs), Value::Number(rhs)) => {
@@ -546,7 +546,7 @@ impl<'a> Execution<'a> {
                             .and_then(|index| lhs.get(index));
                         match val {
                             Some(val) => self.stack.push(Value::Bool(val)),
-                            None => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                            None => return Err(self.error(InternalRuntimeError::TypeError)),
                         }
                     }
                     (Value::Array(lhs), Value::Number(rhs)) => {
@@ -556,10 +556,10 @@ impl<'a> Execution<'a> {
                             .and_then(|index| lhs.get(index));
                         match val {
                             Some(val) => self.stack.push(val),
-                            None => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                            None => return Err(self.error(InternalRuntimeError::TypeError)),
                         }
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Assign => {
@@ -574,10 +574,10 @@ impl<'a> Execution<'a> {
                         let index = rhs.as_uinteger().and_then(|index| index.to_usize());
                         match index {
                             Some(index) => lhs.set(index, value),
-                            None => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                            None => return Err(self.error(InternalRuntimeError::TypeError)),
                         }
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
                 self.stack.push(lhs);
             }
@@ -588,7 +588,7 @@ impl<'a> Execution<'a> {
                     Value::Record(record) => self.stack.push(Value::from(record.len())),
                     Value::Set(set) => self.stack.push(Value::from(set.len())),
                     Value::String(string) => self.stack.push(Value::from(string.len())),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Insert => {
@@ -601,7 +601,7 @@ impl<'a> Execution<'a> {
                     Value::Set(set) => {
                         set.insert(value);
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
                 self.stack.push(collection);
             }
@@ -617,15 +617,15 @@ impl<'a> Execution<'a> {
                     }
                     Value::Array(arr) => {
                         let Value::Number(number) = key else {
-                            return Err(self.error(ErrorKind::RuntimeTypeError));
+                            return Err(self.error(InternalRuntimeError::TypeError));
                         };
                         let Some(index) = number.as_uinteger().and_then(|index| index.to_usize())
                         else {
-                            return Err(self.error(ErrorKind::RuntimeTypeError));
+                            return Err(self.error(InternalRuntimeError::TypeError));
                         };
                         arr.remove(index);
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
                 self.stack.push(value);
             }
@@ -642,7 +642,7 @@ impl<'a> Execution<'a> {
                     Value::Array(arr) => {
                         self.stack.push(arr.contains(&key));
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Entries => {
@@ -658,14 +658,14 @@ impl<'a> Execution<'a> {
                     value @ Value::Array(..) => {
                         self.stack.push(value);
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Not => {
                 let val = self.stack_pop()?;
                 match val {
                     Value::Bool(val) => self.stack.push(Value::Bool(!val)),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::And => {
@@ -675,7 +675,7 @@ impl<'a> Execution<'a> {
                     (Value::Bool(lhs), Value::Bool(rhs)) => {
                         self.stack.push(Value::Bool(lhs && rhs))
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Or => {
@@ -685,7 +685,7 @@ impl<'a> Execution<'a> {
                     (Value::Bool(lhs), Value::Bool(rhs)) => {
                         self.stack.push(Value::Bool(lhs || rhs))
                     }
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::BitwiseAnd => {
@@ -693,7 +693,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs & rhs {
                     Ok(val) => self.stack.push(val),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::BitwiseOr => {
@@ -701,7 +701,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs | rhs {
                     Ok(val) => self.stack.push(val),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::BitwiseXor => {
@@ -709,14 +709,14 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs ^ rhs {
                     Ok(val) => self.stack.push(val),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::BitwiseNeg => {
                 let val = self.stack_pop()?;
                 match val {
                     Value::Bits(val) => self.stack.push(Value::Bits(!val)),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::LeftShift => {
@@ -724,7 +724,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs << rhs {
                     Ok(val) => self.stack.push(val),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::RightShift => {
@@ -732,7 +732,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match lhs >> rhs {
                     Ok(val) => self.stack.push(val),
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Cons => {
@@ -743,7 +743,7 @@ impl<'a> Execution<'a> {
             Instruction::Uncons => {
                 let (first, second) = self.stack_pop().and_then(|val| match val {
                     Value::Tuple(tuple) => Ok(tuple.uncons()),
-                    _ => Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => Err(self.error(InternalRuntimeError::TypeError)),
                 })?;
                 self.stack.push(first);
                 self.stack.push(second);
@@ -751,21 +751,21 @@ impl<'a> Execution<'a> {
             Instruction::First => {
                 let first = self.stack_pop().and_then(|val| match val {
                     Value::Tuple(tuple) => Ok(tuple.into_first()),
-                    _ => Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => Err(self.error(InternalRuntimeError::TypeError)),
                 })?;
                 self.stack.push(first);
             }
             Instruction::Second => {
                 let first = self.stack_pop().and_then(|val| match val {
                     Value::Tuple(tuple) => Ok(tuple.into_second()),
-                    _ => Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => Err(self.error(InternalRuntimeError::TypeError)),
                 })?;
                 self.stack.push(first);
             }
             Instruction::Construct => {
                 let atom = self.stack_pop().and_then(|val| match val {
                     Value::Atom(atom) => Ok(atom),
-                    _ => Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => Err(self.error(InternalRuntimeError::TypeError)),
                 })?;
                 let value = self.stack_pop()?;
                 self.stack.push(Value::Struct(Struct::new(atom, value)));
@@ -773,7 +773,7 @@ impl<'a> Execution<'a> {
             Instruction::Destruct => {
                 let (atom, value) = self.stack_pop().and_then(|val| match val {
                     Value::Struct(val) => Ok(val.destruct()),
-                    _ => Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => Err(self.error(InternalRuntimeError::TypeError)),
                 })?;
                 self.stack.push(value);
                 self.stack.push(atom);
@@ -890,7 +890,7 @@ impl<'a> Execution<'a> {
                 match cond {
                     Value::Bool(false) => self.ip = offset,
                     Value::Bool(true) => {}
-                    _ => return Err(self.error(ErrorKind::RuntimeTypeError)),
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Branch => {
