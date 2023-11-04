@@ -608,7 +608,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Dynamic(..) => {
             unreachable!("dynamic only exists inside module access");
         }
-        ir::Value::Assert(..) => todo!(),
+        ir::Value::Assert(assert) => {
+            let passed = context.labeler.unique_hint("assert_passed");
+            write_expression(context, &assert.assertion);
+            context.instruction(Instruction::Not).cond_jump(&passed);
+            write_expression(context, &assert.message);
+            context.instruction(Instruction::Panic);
+            context.label(passed);
+        }
         ir::Value::End => {
             context.instruction(Instruction::Fizzle);
         }
