@@ -557,12 +557,20 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_expression(context, &handler.guard);
                 context.cond_jump(&next);
                 write_expression(context, &handler.body);
+                // At the end of an effect handler, everything just ends.
+                //
+                // The effect handler should have used cancel or resume appropriately
+                // if that was not the goal.
+                context.instruction(Instruction::Fizzle);
                 context
-                    .instruction(Instruction::Fizzle)
                     .label(next)
                     .undeclare_variables(handler.pattern.bindings(), true);
             }
-            context.instruction(Instruction::Fizzle);
+            // NOTE: this should be unreachable, seeing as effect handlers are required
+            // to include the `else` clause... so if it happens lets fail in a weird way.
+            context
+                .instruction(Instruction::Const("unexpected unhandled effect".into()))
+                .instruction(Instruction::Panic);
             context.scope.pop_resume();
             context.scope.end_intermediate(); // effect
 

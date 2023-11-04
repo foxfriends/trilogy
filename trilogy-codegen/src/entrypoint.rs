@@ -218,7 +218,7 @@ impl ProgramContext<'_> {
         for overload in &function.overloads {
             write_function(&mut context, overload);
         }
-        context.instruction(Instruction::Fizzle);
+        context.instruction(Instruction::Panic);
     }
 
     /// Writes a module. Modules are prefixed with a single prelude function, which takes

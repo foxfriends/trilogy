@@ -468,7 +468,11 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
         }
     }
 
-    context.instruction(Instruction::Fizzle);
+    let atom = context.atom("UnresolvedImport");
+    context
+        .instruction(Instruction::Const(atom.into()))
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
     context.scope.end_intermediate();
 
     // 6. Defining accessors for context values
