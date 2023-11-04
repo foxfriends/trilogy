@@ -13,6 +13,7 @@ use self::report::ReportBuilder;
 
 use super::{Source, Trilogy};
 
+mod analyzer;
 mod converter;
 mod error;
 mod loader;
@@ -119,39 +120,7 @@ impl<C: Cache> Builder<C> {
         let documents = loader::load(&cache, &entrypoint, &mut report);
         cache = report.checkpoint(&root_path, cache)?;
         let mut modules = converter::convert(documents, &mut report);
-
-        // A bit hacky to be constructing IR errors here, and not in the IR crate,
-        // but... whatever, it's easier, and this is a nice one-off check for now.
-        let entrymodule = modules.get_mut(&entrypoint);
-        let main = entrymodule
-            .unwrap()
-            .definitions_mut()
-            .iter_mut()
-            .find(|def| {
-                def.name()
-                    .and_then(|id| id.name())
-                    .map(|name| name == "main")
-                    .unwrap_or(false)
-            });
-        match main {
-            None => report.error(Error::ir(
-                entrypoint.clone(),
-                trilogy_ir::Error::NoMainProcedure,
-            )),
-            Some(def) => match &def.item {
-                trilogy_ir::ir::DefinitionItem::Procedure(..) => {
-                    // Force main to be exported. It needs to be accessible because
-                    // programs are really just modules with a wrapper that automatically
-                    // imports and calls `main`.
-                    def.is_exported = true;
-                }
-                item => report.error(Error::ir(
-                    entrypoint.clone(),
-                    trilogy_ir::Error::MainNotProcedure { item: item.clone() },
-                )),
-            },
-        }
-
+        analyzer::analyze(&mut modules, &entrypoint, &mut report);
         report.checkpoint(&root_path, cache)?;
         Ok(Trilogy::new(
             Source::Trilogy {

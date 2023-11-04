@@ -13,6 +13,7 @@ pub(super) enum ErrorKind<E: std::error::Error> {
     Resolver(Location, loader::Error<E>),
     Syntax(Location, SyntaxError),
     Ir(Location, trilogy_ir::Error),
+    Analysis(Location, super::analyzer::ErrorKind),
 }
 
 impl<E: std::error::Error> Error<E> {
@@ -30,6 +31,10 @@ impl<E: std::error::Error> Error<E> {
 
     pub(super) fn ir(location: Location, error: trilogy_ir::Error) -> Self {
         Self(ErrorKind::Ir(location, error))
+    }
+
+    pub(super) fn analysis(location: Location, error: super::analyzer::ErrorKind) -> Self {
+        Self(ErrorKind::Analysis(location, error))
     }
 }
 
@@ -56,6 +61,9 @@ impl<E: std::error::Error> Display for Error<E> {
                 writeln!(f, "{location} ({span}): {message}")?;
             }
             ErrorKind::Ir(location, error) => {
+                writeln!(f, "{location}: {error:?}")?;
+            }
+            ErrorKind::Analysis(location, error) => {
                 writeln!(f, "{location}: {error:?}")?;
             }
         }

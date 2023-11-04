@@ -209,6 +209,11 @@ impl<E: std::error::Error> Error<E> {
                                 name.id.name().unwrap(),
                             ))
                     }
+                }
+            }
+            ErrorKind::Analysis(location, error) => {
+                use super::analyzer::ErrorKind::*;
+                match error {
                     NoMainProcedure => ariadne::Report::build(kind, location, 0)
                         .with_message("no definition of `proc main!()` was found"),
                     MainNotProcedure { item } => match item {
