@@ -13,8 +13,6 @@ pub(super) fn analyze<E: std::error::Error>(
     entrypoint: &Location,
     report: &mut ReportBuilder<E>,
 ) {
-    // A bit hacky to be constructing IR errors here, and not in the IR crate,
-    // but... whatever, it's easier, and this is a nice one-off check for now.
     let entrymodule = modules.get_mut(entrypoint);
     let main = entrymodule
         .unwrap()
