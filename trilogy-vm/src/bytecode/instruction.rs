@@ -279,6 +279,9 @@ pub enum Instruction {
     /// End the current program. The value from the top of the stack is used as the exit value of
     /// the program.
     Exit,
+    /// End the current program in error. The value from the top of the stack is used as the
+    /// error value.
+    Panic,
 
     // Meta
     /// Using the value as its identifier, load the corresponding chunk from the program currently

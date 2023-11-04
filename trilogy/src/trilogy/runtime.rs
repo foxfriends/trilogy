@@ -73,7 +73,7 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
                     self.0(Runtime::new(ex), args)
                 } else {
                     Err(ex.error(ErrorKind::RuntimeError(
-                        "a native closure was called with the incorrect arity".to_owned(),
+                        "a native closure was called with the incorrect arity".into(),
                     )))
                 }
             }

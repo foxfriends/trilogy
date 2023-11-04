@@ -911,6 +911,10 @@ impl<'a> Execution<'a> {
                 let value = self.stack_pop()?;
                 return Ok(Step::Exit(value));
             }
+            Instruction::Panic => {
+                let value = self.stack_pop()?;
+                return Err(self.error(ErrorKind::RuntimeError(value)));
+            }
             Instruction::Chunk(locator) => {
                 let value = self.program.locate(locator).map_err(|er| self.error(er))?;
                 self.stack.push(value);

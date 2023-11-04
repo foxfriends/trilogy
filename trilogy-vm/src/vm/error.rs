@@ -1,5 +1,8 @@
 use super::stack::Stack;
-use crate::bytecode::{ChunkError, Offset};
+use crate::{
+    bytecode::{ChunkError, Offset},
+    Value,
+};
 use std::fmt::{self, Display};
 
 // I am aware these names are not all that ergonomic, but they line up
@@ -45,7 +48,7 @@ impl Display for Error {
 #[derive(Clone, Debug)]
 pub enum ErrorKind {
     /// A runtime error explicitly raised by the program.
-    RuntimeError(String),
+    RuntimeError(Value),
     /// All executions in the program have fizzled without reaching a suitable exit.
     ExecutionFizzledError,
     /// The code generator has produced invalid bytecode.
@@ -67,6 +70,11 @@ impl Display for ErrorKind {
     }
 }
 
+/// An error that occurred at runtime, internal to the virtual machine.
+///
+/// These are typically caused by improper bytecode being run. A "good" program should handle
+/// all the errors that it possibly can such that these internal errors are never shown to
+/// the end user, and instead raise RuntimeErrors whenever possible.
 #[derive(Copy, Clone, Debug)]
 pub enum InternalRuntimeError {
     /// A value was provided to the VM that was not of the expected type.
