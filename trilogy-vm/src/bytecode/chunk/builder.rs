@@ -50,14 +50,14 @@ impl ChunkBuilder {
 
     /// Instantiate an atom for the current runtime. Atoms cannot be created except
     /// for within the context of a particular runtime's global atom table.
-    pub fn atom(&self, atom: &str) -> Atom {
+    pub fn make_atom(&self, atom: &str) -> Atom {
         self.interner.intern(atom)
     }
 
     /// Instantiate an anonymous atom for the current runtime. An anonymous atom
     /// cannot be re-created. The provided label is shown when debugging, but two
     /// atoms with the same label are not the same value.
-    pub fn atom_anon(&self, label: &str) -> Atom {
+    pub fn anon_atom(&self, label: &str) -> Atom {
         Atom::new_unique(label.to_owned())
     }
 
@@ -86,8 +86,8 @@ impl ChunkBuilder {
     /// an atom.
     ///
     /// This is just a helper as it does not do anything you couldn't do yourself normally.
-    pub fn const_atom(&mut self, atom: &str) -> &mut Self {
-        self.constant(self.atom(atom))
+    pub fn atom(&mut self, atom: &str) -> &mut Self {
+        self.constant(self.make_atom(atom))
     }
 
     /// Insert a CONST instruction that references a procedure located at the

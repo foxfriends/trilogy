@@ -6,9 +6,6 @@ use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
 use trilogy_vm::Instruction;
 
 pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) {
-    let next = context.atom("next");
-    let done = context.atom("done");
-
     let setup = context.labeler.unique_hint("setup");
     let end = context.labeler.unique_hint("end");
     let precall = context.labeler.unique_hint("precall");
@@ -18,7 +15,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // first time into this branch of the rule, so we have to run setup.
     context
         .instruction(Instruction::Copy)
-        .instruction(Instruction::Const(().into()))
+        .constant(())
         .instruction(Instruction::ValNeq)
         .cond_jump(&setup)
         // Once setup is complete, we end up here where the rule's iterator is actually
@@ -30,7 +27,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         // The parent expects this to work more like a query than an iterator for
         // failures.
         .instruction(Instruction::Copy)
-        .instruction(Instruction::Const(done.clone().into()))
+        .atom("done")
         .instruction(Instruction::ValEq)
         .cond_jump(&end)
         .instruction(Instruction::Pop) // The 'done
@@ -41,7 +38,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     context.label(setup).instruction(Instruction::Pop);
     // Set up the initial bindset for this rule. It starts empty, but gets
     // filled right away from the parameters.
-    context.instruction(Instruction::Const(HashSet::new().into()));
+    context.constant(HashSet::new());
     // Just using temp register to help keep the bindset on top of stack.
     // Probably could have done this any number of ways... but temp
     // register is easy
@@ -67,9 +64,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.instruction(Instruction::LoadRegister(3));
         for var in parameter.bindings() {
             let index = context.scope.lookup(&var).unwrap().unwrap_local();
-            context
-                .instruction(Instruction::Const(index.into()))
-                .instruction(Instruction::Insert);
+            context.constant(index).instruction(Instruction::Insert);
         }
         context.scope.intermediate(); // Bindset
         context.instruction(Instruction::LoadLocal(1 + i as u32));
@@ -120,7 +115,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.label(next);
     }
     // The return value is a (backwards) list
-    context.instruction(Instruction::Const(().into()));
+    context.constant(());
     for _ in &rule.parameters {
         context
             .instruction(Instruction::Swap)
@@ -129,7 +124,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     }
     // Finally, put the return value into 'next()
     context
-        .instruction(Instruction::Const(next.into()))
+        .atom("next")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Return);
     // This ends with 2 expected values on the stack ([state, retval])
@@ -139,7 +134,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // On failure, just return 'done
     context
         .label(on_done)
-        .instruction(Instruction::Const(done.into()))
+        .atom("done")
         .instruction(Instruction::Return);
 
     // Sad path: we have to undeclare all the variables that have been

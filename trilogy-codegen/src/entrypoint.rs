@@ -4,7 +4,7 @@ use crate::preamble::RETURN;
 use crate::prelude::*;
 use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
-use trilogy_vm::{Atom, ChunkBuilder, Instruction};
+use trilogy_vm::{Atom, ChunkBuilder, Instruction, Value};
 
 #[derive(Clone, Debug)]
 pub(crate) enum StaticMember {
@@ -95,8 +95,13 @@ impl ProgramContext<'_> {
         self
     }
 
+    pub fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
+        self.builder.constant(value);
+        self
+    }
+
     pub fn atom(&self, value: &str) -> Atom {
-        self.builder.atom(value)
+        self.builder.make_atom(value)
     }
 
     pub fn entrypoint(&mut self) -> &mut Self {
@@ -106,20 +111,19 @@ impl ProgramContext<'_> {
 
     /// Writes the entrypoint of the program.
     pub fn write_main(&mut self) {
-        let main = self.builder.atom("main");
         self.builder
             .entrypoint()
             .label("trilogy:__entrypoint__")
             .reference("trilogy:__entrymodule__")
             .instruction(Instruction::Call(0))
-            .instruction(Instruction::Const(main.into()))
+            .atom("main")
             .instruction(Instruction::Call(1))
             .instruction(Instruction::Call(0))
             .instruction(Instruction::Copy)
-            .instruction(Instruction::Const(().into()))
+            .constant(())
             .instruction(Instruction::ValEq)
             .cond_jump("trilogy:__exit_runoff__")
-            .instruction(Instruction::Const(0.into()))
+            .constant(0)
             .label("trilogy:__exit_runoff__")
             .instruction(Instruction::Exit);
     }
@@ -159,7 +163,7 @@ impl ProgramContext<'_> {
         self.label(for_id);
         let arity = rule.overloads[0].parameters.len();
         let mut context = self.begin(statics, 0);
-        context.instruction(Instruction::Const(((), 0).into()));
+        context.constant(((), 0));
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
         context.close(RETURN);
         context.scope.closure(arity); // TODO: do we need to know the index of these (1...n)?
@@ -173,14 +177,14 @@ impl ProgramContext<'_> {
             let fail = context.labeler.unique_hint("fail");
             context
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(i.into()))
+                .constant(i)
                 .instruction(Instruction::ValEq)
                 .cond_jump(&skip)
                 .instruction(Instruction::Pop);
             write_rule(&mut context, overload, &fail);
             context
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::Const(i.into()))
+                .constant(i)
                 .instruction(Instruction::Cons)
                 .instruction(Instruction::SetLocal(0))
                 .instruction(Instruction::Return);
@@ -188,15 +192,14 @@ impl ProgramContext<'_> {
                 .label(fail)
                 // The 'done and the state are discarded by write_rule, so here we just
                 // have to create the next state
-                .instruction(Instruction::Const(().into()))
-                .instruction(Instruction::Const((i + 1).into()))
+                .constant(())
+                .constant(i + 1)
                 .label(skip);
         }
-        let done = context.atom("done");
         context
             .instruction(Instruction::Cons)
             .instruction(Instruction::SetLocal(0))
-            .instruction(Instruction::Const(done.into()))
+            .atom("done")
             .instruction(Instruction::Return);
     }
 

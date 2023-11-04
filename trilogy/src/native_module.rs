@@ -134,25 +134,23 @@ impl NativeModule {
     ) {
         let pathstr = path.iter().fold(String::new(), |s, seg| s + seg + "::");
         for (name, proc) in &self.procedures {
-            let atom = chunk.atom(name);
             let next = format!("#skip::{location}::{pathstr}{name}");
             chunk
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(atom.into()))
+                .atom(name)
                 .instruction(Instruction::ValEq)
                 .cond_jump(&next)
                 .instruction(Instruction::Pop)
-                .instruction(Instruction::Const(proc.clone().into()))
+                .constant(proc.clone())
                 .instruction(Instruction::Return)
                 .label(next);
         }
         for (name, module) in &self.modules {
-            let atom = chunk.atom(name);
             let next = format!("#skip::{location}::{pathstr}{name}");
             let module_label = format!("{location}::{pathstr}{name}");
             chunk
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(atom.into()))
+                .atom(name)
                 .instruction(Instruction::ValEq)
                 .cond_jump(&next)
                 .instruction(Instruction::Pop)
@@ -164,9 +162,8 @@ impl NativeModule {
             module.write_to_chunk_at_path(location, child_path, chunk);
             chunk.label(next);
         }
-        let atom = chunk.atom("UnresolvedImport");
         chunk
-            .instruction(Instruction::Const(atom.into()))
+            .atom("UnresolvedImport")
             .instruction(Instruction::Construct)
             .instruction(Instruction::Panic);
     }

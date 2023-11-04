@@ -100,7 +100,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     if mode == Mode::Document {
         // Documents do not have access to their parent module's parameters, so they
         // get a fresh context array.
-        context.instruction(Instruction::Const(Vec::<Value>::new().into()));
+        context.constant(Vec::<Value>::new());
     } else {
         // Submodules do, and they are prefixed to the parameters. It so happens
         // that the parent's statics will already cover these, so the only consideration
@@ -200,7 +200,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         // Local modules get written into the context as `unit` first,
                         // ensuring that they are reserved space in the context without
                         // initializing them. The initialization comes later.
-                        context.instruction(Instruction::Const(().into()));
+                        context.constant(());
                     }
                     StaticMember::Context(..) => unreachable!(),
                 }
@@ -247,7 +247,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     .instruction(Instruction::Call(0))
                     .instruction(Instruction::LoadRegister(1))
                     .instruction(Instruction::Swap)
-                    .instruction(Instruction::Const((base + index).into()))
+                    .constant(base + index)
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Assign)
                     .instruction(Instruction::SetRegister(1));
@@ -280,10 +280,9 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 .unwrap()
                 .name()
                 .expect("ids of definitions have names");
-            let atom = context.atom(name);
             context
                 .instruction(Instruction::LoadLocal(current_module + 1))
-                .instruction(Instruction::Const(atom.into()))
+                .atom(name)
                 .instruction(Instruction::ValEq)
                 .cond_jump(&next_export)
                 .instruction(Instruction::Pop);
@@ -468,9 +467,8 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
         }
     }
 
-    let atom = context.atom("UnresolvedImport");
     context
-        .instruction(Instruction::Const(atom.into()))
+        .atom("UnresolvedImport")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
     context.scope.end_intermediate();
@@ -496,7 +494,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
         context.label(&label);
         context
             .instruction(Instruction::LoadRegister(1))
-            .instruction(Instruction::Const((base + i).into()))
+            .constant(base + i)
             .instruction(Instruction::Access)
             .instruction(Instruction::Return);
     }

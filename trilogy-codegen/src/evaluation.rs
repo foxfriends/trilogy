@@ -67,19 +67,19 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.end_intermediate();
         }
         ir::Value::Number(value) => {
-            context.instruction(Instruction::Const(value.value().clone().into()));
+            context.constant(value.value().clone());
         }
         ir::Value::Character(value) => {
-            context.instruction(Instruction::Const((*value).into()));
+            context.constant(*value);
         }
         ir::Value::String(value) => {
-            context.instruction(Instruction::Const(value.into()));
+            context.constant(value);
         }
         ir::Value::Bits(value) => {
-            context.instruction(Instruction::Const(value.value().clone().into()));
+            context.constant(value.value().clone());
         }
         ir::Value::Boolean(value) => {
-            context.instruction(Instruction::Const((*value).into()));
+            context.constant(*value);
         }
         ir::Value::Unit => {
             context.instruction(Instruction::Const(Value::Unit));
@@ -88,8 +88,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Disjunction(..) => unreachable!("Disjunction cannot appear in an evaluation"),
         ir::Value::Wildcard => unreachable!("Wildcard cannot appear in an evaluation"),
         ir::Value::Atom(value) => {
-            let atom = context.atom(value);
-            context.instruction(Instruction::Const(atom.into()));
+            context.atom(value);
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(iterator) => {
@@ -114,14 +113,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
                 other => write_evaluation(context, other),
             }
-            let next = context.atom("next");
-            let done = context.atom("done");
             context
-                .instruction(Instruction::Const(next.into()))
+                .atom("next")
                 .instruction(Instruction::Construct)
                 .instruction(Instruction::Return)
                 .label(on_fail)
-                .instruction(Instruction::Const(done.into()))
+                .atom("done")
                 .label(end) // end is just here to reuse a return instead of printing two in a row
                 .instruction(Instruction::Return)
                 .label(construct)
@@ -177,10 +174,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 ir::Value::Dynamic(ident),
             ) => {
                 write_evaluation(context, module_ref);
-                let atom = context.atom((**ident).as_ref());
-                context
-                    .instruction(Instruction::Const(atom.into()))
-                    .instruction(Instruction::Call(1));
+                context.atom(&**ident).instruction(Instruction::Call(1));
             }
             (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
                 write_unary_operation(context, arg, *builtin);
@@ -207,24 +201,21 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         context.scope.intermediate();
                         let loop_begin = context.labeler.unique_hint("record_collect");
                         let loop_exit = context.labeler.unique_hint("record_collect_end");
-                        let next = context.atom("next");
-                        let done = context.atom("done");
-                        let struct_atom = context.atom("struct");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::Call(0))
                             .instruction(Instruction::Copy)
-                            .instruction(Instruction::Const(done.into()))
+                            .atom("done")
                             .instruction(Instruction::ValNeq)
                             .cond_jump(&loop_exit)
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::TypeOf)
-                            .instruction(Instruction::Const(struct_atom.into()))
+                            .atom("struct")
                             .instruction(Instruction::ValEq)
                             .cond_jump(INVALID_ITERATOR)
                             .instruction(Instruction::Destruct)
-                            .instruction(Instruction::Const(next.into()))
+                            .atom("next")
                             .instruction(Instruction::ValEq)
                             .cond_jump(INVALID_ITERATOR)
                             .instruction(Instruction::LoadLocal(record))
@@ -261,24 +252,21 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         context.scope.intermediate();
                         let loop_begin = context.labeler.unique_hint("set_collect");
                         let loop_exit = context.labeler.unique_hint("set_collect_end");
-                        let next = context.atom("next");
-                        let done = context.atom("done");
-                        let struct_atom = context.atom("struct");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::Call(0))
                             .instruction(Instruction::Copy)
-                            .instruction(Instruction::Const(done.into()))
+                            .atom("done")
                             .instruction(Instruction::ValNeq)
                             .cond_jump(&loop_exit)
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::TypeOf)
-                            .instruction(Instruction::Const(struct_atom.into()))
+                            .atom("struct")
                             .instruction(Instruction::ValEq)
                             .cond_jump(INVALID_ITERATOR)
                             .instruction(Instruction::Destruct)
-                            .instruction(Instruction::Const(next.into()))
+                            .atom("next")
                             .instruction(Instruction::ValEq)
                             .cond_jump(INVALID_ITERATOR)
                             .instruction(Instruction::LoadLocal(set))
@@ -314,24 +302,21 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         context.scope.intermediate();
                         let loop_begin = context.labeler.unique_hint("array_collect");
                         let loop_exit = context.labeler.unique_hint("array_collect_end");
-                        let next = context.atom("next");
-                        let done = context.atom("done");
-                        let struct_atom = context.atom("struct");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::Call(0))
                             .instruction(Instruction::Copy)
-                            .instruction(Instruction::Const(done.into()))
+                            .atom("done")
                             .instruction(Instruction::ValNeq)
                             .cond_jump(&loop_exit)
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::TypeOf)
-                            .instruction(Instruction::Const(struct_atom.into()))
+                            .atom("struct")
                             .instruction(Instruction::ValEq)
                             .cond_jump(INVALID_ITERATOR)
                             .instruction(Instruction::Destruct)
-                            .instruction(Instruction::Const(next.into()))
+                            .atom("next")
                             .instruction(Instruction::ValEq)
                             .cond_jump(INVALID_ITERATOR)
                             .instruction(Instruction::LoadLocal(array))
@@ -349,32 +334,29 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::For), value) => {
-                context.instruction(Instruction::Const(false.into()));
+                context.constant(false);
                 let eval_to = context.scope.intermediate();
                 write_evaluation(context, value);
                 let loop_begin = context.labeler.unique_hint("for");
                 let loop_exit = context.labeler.unique_hint("for_end");
-                let next = context.atom("next");
-                let done = context.atom("done");
-                let struct_atom = context.atom("struct");
                 context
                     .label(loop_begin.clone())
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Call(0))
                     .instruction(Instruction::Copy)
-                    .instruction(Instruction::Const(done.into()))
+                    .atom("done")
                     .instruction(Instruction::ValNeq)
                     .cond_jump(&loop_exit)
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
-                    .instruction(Instruction::Const(struct_atom.into()))
+                    .atom("struct")
                     .instruction(Instruction::ValEq)
                     .cond_jump(INVALID_ITERATOR)
                     .instruction(Instruction::Destruct)
-                    .instruction(Instruction::Const(next.into()))
+                    .atom("next")
                     .instruction(Instruction::ValEq)
                     .cond_jump(INVALID_ITERATOR)
-                    .instruction(Instruction::Const(true.into()))
+                    .constant(true)
                     .instruction(Instruction::SetLocal(eval_to))
                     .instruction(Instruction::Pop)
                     .jump(&loop_begin)
@@ -390,11 +372,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_query_state(context, query);
                 write_query(context, query, &is_fail);
                 context
-                    .instruction(Instruction::Const(true.into()))
+                    .constant(true)
                     .instruction(Instruction::Slide(var_count as u32 + 1))
                     .jump(&is_end)
                     .label(&is_fail)
-                    .instruction(Instruction::Const(false.into()))
+                    .constant(false)
                     .instruction(Instruction::Slide(var_count as u32 + 1))
                     .label(is_end);
                 for _ in 0..=var_count {
@@ -569,7 +551,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             // NOTE: this should be unreachable, seeing as effect handlers are required
             // to include the `else` clause... so if it happens lets fail in a weird way.
             context
-                .instruction(Instruction::Const("unexpected unhandled effect".into()))
+                .constant("unexpected unhandled effect")
                 .instruction(Instruction::Panic);
             context.scope.pop_resume();
             context.scope.end_intermediate(); // effect

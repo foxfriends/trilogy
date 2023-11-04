@@ -4,7 +4,7 @@ mod scope;
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
 use trilogy_ir::Id;
-use trilogy_vm::{Atom, ChunkBuilder, Instruction};
+use trilogy_vm::{ChunkBuilder, Instruction, Value};
 
 pub(crate) struct Context<'a> {
     pub labeler: &'a mut Labeler,
@@ -56,8 +56,14 @@ impl<'a> Context<'a> {
         self
     }
 
-    pub fn atom(&mut self, value: &str) -> Atom {
-        self.builder.atom(value)
+    pub fn atom<S: AsRef<str>>(&mut self, value: S) -> &mut Self {
+        self.builder.atom(value.as_ref());
+        self
+    }
+
+    pub fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
+        self.builder.constant(value);
+        self
     }
 
     pub fn declare_variables(&mut self, variables: impl IntoIterator<Item = Id>) -> usize {

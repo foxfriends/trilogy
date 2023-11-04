@@ -1,3 +1,4 @@
+use crate::INVALID_ITERATOR;
 use crate::{preamble::ITERATE_COLLECTION, prelude::*};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -18,7 +19,7 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
         // The initial bindset is empty for generic queries. Only for rules it's
         // a bit different, as the initial bindset is based on the boundness of the
         // parameters. Rule calls can just set that up and start from continue.
-        .instruction(Instruction::Const(HashSet::new().into()))
+        .constant(HashSet::new())
         .instruction(Instruction::SetRegister(2));
     continue_query_state(context, query);
     // After writing out the query state, the final bindset doesn't matter (it's everything)
@@ -71,7 +72,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // These don't require much state and do not care about the bindset as they won't
             // backtrack, even internally. They will occur at most once, switching to false to
             // indicate that they should not occur again.
-            context.instruction(Instruction::Const(true.into()));
+            context.constant(true);
         }
         ir::QueryValue::Not(..) => {
             // While a `not` query doesn't require much state (it's just an at most once query),
@@ -81,20 +82,18 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             context
                 .instruction(Instruction::LoadRegister(2))
                 .instruction(Instruction::Clone)
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons);
         }
         ir::QueryValue::Direct(unification) => {
             // A direct unification does affect the bindset, in passing, but only requires
             // the same "once-only" state as above.
-            context.instruction(Instruction::Const(true.into()));
+            context.constant(true);
 
             context.instruction(Instruction::LoadRegister(2));
             for var in unification.pattern.bindings() {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context
-                    .instruction(Instruction::Const(index.into()))
-                    .instruction(Instruction::Insert);
+                context.constant(index).instruction(Instruction::Insert);
             }
             context.instruction(Instruction::Pop);
         }
@@ -109,7 +108,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             context
                 .instruction(Instruction::LoadRegister(2))
                 .instruction(Instruction::Clone)
-                .instruction(Instruction::Const(().into()))
+                .constant(())
                 .instruction(Instruction::Cons);
 
             // Bindset updates happen *after* the state is computed because the backtracker
@@ -117,9 +116,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             context.instruction(Instruction::LoadRegister(2));
             for var in unification.pattern.bindings() {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context
-                    .instruction(Instruction::Const(index.into()))
-                    .instruction(Instruction::Insert);
+                context.constant(index).instruction(Instruction::Insert);
             }
             context.instruction(Instruction::Pop);
         }
@@ -139,7 +136,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             continue_query_state(context, &alt.0);
             context
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::Const(().into()))
+                .constant(())
                 .instruction(Instruction::Cons);
             context.scope.end_intermediate();
         }
@@ -163,7 +160,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             continue_query_state(context, &alt.0);
             context
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Cons);
             context.scope.end_intermediate();
         }
@@ -184,7 +181,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             context
                 .instruction(Instruction::Call(0)) // The state is the closure
                 .instruction(Instruction::Cons) // with the bindset
-                .instruction(Instruction::Const(false.into())) // and a flag to keep track of whether the closure is initialized or not
+                .constant(false) // and a flag to keep track of whether the closure is initialized or not
                 .instruction(Instruction::Cons);
             context.scope.end_intermediate();
 
@@ -201,9 +198,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
                 .collect::<HashSet<_>>()
             {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context
-                    .instruction(Instruction::Const(index.into()))
-                    .instruction(Instruction::Insert);
+                context.constant(index).instruction(Instruction::Insert);
             }
             context.instruction(Instruction::Pop);
         }
@@ -263,7 +258,7 @@ fn write_query_value(
         ir::QueryValue::Direct(unification) => {
             // Set the state marker to false so we can't re-enter here.
             context
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             context.scope.intermediate(); // state
@@ -276,8 +271,6 @@ fn write_query_value(
             let continuation = context.labeler.unique_hint("in_cont");
 
             let body = context.labeler.unique_hint("in_body");
-            let next = context.atom("next");
-            let done = context.atom("done");
 
             // First check to see if the state is `unit`, meaning we have to set up the
             // iterator still.
@@ -285,7 +278,7 @@ fn write_query_value(
             let bindset = context.scope.intermediate();
             context
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(().into()))
+                .constant(())
                 .instruction(Instruction::ValEq)
                 .cond_jump(&body)
                 // State was unit, discard it
@@ -299,7 +292,7 @@ fn write_query_value(
                 .instruction(Instruction::Call(1))
                 .jump(&body)
                 .label(&cleanup_setup)
-                .instruction(Instruction::Const(().into()))
+                .constant(())
                 .instruction(Instruction::Cons)
                 .jump(on_fail);
 
@@ -309,29 +302,23 @@ fn write_query_value(
             // Reset to the previous binding state
             context.instruction(Instruction::LoadLocal(bindset));
             unbind(context, bound, unification.pattern.bindings());
-            let atom = context.atom("struct");
             context
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::Call(0))
                 // Done if done
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(done.into()))
+                .atom("done")
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&cleanup)
-                // Runtime type error is probably expected if it's not an iterator when an
-                // iterator is expected, but we just go to fail instead anyway because it
-                // seems easier for now.
-                //
-                // TODO: Maybe come back to that later, when a panic instruction is added?
                 .instruction(Instruction::Copy)
                 .instruction(Instruction::TypeOf)
-                .instruction(Instruction::Const(atom.into()))
+                .atom("struct")
                 .instruction(Instruction::ValEq)
-                .cond_jump(&cleanup) // Not a struct, so it is 'done
+                .cond_jump(INVALID_ITERATOR) // Not a struct, so it is runtime error
                 .instruction(Instruction::Destruct)
-                .instruction(Instruction::Const(next.into()))
+                .atom("next")
                 .instruction(Instruction::ValEq)
-                .cond_jump(&cleanup); // Not a 'next, so invalid (fail as per comment above)
+                .cond_jump(INVALID_ITERATOR);
 
             // Success: bind the pattern to the value
             write_pattern_match(context, &unification.pattern, on_fail);
@@ -350,7 +337,7 @@ fn write_query_value(
         ir::QueryValue::Is(expr) => {
             // Set the state marker to false so we can't re-enter here.
             context
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
             context.scope.intermediate(); // state
@@ -368,7 +355,7 @@ fn write_query_value(
             // Always pass (the first time). We still don't re-enter
             // here, so it does "fail" the second time.
             context
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Swap)
                 .cond_jump(on_fail);
         }
@@ -378,7 +365,7 @@ fn write_query_value(
                 // Take up the bindset for later
                 .instruction(Instruction::Uncons)
                 // Set the state marker to false so we can't re-enter here.
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Swap)
                 .cond_jump(&cleanup);
 
@@ -456,7 +443,7 @@ fn write_query_value(
                 // Reattach the outer state
                 .instruction(Instruction::Cons)
                 // Put the marker on top
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 .jump(&out);
 
@@ -492,9 +479,7 @@ fn write_query_value(
                 .instruction(Instruction::Clone);
             for var in conj.0.bindings() {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context
-                    .instruction(Instruction::Const(index.into()))
-                    .instruction(Instruction::Insert);
+                context.constant(index).instruction(Instruction::Insert);
             }
             // Then build the state for the right hand query out of that.
             write_continued_query_state(context, &conj.1);
@@ -534,7 +519,7 @@ fn write_query_value(
             context
                 .label(cleanup)
                 .instruction(Instruction::Cons) // Attach the state to the bindset
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Cons) // Then attach the marker
                 .jump(on_fail);
             context.scope.end_intermediate(); // outer_bindset
@@ -559,7 +544,7 @@ fn write_query_value(
             write_query_value(context, &imp.1.value, &cleanup_second, &rhs_bound);
             context
                 // Only thing is to maintain the marker in the state.
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 .jump(&out);
 
@@ -584,9 +569,7 @@ fn write_query_value(
                                               // We do need to add the bindings that were just set by the condition though.
             for var in imp.0.value.bindings() {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context
-                    .instruction(Instruction::Const(index.into()))
-                    .instruction(Instruction::Insert);
+                context.constant(index).instruction(Instruction::Insert);
             }
             write_continued_query_state(context, &imp.1);
             // Then move on to the inner query like nothing ever happened.
@@ -598,12 +581,12 @@ fn write_query_value(
                 .label(cleanup_first)
                 // The outer query has a bindset attached
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Cons)
                 .jump(on_fail)
                 .label(cleanup_second)
                 // The inner query is opaque
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 .jump(on_fail);
 
@@ -626,7 +609,7 @@ fn write_query_value(
             write_query_value(context, &disj.1.value, &cleanup, bound);
             context
                 // Only concern is to maintain the state
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 .jump(&out);
 
@@ -641,7 +624,7 @@ fn write_query_value(
             // If it succeeds, just reconstruct the state before succeeding.
             context
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Cons)
                 .jump(&out);
 
@@ -659,7 +642,7 @@ fn write_query_value(
             // Once the second one fails, then we're really failed.
             context
                 .label(cleanup)
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 .jump(on_fail);
 
@@ -674,9 +657,7 @@ fn write_query_value(
 
             // To run the alternative thing, we need to keep a little extra state
             // temporarily. Slip that in behind the actual state before we begin.
-            context
-                .instruction(Instruction::Const(false.into()))
-                .instruction(Instruction::Swap);
+            context.constant(false).instruction(Instruction::Swap);
             let is_uncommitted = context.scope.intermediate();
 
             // First we determine which case we're on. One of three:
@@ -687,12 +668,12 @@ fn write_query_value(
                 .instruction(Instruction::Uncons)
                 // If it's unit, set the uncommitted flag
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(().into()))
+                .constant(())
                 .instruction(Instruction::ValEq)
                 .instruction(Instruction::SetLocal(is_uncommitted))
                 // Then we do an equality check, making unit look the same as true so that
                 // it runs the left side.
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&second); // false = second! Backwards from other query types
 
@@ -705,7 +686,7 @@ fn write_query_value(
             // If it succeeds, fix the state and set the marker `true` so we come back here next time.
             context
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 .jump(&out);
             context.scope.end_intermediate(); // bindset
@@ -715,7 +696,7 @@ fn write_query_value(
             context.label(second.clone());
             write_query_value(context, &alt.1.value, &cleanup_second, bound);
             context
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Cons)
                 .jump(&out);
 
@@ -739,7 +720,7 @@ fn write_query_value(
             context
                 .label(cleanup_first)
                 .instruction(Instruction::Cons)
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 // Don't forget to discard the uncommitted flag
                 .instruction(Instruction::Swap)
@@ -748,7 +729,7 @@ fn write_query_value(
             // Similar for the right side, but no bindset
             context
                 .label(cleanup_second)
-                .instruction(Instruction::Const(false.into()))
+                .constant(false)
                 .instruction(Instruction::Cons)
                 // Don't forget to discard the uncommitted flag
                 .instruction(Instruction::Swap)
@@ -767,9 +748,6 @@ fn write_query_value(
             let enter = context.labeler.unique_hint("enter_lookup");
             let cleanup = context.labeler.unique_hint("cleanup");
             let end = context.labeler.unique_hint("end");
-
-            let next = context.atom("next");
-            let done = context.atom("done");
 
             context
                 .instruction(Instruction::Uncons)
@@ -802,11 +780,11 @@ fn write_query_value(
                 // Then iterate the iterator
                 .instruction(Instruction::Call(0))
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(done.into()))
+                .atom("done")
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&cleanup)
                 .instruction(Instruction::Destruct)
-                .instruction(Instruction::Const(next.into()))
+                .atom("next")
                 .instruction(Instruction::ValEq)
                 .cond_jump(&cleanup);
             // If the iterator has yielded something, we have to destructure it into all the variables
@@ -824,7 +802,7 @@ fn write_query_value(
                 // Reconstruct the bindset:state
                 .instruction(Instruction::Cons)
                 // Put the marker back in too
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 // And we're done!
                 .jump(&end);
@@ -837,7 +815,7 @@ fn write_query_value(
                 // Reattach the bindset:state
                 .instruction(Instruction::Cons)
                 // Put the marker back in too
-                .instruction(Instruction::Const(true.into()))
+                .constant(true)
                 .instruction(Instruction::Cons)
                 // And then call it failure
                 .jump(on_fail);
@@ -885,7 +863,7 @@ fn unbind(context: &mut Context, bindset: &Bindings<'_>, vars: HashSet<Id>) {
         let skip = context.labeler.unique_hint("skip");
         context
             .instruction(Instruction::Copy)
-            .instruction(Instruction::Const(index.into()))
+            .constant(index)
             .instruction(Instruction::Contains)
             .instruction(Instruction::Not)
             .cond_jump(&skip)

@@ -159,34 +159,34 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .label(ITERATE_COLLECTION)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const(callable.into()))
+        .constant(callable)
         .instruction(Instruction::ValNeq)
         .cond_jump(RETURN) // already an iterator (probably)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const(array.into()))
+        .constant(array)
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_ARRAY)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const(set.into()))
+        .constant(set)
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_SET)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const(record.into()))
+        .constant(record)
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_RECORD)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
-        .instruction(Instruction::Const(tuple.into()))
+        .constant(tuple)
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_LIST)
         .instruction(Instruction::Copy)
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
         .cond_jump(ITERATE_LIST)
-        .instruction(Instruction::Const(not_iterable.into()))
+        .constant(not_iterable)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
@@ -197,7 +197,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .label(ITERATE_RECORD)
         .instruction(Instruction::Entries)
         .label(ITERATE_ARRAY)
-        .instruction(Instruction::Const(0.into()))
+        .constant(0)
         .instruction(Instruction::Cons)
         .close(RETURN)
         .instruction(Instruction::LoadLocal(0))
@@ -208,11 +208,11 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Lt)
         .cond_jump(&iter_done)
         .instruction(Instruction::Access)
-        .instruction(Instruction::Const(next.clone().into()))
+        .constant(next.clone())
         .instruction(Instruction::Construct)
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Uncons)
-        .instruction(Instruction::Const(1.into()))
+        .constant(1)
         .instruction(Instruction::Add)
         .instruction(Instruction::Cons)
         .instruction(Instruction::SetLocal(0))
@@ -228,14 +228,14 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .cond_jump(&iter_done)
         .instruction(Instruction::Uncons)
         .instruction(Instruction::SetLocal(0))
-        .instruction(Instruction::Const(next.into()))
+        .constant(next)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Return);
 
     let done = builder.atom("done");
     builder
         .label(iter_done)
-        .instruction(Instruction::Const(done.into()))
+        .constant(done)
         .instruction(Instruction::Return);
 
     builder
@@ -268,14 +268,14 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .label(yielding)
         .instruction(Instruction::Become(2))
         .label(no_handler)
-        .instruction(Instruction::Const(unhandled_effect.into()))
+        .constant(unhandled_effect)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
     let invalid_iterator = builder.atom("InvalidIterator");
     builder
         .label(INVALID_ITERATOR)
-        .instruction(Instruction::Const(invalid_iterator.into()))
+        .constant(invalid_iterator)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 }
