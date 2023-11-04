@@ -323,6 +323,12 @@ module in which the constant is declared is instantiated.
     \BinaryInfC{$\Gamma \vdash k : \tau$}
 \end{prooftree}
 
+Though syntactically there is no restriction on what expressions can be used in a constant,
+the expression must be a valid ``constant expression''. Constant expressions may not involve
+effect handlers, function calls, procedure calls, or comprehensions as those may perform
+side effects, which are not permitted at constant time. Only literals, basic operators, module
+applications and module lookups may occur.
+
 \subsubsection{Definitions}
 
 The other types of definitions each hand off to their respective child
