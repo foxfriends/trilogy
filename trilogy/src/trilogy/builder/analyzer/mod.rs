@@ -16,7 +16,7 @@ pub(super) fn analyze<E: std::error::Error>(
     report: &mut ReportBuilder<E>,
 ) {
     validate_main::validate_main(modules, entrypoint, report);
-    validate_constants::validate_constants(modules, report);
+    // validate_constants::validate_constants(modules, report);
 }
 
 mod prelude {

@@ -32,3 +32,4 @@ home = "0.5.5"
 ariadne = { version = "0.3.0", features = ["auto-color"] }
 source-span = "2.7.0"
 bitvec = "1.0.1"
+daggy = "0.8.0"
