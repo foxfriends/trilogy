@@ -1,5 +1,6 @@
 use crate::location::Location;
 use std::collections::HashMap;
+use trilogy_codegen::RETURN;
 use trilogy_vm::{ChunkBuilder, Instruction, Native, NativeFunction};
 
 /// A module of native functions.
@@ -121,6 +122,7 @@ impl NativeModuleBuilder {
 
 impl NativeModule {
     pub(crate) fn write_to_chunk(&self, location: &Location, chunk: &mut ChunkBuilder) {
+        chunk.close(RETURN);
         self.write_to_chunk_at_path(location, vec![], chunk)
     }
 
@@ -139,6 +141,7 @@ impl NativeModule {
                 .instruction(Instruction::Const(atom.into()))
                 .instruction(Instruction::ValEq)
                 .cond_jump(&next)
+                .instruction(Instruction::Pop)
                 .instruction(Instruction::Const(proc.clone().into()))
                 .instruction(Instruction::Return)
                 .label(next);
@@ -152,10 +155,13 @@ impl NativeModule {
                 .instruction(Instruction::Const(atom.into()))
                 .instruction(Instruction::ValEq)
                 .cond_jump(&next)
+                .instruction(Instruction::Pop)
                 .reference(&module_label)
                 .instruction(Instruction::Return)
                 .label(module_label);
-            module.write_to_chunk(location, chunk);
+            let mut child_path = path.clone();
+            child_path.push(name);
+            module.write_to_chunk_at_path(location, child_path, chunk);
             chunk.label(next);
         }
         chunk.instruction(Instruction::Fizzle);
