@@ -74,6 +74,22 @@ impl ChunkBuilder {
         self
     }
 
+    /// Insert a CONST instruction of the given value.
+    ///
+    /// Performs conversion internally to make setting constants a little more ergonomic.
+    /// This is just a helper as it does not do anything you couldn't do yourself normally.
+    pub fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
+        self.instruction(Instruction::Const(value.into()))
+    }
+
+    /// Insert a CONST instruction where the value is created by converting the given string to
+    /// an atom.
+    ///
+    /// This is just a helper as it does not do anything you couldn't do yourself normally.
+    pub fn const_atom(&mut self, atom: &str) -> &mut Self {
+        self.constant(self.atom(atom))
+    }
+
     /// Insert a CONST instruction that references a procedure located at the
     /// given label.
     ///

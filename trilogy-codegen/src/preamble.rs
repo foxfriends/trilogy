@@ -52,10 +52,12 @@ pub const END: &str = "core::end";
 pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
 
+pub(crate) const INVALID_ITERATOR: &str = "panic::invalid_iterator";
+
 macro_rules! binop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
         $builder
-            .label($label.to_owned())
+            .label($label)
             .shift(RETURN)
             .instruction(Instruction::LoadLocal(0))
             .instruction(Instruction::Swap)
@@ -67,7 +69,7 @@ macro_rules! binop {
 macro_rules! binop_ {
     ($builder:expr, $label:expr, $($op:expr),+) => {
         $builder
-            .label($label.to_owned())
+            .label($label)
             .shift(RETURN)
             .instruction(Instruction::LoadLocal(0))
             $(.instruction($op))+
@@ -78,7 +80,7 @@ macro_rules! binop_ {
 macro_rules! unop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
         $builder
-            .label($label.to_owned())
+            .label($label)
             $(.instruction($op))+
             .instruction(Instruction::Return)
     };
@@ -123,7 +125,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     binop!(builder, CONS, Instruction::Cons);
 
     builder
-        .label(RCOMPOSE.to_owned())
+        .label(RCOMPOSE)
         .close(RETURN)
         .close(RETURN)
         .instruction(Instruction::LoadLocal(0))
@@ -135,7 +137,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
 
     builder
-        .label(COMPOSE.to_owned())
+        .label(COMPOSE)
         .close(RETURN)
         .close(RETURN)
         .instruction(Instruction::LoadLocal(1))
@@ -154,7 +156,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     let not_iterable = builder.atom("NotIterable");
     builder
-        .label(ITERATE_COLLECTION.to_owned())
+        .label(ITERATE_COLLECTION)
         .instruction(Instruction::Copy)
         .instruction(Instruction::TypeOf)
         .instruction(Instruction::Const(callable.into()))
@@ -191,10 +193,10 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     let iter_done = builder.labeler.unique_hint("iter_done");
     let next = builder.atom("next");
     builder
-        .label(ITERATE_SET.to_owned())
-        .label(ITERATE_RECORD.to_owned())
+        .label(ITERATE_SET)
+        .label(ITERATE_RECORD)
         .instruction(Instruction::Entries)
-        .label(ITERATE_ARRAY.to_owned())
+        .label(ITERATE_ARRAY)
         .instruction(Instruction::Const(0.into()))
         .instruction(Instruction::Cons)
         .close(RETURN)
@@ -217,7 +219,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
 
     builder
-        .label(ITERATE_LIST.to_owned())
+        .label(ITERATE_LIST)
         .close(RETURN)
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Copy)
@@ -237,13 +239,13 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
 
     builder
-        .label(RESET.to_owned())
+        .label(RESET)
         .instruction(Instruction::Reset)
-        .label(END.to_owned())
+        .label(END)
         .instruction(Instruction::Fizzle)
-        .label(RETURN.to_owned())
+        .label(RETURN)
         .instruction(Instruction::Return)
-        .label(EXIT.to_owned())
+        .label(EXIT)
         .instruction(Instruction::Exit);
 
     let yielding = builder.labeler.unique_hint("yielding");
@@ -251,7 +253,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     let unhandled_effect = builder.atom("UnhandledEffect");
 
     builder
-        .label(YIELD.to_owned())
+        .label(YIELD)
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
@@ -267,6 +269,13 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Become(2))
         .label(no_handler)
         .instruction(Instruction::Const(unhandled_effect.into()))
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
+
+    let invalid_iterator = builder.atom("InvalidIterator");
+    builder
+        .label(INVALID_ITERATOR)
+        .instruction(Instruction::Const(invalid_iterator.into()))
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 }
