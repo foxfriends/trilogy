@@ -45,6 +45,7 @@ pub(crate) fn write_module_definitions(
 /// 3. Evaluating constants
 /// 4. Initializing submodules
 /// 5. Creating the exported member lookup function
+/// 6. Defining accessors for context values
 ///
 /// During constant evaluation, variables must be checked for boundness. If they
 /// are not yet bound, then execution fizzles.
@@ -66,6 +67,8 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     // the context with new entries shortly.
     let base = context.scope.context_size();
 
+    // 1. Accepting all parameters
+    //
     // The module itself is a procedure with 0 arity, which should be called immediately after
     // loading the chunk.
     //
@@ -74,6 +77,8 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
         context.close(RETURN);
     }
 
+    // 2. Binding the parameters to their variables
+    //
     // Collect the module parameters before declaring them so we can be sure of their
     // ordering later.
     let variables = module
@@ -160,6 +165,8 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
         .instruction(Instruction::SetRegister(1));
     context.scope.intermediate(); // previous module
 
+    // 3. Evaluating constants
+    let mut old_statics = HashMap::new();
     for def in module
         .definitions()
         .iter()
@@ -189,10 +196,11 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                             .instruction(Instruction::Chunk(location.into()))
                             .instruction(Instruction::Call(0));
                     }
-                    StaticMember::Label(label) => {
-                        context
-                            .write_procedure_reference(label)
-                            .instruction(Instruction::Call(0));
+                    StaticMember::Label(..) => {
+                        // Local modules get written into the context as `unit` first,
+                        // ensuring that they are reserved space in the context without
+                        // initializing them. The initialization comes later.
+                        context.instruction(Instruction::Const(().into()));
                     }
                     StaticMember::Context(..) => unreachable!(),
                 }
@@ -213,15 +221,46 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
             let label = context
                 .labeler
                 .unique_hint(&format!("context::{}", declared_id.symbol()));
-            context
+            let old_static = context
                 .scope
-                .declare_static(declared_id.clone(), StaticMember::Context(label));
+                .declare_static(declared_id.clone(), StaticMember::Context(label))
+                .unwrap();
+            old_statics.insert(declared_id.clone(), old_static);
             variables.push((variables.len(), declared_id.clone()));
         }
     }
+
+    // 4. Initializing submodules
+    for def in module.definitions().iter().filter(|def| def.is_module()) {
+        let module = def.item.as_module().unwrap();
+        let old_static = old_statics.get(&module.name.id).unwrap();
+        match old_static {
+            // Already initialized. But why?
+            StaticMember::Chunk(..) => {}
+            StaticMember::Label(label) => {
+                let (index, _) = variables
+                    .iter()
+                    .find(|(_, id)| id == &module.name.id)
+                    .unwrap();
+                context
+                    .write_procedure_reference(label)
+                    .instruction(Instruction::Call(0))
+                    .instruction(Instruction::LoadRegister(1))
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Const((base + index).into()))
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Assign)
+                    .instruction(Instruction::SetRegister(1));
+            }
+            StaticMember::Context(..) => unreachable!(),
+        }
+    }
+
     context.instruction(Instruction::SetRegister(1));
     context.scope.end_intermediate(); // previous module
 
+    // 5. Creating the exported member lookup function
+    //
     // After initialization is complete, there is one more closure which is the one
     // that accepts the symbol to be imported.
     //
@@ -432,6 +471,8 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     context.instruction(Instruction::Fizzle);
     context.scope.end_intermediate();
 
+    // 6. Defining accessors for context values
+    //
     // For definitions to actually access the module parameters and constants, they're defined as
     // 0-arity functions that are aware of the module convention.
     for (i, var) in variables {

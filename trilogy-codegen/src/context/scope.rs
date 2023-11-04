@@ -81,8 +81,8 @@ impl<'a> Scope<'a> {
         self.statics.get(id)
     }
 
-    pub fn declare_static(&mut self, id: Id, static_member: StaticMember) {
-        self.statics.insert(id, static_member);
+    pub fn declare_static(&mut self, id: Id, static_member: StaticMember) -> Option<StaticMember> {
+        self.statics.insert(id, static_member)
     }
 
     #[inline]

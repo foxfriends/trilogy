@@ -15,6 +15,56 @@ pub enum DefinitionItem {
     Module(Box<ModuleDefinition>),
 }
 
+impl DefinitionItem {
+    /// Returns the item if it is a procedure, or None otherwise.
+    pub fn as_procedure(&self) -> Option<&ProcedureDefinition> {
+        match self {
+            Self::Procedure(def) => Some(def.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Returns the item if it is a procedure, or None otherwise.
+    pub fn as_function(&self) -> Option<&FunctionDefinition> {
+        match self {
+            Self::Function(def) => Some(def.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Returns the item if it is a rule, or None otherwise
+    pub fn as_rule(&self) -> Option<&RuleDefinition> {
+        match self {
+            Self::Rule(def) => Some(def.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Returns the item if it is a test, or None otherwise
+    pub fn as_test(&self) -> Option<&TestDefinition> {
+        match self {
+            Self::Test(def) => Some(def.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Returns the item if it is a constant, or None otherwise
+    pub fn as_constant(&self) -> Option<&ConstantDefinition> {
+        match self {
+            Self::Constant(def) => Some(def.as_ref()),
+            _ => None,
+        }
+    }
+
+    /// Returns the item if it is a module, or None otherwise
+    pub fn as_module(&self) -> Option<&ModuleDefinition> {
+        match self {
+            Self::Module(def) => Some(def.as_ref()),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Definition {
     pub span: Span,
