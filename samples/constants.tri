@@ -1,8 +1,4 @@
-func items 0 = []
-func items 1 = [1]
-func items 2 = [1, 2]
-
-const mostimportant = items 2
+const mostimportant = [1, 2]
 
 proc main!() {
     let original_value = mostimportant.1
