@@ -26,4 +26,4 @@ jobs:
         run: cargo build --release
       - name: Test Stdlib
         run: |
-          fd .tri ./trilogy/src/stdlib | xargs -I _ ./target/release/trilogy test _
+          ls ./trilogy/src/stdlib/*.tri | xargs -I _ ./target/release/trilogy test _
