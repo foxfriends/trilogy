@@ -117,7 +117,10 @@ impl ProgramContext<'_> {
             .reference("trilogy:__entrymodule__")
             .instruction(Instruction::Call(0))
             .atom("main")
-            .instruction(Instruction::Call(1))
+            .constant(1)
+            .atom("module")
+            .instruction(Instruction::Construct)
+            .instruction(Instruction::Call(2))
             .constant(0)
             .atom("procedure")
             .instruction(Instruction::Construct)
@@ -210,8 +213,11 @@ impl ProgramContext<'_> {
     }
 
     /// Writes a function. Calling convention of functions is to pass one arguments at a time
-    /// via repeated `CALL 1`. Eventually the returned value will be the final value of the
-    /// function.
+    /// via repeated `CALL 1`. Each application should be two values, the first being the actual
+    /// argument, and the second the struct `'function(1)` to ensure functions are not called
+    /// improperly.
+    ///
+    /// Eventually the returned value will be the final value of the function.
     pub fn write_function(
         &mut self,
         statics: &mut HashMap<Id, StaticMember>,
@@ -221,8 +227,10 @@ impl ProgramContext<'_> {
         self.label(for_id);
         let arity = function.overloads[0].parameters.len();
         let mut context = self.begin(statics, arity);
+        unlock_apply(&mut context);
         for _ in 1..arity {
             context.close(RETURN);
+            unlock_apply(&mut context);
         }
         for overload in &function.overloads {
             write_function(&mut context, overload);
@@ -237,6 +245,11 @@ impl ProgramContext<'_> {
     ///
     /// The module object is a callable that takes one argument, an atom that is the identifier
     /// of the member to access, and returns that member bound to the module's context arguments.
+    ///
+    /// Modules have a three-phase calling convention, depending on what stage the module is in.
+    /// 1. Initially, a module must be called with no arguments to trigger "initialization"
+    /// 2. If there are parameters, each parameter is passed to the module as if it was a function
+    /// 3. To finally import a member from a module, the atom representing the name of that member is passed, along with the struct `'module(1)`
     pub fn write_module(
         &mut self,
         mut statics: HashMap<Id, StaticMember>,

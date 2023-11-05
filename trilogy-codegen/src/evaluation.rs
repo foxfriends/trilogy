@@ -134,10 +134,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let continuation = context.labeler.unique_hint("while_cont");
             let r#continue = context.scope.push_continue();
             let r#break = context.scope.push_break();
+            context.constant(()).constant(()).shift(&continuation);
+            unlock_apply(context);
             context
-                .instruction(Instruction::Const(Value::Unit))
-                .instruction(Instruction::Const(Value::Unit))
-                .shift(&continuation)
                 // Continue is called with a value that is ignored. This is definitely an oversight
                 // that I should get around to fixing... or maybe there's a way to use that value?
                 .instruction(Instruction::Pop)
@@ -147,15 +146,19 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &stmt.body);
             context
                 .instruction(Instruction::LoadLocal(r#continue))
-                .instruction(Instruction::Const(Value::Unit))
-                .instruction(Instruction::Become(1))
+                .constant(());
+            apply_function_become(context);
+            context
                 .label(cond_fail)
                 .instruction(Instruction::LoadLocal(r#break))
-                .instruction(Instruction::Const(Value::Unit))
-                .instruction(Instruction::Become(1))
+                .constant(());
+            apply_function_become(context);
+            context
                 .label(continuation)
                 .instruction(Instruction::SetLocal(r#continue))
-                .shift(&setup)
+                .shift(&setup);
+            unlock_apply(context);
+            context
                 .instruction(Instruction::Pop) // Value passed to break
                 .instruction(Instruction::Pop) // Break
                 .instruction(Instruction::Pop) // Continue
@@ -174,7 +177,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 ir::Value::Dynamic(ident),
             ) => {
                 write_evaluation(context, module_ref);
-                context.atom(&**ident).instruction(Instruction::Call(1));
+                context.atom(&**ident);
+                apply_module(context);
             }
             (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
                 write_unary_operation(context, arg, *builtin);
@@ -396,9 +400,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .expect("procedures may not have spread arguments");
                         call_procedure(context, arity);
                     }
-                    _ => {
-                        context.instruction(Instruction::Call(1));
-                    }
+                    _ => apply_function(context),
                 };
             }
         },
@@ -474,6 +476,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let params = context.scope.closure(closure.parameters.len());
             for i in 0..closure.parameters.len() {
                 context.close(if i == 0 { &end } else { RETURN });
+                unlock_apply(context);
             }
             for (i, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
@@ -519,11 +522,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let stored_yield = context.scope.intermediate();
 
             // Second on the stack is the cancel continuation.
-            context.shift(&when).jump(&end);
+            context.shift(&when);
+            unlock_apply(context);
+            context.jump(&end);
             context.scope.push_cancel();
 
             // The new yield is created next, but it's not kept on stack.
             context.label(when).shift(&body);
+            // While every other continuation is treated like a function (with unlock_apply)
+            // the yield is special since it can't actually be accessed by the programmer
+            // directly, so can never be incorrectly called, so does not have to be unlocked.
+            // It's also called with 2 arguments instead of 1 like any other continuation.
 
             // That new yield will be called with the effect and the resume continuation.
             let effect = context.scope.intermediate();

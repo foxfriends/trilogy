@@ -1,6 +1,6 @@
 use crate::{preamble::*, prelude::*};
 use trilogy_ir::ir::Builtin;
-use trilogy_vm::{Instruction, Value};
+use trilogy_vm::{Instruction, Struct, Value};
 
 pub(crate) fn is_operator(builtin: Builtin) -> bool {
     #[allow(clippy::match_like_matches_macro)]
@@ -52,74 +52,161 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
 
 pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
     match builtin {
-        Builtin::Negate => context.instruction(Instruction::Negate),
-        Builtin::Not => context.instruction(Instruction::Not),
-        Builtin::Access => context.instruction(Instruction::Access),
-        Builtin::And => context.instruction(Instruction::And),
-        Builtin::Or => context.instruction(Instruction::Or),
-        Builtin::Add => context.instruction(Instruction::Add),
-        Builtin::Subtract => context.instruction(Instruction::Subtract),
-        Builtin::Multiply => context.instruction(Instruction::Multiply),
-        Builtin::Divide => context.instruction(Instruction::Divide),
-        Builtin::Remainder => context.instruction(Instruction::Remainder),
-        Builtin::Power => context.instruction(Instruction::Power),
-        Builtin::IntDivide => context.instruction(Instruction::IntDivide),
-        Builtin::StructuralEquality => context.instruction(Instruction::ValEq),
-        Builtin::StructuralInequality => context.instruction(Instruction::ValNeq),
-        Builtin::ReferenceEquality => context.instruction(Instruction::RefEq),
-        Builtin::ReferenceInequality => context.instruction(Instruction::RefNeq),
-        Builtin::Lt => context.instruction(Instruction::Lt),
-        Builtin::Gt => context.instruction(Instruction::Gt),
-        Builtin::Leq => context.instruction(Instruction::Leq),
-        Builtin::Geq => context.instruction(Instruction::Geq),
-        Builtin::BitwiseAnd => context.instruction(Instruction::BitwiseAnd),
-        Builtin::BitwiseOr => context.instruction(Instruction::BitwiseOr),
-        Builtin::BitwiseXor => context.instruction(Instruction::BitwiseXor),
-        Builtin::Invert => context.instruction(Instruction::BitwiseNeg),
-        Builtin::LeftShift => context.instruction(Instruction::LeftShift),
-        Builtin::RightShift => context.instruction(Instruction::RightShift),
-        Builtin::Sequence => context.instruction(Instruction::Pop),
-        Builtin::Cons => context.instruction(Instruction::Cons),
-        Builtin::Construct => context.instruction(Instruction::Construct),
-        Builtin::Glue => context.instruction(Instruction::Glue),
-        Builtin::Pipe => context
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Call(1)),
-        Builtin::RPipe => context.instruction(Instruction::Call(1)),
-        Builtin::Exit => context.instruction(Instruction::Exit),
-        Builtin::Return => context.instruction(Instruction::Return),
-        Builtin::Break => context
-            .instruction(context.scope.kw_break().unwrap())
-            .instruction(Instruction::Const(Value::Unit))
-            .instruction(Instruction::Become(1)),
-        Builtin::Continue => context
-            .instruction(context.scope.kw_continue().unwrap())
-            .instruction(Instruction::Const(Value::Unit))
-            .instruction(Instruction::Become(1)),
-        Builtin::Compose => context
-            .write_procedure_reference(RCOMPOSE.to_owned())
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Call(1))
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Call(1)),
-        Builtin::RCompose => context
-            .write_procedure_reference(COMPOSE.to_owned())
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Call(1))
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Call(1)),
-        Builtin::Yield => context
-            .write_procedure_reference(YIELD.to_owned())
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Call(1)),
-        Builtin::Resume => context
-            .instruction(context.scope.kw_resume().unwrap())
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Call(1)),
-        Builtin::Cancel => context
-            .instruction(context.scope.kw_cancel().unwrap())
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::Become(1)),
+        Builtin::Negate => {
+            context.instruction(Instruction::Negate);
+        }
+        Builtin::Not => {
+            context.instruction(Instruction::Not);
+        }
+        Builtin::Access => {
+            context.instruction(Instruction::Access);
+        }
+        Builtin::And => {
+            context.instruction(Instruction::And);
+        }
+        Builtin::Or => {
+            context.instruction(Instruction::Or);
+        }
+        Builtin::Add => {
+            context.instruction(Instruction::Add);
+        }
+        Builtin::Subtract => {
+            context.instruction(Instruction::Subtract);
+        }
+        Builtin::Multiply => {
+            context.instruction(Instruction::Multiply);
+        }
+        Builtin::Divide => {
+            context.instruction(Instruction::Divide);
+        }
+        Builtin::Remainder => {
+            context.instruction(Instruction::Remainder);
+        }
+        Builtin::Power => {
+            context.instruction(Instruction::Power);
+        }
+        Builtin::IntDivide => {
+            context.instruction(Instruction::IntDivide);
+        }
+        Builtin::StructuralEquality => {
+            context.instruction(Instruction::ValEq);
+        }
+        Builtin::StructuralInequality => {
+            context.instruction(Instruction::ValNeq);
+        }
+        Builtin::ReferenceEquality => {
+            context.instruction(Instruction::RefEq);
+        }
+        Builtin::ReferenceInequality => {
+            context.instruction(Instruction::RefNeq);
+        }
+        Builtin::Lt => {
+            context.instruction(Instruction::Lt);
+        }
+        Builtin::Gt => {
+            context.instruction(Instruction::Gt);
+        }
+        Builtin::Leq => {
+            context.instruction(Instruction::Leq);
+        }
+        Builtin::Geq => {
+            context.instruction(Instruction::Geq);
+        }
+        Builtin::BitwiseAnd => {
+            context.instruction(Instruction::BitwiseAnd);
+        }
+        Builtin::BitwiseOr => {
+            context.instruction(Instruction::BitwiseOr);
+        }
+        Builtin::BitwiseXor => {
+            context.instruction(Instruction::BitwiseXor);
+        }
+        Builtin::Invert => {
+            context.instruction(Instruction::BitwiseNeg);
+        }
+        Builtin::LeftShift => {
+            context.instruction(Instruction::LeftShift);
+        }
+        Builtin::RightShift => {
+            context.instruction(Instruction::RightShift);
+        }
+        Builtin::Sequence => {
+            context.instruction(Instruction::Pop);
+        }
+        Builtin::Cons => {
+            context.instruction(Instruction::Cons);
+        }
+        Builtin::Construct => {
+            context.instruction(Instruction::Construct);
+        }
+        Builtin::Glue => {
+            context.instruction(Instruction::Glue);
+        }
+        Builtin::Pipe => {
+            context.instruction(Instruction::Swap);
+            apply_function(context);
+        }
+        Builtin::RPipe => {
+            apply_function(context);
+        }
+        Builtin::Exit => {
+            context.instruction(Instruction::Exit);
+        }
+        Builtin::Return => {
+            context.instruction(Instruction::Return);
+        }
+        Builtin::Break => {
+            let function = context.make_atom("function");
+            context
+                .instruction(context.scope.kw_break().unwrap())
+                .instruction(Instruction::Const(Value::Unit))
+                .constant(Struct::new(function, 1))
+                .instruction(Instruction::Become(2));
+        }
+        Builtin::Continue => {
+            let function = context.make_atom("function");
+            context
+                .instruction(context.scope.kw_continue().unwrap())
+                .instruction(Instruction::Const(Value::Unit))
+                .constant(Struct::new(function, 1))
+                .instruction(Instruction::Become(2));
+        }
+        Builtin::Compose => {
+            context
+                .write_procedure_reference(RCOMPOSE.to_owned())
+                .instruction(Instruction::Swap);
+            apply_function(context);
+            context.instruction(Instruction::Swap);
+            apply_function(context);
+        }
+        Builtin::RCompose => {
+            context
+                .write_procedure_reference(COMPOSE.to_owned())
+                .instruction(Instruction::Swap);
+            apply_function(context);
+            context.instruction(Instruction::Swap);
+            apply_function(context);
+        }
+        Builtin::Yield => {
+            context
+                .write_procedure_reference(YIELD.to_owned())
+                .instruction(Instruction::Swap);
+            apply_function(context);
+        }
+        Builtin::Resume => {
+            context
+                .instruction(context.scope.kw_resume().unwrap())
+                .instruction(Instruction::Swap);
+            apply_function(context);
+        }
+        Builtin::Cancel => {
+            let function = context.make_atom("function");
+            context
+                .instruction(context.scope.kw_cancel().unwrap())
+                .instruction(Instruction::Swap)
+                .constant(Struct::new(function, 1))
+                .instruction(Instruction::Become(2));
+        }
         Builtin::ModuleAccess
         | Builtin::Array
         | Builtin::Set
@@ -217,10 +304,9 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         Builtin::Cancel => context.instruction(context.scope.kw_cancel().unwrap()),
         Builtin::Return => {
             let end = context.labeler.unique_hint("J");
-            context
-                .shift(&end)
-                .instruction(Instruction::Return)
-                .label(end)
+            context.shift(&end);
+            unlock_apply(context);
+            context.instruction(Instruction::Return).label(end)
         }
 
         Builtin::ModuleAccess

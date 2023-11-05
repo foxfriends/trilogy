@@ -75,6 +75,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     // Its parameters are passed next like function parameters, one at a time.
     for _ in 0..module.parameters.len() {
         context.close(RETURN);
+        unlock_apply(context);
     }
 
     // 2. Binding the parameters to their variables
@@ -268,6 +269,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     // cause reinitialization. It's up to the caller to ensure they preserve copies
     // of the module though.
     context.close(RETURN);
+    unlock_call(context, "module", 1);
 
     // The current module's parameters are stored into register 1 such that when a function
     // is called, its parameters can be located. Through this public interface that
@@ -318,6 +320,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     // Capture all the parameters up front.
                     for _ in 0..function_arity {
                         context.close(RETURN);
+                        unlock_apply(context);
                     }
                     // Once all parameters are located, set up the context register
                     // and call the function by applying the parameters one by one.
@@ -327,9 +330,8 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         .instruction(Instruction::SetRegister(1))
                         .write_procedure_reference(label);
                     for i in 0..function_arity {
-                        context
-                            .instruction(Instruction::LoadLocal(current_module + i as u32 + 1))
-                            .instruction(Instruction::Call(1));
+                        context.instruction(Instruction::LoadLocal(current_module + i as u32 + 1));
+                        apply_function(context);
                     }
                     // After every parameter was passed, then we have the return value which is
                     // no longer subject to the context rules, so return the context register.
@@ -384,10 +386,9 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     // Capture all the parameters and apply them one by one, as they arrive.
                     // Each call needs to keep the partially applied module closure around,
                     // as each should be independent.
-                    //
-                    // There is one extra "parameter" that is the symbol being imported.
-                    for _ in 0..submodule_arity + 1 {
+                    for _ in 0..submodule_arity {
                         context.close(RETURN);
+                        unlock_apply(context);
                         let parameter = context.scope.intermediate();
                         context.instruction(Instruction::LoadRegister(1));
                         context.scope.intermediate(); // previous module
@@ -395,13 +396,32 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                             .instruction(Instruction::LoadLocal(current_module))
                             .instruction(Instruction::SetRegister(1))
                             .instruction(Instruction::LoadLocal(partial_module))
-                            .instruction(Instruction::LoadLocal(parameter))
-                            .instruction(Instruction::Call(1))
+                            .instruction(Instruction::LoadLocal(parameter));
+                        apply_function(context);
+                        context
                             .instruction(Instruction::SetLocal(parameter))
                             .instruction(Instruction::SetRegister(1));
                         context.scope.end_intermediate(); // previous module
                         partial_module = parameter;
                     }
+                    // Then one more "parameter" is the symbol to import. The call is basically the same.
+                    context.close(RETURN);
+                    unlock_call(context, "module", 1);
+
+                    let parameter = context.scope.intermediate();
+                    context.instruction(Instruction::LoadRegister(1));
+                    context.scope.intermediate(); // previous module
+                    context
+                        .instruction(Instruction::LoadLocal(current_module))
+                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::LoadLocal(partial_module))
+                        .instruction(Instruction::LoadLocal(parameter));
+                    apply_module(context);
+                    context
+                        .instruction(Instruction::SetLocal(parameter))
+                        .instruction(Instruction::SetRegister(1));
+                    context.scope.end_intermediate(); // previous module
+
                     // After every parameter was passed, the top of stack is the resolved imported symbol,
                     // so it just needs to be returned.
                     context.instruction(Instruction::Return);

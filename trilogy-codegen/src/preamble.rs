@@ -1,5 +1,5 @@
 use crate::entrypoint::ProgramContext;
-use trilogy_vm::{Instruction, Value};
+use trilogy_vm::{Instruction, Struct, Value};
 
 pub const ADD: &str = "core::add";
 pub const SUB: &str = "core::sub";
@@ -56,36 +56,53 @@ pub(crate) const INVALID_ITERATOR: &str = "panic::invalid_iterator";
 pub(crate) const INCORRECT_ARITY: &str = "panic::incorrect_arity";
 pub(crate) const INVALID_CALL: &str = "panic::invalid_call";
 
+fn unlock_apply(context: &mut ProgramContext) {
+    let function = context.atom("function");
+    context
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::Destruct)
+        .instruction(Instruction::Copy)
+        .constant(function)
+        .instruction(Instruction::ValEq)
+        .cond_jump(INVALID_CALL)
+        .instruction(Instruction::Pop)
+        .constant(1)
+        .instruction(Instruction::ValEq)
+        .cond_jump(INCORRECT_ARITY)
+        .instruction(Instruction::Pop);
+}
+
 macro_rules! binop {
-    ($builder:expr, $label:expr, $($op:expr),+) => {
-        $builder
-            .label($label)
-            .shift(RETURN)
-            .instruction(Instruction::LoadLocal(0))
+    ($builder:expr, $label:expr, $($op:expr),+) => {{
+        $builder.label($label).shift(RETURN);
+        unlock_apply($builder);
+        $builder.instruction(Instruction::LoadLocal(0))
             .instruction(Instruction::Swap)
             $(.instruction($op))+
             .instruction(Instruction::Reset)
-    };
+    }};
 }
 
 macro_rules! binop_ {
-    ($builder:expr, $label:expr, $($op:expr),+) => {
+    ($builder:expr, $label:expr, $($op:expr),+) => {{
+        unlock_apply($builder);
+        $builder.label($label).shift(RETURN);
+        unlock_apply($builder);
         $builder
-            .label($label)
-            .shift(RETURN)
             .instruction(Instruction::LoadLocal(0))
             $(.instruction($op))+
             .instruction(Instruction::Reset)
-    };
+    }};
 }
 
 macro_rules! unop {
-    ($builder:expr, $label:expr, $($op:expr),+) => {
+    ($builder:expr, $label:expr, $($op:expr),+) => {{
+        unlock_apply($builder);
         $builder
             .label($label)
             $(.instruction($op))+
             .instruction(Instruction::Return)
-    };
+    }};
 }
 
 pub(crate) fn write_preamble(builder: &mut ProgramContext) {
@@ -126,28 +143,39 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     binop!(builder, CONS, Instruction::Cons);
 
+    let function = Struct::new(builder.atom("function"), 1);
+    builder.label(RCOMPOSE);
+    unlock_apply(builder);
+    builder.close(RETURN);
+    unlock_apply(builder);
+    builder.close(RETURN);
+    unlock_apply(builder);
     builder
-        .label(RCOMPOSE)
-        .close(RETURN)
-        .close(RETURN)
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Swap)
-        .instruction(Instruction::Call(1))
+        .constant(function.clone())
+        .instruction(Instruction::Call(2))
         .instruction(Instruction::LoadLocal(1))
         .instruction(Instruction::Swap)
-        .instruction(Instruction::Call(1))
+        .constant(function.clone())
+        .instruction(Instruction::Call(2))
         .instruction(Instruction::Return);
 
+    builder.label(COMPOSE);
+    unlock_apply(builder);
+    builder.close(RETURN);
+    unlock_apply(builder);
+    builder.close(RETURN);
+    unlock_apply(builder);
     builder
-        .label(COMPOSE)
-        .close(RETURN)
-        .close(RETURN)
         .instruction(Instruction::LoadLocal(1))
         .instruction(Instruction::Swap)
-        .instruction(Instruction::Call(1))
+        .constant(function.clone())
+        .instruction(Instruction::Call(2))
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Swap)
-        .instruction(Instruction::Call(1))
+        .constant(function.clone())
+        .instruction(Instruction::Call(2))
         .instruction(Instruction::Return);
 
     let callable = builder.atom("callable");
@@ -254,16 +282,19 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     let no_handler = builder.labeler.unique_hint("no_handler");
     let unhandled_effect = builder.atom("UnhandledEffect");
 
+    builder.label(YIELD);
+    unlock_apply(builder);
     builder
-        .label(YIELD)
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
         .cond_jump(&no_handler)
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Swap)
-        .shift(&yielding)
-        // This is where we go when "resumed"
+        .shift(&yielding);
+    // This is where we go when "resumed"
+    unlock_apply(builder);
+    builder
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::SetRegister(0))
         .instruction(Instruction::Return)
