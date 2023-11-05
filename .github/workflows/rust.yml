@@ -19,15 +19,13 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
+        run: |
+          rustup install stable
+          rustup component add clippy
+          rustup default stable
       - name: Run cargo clippy
+        run: cargo clippy -- -D warnings
         uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
@@ -44,15 +42,12 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
+        run: |
+          rustup install stable
+          rustup component add rustfmt
+          rustup default stable
       - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt -- --check
   build:
     name: build
     runs-on: ubuntu-latest
@@ -69,14 +64,11 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
+        run: |
+          rustup install stable
+          rustup default stable
       - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
+        run: cargo check
   test:
     name: test
     runs-on: ubuntu-latest
@@ -93,11 +85,8 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: |
+          rustup install stable
+          rustup default stable
+      - name: Run cargo check
+        run: cargo test
