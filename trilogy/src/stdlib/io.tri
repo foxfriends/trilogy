@@ -5,5 +5,4 @@ const println = native::println
 const eprint = native::eprint
 const eprintln = native::eprintln
 const readline = native::readline
-
 export print, println, eprint, eprintln, readline

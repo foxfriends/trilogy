@@ -63,6 +63,10 @@ impl Builder<FileSystemCache> {
                 Location::library("num").unwrap(),
                 include_str!("../../stdlib/num.tri").to_owned(),
             )
+            .source_module(
+                Location::library("array").unwrap(),
+                include_str!("../../stdlib/array.tri").to_owned(),
+            )
     }
 }
 

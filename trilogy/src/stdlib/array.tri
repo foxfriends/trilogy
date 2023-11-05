@@ -1,0 +1,13 @@
+func map f [] = []
+func map f [x, ..xs] = [f x, ..map f xs]
+export map
+
+func filter f [] = []
+func filter f [x, ..xs] = if f x then [x, ..filter f xs] else filter f xs
+export filter
+
+func fold f a [] = a
+func fold f a [x, ..xs] =
+    let a2 = f a x
+    fold f a2 xs
+export fold

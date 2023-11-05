@@ -5,5 +5,4 @@ export cast
 
 func chomp s <> "\n" = s
 func chomp s = s
-
 export chomp
