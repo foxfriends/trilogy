@@ -21,13 +21,13 @@ pub(crate) fn unapply_2(
 
 pub(crate) fn unlock_call(context: &mut Context, atom: &str, arity: usize) {
     context
-        .instruction(Instruction::Copy)
         .instruction(Instruction::Destruct)
         .instruction(Instruction::Copy)
         .atom(atom)
         .instruction(Instruction::ValEq)
         .cond_jump(INVALID_CALL)
         .instruction(Instruction::Pop)
+        .instruction(Instruction::Copy)
         .constant(arity)
         .instruction(Instruction::ValEq)
         .cond_jump(INCORRECT_ARITY)
