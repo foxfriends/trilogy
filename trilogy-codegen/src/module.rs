@@ -168,15 +168,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
 
     // 3. Evaluating constants
     let mut old_statics = HashMap::new();
-    for def in module
-        .definitions()
-        .iter()
-        // We do constants first
-        .filter(|def| def.is_constant())
-        // Then modules second
-        .chain(module.definitions().iter().filter(|def| def.is_module()))
-    // That sorting can be removed when the DAG is built, it's just a weak version of that.
-    {
+    for def in module.definitions() {
         let declared_id = match &def.item {
             ir::DefinitionItem::Constant(constant) => {
                 // TODO: there's no real reason why constant doesn't allow pattern

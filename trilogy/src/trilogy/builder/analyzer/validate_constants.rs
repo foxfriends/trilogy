@@ -13,13 +13,6 @@ struct Node {
     arity: Option<usize>,
 }
 
-// Alright this was a fun experiment, but now I know the problem better...
-//
-// Looks like this is going be properly solved with a mini lambda calculus
-// implementation that can evaluate modules and ignore constants statically.
-//
-// I'll try again when less tired of it.
-
 pub(super) fn validate_constants<E: std::error::Error>(
     modules: &mut Modules,
     report: &mut ReportBuilder<E>,
