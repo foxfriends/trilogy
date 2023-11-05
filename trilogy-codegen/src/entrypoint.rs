@@ -118,7 +118,10 @@ impl ProgramContext<'_> {
             .instruction(Instruction::Call(0))
             .atom("main")
             .instruction(Instruction::Call(1))
-            .instruction(Instruction::Call(0))
+            .constant(0)
+            .atom("procedure")
+            .instruction(Instruction::Construct)
+            .instruction(Instruction::Call(1))
             .instruction(Instruction::Copy)
             .constant(())
             .instruction(Instruction::ValEq)
@@ -130,7 +133,9 @@ impl ProgramContext<'_> {
 
     /// Writes a procedure.
     ///
-    /// The calling convention of procedures is to call with all arguments on the stack in order.
+    /// The calling convention of procedures is to call with all arguments on the stack
+    /// in order, followed by the struct `'procedure(arity)` where the arity is the number
+    /// of arguments that was just passed, so as to prevent the invalid calling of procedures.
     pub fn write_procedure(
         &mut self,
         statics: &mut HashMap<Id, StaticMember>,
@@ -140,7 +145,8 @@ impl ProgramContext<'_> {
         self.label(for_id);
         assert!(procedure.overloads.len() == 1);
         let overload = &procedure.overloads[0];
-        let context = self.begin(statics, overload.parameters.len());
+        let mut context = self.begin(statics, overload.parameters.len());
+        unlock_call(&mut context, "procedure", overload.parameters.len());
         write_procedure(context, overload);
     }
 

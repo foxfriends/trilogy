@@ -2,8 +2,8 @@ proc first!() {
     let ret = (return)
 
     let inner = fn x. if x == 8 then ret 4 else return 5
-    let five = inner!(0)
-    inner!(five + 3)
+    let five = inner 0
+    inner <| five + 3
 
     return 0
 }

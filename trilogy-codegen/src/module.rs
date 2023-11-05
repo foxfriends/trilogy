@@ -347,15 +347,17 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         .unwrap_label();
                     // Procedure only has one overload. All overloads would have the same arity anyway.
                     let arity = proc.overloads[0].parameters.len();
+                    context.close(RETURN);
+                    unlock_call(context, "procedure", arity);
                     context
-                        .close(RETURN)
                         .instruction(Instruction::LoadRegister(1))
                         .instruction(Instruction::LoadLocal(current_module))
                         .instruction(Instruction::SetRegister(1))
                         .instruction(Instruction::Slide(arity as u32))
                         .write_procedure_reference(proc_label)
-                        .instruction(Instruction::Slide(arity as u32))
-                        .instruction(Instruction::Call(arity as u32))
+                        .instruction(Instruction::Slide(arity as u32));
+                    call_procedure(context, arity);
+                    context
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(1))
                         .instruction(Instruction::Return);

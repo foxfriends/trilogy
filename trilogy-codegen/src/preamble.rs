@@ -53,6 +53,8 @@ pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
 
 pub(crate) const INVALID_ITERATOR: &str = "panic::invalid_iterator";
+pub(crate) const INCORRECT_ARITY: &str = "panic::incorrect_arity";
+pub(crate) const INVALID_CALL: &str = "panic::invalid_call";
 
 macro_rules! binop {
     ($builder:expr, $label:expr, $($op:expr),+) => {
@@ -276,6 +278,20 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder
         .label(INVALID_ITERATOR)
         .constant(invalid_iterator)
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
+
+    let incorrect_arity = builder.atom("IncorrectArity");
+    builder
+        .label(INCORRECT_ARITY)
+        .constant(incorrect_arity)
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
+
+    let invalid_call = builder.atom("InvalidCall");
+    builder
+        .label(INVALID_CALL)
+        .constant(invalid_call)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 }

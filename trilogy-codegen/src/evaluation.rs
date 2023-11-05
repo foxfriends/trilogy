@@ -389,14 +389,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.intermediate();
                 write_expression(context, &application.argument);
                 context.scope.end_intermediate();
-                let arity = match &application.argument.value {
-                    ir::Value::Pack(pack) => pack
-                        .len()
-                        .expect("procedures may not have spread arguments")
-                        as u32,
-                    _ => 1,
+                match &application.argument.value {
+                    ir::Value::Pack(pack) => {
+                        let arity = pack
+                            .len()
+                            .expect("procedures may not have spread arguments");
+                        call_procedure(context, arity);
+                    }
+                    _ => {
+                        context.instruction(Instruction::Call(1));
+                    }
                 };
-                context.instruction(Instruction::Call(arity));
             }
         },
         ir::Value::Let(decl) if decl.query.is_once() => {
@@ -489,6 +492,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let end = context.labeler.unique_hint("end_do");
             let param_start = context.scope.closure(closure.parameters.len());
             context.close(&end);
+            unlock_call(context, "procedure", closure.parameters.len());
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context.instruction(Instruction::LoadLocal(param_start + offset as u32));
