@@ -1,17 +1,13 @@
-use crate::location::Location;
-use crate::{Cache, FileSystemCache, NativeModule, NoopCache};
-use home::home_dir;
-
 #[cfg(feature = "std")]
 use crate::stdlib;
 
+use super::{Source, Trilogy};
+use crate::location::Location;
+use crate::{Cache, FileSystemCache, NativeModule, NoopCache};
+use home::home_dir;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-
-use self::report::ReportBuilder;
-
-use super::{Source, Trilogy};
 
 mod analyzer;
 mod converter;
@@ -21,6 +17,7 @@ mod report;
 
 pub use error::Error;
 pub use report::Report;
+use report::ReportBuilder;
 
 /// Builder for instances of [`Trilogy`][].
 ///
@@ -28,7 +25,8 @@ pub use report::Report;
 /// you will be using this Builder to provide those.
 pub(crate) struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
-    libraries: HashMap<Location, NativeModule>,
+    native_modules: HashMap<Location, NativeModule>,
+    source_modules: HashMap<Location, String>,
     cache: C,
 }
 
@@ -50,9 +48,21 @@ impl Builder<FileSystemCache> {
                 FileSystemCache::new(home)
                     .expect("canonical cache dir ~/.trilogy/cache is occupied"),
             )
-            .library(Location::library("io").unwrap(), stdlib::io())
-            .library(Location::library("str").unwrap(), stdlib::str())
-            .library(Location::library("num").unwrap(), stdlib::num())
+            .native_module(Location::library("io/native").unwrap(), stdlib::io())
+            .source_module(
+                Location::library("io").unwrap(),
+                include_str!("../../stdlib/io.tri").to_owned(),
+            )
+            .native_module(Location::library("str/native").unwrap(), stdlib::str())
+            .source_module(
+                Location::library("str").unwrap(),
+                include_str!("../../stdlib/str.tri").to_owned(),
+            )
+            .native_module(Location::library("num/native").unwrap(), stdlib::num())
+            .source_module(
+                Location::library("num").unwrap(),
+                include_str!("../../stdlib/num.tri").to_owned(),
+            )
     }
 }
 
@@ -72,7 +82,8 @@ impl Builder<NoopCache> {
     pub fn new() -> Self {
         Self {
             root_dir: None,
-            libraries: HashMap::new(),
+            native_modules: HashMap::new(),
+            source_modules: HashMap::new(),
             cache: NoopCache,
         }
     }
@@ -81,9 +92,18 @@ impl Builder<NoopCache> {
 impl<C: Cache> Builder<C> {
     /// Adds a native module to this builder as a library.
     ///
-    /// The location describes how Trilogy code should reference this library.
-    pub fn library(mut self, location: Location, library: NativeModule) -> Self {
-        self.libraries.insert(location, library);
+    /// The location describes how Trilogy code should reference this module.
+    pub fn native_module(mut self, location: Location, library: NativeModule) -> Self {
+        self.native_modules.insert(location, library);
+        self
+    }
+
+    /// Adds a Trilogy source module to this builder as a library.
+    ///
+    /// Any other dependencies of this native module must also be added manually, otherwise
+    /// module resolution will later fail.
+    pub fn source_module(mut self, location: Location, source: String) -> Self {
+        self.source_modules.insert(location, source.to_owned());
         self
     }
 
@@ -93,7 +113,8 @@ impl<C: Cache> Builder<C> {
     pub fn with_cache<C2: Cache>(self, cache: C2) -> Builder<C2> {
         Builder {
             root_dir: self.root_dir,
-            libraries: self.libraries,
+            native_modules: self.native_modules,
+            source_modules: self.source_modules,
             cache,
         }
     }
@@ -105,7 +126,8 @@ impl<C: Cache> Builder<C> {
         let Self {
             mut cache,
             root_dir,
-            libraries,
+            native_modules,
+            source_modules,
         } = self;
         let mut report = ReportBuilder::default();
         let root_path = match root_dir {
@@ -119,7 +141,7 @@ impl<C: Cache> Builder<C> {
             },
         };
         let entrypoint = Location::entrypoint(root_path.clone(), file);
-        let documents = loader::load(&cache, &entrypoint, &mut report);
+        let documents = loader::load(&cache, &entrypoint, &source_modules, &mut report);
         cache = report.checkpoint(&root_path, cache)?;
         let mut modules = converter::convert(documents, &mut report);
         analyzer::analyze(&mut modules, &entrypoint, &mut report);
@@ -129,13 +151,13 @@ impl<C: Cache> Builder<C> {
                 modules,
                 entrypoint,
             },
-            libraries,
+            native_modules,
         ))
     }
 
     pub(super) fn build_from_asm(self, file: &mut dyn Read) -> Result<Trilogy, std::io::Error> {
         let mut asm = String::new();
         file.read_to_string(&mut asm)?;
-        Ok(Trilogy::new(Source::Asm { asm }, self.libraries))
+        Ok(Trilogy::new(Source::Asm { asm }, self.native_modules))
     }
 }

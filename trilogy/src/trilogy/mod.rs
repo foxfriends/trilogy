@@ -1,5 +1,4 @@
-use crate::location::Location;
-use crate::NativeModule;
+use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;

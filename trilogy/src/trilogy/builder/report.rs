@@ -5,6 +5,7 @@ use crate::location::Location;
 use crate::Cache;
 use ariadne::{ColorGenerator, Config, Fmt, FnCache, Label, ReportKind};
 use source_span::Span;
+use std::collections::HashMap;
 use std::fmt::{self, Debug};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
@@ -40,7 +41,8 @@ impl<E: std::error::Error + 'static> Report<E> {
     ///
     /// This is the intended way of consuming a Report.
     pub fn eprint(&self) {
-        let loader = Loader::new(self.cache.as_ref());
+        let empty = HashMap::default();
+        let loader = Loader::new(self.cache.as_ref(), &empty);
         let cache = FnCache::new(move |loc: &&Location| {
             loader
                 .load_source(loc)

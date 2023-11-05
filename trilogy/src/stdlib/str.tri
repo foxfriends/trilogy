@@ -1,0 +1,9 @@
+module native at "trilogy:str/native"
+
+func cast n = native::cast!(n)
+export cast
+
+func chomp s <> "\n" = s
+func chomp s = s
+
+export chomp

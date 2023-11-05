@@ -518,7 +518,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
 
             // Register 0 holds the current effect handler, which corresponds to the `yield` keyword.
             // To register a new one we must first store the parent handler.
+            //
+            // Similarly, we must store the current module context, as the yield will possibly be
+            // triggered from a different context.
+            context.instruction(Instruction::LoadRegister(1));
             context.instruction(Instruction::LoadRegister(0));
+            let stored_context = context.scope.intermediate();
             let stored_yield = context.scope.intermediate();
 
             // Second on the stack is the cancel continuation.
@@ -538,12 +543,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let effect = context.scope.intermediate();
             context.scope.push_resume();
 
-            // Immediately restore the context of the parent `yield`, as a handler may use it.
-            // The `yield` used to arrive here isn't needed though, as the `yield` expression
-            // itself takes care of saving that to restore it when resumed.
+            // Immediately restore the parent `yield` and module context, as a handler may use it.
+            // The yielder's values aren't needed though, as the `yield` expression itself takes
+            // care of saving that to restore it when resumed.
             context
                 .instruction(Instruction::LoadLocal(stored_yield))
-                .instruction(Instruction::SetRegister(0));
+                .instruction(Instruction::SetRegister(0))
+                .instruction(Instruction::LoadLocal(stored_context))
+                .instruction(Instruction::SetRegister(1));
             for handler in &handled.handlers {
                 let next = context.labeler.unique_hint("when_next");
                 context.declare_variables(handler.pattern.bindings());

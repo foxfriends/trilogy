@@ -1,7 +1,7 @@
 use crate::location::Location;
 use std::collections::HashMap;
 use trilogy_codegen::{INCORRECT_ARITY, INVALID_CALL, RETURN};
-use trilogy_vm::{ChunkBuilder, Instruction, Native, NativeFunction};
+use trilogy_vm::{ChunkBuilder, Instruction, Native, NativeFunction, Value};
 
 /// A module of native functions.
 ///
@@ -174,7 +174,16 @@ impl NativeModule {
             module.write_to_chunk_at_path(location, child_path, chunk);
             chunk.label(next);
         }
+        let symbol_list = self
+            .procedures
+            .keys()
+            .chain(self.modules.keys())
+            .map(|name| Value::from(chunk.make_atom(name)))
+            .collect::<Vec<_>>();
         chunk
+            .constant(symbol_list)
+            .instruction(Instruction::Cons)
+            .atom("UnresolvedImport")
             .atom("UnresolvedImport")
             .instruction(Instruction::Construct)
             .instruction(Instruction::Panic);

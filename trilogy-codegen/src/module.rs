@@ -266,6 +266,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     // The current module's parameters are stored into register 1 such that when a function
     // is called, its parameters can be located. Through this public interface that
     // invariant is upheld.
+    let mut symbol_list = vec![];
     for def in module.definitions() {
         if def.is_exported {
             let next_export = context.labeler.unique_hint("next_export");
@@ -280,6 +281,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 .instruction(Instruction::ValEq)
                 .cond_jump(&next_export)
                 .instruction(Instruction::Pop);
+            symbol_list.push(Value::from(context.make_atom(name)));
 
             match &def.item {
                 ir::DefinitionItem::Constant(constant) => {
@@ -288,7 +290,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         .lookup_static(&constant.name.id)
                         .unwrap()
                         .clone()
-                        .unwrap_label();
+                        .unwrap_context();
                     // Constants are stored in the modules context, load them like context parameters.
                     context
                         .instruction(Instruction::LoadRegister(1))
@@ -482,6 +484,8 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     }
 
     context
+        .constant(symbol_list)
+        .instruction(Instruction::Cons)
         .atom("UnresolvedImport")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);

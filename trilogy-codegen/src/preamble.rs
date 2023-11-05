@@ -289,16 +289,24 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
         .cond_jump(&no_handler)
+        // Save the module context and handler to restore after resuming
+        .instruction(Instruction::LoadRegister(1))
+        .instruction(Instruction::Swap)
+        // The handler is also about to be called, so it goes second
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Swap)
         .shift(&yielding);
     // This is where we go when "resumed"
     unlock_apply(builder);
     builder
+        // Restore the context and previous handler
         .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::SetRegister(1))
+        .instruction(Instruction::LoadLocal(1))
         .instruction(Instruction::SetRegister(0))
         .instruction(Instruction::Return)
         .label(yielding)
+        // Call the handler with the effect, then the "resume" continuation
         .instruction(Instruction::Become(2))
         .label(no_handler)
         .constant(unhandled_effect)

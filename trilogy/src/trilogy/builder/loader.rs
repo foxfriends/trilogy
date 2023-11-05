@@ -108,15 +108,17 @@ impl Module {
 pub(super) struct Loader<'a, E> {
     client: Client, // TODO: generic resolver
     cache: &'a dyn Cache<Error = E>,
+    libraries: &'a HashMap<Location, String>,
 }
 
 impl<'a, E> Loader<'a, E>
 where
     E: std::error::Error + 'static,
 {
-    pub fn new(cache: &'a dyn Cache<Error = E>) -> Self {
+    pub fn new(cache: &'a dyn Cache<Error = E>, libraries: &'a HashMap<Location, String>) -> Self {
         Self {
             client: Client::default(),
+            libraries,
             cache,
         }
     }
@@ -145,7 +147,7 @@ where
                     .map_err(ErrorKind::Cache)?;
                 Ok(Some(source))
             }
-            "trilogy" => Ok(None),
+            "trilogy" => Ok(self.libraries.get(location).cloned()),
             scheme => Err(ErrorKind::InvalidScheme(scheme.to_owned())),
         }
     }
@@ -154,10 +156,11 @@ where
 pub(super) fn load<C: Cache>(
     cache: &C,
     entrypoint: &Location,
+    libraries: &HashMap<Location, String>,
     report: &mut ReportBuilder<C::Error>,
 ) -> Vec<(Location, Document)> {
     let mut modules = HashMap::new();
-    let loader = Loader::new(cache);
+    let loader = Loader::new(cache, libraries);
 
     let mut module_queue = VecDeque::with_capacity(8);
 

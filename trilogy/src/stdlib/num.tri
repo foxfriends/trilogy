@@ -1,0 +1,4 @@
+module native at "trilogy:num/native"
+
+func cast n = native::cast!(n)
+export cast

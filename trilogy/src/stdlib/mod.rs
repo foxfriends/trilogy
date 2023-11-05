@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception)]
+
 mod io;
 mod num;
 mod str;

@@ -1,14 +1,12 @@
 module io at "trilogy:io"
 module num at "trilogy:num"
-
-func chomp s <> "\n" = s
-func chomp s = s
+module str at "trilogy:str"
 
 proc play!() {
     let answer = 42
     while true {
         io::print!("Guess: ")
-        let guess = with io::readline!() |> chomp |> fn n. num::cast!(n)
+        let guess = with io::readline!() |> str::chomp |> num::cast
             when 'NAN cancel {
                 io::println!("That's not a valid number")
                 continue
