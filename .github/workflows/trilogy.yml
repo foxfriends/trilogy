@@ -22,11 +22,11 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          components: rustfmt, clippy
       - name: Build Trilogy
         uses: actions-rs/cargo@v1
         with:
-          command: build --release
-      - name: Test Stdlib
+          command: build
+          args: --release
+        - name: Test Stdlib
         run: |
           fd .tri ./trilogy/src/stdlib | xargs -I _ ./target/release/trilogy test _
