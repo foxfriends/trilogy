@@ -45,7 +45,7 @@ impl<'a> ProgramContext<'a> {
 
 pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
     let mut context = ProgramContext::new(builder);
-    context.write_main();
+    context.write_main(&["main"], 0.into());
     write_preamble(&mut context);
 
     let mut statics = HashMap::default();
@@ -55,7 +55,7 @@ pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
     context.label("trilogy:__entrymodule__");
     let mut precontext = context.begin(&mut statics, module.parameters.len());
     write_module_prelude(&mut precontext, module, Mode::Document);
-    write_module_definitions(&mut context, module, &mut statics);
+    write_module_definitions(&mut context, module, &mut statics, Mode::Document);
 }
 
 pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
@@ -66,7 +66,24 @@ pub fn write_module(builder: &mut ChunkBuilder, module: &ir::Module) {
     // Parameters len will be 0, but let's write it out anyway
     let mut precontext = context.begin(&mut statics, module.parameters.len());
     write_module_prelude(&mut precontext, module, Mode::Document);
-    write_module_definitions(&mut context, module, &mut statics);
+    write_module_definitions(&mut context, module, &mut statics, Mode::Document);
+}
+
+pub fn write_test(builder: &mut ChunkBuilder, module: &ir::Module, path: &[&str], test: &str) {
+    let mut context = ProgramContext::new(builder);
+    let mut full_path = path.to_vec();
+    full_path.push("trilogy:__testentry__");
+    context.write_main(&full_path, Value::Unit);
+    write_preamble(&mut context);
+
+    let mut statics = HashMap::default();
+    context.collect_static(module, &mut statics);
+
+    // Parameters len will be 0, but let's write it out anyway
+    context.label("trilogy:__entrymodule__");
+    let mut precontext = context.begin(&mut statics, module.parameters.len());
+    write_module_prelude(&mut precontext, module, Mode::Test(path, test));
+    write_module_definitions(&mut context, module, &mut statics, Mode::Test(path, test));
 }
 
 impl ProgramContext<'_> {
@@ -110,17 +127,22 @@ impl ProgramContext<'_> {
     }
 
     /// Writes the entrypoint of the program.
-    pub fn write_main(&mut self) {
+    pub fn write_main(&mut self, path: &[&str], default_exit: Value) {
         self.builder
             .entrypoint()
             .label("trilogy:__entrypoint__")
             .reference("trilogy:__entrymodule__")
-            .instruction(Instruction::Call(0))
-            .atom("main")
-            .constant(1)
-            .atom("module")
-            .instruction(Instruction::Construct)
-            .instruction(Instruction::Call(2))
+            .instruction(Instruction::Call(0));
+
+        for seg in path {
+            self.builder
+                .atom(seg)
+                .constant(1)
+                .atom("module")
+                .instruction(Instruction::Construct)
+                .instruction(Instruction::Call(2));
+        }
+        self.builder
             .constant(0)
             .atom("procedure")
             .instruction(Instruction::Construct)
@@ -129,7 +151,7 @@ impl ProgramContext<'_> {
             .constant(())
             .instruction(Instruction::ValEq)
             .cond_jump("trilogy:__exit_runoff__")
-            .constant(0)
+            .constant(default_exit)
             .label("trilogy:__exit_runoff__")
             .instruction(Instruction::Exit);
     }
@@ -151,6 +173,24 @@ impl ProgramContext<'_> {
         let mut context = self.begin(statics, overload.parameters.len());
         unlock_call(&mut context, "procedure", overload.parameters.len());
         write_procedure(context, overload);
+    }
+
+    /// Writes a test.
+    ///
+    /// A test is written basically the same as a procedure with 0 arguments. It will be
+    /// called as if it was `proc main!()`.
+    pub fn write_test(
+        &mut self,
+        statics: &mut HashMap<Id, StaticMember>,
+        test: &ir::TestDefinition,
+    ) {
+        self.label("trilogy:__testentry__");
+        let mut context = self.begin(statics, 0);
+        unlock_call(&mut context, "procedure", 0);
+        write_expression(&mut context, &test.body);
+        context
+            .instruction(Instruction::Const(Value::Unit))
+            .instruction(Instruction::Return);
     }
 
     /// Writes a rule.
@@ -254,14 +294,15 @@ impl ProgramContext<'_> {
         &mut self,
         mut statics: HashMap<Id, StaticMember>,
         def: &ir::ModuleDefinition,
+        mode: Mode,
     ) {
         let for_id = self.labeler.for_id(&def.name.id);
         self.label(for_id);
         let module = def.module.as_module().unwrap();
         self.collect_static(module, &mut statics);
         let mut context = self.begin(&mut statics, module.parameters.len());
-        write_module_prelude(&mut context, module, Mode::Module);
-        write_module_definitions(self, module, &mut statics);
+        write_module_prelude(&mut context, module, mode);
+        write_module_definitions(self, module, &mut statics, mode);
     }
 
     fn collect_static(&self, module: &ir::Module, statics: &mut HashMap<Id, StaticMember>) {

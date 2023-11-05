@@ -11,7 +11,7 @@ mod procedure;
 mod query;
 mod rule;
 
-pub use entrypoint::{write_module, write_program};
+pub use entrypoint::{write_module, write_program, write_test};
 pub use preamble::*;
 
 mod prelude {

@@ -169,11 +169,25 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         }
+        Command::Test { file } => match Trilogy::from_file(file) {
+            Ok(trilogy) => match trilogy.run_tests() {
+                Ok(true) => {}
+                Ok(false) => std::process::exit(1),
+                Err(error) => {
+                    eprintln!("{error}");
+                    std::process::exit(1);
+                }
+            },
+            Err(report) => {
+                report.eprint();
+                std::process::exit(1);
+            }
+        },
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;
         }
-        _ => unimplemented!("This feature is not yet built"),
+        _ => todo!("not yet implemented"),
     }
 
     Ok(())

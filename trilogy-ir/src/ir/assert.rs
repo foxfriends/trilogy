@@ -1,6 +1,6 @@
 use super::*;
 use crate::Converter;
-use trilogy_parser::syntax;
+use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
 pub struct Assert {
@@ -13,7 +13,9 @@ impl Assert {
         let message = ast
             .message
             .map(|ast| Expression::convert(converter, ast))
-            .unwrap_or_else(|| todo!("pretty print the expression?"));
+            .unwrap_or_else(|| {
+                Expression::string(ast.assertion.span(), "assertion failed".to_owned())
+            });
         let assertion = Expression::convert(converter, ast.assertion);
         Self { message, assertion }
     }

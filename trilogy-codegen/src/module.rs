@@ -6,15 +6,26 @@ use trilogy_ir::{ir, visitor::HasBindings, Id};
 use trilogy_vm::{Instruction, Value};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) enum Mode {
+pub(crate) enum Mode<'a> {
     Module,
     Document,
+    Test(&'a [&'a str], &'a str),
+}
+
+impl Mode<'_> {
+    fn child(self) -> Self {
+        match self {
+            Self::Document | Self::Module => Self::Module,
+            Self::Test(path, name) => Self::Test(&path[1..], name),
+        }
+    }
 }
 
 pub(crate) fn write_module_definitions(
     context: &mut ProgramContext,
     module: &ir::Module,
     statics: &mut HashMap<Id, StaticMember>,
+    mode: Mode,
 ) {
     // Here's where all the definitions follow.
     for def in module.definitions() {
@@ -23,7 +34,7 @@ pub(crate) fn write_module_definitions(
             ir::DefinitionItem::Module(definition) if definition.module.as_module().is_none() => {} // Imported modules are in prelude too
             ir::DefinitionItem::Module(definition) => {
                 // Regular modules are partially in prelude, but also they have a body.
-                context.write_module(statics.clone(), definition);
+                context.write_module(statics.clone(), definition, mode.child());
             }
             ir::DefinitionItem::Function(function) => {
                 context.write_function(statics, function);
@@ -34,7 +45,10 @@ pub(crate) fn write_module_definitions(
             ir::DefinitionItem::Procedure(procedure) => {
                 context.write_procedure(statics, procedure);
             }
-            ir::DefinitionItem::Test(..) => todo!(),
+            ir::DefinitionItem::Test(test) if mode == Mode::Test(&[], &test.name) => {
+                context.write_test(statics, test);
+            }
+            ir::DefinitionItem::Test(..) => {}
         }
     }
 }
@@ -480,6 +494,33 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
             }
             context.label(next_export);
+        } else if let Some(test) = def.item.as_test() {
+            // As the single special case, if the current definition is the test that is being
+            // compiled to a program, force it into the exports.
+            if mode == Mode::Test(&[], &test.name) {
+                let next_export = context.labeler.unique_hint("next_export");
+
+                context
+                    .instruction(Instruction::LoadLocal(current_module + 1))
+                    .atom("trilogy:__testentry__")
+                    .instruction(Instruction::ValEq)
+                    .cond_jump(&next_export)
+                    .instruction(Instruction::Pop);
+                let proc_label = "trilogy:__testentry__";
+                context.close(RETURN);
+                unlock_call(context, "procedure", 0);
+                context
+                    .instruction(Instruction::LoadRegister(1))
+                    .instruction(Instruction::LoadLocal(current_module))
+                    .instruction(Instruction::SetRegister(1))
+                    .write_procedure_reference(proc_label);
+                call_procedure(context, 0);
+                context
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::SetRegister(1))
+                    .instruction(Instruction::Return);
+                context.label(next_export);
+            }
         }
     }
 

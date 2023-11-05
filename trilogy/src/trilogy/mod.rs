@@ -6,16 +6,20 @@ use trilogy_ir::ir::Module;
 use trilogy_vm::{Atom, Chunk, ChunkError, Value, VirtualMachine};
 
 mod asm_program;
-pub mod builder;
 mod runtime;
 mod runtime_error;
 mod trilogy_program;
+mod trilogy_test;
 
-use asm_program::AsmProgram;
-use builder::{Builder, Report};
 pub use runtime::Runtime;
 pub use runtime_error::RuntimeError;
+
+pub mod builder;
+use builder::{Builder, Report};
+
+use asm_program::AsmProgram;
 use trilogy_program::TrilogyProgram;
+use trilogy_test::TrilogyTest;
 
 #[derive(Clone, Debug)]
 enum Source {
@@ -52,6 +56,19 @@ impl Trilogy {
             libraries,
             vm: VirtualMachine::new(),
         }
+    }
+
+    fn default_registers() -> Vec<Value> {
+        vec![
+            // Global effect handler resume continuation
+            Value::Unit,
+            // Module parameters
+            Value::Array(vec![].into()),
+            // Query state construction bindset
+            Value::Unit,
+            // Local temporary
+            Value::Unit,
+        ]
     }
 
     /// Loads a Trilogy program from a Trilogy source file on the local file system.
@@ -92,23 +109,13 @@ impl Trilogy {
     /// diagnose and could be anything from a bug in the compiler to an error
     /// in the Trilogy program.
     pub fn run(&self) -> Result<Value, RuntimeError> {
-        let registers = vec![
-            // Global effect handler resume continuation
-            Value::Unit,
-            // Module parameters
-            Value::Array(vec![].into()),
-            // Query state construction bindset
-            Value::Unit,
-            // Local temporary
-            Value::Unit,
-        ];
         let result = match &self.source {
             Source::Asm { asm } => self.vm.run_with_registers(
                 &AsmProgram {
                     source: asm,
                     libraries: &self.libraries,
                 },
-                registers,
+                Self::default_registers(),
             ),
             Source::Trilogy {
                 modules,
@@ -120,10 +127,75 @@ impl Trilogy {
                     entrypoint,
                     to_asm: false,
                 },
-                registers,
+                Self::default_registers(),
             ),
         };
         result.map_err(|er| er.into())
+    }
+
+    /// Runs all tests found within the program.
+    ///
+    /// This only includes tests that are found within the user's program and not any tests
+    /// found in libraries. Libraries are expected to have tested themselves already before
+    /// being published as a library.
+    ///
+    /// For each test, the program is compiled as if that test were `main`, and then
+    /// called. If a test function runs to completion, it is considered a success, otherwise
+    /// it is a failure which is added to the test report. The test report is not yet implemented.
+    pub fn run_tests(&self) -> Result<bool, RuntimeError> {
+        use trilogy_ir::ir::{DefinitionItem, TestDefinition};
+
+        fn locate_tests(module: &Module) -> impl Iterator<Item = (Vec<&str>, &TestDefinition)> {
+            module.definitions().iter().flat_map(
+                |def| -> Box<dyn Iterator<Item = (Vec<&str>, &TestDefinition)>> {
+                    match &def.item {
+                        DefinitionItem::Test(def) => {
+                            Box::new(std::iter::once((vec![], def.as_ref())))
+                        }
+                        DefinitionItem::Module(module) => Box::new(
+                            module
+                                .module
+                                .as_module()
+                                .into_iter()
+                                .flat_map(locate_tests)
+                                .map(|(mut path, test)| {
+                                    path.insert(0, module.name.id.name().unwrap());
+                                    (path, test)
+                                }),
+                        ),
+                        _ => Box::new(std::iter::empty()),
+                    }
+                },
+            )
+        }
+
+        match &self.source {
+            // NOTE: ASM programs cannot have tests as they are not emitted when compiled.
+            // Really it shouldn't even be called and if it is then return Err... but no
+            // idea what the Err type is yet.
+            Source::Asm { .. } => Ok(false),
+            Source::Trilogy { modules, .. } => {
+                let tests = modules.iter().flat_map(|(location, module)| {
+                    locate_tests(module).map(|(path, test)| (location.clone(), path, test))
+                });
+
+                for (location, path, test) in tests {
+                    let result = self.vm.run_with_registers(
+                        &TrilogyTest {
+                            libraries: &self.libraries,
+                            modules,
+                            entrypoint: &location,
+                            path: &path,
+                            test: &test.name,
+                            to_asm: false,
+                        },
+                        Self::default_registers(),
+                    );
+                    println!("{result:?}");
+                }
+                Ok(true)
+            }
+        }
     }
 
     /// Compiles a Trilogy program to bytecode, returning the compiled program as a Chunk.
