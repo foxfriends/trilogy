@@ -1,5 +1,5 @@
-func map f [] = []
 func map f [x, ..xs] = [f x, ..map f xs]
+func map f [] = []
 export map
 
 test "map works" {
