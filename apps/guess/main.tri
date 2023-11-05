@@ -1,4 +1,5 @@
-module std at "trilogy:std"
+module io at "trilogy:io"
+module num at "trilogy:num"
 
 func chomp s <> "\n" = s
 func chomp s = s
@@ -6,26 +7,26 @@ func chomp s = s
 proc play!() {
     let answer = 42
     while true {
-        std::io::print!("Guess: ")
-        let guess = with std::io::readline!() |> chomp |> std::num::cast
+        io::print!("Guess: ")
+        let guess = with io::readline!() |> chomp |> fn n. num::cast!(n)
             when 'NAN cancel {
-                std::io::println!("That's not a valid number")
+                io::println!("That's not a valid number")
                 continue
             }
             else yield
         if guess == answer {
-            std::io::println!("Congratulations, that's right!")
+            io::println!("Congratulations, that's right!")
             break
         } else if guess < answer {
-            std::io::println!("Wrong, too low.")
+            io::println!("Wrong, too low.")
         } else {
-            std::io::println!("Wrong, too high.")
+            io::println!("Wrong, too high.")
         }
     }
 }
 
 proc main!() {
     with play!()
-        when 'EOF cancel { std::io::println!("Give up? Too bad.") }
+        when 'EOF cancel { io::println!("Give up? Too bad.") }
         else cancel { exit 1 }
 }

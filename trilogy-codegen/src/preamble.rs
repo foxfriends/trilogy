@@ -52,9 +52,9 @@ pub const END: &str = "core::end";
 pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
 
-pub(crate) const INVALID_ITERATOR: &str = "panic::invalid_iterator";
-pub(crate) const INCORRECT_ARITY: &str = "panic::incorrect_arity";
-pub(crate) const INVALID_CALL: &str = "panic::invalid_call";
+pub const INVALID_ITERATOR: &str = "panic::invalid_iterator";
+pub const INCORRECT_ARITY: &str = "panic::incorrect_arity";
+pub const INVALID_CALL: &str = "panic::invalid_call";
 
 fn unlock_apply(context: &mut ProgramContext) {
     let function = context.atom("function");

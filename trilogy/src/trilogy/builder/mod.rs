@@ -50,7 +50,9 @@ impl Builder<FileSystemCache> {
                 FileSystemCache::new(home)
                     .expect("canonical cache dir ~/.trilogy/cache is occupied"),
             )
-            .library(Location::library("std").unwrap(), stdlib::std())
+            .library(Location::library("io").unwrap(), stdlib::io())
+            .library(Location::library("str").unwrap(), stdlib::str())
+            .library(Location::library("num").unwrap(), stdlib::num())
     }
 }
 

@@ -51,14 +51,25 @@ pub(crate) fn impl_attr(
         impl #trilogy::NativeFunction for #name {
             fn name() -> &'static str { stringify!(#name) }
 
-            fn call(&mut self, runtime: &mut #trilogy_vm::Execution, input: std::vec::Vec<#trilogy_vm::Value>) -> std::result::Result<(), #trilogy_vm::Error> {
+            fn call(&mut self, runtime: &mut #trilogy_vm::Execution, mut input: std::vec::Vec<#trilogy_vm::Value>) -> std::result::Result<(), #trilogy_vm::Error> {
+                match input.pop().unwrap() {
+                    #trilogy_vm::Value::Struct(s) if s.name() == runtime.atom("procedure") => {}
+                    #trilogy_vm::Value::Struct(s) => {
+                        let atom = runtime.atom("InvalidCall");
+                        let err_value = #trilogy_vm::Struct::new(atom, s.name());
+                        return Err(runtime.error(#trilogy_vm::ErrorKind::RuntimeError(err_value.into())))
+                    }
+                    _ => return Err(runtime.error(#trilogy_vm::ErrorKind::InternalRuntimeError(#trilogy_vm::InternalRuntimeError::TypeError))),
+                }
+
                 let runtime = #trilogy::Runtime::new(runtime);
                 let mut input = input.into_iter();
                 #function
+
                 #name(runtime, #(#inputs),*)
             }
 
-            fn arity(&self) -> usize { #arity }
+            fn arity(&self) -> usize { #arity + 1 }
         }
     })
 }

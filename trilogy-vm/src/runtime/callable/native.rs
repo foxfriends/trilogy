@@ -61,7 +61,6 @@ impl StructuralEq for Native {
 impl Native {
     pub(crate) fn call(&self, ex: &mut Execution, args: Vec<Value>) -> Result<(), Error> {
         let mut native = self.0.lock().unwrap();
-        assert_eq!(args.len(), native.arity());
         native.call(ex, args)
     }
 }

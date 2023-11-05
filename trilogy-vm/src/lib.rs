@@ -11,4 +11,4 @@ mod vm;
 
 pub use bytecode::{Chunk, ChunkBuilder, ChunkError, Instruction, Offset, OpCode};
 pub use runtime::*;
-pub use vm::{Error, ErrorKind, Execution, Program, VirtualMachine};
+pub use vm::{Error, ErrorKind, Execution, InternalRuntimeError, Program, VirtualMachine};

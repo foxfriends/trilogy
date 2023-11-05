@@ -1,13 +1,15 @@
 use trilogy_codegen::YIELD;
-use trilogy_vm::{Atom, ErrorKind, Execution, Native, NativeFunction, Value};
+use trilogy_vm::{
+    Atom, ErrorKind, Execution, InternalRuntimeError, Native, NativeFunction, Struct, Value,
+};
 
-/// A handle to the Trilogy language runtime, allowing native functions written
+/// A handle to the Trilogy language ex, allowing native functions written
 /// in Rust to interact effectively with the running Trilogy program.
 ///
 /// Due to Trilogy's control flow being more flexible than Rust's, we
 /// cannot effectively use Rust control flow to manipulate a Trilogy
 /// program. Instead, control flow is done in continuation passing style
-/// using specific continuations provided by the runtime.
+/// using specific continuations provided by the ex.
 pub struct Runtime<'prog, 'ex>(&'ex mut trilogy_vm::Execution<'prog>);
 
 impl<'prog, 'ex> Runtime<'prog, 'ex> {
@@ -32,10 +34,14 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
     where
         F: FnMut(Runtime, Value) -> crate::Result<()> + Sync + Send + 'static,
     {
+        let function = self.0.atom("function");
+        let key = Struct::new(function, 1);
         let y = self.0.procedure(YIELD)?;
         let effect = value.into();
         self.0
-            .callback(y, vec![effect], move |ex, val| f(Runtime::new(ex), val))
+            .callback(y, vec![effect, key.into()], move |ex, val| {
+                f(Runtime::new(ex), val)
+            })
     }
 
     /// The equivalent of the return operator, allowing a native function to return a value.
@@ -67,13 +73,28 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
                 N
             }
 
-            fn call(&mut self, ex: &mut Execution, values: Vec<Value>) -> crate::Result<()> {
-                if values.len() == N {
-                    let args = values.try_into().unwrap();
+            fn call(&mut self, ex: &mut Execution, mut input: Vec<Value>) -> crate::Result<()> {
+                match input.pop().unwrap() {
+                    Value::Struct(s) if s.name() == ex.atom("procedure") => {}
+                    Value::Struct(s) => {
+                        let atom = ex.atom("InvalidCall");
+                        let err_value = Struct::new(atom, s.name());
+                        return Err(ex.error(ErrorKind::RuntimeError(err_value.into())));
+                    }
+                    _ => {
+                        return Err(ex.error(ErrorKind::InternalRuntimeError(
+                            InternalRuntimeError::TypeError,
+                        )))
+                    }
+                }
+
+                if input.len() == N {
+                    let args = input.try_into().unwrap();
                     self.0(Runtime::new(ex), args)
                 } else {
+                    let atom = ex.atom("IncorrectArity");
                     Err(ex.error(ErrorKind::RuntimeError(
-                        "a native closure was called with the incorrect arity".into(),
+                        Struct::new(atom, input.len()).into(),
                     )))
                 }
             }

@@ -1,8 +1,8 @@
-module std at "trilogy:std"
+module io at "trilogy:io"
 
 proc main!() {
     while true {
-        with std::io::print!(std::io::readline!())
+        with io::print!(io::readline!())
             when 'EOF cancel { break }
             else yield
     }

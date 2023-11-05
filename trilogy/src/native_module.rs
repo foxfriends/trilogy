@@ -1,6 +1,6 @@
 use crate::location::Location;
 use std::collections::HashMap;
-use trilogy_codegen::RETURN;
+use trilogy_codegen::{INCORRECT_ARITY, INVALID_CALL, RETURN};
 use trilogy_vm::{ChunkBuilder, Instruction, Native, NativeFunction};
 
 /// A module of native functions.
@@ -133,6 +133,18 @@ impl NativeModule {
         chunk: &mut ChunkBuilder,
     ) {
         let pathstr = path.iter().fold(String::new(), |s, seg| s + seg + "::");
+        chunk
+            .instruction(Instruction::Destruct)
+            .instruction(Instruction::Copy)
+            .atom("module")
+            .instruction(Instruction::ValEq)
+            .cond_jump(INVALID_CALL)
+            .instruction(Instruction::Pop)
+            .instruction(Instruction::Copy)
+            .constant(1)
+            .instruction(Instruction::ValEq)
+            .cond_jump(INCORRECT_ARITY)
+            .instruction(Instruction::Pop);
         for (name, proc) in &self.procedures {
             let next = format!("#skip::{location}::{pathstr}{name}");
             chunk
