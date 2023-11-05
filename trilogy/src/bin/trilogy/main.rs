@@ -7,6 +7,7 @@ use trilogy_vm::Value;
 
 #[cfg(feature = "dev")]
 mod dev;
+mod test_reporter;
 
 /// Trilogy Programming Language
 #[derive(clap::Parser, Clone, Debug)]
@@ -170,14 +171,13 @@ fn main() -> std::io::Result<()> {
             }
         }
         Command::Test { file } => match Trilogy::from_file(file) {
-            Ok(trilogy) => match trilogy.run_tests() {
-                Ok(true) => {}
-                Ok(false) => std::process::exit(1),
-                Err(error) => {
-                    eprintln!("{error}");
+            Ok(trilogy) => {
+                let mut reporter = test_reporter::Stdout::default();
+                trilogy.run_tests(&mut reporter);
+                if reporter.is_error() {
                     std::process::exit(1);
                 }
-            },
+            }
             Err(report) => {
                 report.eprint();
                 std::process::exit(1);

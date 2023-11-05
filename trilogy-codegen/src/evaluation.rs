@@ -623,8 +623,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &assert.assertion);
             context.instruction(Instruction::Not).cond_jump(&passed);
             write_expression(context, &assert.message);
-            context.instruction(Instruction::Panic);
-            context.label(passed);
+            context
+                .atom("AssertionError")
+                .instruction(Instruction::Construct)
+                .instruction(Instruction::Panic)
+                .label(passed);
         }
         ir::Value::End => {
             context.instruction(Instruction::Fizzle);

@@ -8,11 +8,13 @@ use trilogy_vm::{Atom, Chunk, ChunkError, Value, VirtualMachine};
 mod asm_program;
 mod runtime;
 mod runtime_error;
+mod test_reporter;
 mod trilogy_program;
 mod trilogy_test;
 
 pub use runtime::Runtime;
 pub use runtime_error::RuntimeError;
+pub use test_reporter::TestReporter;
 
 pub mod builder;
 use builder::{Builder, Report};
@@ -142,7 +144,7 @@ impl Trilogy {
     /// For each test, the program is compiled as if that test were `main`, and then
     /// called. If a test function runs to completion, it is considered a success, otherwise
     /// it is a failure which is added to the test report. The test report is not yet implemented.
-    pub fn run_tests(&self) -> Result<bool, RuntimeError> {
+    pub fn run_tests(&self, reporter: &mut dyn TestReporter) {
         use trilogy_ir::ir::{DefinitionItem, TestDefinition};
 
         fn locate_tests(module: &Module) -> impl Iterator<Item = (Vec<&str>, &TestDefinition)> {
@@ -169,33 +171,56 @@ impl Trilogy {
             )
         }
 
-        match &self.source {
-            // NOTE: ASM programs cannot have tests as they are not emitted when compiled.
-            // Really it shouldn't even be called and if it is then return Err... but no
-            // idea what the Err type is yet.
-            Source::Asm { .. } => Ok(false),
-            Source::Trilogy { modules, .. } => {
-                let tests = modules.iter().flat_map(|(location, module)| {
-                    locate_tests(module).map(|(path, test)| (location.clone(), path, test))
-                });
+        reporter.begin();
 
-                for (location, path, test) in tests {
-                    let result = self.vm.run_with_registers(
-                        &TrilogyTest {
-                            libraries: &self.libraries,
-                            modules,
-                            entrypoint: &location,
-                            path: &path,
-                            test: &test.name,
-                            to_asm: false,
-                        },
-                        Self::default_registers(),
-                    );
-                    println!("{result:?}");
+        if let Source::Trilogy { modules, .. } = &self.source {
+            let tests = modules.iter().flat_map(|(location, module)| {
+                locate_tests(module).map(|(path, test)| (location.clone(), path, test))
+            });
+
+            let mut current_location = None;
+            let mut current_path = vec![];
+
+            for (location, path, test) in tests {
+                match current_location {
+                    None => {
+                        reporter.enter_document(&location);
+                        current_location = Some(location.clone());
+                    }
+                    Some(loc) if loc != location => {
+                        reporter.exit_document();
+                        reporter.enter_document(&location);
+                        current_location = Some(location.clone());
+                    }
+                    _ => {}
                 }
-                Ok(true)
+
+                while !path.starts_with(&current_path) {
+                    current_path.pop();
+                    reporter.exit_module();
+                }
+                while !current_path.starts_with(&path) {
+                    let seg = path.get(current_path.len()).unwrap();
+                    reporter.enter_module(seg);
+                    current_path.push(seg);
+                }
+
+                let result = self.vm.run_with_registers(
+                    &TrilogyTest {
+                        libraries: &self.libraries,
+                        modules,
+                        entrypoint: &location,
+                        path: &path,
+                        test: &test.name,
+                        to_asm: false,
+                    },
+                    Self::default_registers(),
+                );
+                reporter.test_result(&test.name, result);
             }
         }
+
+        reporter.finish();
     }
 
     /// Compiles a Trilogy program to bytecode, returning the compiled program as a Chunk.
