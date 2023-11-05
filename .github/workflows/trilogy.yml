@@ -27,6 +27,6 @@ jobs:
         with:
           command: build
           args: --release
-        - name: Test Stdlib
+      - name: Test Stdlib
         run: |
           fd .tri ./trilogy/src/stdlib | xargs -I _ ./target/release/trilogy test _
