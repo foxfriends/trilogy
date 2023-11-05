@@ -7,13 +7,14 @@ pub(super) struct TrilogyProgram<'a> {
     pub modules: &'a HashMap<Location, Module>,
     pub libraries: &'a HashMap<Location, NativeModule>,
     pub entrypoint: &'a Location,
+    pub path: &'a [&'a str],
     pub to_asm: bool,
 }
 
 impl Program for TrilogyProgram<'_> {
     fn entrypoint(&self, chunk: &mut ChunkBuilder) {
         let module = self.modules.get(self.entrypoint).unwrap();
-        trilogy_codegen::write_program(chunk, module);
+        trilogy_codegen::write_program(chunk, module, self.path);
     }
 
     fn chunk(&self, locator: &Value, chunk: &mut ChunkBuilder) {

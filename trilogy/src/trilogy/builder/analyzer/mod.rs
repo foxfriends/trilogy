@@ -14,8 +14,11 @@ pub(super) fn analyze<E: std::error::Error>(
     modules: &mut HashMap<Location, Module>,
     entrypoint: &Location,
     report: &mut ReportBuilder<E>,
+    is_library: bool,
 ) {
-    validate_main::validate_main(modules, entrypoint, report);
+    if !is_library {
+        validate_main::validate_main(modules, entrypoint, report);
+    }
     // validate_constants::validate_constants(modules, report);
 }
 

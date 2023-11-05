@@ -23,10 +23,11 @@ use report::ReportBuilder;
 ///
 /// If looking to supply your own native modules to a Trilogy program you have written,
 /// you will be using this Builder to provide those.
-pub(crate) struct Builder<C: Cache + 'static> {
+pub struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
     native_modules: HashMap<Location, NativeModule>,
     source_modules: HashMap<Location, String>,
+    is_library: bool,
     cache: C,
 }
 
@@ -88,6 +89,7 @@ impl Builder<NoopCache> {
             root_dir: None,
             native_modules: HashMap::new(),
             source_modules: HashMap::new(),
+            is_library: false,
             cache: NoopCache,
         }
     }
@@ -119,19 +121,36 @@ impl<C: Cache> Builder<C> {
             root_dir: self.root_dir,
             native_modules: self.native_modules,
             source_modules: self.source_modules,
+            is_library: false,
             cache,
         }
     }
 
-    pub(super) fn build_from_source(
-        self,
-        file: impl AsRef<Path>,
-    ) -> Result<Trilogy, Report<C::Error>> {
+    /// Sets this builder to being in library mode, where having a `proc main!()` in the
+    /// entrypoint is __not__ required. Note that this means the resulting Trilogy instance
+    /// cannot be used as a program directly.
+    pub fn is_library(mut self, is_library: bool) -> Self {
+        self.is_library = is_library;
+        self
+    }
+
+    /// Build a Trilogy instance from a Trilogy source file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error report when there are any errors in the Trilogy source
+    /// file, such as syntax errors or other structural errors.
+    ///
+    /// Note that while a successful result does indicate that the source contained a
+    /// valid piece of Trilogy code, it is not necessarily a valid program that can be
+    /// run. In particular, libraries are valid code but cannot be run.
+    pub fn build_from_source(self, file: impl AsRef<Path>) -> Result<Trilogy, Report<C::Error>> {
         let Self {
             mut cache,
             root_dir,
             native_modules,
             source_modules,
+            is_library,
         } = self;
         let mut report = ReportBuilder::default();
         let root_path = match root_dir {
@@ -148,7 +167,7 @@ impl<C: Cache> Builder<C> {
         let documents = loader::load(&cache, &entrypoint, &source_modules, &mut report);
         cache = report.checkpoint(&root_path, cache)?;
         let mut modules = converter::convert(documents, &mut report);
-        analyzer::analyze(&mut modules, &entrypoint, &mut report);
+        analyzer::analyze(&mut modules, &entrypoint, &mut report, is_library);
         report.checkpoint(&root_path, cache)?;
         Ok(Trilogy::new(
             Source::Trilogy {
@@ -159,7 +178,13 @@ impl<C: Cache> Builder<C> {
         ))
     }
 
-    pub(super) fn build_from_asm(self, file: &mut dyn Read) -> Result<Trilogy, std::io::Error> {
+    /// Build a Trilogy instance from a pre-compiled Trilogy ASM file.
+    ///
+    /// # Errors
+    ///
+    /// This method will only error if the ASM file cannot be read. Actual errors in the
+    /// file's contents will only be detected when it comes time to run the contained program.
+    pub fn build_from_asm(self, file: &mut dyn Read) -> Result<Trilogy, std::io::Error> {
         let mut asm = String::new();
         file.read_to_string(&mut asm)?;
         Ok(Trilogy::new(Source::Asm { asm }, self.native_modules))

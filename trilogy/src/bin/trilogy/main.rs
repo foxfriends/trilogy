@@ -1,8 +1,7 @@
 use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
-use std::io::stdin;
-use std::path::PathBuf;
-use trilogy::{RuntimeError, Trilogy};
+use std::{io::stdin, path::PathBuf};
+use trilogy::{Builder, RuntimeError, Trilogy};
 use trilogy_vm::Value;
 
 #[cfg(feature = "dev")]
@@ -48,7 +47,11 @@ enum Command {
     /// Redirect to a file is recommended.
     ///
     /// Expects a single path in which the `main!()` procedure is found.
-    Compile { file: PathBuf },
+    Compile {
+        file: PathBuf,
+        #[arg(long = "lib")]
+        library: bool,
+    },
     /// Check the syntax and warnings of a Trilogy program.
     Check {
         /// The path to the Trilogy source file containing the `main!()` procedure.
@@ -136,7 +139,7 @@ fn main() -> std::io::Result<()> {
             file: Some(path),
             print,
             no_std: _,
-        } => match Trilogy::from_asm(&mut std::fs::File::open(path)?) {
+        } => match Builder::default().build_from_asm(&mut std::fs::File::open(path)?) {
             Ok(trilogy) => run(trilogy, print),
             Err(errors) => {
                 eprintln!("{errors}");
@@ -147,30 +150,32 @@ fn main() -> std::io::Result<()> {
             file: None,
             print,
             no_std: _,
-        } => match Trilogy::from_asm(&mut stdin()) {
+        } => match Builder::default().build_from_asm(&mut stdin()) {
             Ok(trilogy) => run(trilogy, print),
             Err(errors) => {
                 eprintln!("{errors}");
                 std::process::exit(1);
             }
         },
-        Command::Compile { file } => match Trilogy::from_file(file) {
-            Ok(trilogy) => match trilogy.compile() {
-                Ok(chunk) => println!("{}", chunk),
-                Err(error) => eprintln!("{error}"),
-            },
-            Err(report) => {
-                report.eprint();
-                std::process::exit(1);
+        Command::Compile { file, library } => {
+            match Builder::std().is_library(library).build_from_source(file) {
+                Ok(trilogy) => match trilogy.compile() {
+                    Ok(chunk) => println!("{}", chunk),
+                    Err(error) => eprintln!("{error}"),
+                },
+                Err(report) => {
+                    report.eprint();
+                    std::process::exit(1);
+                }
             }
-        },
+        }
         Command::Check { file, no_std: _ } => {
             if let Err(report) = Trilogy::from_file(file) {
                 report.eprint();
                 std::process::exit(1);
             }
         }
-        Command::Test { file } => match Trilogy::from_file(file) {
+        Command::Test { file } => match Builder::std().is_library(true).build_from_source(file) {
             Ok(trilogy) => {
                 let mut reporter = test_reporter::Stdout::default();
                 trilogy.run_tests(&mut reporter);

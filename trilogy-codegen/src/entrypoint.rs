@@ -43,9 +43,9 @@ impl<'a> ProgramContext<'a> {
     }
 }
 
-pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module) {
+pub fn write_program(builder: &mut ChunkBuilder, module: &ir::Module, entry_path: &[&str]) {
     let mut context = ProgramContext::new(builder);
-    context.write_main(&["main"], 0.into());
+    context.write_main(entry_path, 0.into());
     write_preamble(&mut context);
 
     let mut statics = HashMap::default();

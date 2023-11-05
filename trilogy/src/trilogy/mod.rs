@@ -1,23 +1,21 @@
 use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
-use std::io::Read;
 use std::path::Path;
 use trilogy_ir::ir::Module;
 use trilogy_vm::{Atom, Chunk, ChunkError, Value, VirtualMachine};
 
 mod asm_program;
+mod builder;
 mod runtime;
 mod runtime_error;
 mod test_reporter;
 mod trilogy_program;
 mod trilogy_test;
 
+pub use builder::{Builder, Report};
 pub use runtime::Runtime;
 pub use runtime_error::RuntimeError;
 pub use test_reporter::TestReporter;
-
-pub mod builder;
-use builder::{Builder, Report};
 
 use asm_program::AsmProgram;
 use trilogy_program::TrilogyProgram;
@@ -88,15 +86,6 @@ impl Trilogy {
         Builder::std().build_from_source(file)
     }
 
-    /// Loads a Trilogy program from a pre-compiled Trilogy VM ASM file.
-    ///
-    /// A program loaded this way is provided access to the Trilogy
-    /// standard library at `trilogy:std`.
-    #[cfg(feature = "std")]
-    pub fn from_asm(file: &mut dyn Read) -> Result<Self, std::io::Error> {
-        Builder::std().build_from_asm(file)
-    }
-
     /// Runs the loaded Trilogy program by evaluating `main!()`.
     ///
     /// The returned value is the exit value of the program. This value is either:
@@ -127,6 +116,7 @@ impl Trilogy {
                     libraries: &self.libraries,
                     modules,
                     entrypoint,
+                    path: &["main"],
                     to_asm: false,
                 },
                 Self::default_registers(),
@@ -245,6 +235,7 @@ impl Trilogy {
                 libraries: &self.libraries,
                 modules,
                 entrypoint,
+                path: &["main"],
                 to_asm: true,
             }),
         }
@@ -264,6 +255,7 @@ impl Trilogy {
                 libraries: &self.libraries,
                 modules,
                 entrypoint,
+                path: &["main"],
                 to_asm: false,
             }),
         }
