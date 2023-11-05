@@ -25,7 +25,6 @@ jobs:
           rustup default stable
       - name: Run cargo clippy
         run: cargo clippy -- -D warnings
-        uses: actions-rs/cargo@v1
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
