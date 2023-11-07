@@ -15,7 +15,7 @@ mod trilogy_test;
 pub use builder::{Builder, Report};
 pub use runtime::Runtime;
 pub use runtime_error::RuntimeError;
-pub use test_reporter::TestReporter;
+pub use test_reporter::{TestDescription, TestReporter};
 
 use asm_program::AsmProgram;
 use trilogy_program::TrilogyProgram;
@@ -206,7 +206,13 @@ impl Trilogy {
                     },
                     Self::default_registers(),
                 );
-                reporter.test_result(&test.name, result);
+                reporter.test_result(
+                    &test.name,
+                    TestDescription {
+                        negated: test.negated,
+                    },
+                    result,
+                );
             }
         }
 

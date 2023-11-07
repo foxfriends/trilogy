@@ -10,6 +10,10 @@ test "map works on empty arrays" {
     assert map (fn x. end) [] == []
 }
 
+test not "map accepts a closure" {
+    map (do(n) { return 2 * n }) [1, 2, 3]
+}
+
 func filter f [] = []
 func filter f [x, ..xs] = if f x then [x, ..filter f xs] else filter f xs
 export filter

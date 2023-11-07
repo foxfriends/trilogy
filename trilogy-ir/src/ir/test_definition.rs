@@ -6,6 +6,7 @@ use trilogy_parser::syntax;
 pub struct TestDefinition {
     pub name: String,
     pub body: Expression,
+    pub negated: bool,
 }
 
 impl TestDefinition {
@@ -13,6 +14,7 @@ impl TestDefinition {
         Self {
             name: ast.name.value(),
             body: Expression::convert_block(converter, ast.body),
+            negated: ast.not.is_some(),
         }
     }
 }

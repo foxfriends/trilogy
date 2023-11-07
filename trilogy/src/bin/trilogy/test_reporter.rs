@@ -1,5 +1,5 @@
 use colored::Colorize;
-use trilogy::{Location, TestReporter};
+use trilogy::{Location, TestDescription, TestReporter};
 use trilogy_vm::{ErrorKind, Value};
 
 /// Test reporter that prints test results to standard output.
@@ -34,10 +34,20 @@ impl TestReporter for Stdout {
     fn test_result(
         &mut self,
         test_name: &str,
+        TestDescription { negated }: TestDescription,
         result: Result<trilogy_vm::Value, trilogy_vm::Error>,
     ) {
+        let result = match result {
+            Ok(value) if !negated => Ok(Ok(value)),
+            Ok(value) => Ok(Err(value)),
+            Err(error) => match error.kind {
+                ErrorKind::RuntimeError(value) if negated => Ok(Ok(value)),
+                ErrorKind::RuntimeError(value) => Ok(Err(value)),
+                _ => Err(error),
+            },
+        };
         let (icon, result_summary) = match result {
-            Ok(value) => {
+            Ok(Ok(value)) => {
                 self.passes += 1;
                 let summary = match value {
                     Value::Unit => format!("{}", "passed".green()),
@@ -46,12 +56,18 @@ impl TestReporter for Stdout {
                 let icon = format!("{}", "✓".green());
                 (icon, summary)
             }
+            Ok(Err(value)) => {
+                self.fails += 1;
+                let summary = match value {
+                    Value::Unit => format!("{}", "failed".red()),
+                    value => format!("{} (result: {value})", "failed".red()),
+                };
+                let icon = format!("{}", "✓".green());
+                (icon, summary)
+            }
             Err(error) => {
                 self.fails += 1;
-                let summary = match error.kind {
-                    ErrorKind::RuntimeError(error) => format!("{} ({error})", "failed".red()),
-                    error => format!("{} ({error})", "crashed".on_red()),
-                };
+                let summary = format!("{} ({error})", "crashed".black().on_red());
                 let icon = format!("{}", "✗".red());
                 (icon, summary)
             }
