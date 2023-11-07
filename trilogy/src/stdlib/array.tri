@@ -1,3 +1,5 @@
+## Computes a new array by applying the function `f` to each element
+## of the original array.
 func map f [] = []
 func map f [x, ..xs] = [f x, ..map f xs]
 export map
@@ -7,19 +9,89 @@ test "map works" {
 }
 
 test "map works on empty arrays" {
-    assert map (fn x. end) [] == []
+    assert map (fn _. end) [] == []
 }
 
 test not "map accepts a closure" {
     map (do(n) { return 2 * n }) [1, 2, 3]
 }
 
+## Computes a new array by removing all values for which the predicate `f`
+## returns `false`.
 func filter f [] = []
 func filter f [x, ..xs] = if f x then [x, ..filter f xs] else filter f xs
 export filter
 
+test "filter works" {
+    assert filter (fn x. x > 3) [1, 2, 3, 4, 5] == [4, 5]
+}
+
+test "filter works on empty arrays" {
+    assert filter (fn _. end) [] == []
+}
+
+test not "filter accepts a closure" {
+    filter (do(x) { return x > 3 }) [1, 2, 3, 4, 5]
+}
+
+## Computes a single value from an array by starting with the accumulator `a` and
+## applying `f acc x` for each element `x` of the array, starting from the
+## first (leftmost) element.
 func fold f a [] = a
-func fold f a [x, ..xs] =
-    let a2 = f a x,
-    fold f a2 xs
+func fold f a [x, ..xs] = fold f (f a x) xs
 export fold
+
+test "fold works from left to right" {
+    assert fold (fn a b. a:b) 0 [1, 2, 3] == ((0:1):2):3
+}
+
+test "fold returns the initial value for empty arrays" {
+    assert fold (fn _ _. end) 0 [] == 0
+}
+
+## Computes a single value from an array by starting with the accumulator `a` and
+## applying `f acc x` for each element `x` of the array, starting from the
+## last (rightmost) element.
+func foldr f a [] = a
+func foldr f a [..xs, x] = foldr f (f a x) xs
+export foldr
+
+test "foldr works from right to left" {
+    assert foldr (fn a b. a:b) 0 [1, 2, 3] == ((0:3):2):1
+}
+
+test "foldr returns the initial value for empty arrays" {
+    assert foldr (fn _ _. end) 0 [] == 0
+}
+
+## Returns the first element of the array. If the array is empty, yields 'MIA
+func first [x, .._] = x
+func first [] = yield 'MIA
+export first
+
+test "first returns the first element" {
+    assert first [1, 2] == 1
+}
+
+test "yields 'MIA when empty" {
+    with first []
+        when 'MIA cancel { exit unit }
+        else cancel {}
+    assert false
+}
+
+## Returns the last element of the array. If the array is empty, yields 'MIA
+func last [.._, x] = x
+func last [] = yield 'MIA
+export last
+
+test "last returns the last element" {
+    assert last [1, 2] == 2
+}
+
+test "yields 'MIA when empty" {
+    with last []
+        when 'MIA cancel { exit unit }
+        else cancel {}
+    assert false
+}
