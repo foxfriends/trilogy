@@ -95,3 +95,62 @@ test "yields 'MIA when empty" {
         else cancel {}
     assert false
 }
+
+## Takes the first `n` elements of the array, discarding the rest.
+## If the array's length is less than `n`, returns the whole array.
+func take _ [] = []
+func take 0 _ = []
+func take n [x, ..xs] = [x, ..take (n - 1) xs]
+export take
+
+test "take returns the first `n` elements" {
+    assert take 3 [1, 2, 3, 4, 5] == [1, 2, 3]
+}
+
+test "take returns less than `n` elements if there aren't enough" {
+    assert take 3 [1, 2] == [1, 2]
+}
+
+test "take works on empty arrays" {
+    assert take 3 [] == []
+}
+
+test "take can take none" {
+    assert take 0 [1, 2] == []
+}
+
+## Skips the first `n` elements of the array, returning the rest.
+## If the array's length is less than `n`, returns an empty array.
+func skip _ [] = []
+func skip 0 xs = xs
+func skip n [_, ..xs] = skip (n - 1) xs
+export skip
+
+test "skip drops the first `n` elements" {
+    assert skip 3 [1, 2, 3, 4, 5] == [4, 5]
+}
+
+test "skip returns an empty array if there aren't enough" {
+    assert skip 3 [1, 2] == []
+}
+
+test "skip works on empty arrays" {
+    assert skip 3 [] == []
+}
+
+test "skip can skip none" {
+    assert skip 0 [1, 2] == [1, 2]
+}
+
+## Returns the length of the array.
+func length [] = 0
+func length [_, ..xs] = 1 + length xs
+export length
+
+test "length returns the length" {
+    assert length [1, 2, 3] == 3
+}
+
+test "length returns the length of an empty array" {
+    assert length [] == 0
+}
