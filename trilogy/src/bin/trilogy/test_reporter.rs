@@ -22,7 +22,7 @@ impl Stdout {
 
 impl TestReporter for Stdout {
     fn enter_document(&mut self, location: &Location) {
-        println!("{location}");
+        println!("{}", location.to_string().magenta());
         self.depth += 1;
     }
 
@@ -46,23 +46,32 @@ impl TestReporter for Stdout {
                 _ => Err(error),
             },
         };
+
         let (icon, result_summary) = match result {
             Ok(Ok(value)) => {
                 self.passes += 1;
                 let summary = match value {
                     Value::Unit => format!("{}", "passed".green()),
-                    value => format!("{} (result: {value})", "passed".green()),
+                    value => format!(
+                        "{} {}",
+                        "passed".green(),
+                        format!("(result: {value})").bright_white()
+                    ),
                 };
-                let icon = format!("{}", "✓".green());
+                let icon = format!("{}", if negated { "✗" } else { "✓" }.green());
                 (icon, summary)
             }
             Ok(Err(value)) => {
                 self.fails += 1;
                 let summary = match value {
                     Value::Unit => format!("{}", "failed".red()),
-                    value => format!("{} (result: {value})", "failed".red()),
+                    value => format!(
+                        "{} {}",
+                        "failed".red(),
+                        format!("(result: {value})").bright_white()
+                    ),
                 };
-                let icon = format!("{}", "✓".green());
+                let icon = format!("{}", if negated { "✓" } else { "✗" }.red());
                 (icon, summary)
             }
             Err(error) => {
@@ -73,7 +82,12 @@ impl TestReporter for Stdout {
             }
         };
 
-        println!("{}{icon} {test_name}: {result_summary}", self.indent());
+        println!(
+            "{}{icon} {}{}: {result_summary}",
+            self.indent(),
+            if negated { "not " } else { "" },
+            test_name.blue(),
+        );
     }
 
     fn exit_module(&mut self) {
