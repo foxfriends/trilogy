@@ -20,6 +20,11 @@ impl Labeler {
         format!("#var::{}::{}::{:#?}", self.counter, var, var.as_ptr())
     }
 
+    pub fn unvar(&mut self, var: &Id) -> String {
+        self.counter += 1;
+        format!("#unvar::{}::{}::{:#?}", self.counter, var, var.as_ptr())
+    }
+
     pub fn for_id(&self, id: &Id) -> String {
         id.symbol()
     }

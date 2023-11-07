@@ -1,0 +1,61 @@
+## Returns true if the value `x` is contained within the set.
+func contains x [| x, .._ |] = true
+func contains x [| .._ |] = false
+export contains
+
+test "contains can find a value" {
+    assert contains 3 [| 1, 2, 3 |]
+}
+
+test "contains can not find a value" {
+    assert !(contains 4 [| 1, 2, 3 |])
+}
+
+test "empty set contains nothing" {
+    assert !(contains 1 [||])
+}
+
+## Adds a value to the set, returning a new set
+func insert x [| ..xs |] = [| x, ..xs |]
+export insert
+
+test "insert adds the value to the set" {
+    assert insert 3 [| 1, 2 |] == [| 1, 2, 3 |]
+}
+
+test "insert cannot add a duplicate value to the set" {
+    assert insert 3 [| 1, 2, 3 |] == [| 1, 2, 3 |]
+}
+
+test "insert adds to the empty set" {
+    assert insert 3 [| |] == [| 3 |]
+}
+
+## Removes a value from the set, returning a new set without that value.
+func remove x [| x, ..xs |] = xs
+func remove _ [| ..xs |] = xs
+export remove
+
+test "remove removes the value from the set" {
+    assert remove 3 [| 1, 2, 3 |] == [| 1, 2 |]
+}
+
+test "remove removes nothing when it is not there" {
+    assert remove 3 [| 1, 2 |] == [| 1, 2 |]
+}
+
+test "remove removes nothing from the empty set" {
+    assert remove 3 [| |] == [| |]
+}
+
+## Computes a new set that is the union of the two original sets.
+func union [| ..ls |] [| ..rs |]  = [| x for x in ls or x in rs |]
+export union
+
+test "union combines two sets" {
+    assert union [| 1, 2 |] [| 2, 3 |] == [| 1, 2, 3 |]
+}
+
+test "union combines empty sets" {
+    assert union [||] [||] == [||]
+}

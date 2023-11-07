@@ -86,6 +86,8 @@ impl<'a> Context<'a> {
     pub fn undeclare_variables(&mut self, variables: impl IntoIterator<Item = Id>, pop: bool) {
         for id in variables {
             if self.scope.undeclare_variable(&id) && pop {
+                let label = self.labeler.unvar(&id);
+                self.label(label);
                 self.instruction(Instruction::Pop);
             }
         }

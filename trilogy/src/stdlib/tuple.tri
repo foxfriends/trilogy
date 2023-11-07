@@ -1,0 +1,39 @@
+## Retrieves the first element of the tuple
+func fst x:_ = x
+export fst
+
+test "fst returns the first" {
+    assert fst (1:2) == 1
+}
+
+## Retrieves the second element of the tuple
+func snd _:x = x
+export snd
+
+test "snd returns the second" {
+    assert snd (1:2) == 2
+}
+
+## Transform the first value of the tuple, leaving the second unchanged.
+func mapfst f (x:y) = f x : y
+export mapfst
+
+test "mapfst transforms the first" {
+    assert mapfst (fn x. x * 2) (4:2) == (8:2)
+}
+
+test not "mapfst works with a procedure" {
+    mapfst (do(x) { return x * 2 }) (4:2)
+}
+
+## Transform the second value of the tuple, leaving the first unchanged.
+func mapsnd f (x:y) = x : f y
+export mapsnd
+
+test "mapsnd transforms the second" {
+    assert mapsnd (fn x. x * 2) (4:2) == (4:4)
+}
+
+test not "mapsnd works with a procedure" {
+    mapsnd (do(x) { return x * 2 }) (4:2)
+}

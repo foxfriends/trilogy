@@ -68,6 +68,14 @@ impl Builder<FileSystemCache> {
                 Location::library("array").unwrap(),
                 include_str!("../../stdlib/array.tri").to_owned(),
             )
+            .source_module(
+                Location::library("tuple").unwrap(),
+                include_str!("../../stdlib/tuple.tri").to_owned(),
+            )
+            .source_module(
+                Location::library("set").unwrap(),
+                include_str!("../../stdlib/set.tri").to_owned(),
+            )
     }
 }
 

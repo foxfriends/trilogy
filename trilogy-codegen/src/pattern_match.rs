@@ -270,6 +270,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 };
                 context
                     .instruction(Instruction::Copy)
+                    .instruction(Instruction::TypeOf)
+                    .atom("array")
+                    .instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup)
+                    .instruction(Instruction::Copy)
                     .instruction(Instruction::Length)
                     .constant(needed)
                     .instruction(cmp)
@@ -338,9 +343,16 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context.scope.end_intermediate(); // array
             }
             (None, ir::Value::Builtin(Builtin::Record), ir::Value::Pack(pack)) => {
-                let cleanup = context.labeler.unique_hint("record_cleanup");
+                let cleanup1 = context.labeler.unique_hint("record_cleanup1");
+                let cleanup2 = context.labeler.unique_hint("record_cleanup2");
                 let end = context.labeler.unique_hint("record_end");
                 let mut spread = None;
+                context
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::TypeOf)
+                    .atom("record")
+                    .instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup1);
                 context.instruction(Instruction::Clone);
                 let record = context.scope.intermediate();
                 for element in &pack.values {
@@ -357,32 +369,40 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         .instruction(Instruction::LoadLocal(record))
                         .instruction(Instruction::LoadLocal(key))
                         .instruction(Instruction::Contains)
-                        .cond_jump(&cleanup)
+                        .cond_jump(&cleanup2)
                         .instruction(Instruction::LoadLocal(record))
                         .instruction(Instruction::LoadLocal(key))
                         .instruction(Instruction::Access);
-                    write_pattern_match(context, &mapping.1, &cleanup);
+                    write_pattern_match(context, &mapping.1, &cleanup2);
                     context.instruction(Instruction::Delete);
                     context.scope.end_intermediate();
                 }
+                context.scope.end_intermediate();
                 if let Some(spread) = spread {
                     write_pattern_match(context, spread, on_fail);
                 } else {
                     context.instruction(Instruction::Pop);
                 }
-                context.scope.end_intermediate();
                 context
                     .jump(&end)
-                    .label(cleanup)
+                    .label(cleanup2)
                     .instruction(Instruction::Pop)
+                    .label(cleanup1)
                     .instruction(Instruction::Pop)
                     .jump(on_fail)
                     .label(end);
             }
             (None, ir::Value::Builtin(Builtin::Set), ir::Value::Pack(pack)) => {
-                let cleanup = context.labeler.unique_hint("set_cleanup");
+                let cleanup1 = context.labeler.unique_hint("set_cleanup1");
+                let cleanup2 = context.labeler.unique_hint("set_cleanup2");
                 let end = context.labeler.unique_hint("set_end");
                 let mut spread = None;
+                context
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::TypeOf)
+                    .atom("set")
+                    .instruction(Instruction::ValEq)
+                    .cond_jump(&cleanup1);
                 context.instruction(Instruction::Clone);
                 let set = context.scope.intermediate();
                 for element in &pack.values {
@@ -396,20 +416,21 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         .instruction(Instruction::LoadLocal(set))
                         .instruction(Instruction::LoadLocal(value))
                         .instruction(Instruction::Contains)
-                        .cond_jump(&cleanup);
-                    context.instruction(Instruction::Delete);
+                        .cond_jump(&cleanup2)
+                        .instruction(Instruction::Delete);
                     context.scope.end_intermediate();
                 }
+                context.scope.end_intermediate();
                 if let Some(spread) = spread {
                     write_pattern_match(context, spread, on_fail);
                 } else {
                     context.instruction(Instruction::Pop);
                 }
-                context.scope.end_intermediate();
                 context
                     .jump(&end)
-                    .label(cleanup)
+                    .label(cleanup2)
                     .instruction(Instruction::Pop)
+                    .label(cleanup1)
                     .instruction(Instruction::Pop)
                     .jump(on_fail)
                     .label(end);

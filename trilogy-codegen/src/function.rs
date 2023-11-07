@@ -8,8 +8,8 @@ pub(crate) fn write_function(context: &mut Context, function: &ir::Function) {
     for (i, parameter) in function.parameters.iter().enumerate() {
         context.declare_variables(parameter.bindings());
         context.instruction(Instruction::LoadLocal(i as u32));
-        write_pattern_match(context, parameter, &cleanup[i]);
         cleanup.push(context.labeler.unique_hint("cleanup"));
+        write_pattern_match(context, parameter, &cleanup[i + 1]);
     }
     write_expression(context, &function.body);
 

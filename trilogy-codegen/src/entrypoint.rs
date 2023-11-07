@@ -275,7 +275,9 @@ impl ProgramContext<'_> {
         for overload in &function.overloads {
             write_function(&mut context, overload);
         }
-        context.instruction(Instruction::Panic);
+        context
+            .atom("NoMatchingFunctionOverload")
+            .instruction(Instruction::Panic);
     }
 
     /// Writes a module. Modules are prefixed with a single prelude function, which takes
