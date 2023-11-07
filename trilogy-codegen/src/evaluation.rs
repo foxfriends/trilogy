@@ -406,7 +406,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         },
         ir::Value::Let(decl) if decl.query.is_once() => {
             let reenter = context.labeler.unique_hint("let");
-            context.declare_variables(decl.query.bindings());
+            let declared = context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
             context.label(reenter.clone());
             write_query(context, &decl.query, END);
@@ -415,14 +415,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
 
             // TODO: would be really nice to move this pop (of the query state) one
             // line up, but the shared stack thing with closures makes it not work
-            context.instruction(Instruction::Pop);
+            context
+                .instruction(Instruction::Slide(declared as u32 + 1))
+                .instruction(Instruction::Pop);
             context.scope.end_intermediate(); // query state
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::Let(decl) => {
             let reenter = context.labeler.unique_hint("let");
 
-            context.declare_variables(decl.query.bindings());
+            let declared = context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
             context.label(reenter.clone());
             write_query(context, &decl.query, END);
@@ -433,8 +435,10 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .instruction(Instruction::Branch)
                 .cond_jump(&reenter);
             write_expression(context, &decl.body);
-            context.instruction(Instruction::Pop);
-            context.scope.end_intermediate();
+            context
+                .instruction(Instruction::Slide(declared as u32 + 1))
+                .instruction(Instruction::Pop);
+            context.scope.end_intermediate(); // query state
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::IfElse(cond) => {
