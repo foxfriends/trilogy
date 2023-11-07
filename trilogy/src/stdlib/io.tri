@@ -6,3 +6,9 @@ const eprint = native::eprint
 const eprintln = native::eprintln
 const readline = native::readline
 export print, println, eprint, eprintln, readline
+
+proc dbg!(v) {
+    eprintln!(v)
+    return v
+}
+export dbg

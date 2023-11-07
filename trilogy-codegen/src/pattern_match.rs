@@ -256,17 +256,23 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let end = context.labeler.unique_hint("array_end");
                 // Before even attempting to match this array, check its length and the length of
                 // the pattern. If the pattern is longer than the array, then give up already.
-                // The spread element doesn't count towards length since it can be 0.
+                // The spread element doesn't count towards length since it can be 0. If the pattern
+                // is shorter than the array and there is no spread, then also give up.
                 let needed = pack
                     .values
                     .iter()
                     .filter(|element| !element.is_spread)
                     .count();
+                let cmp = if pack.values.iter().any(|el| el.is_spread) {
+                    Instruction::Geq
+                } else {
+                    Instruction::ValEq
+                };
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Length)
                     .constant(needed)
-                    .instruction(Instruction::Geq)
+                    .instruction(cmp)
                     .cond_jump(&cleanup);
                 // If that worked, then we'll have enough elements and won't have to check that
                 // below at all.

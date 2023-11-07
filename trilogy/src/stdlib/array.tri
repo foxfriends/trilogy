@@ -1,5 +1,5 @@
-func map f [x, ..xs] = [f x, ..map f xs]
 func map f [] = []
+func map f [x, ..xs] = [f x, ..map f xs]
 export map
 
 test "map works" {
@@ -10,12 +10,12 @@ test "map works on empty arrays" {
     assert map (fn x. end) [] == []
 }
 
-func filter f [x, ..xs] = if f x then [x, ..filter f xs] else filter f xs
 func filter f [] = []
+func filter f [x, ..xs] = if f x then [x, ..filter f xs] else filter f xs
 export filter
 
+func fold f a [] = a
 func fold f a [x, ..xs] =
     let a2 = f a x,
     fold f a2 xs
-func fold f a [] = a
 export fold
