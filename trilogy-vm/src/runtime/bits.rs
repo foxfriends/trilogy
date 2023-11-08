@@ -3,13 +3,13 @@ use bitvec::order::Lsb0;
 use bitvec::slice::BitSlice;
 use bitvec::vec::BitVec;
 use num::BigUint;
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
 /// A Trilogy Bits value.
 ///
 /// Bits values are represented internally using types from the [`bitvec`][] crate.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
 pub struct Bits(BitVec);
 
 impl Bits {
@@ -229,7 +229,16 @@ impl Not for Bits {
 
 impl Display for Bits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0b")?;
+        for bit in &self.0 {
+            write!(f, "{}", if *bit { 1 } else { 0 })?;
+        }
+        Ok(())
+    }
+}
+
+impl Debug for Bits {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0bb")?;
         for bit in &self.0 {
             write!(f, "{}", if *bit { 1 } else { 0 })?;
         }

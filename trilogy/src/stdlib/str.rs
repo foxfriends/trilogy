@@ -8,6 +8,7 @@ pub mod str {
     pub fn cast(rt: Runtime, value: Value) -> Result<()> {
         match value {
             Value::String(s) => rt.r#return(s),
+            Value::Char(ch) => rt.r#return(ch.to_string()),
             _ => rt.r#return(value.to_string()),
         }
     }

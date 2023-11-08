@@ -1,8 +1,70 @@
 module native at "trilogy:str/native"
 
+## Converts a value to a string.
 func cast n = native::cast!(n)
 export cast
 
+test "cast converts numbers to string" {
+    assert cast 0 == "0"
+    assert cast 3 == "3"
+    assert cast (-3) == "-3"
+    assert cast 1/3 == "1/3"
+    assert cast 0.3 == "3/10"
+    assert cast 3i5 == "3+5i"
+    assert cast (3-0i5) == "3-5i"
+}
+
+test "cast converts string to string (noop)" {
+    assert cast "hello" == "hello"
+}
+
+test "cast converts boolean to string" {
+    assert cast true == "true"
+    assert cast false == "false"
+}
+
+test "cast converts unit to string" {
+    assert cast unit == "unit"
+}
+
+test "cast converts atom to string" {
+    assert cast 'hello == "'hello"
+}
+
+test "cast converts struct to string" {
+    assert cast 'hello(3) == "'hello(3)"
+}
+
+test "cast converts character to string" {
+    assert cast 'a' == "a"
+}
+
+test "cast converts bits to string" {
+    assert cast 0bb1100 == "1100"
+}
+
+test "cast converts array to string" {
+    assert cast [1, 2, 3] == "[1,2,3,]"
+}
+
+test "cast converts tuple to string" {
+    assert cast (1:2) == "(1:2)"
+}
+
+## Chomps the trailing newline (\n, 0x0A) off a string. Will only consume at most
+## one trailing newline.
 func chomp s <> "\n" = s
 func chomp s = s
 export chomp
+
+test "chomp removes a trailing newline" {
+    assert chomp "hello\n" == "hello"
+}
+
+test "chomp removes only one trailing newline" {
+    assert chomp "hello\n\n" == "hello\n"
+}
+
+test "chome does not affect the string otherwise" {
+    assert chomp "hello\nworld" == "hello\nworld"
+}

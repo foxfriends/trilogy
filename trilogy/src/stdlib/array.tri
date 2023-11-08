@@ -28,6 +28,32 @@ test "from works on a list" {
     assert from (1:2:3:unit) == [1, 2, 3]
 }
 
+## Appends a single element to the array.
+func append x arr = [..arr, x]
+export append
+
+test "append adds an element to the array" {
+    assert append 3 [1, 2] == [1, 2 ,3]
+}
+
+test "append adds to the empty array" {
+    assert append 3 [] == [3]
+}
+
+## Pushes an element onto the end of an array. The array is mutated.
+## Returns the array.
+proc push!(array, x) {
+    array.(length array) = x
+    return array
+}
+export push
+
+test "push adds an element to the array" {
+    let arr = [1, 2]
+    assert push!(arr, 3) === arr
+    assert arr == [1, 2, 3]
+}
+
 ## Computes a new array by applying the function `f` to each element
 ## of the original array.
 func map f [] = []
