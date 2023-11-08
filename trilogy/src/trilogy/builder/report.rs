@@ -149,24 +149,48 @@ impl<E: std::error::Error> Error<E> {
                         let span = cache.span(location, duplicate.span());
                         let original = cache.span(location, *original);
                         ariadne::Report::build(kind, location, span.1.start)
-                                .with_message(format!(
-                                    "duplicate declaration of `{}` conflicts with {}",
-                                    duplicate.as_ref().fg(primary),
-                                    "original declaration".fg(secondary),
-                                ))
-                                .with_label(
-                                    Label::new(span)
-                                        .with_color(primary)
-                                        .with_message("this declaration...")
-                                        .with_order(1)
-                                )
-                                .with_label(
-                                    Label::new(original)
-                                        .with_color(secondary)
-                                        .with_message("... conflicts with the original declaration here")
-                                        .with_order(2)
-                                )
-                                .with_note("all declarations in the same scope with the same name must be of the same type and arity")
+                            .with_message(format!(
+                                "duplicate declaration of `{}` conflicts with {}",
+                                duplicate.as_ref().fg(primary),
+                                "original declaration".fg(secondary),
+                            ))
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("this declaration...")
+                                    .with_order(1)
+                            )
+                            .with_label(
+                                Label::new(original)
+                                    .with_color(secondary)
+                                    .with_message("... conflicts with the original declaration here")
+                                    .with_order(2)
+                            )
+                            .with_note("all declarations in the same scope with the same name must be of the same type and arity")
+                    }
+                    DuplicateExport {
+                        original,
+                        duplicate,
+                    } => {
+                        let span = cache.span(location, duplicate.span());
+                        let original = cache.span(location, *original);
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message(format!(
+                                "identifier `{}` has already been exported",
+                                duplicate.as_ref().fg(primary),
+                            ))
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("this export...")
+                                    .with_order(1),
+                            )
+                            .with_label(
+                                Label::new(original)
+                                    .with_color(secondary)
+                                    .with_message("... was already listed here")
+                                    .with_order(2),
+                            )
                     }
                     IdentifierInOwnDefinition { name } => {
                         let span = cache.span(location, name.span);
@@ -283,10 +307,16 @@ impl<E: std::error::Error> Error<E> {
                 }
             }
             ErrorKind::Syntax(location, error) => {
+                use trilogy_parser::syntax::ErrorKind::*;
                 let span = cache.span(location, error.span());
-                ariadne::Report::build(kind, location, span.1.start)
-                    .with_message(error.message())
-                    .with_label(Label::new(span).with_color(primary))
+                match error.kind() {
+                    Unknown(message) => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message(message)
+                        .with_label(Label::new(span).with_color(primary)),
+                    KwNotInExpression => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message(format!("the `{}` keyword may not be used in an expression, did you mean to use the `!` operator?", "not".fg(primary)))
+                        .with_label(Label::new(span).with_color(primary).with_message("try replacing this `not` with `!`")),
+                }
             }
             ErrorKind::Resolver(location, error) => {
                 let span = cache.span(location, error.span);

@@ -59,3 +59,48 @@ test "union combines two sets" {
 test "union combines empty sets" {
     assert union [||] [||] == [||]
 }
+
+## Computes a new set that is the intersection of the two original sets.
+func intersection [| ..ls |] [| ..rs |] = [| l for l in ls and is contains l rs |]
+export intersection
+
+test "intersection returns the elements in both sets" {
+    assert intersection [| 1, 2 |] [| 2, 3 |] == [| 2 |]
+}
+
+test "intersection returns the whole set when they are the same" {
+    assert intersection [| 1, 2 |] [| 1, 2 |] == [| 1, 2, |]
+}
+
+test "intersection returns the empty set when one is empty" {
+    assert intersection [| |] [| 1, 2 |] == [| |]
+}
+
+## Returns a new set that contains the elements of the second set that are not contained
+## in the first.
+func subtract [| ..ls |] [| ..rs |] = [| l for l in ls and not is contains l rs |]
+export subtract
+
+test "subtract returns the elements in the left set but not the right" {
+    assert subtract [| 1, 2 |] [| 2, 3 |] == [| 1 |]
+}
+
+test "subtract returns the empty set when they are the same" {
+    assert subtract [| 1, 2 |] [| 1, 2 |] == [| |]
+}
+
+## Returns a new set that is the symmetric difference of the two original sets.
+func difference [| ..ls |] [| ..rs |] = [| x for x in ls and not is contains x rs or x in rs and not is contains x ls |]
+export difference
+
+test "difference returns the elements in one set but not the other" {
+    assert difference [| 1, 2 |] [| 2, 3 |] == [| 1, 3 |]
+}
+
+test "difference returns the empty set when they are the same" {
+    assert difference [| 1, 2 |] [| 1, 2 |] == [| |]
+}
+
+test "difference returns the union when they are different" {
+    assert difference [| 1, 2 |] [| 3, 4 |] == [| 1, 2, 3, 4 |]
+}

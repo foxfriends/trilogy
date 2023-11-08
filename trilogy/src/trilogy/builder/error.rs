@@ -2,7 +2,6 @@ use super::loader;
 use crate::location::Location;
 use std::fmt::{self, Display};
 use trilogy_parser::syntax::SyntaxError;
-use trilogy_parser::Spanned;
 
 #[derive(Debug)]
 pub struct Error<E: std::error::Error>(pub(super) ErrorKind<E>);
@@ -53,18 +52,16 @@ impl<E: std::error::Error> Display for Error<E> {
                 writeln!(f, "{error}")?;
             }
             ErrorKind::Resolver(location, error) => {
-                writeln!(f, "{location} {error:?}")?;
+                writeln!(f, "{location} {error}")?;
             }
             ErrorKind::Syntax(location, error) => {
-                let span = error.span();
-                let message = error.message();
-                writeln!(f, "{location} ({span}): {message}")?;
+                writeln!(f, "{location} {error}")?;
             }
             ErrorKind::Ir(location, error) => {
-                writeln!(f, "{location}: {error:?}")?;
+                writeln!(f, "{location}: {error}")?;
             }
             ErrorKind::Analysis(location, error) => {
-                writeln!(f, "{location}: {error:?}")?;
+                writeln!(f, "{location}: {error}")?;
             }
         }
         Ok(())

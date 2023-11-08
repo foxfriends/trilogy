@@ -1,102 +1,29 @@
-use std::sync::Arc;
-
 use super::*;
 use crate::{symbol::Symbol, Converter, Error, Id};
 use source_span::Span;
+use std::sync::Arc;
 use trilogy_parser::{syntax, Spanned};
-
-#[derive(Clone, Debug)]
-pub enum DefinitionItem {
-    Procedure(Box<ProcedureDefinition>),
-    Function(Box<FunctionDefinition>),
-    Rule(Box<RuleDefinition>),
-    Test(Box<TestDefinition>),
-    Constant(Box<ConstantDefinition>),
-    Module(Box<ModuleDefinition>),
-}
-
-impl DefinitionItem {
-    /// Returns the item if it is a procedure, or None otherwise.
-    pub fn as_procedure(&self) -> Option<&ProcedureDefinition> {
-        match self {
-            Self::Procedure(def) => Some(def.as_ref()),
-            _ => None,
-        }
-    }
-
-    /// Returns the item if it is a procedure, or None otherwise.
-    pub fn as_function(&self) -> Option<&FunctionDefinition> {
-        match self {
-            Self::Function(def) => Some(def.as_ref()),
-            _ => None,
-        }
-    }
-
-    /// Returns the item if it is a rule, or None otherwise
-    pub fn as_rule(&self) -> Option<&RuleDefinition> {
-        match self {
-            Self::Rule(def) => Some(def.as_ref()),
-            _ => None,
-        }
-    }
-
-    /// Returns the item if it is a test, or None otherwise
-    pub fn as_test(&self) -> Option<&TestDefinition> {
-        match self {
-            Self::Test(def) => Some(def.as_ref()),
-            _ => None,
-        }
-    }
-
-    /// Returns the item if it is a constant, or None otherwise
-    pub fn as_constant(&self) -> Option<&ConstantDefinition> {
-        match self {
-            Self::Constant(def) => Some(def.as_ref()),
-            _ => None,
-        }
-    }
-
-    /// Returns the item if it is a module, or None otherwise
-    pub fn as_module(&self) -> Option<&ModuleDefinition> {
-        match self {
-            Self::Module(def) => Some(def.as_ref()),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct Definition {
     pub span: Span,
     pub item: DefinitionItem,
     pub is_exported: bool,
+    pub export_span: Option<Span>,
 }
 
 impl Definition {
+    fn new(span: Span, item: impl Into<DefinitionItem>) -> Self {
+        Self {
+            span,
+            item: item.into(),
+            is_exported: false,
+            export_span: None,
+        }
+    }
+
     pub fn name(&self) -> Option<&Id> {
-        match &self.item {
-            DefinitionItem::Procedure(def) => Some(&def.name.id),
-            DefinitionItem::Function(def) => Some(&def.name.id),
-            DefinitionItem::Rule(def) => Some(&def.name.id),
-            DefinitionItem::Constant(def) => Some(&def.name.id),
-            DefinitionItem::Test(..) => None,
-            DefinitionItem::Module(def) => Some(&def.name.id),
-        }
-    }
-
-    pub fn as_module_mut(&mut self) -> Option<&mut ModuleDefinition> {
-        match &mut self.item {
-            DefinitionItem::Module(module) => Some(&mut *module),
-            _ => None,
-        }
-    }
-
-    pub fn is_module(&self) -> bool {
-        matches!(self.item, DefinitionItem::Module(..))
-    }
-
-    pub fn is_constant(&self) -> bool {
-        matches!(self.item, DefinitionItem::Constant(..))
+        self.item.name()
     }
 
     pub(super) fn convert_into(
@@ -109,7 +36,15 @@ impl Definition {
                 for name in ast.names {
                     match converter.declared(name.as_ref()) {
                         Some(Symbol { id, .. }) => {
-                            definitions.get_mut(id).unwrap().is_exported = true;
+                            let def = definitions.get_mut(id).unwrap();
+                            if def.is_exported {
+                                converter.error(Error::DuplicateExport {
+                                    original: def.export_span.unwrap(),
+                                    duplicate: name.clone(),
+                                });
+                            }
+                            def.is_exported = true;
+                            def.export_span = Some(name.span());
                         }
                         None => {
                             converter.error(Error::UnknownExport { name: name.clone() });
@@ -130,7 +65,6 @@ impl Definition {
                 };
                 constant.value = Expression::convert(converter, ast.body);
             }
-            syntax::DefinitionItem::ExternalModule(..) => {}
             syntax::DefinitionItem::Function(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
@@ -144,6 +78,7 @@ impl Definition {
                 };
                 function.overloads.push(Function::convert(converter, *ast))
             }
+            syntax::DefinitionItem::ExternalModule(..) => {}
             syntax::DefinitionItem::Module(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
@@ -186,11 +121,10 @@ impl Definition {
                 rule.overloads.push(Rule::convert(converter, *ast))
             }
             syntax::DefinitionItem::Test(ast) => {
-                definitions.push(Definition {
-                    span: ast.span(),
-                    item: DefinitionItem::Test(Box::new(TestDefinition::convert(converter, *ast))),
-                    is_exported: false,
-                });
+                definitions.push(Self::new(
+                    ast.span(),
+                    TestDefinition::convert(converter, *ast),
+                ));
             }
         }
     }
@@ -208,11 +142,7 @@ impl Definition {
                     return vec![];
                 }
                 let name = Identifier::declare(converter, ast.name.clone());
-                Self {
-                    span: ast.span(),
-                    item: DefinitionItem::Constant(Box::new(ConstantDefinition::declare(name))),
-                    is_exported: false,
-                }
+                Self::new(ast.span(), ConstantDefinition::declare(name))
             }
             syntax::DefinitionItem::ExternalModule(ast) => {
                 if let Some(original) = converter.declared(ast.head.name.as_ref()) {
@@ -224,14 +154,10 @@ impl Definition {
                     return vec![];
                 }
                 let name = Identifier::declare(converter, ast.head.name.clone());
-                Self {
-                    span: ast.span(),
-                    item: DefinitionItem::Module(Box::new(ModuleDefinition::external(
-                        name,
-                        converter.resolve(&ast.locator.value()),
-                    ))),
-                    is_exported: false,
-                }
+                Self::new(
+                    ast.span(),
+                    ModuleDefinition::external(name, converter.resolve(&ast.locator.value())),
+                )
             }
             syntax::DefinitionItem::Function(ast) => {
                 if converter.declared(ast.head.name.as_ref()).is_some() {
@@ -239,11 +165,7 @@ impl Definition {
                 }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
-                Self {
-                    span,
-                    item: DefinitionItem::Function(Box::new(FunctionDefinition::declare(name))),
-                    is_exported: false,
-                }
+                Self::new(span, FunctionDefinition::declare(name))
             }
             syntax::DefinitionItem::Module(ast) => {
                 if let Some(original) = converter.declared(ast.head.name.as_ref()) {
@@ -255,11 +177,7 @@ impl Definition {
                     return vec![];
                 }
                 let name = Identifier::declare(converter, ast.head.name.clone());
-                Self {
-                    span: ast.span(),
-                    item: DefinitionItem::Module(Box::new(ModuleDefinition::declare(name))),
-                    is_exported: false,
-                }
+                Self::new(ast.span(), ModuleDefinition::declare(name))
             }
             syntax::DefinitionItem::Procedure(ast) => {
                 if let Some(original) = converter.declared(ast.head.name.as_ref()) {
@@ -272,11 +190,7 @@ impl Definition {
                 }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
-                Self {
-                    span,
-                    item: DefinitionItem::Procedure(Box::new(ProcedureDefinition::declare(name))),
-                    is_exported: false,
-                }
+                Self::new(span, ProcedureDefinition::declare(name))
             }
             syntax::DefinitionItem::Rule(ast) => {
                 if converter.declared(ast.head.name.as_ref()).is_some() {
@@ -284,11 +198,7 @@ impl Definition {
                 }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
-                Self {
-                    span,
-                    item: DefinitionItem::Rule(Box::new(RuleDefinition::declare(name))),
-                    is_exported: false,
-                }
+                Self::new(span, RuleDefinition::declare(name))
             }
             syntax::DefinitionItem::Test(..) => return vec![],
         };

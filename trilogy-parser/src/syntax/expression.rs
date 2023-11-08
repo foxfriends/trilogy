@@ -361,6 +361,13 @@ impl Expression {
             },
             KwIs => Ok(Ok(Self::Is(Box::new(IsExpression::parse(parser)?)))),
             KwMut | Discard | OpCaret => Ok(Err(Pattern::parse(parser)?)),
+
+            // Invalid stuff, but we can do better error messages by handling some specifically
+            KwNot => {
+                let error = ErrorKind::KwNotInExpression.at(token.span);
+                parser.error(error.clone());
+                Err(error)
+            }
             _ => {
                 let error = SyntaxError::new(
                     token.span,

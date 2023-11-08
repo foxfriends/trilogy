@@ -238,7 +238,11 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     }
 
     // 4. Initializing submodules
-    for def in module.definitions().iter().filter(|def| def.is_module()) {
+    for def in module
+        .definitions()
+        .iter()
+        .filter(|def| def.item.as_module().is_some())
+    {
         let module = def.item.as_module().unwrap();
         let old_static = old_statics.get(&module.name.id).unwrap();
         match old_static {
