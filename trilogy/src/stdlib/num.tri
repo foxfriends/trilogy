@@ -1,4 +1,43 @@
 module native at "trilogy:num/native"
 
+## Converts an arbitrary value to a number, if possible. The conversion
+## depends on the type of input:
+## * Number: Unchanged
+## * Char: The value of the character's unicode code point
+## * String: Attempt to parse the string as a number
+## * Bool: true = 1, false = 0
+## * Unit: always 0
+## * Bits: Interpret the bits as a unsigned integer of arbitrary size
+##
+## When the conversion is not possible (for other types, or the string
+## does not represent a valid number) yields `'NAN`.
 func cast n = native::cast!(n)
 export cast
+
+## Returns the magnitude of the imaginary portion of a number, discarding the real part.
+func im n = native::im!(n)
+export im
+
+## Returns the real portion of a number, discarding any imaginary part.
+func re n = native::re!(n)
+export re
+
+## Returns the real and imaginary parts of a number as a tuple of real numbers.
+func parts n = native::re!(n):native::im!(n)
+export parts
+
+## Returns the absolute value of a number
+func abs n = if n < 0 then -n else n
+export abs
+
+test "abs returns the number if it was above zero" {
+    assert abs 3 == 3
+}
+
+test "abs returns the positive version of the number if it was below zero" {
+    assert abs (-3) == 3
+}
+
+test not "abs works on non-numbers" {
+    abs "NAN"
+}

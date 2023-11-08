@@ -1,5 +1,6 @@
 use num::complex::ParseComplexError;
 use num::rational::ParseRatioError;
+use num::traits::Pow;
 use num::{BigInt, BigRational, BigUint, Complex, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
@@ -121,8 +122,23 @@ impl Number {
         }
     }
 
-    pub(crate) fn pow(&self, _other: &Self) -> Self {
-        todo!()
+    pub fn re(&self) -> Number {
+        self.0.re.clone().into()
+    }
+
+    pub fn im(&self) -> Number {
+        self.0.im.clone().into()
+    }
+
+    pub(crate) fn pow(&self, other: &Self) -> Self {
+        if self.is_real() && other.is_integer() {
+            self.as_real()
+                .unwrap()
+                .pow(other.as_integer().unwrap())
+                .into()
+        } else {
+            todo!()
+        }
     }
 }
 

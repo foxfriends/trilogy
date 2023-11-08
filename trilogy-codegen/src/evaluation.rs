@@ -146,7 +146,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .instruction(Instruction::Pop)
                 .label(begin.to_owned());
             write_expression(context, &stmt.condition);
-            context.cond_jump(&cond_fail);
+            context.typecheck(&["boolean"]).cond_jump(&cond_fail);
             write_expression(context, &stmt.body);
             context
                 .instruction(Instruction::LoadLocal(r#continue))
@@ -448,7 +448,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::IfElse(cond) => {
             let when_false = context.labeler.unique_hint("else");
             write_expression(context, &cond.condition);
-            context.cond_jump(&when_false);
+            context.typecheck(&["boolean"]).cond_jump(&when_false);
             write_expression(context, &cond.when_true);
             let end = context.labeler.unique_hint("end_if");
             context.jump(&end);
@@ -466,7 +466,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.instruction(Instruction::LoadLocal(val));
                 write_pattern_match(context, &case.pattern, &cleanup);
                 write_expression(context, &case.guard);
-                context.cond_jump(&cleanup);
+                context.typecheck(&["boolean"]).cond_jump(&cleanup);
                 write_expression(context, &case.body);
                 context.instruction(Instruction::SetLocal(val));
                 context.undeclare_variables(case.pattern.bindings(), true);
@@ -565,7 +565,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.instruction(Instruction::LoadLocal(effect));
                 write_pattern_match(context, &handler.pattern, &next);
                 write_expression(context, &handler.guard);
-                context.cond_jump(&next);
+                context.typecheck(&["boolean"]).cond_jump(&next);
                 write_expression(context, &handler.body);
                 // At the end of an effect handler, everything just ends.
                 //
@@ -631,6 +631,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_expression(context, &assert.assertion);
             context
                 .instruction(Instruction::Copy)
+                .typecheck(&["boolean"])
                 .instruction(Instruction::Not)
                 .cond_jump(&passed);
             write_expression(context, &assert.message);
