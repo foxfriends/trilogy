@@ -1,6 +1,7 @@
 mod labeler;
 mod scope;
 
+use crate::RUNTIME_TYPE_ERROR;
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
 use trilogy_ir::Id;
@@ -91,5 +92,30 @@ impl<'a> Context<'a> {
                 self.instruction(Instruction::Pop);
             }
         }
+    }
+
+    pub fn typecheck(&mut self, types: &[&str]) -> &mut Self {
+        match types.len() {
+            0 => {}
+            1 => {
+                self.instruction(Instruction::Copy)
+                    .instruction(Instruction::TypeOf)
+                    .atom(types[0])
+                    .instruction(Instruction::ValEq)
+                    .cond_jump(RUNTIME_TYPE_ERROR);
+            }
+            _ => {
+                let done = self.labeler.unique_hint("done");
+                for t in types {
+                    self.instruction(Instruction::Copy)
+                        .instruction(Instruction::TypeOf)
+                        .atom(t)
+                        .instruction(Instruction::ValNeq)
+                        .cond_jump(&done);
+                }
+                self.jump(RUNTIME_TYPE_ERROR).label(done);
+            }
+        }
+        self
     }
 }

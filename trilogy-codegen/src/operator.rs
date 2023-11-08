@@ -53,40 +53,93 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
 pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
     match builtin {
         Builtin::Negate => {
-            context.instruction(Instruction::Negate);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Negate);
         }
         Builtin::Not => {
-            context.instruction(Instruction::Not);
+            context
+                .typecheck(&["boolean"])
+                .instruction(Instruction::Not);
         }
         Builtin::Access => {
-            context.instruction(Instruction::Access);
+            context
+                .instruction(Instruction::Swap)
+                .typecheck(&["array", "record"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Access);
         }
         Builtin::And => {
-            context.instruction(Instruction::And);
+            context
+                .typecheck(&["boolean"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["boolean"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::And);
         }
         Builtin::Or => {
-            context.instruction(Instruction::Or);
+            context
+                .typecheck(&["boolean"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["boolean"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Or);
         }
         Builtin::Add => {
-            context.instruction(Instruction::Add);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Add);
         }
         Builtin::Subtract => {
-            context.instruction(Instruction::Subtract);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Subtract);
         }
         Builtin::Multiply => {
-            context.instruction(Instruction::Multiply);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Multiply);
         }
         Builtin::Divide => {
-            context.instruction(Instruction::Divide);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Divide);
         }
         Builtin::Remainder => {
-            context.instruction(Instruction::Remainder);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Remainder);
         }
         Builtin::Power => {
-            context.instruction(Instruction::Power);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Power);
         }
         Builtin::IntDivide => {
-            context.instruction(Instruction::IntDivide);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::IntDivide);
         }
         Builtin::StructuralEquality => {
             context.instruction(Instruction::ValEq);
@@ -113,22 +166,49 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             context.instruction(Instruction::Geq);
         }
         Builtin::BitwiseAnd => {
-            context.instruction(Instruction::BitwiseAnd);
+            context
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::BitwiseAnd);
         }
         Builtin::BitwiseOr => {
-            context.instruction(Instruction::BitwiseOr);
+            context
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::BitwiseOr);
         }
         Builtin::BitwiseXor => {
-            context.instruction(Instruction::BitwiseXor);
+            context
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::BitwiseXor);
         }
         Builtin::Invert => {
-            context.instruction(Instruction::BitwiseNeg);
+            context
+                .typecheck(&["bits"])
+                .instruction(Instruction::BitwiseNeg);
         }
         Builtin::LeftShift => {
-            context.instruction(Instruction::LeftShift);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::LeftShift);
         }
         Builtin::RightShift => {
-            context.instruction(Instruction::RightShift);
+            context
+                .typecheck(&["number"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["bits"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::RightShift);
         }
         Builtin::Sequence => {
             context.instruction(Instruction::Pop);
@@ -140,13 +220,24 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             context.instruction(Instruction::Construct);
         }
         Builtin::Glue => {
-            context.instruction(Instruction::Glue);
+            context
+                .typecheck(&["string"])
+                .instruction(Instruction::Swap)
+                .typecheck(&["string"])
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Glue);
         }
         Builtin::Pipe => {
-            context.instruction(Instruction::Swap);
+            context
+                .typecheck(&["callable"])
+                .instruction(Instruction::Swap);
             apply_function(context);
         }
         Builtin::RPipe => {
+            context
+                .instruction(Instruction::Swap)
+                .typecheck(&["callable"])
+                .instruction(Instruction::Swap);
             apply_function(context);
         }
         Builtin::Exit => {

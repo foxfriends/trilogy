@@ -349,6 +349,12 @@ mod test {
     #[test]
     fn display() {
         let bits = Bits(bitvec![0, 1, 0, 0, 1]);
-        assert_eq!(format!("{bits}"), "0b01001");
+        assert_eq!(format!("{bits}"), "01001");
+    }
+
+    #[test]
+    fn debug() {
+        let bits = Bits(bitvec![0, 1, 0, 0, 1]);
+        assert_eq!(format!("{bits:?}"), "0bb01001");
     }
 }

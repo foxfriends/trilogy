@@ -102,6 +102,11 @@ impl ProgramContext<'_> {
         self
     }
 
+    pub fn jump(&mut self, label: &str) -> &mut Self {
+        self.builder.jump(label);
+        self
+    }
+
     pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
         self.builder.instruction(instruction);
         self

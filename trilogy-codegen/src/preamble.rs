@@ -53,6 +53,7 @@ pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
 
 pub const INVALID_ITERATOR: &str = "panic::invalid_iterator";
+pub const RUNTIME_TYPE_ERROR: &str = "panic::runtime_type_error";
 pub const INCORRECT_ARITY: &str = "panic::incorrect_arity";
 pub const INVALID_CALL: &str = "panic::invalid_call";
 
@@ -72,19 +73,52 @@ fn unlock_apply(context: &mut ProgramContext) {
         .instruction(Instruction::Pop);
 }
 
+fn typecheck(context: &mut ProgramContext, types: &[&str]) {
+    match types.len() {
+        0 => {}
+        1 => {
+            let ty = context.atom(types[0]);
+            context
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::TypeOf)
+                .constant(ty)
+                .instruction(Instruction::ValEq)
+                .cond_jump(RUNTIME_TYPE_ERROR);
+        }
+        _ => {
+            let done = context.labeler.unique_hint("done");
+            for t in types {
+                let ty = context.atom(t);
+                context
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::TypeOf)
+                    .constant(ty)
+                    .instruction(Instruction::ValNeq)
+                    .cond_jump(&done);
+            }
+            context.jump(RUNTIME_TYPE_ERROR).label(done);
+        }
+    }
+}
+
 macro_rules! binop {
-    ($builder:expr, $label:expr, $($op:expr),+) => {{
-        $builder.label($label).shift(RETURN);
+    ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
+        $builder
+            .label($label)
+            .shift(RETURN);
         unlock_apply($builder);
-        $builder.instruction(Instruction::LoadLocal(0))
-            .instruction(Instruction::Swap)
+        $builder.instruction(Instruction::LoadLocal(0));
+        typecheck($builder, $lty);
+        $builder.instruction(Instruction::Swap);
+        typecheck($builder, $rty);
+        $builder
             $(.instruction($op))+
             .instruction(Instruction::Reset)
     }};
 }
 
 macro_rules! binop_ {
-    ($builder:expr, $label:expr, $($op:expr),+) => {{
+    ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
         unlock_apply($builder);
         $builder.label($label).shift(RETURN);
         unlock_apply($builder);
@@ -96,58 +130,62 @@ macro_rules! binop_ {
 }
 
 macro_rules! unop {
-    ($builder:expr, $label:expr, $($op:expr),+) => {{
+    ($builder:expr, $label:expr, $ty:expr, $($op:expr),+) => {{
         unlock_apply($builder);
+        $builder.label($label);
+        typecheck($builder, $ty);
         $builder
-            .label($label)
             $(.instruction($op))+
             .instruction(Instruction::Return)
     }};
 }
 
+#[rustfmt::skip]
 pub(crate) fn write_preamble(builder: &mut ProgramContext) {
-    binop!(builder, ADD, Instruction::Add);
-    binop!(builder, SUB, Instruction::Subtract);
-    binop!(builder, MUL, Instruction::Multiply);
-    binop!(builder, DIV, Instruction::Divide);
-    binop!(builder, INTDIV, Instruction::IntDivide);
-    binop!(builder, REM, Instruction::Remainder);
-    binop!(builder, POW, Instruction::Power);
-    unop!(builder, NEGATE, Instruction::Negate);
+    binop!(builder, ADD, &["number"], &["number"], Instruction::Add);
+    binop!(builder, SUB, &["number"], &["number"], Instruction::Subtract);
+    binop!(builder, MUL, &["number"], &["number"], Instruction::Multiply);
+    binop!(builder, DIV, &["number"], &["number"], Instruction::Divide);
+    binop!(builder, INTDIV, &["number"], &["number"], Instruction::IntDivide);
+    binop!(builder, REM, &["number"], &["number"], Instruction::Remainder);
+    binop!(builder, POW, &["number"], &["number"], Instruction::Power);
+    unop!(builder, NEGATE, &["number"], Instruction::Negate);
 
-    binop!(builder, GLUE, Instruction::Glue);
-    binop!(builder, ACCESS, Instruction::Access);
+    binop!(builder, GLUE, &["string"], &["string"], Instruction::Glue);
+    binop!(builder, ACCESS, &["array", "record"], &[], Instruction::Access);
 
-    binop!(builder, AND, Instruction::And);
-    binop!(builder, OR, Instruction::Or);
-    unop!(builder, NOT, Instruction::Not);
+    binop!(builder, AND, &["boolean"], &["boolean"], Instruction::And);
+    binop!(builder, OR, &["boolean"], &["boolean"], Instruction::Or);
+    unop!(builder, NOT, &["boolean"], Instruction::Not);
 
-    binop!(builder, BITAND, Instruction::BitwiseAnd);
-    binop!(builder, BITOR, Instruction::BitwiseOr);
-    binop!(builder, BITXOR, Instruction::BitwiseXor);
-    unop!(builder, BITNEG, Instruction::BitwiseNeg);
-    binop!(builder, LSHIFT, Instruction::LeftShift);
-    binop!(builder, RSHIFT, Instruction::RightShift);
+    binop!(builder, BITAND, &["bits"], &["bits"], Instruction::BitwiseAnd);
+    binop!(builder, BITOR, &["bits"], &["bits"], Instruction::BitwiseOr);
+    binop!(builder, BITXOR, &["bits"], &["bits"], Instruction::BitwiseXor);
+    unop!(builder, BITNEG, &["bits"], Instruction::BitwiseNeg);
+    binop!(builder, LSHIFT, &["bits"], &["number"], Instruction::LeftShift);
+    binop!(builder, RSHIFT, &["bits"], &["number"], Instruction::RightShift);
 
-    binop!(builder, LEQ, Instruction::Leq);
-    binop!(builder, LT, Instruction::Lt);
-    binop!(builder, GEQ, Instruction::Geq);
-    binop!(builder, GT, Instruction::Gt);
-    binop!(builder, REFEQ, Instruction::RefEq);
-    binop!(builder, VALEQ, Instruction::ValEq);
-    binop!(builder, REFNEQ, Instruction::RefNeq);
-    binop!(builder, VALNEQ, Instruction::ValNeq);
+    binop!(builder, LEQ, &[], &[], Instruction::Leq);
+    binop!(builder, LT, &[], &[], Instruction::Lt);
+    binop!(builder, GEQ, &[], &[], Instruction::Geq);
+    binop!(builder, GT, &[], &[], Instruction::Gt);
+    binop!(builder, REFEQ, &[], &[], Instruction::RefEq);
+    binop!(builder, VALEQ, &[], &[], Instruction::ValEq);
+    binop!(builder, REFNEQ, &[], &[], Instruction::RefNeq);
+    binop!(builder, VALNEQ, &[], &[], Instruction::ValNeq);
 
-    binop!(builder, PIPE, Instruction::Call(1));
-    binop_!(builder, RPIPE, Instruction::Call(1));
+    binop!(builder, PIPE, &["callable"], &[], Instruction::Call(1));
+    binop_!(builder, RPIPE, &[], &["callable"], Instruction::Call(1));
 
-    binop!(builder, CONS, Instruction::Cons);
+    binop!(builder, CONS, &[], &[], Instruction::Cons);
 
     let function = Struct::new(builder.atom("function"), 1);
     builder.label(RCOMPOSE);
     unlock_apply(builder);
+    typecheck(builder, &["callable"]);
     builder.close(RETURN);
     unlock_apply(builder);
+    typecheck(builder, &["callable"]);
     builder.close(RETURN);
     unlock_apply(builder);
     builder
@@ -163,8 +201,10 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder.label(COMPOSE);
     unlock_apply(builder);
+    typecheck(builder, &["callable"]);
     builder.close(RETURN);
     unlock_apply(builder);
+    typecheck(builder, &["callable"]);
     builder.close(RETURN);
     unlock_apply(builder);
     builder
@@ -331,6 +371,13 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder
         .label(INVALID_CALL)
         .constant(invalid_call)
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
+
+    let runtime_type_error = builder.atom("RuntimeTypeError");
+    builder
+        .label(RUNTIME_TYPE_ERROR)
+        .constant(runtime_type_error)
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 }
