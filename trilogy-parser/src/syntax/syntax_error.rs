@@ -6,6 +6,7 @@ use std::fmt::{self, Display};
 pub enum ErrorKind {
     Unknown(String),
     KwNotInExpression,
+    KwThenInStatement,
 }
 
 impl ErrorKind {
@@ -55,6 +56,9 @@ impl Display for SyntaxError {
             ErrorKind::Unknown(message) => write!(f, "{message}")?,
             ErrorKind::KwNotInExpression => {
                 write!(f, "keyword `not` cannot be used in an expression")?
+            }
+            ErrorKind::KwThenInStatement => {
+                write!(f, "keyword `then` cannot be used in a statement")?
             }
         }
 

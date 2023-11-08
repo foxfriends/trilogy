@@ -1,0 +1,38 @@
+test "when the condition is true, executes the first branch" {
+    if true {
+    } else {
+        assert false
+    }
+}
+
+test "when the condition is false, executes the second branch" {
+    if false {
+        assert false
+    } else {
+    }
+}
+
+test "when the condition is false and there is no else branch, just skips" {
+    if false {
+        assert false
+    }
+}
+
+test "may be chained as else if" {
+    if false {
+        assert false
+    } else if false {
+        assert false
+    } else if true {
+    } else {
+        assert false
+    }
+}
+
+test "conditions of branches after the first matched one are not executed" {
+    if true {} else if end {}
+}
+
+test not "causes a runtime type error if the condition is not a boolean" {
+    if unit {}
+}

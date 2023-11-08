@@ -3,8 +3,8 @@ name: Trilogy CI
 on: push
 
 jobs:
-  test:
-    name: test stdlib
+  stdlib:
+    name: stdlib
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the source code
@@ -24,6 +24,30 @@ jobs:
           rustup default stable
       - name: Build
         run: cargo build --release
-      - name: Test Stdlib
+      - name: Run stdlib tests
         run: |
           ls ./trilogy/src/stdlib/*.tri | xargs -I _ ./target/release/trilogy test _
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust
+        run: |
+          rustup install stable
+          rustup default stable
+      - name: Build
+        run: cargo build --release
+      - name: Run testsuite
+        run: |
+          ls ./testsuite/*/*.tri | xargs -I _ ./target/release/trilogy test _

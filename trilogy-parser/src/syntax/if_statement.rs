@@ -51,6 +51,11 @@ impl IfBranch {
             .expect(TokenType::KwIf)
             .expect("Caller should have found this");
         let condition = Expression::parse(parser)?;
+        if let Ok(token) = parser.check(TokenType::KwThen) {
+            let error = ErrorKind::KwThenInStatement.at(token.span);
+            parser.error(error.clone());
+            return Err(error);
+        }
         let body = Block::parse(parser)?;
         Ok(Self {
             start,
