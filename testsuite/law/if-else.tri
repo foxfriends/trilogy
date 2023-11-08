@@ -1,0 +1,15 @@
+test "when the condition is satisfied, evaluates the first branch" {
+    assert is if pass then pass else end
+}
+
+test "when the condition is not satisfied, evaluates the second branch" {
+    assert is if end then end else pass
+}
+
+test "when the condition is satisfied multiple times, commit to the first option" {
+    assert [x for if x = 1 or x = 2 then pass else end] == [1]
+}
+
+test "may be nested" {
+    assert is if pass then if end then end else if pass then pass else end else end
+}

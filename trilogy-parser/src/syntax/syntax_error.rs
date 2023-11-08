@@ -7,6 +7,7 @@ pub enum ErrorKind {
     Unknown(String),
     KwNotInExpression,
     KwThenInStatement,
+    RuleRightArrow,
 }
 
 impl ErrorKind {
@@ -59,6 +60,9 @@ impl Display for SyntaxError {
             }
             ErrorKind::KwThenInStatement => {
                 write!(f, "keyword `then` cannot be used in a statement")?
+            }
+            ErrorKind::RuleRightArrow => {
+                write!(f, "right arrow following rule should be a left arrow")?
             }
         }
 

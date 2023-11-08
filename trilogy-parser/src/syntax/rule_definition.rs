@@ -17,7 +17,14 @@ impl RuleDefinition {
             .expect("Caller should find `rule` keyword.");
         let head = RuleHead::parse(parser)?;
         let body = parser
-            .expect(TokenType::OpLeftArrow)
+            .expect([TokenType::OpLeftArrow, TokenType::OpRightArrow])
+            .map(|token| {
+                if token.token_type == TokenType::OpRightArrow {
+                    // It was an error, but we can almost certainly still parse pretty accurately.
+                    parser.error(ErrorKind::RuleRightArrow.at(token.span));
+                }
+                token
+            })
             .ok()
             .map(|_| Query::parse(parser))
             .transpose()?;

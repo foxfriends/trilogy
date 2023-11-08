@@ -317,6 +317,9 @@ impl<E: std::error::Error> Error<E> {
                         .with_message(format!("the `{}` keyword may not be used in an if statement", "then".fg(primary)))
                         .with_help("`then` is valid in expression context, did you mean to use this as a subexpression")
                         .with_label(Label::new(span).with_color(primary).with_message("you could enclose the following expression in a block")),
+                    RuleRightArrow => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message(format!("a `{}` may not be used in a rule definition", "->".fg(primary)))
+                        .with_label(Label::new(span).with_color(primary).with_message("try replacing it with a `<-`")),
                     KwNotInExpression => ariadne::Report::build(kind, location, span.1.start)
                         .with_message(format!("the `{}` keyword may not be used in an expression, did you mean to use the `!` operator?", "not".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing this `not` with `!`")),
