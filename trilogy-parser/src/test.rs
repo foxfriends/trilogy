@@ -123,7 +123,7 @@ macro_rules! test_parse_error {
             let mut $parser = $crate::Parser::new(scanner);
             $parser.expect(trilogy_scanner::TokenType::StartOfFile).unwrap();
             let _ = $parse;
-            assert_eq!($parser.errors.first().expect("parse should have reported an error message").message(), $error);
+            assert!($parser.errors.first().expect("parse should have reported an error message").to_string().ends_with($error));
         }
     };
 
@@ -178,7 +178,7 @@ macro_rules! test_parse_whole_error {
             let scanner = trilogy_scanner::Scanner::new($src);
             let mut $parser = $crate::Parser::new(scanner);
             $parse;
-            assert_eq!($parser.errors.first().expect("parse should have reported an error message").message(), $error);
+            assert!($parser.errors.first().expect("parse should have reported an error message").to_string().ends_with($error));
         }
     };
 
