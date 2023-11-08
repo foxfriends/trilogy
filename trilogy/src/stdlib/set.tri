@@ -90,7 +90,11 @@ test "subtract returns the empty set when they are the same" {
 }
 
 ## Returns a new set that is the symmetric difference of the two original sets.
-func difference [| ..ls |] [| ..rs |] = [| x for x in ls and not is contains x rs or x in rs and not is contains x ls |]
+func difference [| ..ls |] [| ..rs |] =
+    [| x
+        for (x in ls and not is contains x rs)
+        or (x in rs and not is contains x ls)
+    |]
 export difference
 
 test "difference returns the elements in one set but not the other" {

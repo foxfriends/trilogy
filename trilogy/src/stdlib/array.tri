@@ -1,3 +1,33 @@
+## Creates a new array from the elements of an iterator.
+func from iter = [x for x in iter]
+export from
+
+test "from works on an array" {
+    assert from [1, 2, 3] == [1, 2, 3]
+}
+
+test "from works on a generic iterator" {
+    assert from $(x for x = 1 or x = 2 or x = 3) == [1, 2, 3]
+}
+
+test "from works on a set" {
+    let arr = from [| 1, 2, 3 |]
+    assert contains 1 arr
+    assert contains 2 arr
+    assert contains 3 arr
+}
+
+test "from works on a record" {
+    let arr = from {| 1 => 1, 2 => 2, 3 => 3 |}
+    assert contains (1:1) arr
+    assert contains (2:2) arr
+    assert contains (3:3) arr
+}
+
+test "from works on a list" {
+    assert from (1:2:3:unit) == [1, 2, 3]
+}
+
 ## Computes a new array by applying the function `f` to each element
 ## of the original array.
 func map f [] = []

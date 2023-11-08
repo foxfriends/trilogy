@@ -25,7 +25,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Sequence(seq) => {
             let mut seq = seq.iter();
-            let Some(mut expr) = seq.next() else { return };
+            let Some(mut expr) = seq.next() else {
+                // An empty sequence must still have a value
+                context.constant(());
+                return;
+            };
             loop {
                 write_expression(context, expr);
                 let Some(next_expr) = seq.next() else { break };
@@ -625,7 +629,10 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Assert(assert) => {
             let passed = context.labeler.unique_hint("assert_passed");
             write_expression(context, &assert.assertion);
-            context.instruction(Instruction::Not).cond_jump(&passed);
+            context
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Not)
+                .cond_jump(&passed);
             write_expression(context, &assert.message);
             context
                 .atom("AssertionError")

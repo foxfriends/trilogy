@@ -79,9 +79,9 @@ impl DoBody {
 mod test {
     use super::*;
 
-    test_parse!(do_block: "do() {}" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Block (Block [])))");
-    test_parse!(do_block_params: "do(a, b) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block (Block [])))");
-    test_parse!(do_block_params_trailing_comma: "do(a, b, ) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block (Block [])))");
+    test_parse!(do_block: "do() {}" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Block _))");
+    test_parse!(do_block_params: "do(a, b) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block _))");
+    test_parse!(do_block_params_trailing_comma: "do(a, b, ) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block _))");
     test_parse_error!(do_block_params_leading_comma: "do(, a) {}" => DoExpression::parse);
     test_parse_error!(do_block_params_empty_comma: "do(,) {}" => DoExpression::parse);
     test_parse_error!(do_block_missing_paren: "do(a {}" => DoExpression::parse => "expected `)` to end parameter list");

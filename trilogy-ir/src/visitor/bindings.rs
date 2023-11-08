@@ -74,14 +74,8 @@ impl IrVisitor for Bindings {
         }
     }
 
-    fn visit_query_value(&mut self, node: &QueryValue) {
-        use QueryValue::*;
-
-        match node {
-            Not(..) | Is(..) => {}
-            _ => node.visit(self),
-        }
-    }
+    fn visit_query_not(&mut self, _node: &Query) {}
+    fn visit_query_is(&mut self, _node: &Expression) {}
 
     fn visit_lookup(&mut self, node: &Lookup) {
         for pattern in &node.patterns {

@@ -25,6 +25,6 @@ impl HandlerBody {
 mod test {
     use super::*;
 
-    test_parse!(handlerbody_block: "{ let x = 5; resume x }" => HandlerBody::parse => "(HandlerBody::Block (Block _))");
+    test_parse!(handlerbody_block: "{ let x = 5; resume x }" => HandlerBody::parse => "(HandlerBody::Block (Block _ _ _))");
     test_parse!(handlerbody_expr: "let y = 5, resume y" => HandlerBody::parse => "(HandlerBody::Expression _)");
 }
