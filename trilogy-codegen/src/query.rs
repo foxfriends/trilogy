@@ -86,9 +86,14 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
                 .instruction(Instruction::Cons);
         }
         ir::QueryValue::Direct(unification) => {
-            // A direct unification does affect the bindset, in passing, but only requires
-            // the same "once-only" state as above.
-            context.constant(true);
+            // Though a direct unification does not backtrack on its own, we may still
+            // re-enter it at which point the bindset should be unbound before we go
+            // to the failed case, so the state of the direct query does need the bindset.
+            context
+                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::Clone)
+                .constant(true)
+                .instruction(Instruction::Cons);
 
             context.instruction(Instruction::LoadRegister(2));
             for var in unification.pattern.bindings() {
@@ -256,15 +261,29 @@ fn write_query_value(
 ) {
     match &value {
         ir::QueryValue::Direct(unification) => {
+            let pass = context.labeler.unique_hint("pass");
+            let cleanup = context.labeler.unique_hint("cleanup");
+            // Take out the bindset and unbind with it immediately
+            let bindset = context.scope.intermediate();
+            context
+                .instruction(Instruction::Uncons)
+                .instruction(Instruction::LoadLocal(bindset));
+            unbind(context, bound, unification.pattern.bindings());
             // Set the state marker to false so we can't re-enter here.
             context
                 .constant(false)
                 .instruction(Instruction::Swap)
-                .cond_jump(on_fail);
-            context.scope.intermediate(); // state
-            evaluate_or_fail(context, bound, &unification.expression, on_fail);
-            write_pattern_match(context, &unification.pattern, on_fail);
-            context.scope.end_intermediate(); // state
+                .cond_jump(&cleanup)
+                .instruction(Instruction::Cons);
+            evaluate_or_fail(context, bound, &unification.expression, &on_fail);
+            write_pattern_match(context, &unification.pattern, &on_fail);
+            context
+                .jump(&pass)
+                .label(cleanup)
+                .instruction(Instruction::Cons)
+                .jump(on_fail)
+                .label(pass);
+            context.scope.end_intermediate(); // bindset
         }
         ir::QueryValue::Element(unification) => {
             let cleanup = context.labeler.unique_hint("in_cleanup");
