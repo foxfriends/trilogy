@@ -1,0 +1,19 @@
+test "passes if the first branch passes" {
+    assert is pass or end
+}
+
+test "passes if the second branch passes" {
+    assert is end or pass
+}
+
+test "does not pass if neither branch passes" {
+    assert !(is end or end)
+}
+
+test "passes twice if both branches pass" {
+    assert [1 for pass or pass] == [1, 1]
+}
+
+test "evaluates every case of every branch" {
+    assert [x for x in [1, 2] or x in [3, 4]] == [1, 2, 3, 4]
+}

@@ -9,3 +9,14 @@ test "does not evaluate the second branch if the first fails" {
 test "reevaluates the second branch expression each time" {
     assert [y for x in [1, 2, 3] and y = x * 2] == [2, 4, 6]
 }
+
+test "does not pass if either branch fails" {
+    assert !(is x in [1, 2, 3] and end)
+}
+
+test "fully exhausts the first branch even if the second never passes" {
+    with [x for x in [1, 2, yield 'DONE] and end]
+        when 'DONE cancel { exit unit }
+        else cancel { 3 }
+    assert false
+}
