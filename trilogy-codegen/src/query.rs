@@ -346,7 +346,7 @@ fn write_query_value(
             // Then it's just failed if the evaluation is false.
             write_expression(context, expr);
             context.scope.end_intermediate(); // state
-            context.cond_jump(on_fail);
+            context.typecheck(&["boolean"]).cond_jump(on_fail);
         }
         ir::QueryValue::End => {
             // Always fail. The state isn't required at all.
