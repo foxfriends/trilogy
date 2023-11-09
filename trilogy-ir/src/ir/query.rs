@@ -51,7 +51,12 @@ impl Query {
             Pass(token) => Self::pass(token.span()),
             End(token) => Self::end(token.span()),
             Is(ast) => Self::is(ast.span(), Expression::convert(converter, ast.expression)),
-            Not(ast) => Self::not(ast.span(), Self::convert(converter, ast.query)),
+            Not(ast) => {
+                converter.push_scope();
+                let result = Self::not(ast.span(), Self::convert(converter, ast.query));
+                converter.pop_scope();
+                result
+            }
         }
     }
 

@@ -21,10 +21,10 @@ pub enum Query {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub(crate) enum Precedence {
     None,
-    Not,
     Disjunction,
     Implication,
     Conjunction,
+    Not,
 }
 
 impl Query {
