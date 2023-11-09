@@ -76,6 +76,10 @@ impl Builder<FileSystemCache> {
                 Location::library("set").unwrap(),
                 include_str!("../../stdlib/set.tri").to_owned(),
             )
+            .source_module(
+                Location::library("record").unwrap(),
+                include_str!("../../stdlib/record.tri").to_owned(),
+            )
     }
 }
 

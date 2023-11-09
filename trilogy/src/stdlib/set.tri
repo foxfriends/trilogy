@@ -1,6 +1,8 @@
+module array at "trilogy:array"
+
 ## Returns true if the value `x` is contained within the set.
 func contains x [| x, .._ |] = true
-func contains x [| .._ |] = false
+func contains _ [| .._ |] = false
 export contains
 
 test "contains can find a value" {
@@ -107,4 +109,19 @@ test "difference returns the empty set when they are the same" {
 
 test "difference returns the union when they are different" {
     assert difference [| 1, 2 |] [| 3, 4 |] == [| 1, 2, 3, 4 |]
+}
+
+## Computes the number of elements in this set.
+func length [| |] = 0
+func length [| ..xs |] = xs
+    |> array::from
+    |> array::length
+export length
+
+test "length returns the number of elements in the set" {
+    assert length [| 1, 2, 3 |] == 3
+}
+
+test "length is 0 for empty sets" {
+    assert length [| |] == 0
 }

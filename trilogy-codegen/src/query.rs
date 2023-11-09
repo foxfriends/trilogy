@@ -320,8 +320,9 @@ fn write_query_value(
                 .instruction(Instruction::ValEq)
                 .cond_jump(INVALID_ITERATOR);
 
-            // Success: bind the pattern to the value
-            write_pattern_match(context, &unification.pattern, on_fail);
+            // Success: bind the pattern to the value. If this fails, move on to the next
+            // element, not fail the whole query.
+            write_pattern_match(context, &unification.pattern, &body);
 
             context
                 .instruction(Instruction::Cons)

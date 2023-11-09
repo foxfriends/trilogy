@@ -381,7 +381,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 if let Some(spread) = spread {
                     write_pattern_match(context, spread, on_fail);
                 } else {
-                    context.instruction(Instruction::Pop);
+                    context
+                        .instruction(Instruction::Length)
+                        .constant(0)
+                        .instruction(Instruction::ValEq)
+                        .cond_jump(on_fail);
                 }
                 context
                     .jump(&end)
@@ -424,7 +428,11 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 if let Some(spread) = spread {
                     write_pattern_match(context, spread, on_fail);
                 } else {
-                    context.instruction(Instruction::Pop);
+                    context
+                        .instruction(Instruction::Length)
+                        .constant(0)
+                        .instruction(Instruction::ValEq)
+                        .cond_jump(on_fail);
                 }
                 context
                     .jump(&end)

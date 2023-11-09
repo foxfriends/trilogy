@@ -164,9 +164,12 @@ impl Trilogy {
         reporter.begin();
 
         if let Source::Trilogy { modules, .. } = &self.source {
-            let tests = modules.iter().flat_map(|(location, module)| {
-                locate_tests(module).map(|(path, test)| (location.clone(), path, test))
-            });
+            let tests = modules
+                .iter()
+                .filter(|(location, _)| location.is_local())
+                .flat_map(|(location, module)| {
+                    locate_tests(module).map(|(path, test)| (location.clone(), path, test))
+                });
 
             let mut current_location = None;
             let mut current_path = vec![];

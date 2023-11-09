@@ -63,6 +63,10 @@ impl Location {
         };
         Self::from(url)
     }
+
+    pub fn is_local(&self) -> bool {
+        self.0.scheme() == "file"
+    }
 }
 
 impl From<Url> for Location {
