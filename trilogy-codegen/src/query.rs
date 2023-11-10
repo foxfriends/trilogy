@@ -275,8 +275,8 @@ fn write_query_value(
                 .instruction(Instruction::Swap)
                 .cond_jump(&cleanup)
                 .instruction(Instruction::Cons);
-            evaluate_or_fail(context, bound, &unification.expression, &on_fail);
-            write_pattern_match(context, &unification.pattern, &on_fail);
+            evaluate_or_fail(context, bound, &unification.expression, on_fail);
+            write_pattern_match(context, &unification.pattern, on_fail);
             context
                 .jump(&pass)
                 .label(cleanup)
