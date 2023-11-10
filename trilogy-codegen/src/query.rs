@@ -921,14 +921,12 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
             if bindset.is_bound(var) {
                 continue;
             }
-            match context.scope.lookup(var).unwrap() {
-                Binding::Variable(index) => {
-                    context
-                        .instruction(Instruction::IsSetLocal(index))
-                        .cond_jump(&nope);
-                }
-                // If it was static or context, it's definitely already bound
-                _ => {}
+            // If it was static or context, it's definitely already bound. Only variables
+            // might be unset yet.
+            if let Binding::Variable(index) = context.scope.lookup(var).unwrap() {
+                context
+                    .instruction(Instruction::IsSetLocal(index))
+                    .cond_jump(&nope);
             }
         }
         let next = context.labeler.unique_hint("next");
