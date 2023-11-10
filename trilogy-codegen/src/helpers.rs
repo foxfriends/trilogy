@@ -40,10 +40,9 @@ pub(crate) fn unlock_apply(context: &mut Context) {
 }
 
 pub(crate) fn call_procedure(context: &mut Context, arity: usize) {
+    let procedure = context.make_atom("procedure");
     context
-        .constant(arity)
-        .atom("procedure")
-        .instruction(Instruction::Construct)
+        .constant(Struct::new(procedure, arity))
         .instruction(Instruction::Call(arity as u32 + 1));
 }
 
@@ -52,6 +51,13 @@ pub(crate) fn apply_function(context: &mut Context) {
     context
         .constant(Struct::new(function, 1))
         .instruction(Instruction::Call(2));
+}
+
+pub(crate) fn call_rule(context: &mut Context, arity: usize) {
+    let rule = context.make_atom("rule");
+    context
+        .constant(Struct::new(rule, arity))
+        .instruction(Instruction::Call(arity as u32 + 1));
 }
 
 pub(crate) fn apply_function_become(context: &mut Context) {

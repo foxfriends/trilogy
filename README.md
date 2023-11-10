@@ -47,6 +47,10 @@ iterating on the design.
     - [x] Virtual machine
     - [ ] Testing (In progress)
     - [ ] Standard library (In progress)
+- [ ] Implement the ecosystem
+    - [ ] Formatter
+    - [ ] Linter
+    - [ ] LSP
 - [ ] Future experimental features:
     - [ ] Optimization
     - [ ] Try out IC based VM (HVM)

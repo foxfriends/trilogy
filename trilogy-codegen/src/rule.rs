@@ -95,7 +95,10 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // The query is normal, then the value is computed by evaluating
     // the parameter patterns now as expressions.
     context.scope.intermediate(); // At this point, the query state is an intermediate
-    for (i, param) in rule.parameters.iter().enumerate() {
+
+    // Stack these up in reverse so that when the caller starts pattern matching they are
+    // doing it left to right, as expected.
+    for (i, param) in rule.parameters.iter().enumerate().rev() {
         let eval = context.labeler.unique_hint("eval");
         let next = context.labeler.unique_hint("next");
         context

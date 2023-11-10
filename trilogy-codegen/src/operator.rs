@@ -46,6 +46,7 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
         Builtin::Yield => true,
         Builtin::Resume => true,
         Builtin::Cancel => true,
+        Builtin::Pin => true, // Pin is a noop when it appears in an evaluated pattern
         _ => false,
     }
 }
@@ -298,12 +299,12 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
                 .constant(Struct::new(function, 1))
                 .instruction(Instruction::Become(2));
         }
+        Builtin::Pin => {}
         Builtin::ModuleAccess
         | Builtin::Array
         | Builtin::Set
         | Builtin::Record
         | Builtin::Is
-        | Builtin::Pin
         | Builtin::For => {
             panic!("write_operator was called with a builtin that is not an operator")
         }

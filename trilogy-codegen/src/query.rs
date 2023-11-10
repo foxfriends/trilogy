@@ -184,6 +184,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             context.scope.intermediate();
             write_expression(context, &lookup.path);
             context
+                .typecheck(&["callable"])
                 .instruction(Instruction::Call(0)) // The state is the closure
                 .instruction(Instruction::Cons) // with the bindset
                 .constant(false) // and a flag to keep track of whether the closure is initialized or not
@@ -766,6 +767,7 @@ fn write_query_value(
         ir::QueryValue::Lookup(lookup) => {
             let setup = context.labeler.unique_hint("setup");
             let enter = context.labeler.unique_hint("enter_lookup");
+            let reenter = context.labeler.unique_hint("reenter_lookup");
             let cleanup = context.labeler.unique_hint("cleanup");
             let end = context.labeler.unique_hint("end");
 
@@ -777,10 +779,11 @@ fn write_query_value(
 
             // If things are already ready to go, it's a matter of calling the query.
             context
-                .label(enter.clone())
+                .label(&enter)
                 // Begin by unbinding all the variables of all parameters, just because it's convenient to
                 // do up front in one shot.
-                .instruction(Instruction::Uncons);
+                .instruction(Instruction::Uncons)
+                .label(&reenter);
             let bindset = context.scope.intermediate();
             context.instruction(Instruction::LoadLocal(bindset));
             unbind(
@@ -806,13 +809,17 @@ fn write_query_value(
                 .instruction(Instruction::Destruct)
                 .atom("next")
                 .instruction(Instruction::ValEq)
+                // A bit weird if that returned not a 'next, that means its an invalid iterator, but
+                // we'll just call it a failed binding for now.
                 .cond_jump(&cleanup);
             // If the iterator has yielded something, we have to destructure it into all the variables
             // of the unbound parameters.
             context.scope.intermediate(); // return value
-            for pattern in &lookup.patterns {
+            let try_again = context.labeler.unique_hint("try_again");
+            for pattern in lookup.patterns.iter().rev() {
                 context.instruction(Instruction::Uncons);
-                write_pattern_match(context, pattern, &cleanup);
+                // If the pattern doesn't match, the next call of the rule might, so try again still.
+                write_pattern_match(context, pattern, &try_again);
             }
             context.scope.end_intermediate(); // return value
             context.scope.end_intermediate(); // bindset
@@ -825,7 +832,11 @@ fn write_query_value(
                 .constant(true)
                 .instruction(Instruction::Cons)
                 // And we're done!
-                .jump(&end);
+                .jump(&end)
+                // To try again, just clean up this partial return value and start over.
+                .label(&try_again)
+                .instruction(Instruction::Pop)
+                .jump(&reenter);
 
             // In the failure case, just reconstruct the state too
             context
@@ -857,7 +868,7 @@ fn write_query_value(
                 context.scope.intermediate();
             }
             // Then we do the call, with all those arguments
-            context.instruction(Instruction::Call(lookup.patterns.len() as u32));
+            call_rule(context, lookup.patterns.len());
             // Clean up the scope
             for _ in &lookup.patterns {
                 context.scope.end_intermediate();
@@ -916,7 +927,8 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
                         .instruction(Instruction::IsSetLocal(index))
                         .cond_jump(&nope);
                 }
-                _ => unreachable!(),
+                // If it was static or context, it's definitely already bound
+                _ => {}
             }
         }
         let next = context.labeler.unique_hint("next");

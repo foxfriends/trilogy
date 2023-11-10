@@ -220,6 +220,7 @@ impl ProgramContext<'_> {
         context.constant(((), 0));
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
         context.close(RETURN);
+        unlock_call(&mut context, "rule", arity);
         context.scope.closure(arity); // TODO: do we need to know the index of these (1...n)?
         context.close(RETURN);
 

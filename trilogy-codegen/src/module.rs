@@ -467,6 +467,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         // That will produce the rule's closure, but we need to re-close that
                         // over the module scope
                         .close(RETURN);
+                    unlock_call(context, "rule", arity);
                     let closure = context.scope.intermediate();
                     context
                         // When called again, it's to pass the parameters. Again, might not need
@@ -476,8 +477,9 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         .instruction(Instruction::SetRegister(1))
                         .instruction(Instruction::Slide(arity as u32))
                         .instruction(Instruction::LoadLocal(closure))
-                        .instruction(Instruction::Slide(arity as u32))
-                        .instruction(Instruction::Call(arity as u32))
+                        .instruction(Instruction::Slide(arity as u32));
+                    call_rule(context, arity);
+                    context
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(1))
                         // That needs to be closed over to keep passing context too
