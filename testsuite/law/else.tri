@@ -1,0 +1,31 @@
+test "when the first branch is satisfied, it is used" {
+    assert [x for x = 1 else x = 2] == [1]
+}
+
+test "when the first branch is not satisfied, the second is used" {
+    assert [x for end else x = 1] == [1]
+}
+
+test "uses all solutions to the first branch when chosen" {
+    assert [x for x = 1 or x = 2 else x = 3] == [1, 2]
+}
+
+test "uses all solutions to the second branch when chosen" {
+    assert [x for end else x = 1 or x = 2] == [1, 2]
+}
+
+test "when used with if, a successful condition evaluates the first 'branch'" {
+    assert [x:y for if x = 1 then y = 1 else y = 2] == [1:1]
+}
+
+test "when the condition is not satisfied, evaluates the second branch" {
+    assert [y for if end then y = 1 else y = 2] == [2]
+}
+
+test "when the condition is satisfied multiple times, commit to the first option" {
+    assert [x for if x = 1 or x = 2 then pass else end] == [1]
+}
+
+test "may be nested" {
+    assert is if pass then if end then end else if pass then pass else end else end
+}
