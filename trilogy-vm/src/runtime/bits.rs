@@ -205,7 +205,8 @@ impl Shl<usize> for Bits {
     type Output = Bits;
 
     fn shl(mut self, rhs: usize) -> Self::Output {
-        self.0.extend(BitVec::<usize, Lsb0>::repeat(false, rhs));
+        let len = usize::min(self.0.len(), rhs);
+        self.0.shift_left(len);
         self
     }
 }
@@ -213,9 +214,10 @@ impl Shl<usize> for Bits {
 impl Shr<usize> for Bits {
     type Output = Bits;
 
-    #[allow(clippy::suspicious_arithmetic_impl)]
-    fn shr(self, rhs: usize) -> Self::Output {
-        Self(self.0[..self.0.len() - rhs].to_bitvec())
+    fn shr(mut self, rhs: usize) -> Self::Output {
+        let len = usize::min(self.0.len(), rhs);
+        self.0.shift_right(len);
+        self
     }
 }
 
@@ -322,14 +324,14 @@ mod test {
 
     #[test]
     fn shl() {
-        let val = Bits(bitvec![1, 0]);
+        let val = Bits(bitvec![0, 0, 1, 0]);
         assert_eq!(val << 2, Bits(bitvec![1, 0, 0, 0]))
     }
 
     #[test]
     fn shr() {
         let val = Bits(bitvec![1, 1, 0]);
-        assert_eq!(val >> 2, Bits(bitvec![1]))
+        assert_eq!(val >> 2, Bits(bitvec![0, 0, 1]))
     }
 
     #[test]

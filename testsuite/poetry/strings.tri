@@ -3,6 +3,10 @@ test "a <> b" {
     assert "hello" <> " " <> "world" == "hello world"
 }
 
+test not "<> only works on strings" {
+    [1] <> [2]
+}
+
 test "a <> b pattern" {
     let "hello" <> world = "hello world"
     assert world == " world"
@@ -12,6 +16,17 @@ test "a <> b pattern" {
 
     let "br" <> i <> "ck" = "brick"
     assert i == "i"
+}
+
+test "(<>) a b" {
+    assert (<>) "a" "b" == "ab"
+    let glue = (<>)
+    assert glue "a" "b" == "ab"
+    assert glue "b" "c" == "bc"
+
+    let hello = (<>) "hello"
+    assert hello " world" == "hello world"
+    assert hello " moon" == "hello moon"
 }
 
 test "templates" {

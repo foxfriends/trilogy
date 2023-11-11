@@ -1,0 +1,156 @@
+module io at "trilogy:io"
+
+test "bases" {
+    assert 0bb11111111 == 0xbff
+    assert 0bb011111111 == 0ob377
+}
+
+test "length" {
+    assert 0bb0000 == 0bb0000
+    assert 0bb0000 != 0bb00
+    assert 0bb != 0bb0
+}
+
+test "type" {
+    assert 0b100 != 0bb100
+}
+
+test "a | b" {
+    assert 0bb | 0bb001 == 0bb001
+    assert 0bb100 | 0bb001 == 0bb101
+    assert 0bb111 | 0bb001 == 0bb111
+    assert 0bb00111 | 0bb111 == 0bb11111
+    assert 0bb111 | 0bb11001 == 0bb11101
+}
+
+test "(|) a b" {
+    assert (|) 0bb100 0bb001 == 0bb101
+
+    let bor = (|)
+    assert bor 0bb100 0bb001 == 0bb101
+    assert bor 0bb111 0bb001 == 0bb111
+
+    let bor1 = (|) 0bb1
+    assert bor1 0bb01 == 0bb11
+    assert bor1 0bb00 == 0bb10
+}
+
+test not "| only works on bits" {
+    0bb100 | 0b100
+}
+
+test "a & b" {
+    assert 0bb & 0bb001 == 0bb000
+    assert 0bb100 & 0bb001 == 0bb000
+    assert 0bb111 & 0bb001 == 0bb001
+    assert 0bb00111 & 0bb111 == 0bb00100
+    assert 0bb111 & 0bb11001 == 0bb11000
+}
+
+test "(&) a b" {
+    assert (&) 0bb100 0bb001 == 0bb000
+
+    let band = (&)
+    assert band 0bb100 0bb001 == 0bb000
+    assert band 0bb111 0bb001 == 0bb001
+
+    let band1 = (&) 0bb1
+    assert band1 0bb11 == 0bb10
+    assert band1 0bb01 == 0bb00
+}
+
+test not "& only works on bits" {
+    0bb100 & 0b100
+}
+
+test "a ^ b" {
+    assert 0bb ^ 0bb001 == 0bb001
+    assert 0bb100 ^ 0bb001 == 0bb101
+    assert 0bb111 ^ 0bb001 == 0bb110
+    assert 0bb00111 ^ 0bb111 == 0bb11011
+    assert 0bb111 ^ 0bb11001 == 0bb00101
+}
+
+test "(^) a b" {
+    assert (^) 0bb100 0bb001 == 0bb101
+
+    let xor = (^)
+    assert xor 0bb100 0bb001 == 0bb101
+    assert xor 0bb111 0bb001 == 0bb110
+
+    let xor1 = (^) 0bb1
+    assert xor1 0bb11 == 0bb01
+    assert xor1 0bb01 == 0bb11
+}
+
+test not "^ only works on bits" {
+    0bb100 ^ 0b100
+}
+
+test "~a" {
+    assert ~0bb100 == 0bb011
+    assert ~0bb == 0bb
+}
+
+test "(~) a" {
+    assert (~) 0bb100 == 0bb011
+
+    let neg = (~)
+    assert neg 0bb100 == 0bb011
+}
+
+test not "~ only works on bits" {
+    ~0b11
+}
+
+test "a ~> b" {
+    assert 0bb ~> 2 == 0bb
+    assert 0bb100 ~> 2 == 0bb001
+    assert 0bb001 ~> 1 == 0bb000
+}
+
+test "(~>) a b" {
+    assert (~>) 0bb100 2 == 0bb001
+
+    let sh = (~>)
+    assert sh 0bb100 2 == 0bb001
+    assert sh 0bb010 1 == 0bb001
+
+    let sh1 = (~>) 0bb100
+    assert sh1 2 == 0bb001
+    assert sh1 1 == 0bb010
+}
+
+test not "(~>) only works on bits" {
+    23 ~> 2
+}
+
+test not "(~>) only works with numbers" {
+    0bb100 ~> 0bb100
+}
+
+test "a <~ b" {
+    assert 0bb <~ 2 == 0bb
+    assert 0bb100 <~ 2 == 0bb000
+    assert 0bb001 <~ 1 == 0bb010
+}
+
+test "(<~) a b" {
+    assert (<~) 0bb001 2 == 0bb100
+
+    let sh = (<~)
+    assert sh 0bb001 2 == 0bb100
+    assert sh 0bb010 1 == 0bb100
+
+    let sh1 = (<~) 0bb001
+    assert sh1 2 == 0bb100
+    assert sh1 1 == 0bb010
+}
+
+test not "(<~) only works on bits" {
+    23 <~ 2
+}
+
+test not "(<~) only works with numbers" {
+    0bb100 <~ 0bb100
+}
