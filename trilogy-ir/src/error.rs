@@ -26,6 +26,11 @@ pub enum Error {
         original: Span,
         duplicate: syntax::Identifier,
     },
+    GluePatternMissingLiteral {
+        lhs: Span,
+        glue: Span,
+        rhs: Span,
+    },
 }
 
 impl std::error::Error for Error {}
@@ -39,6 +44,9 @@ impl Display for Error {
             Error::IdentifierInOwnDefinition { .. } => write!(f, "identifier in own definition"),
             Error::AssignedImmutableBinding { .. } => write!(f, "assigned immutable binding"),
             Error::DuplicateExport { .. } => write!(f, "duplicate export"),
+            Error::GluePatternMissingLiteral { .. } => {
+                write!(f, "glue pattern missing string literal")
+            }
         }
     }
 }

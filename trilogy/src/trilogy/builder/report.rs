@@ -107,6 +107,7 @@ impl<E: std::error::Error> Error<E> {
         let mut colors = ColorGenerator::new();
         let primary = colors.next();
         let secondary = colors.next();
+        let tertiary = colors.next();
 
         let report = match &self.0 {
             ErrorKind::External(error) => {
@@ -203,12 +204,14 @@ impl<E: std::error::Error> Error<E> {
                             .with_label(
                                 Label::new(declaration_span)
                                     .with_color(primary)
-                                    .with_message("variable being declared here"),
+                                    .with_message("variable being declared here")
+                                    .with_order(1),
                             )
                             .with_label(
                                 Label::new(span)
                                     .with_color(primary)
-                                    .with_message("is referenced in its own initializer"),
+                                    .with_message("is referenced in its own initializer")
+                                    .with_order(2),
                             )
                             .with_config(Config::default().with_cross_gap(false))
                     }
@@ -223,17 +226,46 @@ impl<E: std::error::Error> Error<E> {
                             .with_label(
                                 Label::new(declaration_span)
                                     .with_color(primary)
-                                    .with_message("variable declared immutably"),
+                                    .with_message("variable declared immutably")
+                                    .with_order(1),
                             )
                             .with_label(
                                 Label::new(span)
                                     .with_color(primary)
-                                    .with_message("is being reassigned here"),
+                                    .with_message("is being reassigned here")
+                                    .with_order(2),
                             )
                             .with_help(format!(
                                 "consider making this binding mutable: `mut {}`",
                                 name.id.name().unwrap(),
                             ))
+                    }
+                    GluePatternMissingLiteral { lhs, glue, rhs } => {
+                        let lhs = cache.span(location, *lhs);
+                        let glue = cache.span(location, *glue);
+                        let rhs = cache.span(location, *rhs);
+                        ariadne::Report::build(kind, location, glue.1.start)
+                            .with_message(
+                                "at least one side of a glue pattern must be a string literal",
+                            )
+                            .with_label(
+                                Label::new(glue)
+                                    .with_message("in this glue pattern")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                            .with_label(
+                                Label::new(lhs)
+                                    .with_message("neither the left hand side")
+                                    .with_color(secondary)
+                                    .with_order(2),
+                            )
+                            .with_label(
+                                Label::new(rhs)
+                                    .with_message("nor the right hand side is a string literal")
+                                    .with_color(tertiary)
+                                    .with_order(3),
+                            )
                     }
                 }
             }

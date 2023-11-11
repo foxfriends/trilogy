@@ -39,8 +39,25 @@ test "(-) a b" {
     assert subfrom1 4 == -3
 }
 
-test not "- only works on numbers" {
+test "- x" {
+    assert -3 == 3 * -1
+    assert - - 3 == 3
+}
+
+test "- x pattern" {
+    let -x = 3
+    assert x == -3
+
+    let -y = -3
+    assert y == 3
+}
+
+test not "binary - only works on numbers" {
     "A" - 1
+}
+
+test not "unary - only works on numbers" {
+    -"a"
 }
 
 test "a * b" {
@@ -156,7 +173,6 @@ test not "% only works on numbers" {
     "A" % 1
 }
 
-test "- x" {
-    assert -3 == 3 * -1
-    assert - - 3 == 3
+test "order of operations" {
+    assert 1 + 2 * 3 + 6 / 3 - 5 % 3 == 1 + (2 * 3) + (6 / 3) - (5 % 3)
 }

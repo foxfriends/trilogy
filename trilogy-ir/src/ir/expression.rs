@@ -317,9 +317,19 @@ impl Expression {
             Negative(ast) => Self::builtin(ast.minus_token().span, Builtin::Negate)
                 .apply_to(ast.span(), Self::convert_pattern(converter, ast.pattern)),
             Glue(ast) => {
-                let glue_span = ast.glue_token().span;
+                let glue_span = ast.glue.span;
                 let lhs_span = ast.lhs.span();
                 let span = ast.span();
+                if !matches!(ast.lhs, syntax::Pattern::String(..))
+                    && !matches!(ast.rhs, syntax::Pattern::String(..))
+                {
+                    let error = Error::GluePatternMissingLiteral {
+                        lhs: ast.lhs.span(),
+                        glue: glue_span,
+                        rhs: ast.rhs.span(),
+                    };
+                    converter.error(error);
+                }
                 Self::builtin(glue_span, Builtin::Glue)
                     .apply_to(
                         lhs_span.union(glue_span),

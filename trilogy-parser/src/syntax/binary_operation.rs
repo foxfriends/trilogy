@@ -19,12 +19,12 @@ impl BinaryOperation {
         match rhs {
             Ok(rhs) => Ok(Ok(BinaryOperation { lhs, operator, rhs })),
             Err(rhs) => match operator {
-                BinaryOperator::Glue(token) => Ok(Err(Pattern::Glue(Box::new(GluePattern {
+                BinaryOperator::Glue(glue) => Ok(Err(Pattern::Glue(Box::new(GluePattern {
                     lhs: lhs.try_into().map_err(|err: SyntaxError| {
                         parser.error(err.clone());
                         err
                     })?,
-                    glue_token: token,
+                    glue,
                     rhs,
                 })))),
                 BinaryOperator::Cons(token) => Ok(Err(Pattern::Tuple(Box::new(TuplePattern {
