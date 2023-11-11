@@ -279,7 +279,7 @@ fn write_query_value(
             // Unbind the bindset only right before assignment
             unbind(context, bound, unification.pattern.bindings());
             context.scope.end_intermediate(); // value
-            write_pattern_match(context, &unification.pattern, on_fail);
+            write_pattern_match(context, &unification.pattern, &cleanup);
             context.scope.end_intermediate(); // state marker
             context
                 .instruction(Instruction::Cons)
