@@ -1,0 +1,66 @@
+func unary x = 3 * x
+func binary x y = x * y
+
+func cased 'a(a) = 'a : a
+func cased 'b(b) = 'b : b
+func cased 'c(c) = 'c : c
+func cased d = 'other : d
+
+func nontotal 'a(a) = 'a : a
+func nontotal 'b(b) = 'b : b
+func nontotal 'c(c) = 'c : c
+
+func higher f x = f (f x)
+
+func recursive 0 = 0
+func recursive i = recursive (i - 1) + i
+
+test "unary functions can be applied" {
+    assert unary 3 == 9
+}
+
+test "a function is equal to itself" {
+    assert unary == unary
+    assert unary === unary
+}
+
+test "binary functions can be applied" {
+    assert binary 3 4 == 12
+}
+
+test "binary functions can be partially applied" {
+    let partial = binary 3
+    assert partial 4 == 12
+    assert partial 5 == 15
+}
+
+test "a partially applied function is equal to itself, but not an equivalent separate application" {
+    let partial = binary 3
+    assert partial == partial
+    assert partial === partial
+    assert partial != binary 3
+    assert partial !== binary 3
+}
+
+test "functions with cases apply the correct case" {
+    assert cased 'a(1) == 'a:1
+    assert cased 'b(1) == 'b:1
+    assert cased 'c(1) == 'c:1
+    assert cased 'd(1) == 'other:'d(1)
+}
+
+test "functions can be higher order" {
+    assert higher unary 3 == 27
+}
+
+test "functions can be recursive" {
+    assert recursive 3 == 6
+}
+
+test not "non-functions cannot be applied" {
+    3 recursive
+}
+
+test not "a non-total function called with a non-matching pattern is an error" {
+    nontotal 'e(1)
+}

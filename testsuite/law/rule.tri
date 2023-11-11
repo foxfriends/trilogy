@@ -83,3 +83,13 @@ test not "it is an error to call something that is not a rule" {
 test not "it is an error for call something that is not a rule in higher order" {
     for higher(3, 3) {}
 }
+
+test "a rule is equal to itself" {
+    assert ab == ab
+    assert ab === ab
+}
+
+test "a rule is not equal to another rule" {
+    assert ab != fact
+    assert ab !== fact
+}

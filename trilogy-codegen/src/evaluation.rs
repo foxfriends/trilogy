@@ -181,6 +181,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 ir::Value::Dynamic(ident),
             ) => {
                 write_evaluation(context, module_ref);
+                context.typecheck(&["callable"]);
                 context.atom(&**ident);
                 apply_module(context);
             }
@@ -394,6 +395,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             _ => {
                 write_expression(context, &application.function);
+                context.typecheck(&["callable"]);
                 context.scope.intermediate();
                 write_expression(context, &application.argument);
                 context.scope.end_intermediate();
