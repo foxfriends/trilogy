@@ -264,21 +264,25 @@ fn write_query_value(
         ir::QueryValue::Direct(unification) => {
             let pass = context.labeler.unique_hint("pass");
             let cleanup = context.labeler.unique_hint("cleanup");
-            // Take out the bindset and unbind with it immediately
+            // Take out the bindset
             let bindset = context.scope.intermediate();
-            context
-                .instruction(Instruction::Uncons)
-                .instruction(Instruction::LoadLocal(bindset));
-            unbind(context, bound, unification.pattern.bindings());
+            context.instruction(Instruction::Uncons);
             // Set the state marker to false so we can't re-enter here.
             context
                 .constant(false)
                 .instruction(Instruction::Swap)
-                .cond_jump(&cleanup)
-                .instruction(Instruction::Cons);
+                .cond_jump(&cleanup);
+            context.scope.intermediate(); // state marker
             evaluate_or_fail(context, bound, &unification.expression, on_fail);
+            context.scope.intermediate(); // value
+            context.instruction(Instruction::LoadLocal(bindset));
+            // Unbind the bindset only right before assignment
+            unbind(context, bound, unification.pattern.bindings());
+            context.scope.end_intermediate(); // value
             write_pattern_match(context, &unification.pattern, on_fail);
+            context.scope.end_intermediate(); // state marker
             context
+                .instruction(Instruction::Cons)
                 .jump(&pass)
                 .label(cleanup)
                 .instruction(Instruction::Cons)
