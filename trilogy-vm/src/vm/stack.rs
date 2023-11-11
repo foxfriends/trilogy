@@ -246,6 +246,8 @@ impl Stack {
 
     pub(super) fn pop_frame(&mut self) -> Result<Cont, InternalRuntimeError> {
         loop {
+            // TODO: This is pretty inefficient! Popping repeatedly is sometimes slow, rather
+            // pop in one big chunk.
             let popped = self
                 .cactus
                 .pop()
