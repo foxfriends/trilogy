@@ -149,12 +149,23 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             context.label(&divided);
         }
         Builtin::Remainder => {
+            let remed = context.labeler.unique_hint("remed");
+            let remzero = context.labeler.unique_hint("remzero");
             context
                 .typecheck(&["number"])
                 .instruction(Instruction::Swap)
                 .typecheck(&["number"])
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::Remainder);
+                .instruction(Instruction::Copy)
+                .constant(0)
+                .instruction(Instruction::ValNeq)
+                .cond_jump(&remzero)
+                .instruction(Instruction::Remainder)
+                .jump(&remed)
+                .label(&remzero)
+                .atom("INF");
+            write_operator(context, Builtin::Yield);
+            context.label(&remed);
         }
         Builtin::Power => {
             context
@@ -165,12 +176,23 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
                 .instruction(Instruction::Power);
         }
         Builtin::IntDivide => {
+            let intdived = context.labeler.unique_hint("intdived");
+            let intdivzero = context.labeler.unique_hint("intdivzero");
             context
                 .typecheck(&["number"])
                 .instruction(Instruction::Swap)
                 .typecheck(&["number"])
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::IntDivide);
+                .instruction(Instruction::Copy)
+                .constant(0)
+                .instruction(Instruction::ValNeq)
+                .cond_jump(&intdivzero)
+                .instruction(Instruction::IntDivide)
+                .jump(&intdived)
+                .label(&intdivzero)
+                .atom("INF");
+            write_operator(context, Builtin::Yield);
+            context.label(&intdived);
         }
         Builtin::StructuralEquality => {
             context.instruction(Instruction::ValEq);

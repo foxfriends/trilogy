@@ -95,3 +95,63 @@ test "a / 0" {
 test not "/ only works on numbers" {
     "A" / 1
 }
+
+test "a // b" {
+    assert 4 // 2 == 2
+    assert 7 // 2 == 3
+    assert 4 // 18 == 0
+    assert 5i5 // 2i2 == 2
+}
+
+test "(//) a b" {
+    assert (//) 5 2 == 2
+
+    let div = (//)
+    assert div 5 2 == 2
+    assert div 8 2 == 4
+
+    let eighth = (//) 8
+    assert eighth 2 == 4
+    assert eighth 3 == 2
+}
+
+test "a // 0" {
+    let x = with 3 // 0
+        when 'INF cancel { 'OK }
+        else cancel {}
+    assert x == 'OK
+}
+
+test not "// only works on numbers" {
+    "A" // 1
+}
+
+test "a % b" {
+    assert 4 % 2 == 0
+    assert 7 % 2 == 1
+    assert 4 % 18 == 4
+    assert 5i5 % 2i2 == 1i1
+}
+
+test "(%) a b" {
+    assert (%) 5 2 == 1
+
+    let div = (%)
+    assert div 5 2 == 1
+    assert div 8 2 == 0
+
+    let eighth = (%) 8
+    assert eighth 2 == 0
+    assert eighth 3 == 2
+}
+
+test "a % 0" {
+    let x = with 3 % 0
+        when 'INF cancel { 'OK }
+        else cancel {}
+    assert x == 'OK
+}
+
+test not "% only works on numbers" {
+    "A" % 1
+}
