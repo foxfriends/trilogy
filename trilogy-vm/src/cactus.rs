@@ -1,13 +1,14 @@
-//! Implementation of a cactus stack that tries to be a standard stack for as
-//! long as possible.
+//! A cactus stack that tries to be a standard stack for as long as possible.
 //!
-//! Initially very naive, the implementation will hopefully evolve over time
-//! into something actually useful, but for now, no sense in going for more
-//! than "functioning".
-
+//! This is the stack implementation that backs the Trilogy VM, where branches
+//! are used to represent continuations and closures that share a parent stack
+//! but have differing active stacks.
 use std::fmt::{self, Debug};
 use std::sync::{Arc, Mutex};
 
+/// A Cactus Stack.
+///
+/// The cactus stack (or spaghetti stack)
 #[derive(Clone)]
 pub(crate) struct Cactus<T> {
     parent: Option<Arc<Mutex<Cactus<T>>>>,
@@ -22,23 +23,6 @@ impl<T: Debug> Debug for Cactus<T> {
             debug.field("parent", &Some(&*parent));
         }
         debug.field("stack", &self.stack).finish()
-    }
-}
-
-impl<T> Eq for Cactus<T> where T: PartialEq {}
-
-impl<T> PartialEq for Cactus<T>
-where
-    T: PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        if self.stack != other.stack {
-            return false;
-        }
-        match (&self.parent, &other.parent) {
-            (Some(lhs), Some(rhs)) => Arc::ptr_eq(lhs, rhs),
-            _ => false,
-        }
     }
 }
 
@@ -57,6 +41,61 @@ impl<T> Cactus<T> {
         Self::default()
     }
 
+    /// Inserts a branch point some number of into this cactus's parent.
+    fn insert_branch(&mut self, distance: usize) {
+        // If no parent, rebasing will fail to do anything and that's ok. The method
+        // originally called should also fail right after.
+        let Some(parent) = &self.parent else {
+            return;
+        };
+
+        let mut parent = parent.lock().unwrap();
+        let stack_elements = parent.stack.len();
+        // If the branch point would land in a grandparent, pass the task up the chain.
+        if stack_elements < distance {
+            parent.insert_branch(distance - stack_elements);
+            std::mem::drop(parent);
+            return;
+        }
+
+        // If the branch point would land in the current stack, recreate the parent and then
+        // recreate the self:
+        //     [[], a, b, c, d]
+        // is becoming
+        //     [[[], a, b], c, d]
+
+        // Remove the branched children from the parent
+        let rest = parent.stack.split_off(stack_elements - distance);
+        // Set the current node's parent to a new node with that little bit of stack
+        let grandparent = std::mem::replace(
+            &mut *parent,
+            Cactus {
+                parent: None,
+                stack: rest,
+            },
+        );
+        // And set the parent's parent to the original parent (now grandparent)
+        parent.parent = Some(Arc::new(Mutex::new(grandparent)));
+    }
+
+    /// Consumes parents until the current stack's length is at least the target length.
+    /// Might end up longer depending on the position of the branch points in the parent
+    /// stack.
+    fn consume_to_length(&mut self, target: usize)
+    where
+        T: Clone,
+    {
+        while self.stack.len() < target {
+            let Some(parent) = &self.parent.take() else {
+                return;
+            };
+            let Cactus { parent, stack } = parent.lock().unwrap().clone();
+            self.parent = parent;
+            let mut rest = std::mem::replace(&mut self.stack, stack);
+            self.stack.append(&mut rest);
+        }
+    }
+
     pub fn push(&mut self, value: T) {
         self.stack.push(value);
     }
@@ -65,17 +104,11 @@ impl<T> Cactus<T> {
     where
         T: Clone,
     {
-        while self.stack.is_empty() {
-            // TODO: https://doc.rust-lang.org/std/sync/struct.Arc.html#method.unwrap_or_clone
-            let new_self = self.parent.as_ref()?.lock().unwrap().clone();
-            *self = new_self;
+        if self.stack.is_empty() {
+            self.insert_branch(1);
+            self.consume_to_length(1);
         }
         self.stack.pop()
-    }
-
-    #[cfg(test)]
-    pub fn peek(&self) -> Option<&T> {
-        self.stack.last()
     }
 
     pub fn commit(&mut self) {
@@ -94,9 +127,18 @@ impl<T> Cactus<T> {
         }
     }
 
-    #[cfg(test)]
-    pub fn parent(&self) -> Option<Arc<Mutex<Self>>> {
-        self.parent.clone()
+    pub fn hard_branch(&mut self) -> Self
+    where
+        T: Clone,
+    {
+        match &self.parent {
+            None => self.clone(),
+            Some(parent) => {
+                let mut parent = parent.lock().unwrap().hard_branch();
+                parent.stack.extend(self.stack.clone());
+                parent
+            }
+        }
     }
 
     pub fn at(&self, offset: usize) -> Option<T>
@@ -130,11 +172,9 @@ impl<T> Cactus<T> {
     where
         T: Clone + std::fmt::Debug,
     {
-        while self.stack.len() < count {
-            let new_self = self.parent.as_ref()?.lock().unwrap().clone();
-            self.parent = new_self.parent;
-            let end = std::mem::replace(&mut self.stack, new_self.stack);
-            self.stack.extend(end);
+        if self.stack.len() < count {
+            self.insert_branch(count - self.stack.len());
+            self.consume_to_length(count);
         }
         Some(self.stack.split_off(self.stack.len() - count))
     }
@@ -192,16 +232,6 @@ mod test {
     }
 
     #[test]
-    fn cactus_peek() {
-        let mut cactus = Cactus::new();
-        cactus.push(3);
-        assert_eq!(cactus.peek(), Some(&3));
-        assert_eq!(cactus.peek(), Some(&3));
-        assert_eq!(cactus.pop(), Some(3));
-        assert_eq!(cactus.peek(), None);
-    }
-
-    #[test]
     fn cactus_branch() {
         let mut cactus = Cactus::new();
         cactus.push(3);
@@ -221,8 +251,43 @@ mod test {
         let mut cactus = Cactus::<()>::new();
         let branch = cactus.branch();
         assert!(Arc::ptr_eq(
-            &cactus.parent().unwrap(),
-            &branch.parent().unwrap()
+            &cactus.parent.unwrap(),
+            &branch.parent.unwrap()
         ));
+    }
+
+    #[test]
+    fn cactus_move_branch_point_pop() {
+        let mut cactus = Cactus::new();
+        cactus.push(1);
+        cactus.push(2);
+        let mut branch = cactus.branch();
+        assert_eq!(branch.pop(), Some(2));
+        branch.replace_at(0, 3).unwrap();
+        assert_eq!(branch.pop(), Some(3), "value was set in the new branch");
+        assert_eq!(cactus.pop(), Some(2));
+        assert_eq!(
+            cactus.pop(),
+            Some(3),
+            "shared value was set in the original too"
+        );
+    }
+
+    #[test]
+    fn cactus_move_branch_point_detach() {
+        let mut cactus = Cactus::new();
+        cactus.push(1);
+        cactus.push(2);
+        let mut branch = cactus.branch();
+        branch.push(3);
+        assert_eq!(branch.detach_at(2), Some(vec![2, 3]));
+        branch.replace_at(0, 3).unwrap();
+        assert_eq!(branch.pop(), Some(3), "value was set in the new branch");
+        assert_eq!(cactus.pop(), Some(2));
+        assert_eq!(
+            cactus.pop(),
+            Some(3),
+            "shared value was set in the original too"
+        );
     }
 }

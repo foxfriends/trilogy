@@ -416,20 +416,15 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_query_state(context, &decl.query);
             context.label(reenter.clone());
             write_query(context, &decl.query, END);
-            context.scope.intermediate(); // after running the query, its state is an intermediate
+            // After running the query, we don't need the state anymore
+            context.instruction(Instruction::Pop);
             write_expression(context, &decl.body);
-
-            // TODO: would be really nice to move this pop (of the query state) one
-            // line up, but the shared stack thing with closures makes it not work
-            context
-                .instruction(Instruction::Slide(declared as u32 + 1))
-                .instruction(Instruction::Pop);
-            context.scope.end_intermediate(); // query state
+            context.instruction(Instruction::Slide(declared as u32));
+            // After the body has been executed, the variables bound in the query are dropped
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::Let(decl) => {
             let reenter = context.labeler.unique_hint("let");
-
             let declared = context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
             context.label(reenter.clone());
@@ -439,12 +434,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .instruction(Instruction::Const(Value::Bool(true)))
                 .instruction(Instruction::Const(Value::Bool(false)))
                 .instruction(Instruction::Branch)
-                .cond_jump(&reenter);
-            write_expression(context, &decl.body);
-            context
-                .instruction(Instruction::Slide(declared as u32 + 1))
+                .cond_jump(&reenter)
                 .instruction(Instruction::Pop);
-            context.scope.end_intermediate(); // query state
+            context.scope.end_intermediate();
+            write_expression(context, &decl.body);
+            context.instruction(Instruction::Slide(declared as u32));
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::IfElse(cond) => {

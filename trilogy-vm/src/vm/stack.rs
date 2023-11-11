@@ -161,6 +161,13 @@ impl Stack {
         }
     }
 
+    pub(super) fn hard_branch(&mut self) -> Self {
+        Self {
+            cactus: self.cactus.hard_branch(),
+            frame: self.frame,
+        }
+    }
+
     pub(super) fn push_unset(&mut self) {
         self.cactus.push(InternalValue::Unset);
     }
@@ -246,6 +253,8 @@ impl Stack {
 
     pub(super) fn pop_frame(&mut self) -> Result<Cont, InternalRuntimeError> {
         loop {
+            // TODO: This is pretty inefficient! Popping repeatedly is sometimes slow, rather
+            // pop in one big chunk.
             let popped = self
                 .cactus
                 .pop()
