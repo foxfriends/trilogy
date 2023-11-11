@@ -51,6 +51,25 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
     }
 }
 
+pub(crate) fn is_unary_operator(builtin: Builtin) -> bool {
+    #[allow(clippy::match_like_matches_macro)]
+    match builtin {
+        Builtin::Negate => true,
+        Builtin::Not => true,
+        Builtin::Construct => true,
+        Builtin::Invert => true,
+        Builtin::Exit => true,
+        Builtin::Return => true,
+        Builtin::Continue => true,
+        Builtin::Break => true,
+        Builtin::Yield => true,
+        Builtin::Resume => true,
+        Builtin::Cancel => true,
+        Builtin::Pin => true, // Pin is a noop when it appears in an evaluated pattern
+        _ => false,
+    }
+}
+
 pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
     match builtin {
         Builtin::Negate => {
@@ -111,12 +130,23 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
                 .instruction(Instruction::Multiply);
         }
         Builtin::Divide => {
+            let divided = context.labeler.unique_hint("divided");
+            let divzero = context.labeler.unique_hint("divzero");
             context
                 .typecheck(&["number"])
                 .instruction(Instruction::Swap)
                 .typecheck(&["number"])
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::Divide);
+                .instruction(Instruction::Copy)
+                .constant(0)
+                .instruction(Instruction::ValNeq)
+                .cond_jump(&divzero)
+                .instruction(Instruction::Divide)
+                .jump(&divided)
+                .label(&divzero)
+                .atom("INF");
+            write_operator(context, Builtin::Yield);
+            context.label(&divided);
         }
         Builtin::Remainder => {
             context
@@ -314,7 +344,6 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
 pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
     #[allow(clippy::match_like_matches_macro)]
     match builtin {
-        Builtin::Negate => true,
         Builtin::Not => true,
         Builtin::Access => true,
         Builtin::And => true,
@@ -358,7 +387,6 @@ pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
 
 pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) {
     match builtin {
-        Builtin::Negate => context.write_procedure_reference(NEGATE.to_owned()),
         Builtin::Not => context.write_procedure_reference(NOT.to_owned()),
         Builtin::Access => context.write_procedure_reference(ACCESS.to_owned()),
         Builtin::And => context.write_procedure_reference(AND.to_owned()),
@@ -401,7 +429,8 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
             context.instruction(Instruction::Return).label(end)
         }
 
-        Builtin::ModuleAccess
+        Builtin::Negate
+        | Builtin::ModuleAccess
         | Builtin::Array
         | Builtin::Set
         | Builtin::Record

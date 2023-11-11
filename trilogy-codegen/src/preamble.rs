@@ -103,9 +103,9 @@ fn typecheck(context: &mut ProgramContext, types: &[&str]) {
 
 macro_rules! binop {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
-        $builder
-            .label($label)
-            .shift(RETURN);
+        $builder.label($label);
+        unlock_apply($builder);
+        $builder.shift(RETURN);
         unlock_apply($builder);
         $builder.instruction(Instruction::LoadLocal(0));
         typecheck($builder, $lty);
@@ -119,8 +119,9 @@ macro_rules! binop {
 
 macro_rules! binop_ {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
+        $builder.label($label);
         unlock_apply($builder);
-        $builder.label($label).shift(RETURN);
+        $builder.shift(RETURN);
         unlock_apply($builder);
         $builder
             .instruction(Instruction::LoadLocal(0))
@@ -131,8 +132,8 @@ macro_rules! binop_ {
 
 macro_rules! unop {
     ($builder:expr, $label:expr, $ty:expr, $($op:expr),+) => {{
-        unlock_apply($builder);
         $builder.label($label);
+        unlock_apply($builder);
         typecheck($builder, $ty);
         $builder
             $(.instruction($op))+

@@ -1,0 +1,97 @@
+test "a + b" {
+    assert 1 + 3 == 4
+    assert 1 + -3 == -2
+    assert 1i3 + 2i4 == 3i7
+    assert 3.5 + 4.2 == 7.7
+}
+
+test "(+) a b" {
+    assert (+) 1 3 == 4
+
+    let add = (+)
+    assert add 1 3 == 4
+    assert add 3 4 == 7
+
+    let add1 = (+) 1
+    assert add1 4 == 5
+    assert add1 1 == 2
+}
+
+test not "+ only works on numbers" {
+    1 + "a"
+}
+
+test "a - b" {
+    assert 1 - 3 == -2
+    assert -1 - -3 == 2
+    assert 1i3 - 2i5 == -1  -0i2
+}
+
+test "(-) a b" {
+    assert (-) 3 4 == -1
+
+    let sub = (-)
+    assert sub 3 4 == -1
+    assert sub 1 4 == -3
+
+    let subfrom1 = (-) 1
+    assert subfrom1 3 == -2
+    assert subfrom1 4 == -3
+}
+
+test not "- only works on numbers" {
+    "A" - 1
+}
+
+test "a * b" {
+    assert 3 * 8 == 24
+    assert -4 * 3 == -12
+    # NOTE: could use some work on syntax for negative imaginaries
+    assert 3i3 * 2i5 == -9 + 0i21
+}
+
+test "(*) a b" {
+    assert (*) 3 4 == 12
+
+    let mul = (*)
+    assert mul 3 4 == 12
+    assert mul 2 4 == 8
+
+    let double = (*) 2
+    assert double 3 == 6
+    assert double 4 == 8
+}
+
+test not "* only works on numbers" {
+    "A" * 1
+}
+
+test "a / b" {
+    assert 4 / 2 == 2
+    assert 7 / 2 == 3.5
+    assert 4 / 18 == 2 / 9
+    assert 3i3 / 2i5 == 21/29 - 0i9/29
+}
+
+test "(/) a b" {
+    assert (/) 3 4 == 3/4
+
+    let div = (/)
+    assert div 3 4 == 3/4
+    assert div 2 4 == 0.5
+
+    let recip = (/) 1
+    assert recip 3 == 1/3
+    assert recip 4 == 1/4
+}
+
+test "a / 0" {
+    let x = with 3 / 0
+        when 'INF cancel { 'OK }
+        else cancel {}
+    assert x == 'OK
+}
+
+test not "/ only works on numbers" {
+    "A" / 1
+}

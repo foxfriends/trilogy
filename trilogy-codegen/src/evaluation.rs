@@ -185,7 +185,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.atom(&**ident);
                 apply_module(context);
             }
-            (None, ir::Value::Builtin(builtin), arg) if is_operator(*builtin) => {
+            (None, ir::Value::Builtin(builtin), arg) if is_unary_operator(*builtin) => {
                 write_unary_operation(context, arg, *builtin);
             }
             (Some(ir::Value::Builtin(builtin)), lhs, rhs) if is_operator(*builtin) => {
