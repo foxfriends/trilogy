@@ -349,9 +349,18 @@ The bitwise operators work only on values of Bits type, with the exception
 of the shift operators which expect the right-hand operand to be an integer.
 Again, if the types are incorrect, it causes is a runtime type error.
 
-The regular bitwise operators extend the shorter operand with 0s on the left
-until both are of the same length. The left shift will extend with 0s on the
-right, while the right shift removes bits from the right (no bits are added).
+The regular bitwise operators extend the shorter operand with 0s on the right
+until both are of the same length.
+
+The shift operators come in three flavours: standard (\op{\textasciitilde>}
+and \op{<\textasciitilde}), extending (\op{\textasciitilde\textasciitilde>}
+and \op{<\textasciitilde\textasciitilde}), and wrapping (\op{>\textasciitilde>}
+and \op{<\textasciitilde<}), which determine the behaviour of the bits at either end.
+In standard mode, bits shifted out are discarded and bits shifted in are set to 0
+with the resulting value being of the same length as the original.
+In extending mode, bits are not shifted out, instead the value is extended from the
+other end with zeroes. In wrapping mode, bits shifted out are put back in on the
+other side, with the resulting value being of the same length as the original.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
@@ -378,15 +387,42 @@ right, while the right shift removes bits from the right (no bits are added).
     \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
     \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
     \LeftLabel{Left Shift}
-    \BinaryInfC{$\Gamma\vdash A\ \op{<\textasciitilde}\ B = a(b\cdot \texttt{0})$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<\textasciitilde}\ B : \ty{Bits}$}
 \end{prooftree}
 
 \begin{prooftree}
-    \AxiomC{$\Gamma\vdash A = \rho \sigma : \ty{Bits}$}
-    \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
-    \AxiomC{$|\sigma| = b$}
+    \AxiomC{$\Gamma\vdash A : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B : \ty{Integer}$}
     \LeftLabel{Right Shift}
-    \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = \rho$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B : \ty{Bits}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B : \ty{Integer}$}
+    \LeftLabel{Left Shift Extend}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<\textasciitilde\textasciitilde}\ B : \ty{Bits}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B : \ty{Integer}$}
+    \LeftLabel{Right Shift Extend}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde\textasciitilde>}\ B : \ty{Bits}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B : \ty{Integer}$}
+    \LeftLabel{Left Shift Wrap}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<\textasciitilde<}\ B : \ty{Bits}$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B : \ty{Integer}$}
+    \LeftLabel{Right Shift Wrap}
+    \BinaryInfC{$\Gamma\vdash A\ \op{>\textasciitilde>}\ B : \ty{Bits}$}
 \end{prooftree}
 
 Sequencing exists in \Poetry{}, as it does in \Prose{}, but is decidedly less

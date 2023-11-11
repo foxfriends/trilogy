@@ -490,17 +490,20 @@ only to produce clearer error messages.
         \texttt{OpTilde} & \op{\textasciitilde} \\
         \texttt{OpShr} & \op{\textasciitilde>} \\
         \texttt{OpShl} & \op{<\textasciitilde} \\
+        \texttt{OpShrex} & \op{\textasciitilde\textasciitilde>} \\
+        \texttt{OpShlex} & \op{<\textasciitilde\textasciitilde} \\
+        \texttt{OpShrap} & \op{>\textasciitilde>} \\
+        \texttt{OpShlap} & \op{<\textasciitilde<} \\
         \hline
         \texttt{OpAmpEq} & \op{\&=} \\
         \texttt{OpPipeEq} & \op{|=} \\
         \texttt{OpCaretEq} & \op{\textasciicircum=} \\
         \texttt{OpShrEq} & \op{\textasciitilde>=} \\
         \texttt{OpShlEq} & \op{<\textasciitilde=} \\
-        \hline
-        \texttt{OpGlue} & \op{<>} \\
-        \texttt{OpGlueEq} & \op{<>=} \\
-        \texttt{OpColon} & \op{:} \\
-        \texttt{OpColonEq} & \op{:=} \\
+        \texttt{OpShrexEq} & \op{\textasciitilde\textasciitilde>=} \\
+        \texttt{OpShlexEq} & \op{<\textasciitilde\textasciitilde=} \\
+        \texttt{OpShrapEq} & \op{>\textasciitilde>=} \\
+        \texttt{OpShlapEq} & \op{<\textasciitilde<=} \\
         \hline
         \texttt{OpColonColon} & \op{::} \\
         \hline
@@ -512,6 +515,11 @@ only to produce clearer error messages.
     \begin{tabular}[t]{ll}
         \hline
         \textbf{Token Type} & \textbf{Symbol} \\
+        \hline
+        \texttt{OpGlue} & \op{<>} \\
+        \texttt{OpGlueEq} & \op{<>=} \\
+        \texttt{OpColon} & \op{:} \\
+        \texttt{OpColonEq} & \op{:=} \\
         \hline
         \texttt{OpPlus} & \op{+} \\
         \texttt{OpMinus} & \op{-} \\

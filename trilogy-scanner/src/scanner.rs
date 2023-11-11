@@ -109,12 +109,19 @@ impl<'a> Scanner<'a> {
         self.chars.peek().copied()
     }
 
+    fn check<P: CharPattern>(&mut self, pattern: P) -> bool {
+        self.chars
+            .peek()
+            .map(|ch| pattern.check(*ch))
+            .unwrap_or(false)
+    }
+
     fn expect<P: CharPattern>(&mut self, pattern: P) -> Option<char> {
-        let ch = self.peek()?;
-        if !pattern.check(ch) {
-            return None;
+        if self.check(pattern) {
+            self.consume()
+        } else {
+            None
         }
-        self.consume()
     }
 
     fn predict<P: CharPattern>(&mut self, pattern: P) -> bool {
@@ -639,7 +646,19 @@ impl Iterator for Scanner<'_> {
             }
             '<' if self.expect('|').is_some() => self.make_token(OpLtPipe),
             '<' if self.expect('~').is_some() => {
-                if self.expect('=').is_some() {
+                if self.expect('~').is_some() {
+                    if self.expect('=').is_some() {
+                        self.make_token(OpShlexEq)
+                    } else {
+                        self.make_token(OpShlex)
+                    }
+                } else if self.expect('<').is_some() {
+                    if self.expect('=').is_some() {
+                        self.make_token(OpShlapEq)
+                    } else {
+                        self.make_token(OpShlap)
+                    }
+                } else if self.expect('=').is_some() {
                     self.make_token(OpShlEq)
                 } else {
                     self.make_token(OpShl)
@@ -665,6 +684,15 @@ impl Iterator for Scanner<'_> {
                 }
             }
             '>' if self.expect('=').is_some() => self.make_token(OpGtEq),
+            '>' if self.check('~') && self.predict('>') => {
+                self.consume();
+                self.consume();
+                if self.expect('=').is_some() {
+                    self.make_token(OpShrapEq)
+                } else {
+                    self.make_token(OpShrap)
+                }
+            }
             '>' => self.make_token(OpGt),
 
             '%' if self.expect('=').is_some() => self.make_token(OpPercentEq),
@@ -712,6 +740,15 @@ impl Iterator for Scanner<'_> {
                     self.make_token(OpShrEq)
                 } else {
                     self.make_token(OpShr)
+                }
+            }
+            '~' if self.check('~') && self.predict('>') => {
+                self.consume();
+                self.consume();
+                if self.expect('=').is_some() {
+                    self.make_token(OpShrexEq)
+                } else {
+                    self.make_token(OpShrex)
                 }
             }
             '~' => self.make_token(OpTilde),

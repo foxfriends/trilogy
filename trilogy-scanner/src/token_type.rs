@@ -237,6 +237,14 @@ pub enum TokenType {
     OpShr,
     /// `<~`
     OpShl,
+    /// `~~>`
+    OpShrex,
+    /// `<~~`
+    OpShlex,
+    /// `>~>`
+    OpShrap,
+    /// `<~<`
+    OpShlap,
     /// `!`
     OpBang,
     /// `!=`
@@ -261,6 +269,14 @@ pub enum TokenType {
     OpShrEq,
     /// `<~=`
     OpShlEq,
+    /// `~~>=`
+    OpShrexEq,
+    /// `<~~=`
+    OpShlexEq,
+    /// `>~>=`
+    OpShrapEq,
+    /// `<~<=`
+    OpShlapEq,
     /// `.`
     OpDot,
     /// `.=`
