@@ -858,11 +858,6 @@ impl<'a> Execution<'a> {
                 self.stack.push(Value::from(continuation));
                 self.ip = offset;
             }
-            Instruction::Continuation(offset) => {
-                let continuation = Continuation::new(self.ip, self.stack.branch());
-                self.stack.push(Value::from(continuation));
-                self.ip = offset;
-            }
             Instruction::Reset => {
                 // Reset does nothing if there is no currently shifted stack.
                 // Reaching the end of the wrapped expression is equivalent to

@@ -161,13 +161,6 @@ impl Stack {
         }
     }
 
-    pub(super) fn hard_branch(&mut self) -> Self {
-        Self {
-            cactus: self.cactus.hard_branch(),
-            frame: self.frame,
-        }
-    }
-
     pub(super) fn push_unset(&mut self) {
         self.cactus.push(InternalValue::Unset);
     }

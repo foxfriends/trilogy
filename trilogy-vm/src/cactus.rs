@@ -127,20 +127,6 @@ impl<T> Cactus<T> {
         }
     }
 
-    pub fn hard_branch(&mut self) -> Self
-    where
-        T: Clone,
-    {
-        match &self.parent {
-            None => self.clone(),
-            Some(parent) => {
-                let mut parent = parent.lock().unwrap().hard_branch();
-                parent.stack.extend(self.stack.clone());
-                parent
-            }
-        }
-    }
-
     pub fn at(&self, offset: usize) -> Option<T>
     where
         T: Clone,
