@@ -16,6 +16,7 @@ impl Mode<'_> {
     fn child(self) -> Self {
         match self {
             Self::Document | Self::Module => Self::Module,
+            Self::Test([], ..) => Self::Module,
             Self::Test(path, name) => Self::Test(&path[1..], name),
         }
     }
