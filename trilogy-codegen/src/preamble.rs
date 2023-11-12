@@ -59,6 +59,7 @@ pub const EXIT: &str = "core::exit";
 
 pub const INVALID_ITERATOR: &str = "panic::invalid_iterator";
 pub const RUNTIME_TYPE_ERROR: &str = "panic::runtime_type_error";
+pub const INVALID_ACCESSOR: &str = "panic::invalid_accessor";
 pub const INCORRECT_ARITY: &str = "panic::incorrect_arity";
 pub const INVALID_CALL: &str = "panic::invalid_call";
 
@@ -210,6 +211,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Length)
         .instruction(Instruction::Lt)
         .cond_jump(MIA)
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::Copy)
+        .constant(1)
+        .instruction(Instruction::IntDivide)
+        .instruction(Instruction::ValEq)
+        .cond_jump(INVALID_ACCESSOR)
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Swap)
         .instruction(Instruction::Access)
@@ -323,6 +330,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder
         .label(INVALID_ITERATOR)
         .atom("InvalidIterator")
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
+
+    builder
+        .label(INVALID_ACCESSOR)
+        .atom("InvalidAccessor")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
