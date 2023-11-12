@@ -1,4 +1,3 @@
-use crate::INVALID_ITERATOR;
 use crate::{preamble::ITERATE_COLLECTION, prelude::*};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -326,24 +325,7 @@ fn write_query_value(
             // Reset to the previous binding state
             context.instruction(Instruction::LoadLocal(bindset));
             unbind(context, bound, unification.pattern.bindings());
-            context
-                .instruction(Instruction::Copy)
-                .instruction(Instruction::Call(0))
-                // Done if done
-                .instruction(Instruction::Copy)
-                .atom("done")
-                .instruction(Instruction::ValNeq)
-                .cond_jump(&cleanup)
-                .instruction(Instruction::Copy)
-                .instruction(Instruction::TypeOf)
-                .atom("struct")
-                .instruction(Instruction::ValEq)
-                .cond_jump(INVALID_ITERATOR) // Not a struct, so it is runtime error
-                .instruction(Instruction::Destruct)
-                .atom("next")
-                .instruction(Instruction::ValEq)
-                .cond_jump(INVALID_ITERATOR);
-
+            context.instruction(Instruction::Copy).iterate(&cleanup);
             // Success: bind the pattern to the value. If this fails, move on to the next
             // element, not fail the whole query.
             write_pattern_match(context, &unification.pattern, &body);
@@ -779,21 +761,7 @@ fn write_query_value(
             );
             // Then we do the actual iteration of the lookup. Since it's just an iterator, we do the
             // iterator thing, pretty normally.
-            context
-                // Copy the iterator, it will just remain here for reconstructing the state
-                .instruction(Instruction::Copy)
-                // Then iterate the iterator
-                .instruction(Instruction::Call(0))
-                .instruction(Instruction::Copy)
-                .atom("done")
-                .instruction(Instruction::ValNeq)
-                .cond_jump(&cleanup)
-                .instruction(Instruction::Destruct)
-                .atom("next")
-                .instruction(Instruction::ValEq)
-                // A bit weird if that returned not a 'next, that means its an invalid iterator, but
-                // we'll just call it a failed binding for now.
-                .cond_jump(&cleanup);
+            context.instruction(Instruction::Copy).iterate(&cleanup);
             // If the iterator has yielded something, we have to destructure it into all the variables
             // of the unbound parameters.
             context.scope.intermediate(); // return value

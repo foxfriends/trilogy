@@ -1,9 +1,9 @@
 use crate::chunk_writer_ext::ChunkWriterExt;
 use crate::preamble::{END, RETURN};
-use crate::{prelude::*, ASSIGN, INVALID_ITERATOR};
+use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::HasBindings;
-use trilogy_vm::{Instruction, Value};
+use trilogy_vm::{Array, Instruction, Value};
 
 #[inline(always)]
 pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
@@ -212,25 +212,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
-                            .instruction(Instruction::Call(0))
-                            .instruction(Instruction::Copy)
-                            .atom("done")
-                            .instruction(Instruction::ValNeq)
-                            .cond_jump(&loop_exit)
-                            .instruction(Instruction::Copy)
-                            .instruction(Instruction::TypeOf)
-                            .atom("struct")
-                            .instruction(Instruction::ValEq)
-                            .cond_jump(INVALID_ITERATOR)
-                            .instruction(Instruction::Destruct)
-                            .atom("next")
-                            .instruction(Instruction::ValEq)
-                            .cond_jump(INVALID_ITERATOR)
+                            .iterate(&loop_exit)
                             .instruction(Instruction::LoadLocal(record))
                             .instruction(Instruction::Swap)
                             .instruction(Instruction::Uncons)
                             .instruction(Instruction::Assign)
-                            .instruction(Instruction::Pop)
+                            .instruction(Instruction::SetLocal(record))
                             .jump(&loop_begin)
                             .label(loop_exit)
                             .instruction(Instruction::Pop)
@@ -263,24 +250,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
-                            .instruction(Instruction::Call(0))
-                            .instruction(Instruction::Copy)
-                            .atom("done")
-                            .instruction(Instruction::ValNeq)
-                            .cond_jump(&loop_exit)
-                            .instruction(Instruction::Copy)
-                            .instruction(Instruction::TypeOf)
-                            .atom("struct")
-                            .instruction(Instruction::ValEq)
-                            .cond_jump(INVALID_ITERATOR)
-                            .instruction(Instruction::Destruct)
-                            .atom("next")
-                            .instruction(Instruction::ValEq)
-                            .cond_jump(INVALID_ITERATOR)
+                            .iterate(&loop_exit)
                             .instruction(Instruction::LoadLocal(set))
                             .instruction(Instruction::Swap)
                             .instruction(Instruction::Insert)
-                            .instruction(Instruction::Pop)
+                            .instruction(Instruction::SetLocal(set))
                             .jump(&loop_begin)
                             .label(loop_exit)
                             .instruction(Instruction::Pop)
@@ -291,55 +265,42 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
                 context.scope.end_intermediate();
             }
-            (None, ir::Value::Builtin(ir::Builtin::Array), arg) => {
-                context.instruction(Instruction::Const(Value::Array(Default::default())));
-                let array = context.scope.intermediate();
-                match arg {
-                    ir::Value::Pack(pack) => {
-                        for element in &pack.values {
-                            write_expression(context, &element.expression);
-                            if element.is_spread {
-                                context.instruction(Instruction::Glue);
-                            } else {
-                                context.instruction(Instruction::Insert);
-                            }
-                        }
+            (None, ir::Value::Builtin(ir::Builtin::Array), ir::Value::Pack(pack)) => {
+                context.constant(Array::default());
+                context.scope.intermediate();
+                for element in &pack.values {
+                    context.instruction(Instruction::Clone);
+                    write_expression(context, &element.expression);
+                    if element.is_spread {
+                        context.instruction(Instruction::Glue);
+                    } else {
+                        context.instruction(Instruction::Insert);
                     }
-                    ir::Value::Iterator(..) => {
-                        write_evaluation(context, arg);
-                        context.scope.intermediate();
-                        let loop_begin = context.make_label("array_collect");
-                        let loop_exit = context.make_label("array_collect_end");
-                        context
-                            .label(loop_begin.clone())
-                            .instruction(Instruction::Copy)
-                            .instruction(Instruction::Call(0))
-                            .instruction(Instruction::Copy)
-                            .atom("done")
-                            .instruction(Instruction::ValNeq)
-                            .cond_jump(&loop_exit)
-                            .instruction(Instruction::Copy)
-                            .instruction(Instruction::TypeOf)
-                            .atom("struct")
-                            .instruction(Instruction::ValEq)
-                            .cond_jump(INVALID_ITERATOR)
-                            .instruction(Instruction::Destruct)
-                            .atom("next")
-                            .instruction(Instruction::ValEq)
-                            .cond_jump(INVALID_ITERATOR)
-                            .instruction(Instruction::LoadLocal(array))
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert)
-                            .instruction(Instruction::Pop)
-                            .jump(&loop_begin)
-                            .label(loop_exit)
-                            .instruction(Instruction::Pop)
-                            .instruction(Instruction::Pop);
-                        context.scope.end_intermediate();
-                    }
-                    _ => panic!("array literal must have pack or iterator"),
                 }
                 context.scope.end_intermediate();
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Array), arg @ ir::Value::Iterator(..)) => {
+                write_evaluation(context, arg);
+                let iterator = context.scope.intermediate();
+                context.constant(Array::default());
+                context.scope.intermediate(); // array
+                let loop_begin = context.make_label("array_collect");
+                let loop_exit = context.make_label("array_collect_end");
+                context
+                    .label(&loop_begin)
+                    .instruction(Instruction::LoadLocal(iterator))
+                    .iterate(&loop_exit)
+                    .instruction(Instruction::Insert)
+                    .jump(&loop_begin)
+                    .label(loop_exit)
+                    .instruction(Instruction::Pop) // 'done
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Pop); // iterator
+                context.scope.end_intermediate(); // array
+                context.scope.end_intermediate(); // iterator
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Array), ..) => {
+                unreachable!("array is applied to pack or iterator");
             }
             (None, ir::Value::Builtin(ir::Builtin::For), value) => {
                 context.constant(false);
@@ -350,20 +311,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context
                     .label(loop_begin.clone())
                     .instruction(Instruction::Copy)
-                    .instruction(Instruction::Call(0))
-                    .instruction(Instruction::Copy)
-                    .atom("done")
-                    .instruction(Instruction::ValNeq)
-                    .cond_jump(&loop_exit)
-                    .instruction(Instruction::Copy)
-                    .instruction(Instruction::TypeOf)
-                    .atom("struct")
-                    .instruction(Instruction::ValEq)
-                    .cond_jump(INVALID_ITERATOR)
-                    .instruction(Instruction::Destruct)
-                    .atom("next")
-                    .instruction(Instruction::ValEq)
-                    .cond_jump(INVALID_ITERATOR)
+                    .iterate(&loop_exit)
                     .constant(true)
                     .instruction(Instruction::SetLocal(eval_to))
                     .instruction(Instruction::Pop)
