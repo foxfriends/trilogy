@@ -3,7 +3,7 @@ use crate::preamble::{END, RETURN};
 use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::HasBindings;
-use trilogy_vm::{Array, Instruction, Value};
+use trilogy_vm::{Array, Instruction, Record, Set, Value};
 
 #[inline(always)]
 pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
@@ -190,80 +190,78 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             (Some(ir::Value::Builtin(builtin)), lhs, rhs) if is_operator(*builtin) => {
                 write_binary_operation(context, lhs, rhs, *builtin);
             }
-            (None, ir::Value::Builtin(ir::Builtin::Record), arg) => {
-                context.instruction(Instruction::Const(Value::Record(Default::default())));
-                let record = context.scope.intermediate();
-                match arg {
-                    ir::Value::Pack(pack) => {
-                        for element in &pack.values {
-                            write_expression(context, &element.expression);
-                            if element.is_spread {
-                                context.instruction(Instruction::Glue);
-                            } else {
-                                context.instruction(Instruction::Assign);
-                            }
-                        }
+            (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Pack(pack)) => {
+                context.constant(Record::default());
+                context.scope.intermediate();
+                for element in &pack.values {
+                    write_expression(context, &element.expression);
+                    if element.is_spread {
+                        context.instruction(Instruction::Glue);
+                    } else {
+                        context.instruction(Instruction::Assign);
                     }
-                    ir::Value::Iterator(..) => {
-                        write_evaluation(context, arg);
-                        context.scope.intermediate();
-                        let loop_begin = context.make_label("record_collect");
-                        let loop_exit = context.make_label("record_collect_end");
-                        context
-                            .label(loop_begin.clone())
-                            .instruction(Instruction::Copy)
-                            .iterate(&loop_exit)
-                            .instruction(Instruction::LoadLocal(record))
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Uncons)
-                            .instruction(Instruction::Assign)
-                            .instruction(Instruction::SetLocal(record))
-                            .jump(&loop_begin)
-                            .label(loop_exit)
-                            .instruction(Instruction::Pop)
-                            .instruction(Instruction::Pop);
-                        context.scope.end_intermediate();
-                    }
-                    _ => panic!("record literal must have pack or iterator"),
                 }
                 context.scope.end_intermediate();
             }
-            (None, ir::Value::Builtin(ir::Builtin::Set), arg) => {
-                context.instruction(Instruction::Const(Value::Set(Default::default())));
-                let set = context.scope.intermediate();
-                match arg {
-                    ir::Value::Pack(pack) => {
-                        for element in &pack.values {
-                            write_expression(context, &element.expression);
-                            if element.is_spread {
-                                context.instruction(Instruction::Glue);
-                            } else {
-                                context.instruction(Instruction::Insert);
-                            }
-                        }
+            (None, ir::Value::Builtin(ir::Builtin::Record), arg @ ir::Value::Iterator(..)) => {
+                write_evaluation(context, arg);
+                let iterator = context.scope.intermediate();
+                context.constant(Record::default());
+                context.scope.intermediate();
+                let loop_begin = context.make_label("record_collect");
+                let loop_exit = context.make_label("record_collect_end");
+                context
+                    .label(loop_begin.clone())
+                    .instruction(Instruction::LoadLocal(iterator))
+                    .iterate(&loop_exit)
+                    .instruction(Instruction::Uncons)
+                    .instruction(Instruction::Assign)
+                    .jump(&loop_begin)
+                    .label(loop_exit)
+                    .instruction(Instruction::Pop)
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Pop);
+                context.scope.end_intermediate();
+                context.scope.end_intermediate();
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Record), ..) => {
+                unreachable!("record is applied to pack or iterator");
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Set), ir::Value::Pack(pack)) => {
+                context.constant(Set::default());
+                context.scope.intermediate();
+                for element in &pack.values {
+                    write_expression(context, &element.expression);
+                    if element.is_spread {
+                        context.instruction(Instruction::Glue);
+                    } else {
+                        context.instruction(Instruction::Insert);
                     }
-                    ir::Value::Iterator(..) => {
-                        write_evaluation(context, arg);
-                        context.scope.intermediate();
-                        let loop_begin = context.make_label("set_collect");
-                        let loop_exit = context.make_label("set_collect_end");
-                        context
-                            .label(loop_begin.clone())
-                            .instruction(Instruction::Copy)
-                            .iterate(&loop_exit)
-                            .instruction(Instruction::LoadLocal(set))
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert)
-                            .instruction(Instruction::SetLocal(set))
-                            .jump(&loop_begin)
-                            .label(loop_exit)
-                            .instruction(Instruction::Pop)
-                            .instruction(Instruction::Pop);
-                        context.scope.end_intermediate();
-                    }
-                    _ => panic!("set literal must have pack or iterator"),
                 }
                 context.scope.end_intermediate();
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Set), arg @ ir::Value::Iterator(..)) => {
+                write_evaluation(context, arg);
+                let iterator = context.scope.intermediate();
+                context.constant(Set::default());
+                context.scope.intermediate();
+                let loop_begin = context.make_label("set_collect");
+                let loop_exit = context.make_label("set_collect_end");
+                context
+                    .label(loop_begin.clone())
+                    .instruction(Instruction::LoadLocal(iterator))
+                    .iterate(&loop_exit)
+                    .instruction(Instruction::Insert)
+                    .jump(&loop_begin)
+                    .label(loop_exit)
+                    .instruction(Instruction::Pop)
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Pop);
+                context.scope.end_intermediate();
+                context.scope.end_intermediate();
+            }
+            (None, ir::Value::Builtin(ir::Builtin::Set), ..) => {
+                unreachable!("set is applied to pack or iterator");
             }
             (None, ir::Value::Builtin(ir::Builtin::Array), ir::Value::Pack(pack)) => {
                 context.constant(Array::default());
