@@ -110,8 +110,8 @@ test "(/) a b" {
 
 test "a / 0" {
     let x = with 3 / 0
-        when 'INF cancel { 'OK }
-        else cancel {}
+        when 'INF cancel 'OK
+        else cancel unit
     assert x == 'OK
 }
 
@@ -140,8 +140,8 @@ test "(//) a b" {
 
 test "a // 0" {
     let x = with 3 // 0
-        when 'INF cancel { 'OK }
-        else cancel {}
+        when 'INF cancel 'OK
+        else cancel unit
     assert x == 'OK
 }
 
@@ -170,8 +170,8 @@ test "(%) a b" {
 
 test "a % 0" {
     let x = with 3 % 0
-        when 'INF cancel { 'OK }
-        else cancel {}
+        when 'INF cancel 'OK
+        else cancel unit
     assert x == 'OK
 }
 

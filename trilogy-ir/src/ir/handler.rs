@@ -1,5 +1,5 @@
 use super::*;
-use crate::Converter;
+use crate::{Converter, Error};
 use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
@@ -12,7 +12,7 @@ pub struct Handler {
 }
 
 impl Handler {
-    pub(super) fn convert(converter: &mut Converter, ast: syntax::Handler) -> Self {
+    fn convert(converter: &mut Converter, ast: syntax::Handler, is_expression: bool) -> Self {
         match ast {
             syntax::Handler::When(handler) => {
                 let span = handler.span();
@@ -26,9 +26,17 @@ impl Handler {
                     .unwrap_or_else(|| Expression::boolean(span, true));
                 let body = handler.body.map(|body| match body {
                     syntax::HandlerBody::Block(block) => {
+                        if is_expression {
+                            converter.error(Error::ExpressionInBlockHandler { span: block.span() });
+                        }
                         Expression::convert_block(converter, *block)
                     }
                     syntax::HandlerBody::Expression(expression) => {
+                        if !is_expression {
+                            converter.error(Error::BlockInExpressionHandler {
+                                span: expression.span(),
+                            });
+                        }
                         Expression::convert(converter, *expression)
                     }
                 });
@@ -48,10 +56,15 @@ impl Handler {
                             .apply_to(token.span.union(body.span), body)
                     }
                     syntax::HandlerStrategy::Yield(token) => {
-                        Expression::builtin(token.span, Builtin::Resume).apply_to(
+                        Expression::builtin(token.span, Builtin::Cancel).apply_to(
                             token.span,
-                            Expression::builtin(token.span, Builtin::Yield)
-                                .apply_to(token.span, Expression::reference(pattern.span, effect)),
+                            Expression::builtin(token.span, Builtin::Resume).apply_to(
+                                token.span,
+                                Expression::builtin(token.span, Builtin::Yield).apply_to(
+                                    token.span,
+                                    Expression::reference(pattern.span, effect),
+                                ),
+                            ),
                         )
                     }
                 };
@@ -111,5 +124,13 @@ impl Handler {
                 }
             }
         }
+    }
+
+    pub(super) fn convert_blocks(converter: &mut Converter, ast: syntax::Handler) -> Self {
+        Self::convert(converter, ast, false)
+    }
+
+    pub(super) fn convert_expressions(converter: &mut Converter, ast: syntax::Handler) -> Self {
+        Self::convert(converter, ast, true)
     }
 }

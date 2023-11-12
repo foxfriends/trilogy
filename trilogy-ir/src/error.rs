@@ -31,6 +31,12 @@ pub enum Error {
         glue: Span,
         rhs: Span,
     },
+    ExpressionInBlockHandler {
+        span: Span,
+    },
+    BlockInExpressionHandler {
+        span: Span,
+    },
 }
 
 impl std::error::Error for Error {}
@@ -46,6 +52,12 @@ impl Display for Error {
             Error::DuplicateExport { .. } => write!(f, "duplicate export"),
             Error::GluePatternMissingLiteral { .. } => {
                 write!(f, "glue pattern missing string literal")
+            }
+            Error::ExpressionInBlockHandler { .. } => {
+                write!(f, "expression in block handler")
+            }
+            Error::BlockInExpressionHandler { .. } => {
+                write!(f, "block in expression handler")
             }
         }
     }

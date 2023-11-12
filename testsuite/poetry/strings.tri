@@ -56,7 +56,7 @@ test not "non-integer accessor is an error" {
 
 test "out of bounds access yields 'MIA" {
     let x = with "hello" . 5
-        when 'MIA cancel { '.' }
+        when 'MIA cancel '.'
         else yield
     assert x == '.'
 }

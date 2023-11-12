@@ -267,6 +267,26 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(3),
                             )
                     }
+                    BlockInExpressionHandler { span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message("block handlers are only valid in statement context")
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("this is a block-style handler, try using an expression instead")
+                                    .with_color(primary),
+                            )
+                    }
+                    ExpressionInBlockHandler { span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message("expression handlers are only valid in expression context")
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("this is an expression-style handler, try wrapping it in a block")
+                                    .with_color(primary),
+                            )
+                    }
                 }
             }
             ErrorKind::Analysis(location, error) => {

@@ -18,7 +18,7 @@ impl Handled {
         let handlers = ast
             .handlers
             .into_iter()
-            .map(|ast| Handler::convert(converter, ast))
+            .map(|ast| Handler::convert_blocks(converter, ast))
             .collect();
         Expression::handled(
             span,
@@ -38,7 +38,7 @@ impl Handled {
         let handlers = ast
             .handlers
             .into_iter()
-            .map(|ast| Handler::convert(converter, ast))
+            .map(|ast| Handler::convert_expressions(converter, ast))
             .collect();
         Expression::handled(
             span,

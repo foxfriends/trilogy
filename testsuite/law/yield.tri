@@ -1,6 +1,26 @@
-test "can yield from queries" {
+test "can yield and resume in queries" {
     assert with is x = yield 'X and y = yield 'Y and is x < y
-        when 'X resume { 5 }
-        when 'Y resume { 6 }
+        when 'X resume 5
+        when 'Y resume 6
         else yield
+}
+
+test "can exit a query early" {
+    let answer = with is x = yield 'X and y = yield 'Y and is x < y
+        when 'X resume 5
+        when 'Y cancel 6
+        else yield
+    assert answer == 6
+}
+
+test "can resume multiple times into a query" {
+    let answer = with [x for x = yield 'X and is x > 6]
+        when 'X cancel [
+            ..resume 5,
+            ..resume 6,
+            ..resume 7,
+            ..resume 8,
+        ]
+        else yield
+    assert answer == [7, 8] as answer
 }
