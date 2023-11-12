@@ -22,5 +22,5 @@ test "can resume multiple times into a query" {
             ..resume 8,
         ]
         else yield
-    assert answer == [7, 8] as answer
+    assert answer == [7, 8]
 }

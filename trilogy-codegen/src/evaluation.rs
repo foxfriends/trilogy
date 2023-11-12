@@ -214,6 +214,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     .label(loop_begin.clone())
                     .instruction(Instruction::LoadLocal(iterator))
                     .iterate(&loop_exit)
+                    // Between computing the next value and inserting it, we have to clone
+                    // the collection due to the potential for the call to the iterator to
+                    // return multiple times. In each parallel execution, the iterator must
+                    // collect into a separate array. In the single-execution case, this adds
+                    // a decent amount of overhead... so hopefully an alternative can be found
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Clone)
+                    .instruction(Instruction::Swap)
                     .instruction(Instruction::Uncons)
                     .instruction(Instruction::Assign)
                     .jump(&loop_begin)
@@ -251,6 +259,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     .label(loop_begin.clone())
                     .instruction(Instruction::LoadLocal(iterator))
                     .iterate(&loop_exit)
+                    // Between computing the next value and inserting it, we have to clone
+                    // the collection due to the potential for the call to the iterator to
+                    // return multiple times. In each parallel execution, the iterator must
+                    // collect into a separate array. In the single-execution case, this adds
+                    // a decent amount of overhead... so hopefully an alternative can be found
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Clone)
+                    .instruction(Instruction::Swap)
                     .instruction(Instruction::Insert)
                     .jump(&loop_begin)
                     .label(loop_exit)
@@ -288,6 +304,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     .label(&loop_begin)
                     .instruction(Instruction::LoadLocal(iterator))
                     .iterate(&loop_exit)
+                    // Between computing the next value and inserting it, we have to clone
+                    // the collection due to the potential for the call to the iterator to
+                    // return multiple times. In each parallel execution, the iterator must
+                    // collect into a separate array. In the single-execution case, this adds
+                    // a decent amount of overhead... so hopefully an alternative can be found
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Clone)
+                    .instruction(Instruction::Swap)
                     .instruction(Instruction::Insert)
                     .jump(&loop_begin)
                     .label(loop_exit)
