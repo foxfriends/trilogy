@@ -1,6 +1,6 @@
 use crate::chunk_writer_ext::ChunkWriterExt;
 use crate::preamble::{END, RETURN};
-use crate::{prelude::*, INVALID_ITERATOR};
+use crate::{prelude::*, ASSIGN, INVALID_ITERATOR};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::HasBindings;
 use trilogy_vm::{Instruction, Value};
@@ -52,6 +52,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             ir::Value::Application(application) => match unapply_2(application) {
                 (Some(ir::Value::Builtin(ir::Builtin::Access)), collection, key) => {
+                    context.reference(ASSIGN);
                     write_evaluation(context, collection);
                     context.scope.intermediate();
                     write_evaluation(context, key);
@@ -59,7 +60,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     write_expression(context, &assignment.rhs);
                     context.scope.end_intermediate();
                     context.scope.end_intermediate();
-                    context.instruction(Instruction::Assign);
+                    context.call_procedure(3);
                 }
                 _ => unreachable!("LValue applications must be access"),
             },

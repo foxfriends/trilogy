@@ -14,6 +14,10 @@ pub const POW: &str = "core::pow";
 pub const NEGATE: &str = "core::neg";
 
 pub const GLUE: &str = "core::glue";
+
+pub const ASSIGN: &str = "core::assign";
+pub const ASSIGN_ANY: &str = "core::assign_any";
+pub const ASSIGN_INT: &str = "core::assign_int";
 pub const ACCESS: &str = "core::access";
 pub const ACCESS_ANY: &str = "core::access_any";
 pub const ACCESS_INT: &str = "core::access_int";
@@ -178,6 +182,35 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
 
     builder
+        .label(ASSIGN)
+        .unlock_procedure(3)
+        .instruction(Instruction::LoadLocal(0))
+        .try_type("record", Ok(ASSIGN_ANY))
+        .try_type("array", Ok(ASSIGN_INT))
+        .try_type("string", Ok(ASSIGN_INT))
+        .try_type("bits", Ok(ASSIGN_INT))
+        .atom("NotAccessible")
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
+    builder
+        .label(ASSIGN_ANY)
+        .instruction(Instruction::Pop)
+        .instruction(Instruction::Assign)
+        .instruction(Instruction::Return);
+    builder
+        .label(ASSIGN_INT)
+        .instruction(Instruction::Pop)
+        .instruction(Instruction::LoadLocal(1))
+        .typecheck("number")
+        .instruction(Instruction::Copy)
+        .constant(1)
+        .instruction(Instruction::IntDivide)
+        .instruction(Instruction::ValEq)
+        .cond_jump(INVALID_ACCESSOR)
+        .instruction(Instruction::Assign)
+        .instruction(Instruction::Return);
+
+    builder
         .label(ACCESS)
         .unlock_function()
         .try_type("record", Ok(ACCESS_ANY))
@@ -187,7 +220,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .atom("NotAccessible")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
-
     builder
         .label(ACCESS_ANY)
         .close(RETURN)
@@ -200,7 +232,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Swap)
         .instruction(Instruction::Access)
         .instruction(Instruction::Return);
-
     builder
         .label(ACCESS_INT)
         .close(RETURN)
