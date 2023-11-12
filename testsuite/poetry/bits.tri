@@ -154,3 +154,20 @@ test not "(<~) only works on bits" {
 test not "(<~) only works with numbers" {
     0bb100 <~ 0bb100
 }
+
+test not "cannot assign into bits" {
+    0bb111.1 = false
+}
+
+test "index bits with number" {
+    assert 0bb010.1
+    assert !(0bb101.1)
+}
+
+test not "index bits with non-integer is an error" {
+    0bb010 . 1.5
+}
+
+test not "index bits with non-number is an error" {
+    0bb010 . "1"
+}

@@ -187,8 +187,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::LoadLocal(0))
         .try_type("record", Ok(ASSIGN_ANY))
         .try_type("array", Ok(ASSIGN_INT))
-        .try_type("string", Ok(ASSIGN_INT))
-        .try_type("bits", Ok(ASSIGN_INT))
         .atom("NotAccessible")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);

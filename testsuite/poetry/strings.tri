@@ -70,3 +70,7 @@ test "string indexing returns by characters, not bytes" {
     "this 🦓 is a zebra" . 9 == "i"
     "this 🦓 is a zebra" . 5 == "🦓"
 }
+
+test not "cannot assign into string" {
+    "hello".1 = "u"
+}

@@ -588,6 +588,7 @@ impl<'a> Execution<'a> {
                     Value::Record(record) => self.stack.push(Value::from(record.len())),
                     Value::Set(set) => self.stack.push(Value::from(set.len())),
                     Value::String(string) => self.stack.push(Value::from(string.len())),
+                    Value::Bits(bits) => self.stack.push(Value::from(bits.len())),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
