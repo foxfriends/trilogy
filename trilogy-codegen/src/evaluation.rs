@@ -213,24 +213,21 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let iterator = context.scope.intermediate();
                 context.constant(Record::default());
                 context.scope.intermediate();
-                let loop_begin = context.make_label("record_collect");
-                let loop_exit = context.make_label("record_collect_end");
                 context
-                    .label(loop_begin.clone())
-                    .instruction(Instruction::LoadLocal(iterator))
-                    .iterate(&loop_exit)
-                    // Between computing the next value and inserting it, we have to clone
-                    // the collection due to the potential for the call to the iterator to
-                    // return multiple times. In each parallel execution, the iterator must
-                    // collect into a separate array. In the single-execution case, this adds
-                    // a decent amount of overhead... so hopefully an alternative can be found
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Clone)
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Uncons)
-                    .instruction(Instruction::Assign)
-                    .jump(&loop_begin)
-                    .label(loop_exit)
+                    .repeat(|c, exit| {
+                        c.instruction(Instruction::LoadLocal(iterator))
+                            .iterate(exit)
+                            // Between computing the next value and inserting it, we have to clone
+                            // the collection due to the potential for the call to the iterator to
+                            // return multiple times. In each parallel execution, the iterator must
+                            // collect into a separate array. In the single-execution case, this adds
+                            // a decent amount of overhead... so hopefully an alternative can be found
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Clone)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Uncons)
+                            .instruction(Instruction::Assign);
+                    })
                     .instruction(Instruction::Pop)
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Pop);
@@ -258,23 +255,20 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let iterator = context.scope.intermediate();
                 context.constant(Set::default());
                 context.scope.intermediate();
-                let loop_begin = context.make_label("set_collect");
-                let loop_exit = context.make_label("set_collect_end");
                 context
-                    .label(loop_begin.clone())
-                    .instruction(Instruction::LoadLocal(iterator))
-                    .iterate(&loop_exit)
-                    // Between computing the next value and inserting it, we have to clone
-                    // the collection due to the potential for the call to the iterator to
-                    // return multiple times. In each parallel execution, the iterator must
-                    // collect into a separate array. In the single-execution case, this adds
-                    // a decent amount of overhead... so hopefully an alternative can be found
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Clone)
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Insert)
-                    .jump(&loop_begin)
-                    .label(loop_exit)
+                    .repeat(|c, exit| {
+                        c.instruction(Instruction::LoadLocal(iterator))
+                            .iterate(exit)
+                            // Between computing the next value and inserting it, we have to clone
+                            // the collection due to the potential for the call to the iterator to
+                            // return multiple times. In each parallel execution, the iterator must
+                            // collect into a separate array. In the single-execution case, this adds
+                            // a decent amount of overhead... so hopefully an alternative can be found
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Clone)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert);
+                    })
                     .instruction(Instruction::Pop)
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Pop);
@@ -303,23 +297,20 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let iterator = context.scope.intermediate();
                 context.constant(Array::default());
                 context.scope.intermediate(); // array
-                let loop_begin = context.make_label("array_collect");
-                let loop_exit = context.make_label("array_collect_end");
                 context
-                    .label(&loop_begin)
-                    .instruction(Instruction::LoadLocal(iterator))
-                    .iterate(&loop_exit)
-                    // Between computing the next value and inserting it, we have to clone
-                    // the collection due to the potential for the call to the iterator to
-                    // return multiple times. In each parallel execution, the iterator must
-                    // collect into a separate array. In the single-execution case, this adds
-                    // a decent amount of overhead... so hopefully an alternative can be found
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Clone)
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Insert)
-                    .jump(&loop_begin)
-                    .label(loop_exit)
+                    .repeat(|c, exit| {
+                        c.instruction(Instruction::LoadLocal(iterator))
+                            .iterate(exit)
+                            // Between computing the next value and inserting it, we have to clone
+                            // the collection due to the potential for the call to the iterator to
+                            // return multiple times. In each parallel execution, the iterator must
+                            // collect into a separate array. In the single-execution case, this adds
+                            // a decent amount of overhead... so hopefully an alternative can be found
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Clone)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert);
+                    })
                     .instruction(Instruction::Pop) // 'done
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Pop); // iterator
@@ -333,33 +324,28 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.constant(false);
                 let eval_to = context.scope.intermediate();
                 write_evaluation(context, value);
-                let loop_begin = context.make_label("for");
-                let loop_exit = context.make_label("for_end");
                 context
-                    .label(loop_begin.clone())
-                    .instruction(Instruction::Copy)
-                    .iterate(&loop_exit)
-                    .constant(true)
-                    .instruction(Instruction::SetLocal(eval_to))
-                    .instruction(Instruction::Pop)
-                    .jump(&loop_begin)
-                    .label(loop_exit)
+                    .repeat(|c, exit| {
+                        c.instruction(Instruction::Copy)
+                            .iterate(exit)
+                            .constant(true)
+                            .instruction(Instruction::SetLocal(eval_to))
+                            .instruction(Instruction::Pop);
+                    })
                     .instruction(Instruction::Pop)
                     .instruction(Instruction::Pop);
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = context.make_label("is_fail");
-                let is_end = context.make_label("is_end");
                 let var_count = context.declare_variables(query.bindings());
                 write_query_state(context, query);
                 write_query(context, query, &is_fail);
                 context
                     .constant(true)
-                    .jump(&is_end)
-                    .label(&is_fail)
-                    .constant(false)
-                    .label(is_end)
+                    .bubble(|c| {
+                        c.label(&is_fail).constant(false);
+                    })
                     .instruction(Instruction::Slide(var_count as u32 + 1));
                 context.undeclare_variables(query.bindings(), false);
                 for _ in 0..=var_count {

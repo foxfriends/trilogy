@@ -261,7 +261,6 @@ fn write_query_value(
 ) {
     match &value {
         ir::QueryValue::Direct(unification) => {
-            let pass = context.make_label("pass");
             let cleanup = context.make_label("cleanup");
             // Take out the bindset
             let bindset = context.scope.intermediate();
@@ -280,13 +279,11 @@ fn write_query_value(
             context.scope.end_intermediate(); // value
             write_pattern_match(context, &unification.pattern, &cleanup);
             context.scope.end_intermediate(); // state marker
-            context
-                .instruction(Instruction::Cons)
-                .jump(&pass)
-                .label(cleanup)
-                .instruction(Instruction::Cons)
-                .jump(on_fail)
-                .label(pass);
+            context.instruction(Instruction::Cons).bubble(|c| {
+                c.label(cleanup)
+                    .instruction(Instruction::Cons)
+                    .jump(on_fail);
+            });
             context.scope.end_intermediate(); // bindset
         }
         ir::QueryValue::Element(unification) => {
@@ -865,13 +862,10 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
                     .cond_jump(&nope);
             }
         }
-        let next = context.make_label("next");
         write_expression(context, value);
-        context
-            .jump(&next)
-            .label(nope)
-            .instruction(Instruction::Variable)
-            .label(next);
+        context.bubble(|c| {
+            c.label(nope).instruction(Instruction::Variable);
+        });
     }
 }
 
