@@ -1,3 +1,0 @@
-proc main!() {
-    with { is (pass and pass) } else yield
-}
