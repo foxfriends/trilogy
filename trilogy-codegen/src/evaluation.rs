@@ -185,10 +185,15 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.typecheck("callable").atom(&**ident).call_module();
             }
             (None, ir::Value::Builtin(builtin), arg) if is_unary_operator(*builtin) => {
-                write_unary_operation(context, arg, *builtin);
+                write_evaluation(context, arg);
+                write_operator(context, *builtin);
             }
             (Some(ir::Value::Builtin(builtin)), lhs, rhs) if is_operator(*builtin) => {
-                write_binary_operation(context, lhs, rhs, *builtin);
+                write_evaluation(context, lhs);
+                context.scope.intermediate();
+                write_evaluation(context, rhs);
+                context.scope.end_intermediate();
+                write_operator(context, *builtin);
             }
             (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Pack(pack)) => {
                 context.constant(Record::default());
@@ -615,22 +620,4 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.instruction(Instruction::Fizzle);
         }
     }
-}
-
-fn write_unary_operation(context: &mut Context, value: &ir::Value, builtin: ir::Builtin) {
-    write_evaluation(context, value);
-    write_operator(context, builtin);
-}
-
-fn write_binary_operation(
-    context: &mut Context,
-    lhs: &ir::Value,
-    rhs: &ir::Value,
-    builtin: ir::Builtin,
-) {
-    write_evaluation(context, lhs);
-    context.scope.intermediate();
-    write_evaluation(context, rhs);
-    context.scope.end_intermediate();
-    write_operator(context, builtin);
 }
