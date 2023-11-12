@@ -22,7 +22,10 @@ impl ArrayPattern {
             if parser.check(CBrack).is_ok() {
                 break None;
             };
-            if parser.expect(OpDotDot).is_ok() {
+            if let Ok(spread) = parser.expect(OpDotDot) {
+                if let Ok(dot) = parser.expect(OpDot) {
+                    parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
+                }
                 break Some(Pattern::parse(parser)?);
             }
             head.push(Pattern::parse(parser)?);

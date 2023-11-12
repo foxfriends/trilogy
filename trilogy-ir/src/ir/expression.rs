@@ -87,7 +87,7 @@ impl Expression {
                     query,
                     Self::mapping(key.span.union(value.span), key, value),
                 );
-                Self::builtin(start_span, Builtin::Set).apply_to(span, iterator)
+                Self::builtin(start_span, Builtin::Record).apply_to(span, iterator)
             }
             IteratorComprehension(ast) => {
                 Self::convert_iterator(converter, ast.query, ast.expression)

@@ -28,7 +28,10 @@ impl SetPattern {
             if parser.check(CBrackPipe).is_ok() {
                 break None;
             };
-            if parser.expect(OpDotDot).is_ok() {
+            if let Ok(spread) = parser.expect(OpDotDot) {
+                if let Ok(dot) = parser.expect(OpDot) {
+                    parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
+                }
                 break Some(Pattern::parse(parser)?);
             }
             elements.push(Pattern::parse(parser)?);

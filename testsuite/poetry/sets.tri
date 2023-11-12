@@ -1,0 +1,55 @@
+test "set literals" {
+    let set = [| 1, 2, 3 |]
+    assert set == [| 1, 2, 3 |]
+    assert set === set
+    assert set !== [| 1, 2, 3 |]
+    assert [| 1, 2, 2, 1, 3 |] == [| 1, 2, 3 |]
+}
+
+test "spread into set" {
+    let abc = [| 'a, 'b, 'c |]
+    assert [| ..abc |] == [| 'a, 'b, 'c |]
+    assert [| ..abc |] == abc
+    assert [| ..abc |] !== abc
+    assert [| ..abc, ..abc |] == [| 'a, 'b, 'c |]
+    assert [| 'a, 'b, ..abc, 3, 4 |] !== [| 'a, 'b, 'c, 3, 4 |]
+}
+
+test not "spread array into set" {
+    [| ..[1, 2, 3] |]
+}
+
+test not "spread record into set" {
+    [| ..{| 1 => 2 |} |]
+}
+
+test "can comprehend a query" {
+    let answer = [| x for x = 1 or x = 2 or x = 1 |]
+    assert answer == [| 1, 2 |]
+}
+
+test "can yield within comprehensions" {
+    let answer = with [| x for x = yield 'X and is x > 6 |]
+        when 'X cancel [|
+            ..resume 6,
+            ..resume 7,
+            ..resume 8,
+            ..resume 7,
+        |]
+        else yield
+    assert answer == [|7 , 8 |]
+}
+
+test "set iteration" {
+    let mut total = 0
+    for x in [| 1, 2, 3 |] {
+        total += x
+    }
+    assert total == 6
+
+    let mut total = 0
+    for x in [| 3, 3, 3 |] {
+        total += x
+    }
+    assert total == 3
+}

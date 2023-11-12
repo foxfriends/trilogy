@@ -96,6 +96,11 @@ impl ArrayElement {
         parser: &mut Parser,
     ) -> SyntaxResult<Result<Self, (Option<Token>, Pattern)>> {
         let spread = parser.expect(OpDotDot).ok();
+        if let Some(spread) = &spread {
+            if let Ok(dot) = parser.expect(OpDot) {
+                parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
+            }
+        }
         let expression = Expression::parse_parameter_list(parser)?;
         match expression {
             Ok(expression) => match spread {

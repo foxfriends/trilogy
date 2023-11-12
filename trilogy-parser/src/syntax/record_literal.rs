@@ -96,6 +96,10 @@ impl RecordElement {
         parser: &mut Parser,
     ) -> SyntaxResult<Result<Self, (Option<Pattern>, Pattern)>> {
         if let Ok(spread) = parser.expect(OpDotDot) {
+            if let Ok(dot) = parser.expect(OpDot) {
+                parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
+            }
+
             let expression = Expression::parse_parameter_list(parser)?;
             match expression {
                 Ok(expression) => Ok(Ok(Self::Spread(spread, expression))),

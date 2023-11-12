@@ -375,6 +375,14 @@ impl<E: std::error::Error> Error<E> {
                     KwNotInExpression => ariadne::Report::build(kind, location, span.1.start)
                         .with_message(format!("the `{}` keyword may not be used in an expression, did you mean to use the `!` operator?", "not".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing this `not` with `!`")),
+                    TripleDot { dot } => {
+                        let dot = cache.span(location, *dot);
+                        ariadne::Report::build(kind, location, span.1.start)
+                            .with_message(format!("unexpected extra `{}` in spread (`{}`) expression", ".".fg(primary), "..".fg(secondary)))
+                            .with_label(Label::new(span).with_color(secondary).with_message("in this spread expression"))
+                            .with_label(Label::new(dot).with_color(primary).with_message("try removing this `.`"))
+                            .with_help("the spread operator uses only two (`..`)")
+                    }
                 }
             }
             ErrorKind::Resolver(location, error) => {

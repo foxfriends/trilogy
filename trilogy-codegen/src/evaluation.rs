@@ -201,7 +201,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 for element in &pack.values {
                     write_expression(context, &element.expression);
                     if element.is_spread {
-                        context.instruction(Instruction::Glue);
+                        context.typecheck("record").instruction(Instruction::Glue);
                     } else {
                         context.instruction(Instruction::Assign);
                     }
@@ -243,7 +243,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 for element in &pack.values {
                     write_expression(context, &element.expression);
                     if element.is_spread {
-                        context.instruction(Instruction::Glue);
+                        context.typecheck("set").instruction(Instruction::Glue);
                     } else {
                         context.instruction(Instruction::Insert);
                     }
@@ -285,7 +285,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     context.instruction(Instruction::Clone);
                     write_expression(context, &element.expression);
                     if element.is_spread {
-                        context.instruction(Instruction::Glue);
+                        context.typecheck("array").instruction(Instruction::Glue);
                     } else {
                         context.instruction(Instruction::Insert);
                     }

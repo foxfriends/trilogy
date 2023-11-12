@@ -27,13 +27,13 @@ impl Handler {
                 let body = handler.body.map(|body| match body {
                     syntax::HandlerBody::Block(block) => {
                         if is_expression {
-                            converter.error(Error::ExpressionInBlockHandler { span: block.span() });
+                            converter.error(Error::BlockInExpressionHandler { span: block.span() });
                         }
                         Expression::convert_block(converter, *block)
                     }
                     syntax::HandlerBody::Expression(expression) => {
                         if !is_expression {
-                            converter.error(Error::BlockInExpressionHandler {
+                            converter.error(Error::ExpressionInBlockHandler {
                                 span: expression.span(),
                             });
                         }
