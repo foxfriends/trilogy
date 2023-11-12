@@ -429,7 +429,6 @@ fn write_query_value(
         }
         ir::QueryValue::Conjunction(conj) => {
             let out = context.make_label("conj_out");
-            let next = context.make_label("conj_next");
             let cleanup = context.make_label("conj_cleanup");
             let outer = context.make_label("conj_outer");
             let inner = context.make_label("conj_inner");
@@ -479,10 +478,7 @@ fn write_query_value(
                 // Discard the inner state, it's garbage now.
                 .instruction(Instruction::Pop)
                 // The outer state is already on the stack.
-                .instruction(Instruction::Reset);
-
-            context
-                .label(outer.clone())
+                .label(outer)
                 // Take out the bindset from the state. We will have to reset to this
                 // one every time the outer query gets evaluated.
                 .instruction(Instruction::Uncons);
@@ -520,25 +516,7 @@ fn write_query_value(
                 .instruction(Instruction::Cons)
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Cons)
-                // Then we put that big tuple into register 3 briefly...
-                .instruction(Instruction::SetRegister(3))
-                // Create a continuation from here
-                .shift(&next)
-                // The continuation is the inner query.
-                .jump(&inner);
-            context
-                .label(next)
-                // After creating that continuation, immediately call it with the the temp
-                // state as argument. This continuation will reset when the inner query finally
-                // fails, at which point we continue as if it was outer being called.
-                //
-                // So long as the inner query succeeds, it will just... continue out into the
-                // continuation, as it should.
-                //
-                // Tricky, but works.
-                .instruction(Instruction::LoadRegister(3))
-                .instruction(Instruction::Call(1))
-                .jump(&outer);
+                .jump(inner);
 
             // We go here if the outer query fails. Once that happens, the whole conjunction is failed.
             context
