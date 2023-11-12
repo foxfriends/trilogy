@@ -14,13 +14,17 @@ test "can exit a query early" {
 }
 
 test "can resume multiple times into a query" {
-    let answer = with [x for x = yield 'X and is x > 6]
-        when 'X cancel [
-            ..resume 5,
-            ..resume 6,
-            ..resume 7,
-            ..resume 8,
-        ]
-        else yield
-    assert answer == [7, 8]
+    let mut out = 0
+    with {
+        for x = yield 'X and is x > 6 {
+            out += x
+        }
+        assert out == 0 || out == 7 || out == 15
+    } when 'X cancel {
+        resume 5
+        resume 6
+        resume 7
+        resume 8
+    } else yield
+    assert out == 15
 }

@@ -73,3 +73,20 @@ test not "non-number assignment is an error" {
 test not "non-integer assignment is an error" {
     ['a, 'b, 'c] . 1.5 = 5
 }
+
+test "can comprehend a query" {
+    let answer = [x for x = 1 or x = 2 or x = 3]
+    assert answer == [1, 2, 3]
+}
+
+test "can yield within comprehensions" {
+    let answer = with [x for x = yield 'X and is x > 6]
+        when 'X cancel [
+            ..resume 5,
+            ..resume 6,
+            ..resume 7,
+            ..resume 8,
+        ]
+        else yield
+    assert answer == [7, 8]
+}
