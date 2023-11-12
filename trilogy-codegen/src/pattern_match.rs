@@ -51,8 +51,8 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 .cond_jump(on_fail);
         }
         ir::Value::Conjunction(conj) => {
-            let cleanup = context.labeler.unique_hint("conj_cleanup");
-            let done = context.labeler.unique_hint("conj_done");
+            let cleanup = context.make_label("conj_cleanup");
+            let done = context.make_label("conj_done");
             context.instruction(Instruction::Copy);
             context.scope.intermediate();
             write_pattern_match(context, &conj.0, &cleanup);
@@ -66,8 +66,8 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 .label(done);
         }
         ir::Value::Disjunction(disj) => {
-            let next = context.labeler.unique_hint("next");
-            let recover = context.labeler.unique_hint("disj2");
+            let next = context.make_label("next");
+            let recover = context.make_label("disj2");
             context.instruction(Instruction::Copy);
             write_pattern_match(context, &disj.0, &recover);
             context
@@ -88,8 +88,8 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
         }
         ir::Value::Reference(ident) => match context.scope.lookup(&ident.id).unwrap() {
             Binding::Variable(offset) => {
-                let compare = context.labeler.unique_hint("compare");
-                let assigned = context.labeler.unique_hint("assigned");
+                let compare = context.make_label("compare");
+                let assigned = context.make_label("assigned");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::InitLocal(offset))
@@ -108,8 +108,8 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
         },
         ir::Value::Application(application) => match unapply_2(application) {
             (None, ir::Value::Builtin(Builtin::Negate), value) => {
-                let end = context.labeler.unique_hint("negate_end");
-                let cleanup = context.labeler.unique_hint("negate_cleanup");
+                let end = context.make_label("negate_end");
+                let cleanup = context.make_label("negate_cleanup");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
@@ -130,9 +130,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context.instruction(Instruction::ValEq).cond_jump(on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs @ ir::Value::String(..), rhs) => {
-                let end = context.labeler.unique_hint("glue_end");
-                let cleanup = context.labeler.unique_hint("glue_cleanup");
-                let double_cleanup = context.labeler.unique_hint("glue_cleanup2");
+                let end = context.make_label("glue_end");
+                let cleanup = context.make_label("glue_cleanup");
+                let double_cleanup = context.make_label("glue_cleanup2");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
@@ -166,9 +166,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .label(end);
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs, rhs @ ir::Value::String(..)) => {
-                let end = context.labeler.unique_hint("glue_end");
-                let cleanup = context.labeler.unique_hint("glue_cleanup");
-                let double_cleanup = context.labeler.unique_hint("glue_cleanup2");
+                let end = context.make_label("glue_end");
+                let cleanup = context.make_label("glue_cleanup");
+                let double_cleanup = context.make_label("glue_cleanup2");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
@@ -210,7 +210,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .label(end);
             }
             (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
-                let cleanup = context.labeler.unique_hint("cleanup");
+                let cleanup = context.make_label("cleanup");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
@@ -221,7 +221,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 // Match the atom, very easy
                 write_pattern(context, rhs, &cleanup);
                 // If the atom matching fails, we have to clean up the extra value
-                let match_value = context.labeler.unique_hint("structvalue");
+                let match_value = context.make_label("structvalue");
                 context
                     .jump(&match_value)
                     .label(cleanup)
@@ -231,7 +231,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 write_pattern(context, lhs, on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
-                let cleanup = context.labeler.unique_hint("cleanup");
+                let cleanup = context.make_label("cleanup");
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::TypeOf)
@@ -242,7 +242,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::Swap);
                 write_pattern(context, lhs, &cleanup);
                 // If the first matching fails, we have to clean up the second
-                let match_second = context.labeler.unique_hint("snd");
+                let match_second = context.make_label("snd");
                 context
                     .jump(&match_second)
                     .label(cleanup)
@@ -252,8 +252,8 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 write_pattern(context, rhs, on_fail);
             }
             (None, ir::Value::Builtin(Builtin::Array), ir::Value::Pack(pack)) => {
-                let cleanup = context.labeler.unique_hint("array_cleanup");
-                let end = context.labeler.unique_hint("array_end");
+                let cleanup = context.make_label("array_cleanup");
+                let end = context.make_label("array_end");
                 // Before even attempting to match this array, check its length and the length of
                 // the pattern. If the pattern is longer than the array, then give up already.
                 // The spread element doesn't count towards length since it can be 0. If the pattern
@@ -290,8 +290,8 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     if element.is_spread {
                         // When it's the spread element, take all the elements we aren't going to
                         // need for the tail of this pattern from the array.
-                        let next = context.labeler.unique_hint("spread_next");
-                        let cleanup_spread = context.labeler.unique_hint("cleanup_spread");
+                        let next = context.make_label("spread_next");
+                        let cleanup_spread = context.make_label("cleanup_spread");
                         let elements_in_tail = pack.values.len() - i - 1;
                         context
                             // First determine the runtime length to find out how many elements
@@ -343,9 +343,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 context.scope.end_intermediate(); // array
             }
             (None, ir::Value::Builtin(Builtin::Record), ir::Value::Pack(pack)) => {
-                let cleanup1 = context.labeler.unique_hint("record_cleanup1");
-                let cleanup2 = context.labeler.unique_hint("record_cleanup2");
-                let end = context.labeler.unique_hint("record_end");
+                let cleanup1 = context.make_label("record_cleanup1");
+                let cleanup2 = context.make_label("record_cleanup2");
+                let end = context.make_label("record_end");
                 let mut spread = None;
                 context
                     .instruction(Instruction::Copy)
@@ -397,9 +397,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .label(end);
             }
             (None, ir::Value::Builtin(Builtin::Set), ir::Value::Pack(pack)) => {
-                let cleanup1 = context.labeler.unique_hint("set_cleanup1");
-                let cleanup2 = context.labeler.unique_hint("set_cleanup2");
-                let end = context.labeler.unique_hint("set_end");
+                let cleanup1 = context.make_label("set_cleanup1");
+                let cleanup2 = context.make_label("set_cleanup2");
+                let end = context.make_label("set_end");
                 let mut spread = None;
                 context
                     .instruction(Instruction::Copy)

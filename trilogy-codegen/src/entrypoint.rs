@@ -1,10 +1,11 @@
+use crate::chunk_writer_ext::{ChunkWriterExt, LabelMaker};
 use crate::context::{Labeler, Scope};
 use crate::module::Mode;
 use crate::preamble::RETURN;
 use crate::prelude::*;
 use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
-use trilogy_vm::{Atom, ChunkBuilder, Instruction, Value};
+use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Value};
 
 #[derive(Clone, Debug)]
 pub(crate) enum StaticMember {
@@ -86,46 +87,59 @@ pub fn write_test(builder: &mut ChunkBuilder, module: &ir::Module, path: &[&str]
     write_module_definitions(&mut context, module, &mut statics, Mode::Test(path, test));
 }
 
-impl ProgramContext<'_> {
-    pub fn shift(&mut self, label: &str) -> &mut Self {
+impl ChunkWriter for ProgramContext<'_> {
+    fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.shift(label);
         self
     }
 
-    pub fn close(&mut self, label: &str) -> &mut Self {
+    fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.close(label);
         self
     }
 
-    pub fn cond_jump(&mut self, label: &str) -> &mut Self {
+    fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.cond_jump(label);
         self
     }
 
-    pub fn jump(&mut self, label: &str) -> &mut Self {
+    fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.jump(label);
         self
     }
 
-    pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
+    fn instruction(&mut self, instruction: Instruction) -> &mut Self {
         self.builder.instruction(instruction);
         self
     }
 
-    pub fn label(&mut self, label: impl Into<String>) -> &mut Self {
+    fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.label(label);
         self
     }
 
-    pub fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
+    fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
         self.builder.constant(value);
         self
     }
 
-    pub fn atom(&self, value: &str) -> Atom {
+    fn make_atom<S: AsRef<str>>(&self, value: S) -> Atom {
         self.builder.make_atom(value)
     }
 
+    fn reference<S: Into<String>>(&mut self, value: S) -> &mut Self {
+        self.builder.reference(value);
+        self
+    }
+}
+
+impl LabelMaker for ProgramContext<'_> {
+    fn make_label(&mut self, label: &str) -> String {
+        self.labeler.unique_hint(label)
+    }
+}
+
+impl ProgramContext<'_> {
     pub fn entrypoint(&mut self) -> &mut Self {
         self.builder.entrypoint();
         self
@@ -176,7 +190,7 @@ impl ProgramContext<'_> {
         assert!(procedure.overloads.len() == 1);
         let overload = &procedure.overloads[0];
         let mut context = self.begin(statics, overload.parameters.len());
-        unlock_call(&mut context, "procedure", overload.parameters.len());
+        context.unlock_procedure(overload.parameters.len());
         write_procedure(context, overload);
     }
 
@@ -191,7 +205,7 @@ impl ProgramContext<'_> {
     ) {
         self.label("trilogy:__testentry__");
         let mut context = self.begin(statics, 0);
-        unlock_call(&mut context, "procedure", 0);
+        context.unlock_procedure(0);
         write_expression(&mut context, &test.body);
         context
             .instruction(Instruction::Const(Value::Unit))
@@ -219,8 +233,7 @@ impl ProgramContext<'_> {
         let mut context = self.begin(statics, 0);
         context.constant(((), 0));
         context.scope.intermediate(); // TODO: do we need to know the index of this (it's 0)?
-        context.close(RETURN);
-        unlock_call(&mut context, "rule", arity);
+        context.close(RETURN).unlock_rule(arity);
         context.scope.closure(arity); // TODO: do we need to know the index of these (1...n)?
         context.close(RETURN);
 
@@ -228,8 +241,8 @@ impl ProgramContext<'_> {
             .instruction(Instruction::LoadLocal(0))
             .instruction(Instruction::Uncons);
         for (i, overload) in rule.overloads.iter().enumerate() {
-            let skip = context.labeler.unique_hint("next_overload");
-            let fail = context.labeler.unique_hint("fail");
+            let skip = context.make_label("next_overload");
+            let fail = context.make_label("fail");
             context
                 .instruction(Instruction::Copy)
                 .constant(i)
@@ -273,10 +286,9 @@ impl ProgramContext<'_> {
         self.label(for_id);
         let arity = function.overloads[0].parameters.len();
         let mut context = self.begin(statics, arity);
-        unlock_apply(&mut context);
+        context.unlock_function();
         for _ in 1..arity {
-            context.close(RETURN);
-            unlock_apply(&mut context);
+            context.close(RETURN).unlock_function();
         }
         for overload in &function.overloads {
             write_function(&mut context, overload);

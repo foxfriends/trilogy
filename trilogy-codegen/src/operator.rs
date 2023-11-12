@@ -73,69 +73,66 @@ pub(crate) fn is_unary_operator(builtin: Builtin) -> bool {
 pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
     match builtin {
         Builtin::Negate => {
-            context
-                .typecheck(&["number"])
-                .instruction(Instruction::Negate);
+            context.typecheck("number").instruction(Instruction::Negate);
         }
         Builtin::Not => {
-            context
-                .typecheck(&["boolean"])
-                .instruction(Instruction::Not);
+            context.typecheck("boolean").instruction(Instruction::Not);
         }
         Builtin::Access => {
             context
                 .instruction(Instruction::Swap)
-                .typecheck(&["array", "record"])
+                .reference(ACCESS)
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::Access);
+                .call_function();
+            context.instruction(Instruction::Swap).call_function();
         }
         Builtin::And => {
             context
-                .typecheck(&["boolean"])
+                .typecheck("boolean")
                 .instruction(Instruction::Swap)
-                .typecheck(&["boolean"])
+                .typecheck("boolean")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::And);
         }
         Builtin::Or => {
             context
-                .typecheck(&["boolean"])
+                .typecheck("boolean")
                 .instruction(Instruction::Swap)
-                .typecheck(&["boolean"])
+                .typecheck("boolean")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Or);
         }
         Builtin::Add => {
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Add);
         }
         Builtin::Subtract => {
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Subtract);
         }
         Builtin::Multiply => {
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Multiply);
         }
         Builtin::Divide => {
-            let divided = context.labeler.unique_hint("divided");
-            let divzero = context.labeler.unique_hint("divzero");
+            let divided = context.make_label("divided");
+            let divzero = context.make_label("divzero");
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Copy)
                 .constant(0)
@@ -149,12 +146,12 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             context.label(&divided);
         }
         Builtin::Remainder => {
-            let remed = context.labeler.unique_hint("remed");
-            let remzero = context.labeler.unique_hint("remzero");
+            let remed = context.make_label("remed");
+            let remzero = context.make_label("remzero");
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Copy)
                 .constant(0)
@@ -169,19 +166,19 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         }
         Builtin::Power => {
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Power);
         }
         Builtin::IntDivide => {
-            let intdived = context.labeler.unique_hint("intdived");
-            let intdivzero = context.labeler.unique_hint("intdivzero");
+            let intdived = context.make_label("intdived");
+            let intdivzero = context.make_label("intdivzero");
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Copy)
                 .constant(0)
@@ -220,46 +217,46 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         }
         Builtin::BitwiseAnd => {
             context
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::BitwiseAnd);
         }
         Builtin::BitwiseOr => {
             context
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::BitwiseOr);
         }
         Builtin::BitwiseXor => {
             context
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::BitwiseXor);
         }
         Builtin::Invert => {
             context
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::BitwiseNeg);
         }
         Builtin::LeftShift => {
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::LeftShift);
         }
         Builtin::RightShift => {
             context
-                .typecheck(&["number"])
+                .typecheck("number")
                 .instruction(Instruction::Swap)
-                .typecheck(&["bits"])
+                .typecheck("bits")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::RightShift);
         }
@@ -274,24 +271,24 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         }
         Builtin::Glue => {
             context
-                .typecheck(&["string"])
+                .typecheck("string")
                 .instruction(Instruction::Swap)
-                .typecheck(&["string"])
+                .typecheck("string")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Glue);
         }
         Builtin::Pipe => {
             context
-                .typecheck(&["callable"])
-                .instruction(Instruction::Swap);
-            apply_function(context);
+                .typecheck("callable")
+                .instruction(Instruction::Swap)
+                .call_function();
         }
         Builtin::RPipe => {
             context
                 .instruction(Instruction::Swap)
-                .typecheck(&["callable"])
-                .instruction(Instruction::Swap);
-            apply_function(context);
+                .typecheck("callable")
+                .instruction(Instruction::Swap)
+                .call_function();
         }
         Builtin::Exit => {
             context.instruction(Instruction::Exit);
@@ -317,31 +314,29 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
         }
         Builtin::Compose => {
             context
-                .write_procedure_reference(RCOMPOSE.to_owned())
-                .instruction(Instruction::Swap);
-            apply_function(context);
-            context.instruction(Instruction::Swap);
-            apply_function(context);
+                .reference(RCOMPOSE.to_owned())
+                .instruction(Instruction::Swap)
+                .call_function();
+            context.instruction(Instruction::Swap).call_function();
         }
         Builtin::RCompose => {
             context
-                .write_procedure_reference(COMPOSE.to_owned())
-                .instruction(Instruction::Swap);
-            apply_function(context);
-            context.instruction(Instruction::Swap);
-            apply_function(context);
+                .reference(COMPOSE.to_owned())
+                .instruction(Instruction::Swap)
+                .call_function();
+            context.instruction(Instruction::Swap).call_function();
         }
         Builtin::Yield => {
             context
-                .write_procedure_reference(YIELD.to_owned())
-                .instruction(Instruction::Swap);
-            apply_function(context);
+                .reference(YIELD.to_owned())
+                .instruction(Instruction::Swap)
+                .call_function();
         }
         Builtin::Resume => {
             context
                 .instruction(context.scope.kw_resume().unwrap())
-                .instruction(Instruction::Swap);
-            apply_function(context);
+                .instruction(Instruction::Swap)
+                .call_function();
         }
         Builtin::Cancel => {
             let function = context.make_atom("function");
@@ -409,46 +404,48 @@ pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
 
 pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) {
     match builtin {
-        Builtin::Not => context.write_procedure_reference(NOT.to_owned()),
-        Builtin::Access => context.write_procedure_reference(ACCESS.to_owned()),
-        Builtin::And => context.write_procedure_reference(AND.to_owned()),
-        Builtin::Or => context.write_procedure_reference(OR.to_owned()),
-        Builtin::Add => context.write_procedure_reference(ADD.to_owned()),
-        Builtin::Subtract => context.write_procedure_reference(SUB.to_owned()),
-        Builtin::Multiply => context.write_procedure_reference(MUL.to_owned()),
-        Builtin::Divide => context.write_procedure_reference(DIV.to_owned()),
-        Builtin::Remainder => context.write_procedure_reference(REM.to_owned()),
-        Builtin::Power => context.write_procedure_reference(POW.to_owned()),
-        Builtin::IntDivide => context.write_procedure_reference(INTDIV.to_owned()),
-        Builtin::StructuralEquality => context.write_procedure_reference(VALEQ.to_owned()),
-        Builtin::StructuralInequality => context.write_procedure_reference(VALNEQ.to_owned()),
-        Builtin::ReferenceEquality => context.write_procedure_reference(REFEQ.to_owned()),
-        Builtin::ReferenceInequality => context.write_procedure_reference(REFNEQ.to_owned()),
-        Builtin::Lt => context.write_procedure_reference(LT.to_owned()),
-        Builtin::Gt => context.write_procedure_reference(GT.to_owned()),
-        Builtin::Leq => context.write_procedure_reference(LEQ.to_owned()),
-        Builtin::Geq => context.write_procedure_reference(GEQ.to_owned()),
-        Builtin::BitwiseAnd => context.write_procedure_reference(BITAND.to_owned()),
-        Builtin::BitwiseOr => context.write_procedure_reference(BITOR.to_owned()),
-        Builtin::BitwiseXor => context.write_procedure_reference(BITXOR.to_owned()),
-        Builtin::Invert => context.write_procedure_reference(BITNEG.to_owned()),
-        Builtin::LeftShift => context.write_procedure_reference(LSHIFT.to_owned()),
-        Builtin::RightShift => context.write_procedure_reference(RSHIFT.to_owned()),
-        Builtin::Cons => context.write_procedure_reference(CONS.to_owned()),
-        Builtin::Glue => context.write_procedure_reference(GLUE.to_owned()),
-        Builtin::Pipe => context.write_procedure_reference(PIPE.to_owned()),
-        Builtin::RPipe => context.write_procedure_reference(RPIPE.to_owned()),
-        Builtin::Compose => context.write_procedure_reference(COMPOSE.to_owned()),
-        Builtin::RCompose => context.write_procedure_reference(RCOMPOSE.to_owned()),
+        Builtin::Not => context.reference(NOT),
+        Builtin::Access => context.reference(ACCESS),
+        Builtin::And => context.reference(AND),
+        Builtin::Or => context.reference(OR),
+        Builtin::Add => context.reference(ADD),
+        Builtin::Subtract => context.reference(SUB),
+        Builtin::Multiply => context.reference(MUL),
+        Builtin::Divide => context.reference(DIV),
+        Builtin::Remainder => context.reference(REM),
+        Builtin::Power => context.reference(POW),
+        Builtin::IntDivide => context.reference(INTDIV),
+        Builtin::StructuralEquality => context.reference(VALEQ),
+        Builtin::StructuralInequality => context.reference(VALNEQ),
+        Builtin::ReferenceEquality => context.reference(REFEQ),
+        Builtin::ReferenceInequality => context.reference(REFNEQ),
+        Builtin::Lt => context.reference(LT),
+        Builtin::Gt => context.reference(GT),
+        Builtin::Leq => context.reference(LEQ),
+        Builtin::Geq => context.reference(GEQ),
+        Builtin::BitwiseAnd => context.reference(BITAND),
+        Builtin::BitwiseOr => context.reference(BITOR),
+        Builtin::BitwiseXor => context.reference(BITXOR),
+        Builtin::Invert => context.reference(BITNEG),
+        Builtin::LeftShift => context.reference(LSHIFT),
+        Builtin::RightShift => context.reference(RSHIFT),
+        Builtin::Cons => context.reference(CONS),
+        Builtin::Glue => context.reference(GLUE),
+        Builtin::Pipe => context.reference(PIPE),
+        Builtin::RPipe => context.reference(RPIPE),
+        Builtin::Compose => context.reference(COMPOSE),
+        Builtin::RCompose => context.reference(RCOMPOSE),
         Builtin::Break => context.instruction(context.scope.kw_break().unwrap()),
         Builtin::Continue => context.instruction(context.scope.kw_continue().unwrap()),
         Builtin::Resume => context.instruction(context.scope.kw_resume().unwrap()),
         Builtin::Cancel => context.instruction(context.scope.kw_cancel().unwrap()),
         Builtin::Return => {
-            let end = context.labeler.unique_hint("J");
-            context.shift(&end);
-            unlock_apply(context);
-            context.instruction(Instruction::Return).label(end)
+            let end = context.make_label("J");
+            context
+                .shift(&end)
+                .unlock_function()
+                .instruction(Instruction::Return)
+                .label(end)
         }
 
         Builtin::Negate

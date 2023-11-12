@@ -1,7 +1,7 @@
 use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
 use trilogy_ir::ir::Module;
-use trilogy_vm::{ChunkBuilder, Program, Value};
+use trilogy_vm::{ChunkBuilder, ChunkWriter, Program, Value};
 
 pub(super) struct TrilogyProgram<'a> {
     pub modules: &'a HashMap<Location, Module>,

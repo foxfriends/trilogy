@@ -9,6 +9,6 @@ mod cactus;
 pub mod runtime;
 mod vm;
 
-pub use bytecode::{Chunk, ChunkBuilder, ChunkError, Instruction, Offset, OpCode};
+pub use bytecode::{Chunk, ChunkBuilder, ChunkError, ChunkWriter, Instruction, Offset, OpCode};
 pub use runtime::*;
 pub use vm::{Error, ErrorKind, Execution, InternalRuntimeError, Program, VirtualMachine};

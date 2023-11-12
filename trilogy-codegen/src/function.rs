@@ -4,11 +4,11 @@ use trilogy_ir::visitor::HasBindings;
 use trilogy_vm::Instruction;
 
 pub(crate) fn write_function(context: &mut Context, function: &ir::Function) {
-    let mut cleanup = vec![context.labeler.unique_hint("next")];
+    let mut cleanup = vec![context.make_label("next")];
     for (i, parameter) in function.parameters.iter().enumerate() {
         context.declare_variables(parameter.bindings());
         context.instruction(Instruction::LoadLocal(i as u32));
-        cleanup.push(context.labeler.unique_hint("cleanup"));
+        cleanup.push(context.make_label("cleanup"));
         write_pattern_match(context, parameter, &cleanup[i + 1]);
     }
     write_expression(context, &function.body);

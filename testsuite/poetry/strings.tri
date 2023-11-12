@@ -41,3 +41,32 @@ test "tagged templates" {
     let world = "world"
     assert $"Hello ${world}!"repeat == "Hello worldworld!"
 }
+
+test "strings can be indexed with integers" {
+    assert "hello" . 1 == 'e'
+}
+
+test not "non-number accessor is an error" {
+    "hello"."1"
+}
+
+test not "non-integer accessor is an error" {
+    "hello" . 1.5
+}
+
+test "out of bounds access yields 'MIA" {
+    let x = with "hello" . 5
+        when 'MIA cancel { '.' }
+        else yield
+    assert x == '.'
+}
+
+test "strings can hold multi-byte characters" {
+    "this 🦓 is a zebra"
+}
+
+test "string indexing returns by characters, not bytes" {
+    "this 🦓 is a zebra" . 2 == "i"
+    "this 🦓 is a zebra" . 9 == "i"
+    "this 🦓 is a zebra" . 5 == "🦓"
+}

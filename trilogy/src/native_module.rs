@@ -1,7 +1,7 @@
 use crate::location::Location;
 use std::collections::HashMap;
 use trilogy_codegen::{INCORRECT_ARITY, INVALID_CALL, RETURN};
-use trilogy_vm::{ChunkBuilder, Instruction, Native, NativeFunction, Value};
+use trilogy_vm::{ChunkBuilder, ChunkWriter, Instruction, Native, NativeFunction, Value};
 
 /// A module of native functions.
 ///

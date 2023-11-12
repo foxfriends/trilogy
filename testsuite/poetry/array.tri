@@ -1,0 +1,16 @@
+test "array can be indexed with numbers" {
+    assert ['a, 'b, 'c] . 2 == 'c
+    assert ['a, 'b, 'c] . 0 == 'a
+}
+
+test not "out of bounds access is an error" {
+    ['a, 'b, 'c] . 3
+}
+
+test not "non-number accessor is an error" {
+    ['a, 'b, 'c] . "a"
+}
+
+test not "non-integer accessor is an error" {
+    ['a, 'b, 'c] . 1.5
+}

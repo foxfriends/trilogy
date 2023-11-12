@@ -1,3 +1,4 @@
+use crate::chunk_writer_ext::ChunkWriterExt;
 use crate::preamble::{END, RETURN};
 use crate::{prelude::*, INVALID_ITERATOR};
 use trilogy_ir::ir;
@@ -96,9 +97,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(iterator) => {
-            let construct = context.labeler.unique_hint("iter");
-            let on_fail = context.labeler.unique_hint("iter_out");
-            let end = context.labeler.unique_hint("iter_end");
+            let construct = context.make_label("iter");
+            let on_fail = context.make_label("iter_out");
+            let end = context.make_label("iter_end");
             context.close(&construct);
             context.declare_variables(iterator.query.bindings());
             write_query_state(context, &iterator.query);
@@ -131,38 +132,37 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.undeclare_variables(iterator.query.bindings(), false);
         }
         ir::Value::While(stmt) => {
-            let begin = context.labeler.unique_hint("while");
-            let setup = context.labeler.unique_hint("while_setup");
-            let cond_fail = context.labeler.unique_hint("while_exit");
-            let end = context.labeler.unique_hint("while_end");
-            let continuation = context.labeler.unique_hint("while_cont");
+            let begin = context.make_label("while");
+            let setup = context.make_label("while_setup");
+            let cond_fail = context.make_label("while_exit");
+            let end = context.make_label("while_end");
+            let continuation = context.make_label("while_cont");
             let r#continue = context.scope.push_continue();
             let r#break = context.scope.push_break();
-            context.constant(()).constant(()).shift(&continuation);
-            unlock_apply(context);
             context
+                .constant(())
+                .constant(())
+                .shift(&continuation)
+                .unlock_function()
                 // Continue is called with a value that is ignored. This is definitely an oversight
                 // that I should get around to fixing... or maybe there's a way to use that value?
                 .instruction(Instruction::Pop)
                 .label(begin.to_owned());
             write_expression(context, &stmt.condition);
-            context.typecheck(&["boolean"]).cond_jump(&cond_fail);
+            context.typecheck("boolean").cond_jump(&cond_fail);
             write_expression(context, &stmt.body);
             context
                 .instruction(Instruction::LoadLocal(r#continue))
-                .constant(());
-            apply_function_become(context);
-            context
+                .constant(())
+                .become_function()
                 .label(cond_fail)
                 .instruction(Instruction::LoadLocal(r#break))
-                .constant(());
-            apply_function_become(context);
-            context
+                .constant(())
+                .become_function()
                 .label(continuation)
                 .instruction(Instruction::SetLocal(r#continue))
-                .shift(&setup);
-            unlock_apply(context);
-            context
+                .shift(&setup)
+                .unlock_function()
                 .instruction(Instruction::Pop) // Value passed to break
                 .instruction(Instruction::Pop) // Break
                 .instruction(Instruction::Pop) // Continue
@@ -181,9 +181,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 ir::Value::Dynamic(ident),
             ) => {
                 write_evaluation(context, module_ref);
-                context.typecheck(&["callable"]);
-                context.atom(&**ident);
-                apply_module(context);
+                context.typecheck("callable").atom(&**ident).call_module();
             }
             (None, ir::Value::Builtin(builtin), arg) if is_unary_operator(*builtin) => {
                 write_unary_operation(context, arg, *builtin);
@@ -208,8 +206,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     ir::Value::Iterator(..) => {
                         write_evaluation(context, arg);
                         context.scope.intermediate();
-                        let loop_begin = context.labeler.unique_hint("record_collect");
-                        let loop_exit = context.labeler.unique_hint("record_collect_end");
+                        let loop_begin = context.make_label("record_collect");
+                        let loop_exit = context.make_label("record_collect_end");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
@@ -259,8 +257,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     ir::Value::Iterator(..) => {
                         write_evaluation(context, arg);
                         context.scope.intermediate();
-                        let loop_begin = context.labeler.unique_hint("set_collect");
-                        let loop_exit = context.labeler.unique_hint("set_collect_end");
+                        let loop_begin = context.make_label("set_collect");
+                        let loop_exit = context.make_label("set_collect_end");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
@@ -309,8 +307,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     ir::Value::Iterator(..) => {
                         write_evaluation(context, arg);
                         context.scope.intermediate();
-                        let loop_begin = context.labeler.unique_hint("array_collect");
-                        let loop_exit = context.labeler.unique_hint("array_collect_end");
+                        let loop_begin = context.make_label("array_collect");
+                        let loop_exit = context.make_label("array_collect_end");
                         context
                             .label(loop_begin.clone())
                             .instruction(Instruction::Copy)
@@ -346,8 +344,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.constant(false);
                 let eval_to = context.scope.intermediate();
                 write_evaluation(context, value);
-                let loop_begin = context.labeler.unique_hint("for");
-                let loop_exit = context.labeler.unique_hint("for_end");
+                let loop_begin = context.make_label("for");
+                let loop_exit = context.make_label("for_end");
                 context
                     .label(loop_begin.clone())
                     .instruction(Instruction::Copy)
@@ -375,8 +373,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
-                let is_fail = context.labeler.unique_hint("is_fail");
-                let is_end = context.labeler.unique_hint("is_end");
+                let is_fail = context.make_label("is_fail");
+                let is_end = context.make_label("is_end");
                 let var_count = context.declare_variables(query.bindings());
                 write_query_state(context, query);
                 write_query(context, query, &is_fail);
@@ -395,7 +393,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             _ => {
                 write_expression(context, &application.function);
-                context.typecheck(&["callable"]);
+                context.typecheck("callable");
                 context.scope.intermediate();
                 write_expression(context, &application.argument);
                 context.scope.end_intermediate();
@@ -404,14 +402,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         let arity = pack
                             .len()
                             .expect("procedures may not have spread arguments");
-                        call_procedure(context, arity);
+                        context.call_procedure(arity);
                     }
-                    _ => apply_function(context),
+                    _ => {
+                        context.call_function();
+                    }
                 };
             }
         },
         ir::Value::Let(decl) if decl.query.is_once() => {
-            let reenter = context.labeler.unique_hint("let");
+            let reenter = context.make_label("let");
             let declared = context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
             context.label(reenter.clone());
@@ -424,7 +424,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::Let(decl) => {
-            let reenter = context.labeler.unique_hint("let");
+            let reenter = context.make_label("let");
             let declared = context.declare_variables(decl.query.bindings());
             write_query_state(context, &decl.query);
             context.label(reenter.clone());
@@ -442,11 +442,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.undeclare_variables(decl.query.bindings(), true);
         }
         ir::Value::IfElse(cond) => {
-            let when_false = context.labeler.unique_hint("else");
+            let when_false = context.make_label("else");
             write_expression(context, &cond.condition);
-            context.typecheck(&["boolean"]).cond_jump(&when_false);
+            context.typecheck("boolean").cond_jump(&when_false);
             write_expression(context, &cond.when_true);
-            let end = context.labeler.unique_hint("end_if");
+            let end = context.make_label("end_if");
             context.jump(&end);
             context.label(when_false);
             write_expression(context, &cond.when_false);
@@ -455,14 +455,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Match(cond) => {
             write_expression(context, &cond.expression);
             let val = context.scope.intermediate();
-            let end = context.labeler.unique_hint("match_end");
+            let end = context.make_label("match_end");
             for case in &cond.cases {
-                let cleanup = context.labeler.unique_hint("case_cleanup");
+                let cleanup = context.make_label("case_cleanup");
                 let vars = context.declare_variables(case.pattern.bindings());
                 context.instruction(Instruction::LoadLocal(val));
                 write_pattern_match(context, &case.pattern, &cleanup);
                 write_expression(context, &case.guard);
-                context.typecheck(&["boolean"]).cond_jump(&cleanup);
+                context.typecheck("boolean").cond_jump(&cleanup);
                 write_expression(context, &case.body);
                 context.instruction(Instruction::SetLocal(val));
                 context.undeclare_variables(case.pattern.bindings(), true);
@@ -476,11 +476,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.label(end);
         }
         ir::Value::Fn(closure) => {
-            let end = context.labeler.unique_hint("end_fn");
+            let end = context.make_label("end_fn");
             let params = context.scope.closure(closure.parameters.len());
             for i in 0..closure.parameters.len() {
-                context.close(if i == 0 { &end } else { RETURN });
-                unlock_apply(context);
+                context
+                    .close(if i == 0 { &end } else { RETURN })
+                    .unlock_function();
             }
             for (i, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
@@ -496,10 +497,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.label(end);
         }
         ir::Value::Do(closure) => {
-            let end = context.labeler.unique_hint("end_do");
+            let end = context.make_label("end_do");
             let param_start = context.scope.closure(closure.parameters.len());
-            context.close(&end);
-            unlock_call(context, "procedure", closure.parameters.len());
+            context
+                .close(&end)
+                .unlock_procedure(closure.parameters.len());
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context.instruction(Instruction::LoadLocal(param_start + offset as u32));
@@ -516,9 +518,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.unclosure(closure.parameters.len());
         }
         ir::Value::Handled(handled) => {
-            let when = context.labeler.unique_hint("when");
-            let end = context.labeler.unique_hint("with_end");
-            let body = context.labeler.unique_hint("with_body");
+            let when = context.make_label("when");
+            let end = context.make_label("with_end");
+            let body = context.make_label("with_body");
 
             // Register 0 holds the current effect handler, which corresponds to the `yield` keyword.
             // To register a new one we must first store the parent handler.
@@ -531,9 +533,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let stored_yield = context.scope.intermediate();
 
             // Second on the stack is the cancel continuation.
-            context.shift(&when);
-            unlock_apply(context);
-            context.jump(&end);
+            context.shift(&when).unlock_function().jump(&end);
             context.scope.push_cancel();
 
             // The new yield is created next, but it's not kept on stack.
@@ -556,12 +556,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .instruction(Instruction::LoadLocal(stored_context))
                 .instruction(Instruction::SetRegister(1));
             for handler in &handled.handlers {
-                let next = context.labeler.unique_hint("when_next");
+                let next = context.make_label("when_next");
                 context.declare_variables(handler.pattern.bindings());
                 context.instruction(Instruction::LoadLocal(effect));
                 write_pattern_match(context, &handler.pattern, &next);
                 write_expression(context, &handler.guard);
-                context.typecheck(&["boolean"]).cond_jump(&next);
+                context.typecheck("boolean").cond_jump(&next);
                 write_expression(context, &handler.body);
                 // At the end of an effect handler, everything just ends.
                 //
@@ -610,11 +610,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     context.instruction(Instruction::LoadLocal(offset));
                 }
                 Binding::Static(label) => {
-                    context.write_procedure_reference(label.to_owned());
+                    context.reference(label.to_owned());
                 }
                 Binding::Context(label) => {
                     context
-                        .write_procedure_reference(label.to_owned())
+                        .reference(label.to_owned())
                         .instruction(Instruction::Call(0));
                 }
             }
@@ -623,11 +623,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             unreachable!("dynamic only exists inside module access");
         }
         ir::Value::Assert(assert) => {
-            let passed = context.labeler.unique_hint("assert_passed");
+            let passed = context.make_label("assert_passed");
             write_expression(context, &assert.assertion);
             context
                 .instruction(Instruction::Copy)
-                .typecheck(&["boolean"])
+                .typecheck("boolean")
                 .instruction(Instruction::Not)
                 .cond_jump(&passed);
             write_expression(context, &assert.message);

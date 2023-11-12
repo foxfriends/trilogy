@@ -6,10 +6,10 @@ use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
 use trilogy_vm::Instruction;
 
 pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) {
-    let setup = context.labeler.unique_hint("setup");
-    let end = context.labeler.unique_hint("end");
-    let precall = context.labeler.unique_hint("precall");
-    let call = context.labeler.unique_hint("call");
+    let setup = context.make_label("setup");
+    let end = context.make_label("end");
+    let precall = context.make_label("precall");
+    let call = context.make_label("call");
 
     // On calling a rule, check if the state is `unit`. If it is, that means it's the
     // first time into this branch of the rule, so we have to run setup.
@@ -51,8 +51,8 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // exist inside the closure, and must not exist on stack outside the closure.
     let mut total_declared = 0;
     for (i, parameter) in rule.parameters.iter().enumerate() {
-        let skip = context.labeler.unique_hint("skip");
-        cleanup.push(context.labeler.unique_hint("cleanup"));
+        let skip = context.make_label("skip");
+        cleanup.push(context.make_label("cleanup"));
         // Variables of this binding must be declared, whether they are about to
         // be set or not.
         total_declared += context.declare_variables(parameter.bindings());
@@ -87,7 +87,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // The actual body of the rule involves running the query, then
     // returning the return value in 'next. We convert failure to
     // returning 'done, as in a regular iterator.
-    let on_done = context.labeler.unique_hint("on_done");
+    let on_done = context.make_label("on_done");
     context.instruction(Instruction::LoadLocal(actual_state));
     write_query(context, &rule.body, &on_done);
     context.instruction(Instruction::SetLocal(actual_state));
@@ -99,8 +99,8 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // Stack these up in reverse so that when the caller starts pattern matching they are
     // doing it left to right, as expected.
     for (i, param) in rule.parameters.iter().enumerate().rev() {
-        let eval = context.labeler.unique_hint("eval");
-        let next = context.labeler.unique_hint("next");
+        let eval = context.make_label("eval");
+        let next = context.make_label("next");
         context
             .instruction(Instruction::IsSetLocal(1 + i as u32))
             // Previously unset parameters get evaluated into

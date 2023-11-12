@@ -1,3 +1,4 @@
+mod chunk_writer_ext;
 mod context;
 mod entrypoint;
 mod evaluation;
@@ -15,6 +16,7 @@ pub use entrypoint::{write_module, write_program, write_test};
 pub use preamble::*;
 
 mod prelude {
+    pub(crate) use super::chunk_writer_ext::{ChunkWriterExt as _, LabelMaker as _};
     pub(crate) use crate::context::{Binding, Context};
     pub(crate) use crate::evaluation::{write_evaluation, write_expression};
     pub(crate) use crate::function::write_function;
@@ -26,4 +28,5 @@ mod prelude {
     pub(crate) use crate::procedure::write_procedure;
     pub(crate) use crate::query::*;
     pub(crate) use crate::rule::write_rule;
+    pub(crate) use trilogy_vm::ChunkWriter as _;
 }

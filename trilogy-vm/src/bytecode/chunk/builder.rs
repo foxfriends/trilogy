@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::error::ChunkError;
-use super::Chunk;
+use super::{Chunk, ChunkWriter};
 use crate::atom::AtomInterner;
 use crate::bytecode::asm::{self, AsmReader};
 use crate::callable::Procedure;
@@ -48,129 +48,15 @@ impl ChunkBuilder {
         }
     }
 
-    /// Instantiate an atom for the current runtime. Atoms cannot be created except
-    /// for within the context of a particular runtime's global atom table.
-    pub fn make_atom(&self, atom: &str) -> Atom {
-        self.interner.intern(atom)
-    }
-
     /// Instantiate an anonymous atom for the current runtime. An anonymous atom
     /// cannot be re-created. The provided label is shown when debugging, but two
     /// atoms with the same label are not the same value.
     pub fn anon_atom(&self, label: &str) -> Atom {
         Atom::new_unique(label.to_owned())
     }
+}
 
-    /// Add a label to the next instruction to be inserted.
-    ///
-    /// ```asm
-    /// label:
-    /// ```
-    ///
-    /// Note that if no instruction is inserted following this label, the label will
-    /// be treated as if it was not defined.
-    pub fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.current_labels.push(label.into());
-        self
-    }
-
-    /// Insert a CONST instruction of the given value.
-    ///
-    /// Performs conversion internally to make setting constants a little more ergonomic.
-    /// This is just a helper as it does not do anything you couldn't do yourself normally.
-    pub fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
-        self.instruction(Instruction::Const(value.into()))
-    }
-
-    /// Insert a CONST instruction where the value is created by converting the given string to
-    /// an atom.
-    ///
-    /// This is just a helper as it does not do anything you couldn't do yourself normally.
-    pub fn atom(&mut self, atom: &str) -> &mut Self {
-        self.constant(self.make_atom(atom))
-    }
-
-    /// Insert a CONST instruction that references a procedure located at the
-    /// given label.
-    ///
-    /// ```asm
-    /// CONST &label
-    /// ```
-    pub fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.write_line(OpCode::Const, Some(Parameter::Reference(label.into())))
-    }
-
-    /// Insert a JUMP instruction to a given label.
-    ///
-    /// ```asm
-    /// JUMP &label
-    /// ```
-    pub fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.write_line(OpCode::Jump, Some(Parameter::Label(label.into())))
-    }
-
-    /// Insert a JUMPF instruction to a given label.
-    ///
-    /// ```asm
-    /// JUMPF &label
-    /// ```
-    pub fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.write_line(OpCode::CondJump, Some(Parameter::Label(label.into())))
-    }
-
-    /// Insert a CLOSE instruction to a given label.
-    ///
-    /// ```asm
-    /// CLOSE &label
-    /// ```
-    pub fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.write_line(OpCode::Close, Some(Parameter::Label(label.into())))
-    }
-
-    /// Insert a SHIFT instruction to a given label.
-    ///
-    /// ```asm
-    /// SHIFT &label
-    /// ```
-    pub fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.write_line(OpCode::Shift, Some(Parameter::Label(label.into())))
-    }
-
-    /// Insert an instruction.
-    ///
-    /// All labels currently in the buffer will be assigned to this line, and
-    /// the buffer will be cleared.
-    pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
-        let opcode = instruction.op_code();
-        let value = match instruction {
-            Instruction::Const(value) => Some(Parameter::Value(value)),
-            Instruction::Chunk(value) => Some(Parameter::Value(value)),
-            Instruction::LoadLocal(offset) => Some(Parameter::Offset(offset)),
-            Instruction::SetLocal(offset) => Some(Parameter::Offset(offset)),
-            Instruction::InitLocal(offset) => Some(Parameter::Offset(offset)),
-            Instruction::UnsetLocal(offset) => Some(Parameter::Offset(offset)),
-            Instruction::IsSetLocal(offset) => Some(Parameter::Offset(offset)),
-            Instruction::LoadRegister(offset) => Some(Parameter::Offset(offset)),
-            Instruction::SetRegister(offset) => Some(Parameter::Offset(offset)),
-            Instruction::Slide(offset) => Some(Parameter::Offset(offset)),
-            Instruction::Call(offset) => Some(Parameter::Offset(offset)),
-            Instruction::Become(offset) => Some(Parameter::Offset(offset)),
-            Instruction::Close(offset) => Some(Parameter::Offset(offset)),
-            Instruction::Shift(offset) => Some(Parameter::Offset(offset)),
-            Instruction::Jump(offset) => Some(Parameter::Offset(offset)),
-            Instruction::CondJump(offset) => Some(Parameter::Offset(offset)),
-            _ => {
-                assert_eq!(
-                    instruction.byte_len(),
-                    1,
-                    "{instruction} needs to be handled"
-                );
-                None
-            }
-        };
-        self.write_line(opcode, value)
-    }
-
+impl ChunkBuilder {
     pub(super) fn write_line(&mut self, opcode: OpCode, value: Option<Parameter>) -> &mut Self {
         let labels = self.current_labels.drain(..).collect();
         self.lines.push(Line {
@@ -334,5 +220,99 @@ impl ChunkBuilder {
             Entrypoint::Index(index) => index,
         };
         Ok(entry)
+    }
+}
+
+impl ChunkWriter for ChunkBuilder {
+    /// Instantiate an atom for the current runtime. Atoms cannot be created except
+    /// for within the context of a particular runtime's global atom table.
+    fn make_atom<S: AsRef<str>>(&self, atom: S) -> Atom {
+        self.interner.intern(atom.as_ref())
+    }
+
+    fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.current_labels.push(label.into());
+        self
+    }
+
+    /// Insert a CONST instruction that references a procedure located at the
+    /// given label.
+    ///
+    /// ```asm
+    /// CONST &label
+    /// ```
+    fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.write_line(OpCode::Const, Some(Parameter::Reference(label.into())))
+    }
+
+    /// Insert a JUMP instruction to a given label.
+    ///
+    /// ```asm
+    /// JUMP &label
+    /// ```
+    fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.write_line(OpCode::Jump, Some(Parameter::Label(label.into())))
+    }
+
+    /// Insert a JUMPF instruction to a given label.
+    ///
+    /// ```asm
+    /// JUMPF &label
+    /// ```
+    fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.write_line(OpCode::CondJump, Some(Parameter::Label(label.into())))
+    }
+
+    /// Insert a CLOSE instruction to a given label.
+    ///
+    /// ```asm
+    /// CLOSE &label
+    /// ```
+    fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.write_line(OpCode::Close, Some(Parameter::Label(label.into())))
+    }
+
+    /// Insert a SHIFT instruction to a given label.
+    ///
+    /// ```asm
+    /// SHIFT &label
+    /// ```
+    fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.write_line(OpCode::Shift, Some(Parameter::Label(label.into())))
+    }
+
+    /// Insert an instruction.
+    ///
+    /// All labels currently in the buffer will be assigned to this line, and
+    /// the buffer will be cleared.
+    fn instruction(&mut self, instruction: Instruction) -> &mut Self {
+        let opcode = instruction.op_code();
+        let value = match instruction {
+            Instruction::Const(value) => Some(Parameter::Value(value)),
+            Instruction::Chunk(value) => Some(Parameter::Value(value)),
+            Instruction::LoadLocal(offset) => Some(Parameter::Offset(offset)),
+            Instruction::SetLocal(offset) => Some(Parameter::Offset(offset)),
+            Instruction::InitLocal(offset) => Some(Parameter::Offset(offset)),
+            Instruction::UnsetLocal(offset) => Some(Parameter::Offset(offset)),
+            Instruction::IsSetLocal(offset) => Some(Parameter::Offset(offset)),
+            Instruction::LoadRegister(offset) => Some(Parameter::Offset(offset)),
+            Instruction::SetRegister(offset) => Some(Parameter::Offset(offset)),
+            Instruction::Slide(offset) => Some(Parameter::Offset(offset)),
+            Instruction::Call(offset) => Some(Parameter::Offset(offset)),
+            Instruction::Become(offset) => Some(Parameter::Offset(offset)),
+            Instruction::Close(offset) => Some(Parameter::Offset(offset)),
+            Instruction::Shift(offset) => Some(Parameter::Offset(offset)),
+            Instruction::Jump(offset) => Some(Parameter::Offset(offset)),
+            Instruction::CondJump(offset) => Some(Parameter::Offset(offset)),
+            _ => {
+                assert_eq!(
+                    instruction.byte_len(),
+                    1,
+                    "{instruction} needs to be handled"
+                );
+                None
+            }
+        };
+        self.write_line(opcode, value)
     }
 }

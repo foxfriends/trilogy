@@ -184,7 +184,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             context.scope.intermediate();
             write_expression(context, &lookup.path);
             context
-                .typecheck(&["callable"])
+                .typecheck("callable")
                 .instruction(Instruction::Call(0)) // The state is the closure
                 .instruction(Instruction::Cons) // with the bindset
                 .constant(false) // and a flag to keep track of whether the closure is initialized or not
@@ -262,8 +262,8 @@ fn write_query_value(
 ) {
     match &value {
         ir::QueryValue::Direct(unification) => {
-            let pass = context.labeler.unique_hint("pass");
-            let cleanup = context.labeler.unique_hint("cleanup");
+            let pass = context.make_label("pass");
+            let cleanup = context.make_label("cleanup");
             // Take out the bindset
             let bindset = context.scope.intermediate();
             context.instruction(Instruction::Uncons);
@@ -291,10 +291,10 @@ fn write_query_value(
             context.scope.end_intermediate(); // bindset
         }
         ir::QueryValue::Element(unification) => {
-            let cleanup = context.labeler.unique_hint("in_cleanup");
-            let continuation = context.labeler.unique_hint("in_cont");
+            let cleanup = context.make_label("in_cleanup");
+            let continuation = context.make_label("in_cont");
 
-            let body = context.labeler.unique_hint("in_body");
+            let body = context.make_label("in_body");
 
             // First check to see if the state is `unit`, meaning we have to set up the
             // iterator still.
@@ -308,10 +308,10 @@ fn write_query_value(
                 // State was unit, discard it
                 .instruction(Instruction::Pop);
             // Then create the actual iterator
-            let cleanup_setup = context.labeler.unique_hint("in_setup_fail");
+            let cleanup_setup = context.make_label("in_setup_fail");
             evaluate_or_fail(context, bound, &unification.expression, &cleanup_setup);
             context
-                .write_procedure_reference(ITERATE_COLLECTION)
+                .reference(ITERATE_COLLECTION)
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Call(1))
                 .jump(&body)
@@ -370,7 +370,7 @@ fn write_query_value(
             // Then it's just failed if the evaluation is false.
             write_expression(context, expr);
             context.scope.end_intermediate(); // state
-            context.typecheck(&["boolean"]).cond_jump(on_fail);
+            context.typecheck("boolean").cond_jump(on_fail);
         }
         ir::QueryValue::End => {
             // Always fail. The state isn't required at all.
@@ -385,7 +385,7 @@ fn write_query_value(
                 .cond_jump(on_fail);
         }
         ir::QueryValue::Not(query) => {
-            let cleanup = context.labeler.unique_hint("not_cleanup");
+            let cleanup = context.make_label("not_cleanup");
             context
                 // Take up the bindset for later
                 .instruction(Instruction::Uncons)
@@ -398,7 +398,7 @@ fn write_query_value(
             // starting from scratch. We do need to pass along the current bindset
             // though, because a `not` subquery is treated as part of the parent
             // query in terms of scoping.
-            let on_pass = context.labeler.unique_hint("not_fail");
+            let on_pass = context.make_label("not_fail");
             let bindset = context.scope.intermediate();
             context.scope.intermediate(); // Marker
 
@@ -428,12 +428,12 @@ fn write_query_value(
             context.scope.end_intermediate();
         }
         ir::QueryValue::Conjunction(conj) => {
-            let out = context.labeler.unique_hint("conj_out");
-            let next = context.labeler.unique_hint("conj_next");
-            let cleanup = context.labeler.unique_hint("conj_cleanup");
-            let outer = context.labeler.unique_hint("conj_outer");
-            let inner = context.labeler.unique_hint("conj_inner");
-            let reset = context.labeler.unique_hint("conj_reset");
+            let out = context.make_label("conj_out");
+            let next = context.make_label("conj_next");
+            let cleanup = context.make_label("conj_cleanup");
+            let outer = context.make_label("conj_outer");
+            let inner = context.make_label("conj_inner");
+            let reset = context.make_label("conj_reset");
 
             let lhs_vars = conj.0.bindings();
             let rhs_bound = bound.union(&lhs_vars);
@@ -551,11 +551,11 @@ fn write_query_value(
             context.label(out);
         }
         ir::QueryValue::Implication(imp) => {
-            let out = context.labeler.unique_hint("impl_out");
-            let cleanup_first = context.labeler.unique_hint("impl_cleanf");
-            let cleanup_second = context.labeler.unique_hint("impl_cleans");
-            let outer = context.labeler.unique_hint("impl_outer");
-            let inner = context.labeler.unique_hint("impl_inner");
+            let out = context.make_label("impl_out");
+            let cleanup_first = context.make_label("impl_cleanf");
+            let cleanup_second = context.make_label("impl_cleans");
+            let outer = context.make_label("impl_outer");
+            let inner = context.make_label("impl_inner");
 
             let lhs_vars = imp.0.bindings();
             let rhs_bound = bound.union(&lhs_vars);
@@ -618,11 +618,11 @@ fn write_query_value(
             context.label(out);
         }
         ir::QueryValue::Disjunction(disj) => {
-            let first = context.labeler.unique_hint("disj_first");
-            let second = context.labeler.unique_hint("disj_second");
-            let next = context.labeler.unique_hint("disj_next");
-            let out = context.labeler.unique_hint("disj_out");
-            let cleanup = context.labeler.unique_hint("disj_cleanup");
+            let first = context.make_label("disj_first");
+            let second = context.make_label("disj_second");
+            let next = context.make_label("disj_next");
+            let out = context.make_label("disj_out");
+            let cleanup = context.make_label("disj_cleanup");
 
             // Deconstruct the state. The first field indicates whether the first query has
             // already been exhausted (true) or not (false)
@@ -674,11 +674,11 @@ fn write_query_value(
             context.label(out);
         }
         ir::QueryValue::Alternative(alt) => {
-            let maybe = context.labeler.unique_hint("alt_maybe");
-            let second = context.labeler.unique_hint("alt_second");
-            let out = context.labeler.unique_hint("alt_out");
-            let cleanup_first = context.labeler.unique_hint("alt_cleanf");
-            let cleanup_second = context.labeler.unique_hint("alt_cleans");
+            let maybe = context.make_label("alt_maybe");
+            let second = context.make_label("alt_second");
+            let out = context.make_label("alt_out");
+            let cleanup_first = context.make_label("alt_cleanf");
+            let cleanup_second = context.make_label("alt_cleans");
 
             // To run the alternative thing, we need to keep a little extra state
             // temporarily. Slip that in behind the actual state before we begin.
@@ -769,11 +769,11 @@ fn write_query_value(
             context.scope.end_intermediate(); // is_uncommitted
         }
         ir::QueryValue::Lookup(lookup) => {
-            let setup = context.labeler.unique_hint("setup");
-            let enter = context.labeler.unique_hint("enter_lookup");
-            let reenter = context.labeler.unique_hint("reenter_lookup");
-            let cleanup = context.labeler.unique_hint("cleanup");
-            let end = context.labeler.unique_hint("end");
+            let setup = context.make_label("setup");
+            let enter = context.make_label("enter_lookup");
+            let reenter = context.make_label("reenter_lookup");
+            let cleanup = context.make_label("cleanup");
+            let end = context.make_label("end");
 
             context
                 .instruction(Instruction::Uncons)
@@ -819,7 +819,7 @@ fn write_query_value(
             // If the iterator has yielded something, we have to destructure it into all the variables
             // of the unbound parameters.
             context.scope.intermediate(); // return value
-            let try_again = context.labeler.unique_hint("try_again");
+            let try_again = context.make_label("try_again");
             for pattern in lookup.patterns.iter().rev() {
                 context.instruction(Instruction::Uncons);
                 // If the pattern doesn't match, the next call of the rule might, so try again still.
@@ -872,7 +872,7 @@ fn write_query_value(
                 context.scope.intermediate();
             }
             // Then we do the call, with all those arguments
-            call_rule(context, lookup.patterns.len());
+            context.call_rule(lookup.patterns.len());
             // Clean up the scope
             for _ in &lookup.patterns {
                 context.scope.end_intermediate();
@@ -895,7 +895,7 @@ fn unbind(context: &mut Context, bindset: &Bindings<'_>, vars: HashSet<Id>) {
     let newly_bound = vars.difference(bindset.0.as_ref());
     for var in newly_bound {
         let index = context.scope.lookup(var).unwrap().unwrap_local();
-        let skip = context.labeler.unique_hint("skip");
+        let skip = context.make_label("skip");
         context
             .instruction(Instruction::Copy)
             .constant(index)
@@ -920,7 +920,7 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
         // If some variables are not known statically, then those variables are checked
         // at runtime. If any are unset, then we just skip this expression and push an
         // empty cell on to the stack in its place.
-        let nope = context.labeler.unique_hint("nope");
+        let nope = context.make_label("nope");
         for var in &vars {
             if bindset.is_bound(var) {
                 continue;
@@ -933,7 +933,7 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
                     .cond_jump(&nope);
             }
         }
-        let next = context.labeler.unique_hint("next");
+        let next = context.make_label("next");
         write_expression(context, value);
         context
             .jump(&next)

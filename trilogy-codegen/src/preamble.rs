@@ -1,5 +1,8 @@
-use crate::entrypoint::ProgramContext;
-use trilogy_vm::{Instruction, Struct, Value};
+use crate::{
+    chunk_writer_ext::{ChunkWriterExt, LabelMaker},
+    entrypoint::ProgramContext,
+};
+use trilogy_vm::{ChunkWriter, Instruction, Value};
 
 pub const ADD: &str = "core::add";
 pub const SUB: &str = "core::sub";
@@ -12,6 +15,8 @@ pub const NEGATE: &str = "core::neg";
 
 pub const GLUE: &str = "core::glue";
 pub const ACCESS: &str = "core::access";
+pub const ACCESS_ANY: &str = "core::access_any";
+pub const ACCESS_INT: &str = "core::access_int";
 
 pub const AND: &str = "core::and";
 pub const OR: &str = "core::or";
@@ -57,61 +62,19 @@ pub const RUNTIME_TYPE_ERROR: &str = "panic::runtime_type_error";
 pub const INCORRECT_ARITY: &str = "panic::incorrect_arity";
 pub const INVALID_CALL: &str = "panic::invalid_call";
 
-fn unlock_apply(context: &mut ProgramContext) {
-    let function = context.atom("function");
-    context
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::Destruct)
-        .instruction(Instruction::Copy)
-        .constant(function)
-        .instruction(Instruction::ValEq)
-        .cond_jump(INVALID_CALL)
-        .instruction(Instruction::Pop)
-        .constant(1)
-        .instruction(Instruction::ValEq)
-        .cond_jump(INCORRECT_ARITY)
-        .instruction(Instruction::Pop);
-}
-
-fn typecheck(context: &mut ProgramContext, types: &[&str]) {
-    match types.len() {
-        0 => {}
-        1 => {
-            let ty = context.atom(types[0]);
-            context
-                .instruction(Instruction::Copy)
-                .instruction(Instruction::TypeOf)
-                .constant(ty)
-                .instruction(Instruction::ValEq)
-                .cond_jump(RUNTIME_TYPE_ERROR);
-        }
-        _ => {
-            let done = context.labeler.unique_hint("done");
-            for t in types {
-                let ty = context.atom(t);
-                context
-                    .instruction(Instruction::Copy)
-                    .instruction(Instruction::TypeOf)
-                    .constant(ty)
-                    .instruction(Instruction::ValNeq)
-                    .cond_jump(&done);
-            }
-            context.jump(RUNTIME_TYPE_ERROR).label(done);
-        }
-    }
-}
+pub const MIA: &str = "yield::MIA";
 
 macro_rules! binop {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
-        $builder.label($label);
-        unlock_apply($builder);
-        $builder.shift(RETURN);
-        unlock_apply($builder);
-        $builder.instruction(Instruction::LoadLocal(0));
-        typecheck($builder, $lty);
-        $builder.instruction(Instruction::Swap);
-        typecheck($builder, $rty);
         $builder
+            .label($label)
+            .unlock_function()
+            .shift(RETURN)
+            .unlock_function()
+            .instruction(Instruction::LoadLocal(0))
+            .typecheck($lty)
+            .instruction(Instruction::Swap)
+            .typecheck($rty)
             $(.instruction($op))+
             .instruction(Instruction::Reset)
     }};
@@ -119,11 +82,11 @@ macro_rules! binop {
 
 macro_rules! binop_ {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
-        $builder.label($label);
-        unlock_apply($builder);
-        $builder.shift(RETURN);
-        unlock_apply($builder);
         $builder
+            .label($label)
+            .unlock_function()
+            .shift(RETURN)
+            .unlock_function()
             .instruction(Instruction::LoadLocal(0))
             $(.instruction($op))+
             .instruction(Instruction::Reset)
@@ -132,10 +95,10 @@ macro_rules! binop_ {
 
 macro_rules! unop {
     ($builder:expr, $label:expr, $ty:expr, $($op:expr),+) => {{
-        $builder.label($label);
-        unlock_apply($builder);
-        typecheck($builder, $ty);
         $builder
+            .label($label)
+            .unlock_function()
+            .typecheck($ty)
             $(.instruction($op))+
             .instruction(Instruction::Return)
     }};
@@ -143,126 +106,134 @@ macro_rules! unop {
 
 #[rustfmt::skip]
 pub(crate) fn write_preamble(builder: &mut ProgramContext) {
-    binop!(builder, ADD, &["number"], &["number"], Instruction::Add);
-    binop!(builder, SUB, &["number"], &["number"], Instruction::Subtract);
-    binop!(builder, MUL, &["number"], &["number"], Instruction::Multiply);
-    binop!(builder, DIV, &["number"], &["number"], Instruction::Divide);
-    binop!(builder, INTDIV, &["number"], &["number"], Instruction::IntDivide);
-    binop!(builder, REM, &["number"], &["number"], Instruction::Remainder);
-    binop!(builder, POW, &["number"], &["number"], Instruction::Power);
-    unop!(builder, NEGATE, &["number"], Instruction::Negate);
+    binop!(builder, ADD, "number", "number", Instruction::Add);
+    binop!(builder, SUB, "number", "number", Instruction::Subtract);
+    binop!(builder, MUL, "number", "number", Instruction::Multiply);
+    binop!(builder, DIV, "number", "number", Instruction::Divide);
+    binop!(builder, INTDIV, "number", "number", Instruction::IntDivide);
+    binop!(builder, REM, "number", "number", Instruction::Remainder);
+    binop!(builder, POW, "number", "number", Instruction::Power);
+    unop!(builder, NEGATE, "number", Instruction::Negate);
 
-    binop!(builder, GLUE, &["string"], &["string"], Instruction::Glue);
-    binop!(builder, ACCESS, &["array", "record"], &[], Instruction::Access);
+    binop!(builder, GLUE, "string", "string", Instruction::Glue);
 
-    binop!(builder, AND, &["boolean"], &["boolean"], Instruction::And);
-    binop!(builder, OR, &["boolean"], &["boolean"], Instruction::Or);
-    unop!(builder, NOT, &["boolean"], Instruction::Not);
+    binop!(builder, AND, "boolean", "boolean", Instruction::And);
+    binop!(builder, OR, "boolean", "boolean", Instruction::Or);
+    unop!(builder, NOT, "boolean", Instruction::Not);
 
-    binop!(builder, BITAND, &["bits"], &["bits"], Instruction::BitwiseAnd);
-    binop!(builder, BITOR, &["bits"], &["bits"], Instruction::BitwiseOr);
-    binop!(builder, BITXOR, &["bits"], &["bits"], Instruction::BitwiseXor);
-    unop!(builder, BITNEG, &["bits"], Instruction::BitwiseNeg);
-    binop!(builder, LSHIFT, &["bits"], &["number"], Instruction::LeftShift);
-    binop!(builder, RSHIFT, &["bits"], &["number"], Instruction::RightShift);
+    binop!(builder, BITAND, "bits", "bits", Instruction::BitwiseAnd);
+    binop!(builder, BITOR, "bits", "bits", Instruction::BitwiseOr);
+    binop!(builder, BITXOR, "bits", "bits", Instruction::BitwiseXor);
+    unop!(builder, BITNEG, "bits", Instruction::BitwiseNeg);
+    binop!(builder, LSHIFT, "bits", "number", Instruction::LeftShift);
+    binop!(builder, RSHIFT, "bits", "number", Instruction::RightShift);
 
-    binop!(builder, LEQ, &[], &[], Instruction::Leq);
-    binop!(builder, LT, &[], &[], Instruction::Lt);
-    binop!(builder, GEQ, &[], &[], Instruction::Geq);
-    binop!(builder, GT, &[], &[], Instruction::Gt);
-    binop!(builder, REFEQ, &[], &[], Instruction::RefEq);
-    binop!(builder, VALEQ, &[], &[], Instruction::ValEq);
-    binop!(builder, REFNEQ, &[], &[], Instruction::RefNeq);
-    binop!(builder, VALNEQ, &[], &[], Instruction::ValNeq);
+    binop!(builder, LEQ, &(), &(), Instruction::Leq);
+    binop!(builder, LT, &(), &(), Instruction::Lt);
+    binop!(builder, GEQ, &(), &(), Instruction::Geq);
+    binop!(builder, GT, &(), &(), Instruction::Gt);
+    binop!(builder, REFEQ, &(), &(), Instruction::RefEq);
+    binop!(builder, VALEQ, &(), &(), Instruction::ValEq);
+    binop!(builder, REFNEQ, &(), &(), Instruction::RefNeq);
+    binop!(builder, VALNEQ, &(), &(), Instruction::ValNeq);
 
-    binop!(builder, PIPE, &["callable"], &[], Instruction::Call(1));
-    binop_!(builder, RPIPE, &[], &["callable"], Instruction::Call(1));
+    binop!(builder, PIPE, "callable", &(), Instruction::Call(1));
+    binop_!(builder, RPIPE, &(), "callable", Instruction::Call(1));
 
-    binop!(builder, CONS, &[], &[], Instruction::Cons);
+    binop!(builder, CONS, &(), &(), Instruction::Cons);
 
-    let function = Struct::new(builder.atom("function"), 1);
-    builder.label(RCOMPOSE);
-    unlock_apply(builder);
-    typecheck(builder, &["callable"]);
-    builder.close(RETURN);
-    unlock_apply(builder);
-    typecheck(builder, &["callable"]);
-    builder.close(RETURN);
-    unlock_apply(builder);
     builder
+        .label(RCOMPOSE)
+        .unlock_function()
+        .typecheck("callable")
+        .close(RETURN)
+        .unlock_function()
+        .typecheck("callable")
+        .close(RETURN)
+        .unlock_function()
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Swap)
-        .constant(function.clone())
-        .instruction(Instruction::Call(2))
+        .call_function()
         .instruction(Instruction::LoadLocal(1))
         .instruction(Instruction::Swap)
-        .constant(function.clone())
-        .instruction(Instruction::Call(2))
+        .call_function()
         .instruction(Instruction::Return);
 
-    builder.label(COMPOSE);
-    unlock_apply(builder);
-    typecheck(builder, &["callable"]);
-    builder.close(RETURN);
-    unlock_apply(builder);
-    typecheck(builder, &["callable"]);
-    builder.close(RETURN);
-    unlock_apply(builder);
     builder
+        .label(COMPOSE)
+        .unlock_function()
+        .typecheck("callable")
+        .close(RETURN)
+        .unlock_function()
+        .typecheck("callable")
+        .close(RETURN)
+        .unlock_function()
         .instruction(Instruction::LoadLocal(1))
         .instruction(Instruction::Swap)
-        .constant(function.clone())
-        .instruction(Instruction::Call(2))
+        .call_function()
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Swap)
-        .constant(function.clone())
-        .instruction(Instruction::Call(2))
+        .call_function()
         .instruction(Instruction::Return);
 
-    let callable = builder.atom("callable");
-    let array = builder.atom("array");
-    let set = builder.atom("set");
-    let record = builder.atom("record");
-    let tuple = builder.atom("tuple");
-
-    let not_iterable = builder.atom("NotIterable");
     builder
-        .label(ITERATE_COLLECTION)
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::TypeOf)
-        .constant(callable)
-        .instruction(Instruction::ValNeq)
-        .cond_jump(RETURN) // already an iterator (probably)
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::TypeOf)
-        .constant(array)
-        .instruction(Instruction::ValNeq)
-        .cond_jump(ITERATE_ARRAY)
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::TypeOf)
-        .constant(set)
-        .instruction(Instruction::ValNeq)
-        .cond_jump(ITERATE_SET)
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::TypeOf)
-        .constant(record)
-        .instruction(Instruction::ValNeq)
-        .cond_jump(ITERATE_RECORD)
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::TypeOf)
-        .constant(tuple)
-        .instruction(Instruction::ValNeq)
-        .cond_jump(ITERATE_LIST)
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::Const(Value::Unit))
-        .instruction(Instruction::ValNeq)
-        .cond_jump(ITERATE_LIST)
-        .constant(not_iterable)
+        .label(ACCESS)
+        .unlock_function()
+        .try_type("record", Ok(ACCESS_ANY))
+        .try_type("array", Ok(ACCESS_INT))
+        .try_type("string", Ok(ACCESS_INT))
+        .try_type("bits", Ok(ACCESS_INT))
+        .atom("NotAccessible")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
-    let iter_done = builder.labeler.unique_hint("iter_done");
-    let next = builder.atom("next");
+    builder
+        .label(ACCESS_ANY)
+        .close(RETURN)
+        .unlock_function()
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::LoadLocal(1))
+        .instruction(Instruction::Contains)
+        .cond_jump(MIA)
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Access)
+        .instruction(Instruction::Return);
+
+    builder
+        .label(ACCESS_INT)
+        .close(RETURN)
+        .unlock_function()
+        .typecheck("number")
+        .instruction(Instruction::Copy)
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Length)
+        .instruction(Instruction::Lt)
+        .cond_jump(MIA)
+        .instruction(Instruction::LoadLocal(0))
+        .instruction(Instruction::Swap)
+        .instruction(Instruction::Access)
+        .instruction(Instruction::Return);
+
+    builder
+        .label(MIA)
+        .reference(YIELD)
+        .atom("MIA")
+        .call_function();
+
+    builder
+        .label(ITERATE_COLLECTION)
+        .try_type("callable", Ok(RETURN))
+        .try_type("array", Ok(ITERATE_ARRAY))
+        .try_type("set", Ok(ITERATE_SET))
+        .try_type("record", Ok(ITERATE_RECORD))
+        .try_type("tuple", Ok(ITERATE_LIST))
+        .try_type("unit", Ok(ITERATE_LIST))
+        .atom("NotIterable")
+        .instruction(Instruction::Construct)
+        .instruction(Instruction::Panic);
+
+    let iter_done = builder.make_label("iter_done");
     builder
         .label(ITERATE_SET)
         .label(ITERATE_RECORD)
@@ -279,7 +250,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Lt)
         .cond_jump(&iter_done)
         .instruction(Instruction::Access)
-        .constant(next.clone())
+        .atom("next")
         .instruction(Instruction::Construct)
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Uncons)
@@ -299,14 +270,11 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .cond_jump(&iter_done)
         .instruction(Instruction::Uncons)
         .instruction(Instruction::SetLocal(0))
-        .constant(next)
+        .atom("next")
         .instruction(Instruction::Construct)
-        .instruction(Instruction::Return);
-
-    let done = builder.atom("done");
-    builder
+        .instruction(Instruction::Return)
         .label(iter_done)
-        .constant(done)
+        .atom("done")
         .instruction(Instruction::Return);
 
     builder
@@ -319,13 +287,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .label(EXIT)
         .instruction(Instruction::Exit);
 
-    let yielding = builder.labeler.unique_hint("yielding");
-    let no_handler = builder.labeler.unique_hint("no_handler");
-    let unhandled_effect = builder.atom("UnhandledEffect");
+    let yielding = builder.make_label("yielding");
+    let no_handler = builder.make_label("no_handler");
 
-    builder.label(YIELD);
-    unlock_apply(builder);
     builder
+        .label(YIELD)
+        .unlock_function()
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
@@ -336,10 +303,9 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         // The handler is also about to be called, so it goes second
         .instruction(Instruction::LoadRegister(0))
         .instruction(Instruction::Swap)
-        .shift(&yielding);
-    // This is where we go when "resumed"
-    unlock_apply(builder);
-    builder
+        .shift(&yielding)
+        // This is where we go when "resumed"
+        .unlock_function()
         // Restore the context and previous handler
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::SetRegister(1))
@@ -350,35 +316,31 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         // Call the handler with the effect, then the "resume" continuation
         .instruction(Instruction::Become(2))
         .label(no_handler)
-        .constant(unhandled_effect)
+        .atom("UnhandledEffect")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
-    let invalid_iterator = builder.atom("InvalidIterator");
     builder
         .label(INVALID_ITERATOR)
-        .constant(invalid_iterator)
+        .atom("InvalidIterator")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
-    let incorrect_arity = builder.atom("IncorrectArity");
     builder
         .label(INCORRECT_ARITY)
-        .constant(incorrect_arity)
+        .atom("IncorrectArity")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
-    let invalid_call = builder.atom("InvalidCall");
     builder
         .label(INVALID_CALL)
-        .constant(invalid_call)
+        .atom("InvalidCall")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
-    let runtime_type_error = builder.atom("RuntimeTypeError");
     builder
         .label(RUNTIME_TYPE_ERROR)
-        .constant(runtime_type_error)
+        .atom("RuntimeTypeError")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 }

@@ -1,11 +1,12 @@
 mod labeler;
 mod scope;
 
-use crate::RUNTIME_TYPE_ERROR;
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
 use trilogy_ir::Id;
-use trilogy_vm::{Atom, ChunkBuilder, Instruction, Value};
+use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Value};
+
+use crate::chunk_writer_ext::LabelMaker;
 
 pub(crate) struct Context<'a> {
     pub labeler: &'a mut Labeler,
@@ -21,56 +22,61 @@ impl<'a> Context<'a> {
             builder,
         }
     }
+}
 
-    pub fn write_procedure_reference(&mut self, label: impl Into<String>) -> &mut Self {
+impl ChunkWriter for Context<'_> {
+    fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.reference(label);
         self
     }
 
-    pub fn cond_jump(&mut self, label: impl Into<String>) -> &mut Self {
+    fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.cond_jump(label);
         self
     }
 
-    pub fn jump(&mut self, label: impl Into<String>) -> &mut Self {
+    fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.jump(label);
         self
     }
 
-    pub fn shift(&mut self, label: impl Into<String>) -> &mut Self {
+    fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.shift(label);
         self
     }
 
-    pub fn close(&mut self, label: impl Into<String>) -> &mut Self {
+    fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.close(label);
         self
     }
 
-    pub fn instruction(&mut self, instruction: Instruction) -> &mut Self {
+    fn instruction(&mut self, instruction: Instruction) -> &mut Self {
         self.builder.instruction(instruction);
         self
     }
 
-    pub fn label(&mut self, label: impl Into<String>) -> &mut Self {
+    fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.builder.label(label);
         self
     }
 
-    pub fn atom<S: AsRef<str>>(&mut self, value: S) -> &mut Self {
-        self.builder.atom(value.as_ref());
-        self
-    }
-
-    pub fn make_atom<S: AsRef<str>>(&mut self, value: S) -> Atom {
-        self.builder.make_atom(value.as_ref())
-    }
-
-    pub fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
+    fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
         self.builder.constant(value);
         self
     }
 
+    fn make_atom<S: AsRef<str>>(&self, value: S) -> Atom {
+        self.builder.make_atom(value)
+    }
+}
+
+impl LabelMaker for Context<'_> {
+    fn make_label(&mut self, label: &str) -> String {
+        self.labeler.unique_hint(label)
+    }
+}
+
+impl Context<'_> {
     pub fn declare_variables(&mut self, variables: impl IntoIterator<Item = Id>) -> usize {
         let mut n = 0;
         for id in variables {
@@ -92,30 +98,5 @@ impl<'a> Context<'a> {
                 self.instruction(Instruction::Pop);
             }
         }
-    }
-
-    pub fn typecheck(&mut self, types: &[&str]) -> &mut Self {
-        match types.len() {
-            0 => {}
-            1 => {
-                self.instruction(Instruction::Copy)
-                    .instruction(Instruction::TypeOf)
-                    .atom(types[0])
-                    .instruction(Instruction::ValEq)
-                    .cond_jump(RUNTIME_TYPE_ERROR);
-            }
-            _ => {
-                let done = self.labeler.unique_hint("done");
-                for t in types {
-                    self.instruction(Instruction::Copy)
-                        .instruction(Instruction::TypeOf)
-                        .atom(t)
-                        .instruction(Instruction::ValNeq)
-                        .cond_jump(&done);
-                }
-                self.jump(RUNTIME_TYPE_ERROR).label(done);
-            }
-        }
-        self
     }
 }
