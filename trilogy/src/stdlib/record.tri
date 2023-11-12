@@ -87,8 +87,7 @@ test "length is 0 for empty records" {
 ## # Yields
 ##
 ## 'MIA if the key is not in the record
-func get key {| key => val, .._ |}  = val
-func get _ {| .._ |}  = yield 'MIA
+func get key {| ..rec |} = rec . key
 export get
 
 test "get returns the value at the key" {
@@ -96,7 +95,7 @@ test "get returns the value at the key" {
 }
 
 test "get yields 'MIA for missing keys" {
-    with get "hello" {| "a" => "1", "b" => "2" |}
+    with { get "hello" {| "a" => "1", "b" => "2" |} }
         when 'MIA cancel { exit unit }
         else cancel {}
     assert false

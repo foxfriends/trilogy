@@ -381,12 +381,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_query(context, query, &is_fail);
                 context
                     .constant(true)
-                    .instruction(Instruction::Slide(var_count as u32 + 1))
                     .jump(&is_end)
                     .label(&is_fail)
                     .constant(false)
-                    .instruction(Instruction::Slide(var_count as u32 + 1))
-                    .label(is_end);
+                    .label(is_end)
+                    .instruction(Instruction::Slide(var_count as u32 + 1));
+                context.undeclare_variables(query.bindings(), false);
                 for _ in 0..=var_count {
                     // One extra POP to discard the query state
                     context.instruction(Instruction::Pop);
@@ -528,8 +528,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             //
             // Similarly, we must store the current module context, as the yield will possibly be
             // triggered from a different context.
-            context.instruction(Instruction::LoadRegister(1));
-            context.instruction(Instruction::LoadRegister(0));
+            context
+                .instruction(Instruction::LoadRegister(1))
+                .instruction(Instruction::LoadRegister(0));
             let stored_context = context.scope.intermediate();
             let stored_yield = context.scope.intermediate();
 
@@ -598,8 +599,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 // Once we're out of the handler (due to runoff or cancel), reset the state of the
                 // `yield` register and finally done!
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::SetRegister(0));
+                .instruction(Instruction::SetRegister(0))
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::SetRegister(1));
             context.scope.end_intermediate(); // stored yield
+            context.scope.end_intermediate(); // stored module
         }
         ir::Value::Reference(ident) => {
             let binding = context

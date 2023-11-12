@@ -347,6 +347,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::SetRegister(1))
         .instruction(Instruction::LoadLocal(1))
         .instruction(Instruction::SetRegister(0))
+        // Then the `yield` "returns" the resumed value
         .instruction(Instruction::Return)
         .label(yielding)
         // Call the handler with the effect, then the "resume" continuation

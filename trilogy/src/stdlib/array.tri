@@ -134,7 +134,7 @@ test "first returns the first element" {
 }
 
 test "first yields 'MIA when empty" {
-    with first []
+    with { first [] }
         when 'MIA cancel { exit unit }
         else cancel {}
     assert false
@@ -154,7 +154,7 @@ test "last returns the last element" {
 }
 
 test "last yields 'MIA when empty" {
-    with last []
+    with { last [] }
         when 'MIA cancel { exit unit }
         else cancel {}
     assert false
@@ -248,7 +248,7 @@ test "find finds the first matching element" {
 }
 
 test "find yields 'MIA when not found" {
-    with find (fn x. x > 4) [1, 2, 3] []
+    with { find (fn x. x > 4) [1, 2, 3] [] }
         when 'MIA cancel { exit unit }
         else cancel {}
     assert false

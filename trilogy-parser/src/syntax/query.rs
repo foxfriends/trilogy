@@ -36,13 +36,13 @@ impl Query {
         use TokenType::*;
         let token = parser.peek();
         match token.token_type {
-            KwAnd if precedence < Precedence::Conjunction => Ok(Ok(Self::Conjunction(Box::new(
+            KwAnd if precedence <= Precedence::Conjunction => Ok(Ok(Self::Conjunction(Box::new(
                 QueryConjunction::parse(parser, lhs)?,
             )))),
-            KwOr if precedence < Precedence::Disjunction => Ok(Ok(Self::Disjunction(Box::new(
+            KwOr if precedence <= Precedence::Disjunction => Ok(Ok(Self::Disjunction(Box::new(
                 QueryDisjunction::parse(parser, lhs)?,
             )))),
-            KwElse if precedence < Precedence::Disjunction => Ok(Ok(Self::Alternative(Box::new(
+            KwElse if precedence <= Precedence::Disjunction => Ok(Ok(Self::Alternative(Box::new(
                 QueryAlternative::parse(parser, lhs)?,
             )))),
             _ => Ok(Err(lhs)),

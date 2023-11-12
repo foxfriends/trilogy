@@ -37,7 +37,9 @@ impl Unification {
         expression: syntax::Expression,
     ) -> Self {
         let pattern = Expression::convert_pattern(converter, pattern);
+        converter.push_scope();
         let expression = Expression::convert(converter, expression);
+        converter.pop_scope();
 
         let unification = Self::new(pattern, expression);
         let violations = validate_unification(&unification);

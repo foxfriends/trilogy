@@ -1,0 +1,6 @@
+test "can yield from queries" {
+    assert with is x = yield 'X and y = yield 'Y and is x < y
+        when 'X resume { 5 }
+        when 'Y resume { 6 }
+        else yield
+}
