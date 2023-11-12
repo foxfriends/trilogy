@@ -98,37 +98,37 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(iterator) => {
-            let construct = context.make_label("iter");
             let on_fail = context.make_label("iter_out");
-            let end = context.make_label("iter_end");
-            context.close(&construct);
-            context.declare_variables(iterator.query.bindings());
-            write_query_state(context, &iterator.query);
-            let state = context.scope.intermediate();
-            context.close(&end);
-            context.instruction(Instruction::LoadLocal(state));
-            write_query(context, &iterator.query, &on_fail);
-            context.instruction(Instruction::SetLocal(state));
-            match &iterator.value.value {
-                ir::Value::Mapping(mapping) => {
-                    write_expression(context, &mapping.0);
-                    context.scope.intermediate();
-                    write_expression(context, &mapping.1);
-                    context.scope.end_intermediate();
-                    context.instruction(Instruction::Cons);
-                }
-                other => write_evaluation(context, other),
-            }
-            context
-                .atom("next")
-                .instruction(Instruction::Construct)
-                .instruction(Instruction::Return)
-                .label(on_fail)
-                .atom("done")
-                .label(end) // end is just here to reuse a return instead of printing two in a row
-                .instruction(Instruction::Return)
-                .label(construct)
-                .instruction(Instruction::Call(0));
+            context.closure(|context| {
+                context.declare_variables(iterator.query.bindings());
+                write_query_state(context, &iterator.query);
+                let state = context.scope.intermediate();
+                context
+                    .closure(|context| {
+                        context.instruction(Instruction::LoadLocal(state));
+                        write_query(context, &iterator.query, &on_fail);
+                        context.instruction(Instruction::SetLocal(state));
+                        match &iterator.value.value {
+                            ir::Value::Mapping(mapping) => {
+                                write_expression(context, &mapping.0);
+                                context.scope.intermediate();
+                                write_expression(context, &mapping.1);
+                                context.scope.end_intermediate();
+                                context.instruction(Instruction::Cons);
+                            }
+                            other => write_evaluation(context, other),
+                        }
+                        context
+                            .atom("next")
+                            .instruction(Instruction::Construct)
+                            .instruction(Instruction::Return)
+                            .label(on_fail)
+                            .atom("done")
+                            .instruction(Instruction::Return);
+                    })
+                    .instruction(Instruction::Return);
+            });
+            context.instruction(Instruction::Call(0));
             context.scope.end_intermediate();
             context.undeclare_variables(iterator.query.bindings(), false);
         }
@@ -468,25 +468,23 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.label(end);
         }
         ir::Value::Do(closure) => {
-            let end = context.make_label("end_do");
-            let param_start = context.scope.closure(closure.parameters.len());
-            context
-                .close(&end)
-                .unlock_procedure(closure.parameters.len());
-            for (offset, parameter) in closure.parameters.iter().enumerate() {
-                context.declare_variables(parameter.bindings());
-                context.instruction(Instruction::LoadLocal(param_start + offset as u32));
-                write_pattern_match(context, parameter, END);
-            }
-            write_expression(context, &closure.body);
-            context
-                .instruction(Instruction::Const(Value::Unit))
-                .instruction(Instruction::Return)
-                .label(end);
-            for parameter in closure.parameters.iter().rev() {
-                context.undeclare_variables(parameter.bindings(), false);
-            }
-            context.scope.unclosure(closure.parameters.len());
+            let arity = closure.parameters.len();
+            let param_start = context.scope.closure(arity);
+            context.proc_closure(arity, |context| {
+                for (offset, parameter) in closure.parameters.iter().enumerate() {
+                    context.declare_variables(parameter.bindings());
+                    context.instruction(Instruction::LoadLocal(param_start + offset as u32));
+                    write_pattern_match(context, parameter, END);
+                }
+                write_expression(context, &closure.body);
+                context
+                    .instruction(Instruction::Const(Value::Unit))
+                    .instruction(Instruction::Return);
+                for parameter in closure.parameters.iter().rev() {
+                    context.undeclare_variables(parameter.bindings(), false);
+                }
+            });
+            context.scope.unclosure(arity);
         }
         ir::Value::Handled(handled) => {
             let when = context.make_label("when");
@@ -539,8 +537,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 //
                 // The effect handler should have used cancel or resume appropriately
                 // if that was not the goal.
-                context.instruction(Instruction::Fizzle);
                 context
+                    .instruction(Instruction::Fizzle)
                     .label(next)
                     .undeclare_variables(handler.pattern.bindings(), true);
             }
@@ -598,19 +596,20 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             unreachable!("dynamic only exists inside module access");
         }
         ir::Value::Assert(assert) => {
-            let passed = context.make_label("assert_passed");
+            let failed = context.make_label("assertion_error");
             write_expression(context, &assert.assertion);
             context
                 .instruction(Instruction::Copy)
                 .typecheck("boolean")
-                .instruction(Instruction::Not)
-                .cond_jump(&passed);
-            write_expression(context, &assert.message);
-            context
-                .atom("AssertionError")
-                .instruction(Instruction::Construct)
-                .instruction(Instruction::Panic)
-                .label(passed);
+                .cond_jump(&failed)
+                .bubble(|context| {
+                    context.label(failed);
+                    write_expression(context, &assert.message);
+                    context
+                        .atom("AssertionError")
+                        .instruction(Instruction::Construct)
+                        .instruction(Instruction::Panic);
+                });
         }
         ir::Value::End => {
             context.instruction(Instruction::Fizzle);

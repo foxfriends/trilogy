@@ -168,6 +168,19 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
         let end = self.make_label("bubble_end");
         self.jump(&end).pipe(contents).label(end)
     }
+
+    fn closure<F: FnOnce(&mut Self)>(&mut self, contents: F) -> &mut Self {
+        let end = self.make_label("closure_end");
+        self.close(&end).pipe(contents).label(end)
+    }
+
+    fn proc_closure<F: FnOnce(&mut Self)>(&mut self, arity: usize, contents: F) -> &mut Self {
+        let end = self.make_label("closure_end");
+        self.close(&end)
+            .unlock_procedure(arity)
+            .pipe(contents)
+            .label(end)
+    }
 }
 
 impl<T> ChunkWriterExt for T where T: ChunkWriter + LabelMaker {}

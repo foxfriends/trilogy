@@ -240,7 +240,6 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     if element.is_spread {
                         // When it's the spread element, take all the elements we aren't going to
                         // need for the tail of this pattern from the array.
-                        let next = context.make_label("spread_next");
                         let cleanup_spread = context.make_label("cleanup_spread");
                         let elements_in_tail = pack.values.len() - i - 1;
                         context
@@ -260,14 +259,13 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         write_pattern_match(context, &element.expression, &cleanup_spread);
                         // Then use the copy of length that's still on the stack to drop those
                         // elements we just took from the original array.
-                        context.instruction(Instruction::Skip).jump(&next);
-                        // If we fail during the spread matching, the length that's on the stack has
-                        // to be discarded still.
-                        context
-                            .label(cleanup_spread)
-                            .instruction(Instruction::Pop)
-                            .jump(&cleanup)
-                            .label(next);
+                        context.instruction(Instruction::Skip).bubble(|c| {
+                            // If we fail during the spread matching, the length that's on the stack has
+                            // to be discarded still.
+                            c.label(cleanup_spread)
+                                .instruction(Instruction::Pop)
+                                .jump(&cleanup);
+                        });
                         context.scope.end_intermediate(); // length
                     } else {
                         // When it's not the spread element, just match the first element.
