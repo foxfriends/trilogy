@@ -1,7 +1,6 @@
-use crate::{
-    chunk_writer_ext::{ChunkWriterExt, LabelMaker},
-    entrypoint::ProgramContext,
-};
+use super::prelude::*;
+use crate::chunk_writer_ext::{ChunkWriterExt, LabelMaker};
+use crate::entrypoint::ProgramContext;
 use trilogy_vm::{ChunkWriter, Instruction, Value};
 
 pub const ADD: &str = "core::add";
@@ -56,7 +55,6 @@ pub const ITERATE_RECORD: &str = "core::iter_record";
 pub const ITERATE_LIST: &str = "core::iter_list";
 
 pub const RETURN: &str = "core::return";
-pub const RESET: &str = "core::reset";
 pub const END: &str = "core::end";
 pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
@@ -74,14 +72,14 @@ macro_rules! binop {
         $builder
             .label($label)
             .unlock_function()
-            .shift(RETURN)
+            .close(RETURN)
             .unlock_function()
             .instruction(Instruction::LoadLocal(0))
             .typecheck($lty)
             .instruction(Instruction::Swap)
             .typecheck($rty)
             $(.instruction($op))+
-            .instruction(Instruction::Reset)
+            .instruction(Instruction::Return)
     }};
 }
 
@@ -90,11 +88,11 @@ macro_rules! binop_ {
         $builder
             .label($label)
             .unlock_function()
-            .shift(RETURN)
+            .close(RETURN)
             .unlock_function()
             .instruction(Instruction::LoadLocal(0))
             $(.instruction($op))+
-            .instruction(Instruction::Reset)
+            .instruction(Instruction::Return)
     }};
 }
 
@@ -314,8 +312,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
 
     builder
-        .label(RESET)
-        .instruction(Instruction::Reset)
         .label(END)
         .instruction(Instruction::Fizzle)
         .label(RETURN)
@@ -329,24 +325,24 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder
         .label(YIELD)
         .unlock_function()
-        .instruction(Instruction::LoadRegister(0))
+        .instruction(Instruction::LoadRegister(HANDLER))
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
         .cond_jump(&no_handler)
         // Save the module context and handler to restore after resuming
-        .instruction(Instruction::LoadRegister(1))
+        .instruction(Instruction::LoadRegister(MODULE))
         .instruction(Instruction::Swap)
         // The handler is also about to be called, so it goes second
-        .instruction(Instruction::LoadRegister(0))
+        .instruction(Instruction::LoadRegister(HANDLER))
         .instruction(Instruction::Swap)
         .shift(&yielding)
         // This is where we go when "resumed"
         .unlock_function()
         // Restore the context and previous handler
         .instruction(Instruction::LoadLocal(0))
-        .instruction(Instruction::SetRegister(1))
+        .instruction(Instruction::SetRegister(MODULE))
         .instruction(Instruction::LoadLocal(1))
-        .instruction(Instruction::SetRegister(0))
+        .instruction(Instruction::SetRegister(HANDLER))
         // Then the `yield` "returns" the resumed value
         .instruction(Instruction::Return)
         .label(yielding)

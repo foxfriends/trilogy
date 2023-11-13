@@ -42,7 +42,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // Just using temp register to help keep the bindset on top of stack.
     // Probably could have done this any number of ways... but temp
     // register is easy
-    context.instruction(Instruction::SetRegister(3));
+    context.instruction(Instruction::SetRegister(TEMPORARY));
     // First check all the parameters, make sure they work. If they don't
     // match, we can fail without even constructing the state.
     let mut cleanup = vec![];
@@ -61,7 +61,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
             .instruction(Instruction::IsSetLocal(1 + i as u32))
             .cond_jump(&skip);
         // Parameter *was* passed, so update the bindset and the bindings together.
-        context.instruction(Instruction::LoadRegister(3));
+        context.instruction(Instruction::LoadRegister(TEMPORARY));
         for var in parameter.bindings() {
             let index = context.scope.lookup(&var).unwrap().unwrap_local();
             context.constant(index).instruction(Instruction::Insert);
@@ -70,7 +70,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.instruction(Instruction::LoadLocal(1 + i as u32));
         write_pattern_match(context, parameter, &cleanup[i]);
         context.scope.end_intermediate();
-        context.instruction(Instruction::SetRegister(3));
+        context.instruction(Instruction::SetRegister(TEMPORARY));
         context.label(skip);
     }
     // Happy path: we continue by writing the query state down, and then
@@ -79,7 +79,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     total_declared += context.declare_variables(rule.body.bindings());
     // Put the final bindset down here. Register 3 no longer matters after
     // this.
-    context.instruction(Instruction::LoadRegister(3));
+    context.instruction(Instruction::LoadRegister(TEMPORARY));
     write_continued_query_state(context, &rule.body);
     let actual_state = context.scope.intermediate();
     context.close(&precall);

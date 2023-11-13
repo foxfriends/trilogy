@@ -478,89 +478,125 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.scope.unclosure(arity);
         }
         ir::Value::Handled(handled) => {
-            let when = context.make_label("when");
             let end = context.make_label("with_end");
-            let body = context.make_label("with_body");
 
-            // Register 0 holds the current effect handler, which corresponds to the `yield` keyword.
-            // To register a new one we must first store the parent handler.
-            //
-            // Similarly, we must store the current module context, as the yield will possibly be
-            // triggered from a different context.
+            // Effect handlers are implemented using continuations and a single global cell (Register(HANDLER)).
+            // There's a few extra things that are held in context too though, which must be preserved in order
+            // to effectively save and restore the program state.
             context
-                .instruction(Instruction::LoadRegister(1))
-                .instruction(Instruction::LoadRegister(0));
+                // The module context must be preserved, as the yield of the effect may be in a different module
+                // than the handler is defined.
+                .instruction(Instruction::LoadRegister(MODULE))
+                // The parent handler is preserved so that a yield in response to a yield correctly moves up
+                // the chain.
+                .instruction(Instruction::LoadRegister(HANDLER));
+
             let stored_context = context.scope.intermediate();
             let stored_yield = context.scope.intermediate();
 
-            // Second on the stack is the cancel continuation.
-            context.shift(&when).unlock_function().jump(&end);
-            context.scope.push_cancel();
+            // First step of entering an effect handler is to create the "cancel" continuation
+            // (effectively defining the "reset" operator). From the top level, to reset is to
+            // simply exit the effect handling. This operator will get replaced each time
+            // a handler calls `resume` such that the `cancel` points to the last resume.
+            context.continuation(|c| {
+                c.unlock_function().jump(&end);
+            });
+            let cancel = context.scope.push_cancel();
 
-            // The new yield is created next, but it's not kept on stack.
-            context.label(when).shift(&body);
-            // While every other continuation is treated like a function (with unlock_apply)
-            // the yield is special since it can't actually be accessed by the programmer
-            // directly, so can never be incorrectly called, so does not have to be unlocked.
-            // It's also called with 2 arguments instead of 1 like any other continuation.
+            // The new yield is created next.
+            context.continuation(|context| {
+                // While every other continuation is treated like a function (with unlock_apply)
+                // the yield is special since it can't actually be accessed by the programmer
+                // directly, so can never be incorrectly called, so does not have to be unlocked.
+                // It's also called with 2 arguments instead of 1 like any other continuation.
 
-            // That new yield will be called with the effect and the resume continuation.
-            let effect = context.scope.intermediate();
-            context.scope.push_resume();
+                // That new yield will be called with the effect and the resume continuation.
+                let effect = context.scope.intermediate();
+                let resume = context.scope.intermediate();
 
-            // Immediately restore the parent `yield` and module context, as a handler may use it.
-            // The yielder's values aren't needed though, as the `yield` expression itself takes
-            // care of saving that to restore it when resumed.
-            context
-                .instruction(Instruction::LoadLocal(stored_yield))
-                .instruction(Instruction::SetRegister(0))
-                .instruction(Instruction::LoadLocal(stored_context))
-                .instruction(Instruction::SetRegister(1));
-            for handler in &handled.handlers {
-                let next = context.make_label("when_next");
-                context.declare_variables(handler.pattern.bindings());
-                context.instruction(Instruction::LoadLocal(effect));
-                write_pattern_match(context, &handler.pattern, &next);
-                write_expression(context, &handler.guard);
-                context.typecheck("boolean").cond_jump(&next);
-                write_expression(context, &handler.body);
-                // At the end of an effect handler, everything just ends.
-                //
-                // The effect handler should have used cancel or resume appropriately
-                // if that was not the goal.
+                // While the caller gave us their half of the resume operator, we have to wrap
+                // it so that it preserves all the context correctly.
+                context.closure(|context| {
+                    context.unlock_function();
+                    // To actually resume is to:
+                    // 1. Save the current cancellation
+                    context.instruction(Instruction::LoadLocal(cancel));
+                    let resume_value = context.scope.intermediate(); // resume value
+                    let prev_cancel = context.scope.intermediate();
+                    // 2. Put a new cancellation in its place:
+                    context.continuation(|c| {
+                        c.unlock_function()
+                            // This cancellation restores the previous one
+                            .instruction(Instruction::LoadLocal(prev_cancel))
+                            .instruction(Instruction::SetLocal(cancel))
+                            // Then returns to whoever called resume
+                            .instruction(Instruction::Return);
+                    });
+                    context.instruction(Instruction::SetLocal(cancel));
+                    // 3. Actually do the resuming
+                    context
+                        .instruction(Instruction::LoadLocal(resume))
+                        .instruction(Instruction::LoadLocal(resume_value))
+                        .become_function();
+                    context.scope.end_intermediate(); // prev cancel
+                    context.scope.end_intermediate(); // resume value
+                });
+                context.scope.push_resume();
+
+                // Immediately restore the parent `yield` and module context, as a handler may use it.
+                // The yielder's values aren't needed though, as the `yield` expression itself takes
+                // care of saving that to restore it when resumed.
                 context
-                    .instruction(Instruction::Fizzle)
-                    .label(next)
-                    .undeclare_variables(handler.pattern.bindings(), true);
-            }
-            // NOTE: this should be unreachable, seeing as effect handlers are required
-            // to include the `else` clause... so if it happens lets fail in a weird way.
-            context
-                .constant("unexpected unhandled effect")
-                .instruction(Instruction::Panic);
-            context.scope.pop_resume();
-            context.scope.end_intermediate(); // effect
+                    .instruction(Instruction::LoadLocal(stored_yield))
+                    .instruction(Instruction::SetRegister(HANDLER))
+                    .instruction(Instruction::LoadLocal(stored_context))
+                    .instruction(Instruction::SetRegister(MODULE));
+
+                for handler in &handled.handlers {
+                    let next = context.make_label("when_next");
+                    context.declare_variables(handler.pattern.bindings());
+                    context.instruction(Instruction::LoadLocal(effect));
+                    write_pattern_match(context, &handler.pattern, &next);
+                    write_expression(context, &handler.guard);
+                    context.typecheck("boolean").cond_jump(&next);
+                    write_expression(context, &handler.body);
+                    // At the end of an effect handler, everything just ends.
+                    //
+                    // The effect handler should have used cancel or resume appropriately
+                    // if "just end" was not the intention.
+                    context
+                        .instruction(Instruction::Fizzle)
+                        .label(next)
+                        .undeclare_variables(handler.pattern.bindings(), true);
+                }
+                // NOTE: this should be unreachable, seeing as effect handlers are required
+                // to include the `else` clause... so if it happens lets fail in a weird way.
+                context
+                    .constant("unexpected unhandled effect")
+                    .instruction(Instruction::Panic);
+                context.scope.pop_resume();
+                context.scope.end_intermediate(); // resume
+                context.scope.end_intermediate(); // effect
+            });
 
             // The body of the `when` statement involves saving the `yield` that was just created,
             // running the expression, and then cleaning up.
-            context.label(body).instruction(Instruction::SetRegister(0));
+            context.instruction(Instruction::SetRegister(HANDLER));
             write_expression(context, &handled.expression);
             context
-                // When the expression finishes evaluation, we reset from any shifted continuations.
-                // If there were none, then `reset` should be noop, in which case we have to remove
-                // the cancel from the stack.
-                .instruction(Instruction::Reset)
+                // When the expression finishes evaluation, we reset from any shifted continuations
+                // by calling the cancel continuation.
+                .instruction(Instruction::LoadLocal(cancel))
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::Pop);
+                .become_function();
             context.scope.pop_cancel();
             context
                 .label(end)
-                // Once we're out of the handler (due to runoff or cancel), reset the state of the
-                // `yield` register and finally done!
+                // Once we're out of the handler reset the state of the `yield` register and finally done!
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::SetRegister(0))
+                .instruction(Instruction::SetRegister(HANDLER))
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::SetRegister(1));
+                .instruction(Instruction::SetRegister(MODULE));
             context.scope.end_intermediate(); // stored yield
             context.scope.end_intermediate(); // stored module
         }

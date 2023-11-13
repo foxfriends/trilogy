@@ -13,9 +13,9 @@ pub struct Handler {
 
 impl Handler {
     fn convert(converter: &mut Converter, ast: syntax::Handler, is_expression: bool) -> Self {
-        match ast {
+        let span = ast.span();
+        let (pattern, guard, body, effect, strategy) = match ast {
             syntax::Handler::When(handler) => {
-                let span = handler.span();
                 let effect = Identifier::temporary(converter, handler.pattern.span());
                 let pattern = Expression::convert_pattern(converter, handler.pattern);
                 let pattern =
@@ -40,45 +40,10 @@ impl Handler {
                         Expression::convert(converter, *expression)
                     }
                 });
-                let body = match handler.strategy {
-                    syntax::HandlerStrategy::Invert(..) => body.unwrap(),
-                    syntax::HandlerStrategy::Resume(token) => {
-                        let body = body.unwrap();
-                        Expression::builtin(token.span, Builtin::Cancel).apply_to(
-                            token.span,
-                            Expression::builtin(token.span, Builtin::Resume)
-                                .apply_to(token.span.union(body.span), body),
-                        )
-                    }
-                    syntax::HandlerStrategy::Cancel(token) => {
-                        let body = body.unwrap();
-                        Expression::builtin(token.span, Builtin::Cancel)
-                            .apply_to(token.span.union(body.span), body)
-                    }
-                    syntax::HandlerStrategy::Yield(token) => {
-                        Expression::builtin(token.span, Builtin::Cancel).apply_to(
-                            token.span,
-                            Expression::builtin(token.span, Builtin::Resume).apply_to(
-                                token.span,
-                                Expression::builtin(token.span, Builtin::Yield).apply_to(
-                                    token.span,
-                                    Expression::reference(pattern.span, effect),
-                                ),
-                            ),
-                        )
-                    }
-                };
-                Self {
-                    span,
-                    pattern,
-                    guard,
-                    body,
-                }
+                (pattern, guard, body, effect, handler.strategy)
             }
             syntax::Handler::Else(handler) => {
-                let span = handler.span();
                 let else_span = handler.else_token().span;
-
                 let effect = Identifier::temporary(converter, else_span);
                 let pattern = handler
                     .identifier
@@ -95,34 +60,40 @@ impl Handler {
                         Expression::convert(converter, *expression)
                     }
                 });
-
-                let body = match handler.strategy {
-                    syntax::HandlerStrategy::Yield(token) => {
-                        Expression::builtin(token.span, Builtin::Resume).apply_to(
-                            token.span,
-                            Expression::builtin(token.span, Builtin::Yield)
-                                .apply_to(token.span, Expression::reference(pattern.span, effect)),
-                        )
-                    }
-                    syntax::HandlerStrategy::Invert(..) => body.unwrap(),
-                    syntax::HandlerStrategy::Resume(token) => {
-                        let body = body.unwrap();
-                        Expression::builtin(token.span, Builtin::Resume)
-                            .apply_to(token.span.union(body.span), body)
-                    }
-                    syntax::HandlerStrategy::Cancel(token) => {
-                        let body = body.unwrap();
-                        Expression::builtin(token.span, Builtin::Cancel)
-                            .apply_to(token.span.union(body.span), body)
-                    }
-                };
-                Self {
-                    span,
-                    pattern,
-                    guard,
-                    body,
-                }
+                (pattern, guard, body, effect, handler.strategy)
             }
+        };
+        let body = match strategy {
+            syntax::HandlerStrategy::Invert(..) => body.unwrap(),
+            syntax::HandlerStrategy::Resume(token) => {
+                let body = body.unwrap();
+                Expression::builtin(token.span, Builtin::Cancel).apply_to(
+                    token.span,
+                    Expression::builtin(token.span, Builtin::Resume)
+                        .apply_to(token.span.union(body.span), body),
+                )
+            }
+            syntax::HandlerStrategy::Cancel(token) => {
+                let body = body.unwrap();
+                Expression::builtin(token.span, Builtin::Cancel)
+                    .apply_to(token.span.union(body.span), body)
+            }
+            syntax::HandlerStrategy::Yield(token) => {
+                Expression::builtin(token.span, Builtin::Cancel).apply_to(
+                    token.span,
+                    Expression::builtin(token.span, Builtin::Resume).apply_to(
+                        token.span,
+                        Expression::builtin(token.span, Builtin::Yield)
+                            .apply_to(token.span, Expression::reference(pattern.span, effect)),
+                    ),
+                )
+            }
+        };
+        Self {
+            span,
+            pattern,
+            guard,
+            body,
         }
     }
 

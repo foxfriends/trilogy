@@ -122,7 +122,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
         // is that the new module's parameter accessors need to know how many parameters
         // are in the parent module such that they know which index to start pulling from.
         context
-            .instruction(Instruction::LoadRegister(1))
+            .instruction(Instruction::LoadRegister(MODULE))
             .instruction(Instruction::Clone);
     }
     for _ in 0..variables.len() {
@@ -175,9 +175,9 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     // so that later declarations can access them. Context passing is
     // simulated so that it works like normal.
     context
-        .instruction(Instruction::LoadRegister(1))
+        .instruction(Instruction::LoadRegister(MODULE))
         .instruction(Instruction::LoadLocal(current_module))
-        .instruction(Instruction::SetRegister(1));
+        .instruction(Instruction::SetRegister(MODULE));
     context.scope.intermediate(); // previous module
 
     // 3. Evaluating constants
@@ -221,10 +221,10 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
             // After each declaration of this sort, we have to do this whole dance
             // to keep the running state up to date. Blegh.
             context
-                .instruction(Instruction::LoadRegister(1))
+                .instruction(Instruction::LoadRegister(MODULE))
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Insert)
-                .instruction(Instruction::SetRegister(1));
+                .instruction(Instruction::SetRegister(MODULE));
             let label = context
                 .labeler
                 .unique_hint(&format!("context::{}", declared_id.symbol()));
@@ -256,18 +256,18 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 context
                     .reference(label)
                     .instruction(Instruction::Call(0))
-                    .instruction(Instruction::LoadRegister(1))
+                    .instruction(Instruction::LoadRegister(MODULE))
                     .instruction(Instruction::Swap)
                     .constant(base + index)
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Assign)
-                    .instruction(Instruction::SetRegister(1));
+                    .instruction(Instruction::SetRegister(MODULE));
             }
             StaticMember::Context(..) => unreachable!(),
         }
     }
 
-    context.instruction(Instruction::SetRegister(1));
+    context.instruction(Instruction::SetRegister(MODULE));
     context.scope.end_intermediate(); // previous module
 
     // 5. Creating the exported member lookup function
@@ -310,13 +310,13 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         .unwrap_context();
                     // Constants are stored in the modules context, load them like context parameters.
                     context
-                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .reference(label)
                         .instruction(Instruction::Call(0))
                         .instruction(Instruction::Swap)
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Return);
                 }
                 ir::DefinitionItem::Function(func) => {
@@ -335,9 +335,9 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     // Once all parameters are located, set up the context register
                     // and call the function by applying the parameters one by one.
                     context
-                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .reference(label);
                     for i in 0..function_arity {
                         context
@@ -348,7 +348,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     // no longer subject to the context rules, so return the context register.
                     context
                         .instruction(Instruction::Swap)
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Return);
                 }
                 ir::DefinitionItem::Procedure(proc) => {
@@ -363,15 +363,15 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     context
                         .close(RETURN)
                         .unlock_procedure(arity)
-                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Slide(arity as u32))
                         .reference(proc_label)
                         .instruction(Instruction::Slide(arity as u32))
                         .call_procedure(arity)
                         .instruction(Instruction::Swap)
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Return);
                 }
                 ir::DefinitionItem::Module(submodule) => {
@@ -385,13 +385,13 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     // The partially constructed module is already in the current module's context,
                     // so we just do basically the same as accessing a constant or parameter.
                     context
-                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .reference(label)
                         .instruction(Instruction::Call(0))
                         .instruction(Instruction::Swap)
-                        .instruction(Instruction::SetRegister(1));
+                        .instruction(Instruction::SetRegister(MODULE));
                     let mut partial_module = context.scope.intermediate();
                     // Capture all the parameters and apply them one by one, as they arrive.
                     // Each call needs to keep the partially applied module closure around,
@@ -399,32 +399,32 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     for _ in 0..submodule_arity {
                         context.close(RETURN).unlock_function();
                         let parameter = context.scope.intermediate();
-                        context.instruction(Instruction::LoadRegister(1));
+                        context.instruction(Instruction::LoadRegister(MODULE));
                         context.scope.intermediate(); // previous module
                         context
                             .instruction(Instruction::LoadLocal(current_module))
-                            .instruction(Instruction::SetRegister(1))
+                            .instruction(Instruction::SetRegister(MODULE))
                             .instruction(Instruction::LoadLocal(partial_module))
                             .instruction(Instruction::LoadLocal(parameter))
                             .call_function()
                             .instruction(Instruction::SetLocal(parameter))
-                            .instruction(Instruction::SetRegister(1));
+                            .instruction(Instruction::SetRegister(MODULE));
                         context.scope.end_intermediate(); // previous module
                         partial_module = parameter;
                     }
                     // Then one more "parameter" is the symbol to import. The call is basically the same.
                     context.close(RETURN).unlock_module();
                     let parameter = context.scope.intermediate();
-                    context.instruction(Instruction::LoadRegister(1));
+                    context.instruction(Instruction::LoadRegister(MODULE));
                     context.scope.intermediate(); // previous module
                     context
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::LoadLocal(partial_module))
                         .instruction(Instruction::LoadLocal(parameter))
                         .call_module()
                         .instruction(Instruction::SetLocal(parameter))
-                        .instruction(Instruction::SetRegister(1));
+                        .instruction(Instruction::SetRegister(MODULE));
                     context.scope.end_intermediate(); // previous module
 
                     // After every parameter was passed, the top of stack is the resolved imported symbol,
@@ -450,13 +450,13 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     // to pass anyway and better safe than sorry, I suppose.
                     context
                         .close(RETURN)
-                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .reference(static_member)
                         .instruction(Instruction::Call(0))
                         .instruction(Instruction::Swap)
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         // That will produce the rule's closure, but we need to re-close that
                         // over the module scope
                         .close(RETURN)
@@ -465,27 +465,27 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     context
                         // When called again, it's to pass the parameters. Again, might not need
                         // the context, but let's pass it anyway.
-                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Slide(arity as u32))
                         .instruction(Instruction::LoadLocal(closure))
                         .instruction(Instruction::Slide(arity as u32))
                         .call_rule(arity);
                     context
                         .instruction(Instruction::Swap)
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         // That needs to be closed over to keep passing context too
                         .close(RETURN);
                     let iterator = context.scope.intermediate();
                     context
-                        .instruction(Instruction::LoadRegister(1))
+                        .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::LoadLocal(iterator))
                         .instruction(Instruction::Call(0))
                         .instruction(Instruction::Swap)
-                        .instruction(Instruction::SetRegister(1))
+                        .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Return);
                     context.scope.end_intermediate();
                     context.scope.end_intermediate();
@@ -509,14 +509,14 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 context
                     .close(RETURN)
                     .unlock_procedure(0)
-                    .instruction(Instruction::LoadRegister(1))
+                    .instruction(Instruction::LoadRegister(MODULE))
                     .instruction(Instruction::LoadLocal(current_module))
-                    .instruction(Instruction::SetRegister(1))
+                    .instruction(Instruction::SetRegister(MODULE))
                     .reference(proc_label)
                     .call_procedure(0);
                 context
                     .instruction(Instruction::Swap)
-                    .instruction(Instruction::SetRegister(1))
+                    .instruction(Instruction::SetRegister(MODULE))
                     .instruction(Instruction::Return);
                 context.label(next_export);
             }
@@ -551,7 +551,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
             .unwrap_context();
         context.label(&label);
         context
-            .instruction(Instruction::LoadRegister(1))
+            .instruction(Instruction::LoadRegister(MODULE))
             .constant(base + i)
             .instruction(Instruction::Access)
             .instruction(Instruction::Return);
