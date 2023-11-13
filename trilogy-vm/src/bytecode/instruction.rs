@@ -261,10 +261,6 @@ pub enum Instruction {
     /// The continuation is pushed to the top of the stack as a callable value, which continues from
     /// the current continuation when called.
     Shift(Offset),
-    /// Reset out of the current continuation to the one from which it was called. The value at the
-    /// top of the stack is used as the return value, which is pushed to the top of the stack after
-    /// reseting.
-    Reset,
     /// Jump to the offset specified.
     Jump(Offset),
     /// Pop the top value from the stack. If it is `false`, jump to the offset specified.

@@ -549,7 +549,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 // When the expression finishes evaluation, we reset from any shifted continuations.
                 // If there were none, then `reset` should be noop, in which case we have to remove
                 // the cancel from the stack.
-                .instruction(Instruction::Reset)
+                .instruction(Instruction::Panic) // TODO: fix this
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Pop);
             context.scope.pop_cancel();

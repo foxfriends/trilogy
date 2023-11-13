@@ -1,0 +1,76 @@
+test "simple cancel works fine" {
+    assert with 1 + yield 'hello
+        when 'hello cancel 1
+        else yield
+        == 1
+}
+
+test "simple resume works fine" {
+    assert with 1 + yield 'hello
+        when 'hello resume 1
+        else yield
+        == 2
+}
+
+test "simple invert works fine" {
+    assert with 1 + yield 'hello
+        when 'hello invert cancel resume 1
+        else yield
+        == 2
+}
+
+test "can resume multiple times then resume again" {
+    assert with 1 + yield 'hello
+        when 'hello resume (resume 1 + resume 1)
+        else yield
+        == 5
+}
+
+test "can resume multiple times then cancel" {
+    assert with 1 + yield 'hello
+        when 'hello cancel (resume 1 + resume 1)
+        else yield
+        == 4
+}
+
+test "can handle different types of effects, cancelling" {
+    assert with (yield 'hello) + (yield 'world)
+        when 'hello resume 1
+        when 'world cancel 2
+        else yield
+        == 2
+}
+
+test "can handle different types of effects, resuming" {
+    assert with (yield 'hello) + (yield 'world)
+        when 'hello resume 1
+        when 'world resume 2
+        else yield
+        == 3
+}
+
+test "can handle different types of effects explicitly" {
+    assert with (yield 'hello) + (yield 'world)
+        when 'hello invert cancel resume 1
+        when 'world invert cancel resume 2
+        else yield
+        == 3
+}
+
+module io at "trilogy:io"
+
+test "can yield multiple times from the first and not the second" {
+    assert with (yield 'hello) + (yield 'world)
+        when 'hello resume (resume 1) + (resume 2)
+        when 'world resume 3
+        else yield
+        == 9
+}
+
+test "can yield multiple times from the second and not the first"{
+    assert with (yield 'hello) + (yield 'world)
+        when 'hello resume 1
+        when 'world resume (resume 3) + (resume 2)
+        else yield
+        == 9
+}

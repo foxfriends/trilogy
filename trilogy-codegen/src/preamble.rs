@@ -56,7 +56,6 @@ pub const ITERATE_RECORD: &str = "core::iter_record";
 pub const ITERATE_LIST: &str = "core::iter_list";
 
 pub const RETURN: &str = "core::return";
-pub const RESET: &str = "core::reset";
 pub const END: &str = "core::end";
 pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
@@ -74,14 +73,14 @@ macro_rules! binop {
         $builder
             .label($label)
             .unlock_function()
-            .shift(RETURN)
+            .close(RETURN)
             .unlock_function()
             .instruction(Instruction::LoadLocal(0))
             .typecheck($lty)
             .instruction(Instruction::Swap)
             .typecheck($rty)
             $(.instruction($op))+
-            .instruction(Instruction::Reset)
+            .instruction(Instruction::Return)
     }};
 }
 
@@ -90,11 +89,11 @@ macro_rules! binop_ {
         $builder
             .label($label)
             .unlock_function()
-            .shift(RETURN)
+            .close(RETURN)
             .unlock_function()
             .instruction(Instruction::LoadLocal(0))
             $(.instruction($op))+
-            .instruction(Instruction::Reset)
+            .instruction(Instruction::Return)
     }};
 }
 
@@ -314,8 +313,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
 
     builder
-        .label(RESET)
-        .instruction(Instruction::Reset)
         .label(END)
         .instruction(Instruction::Fizzle)
         .label(RETURN)
