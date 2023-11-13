@@ -57,20 +57,41 @@ test "can handle different types of effects explicitly" {
         == 3
 }
 
-module io at "trilogy:io"
-
 test "can yield multiple times from the first and not the second" {
-    assert with (yield 'hello) + (yield 'world)
-        when 'hello resume (resume 1) + (resume 2)
+    assert (with (yield 'hello) + (yield 'world)
+        when 'hello cancel (resume 1) + (resume 2)
         when 'world resume 3
-        else yield
+        else yield)
         == 9
 }
 
-test "can yield multiple times from the second and not the first"{
+test "can yield multiple times from the second and not the first" {
     assert with (yield 'hello) + (yield 'world)
         when 'hello resume 1
-        when 'world resume (resume 3) + (resume 2)
+        when 'world cancel (resume 3) + (resume 2)
         else yield
-        == 9
+        == 7
+}
+
+test "can cancel from a nested yield" {
+    assert with (yield 'hello) + (yield 'world)
+        when 'hello resume 1
+        when 'world cancel 8
+        else yield
+        == 8
+}
+
+test "can cancel before reaching a second yield" {
+    assert with (yield 'hello) + (yield 'world)
+        when 'hello cancel 1
+        when 'world cancel 8
+        else yield
+        == 1
+}
+
+test "unhandled effects go to the fallback" {
+    assert (with (yield 'hello) + (yield 'other)
+        when 'hello resume 1
+        else resume 1)
+        == 2
 }
