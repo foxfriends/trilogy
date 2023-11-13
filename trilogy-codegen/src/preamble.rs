@@ -1,7 +1,6 @@
-use crate::{
-    chunk_writer_ext::{ChunkWriterExt, LabelMaker},
-    entrypoint::ProgramContext,
-};
+use super::prelude::*;
+use crate::chunk_writer_ext::{ChunkWriterExt, LabelMaker};
+use crate::entrypoint::ProgramContext;
 use trilogy_vm::{ChunkWriter, Instruction, Value};
 
 pub const ADD: &str = "core::add";
@@ -326,24 +325,24 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder
         .label(YIELD)
         .unlock_function()
-        .instruction(Instruction::LoadRegister(0))
+        .instruction(Instruction::LoadRegister(HANDLER))
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::ValNeq)
         .cond_jump(&no_handler)
         // Save the module context and handler to restore after resuming
-        .instruction(Instruction::LoadRegister(1))
+        .instruction(Instruction::LoadRegister(MODULE))
         .instruction(Instruction::Swap)
         // The handler is also about to be called, so it goes second
-        .instruction(Instruction::LoadRegister(0))
+        .instruction(Instruction::LoadRegister(HANDLER))
         .instruction(Instruction::Swap)
         .shift(&yielding)
         // This is where we go when "resumed"
         .unlock_function()
         // Restore the context and previous handler
         .instruction(Instruction::LoadLocal(0))
-        .instruction(Instruction::SetRegister(1))
+        .instruction(Instruction::SetRegister(MODULE))
         .instruction(Instruction::LoadLocal(1))
-        .instruction(Instruction::SetRegister(0))
+        .instruction(Instruction::SetRegister(HANDLER))
         // Then the `yield` "returns" the resumed value
         .instruction(Instruction::Return)
         .label(yielding)

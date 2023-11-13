@@ -29,4 +29,11 @@ mod prelude {
     pub(crate) use crate::query::*;
     pub(crate) use crate::rule::write_rule;
     pub(crate) use trilogy_vm::ChunkWriter as _;
+    use trilogy_vm::Offset;
+
+    pub const HANDLER: Offset = 0;
+    pub const CANCEL: Offset = 1;
+    pub const MODULE: Offset = 2;
+    pub const BINDSET: Offset = 3;
+    pub const TEMPORARY: Offset = 4;
 }

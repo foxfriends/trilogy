@@ -488,8 +488,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             // Similarly, we must store the current module context, as the yield will possibly be
             // triggered from a different context.
             context
-                .instruction(Instruction::LoadRegister(1))
-                .instruction(Instruction::LoadRegister(0));
+                .instruction(Instruction::LoadRegister(MODULE))
+                .instruction(Instruction::LoadRegister(HANDLER));
             let stored_context = context.scope.intermediate();
             let stored_yield = context.scope.intermediate();
 
@@ -513,9 +513,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             // care of saving that to restore it when resumed.
             context
                 .instruction(Instruction::LoadLocal(stored_yield))
-                .instruction(Instruction::SetRegister(0))
+                .instruction(Instruction::SetRegister(HANDLER))
                 .instruction(Instruction::LoadLocal(stored_context))
-                .instruction(Instruction::SetRegister(1));
+                .instruction(Instruction::SetRegister(MODULE));
             for handler in &handled.handlers {
                 let next = context.make_label("when_next");
                 context.declare_variables(handler.pattern.bindings());
@@ -543,7 +543,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
 
             // The body of the `when` statement involves saving the `yield` that was just created,
             // running the expression, and then cleaning up.
-            context.label(body).instruction(Instruction::SetRegister(0));
+            context.label(body).instruction(Instruction::SetRegister(HANDLER));
             write_expression(context, &handled.expression);
             context
                 // When the expression finishes evaluation, we reset from any shifted continuations.
@@ -558,9 +558,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 // Once we're out of the handler (due to runoff or cancel), reset the state of the
                 // `yield` register and finally done!
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::SetRegister(0))
+                .instruction(Instruction::SetRegister(HANDLER))
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::SetRegister(1));
+                .instruction(Instruction::SetRegister(MODULE));
             context.scope.end_intermediate(); // stored yield
             context.scope.end_intermediate(); // stored module
         }

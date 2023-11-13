@@ -12,21 +12,21 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
     // It is possible that as part of setting up a query state we need to
     // execute (including setup) a whole other query, so preserve the previous
     // register value.
-    context.instruction(Instruction::LoadRegister(2));
+    context.instruction(Instruction::LoadRegister(BINDSET));
     context.scope.intermediate();
     context
         // The initial bindset is empty for generic queries. Only for rules it's
         // a bit different, as the initial bindset is based on the boundness of the
         // parameters. Rule calls can just set that up and start from continue.
         .constant(HashSet::new())
-        .instruction(Instruction::SetRegister(2));
+        .instruction(Instruction::SetRegister(BINDSET));
     continue_query_state(context, query);
     // After writing out the query state, the final bindset doesn't matter (it's everything)
     // and the intermediate bindsets have been integrated with the state, so just reset the
     // register.
     context
         .instruction(Instruction::Swap)
-        .instruction(Instruction::SetRegister(2));
+        .instruction(Instruction::SetRegister(BINDSET));
     context.scope.end_intermediate();
 }
 
@@ -39,16 +39,16 @@ pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
 pub(crate) fn write_continued_query_state(context: &mut Context, query: &ir::Query) {
     // The same saving of previous bindset, in case we are mid way setting up a query.
     context
-        .instruction(Instruction::LoadRegister(2))
+        .instruction(Instruction::LoadRegister(BINDSET))
         .instruction(Instruction::Swap)
-        .instruction(Instruction::SetRegister(2));
+        .instruction(Instruction::SetRegister(BINDSET));
     context.scope.intermediate();
     continue_query_state(context, query);
     // Again the final continued bindset does not matter, just get rid of it and reset
     // to the previous one.
     context
         .instruction(Instruction::Swap)
-        .instruction(Instruction::SetRegister(2));
+        .instruction(Instruction::SetRegister(BINDSET));
     context.scope.end_intermediate();
 }
 
@@ -79,7 +79,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // have to reset the bindset back to the previous state once complete, since the
             // variables bound within a not query are not available outside.
             context
-                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::LoadRegister(BINDSET))
                 .instruction(Instruction::Clone)
                 .constant(true)
                 .instruction(Instruction::Cons);
@@ -89,12 +89,12 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // re-enter it at which point the bindset should be unbound before we go
             // to the failed case, so the state of the direct query does need the bindset.
             context
-                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::LoadRegister(BINDSET))
                 .instruction(Instruction::Clone)
                 .constant(true)
                 .instruction(Instruction::Cons);
 
-            context.instruction(Instruction::LoadRegister(2));
+            context.instruction(Instruction::LoadRegister(BINDSET));
             for var in unification.pattern.bindings() {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
                 context.constant(index).instruction(Instruction::Insert);
@@ -110,14 +110,14 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // Since this is a potentially many times operation, we do need to store the
             // bindset as well.
             context
-                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::LoadRegister(BINDSET))
                 .instruction(Instruction::Clone)
                 .constant(())
                 .instruction(Instruction::Cons);
 
             // Bindset updates happen *after* the state is computed because the backtracker
             // needs to be able to go back to the previous bindset.
-            context.instruction(Instruction::LoadRegister(2));
+            context.instruction(Instruction::LoadRegister(BINDSET));
             for var in unification.pattern.bindings() {
                 let index = context.scope.lookup(&var).unwrap().unwrap_local();
                 context.constant(index).instruction(Instruction::Insert);
@@ -134,7 +134,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // The bindset is kept because there is a subquery which might need it, but not for any
             // backtracking.
             context
-                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::LoadRegister(BINDSET))
                 .instruction(Instruction::Clone);
             context.scope.intermediate();
             continue_query_state(context, &alt.0);
@@ -158,7 +158,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             //
             // The structure is ((bindset:state):marker)
             context
-                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::LoadRegister(BINDSET))
                 .instruction(Instruction::Clone);
             context.scope.intermediate();
             continue_query_state(context, &alt.0);
@@ -178,7 +178,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             //
             // Does require maintaining the bindset though.
             context
-                .instruction(Instruction::LoadRegister(2))
+                .instruction(Instruction::LoadRegister(BINDSET))
                 .instruction(Instruction::Clone);
             context.scope.intermediate();
             write_expression(context, &lookup.path);
@@ -195,7 +195,7 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // to make. Doesn't really hurt correctness I think, but it is a bit less performant
             // than the optimal case, but... the optimal case gives SAT vibes so maybe it isn't
             // even possible anyway. (What does Prolog do?)
-            context.instruction(Instruction::LoadRegister(2));
+            context.instruction(Instruction::LoadRegister(BINDSET));
             for var in lookup
                 .patterns
                 .iter()
