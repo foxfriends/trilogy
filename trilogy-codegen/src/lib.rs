@@ -32,8 +32,7 @@ mod prelude {
     use trilogy_vm::Offset;
 
     pub const HANDLER: Offset = 0;
-    pub const CANCEL: Offset = 1;
-    pub const MODULE: Offset = 2;
-    pub const BINDSET: Offset = 3;
-    pub const TEMPORARY: Offset = 4;
+    pub const MODULE: Offset = 1;
+    pub const BINDSET: Offset = 2;
+    pub const TEMPORARY: Offset = 3;
 }
