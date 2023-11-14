@@ -1,0 +1,83 @@
+test "while loops simple" {
+    let mut i = 0
+    while i < 10 {
+        i += 1
+    }
+    assert i == 10
+}
+
+test "while loops break" {
+    let mut i = 0
+    while i < 10 {
+        i += 1
+        if i == 5 { break }
+    }
+    assert i == 5
+}
+
+test "while loops continue" {
+    let mut i = 0
+    while i < 10 {
+        i += 1
+        if i > 5 { continue }
+        if i > 6 { break }
+    }
+    assert i == 10
+}
+
+test "while loop nested" {
+    let mut k = 0
+    let mut i = 0
+    while i < 10 {
+        let mut j = 0
+        while j < i {
+            k += 1
+            j += 1
+        }
+        i += 1
+    }
+    assert i == 10
+    assert k == 45
+}
+
+test "while loop nested break" {
+    let mut k = 0
+    let mut i = 0
+    while i < 10 {
+        let mut j = 0
+        if i > 5 { break }
+        while j < i {
+            if j >= 3 { break }
+            k += 1
+            j += 1
+        }
+        i += 1
+    }
+    assert i == 6
+    assert k == 12
+}
+
+test "while loop nested break in condition" {
+    let mut i = 0
+    while i < 10 {
+        while (if i > 5 then break 0 else true) {
+            break
+        }
+        i += 1
+    }
+    assert i == 6
+}
+
+test "while loop nested continue in condition" {
+    let mut i = 0
+    let mut k = 0
+    while i < 10 {
+        i += 1
+        while (if i > 5 then continue 0 else true) {
+            k += 1
+            break
+        }
+    }
+    assert k == 5
+    assert i == 10
+}

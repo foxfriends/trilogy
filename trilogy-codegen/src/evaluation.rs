@@ -134,46 +134,63 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::While(stmt) => {
             let begin = context.make_label("while");
-            let setup = context.make_label("while_setup");
-            let cond_fail = context.make_label("while_exit");
+            let cleanup = context.make_label("while_cleanup");
             let end = context.make_label("while_end");
-            let continuation = context.make_label("while_cont");
-            let r#continue = context.scope.push_continue();
-            let r#break = context.scope.push_break();
-            context
-                .constant(())
-                .constant(())
-                .shift(&continuation)
-                .unlock_function()
-                // Continue is called with a value that is ignored. This is definitely an oversight
+
+            context.scope.intermediate(); // Break and continue are just regular intermediates at first
+            context.continuation(|context| {
+                // Break goes onto the stack first, it is simply a continuation that jumps to the
+                // part after the loop.
+                //
+                // Break is called with a value that is ignored. This is definitely an oversight
                 // that I should get around to fixing... or maybe there's a way to use that value?
-                .instruction(Instruction::Pop)
-                .label(begin.to_owned());
+                context
+                    .unlock_function()
+                    .instruction(Instruction::Pop)
+                    .jump(&end);
+            });
+
+            let cont = context.scope.intermediate();
+            // Continue goes onto the stack second, it is simply a continuation that jumps to the
+            // part before the loop. In order for the continue continuation to be in its own stack,
+            // it is written over a stack slot made ahead of time.
+            context
+                .instruction(Instruction::Variable)
+                .continuation(|context| {
+                    //
+                    // Continue is called with a value that is ignored. This is definitely an oversight
+                    // that I should get around to fixing... or maybe there's a way to use that value?
+                    context
+                        .unlock_function()
+                        .instruction(Instruction::Pop)
+                        .jump(&begin);
+                })
+                .instruction(Instruction::SetLocal(cont));
+
+            // The actual loop we can implement in the standard way after the continuations are
+            // created.
+            context.label(&begin);
+            // Check the condition
             write_expression(context, &stmt.condition);
-            context.typecheck("boolean").cond_jump(&cond_fail);
+            context.typecheck("boolean").cond_jump(&cleanup);
+            // It's only in the body of the loop that continue and break become usable,
+            // so we only make them referenceable here
+            context.scope.end_intermediate();
+            context.scope.end_intermediate();
+            context.scope.push_break();
+            context.scope.push_continue();
+            // If it's true, run the body. The body has access to continue and break.
             write_expression(context, &stmt.body);
             context
-                .instruction(Instruction::LoadLocal(r#continue))
-                .constant(())
-                .become_function()
-                .label(cond_fail)
-                .instruction(Instruction::LoadLocal(r#break))
-                .constant(())
-                .become_function()
-                .label(continuation)
-                .instruction(Instruction::SetLocal(r#continue))
-                .shift(&setup)
-                .unlock_function()
-                .instruction(Instruction::Pop) // Value passed to break
-                .instruction(Instruction::Pop) // Break
-                .instruction(Instruction::Pop) // Continue
-                .jump(&end)
-                .label(setup)
-                .instruction(Instruction::SetLocal(r#break))
+                .instruction(Instruction::Pop)
                 .jump(&begin)
-                .label(end);
-            context.scope.pop_break();
+                .label(&cleanup)
+                .instruction(Instruction::Pop) // continue
+                .instruction(Instruction::Pop) // break
+                .label(&end)
+                .constant(()); // The assumed value on stack at end of evaluation
             context.scope.pop_continue();
+            context.scope.pop_break();
         }
         ir::Value::Application(application) => match unapply_2(application) {
             (
