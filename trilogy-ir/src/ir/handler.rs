@@ -14,6 +14,7 @@ pub struct Handler {
 impl Handler {
     fn convert(converter: &mut Converter, ast: syntax::Handler, is_expression: bool) -> Self {
         let span = ast.span();
+        converter.push_scope();
         let (pattern, guard, body, effect, strategy) = match ast {
             syntax::Handler::When(handler) => {
                 let effect = Identifier::temporary(converter, handler.pattern.span());
@@ -89,6 +90,7 @@ impl Handler {
                 )
             }
         };
+        converter.pop_scope();
         Self {
             span,
             pattern,
