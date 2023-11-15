@@ -305,6 +305,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     .instruction(Instruction::SetLocal(eval_to))
                     .jump(&begin)
                     .label(&cleanup)
+                    .instruction(Instruction::Pop) // 'done
                     .instruction(Instruction::Pop)
                     .end_intermediate() // continue
                     .instruction(Instruction::Pop)
@@ -638,7 +639,7 @@ fn write_iterator(
         .closure(|context| {
             context.declare_variables(iterator.query.bindings());
             write_query_state(context, &iterator.query);
-            let state = context.scope.intermediate();
+            let state = context.intermediate();
             context
                 .closure(|context| {
                     context.instruction(Instruction::LoadLocal(state));
@@ -676,7 +677,7 @@ fn write_iterator(
                 })
                 .instruction(Instruction::Return)
                 .end_intermediate(); // state
+            context.undeclare_variables(iterator.query.bindings(), false);
         })
         .instruction(Instruction::Call(0));
-    context.undeclare_variables(iterator.query.bindings(), false);
 }

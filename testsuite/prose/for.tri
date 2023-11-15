@@ -31,3 +31,35 @@ test "can continue in a for loop" {
     }
     assert total == 12
 }
+
+test "for else branch gets triggered when query never happens" {
+    for x in [] {
+        assert false as "entered loop"
+    } else {
+        exit unit
+    }
+    assert false as "reached end"
+}
+
+test "for else branch does not get triggered if the query happens" {
+    for pass {
+    } else {
+        assert false as "entered loop"
+    }
+}
+
+test "for else branch does not get triggered if the query is broken on the first" {
+    for pass {
+        break
+    } else {
+        assert false as "entered loop"
+    }
+}
+
+test "for else branch does not get triggered if the query is continued on the only" {
+    for pass {
+        continue
+    } else {
+        assert false as "entered loop"
+    }
+}
