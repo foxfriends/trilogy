@@ -1,7 +1,7 @@
 use crate::entrypoint::StaticMember;
 use std::collections::HashMap;
 use trilogy_ir::Id;
-use trilogy_vm::Instruction;
+use trilogy_vm::{Instruction, Offset};
 
 #[derive(Clone, Debug)]
 pub(crate) enum Binding<'a> {
@@ -85,36 +85,29 @@ impl<'a> Scope<'a> {
         self.statics.insert(id, static_member)
     }
 
-    #[inline]
     pub fn closure(&mut self, parameters: usize) -> u32 {
         let offset = self.parameters + self.locals.len();
         self.parameters += parameters;
         offset as u32
     }
 
-    #[inline]
     pub fn unclosure(&mut self, parameters: usize) {
         self.parameters -= parameters;
     }
 
-    #[inline]
     pub fn intermediate(&mut self) -> u32 {
         self.closure(1)
     }
 
-    #[inline]
     pub fn end_intermediate(&mut self) {
         self.unclosure(1)
     }
 
-    pub fn push_break(&mut self) -> u32 {
-        let offset = self.intermediate();
+    pub fn push_break(&mut self, offset: Offset) {
         self.kw_break.push(offset);
-        offset
     }
 
     pub fn pop_break(&mut self) {
-        self.end_intermediate();
         self.kw_break.pop();
     }
 
@@ -123,14 +116,11 @@ impl<'a> Scope<'a> {
         Some(Instruction::LoadLocal(*offset))
     }
 
-    pub fn push_continue(&mut self) -> u32 {
-        let offset = self.intermediate();
+    pub fn push_continue(&mut self, offset: Offset) {
         self.kw_continue.push(offset);
-        offset
     }
 
     pub fn pop_continue(&mut self) {
-        self.end_intermediate();
         self.kw_continue.pop();
     }
 

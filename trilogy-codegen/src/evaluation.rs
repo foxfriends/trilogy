@@ -1,9 +1,8 @@
-use crate::chunk_writer_ext::ChunkWriterExt;
 use crate::preamble::{END, RETURN};
 use crate::{prelude::*, ASSIGN};
-use trilogy_ir::ir;
+use trilogy_ir::ir::{self, Iterator};
 use trilogy_ir::visitor::HasBindings;
-use trilogy_vm::{Array, Instruction, Record, Set, Value};
+use trilogy_vm::{Array, Instruction, Offset, Record, Set, Value};
 
 #[inline(always)]
 pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
@@ -97,75 +96,15 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.atom(value);
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
-        ir::Value::Iterator(iterator) => {
-            let on_fail = context.make_label("iter_out");
-            context.closure(|context| {
-                context.declare_variables(iterator.query.bindings());
-                write_query_state(context, &iterator.query);
-                let state = context.scope.intermediate();
-                context
-                    .closure(|context| {
-                        context.instruction(Instruction::LoadLocal(state));
-                        write_query(context, &iterator.query, &on_fail);
-                        context.instruction(Instruction::SetLocal(state));
-                        match &iterator.value.value {
-                            ir::Value::Mapping(mapping) => {
-                                write_expression(context, &mapping.0);
-                                context.scope.intermediate();
-                                write_expression(context, &mapping.1);
-                                context.scope.end_intermediate();
-                                context.instruction(Instruction::Cons);
-                            }
-                            other => write_evaluation(context, other),
-                        }
-                        context
-                            .atom("next")
-                            .instruction(Instruction::Construct)
-                            .instruction(Instruction::Return)
-                            .label(on_fail)
-                            .atom("done")
-                            .instruction(Instruction::Return);
-                    })
-                    .instruction(Instruction::Return);
-            });
-            context.instruction(Instruction::Call(0));
-            context.scope.end_intermediate();
-            context.undeclare_variables(iterator.query.bindings(), false);
-        }
+        ir::Value::Iterator(iterator) => write_iterator(context, iterator, None, None),
         ir::Value::While(stmt) => {
             let begin = context.make_label("while");
             let cleanup = context.make_label("while_cleanup");
             let end = context.make_label("while_end");
 
-            context.scope.intermediate(); // Break and continue are just regular intermediates at first
-            context.continuation(|context| {
-                // Break goes onto the stack first, it is simply a continuation that jumps to the
-                // part after the loop.
-                //
-                // Break is called with a value that is ignored. This is definitely an oversight
-                // that I should get around to fixing... or maybe there's a way to use that value?
-                context
-                    .unlock_function()
-                    .instruction(Instruction::Pop)
-                    .jump(&end);
-            });
-
-            let cont = context.scope.intermediate();
-            // Continue goes onto the stack second, it is simply a continuation that jumps to the
-            // part before the loop. In order for the continue continuation to be in its own stack,
-            // it is written over a stack slot made ahead of time.
-            context
-                .instruction(Instruction::Variable)
-                .continuation(|context| {
-                    //
-                    // Continue is called with a value that is ignored. This is definitely an oversight
-                    // that I should get around to fixing... or maybe there's a way to use that value?
-                    context
-                        .unlock_function()
-                        .instruction(Instruction::Pop)
-                        .jump(&begin);
-                })
-                .instruction(Instruction::SetLocal(cont));
+            // Break and continue are just regular intermediates at first
+            let r#break = context.r#break(&end).intermediate();
+            let r#continue = context.r#continue(&begin).intermediate();
 
             // The actual loop we can implement in the standard way after the continuations are
             // created.
@@ -175,10 +114,8 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.typecheck("boolean").cond_jump(&cleanup);
             // It's only in the body of the loop that continue and break become usable,
             // so we only make them referenceable here
-            context.scope.end_intermediate();
-            context.scope.end_intermediate();
-            context.scope.push_break();
-            context.scope.push_continue();
+            context.scope.push_break(r#break);
+            context.scope.push_continue(r#continue);
             // If it's true, run the body. The body has access to continue and break.
             write_expression(context, &stmt.body);
             context
@@ -186,11 +123,13 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .jump(&begin)
                 .label(&cleanup)
                 .instruction(Instruction::Pop) // continue
+                .end_intermediate()
                 .instruction(Instruction::Pop) // break
+                .end_intermediate()
                 .label(&end)
                 .constant(()); // The assumed value on stack at end of evaluation
-            context.scope.pop_continue();
             context.scope.pop_break();
+            context.scope.pop_continue();
         }
         ir::Value::Application(application) => match unapply_2(application) {
             (
@@ -311,12 +250,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             }
             (None, ir::Value::Builtin(ir::Builtin::Array), arg @ ir::Value::Iterator(..)) => {
                 write_evaluation(context, arg);
-                let iterator = context.scope.intermediate();
-                context.constant(Array::default());
-                context.scope.intermediate(); // array
+                let iterator = context.intermediate();
+
+                context.constant(Array::default()).intermediate();
+
                 context
-                    .repeat(|c, exit| {
-                        c.instruction(Instruction::LoadLocal(iterator))
+                    .repeat(|context, exit| {
+                        context
+                            .instruction(Instruction::LoadLocal(iterator))
                             .iterate(exit)
                             // Between computing the next value and inserting it, we have to clone
                             // the collection due to the potential for the call to the iterator to
@@ -330,28 +271,53 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     })
                     .instruction(Instruction::Pop) // 'done
                     .instruction(Instruction::Swap)
-                    .instruction(Instruction::Pop); // iterator
-                context.scope.end_intermediate(); // array
-                context.scope.end_intermediate(); // iterator
+                    .end_intermediate() // array
+                    .instruction(Instruction::Pop)
+                    .end_intermediate(); // iterator
             }
             (None, ir::Value::Builtin(ir::Builtin::Array), ..) => {
                 unreachable!("array is applied to pack or iterator");
             }
-            (None, ir::Value::Builtin(ir::Builtin::For), value) => {
-                context.constant(false);
-                let eval_to = context.scope.intermediate();
-                write_evaluation(context, value);
+            (None, ir::Value::Builtin(ir::Builtin::For), ir::Value::Iterator(value)) => {
+                let end = context.labeler.unique_hint("for_end");
+                let cleanup = context.labeler.unique_hint("for_cleanup");
+                let continued = context.labeler.unique_hint("for_next");
+                let broke = context.labeler.unique_hint("for_broke");
+                let begin = context.labeler.unique_hint("for");
+
+                // Make a spot on the stack for the "return value" of this for loop. For loops
+                // internally evaluate to true if they iterate at all, or false if there were
+                // no iterations taken. That boolean gets used by the if statements generated
+                // by the `for .. else` syntax transformation.
+                let eval_to = context.constant(false).intermediate();
+                let iterator = context.instruction(Instruction::Variable).intermediate();
+                let r#break = context.r#break(&broke).intermediate();
+                let r#continue = context.r#continue(&continued).intermediate();
+                write_iterator(context, value, Some(r#continue), Some(r#break));
                 context
-                    .repeat(|c, exit| {
-                        c.instruction(Instruction::Copy)
-                            .iterate(exit)
-                            .constant(true)
-                            .instruction(Instruction::SetLocal(eval_to))
-                            .instruction(Instruction::Pop);
-                    })
+                    .instruction(Instruction::SetLocal(iterator))
+                    .label(&begin)
+                    .instruction(Instruction::LoadLocal(iterator))
+                    .iterate(&cleanup)
+                    .instruction(Instruction::Pop) // the value of the loop body does not matter
+                    .label(&continued)
+                    .constant(true)
+                    .instruction(Instruction::SetLocal(eval_to))
+                    .jump(&begin)
+                    .label(&cleanup)
                     .instruction(Instruction::Pop)
-                    .instruction(Instruction::Pop);
-                context.scope.end_intermediate();
+                    .end_intermediate() // continue
+                    .instruction(Instruction::Pop)
+                    .end_intermediate() // break
+                    .bubble(|c| {
+                        c.label(&broke)
+                            .constant(true)
+                            .instruction(Instruction::SetLocal(eval_to));
+                    })
+                    .label(&end)
+                    .instruction(Instruction::Pop)
+                    .end_intermediate() // iterator
+                    .end_intermediate(); // eval_to
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = context.make_label("is_fail");
@@ -659,4 +625,58 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.instruction(Instruction::Fizzle);
         }
     }
+}
+
+fn write_iterator(
+    context: &mut Context,
+    iterator: &Iterator,
+    r#continue: Option<Offset>,
+    r#break: Option<Offset>,
+) {
+    let on_fail = context.make_label("iter_out");
+    context
+        .closure(|context| {
+            context.declare_variables(iterator.query.bindings());
+            write_query_state(context, &iterator.query);
+            let state = context.scope.intermediate();
+            context
+                .closure(|context| {
+                    context.instruction(Instruction::LoadLocal(state));
+                    write_query(context, &iterator.query, &on_fail);
+                    context.instruction(Instruction::SetLocal(state));
+
+                    if let Some(r#break) = r#break {
+                        context.scope.push_break(r#break);
+                    }
+                    if let Some(r#continue) = r#continue {
+                        context.scope.push_continue(r#continue);
+                    }
+                    match &iterator.value.value {
+                        ir::Value::Mapping(mapping) => {
+                            write_expression(context, &mapping.0);
+                            context.intermediate();
+                            write_expression(context, &mapping.1);
+                            context.end_intermediate().instruction(Instruction::Cons);
+                        }
+                        other => write_evaluation(context, other),
+                    }
+                    if r#break.is_some() {
+                        context.scope.pop_break();
+                    }
+                    if r#continue.is_some() {
+                        context.scope.pop_continue();
+                    }
+                    context
+                        .atom("next")
+                        .instruction(Instruction::Construct)
+                        .instruction(Instruction::Return)
+                        .label(on_fail)
+                        .atom("done")
+                        .instruction(Instruction::Return);
+                })
+                .instruction(Instruction::Return)
+                .end_intermediate(); // state
+        })
+        .instruction(Instruction::Call(0));
+    context.undeclare_variables(iterator.query.bindings(), false);
 }

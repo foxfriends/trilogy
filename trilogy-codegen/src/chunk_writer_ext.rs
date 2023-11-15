@@ -4,8 +4,18 @@ use crate::INVALID_ITERATOR;
 use crate::RUNTIME_TYPE_ERROR;
 pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use trilogy_vm::Instruction;
+use trilogy_vm::Offset;
 use trilogy_vm::Struct;
 use trilogy_vm::Value;
+
+pub(crate) trait StackTracker {
+    fn intermediate(&mut self) -> Offset;
+    fn end_intermediate(&mut self) -> &mut Self;
+}
+
+pub(crate) trait LabelMaker {
+    fn make_label(&mut self, label: &str) -> String;
+}
 
 pub(crate) trait TypePattern {
     fn write<W: ChunkWriter + LabelMaker>(&self, writer: &mut W, destination: Result<&str, &str>);
@@ -197,8 +207,36 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
     }
 }
 
-impl<T> ChunkWriterExt for T where T: ChunkWriter + LabelMaker {}
+pub(crate) trait StatefulChunkWriterExt:
+    StackTracker + ChunkWriter + LabelMaker + Sized
+{
+    fn r#continue<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        let cont = self.intermediate();
+        self.instruction(Instruction::Variable)
+            .continuation(|context| {
+                // Continue is called with a value that is ignored. This is definitely an oversight
+                // that I should get around to fixing... or maybe there's a way to use that value?
+                context
+                    .unlock_function()
+                    .instruction(Instruction::Pop)
+                    .jump(label);
+            })
+            .instruction(Instruction::SetLocal(cont));
+        self.end_intermediate();
+        self
+    }
 
-pub(crate) trait LabelMaker {
-    fn make_label(&mut self, label: &str) -> String;
+    fn r#break<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.continuation(|context| {
+            // Break is called with a value that is ignored. This is definitely an oversight
+            // that I should get around to fixing... or maybe there's a way to use that value?
+            context
+                .unlock_function()
+                .instruction(Instruction::Pop)
+                .jump(label);
+        })
+    }
 }
+
+impl<T> ChunkWriterExt for T where T: ChunkWriter + LabelMaker {}
+impl<T> StatefulChunkWriterExt for T where T: StackTracker + ChunkWriter + LabelMaker {}

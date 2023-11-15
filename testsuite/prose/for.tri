@@ -1,0 +1,33 @@
+test "for loops work with simple queries" {
+    let mut total = 0
+    for x in [1, 2, 3, 4, 5] {
+        total += x
+    }
+    assert total == 15
+}
+
+test "for loops work with complex queries" {
+    let mut total = 0
+    for x in [1, 2, 3, 4, 5] and y in [1, 2, 3] {
+        total += x + y
+    }
+    assert total == 75
+}
+
+test "can break in a for loop" {
+    let mut total = 0
+    for x in [1, 2, 3, 4, 5] {
+        total += x
+        if x == 3 { break }
+    }
+    assert total == 6
+}
+
+test "can continue in a for loop" {
+    let mut total = 0
+    for x in [1, 2, 3, 4, 5] {
+        if x == 3 { continue }
+        total += x
+    }
+    assert total == 12
+}

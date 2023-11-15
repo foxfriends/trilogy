@@ -1,12 +1,12 @@
+use crate::chunk_writer_ext::{LabelMaker, StackTracker};
+use trilogy_ir::Id;
+use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Value};
+
 mod labeler;
 mod scope;
 
 pub(crate) use labeler::Labeler;
 pub(crate) use scope::{Binding, Scope};
-use trilogy_ir::Id;
-use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Value};
-
-use crate::chunk_writer_ext::LabelMaker;
 
 pub(crate) struct Context<'a> {
     pub labeler: &'a mut Labeler,
@@ -73,6 +73,17 @@ impl ChunkWriter for Context<'_> {
 impl LabelMaker for Context<'_> {
     fn make_label(&mut self, label: &str) -> String {
         self.labeler.unique_hint(label)
+    }
+}
+
+impl StackTracker for Context<'_> {
+    fn intermediate(&mut self) -> trilogy_vm::Offset {
+        self.scope.intermediate()
+    }
+
+    fn end_intermediate(&mut self) -> &mut Self {
+        self.scope.end_intermediate();
+        self
     }
 }
 
