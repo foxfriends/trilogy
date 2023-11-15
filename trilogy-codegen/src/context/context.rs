@@ -1,5 +1,5 @@
 use super::{Labeler, Scope};
-use crate::chunk_writer_ext::{LabelMaker, StackTracker};
+use crate::prelude::*;
 use trilogy_ir::Id;
 use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Value};
 

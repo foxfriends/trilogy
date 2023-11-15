@@ -1,72 +1,12 @@
+use crate::prelude::*;
 use crate::INCORRECT_ARITY;
 use crate::INVALID_CALL;
 use crate::INVALID_ITERATOR;
 use crate::RUNTIME_TYPE_ERROR;
 pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use trilogy_vm::Instruction;
-use trilogy_vm::Offset;
 use trilogy_vm::Struct;
 use trilogy_vm::Value;
-
-pub(crate) trait StackTracker {
-    fn intermediate(&mut self) -> Offset;
-    fn end_intermediate(&mut self) -> &mut Self;
-}
-
-pub(crate) trait LabelMaker {
-    fn make_label(&mut self, label: &str) -> String;
-}
-
-pub(crate) trait TypePattern {
-    fn write<W: ChunkWriter + LabelMaker>(&self, writer: &mut W, destination: Result<&str, &str>);
-}
-
-impl TypePattern for () {
-    fn write<W: ChunkWriter + LabelMaker>(
-        &self,
-        _writer: &mut W,
-        _destination: Result<&str, &str>,
-    ) {
-    }
-}
-
-impl TypePattern for str {
-    fn write<W: ChunkWriter + LabelMaker>(&self, writer: &mut W, destination: Result<&str, &str>) {
-        writer
-            .instruction(Instruction::Copy)
-            .instruction(Instruction::TypeOf)
-            .atom(self);
-        match destination {
-            Ok(destination) => writer
-                .instruction(Instruction::ValNeq)
-                .cond_jump(destination),
-            Err(destination) => writer
-                .instruction(Instruction::ValEq)
-                .cond_jump(destination),
-        };
-    }
-}
-
-impl TypePattern for [&str] {
-    fn write<W: ChunkWriter + LabelMaker>(&self, writer: &mut W, destination: Result<&str, &str>) {
-        match destination {
-            Ok(destination) => {
-                let done = writer.make_label("done");
-                for t in self {
-                    t.write(writer, Err(&done));
-                }
-                writer.jump(destination).label(done);
-            }
-            Err(destination) => {
-                let done = writer.make_label("done");
-                for t in self {
-                    t.write(writer, Ok(&done));
-                }
-                writer.jump(destination).label(done);
-            }
-        }
-    }
-}
 
 pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
     fn r#struct<V: Into<Value>>(&mut self, atom: &str, value: V) -> &mut Self {

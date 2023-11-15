@@ -1,7 +1,5 @@
 use super::{Labeler, Scope, StaticMember};
-use crate::chunk_writer_ext::{ChunkWriterExt, LabelMaker};
 use crate::module::Mode;
-use crate::preamble::RETURN;
 use crate::prelude::*;
 use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
