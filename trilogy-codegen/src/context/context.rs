@@ -1,7 +1,7 @@
 use super::{Labeler, Scope};
 use crate::prelude::*;
 use trilogy_ir::Id;
-use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Value};
+use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Offset, Value};
 
 pub(crate) struct Context<'a> {
     labeler: &'a mut Labeler,
@@ -72,7 +72,7 @@ impl LabelMaker for Context<'_> {
 }
 
 impl StackTracker for Context<'_> {
-    fn intermediate(&mut self) -> trilogy_vm::Offset {
+    fn intermediate(&mut self) -> Offset {
         self.scope.intermediate()
     }
 

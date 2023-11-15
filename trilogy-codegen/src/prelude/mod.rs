@@ -1,6 +1,7 @@
 mod chunk_writer_ext;
 mod label_maker;
 mod stack_tracker;
+mod stateful_chunk_writer_ext;
 mod type_pattern;
 
 pub(crate) use crate::context::{Binding, Context};
@@ -16,6 +17,7 @@ pub(crate) use crate::rule::write_rule;
 pub(crate) use chunk_writer_ext::*;
 pub(crate) use label_maker::*;
 pub(crate) use stack_tracker::*;
+pub(crate) use stateful_chunk_writer_ext::*;
 pub(crate) use type_pattern::*;
 
 use trilogy_ir::ir;

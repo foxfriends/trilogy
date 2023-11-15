@@ -56,12 +56,15 @@ impl<'a> Scope<'a> {
         }
     }
 
+    pub fn remember_variable(&mut self, id: Id, offset: Offset) {
+        self.locals.insert(id, offset);
+    }
+
     pub fn declare_variable(&mut self, id: Id) -> bool {
         if self.locals.contains_key(&id) {
             return false;
         }
-        self.locals
-            .insert(id, (self.parameters + self.locals.len()) as u32);
+        self.remember_variable(id, (self.parameters + self.locals.len()) as u32);
         true
     }
 
