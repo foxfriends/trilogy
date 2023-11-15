@@ -1,9 +1,7 @@
-mod chunk_writer_ext;
 mod context;
 mod entrypoint;
 mod evaluation;
 mod function;
-mod helpers;
 mod module;
 mod operator;
 mod pattern_match;
