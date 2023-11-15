@@ -327,10 +327,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             context.instruction(Instruction::Swap).call_function();
         }
         Builtin::Yield => {
-            context
-                .reference(YIELD.to_owned())
-                .instruction(Instruction::Swap)
-                .call_function();
+            context.r#yield();
         }
         Builtin::Resume => {
             context

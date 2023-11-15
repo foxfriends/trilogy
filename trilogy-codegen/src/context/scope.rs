@@ -132,14 +132,11 @@ impl<'a> Scope<'a> {
         Some(Instruction::LoadLocal(*offset))
     }
 
-    pub fn push_cancel(&mut self) -> u32 {
-        let offset = self.intermediate();
+    pub fn push_cancel(&mut self, offset: Offset) {
         self.kw_cancel.push(offset);
-        offset
     }
 
     pub fn pop_cancel(&mut self) {
-        self.end_intermediate();
         self.kw_cancel.pop();
     }
 
@@ -148,14 +145,11 @@ impl<'a> Scope<'a> {
         Some(Instruction::LoadLocal(*offset))
     }
 
-    pub fn push_resume(&mut self) -> u32 {
-        let offset = self.intermediate();
+    pub fn push_resume(&mut self, offset: Offset) {
         self.kw_resume.push(offset);
-        offset
     }
 
     pub fn pop_resume(&mut self) {
-        self.end_intermediate();
         self.kw_resume.pop();
     }
 

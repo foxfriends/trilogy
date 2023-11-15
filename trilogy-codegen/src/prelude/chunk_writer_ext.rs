@@ -84,6 +84,12 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
         self.r#struct("module", 1).instruction(Instruction::Call(2))
     }
 
+    fn r#yield(&mut self) -> &mut Self {
+        self.reference(YIELD)
+            .instruction(Instruction::Swap)
+            .call_function()
+    }
+
     fn is_done<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.instruction(Instruction::Copy)
             .atom("done")
@@ -144,6 +150,11 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
             .unlock_procedure(arity)
             .pipe(contents)
             .label(end)
+    }
+
+    fn case<F: FnOnce(&mut Self, &str)>(&mut self, contents: F) -> &mut Self {
+        let end = self.make_label("case_end");
+        self.pipe(|c| contents(c, &end)).label(end)
     }
 }
 

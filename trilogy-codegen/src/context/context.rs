@@ -80,6 +80,46 @@ impl StackTracker for Context<'_> {
         self.scope.end_intermediate();
         self
     }
+
+    fn push_continue(&mut self, offset: Offset) -> &mut Self {
+        self.scope.push_continue(offset);
+        self
+    }
+
+    fn pop_continue(&mut self) -> &mut Self {
+        self.scope.pop_continue();
+        self
+    }
+
+    fn push_break(&mut self, offset: Offset) -> &mut Self {
+        self.scope.push_break(offset);
+        self
+    }
+
+    fn pop_break(&mut self) -> &mut Self {
+        self.scope.pop_break();
+        self
+    }
+
+    fn push_cancel(&mut self, offset: Offset) -> &mut Self {
+        self.scope.push_cancel(offset);
+        self
+    }
+
+    fn pop_cancel(&mut self) -> &mut Self {
+        self.scope.pop_cancel();
+        self
+    }
+
+    fn push_resume(&mut self, offset: Offset) -> &mut Self {
+        self.scope.push_resume(offset);
+        self
+    }
+
+    fn pop_resume(&mut self) -> &mut Self {
+        self.scope.pop_resume();
+        self
+    }
 }
 
 impl Context<'_> {
