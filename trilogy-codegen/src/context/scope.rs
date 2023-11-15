@@ -1,4 +1,4 @@
-use crate::entrypoint::StaticMember;
+use super::StaticMember;
 use std::collections::HashMap;
 use trilogy_ir::Id;
 use trilogy_vm::{Instruction, Offset};

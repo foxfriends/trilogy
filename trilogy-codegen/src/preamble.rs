@@ -1,7 +1,6 @@
 use super::prelude::*;
-use crate::chunk_writer_ext::{ChunkWriterExt, LabelMaker};
-use crate::entrypoint::ProgramContext;
-use trilogy_vm::{ChunkWriter, Instruction, Value};
+use crate::context::ProgramContext;
+use trilogy_vm::{Instruction, Value};
 
 pub const ADD: &str = "core::add";
 pub const SUB: &str = "core::sub";

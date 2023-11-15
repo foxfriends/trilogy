@@ -1,4 +1,4 @@
-use crate::entrypoint::{ProgramContext, StaticMember};
+use crate::context::{ProgramContext, StaticMember};
 use crate::preamble::{END, RETURN};
 use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -138,9 +138,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     let current_module = context.scope.intermediate();
     // These variables are now in the context, so mark them down as such.
     for (_, var) in &variables {
-        let label = context
-            .labeler
-            .unique_hint(&format!("context::{}", var.symbol()));
+        let label = context.make_label(&format!("context::{}", var.symbol()));
         context
             .scope
             .declare_static(var.clone(), StaticMember::Context(label));
@@ -225,9 +223,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Insert)
                 .instruction(Instruction::SetRegister(MODULE));
-            let label = context
-                .labeler
-                .unique_hint(&format!("context::{}", declared_id.symbol()));
+            let label = context.make_label(&format!("context::{}", declared_id.symbol()));
             let old_static = context
                 .scope
                 .declare_static(declared_id.clone(), StaticMember::Context(label))

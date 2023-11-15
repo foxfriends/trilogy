@@ -279,11 +279,11 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 unreachable!("array is applied to pack or iterator");
             }
             (None, ir::Value::Builtin(ir::Builtin::For), ir::Value::Iterator(value)) => {
-                let end = context.labeler.unique_hint("for_end");
-                let cleanup = context.labeler.unique_hint("for_cleanup");
-                let continued = context.labeler.unique_hint("for_next");
-                let broke = context.labeler.unique_hint("for_broke");
-                let begin = context.labeler.unique_hint("for");
+                let end = context.make_label("for_end");
+                let cleanup = context.make_label("for_cleanup");
+                let continued = context.make_label("for_next");
+                let broke = context.make_label("for_broke");
+                let begin = context.make_label("for");
 
                 // Make a spot on the stack for the "return value" of this for loop. For loops
                 // internally evaluate to true if they iterate at all, or false if there were
