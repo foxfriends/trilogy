@@ -433,7 +433,7 @@ fn write_query_value(
             // Meanwhile, if the subquery fails, then that's a pass.
             context.label(on_pass).instruction(Instruction::Pop); // Again discard the internal state
 
-            // First reset the bindset
+            // Then reset the bindset
             context.instruction(Instruction::LoadLocal(bindset));
             unbind(context, bound, query.value.bindings());
             // And finally fix the state
