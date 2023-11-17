@@ -208,13 +208,17 @@ impl Expression {
             // permitted, so... if we're parsing as maybe expression or pattern, we aren't
             // expecting and/or...
             KwAnd | KwOr => Ok(Done(lhs)),
+            // Unary operators and keywords are not permitted here. They must be parenthesized
+            // to be considered an argument to an application. It messes with handler parsing
+            // otherwise, while also being confusing in terms of precedence rules.
+            KwYield | KwResume | KwCancel | KwReturn | KwContinue | KwBreak => Ok(Done(lhs)),
 
             // A function application never spans across two lines. Furthermore,
             // the application requires a space, even when the parse would be
             // otherwise unambiguous.
             //
             // Sadly, the list of things that can follow, for an application, is
-            // anything prefix (except `-`) so this becomes a very long list.
+            // anything prefix (except unary operators) so this becomes a very long list.
             _ if Expression::PREFIX.matches(token)
                 && precedence < Precedence::Application
                 && !is_line_start

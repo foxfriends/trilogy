@@ -63,3 +63,59 @@ test "for else branch does not get triggered if the query is continued on the on
         assert "entered loop" as false
     }
 }
+
+test "for loops can be nested" {
+    let mut total = 0
+    for x in [1, 2, 3] {
+        for y in [10, 100] {
+            total += x * y
+        }
+    }
+    assert total == 660
+}
+
+test "break can break from an inner loop" {
+    let mut total = 0
+    for x in [1, 2, 3] {
+        for y in [10, 100] {
+            if x * y == 20 { break }
+            total += x * y
+        }
+    }
+    assert total == 440
+}
+
+test "first class break can break from a nested loop" {
+    let mut total = 0
+    for x in [1, 2, 3] {
+        let break_all = (break)
+        for y in [10, 100] {
+            if x * y == 20 { break_all unit }
+            total += x * y
+        }
+    }
+    assert total == 110
+}
+
+test "continue can continue from an inner loop" {
+    let mut total = 0
+    for x in [1, 2, 3] {
+        for y in [10, 100] {
+            if x * y == 20 { continue }
+            total += x * y
+        }
+    }
+    assert total == 640
+}
+
+test "first class continue can continue from a nested loop" {
+    let mut total = 0
+    for x in [1, 2, 3] {
+        let continue_all = (continue)
+        for y in [10, 100] {
+            if x * y == 20 { continue_all unit }
+            total += x * y
+        }
+    }
+    assert total == 440
+}

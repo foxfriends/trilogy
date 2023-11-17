@@ -1,0 +1,65 @@
+proc range!(mut min, max) {
+    while min <= max {
+        yield 'next(min)
+        min += 1
+    }
+}
+
+test "anything yielding 'next(v) is an iterator" {
+    assert [x for x in range!(1, 5)] == [1, 2, 3, 4, 5]
+}
+
+proc odds!(iter) {
+    for x in iter!() {
+        if x % 2 == 1 {
+            yield 'next(x)
+        }
+    }
+}
+
+test "iterators can be transformed" {
+    assert [x for x in odds!(do() { range!(1, 5) })] == [1, 3, 5]
+}
+
+test "iterators can be transformed manually" {
+    assert [x for
+        x in with range!(1, 5)
+            when 'next(n) if n % 2 == 1 yield
+            when 'next(_) resume unit
+            else resume unit
+    ] == [1, 3, 5]
+}
+
+test "iterators work in for loops" {
+    let mut total = 0
+
+    for x in range!(1, 5) {
+        total += x
+    }
+
+    assert total == 15
+}
+
+test "transformed iterators work in for loops" {
+    let mut total = 0
+
+    for x in with range!(1, 5)
+        when 'next(n) if n % 2 == 1 yield
+        when 'next(_) resume unit
+        else resume unit {
+        total += x
+    }
+
+    assert total == 9
+}
+
+test "iterators work in for loops with break" {
+    let mut total = 0
+
+    for x in range!(1, 5) {
+        total += x
+        if x == 3 { break }
+    }
+
+    assert total == 6
+}
