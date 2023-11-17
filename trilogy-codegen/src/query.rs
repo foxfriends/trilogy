@@ -102,18 +102,11 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             context.instruction(Instruction::Pop);
         }
         ir::QueryValue::Element(unification) => {
-            // Element unification iterates a collection. The state is an iterator
-            // over this collection, which will eventually run out, but we can't evaluate
-            // that yet because it might need some of its parameters bound still, so we
-            // just put a unit as a placeholder.
-            //
-            // Since this is a potentially many times operation, we do need to store the
-            // bindset as well.
+            // Element unification iterates a collection. The state is a continuation to the
+            // iteration in progress. When the iteration has not yet begun, it's just the bindset.
             context
                 .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone)
-                .constant(())
-                .instruction(Instruction::Cons);
+                .instruction(Instruction::Clone);
 
             // Bindset updates happen *after* the state is computed because the backtracker
             // needs to be able to go back to the previous bindset.
@@ -287,52 +280,98 @@ fn write_query_value(
             context.scope.end_intermediate(); // bindset
         }
         ir::QueryValue::Element(unification) => {
+            let begin = context.make_label("in_begin");
+            let end = context.make_label("in_end");
             let cleanup = context.make_label("in_cleanup");
-            let body = context.make_label("in_body");
+            let skip = context.make_label("in_skip");
 
-            // First check to see if the state is `unit`, meaning we have to set up the
-            // iterator still.
-            context.instruction(Instruction::Uncons);
-            let bindset = context.scope.intermediate();
+            // If the state is a callable, that means we're mid-iteration already, continue
+            // by calling it, provided with a pair of continuations onto which to return.
             context
-                .instruction(Instruction::Copy)
-                .constant(())
-                .instruction(Instruction::ValEq)
-                .cond_jump(&body)
-                // State was unit, discard it
-                .instruction(Instruction::Pop);
-            // Then create the actual iterator
-            let cleanup_setup = context.make_label("in_setup_fail");
-            evaluate_or_fail(context, bound, &unification.expression, &cleanup_setup);
+                .try_type("callable", Err(&begin))
+                .continuation(|context| {
+                    context
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::Pop)
+                        .jump(on_fail);
+                })
+                .continuation(|context| {
+                    context.jump(&end);
+                })
+                .instruction(Instruction::Become(2));
+
+            // Alternatively, begin the iteration
+            let bindset = context.label(&begin).intermediate();
+            // The first iteration also needs a place to exit to
+            let fail_continuation = context
+                .continuation(|context| {
+                    context
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::Pop)
+                        .jump(on_fail);
+                })
+                .intermediate();
+            let pass_continuation = context
+                .continuation(|context| {
+                    context.jump(&end);
+                })
+                .intermediate();
             context
-                .reference(ITERATE_COLLECTION)
+                .iterate(
+                    |context, params| {
+                        // For each element yielded, the query binds the value to the pattern, then
+                        // "returns" the state of the query, which is a continuation that resumes
+                        // from here.
+                        //
+                        // If the pattern fails to bind, skip this iteration
+                        write_pattern_match(context, &unification.pattern, &skip);
+                        context
+                            .instruction(Instruction::LoadLocal(pass_continuation))
+                            .continuation(|context| {
+                                context
+                                    .instruction(Instruction::SetLocal(pass_continuation))
+                                    .instruction(Instruction::SetLocal(fail_continuation))
+                                    // When continuing the iterator, start by unbinding the pattern, then
+                                    // just resume and cancel the iterator as in standard iteration.
+                                    .label(&skip)
+                                    .instruction(Instruction::LoadLocal(bindset));
+                                unbind(context, bound, unification.pattern.bindings());
+                                context
+                                    .instruction(Instruction::LoadLocal(params.resume))
+                                    .constant(())
+                                    .call_function()
+                                    .instruction(Instruction::LoadLocal(params.cancel))
+                                    .constant(())
+                                    .become_function(); // End with a unit, as unit is considered an empty collection
+                            })
+                            .instruction(Instruction::Become(1));
+                    },
+                    |context| {
+                        // Since we allow this to either be an iterator or a collection, after evaluating
+                        // we attempt to iterate it as a collection. An iterator used as a value evaluates
+                        // to unit, and unit is the same as empty list, so it gracefully handles the iterator
+                        // case by just iterating while evaluating.
+                        //
+                        // If the value is not an iterator or collection, then ITERATE_COLLECTION will panic.
+                        evaluate_or_fail(context, bound, &unification.expression, &cleanup);
+                        context
+                            .reference(ITERATE_COLLECTION)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Call(1))
+                            .label(&cleanup)
+                            .instruction(Instruction::LoadLocal(fail_continuation))
+                            .instruction(Instruction::LoadLocal(bindset))
+                            .instruction(Instruction::Become(1));
+                    },
+                )
+                .label(&end)
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::Call(1))
-                .jump(&body)
-                .label(&cleanup_setup)
-                .constant(())
-                .instruction(Instruction::Cons)
-                .jump(on_fail);
-
-            context.label(&body);
-            context.scope.intermediate(); // state iterator
-
-            // Reset to the previous binding state
-            context.instruction(Instruction::LoadLocal(bindset));
-            unbind(context, bound, unification.pattern.bindings());
-            context.instruction(Instruction::Copy).iterate(&cleanup);
-            // Success: bind the pattern to the value. If this fails, move on to the next
-            // element, not fail the whole query.
-            write_pattern_match(context, &unification.pattern, &body);
-
-            context.instruction(Instruction::Cons).bubble(|c| {
-                c.label(cleanup)
-                    .instruction(Instruction::Pop) // The 'done token
-                    .instruction(Instruction::Cons)
-                    .jump(on_fail);
-            });
-            context.scope.end_intermediate(); // state iterator
-            context.scope.end_intermediate(); // bindset
+                .instruction(Instruction::Pop)
+                .end_intermediate() // pass continuation
+                .instruction(Instruction::Swap)
+                .instruction(Instruction::Pop)
+                .end_intermediate() // fail continuation
+                .end_intermediate(); // bindset
         }
         ir::QueryValue::Is(expr) => {
             // Set the state marker to false so we can't re-enter here.
@@ -628,8 +667,10 @@ fn write_query_value(
 
             // To run the alternative thing, we need to keep a little extra state
             // temporarily. Slip that in behind the actual state before we begin.
-            context.constant(false).instruction(Instruction::Swap);
-            let is_uncommitted = context.scope.intermediate();
+            let is_uncommitted = context
+                .constant(false)
+                .instruction(Instruction::Swap)
+                .intermediate();
 
             // First we determine which case we're on. One of three:
             // 1. committed first (true)
@@ -648,11 +689,8 @@ fn write_query_value(
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&second); // false = second! Backwards from other query types
 
-            // If doing the left side, break out the bindset and reset to it so we can run the query.
-            context.instruction(Instruction::Uncons);
-            let bindset = context.scope.intermediate();
-            context.instruction(Instruction::LoadLocal(bindset));
-            unbind(context, bound, alt.0.value.bindings());
+            // If doing the left side, break out the bindset, we won't be needing it.
+            context.instruction(Instruction::Uncons).intermediate();
             write_query_value(context, &alt.0.value, &maybe, bound);
             // If it succeeds, fix the state and set the marker `true` so we come back here next time.
             context
@@ -660,10 +698,9 @@ fn write_query_value(
                 .constant(true)
                 .instruction(Instruction::Cons)
                 .bubble(|context| {
-                    context.scope.end_intermediate(); // bindset
-
                     // If doing the right side, it's much the same as the left, but there is no bindset
                     // because that will be handled by the subquery directly.
+                    context.end_intermediate(); // bindset:: TODO: is this in the right spot?
                     context.label(second.clone());
                     write_query_value(context, &alt.1.value, &cleanup_second, bound);
                     context.constant(false).instruction(Instruction::Cons);
@@ -679,6 +716,7 @@ fn write_query_value(
                             // Otherwise, the left is failed but the right might not!
                             // Discard the left's now useless state.
                             .instruction(Instruction::Pop);
+
                         // Then build up the right's state. The bindset is the same and conveniently already
                         // on the top of stack.
                         write_continued_query_state(context, &alt.1);
@@ -708,8 +746,8 @@ fn write_query_value(
                 })
                 // And finally, when successful we end up here, and still have to discard the uncommitted flag
                 .instruction(Instruction::Swap)
-                .instruction(Instruction::Pop);
-            context.scope.end_intermediate(); // is_uncommitted
+                .instruction(Instruction::Pop)
+                .end_intermediate(); // is_uncommitted
         }
         ir::QueryValue::Lookup(lookup) => {
             let setup = context.make_label("setup");
@@ -741,9 +779,23 @@ fn write_query_value(
                     .flat_map(|pat| pat.bindings())
                     .collect(),
             );
-            // Then we do the actual iteration of the lookup. Since it's just an iterator, we do the
-            // iterator thing, pretty normally.
-            context.instruction(Instruction::Copy).iterate(&cleanup);
+            // Then we do the actual iteration of the lookup.
+            context
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Call(0))
+                .instruction(Instruction::Copy)
+                .atom("done")
+                .instruction(Instruction::ValNeq)
+                .cond_jump(&cleanup)
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::TypeOf)
+                .atom("struct")
+                .instruction(Instruction::ValEq)
+                .cond_jump(RUNTIME_TYPE_ERROR)
+                .instruction(Instruction::Destruct)
+                .atom("next")
+                .instruction(Instruction::ValEq)
+                .cond_jump(RUNTIME_TYPE_ERROR);
             // If the iterator has yielded something, we have to destructure it into all the variables
             // of the unbound parameters.
             context.scope.intermediate(); // return value

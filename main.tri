@@ -1,0 +1,6 @@
+module io at "trilogy:io"
+
+proc main!() {
+    let x = 5
+    assert [n for not (x in [1, 2] and end) and n = x] == [5]
+}

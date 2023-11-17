@@ -1,5 +1,7 @@
 use super::{Labeler, Scope};
 use crate::prelude::*;
+use trilogy_ir::ir::{self, Iterator};
+use trilogy_ir::visitor::HasBindings;
 use trilogy_ir::Id;
 use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Offset, Value};
 
@@ -144,5 +146,52 @@ impl Context<'_> {
                 self.instruction(Instruction::Pop);
             }
         }
+    }
+
+    pub fn iterator(
+        &mut self,
+        iterator: &Iterator,
+        r#continue: Option<Offset>,
+        r#break: Option<Offset>,
+    ) -> &mut Self {
+        self.declare_variables(iterator.query.bindings());
+        write_query_state(self, &iterator.query);
+        self.repeat(|context, exit| {
+            write_query(context, &iterator.query, exit);
+
+            context.intermediate(); // state
+            if let Some(r#break) = r#break {
+                context.push_break(r#break);
+            }
+            if let Some(r#continue) = r#continue {
+                context.push_continue(r#continue);
+            }
+
+            match &iterator.value.value {
+                ir::Value::Mapping(mapping) => {
+                    write_expression(context, &mapping.0);
+                    context.intermediate();
+                    write_expression(context, &mapping.1);
+                    context.end_intermediate().instruction(Instruction::Cons);
+                }
+                other => write_evaluation(context, other),
+            }
+
+            if r#continue.is_some() {
+                context.pop_continue();
+            }
+            if r#break.is_some() {
+                context.pop_break();
+            }
+            context
+                .atom("next")
+                .instruction(Instruction::Construct)
+                .r#yield()
+                .instruction(Instruction::Pop) // resume value discarded
+                .end_intermediate(); // state no longer intermediate
+        })
+        .instruction(Instruction::Pop)
+        .undeclare_variables(iterator.query.bindings(), true);
+        self
     }
 }

@@ -223,12 +223,6 @@ fn sample_iterator_query() {
 }
 
 #[test]
-fn sample_iterator_literal() {
-    let program = include_tri!("iterator_literal.tri");
-    assert_eq!(program.run().unwrap(), Value::from(true));
-}
-
-#[test]
 fn sample_iterator_collection() {
     let program = include_tri!("iterator_collection.tri");
     assert_eq!(program.run().unwrap(), Value::from(91));

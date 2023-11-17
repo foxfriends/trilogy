@@ -463,7 +463,7 @@ impl Expression {
                 let case_span = case.span;
                 Expression::if_else(
                     case.span.union(if_none.span),
-                    IfElse::new(case, Expression::boolean(case_span, true), if_none),
+                    IfElse::new(case, Expression::unit(case_span), if_none),
                 )
             })
             .unwrap()

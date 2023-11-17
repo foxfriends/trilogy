@@ -37,11 +37,11 @@ proc main!() {
     |]
 
     let foodgroupcalories = {|
-        group => sum $(
+        group => sum [
             calories item
             for item in meal
             and food(^item, ^group)
-        )
+        ]
         for group in itemfoodgroups
     |}
 }

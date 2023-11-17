@@ -33,10 +33,3 @@ test "works on lists" {
     assert is 1 in els
     assert is 2 in els
 }
-
-test "works on iterators" {
-    let els = [x for x in $(x for x = 0 or x = 1 or x = 2)]
-    assert is 0 in els
-    assert is 1 in els
-    assert is 2 in els
-}

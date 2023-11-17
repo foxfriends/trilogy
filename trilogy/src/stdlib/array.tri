@@ -6,10 +6,6 @@ test "from works on an array" {
     assert from [1, 2, 3] == [1, 2, 3]
 }
 
-test "from works on a generic iterator" {
-    assert from $(x for x = 1 or x = 2 or x = 3) == [1, 2, 3]
-}
-
 test "from works on a set" {
     let arr = from [| 1, 2, 3 |]
     assert contains 1 arr

@@ -34,17 +34,17 @@ test "can continue in a for loop" {
 
 test "for else branch gets triggered when query never happens" {
     for x in [] {
-        assert false as "entered loop"
+        assert "entered loop" as false
     } else {
         exit unit
     }
-    assert false as "reached end"
+    assert "reached end" as false
 }
 
 test "for else branch does not get triggered if the query happens" {
     for pass {
     } else {
-        assert false as "entered loop"
+        assert "entered loop" as false
     }
 }
 
@@ -52,7 +52,7 @@ test "for else branch does not get triggered if the query is broken on the first
     for pass {
         break
     } else {
-        assert false as "entered loop"
+        assert "entered loop" as false
     }
 }
 
@@ -60,6 +60,6 @@ test "for else branch does not get triggered if the query is continued on the on
     for pass {
         continue
     } else {
-        assert false as "entered loop"
+        assert "entered loop" as false
     }
 }

@@ -58,7 +58,6 @@ pub const END: &str = "core::end";
 pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
 
-pub const INVALID_ITERATOR: &str = "panic::invalid_iterator";
 pub const RUNTIME_TYPE_ERROR: &str = "panic::runtime_type_error";
 pub const INVALID_ACCESSOR: &str = "panic::invalid_accessor";
 pub const INCORRECT_ARITY: &str = "panic::incorrect_arity";
@@ -256,7 +255,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(ITERATE_COLLECTION)
-        .try_type("callable", Ok(RETURN))
         .try_type("array", Ok(ITERATE_ARRAY))
         .try_type("set", Ok(ITERATE_SET))
         .try_type("record", Ok(ITERATE_RECORD))
@@ -266,48 +264,48 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
-    let iter_done = builder.make_label("iter_done");
     builder
         .label(ITERATE_SET)
         .label(ITERATE_RECORD)
         .instruction(Instruction::Entries)
         .label(ITERATE_ARRAY)
         .constant(0)
-        .instruction(Instruction::Cons)
-        .close(RETURN)
-        .instruction(Instruction::LoadLocal(0))
-        .instruction(Instruction::Uncons)
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::LoadLocal(1))
-        .instruction(Instruction::Length)
-        .instruction(Instruction::Lt)
-        .cond_jump(&iter_done)
-        .instruction(Instruction::Access)
-        .atom("next")
-        .instruction(Instruction::Construct)
-        .instruction(Instruction::LoadLocal(0))
-        .instruction(Instruction::Uncons)
-        .constant(1)
-        .instruction(Instruction::Add)
-        .instruction(Instruction::Cons)
-        .instruction(Instruction::SetLocal(0))
+        .repeat(|context, end| {
+            context
+                .instruction(Instruction::LoadLocal(0))
+                .instruction(Instruction::Length)
+                .instruction(Instruction::LoadLocal(1))
+                .instruction(Instruction::Gt)
+                .cond_jump(end)
+                .instruction(Instruction::LoadLocal(0))
+                .instruction(Instruction::LoadLocal(1))
+                .instruction(Instruction::Access)
+                .atom("next")
+                .instruction(Instruction::Construct)
+                .r#yield()
+                .instruction(Instruction::Pop)
+                .constant(1)
+                .instruction(Instruction::Add);
+        })
+        .constant(())
         .instruction(Instruction::Return);
 
     builder
         .label(ITERATE_LIST)
-        .close(RETURN)
-        .instruction(Instruction::LoadLocal(0))
-        .instruction(Instruction::Copy)
-        .instruction(Instruction::Const(Value::Unit))
-        .instruction(Instruction::ValNeq)
-        .cond_jump(&iter_done)
-        .instruction(Instruction::Uncons)
-        .instruction(Instruction::SetLocal(0))
-        .atom("next")
-        .instruction(Instruction::Construct)
-        .instruction(Instruction::Return)
-        .label(iter_done)
-        .atom("done")
+        .repeat(|context, end| {
+            context
+                .instruction(Instruction::Copy)
+                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::ValNeq)
+                .cond_jump(end)
+                .typecheck("tuple")
+                .instruction(Instruction::Uncons)
+                .instruction(Instruction::Swap)
+                .atom("next")
+                .instruction(Instruction::Construct)
+                .r#yield()
+                .instruction(Instruction::Pop);
+        })
         .instruction(Instruction::Return);
 
     builder
@@ -349,12 +347,6 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Become(2))
         .label(no_handler)
         .atom("UnhandledEffect")
-        .instruction(Instruction::Construct)
-        .instruction(Instruction::Panic);
-
-    builder
-        .label(INVALID_ITERATOR)
-        .atom("InvalidIterator")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 

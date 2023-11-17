@@ -1,8 +1,8 @@
 use crate::preamble::{END, RETURN};
 use crate::{prelude::*, ASSIGN};
-use trilogy_ir::ir::{self, Iterator};
+use trilogy_ir::ir;
 use trilogy_ir::visitor::HasBindings;
-use trilogy_vm::{Array, Instruction, Offset, Record, Set, Value};
+use trilogy_vm::{Array, Instruction, Record, Set, Value};
 
 #[inline(always)]
 pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
@@ -96,7 +96,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.atom(value);
         }
         ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
-        ir::Value::Iterator(iterator) => write_iterator(context, iterator, None, None),
+        ir::Value::Iterator(iter) => {
+            context.iterator(iter, None, None).constant(());
+        }
         ir::Value::While(stmt) => {
             let begin = context.make_label("while");
             let cleanup = context.make_label("while_cleanup");
@@ -104,7 +106,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
 
             // Break and continue are just regular intermediates at first
             let r#break = context.r#break(&end).intermediate();
-            let r#continue = context.r#continue(&begin).intermediate();
 
             // The actual loop we can implement in the standard way after the continuations are
             // created.
@@ -115,15 +116,16 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             // It's only in the body of the loop that continue and break become usable,
             // so we only make them referenceable here
             context.scope.push_break(r#break);
+            let r#continue = context.r#continue(&begin).intermediate();
             context.scope.push_continue(r#continue);
             // If it's true, run the body. The body has access to continue and break.
             write_expression(context, &stmt.body);
             context
-                .instruction(Instruction::Pop)
+                .instruction(Instruction::Pop) // Body value
+                .instruction(Instruction::Pop) // Continue
+                .end_intermediate()
                 .jump(&begin)
                 .label(&cleanup)
-                .instruction(Instruction::Pop) // continue
-                .end_intermediate()
                 .instruction(Instruction::Pop) // break
                 .end_intermediate()
                 .label(&end)
@@ -164,31 +166,34 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
                 context.scope.end_intermediate();
             }
-            (None, ir::Value::Builtin(ir::Builtin::Record), arg @ ir::Value::Iterator(..)) => {
-                write_evaluation(context, arg);
-                let iterator = context.scope.intermediate();
-                context.constant(Record::default());
-                context.scope.intermediate();
-                context
-                    .repeat(|c, exit| {
-                        c.instruction(Instruction::LoadLocal(iterator))
-                            .iterate(exit)
-                            // Between computing the next value and inserting it, we have to clone
-                            // the collection due to the potential for the call to the iterator to
-                            // return multiple times. In each parallel execution, the iterator must
-                            // collect into a separate array. In the single-execution case, this adds
-                            // a decent amount of overhead... so hopefully an alternative can be found
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Clone)
+            (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Iterator(iter)) => {
+                context.iterate(
+                    |context, params| {
+                        let record = context
+                            .typecheck("tuple")
+                            .constant(Record::default())
                             .instruction(Instruction::Swap)
                             .instruction(Instruction::Uncons)
-                            .instruction(Instruction::Assign);
-                    })
-                    .instruction(Instruction::Pop)
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Pop);
-                context.scope.end_intermediate();
-                context.scope.end_intermediate();
+                            .instruction(Instruction::Assign)
+                            .intermediate();
+                        context
+                            .instruction(Instruction::LoadLocal(params.resume))
+                            .constant(())
+                            .call_function()
+                            .instruction(Instruction::LoadLocal(record))
+                            .instruction(Instruction::Clone)
+                            .instruction(Instruction::Glue)
+                            .instruction(Instruction::LoadLocal(params.cancel))
+                            .instruction(Instruction::Swap)
+                            .become_function()
+                            .end_intermediate(); // record
+                    },
+                    |context| {
+                        context
+                            .iterator(iter, None, None)
+                            .constant(Record::default());
+                    },
+                );
             }
             (None, ir::Value::Builtin(ir::Builtin::Record), ..) => {
                 unreachable!("record is applied to pack or iterator");
@@ -206,30 +211,31 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
                 context.scope.end_intermediate();
             }
-            (None, ir::Value::Builtin(ir::Builtin::Set), arg @ ir::Value::Iterator(..)) => {
-                write_evaluation(context, arg);
-                let iterator = context.scope.intermediate();
-                context.constant(Set::default());
-                context.scope.intermediate();
-                context
-                    .repeat(|c, exit| {
-                        c.instruction(Instruction::LoadLocal(iterator))
-                            .iterate(exit)
-                            // Between computing the next value and inserting it, we have to clone
-                            // the collection due to the potential for the call to the iterator to
-                            // return multiple times. In each parallel execution, the iterator must
-                            // collect into a separate array. In the single-execution case, this adds
-                            // a decent amount of overhead... so hopefully an alternative can be found
+            (None, ir::Value::Builtin(ir::Builtin::Set), ir::Value::Iterator(iter)) => {
+                context.iterate(
+                    |context, params| {
+                        let set = context
+                            .constant(Set::default())
                             .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert)
+                            .intermediate();
+                        context
+                            .instruction(Instruction::LoadLocal(params.resume))
+                            .constant(())
+                            .call_function()
+                            .instruction(Instruction::LoadLocal(set))
                             .instruction(Instruction::Clone)
                             .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert);
-                    })
-                    .instruction(Instruction::Pop)
-                    .instruction(Instruction::Swap)
-                    .instruction(Instruction::Pop);
-                context.scope.end_intermediate();
-                context.scope.end_intermediate();
+                            .instruction(Instruction::Glue)
+                            .instruction(Instruction::LoadLocal(params.cancel))
+                            .instruction(Instruction::Swap)
+                            .become_function()
+                            .end_intermediate(); // record
+                    },
+                    |context| {
+                        context.iterator(iter, None, None).constant(Set::default());
+                    },
+                );
             }
             (None, ir::Value::Builtin(ir::Builtin::Set), ..) => {
                 unreachable!("set is applied to pack or iterator");
@@ -248,77 +254,82 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 }
                 context.scope.end_intermediate();
             }
-            (None, ir::Value::Builtin(ir::Builtin::Array), arg @ ir::Value::Iterator(..)) => {
-                write_evaluation(context, arg);
-                let iterator = context.intermediate();
-
-                context.constant(Array::default()).intermediate();
-
-                context
-                    .repeat(|context, exit| {
-                        context
-                            .instruction(Instruction::LoadLocal(iterator))
-                            .iterate(exit)
-                            // Between computing the next value and inserting it, we have to clone
-                            // the collection due to the potential for the call to the iterator to
-                            // return multiple times. In each parallel execution, the iterator must
-                            // collect into a separate array. In the single-execution case, this adds
-                            // a decent amount of overhead... so hopefully an alternative can be found
+            (None, ir::Value::Builtin(ir::Builtin::Array), ir::Value::Iterator(iter)) => {
+                context.iterate(
+                    |context, params| {
+                        let array = context
+                            .constant(Array::default())
                             .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert)
+                            .intermediate();
+                        context
+                            .instruction(Instruction::LoadLocal(params.resume))
+                            .constant(())
+                            .call_function()
+                            .instruction(Instruction::LoadLocal(array))
                             .instruction(Instruction::Clone)
                             .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert);
-                    })
-                    .instruction(Instruction::Pop) // 'done
-                    .instruction(Instruction::Swap)
-                    .end_intermediate() // array
-                    .instruction(Instruction::Pop)
-                    .end_intermediate(); // iterator
+                            .instruction(Instruction::Glue)
+                            .instruction(Instruction::LoadLocal(params.cancel))
+                            .instruction(Instruction::Swap)
+                            .become_function()
+                            .end_intermediate(); // record
+                    },
+                    |context| {
+                        context
+                            .iterator(iter, None, None)
+                            .constant(Array::default());
+                    },
+                );
             }
             (None, ir::Value::Builtin(ir::Builtin::Array), ..) => {
                 unreachable!("array is applied to pack or iterator");
             }
-            (None, ir::Value::Builtin(ir::Builtin::For), ir::Value::Iterator(value)) => {
-                let end = context.make_label("for_end");
-                let cleanup = context.make_label("for_cleanup");
+            (None, ir::Value::Builtin(ir::Builtin::For), ir::Value::Iterator(iter)) => {
                 let continued = context.make_label("for_next");
                 let broke = context.make_label("for_broke");
-                let begin = context.make_label("for");
 
-                // Make a spot on the stack for the "return value" of this for loop. For loops
-                // internally evaluate to true if they iterate at all, or false if there were
-                // no iterations taken. That boolean gets used by the if statements generated
-                // by the `for .. else` syntax transformation.
-                let eval_to = context.constant(false).intermediate();
-                let iterator = context.instruction(Instruction::Variable).intermediate();
+                let did_match = context.constant(false).intermediate();
                 let r#break = context.r#break(&broke).intermediate();
-                let r#continue = context.r#continue(&continued).intermediate();
-                write_iterator(context, value, Some(r#continue), Some(r#break));
+                context.declare_variables(iter.query.bindings());
+                write_query_state(context, &iter.query);
+                let state = context.intermediate();
                 context
-                    .instruction(Instruction::SetLocal(iterator))
-                    .label(&begin)
-                    .instruction(Instruction::LoadLocal(iterator))
-                    .iterate(&cleanup)
-                    .instruction(Instruction::Pop) // the value of the loop body does not matter
-                    .label(&continued)
-                    .constant(true)
-                    .instruction(Instruction::SetLocal(eval_to))
-                    .jump(&begin)
-                    .label(&cleanup)
-                    .instruction(Instruction::Pop) // 'done
-                    .instruction(Instruction::Pop)
-                    .end_intermediate() // continue
+                    .repeat(|context, exit| {
+                        context.instruction(Instruction::LoadLocal(state));
+                        write_query(context, &iter.query, exit);
+                        context
+                            .instruction(Instruction::SetLocal(state))
+                            .constant(true)
+                            .instruction(Instruction::SetLocal(did_match));
+
+                        let r#continue = context.r#continue(&continued).intermediate();
+                        context.push_continue(r#continue).push_break(r#break);
+                        write_expression(context, &iter.value);
+                        context
+                            .pop_break()
+                            .pop_continue()
+                            // Discard body value
+                            .instruction(Instruction::Pop)
+                            // And now invalid "continue" keyword
+                            .instruction(Instruction::Pop)
+                            .end_intermediate() // continue
+                            .label(&continued);
+                    })
+                    .instruction(Instruction::Pop) // latest query state
                     .instruction(Instruction::Pop)
                     .end_intermediate() // break
-                    .bubble(|c| {
-                        c.label(&broke)
-                            .constant(true)
-                            .instruction(Instruction::SetLocal(eval_to));
-                    })
-                    .label(&end)
                     .instruction(Instruction::Pop)
-                    .end_intermediate() // iterator
-                    .end_intermediate(); // eval_to
+                    .end_intermediate(); // previous query state
+                context.undeclare_variables(iter.query.bindings(), true);
+                context
+                    .bubble(|context| {
+                        context
+                            .label(&broke)
+                            .constant(true)
+                            .instruction(Instruction::SetLocal(did_match));
+                    })
+                    .end_intermediate(); // did match
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = context.make_label("is_fail");
@@ -463,21 +474,28 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         }
         ir::Value::Handled(handled) => {
             context.with(
-                |context, effect| {
+                |context, params| {
                     for handler in &handled.handlers {
                         context
                             .case(|context, next| {
                                 context.declare_variables(handler.pattern.bindings());
-                                context.instruction(Instruction::LoadLocal(effect));
+                                context.instruction(Instruction::LoadLocal(params.effect));
                                 write_pattern_match(context, &handler.pattern, next);
                                 write_expression(context, &handler.guard);
-                                context.typecheck("boolean").cond_jump(next);
+                                context
+                                    .typecheck("boolean")
+                                    .cond_jump(next)
+                                    .push_cancel(params.cancel)
+                                    .push_resume(params.resume);
                                 write_expression(context, &handler.body);
-                                // At the end of an effect handler, everything just ends.
-                                //
-                                // The effect handler should have used cancel or resume appropriately
-                                // if "just end" was not the intention.
-                                context.instruction(Instruction::Fizzle);
+                                context
+                                    .pop_cancel()
+                                    .pop_resume()
+                                    // At the end of an effect handler, everything just ends.
+                                    //
+                                    // The effect handler should have used cancel or resume appropriately
+                                    // if "just end" was not the intention.
+                                    .instruction(Instruction::Fizzle);
                             })
                             .undeclare_variables(handler.pattern.bindings(), true);
                     }
@@ -529,58 +547,4 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.instruction(Instruction::Fizzle);
         }
     }
-}
-
-fn write_iterator(
-    context: &mut Context,
-    iterator: &Iterator,
-    r#continue: Option<Offset>,
-    r#break: Option<Offset>,
-) {
-    let on_fail = context.make_label("iter_out");
-    context
-        .closure(|context| {
-            context.declare_variables(iterator.query.bindings());
-            write_query_state(context, &iterator.query);
-            let state = context.intermediate();
-            context
-                .closure(|context| {
-                    context.instruction(Instruction::LoadLocal(state));
-                    write_query(context, &iterator.query, &on_fail);
-                    context.instruction(Instruction::SetLocal(state));
-
-                    if let Some(r#break) = r#break {
-                        context.scope.push_break(r#break);
-                    }
-                    if let Some(r#continue) = r#continue {
-                        context.scope.push_continue(r#continue);
-                    }
-                    match &iterator.value.value {
-                        ir::Value::Mapping(mapping) => {
-                            write_expression(context, &mapping.0);
-                            context.intermediate();
-                            write_expression(context, &mapping.1);
-                            context.end_intermediate().instruction(Instruction::Cons);
-                        }
-                        other => write_evaluation(context, other),
-                    }
-                    if r#break.is_some() {
-                        context.scope.pop_break();
-                    }
-                    if r#continue.is_some() {
-                        context.scope.pop_continue();
-                    }
-                    context
-                        .atom("next")
-                        .instruction(Instruction::Construct)
-                        .instruction(Instruction::Return)
-                        .label(on_fail)
-                        .atom("done")
-                        .instruction(Instruction::Return);
-                })
-                .instruction(Instruction::Return)
-                .end_intermediate(); // state
-            context.undeclare_variables(iterator.query.bindings(), false);
-        })
-        .instruction(Instruction::Call(0));
 }

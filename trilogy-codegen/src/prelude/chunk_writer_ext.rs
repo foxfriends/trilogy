@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use crate::INCORRECT_ARITY;
 use crate::INVALID_CALL;
-use crate::INVALID_ITERATOR;
 use crate::RUNTIME_TYPE_ERROR;
 pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use trilogy_vm::Instruction;
@@ -90,29 +89,16 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
             .call_function()
     }
 
-    fn is_done<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.instruction(Instruction::Copy)
-            .atom("done")
-            .instruction(Instruction::ValNeq)
-            .cond_jump(label)
-    }
-
-    fn unwrap_next(&mut self) -> &mut Self {
+    fn unwrap_next(&mut self, on_fail: &str) -> &mut Self {
         self.instruction(Instruction::Copy)
             .instruction(Instruction::TypeOf)
             .atom("struct")
             .instruction(Instruction::ValEq)
-            .cond_jump(INVALID_ITERATOR)
+            .cond_jump(on_fail)
             .instruction(Instruction::Destruct)
             .atom("next")
             .instruction(Instruction::ValEq)
-            .cond_jump(INVALID_ITERATOR)
-    }
-
-    fn iterate<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.instruction(Instruction::Call(0))
-            .is_done(label)
-            .unwrap_next()
+            .cond_jump(on_fail)
     }
 
     fn pipe<F: FnOnce(&mut Self)>(&mut self, contents: F) -> &mut Self {

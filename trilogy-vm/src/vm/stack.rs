@@ -208,10 +208,18 @@ impl Stack {
             .ok_or(InternalRuntimeError::ExpectedValue("out of bounds"))
     }
 
+    fn get_local_offset(&self, index: usize) -> Result<usize, InternalRuntimeError> {
+        let locals = self.count_locals();
+        if index >= locals {
+            return Err(InternalRuntimeError::OutOfStackRange(index as u32));
+        }
+        Ok(locals - index - 1)
+    }
+
     pub(super) fn at_local(&self, index: usize) -> Result<Value, InternalRuntimeError> {
-        let register = self.count_locals() - index - 1;
+        let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
-        if register >= local_locals {
+        if offset >= local_locals {
             let InternalValue::Return {
                 ghost: Some(stack), ..
             } = self.cactus.at(self.len() - self.frame).unwrap()
@@ -221,15 +229,15 @@ impl Stack {
             return stack.at_local(index);
         }
         self.cactus
-            .at(register)
+            .at(offset)
             .ok_or(InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(InternalValue::try_into_value)
     }
 
     pub(super) fn is_set_local(&self, index: usize) -> Result<bool, InternalRuntimeError> {
-        let register = self.count_locals() - index - 1;
+        let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
-        if register >= local_locals {
+        if offset >= local_locals {
             let InternalValue::Return {
                 ghost: Some(stack), ..
             } = self.cactus.at(self.len() - self.frame).unwrap()
@@ -239,7 +247,7 @@ impl Stack {
             return stack.is_set_local(index);
         }
         self.cactus
-            .at(register)
+            .at(offset)
             .ok_or(InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(|val| val.is_set())
     }
@@ -280,9 +288,9 @@ impl Stack {
         index: usize,
         value: Value,
     ) -> Result<Option<Value>, InternalRuntimeError> {
-        let register = self.count_locals() - index - 1;
+        let offset = self.count_locals() - index - 1;
         let local_locals = self.len() - self.frame;
-        if register >= local_locals {
+        if offset >= local_locals {
             // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
             //
             // The stack here just happens to be a cactus with nothing in its immediate list,
@@ -302,7 +310,7 @@ impl Stack {
             return stack.set_local(index, value);
         }
         self.cactus
-            .replace_at(register, InternalValue::Value(value))
+            .replace_at(offset, InternalValue::Value(value))
             .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(|val| val.try_into_value_maybe())
     }
@@ -311,9 +319,9 @@ impl Stack {
         &mut self,
         index: usize,
     ) -> Result<Option<Value>, InternalRuntimeError> {
-        let register = self.count_locals() - index - 1;
+        let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
-        if register >= local_locals {
+        if offset >= local_locals {
             // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
             //
             // The stack here just happens to be a cactus with nothing in its immediate list,
@@ -333,7 +341,7 @@ impl Stack {
             return stack.unset_local(index);
         }
         self.cactus
-            .replace_at(register, InternalValue::Unset)
+            .replace_at(offset, InternalValue::Unset)
             .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(|val| val.try_into_value_maybe())
     }
@@ -343,9 +351,9 @@ impl Stack {
         index: usize,
         value: Value,
     ) -> Result<bool, InternalRuntimeError> {
-        let register = self.count_locals() - index - 1;
+        let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
-        if register >= local_locals {
+        if offset >= local_locals {
             // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
             //
             // The stack here just happens to be a cactus with nothing in its immediate list,
@@ -364,9 +372,9 @@ impl Stack {
             };
             return stack.init_local(index, value);
         }
-        if matches!(self.cactus.at(register), Some(InternalValue::Unset)) {
+        if matches!(self.cactus.at(offset), Some(InternalValue::Unset)) {
             self.cactus
-                .replace_at(register, InternalValue::Value(value))
+                .replace_at(offset, InternalValue::Value(value))
                 .unwrap();
             Ok(true)
         } else {

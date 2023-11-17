@@ -95,3 +95,14 @@ test "unhandled effects go to the fallback" {
         else resume 1)
         == 2
 }
+
+test "nested handlers are triggered in order" {
+    with {
+        assert with yield 'hello
+            when 'hello resume (9 / yield 'hello)
+            else yield
+            == 4.5
+    } when 'hello invert {
+        cancel resume 2
+    } else yield
+}

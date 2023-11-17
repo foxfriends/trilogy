@@ -2,23 +2,25 @@ use crate::prelude::*;
 pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use trilogy_vm::Instruction;
 
+#[derive(Copy, Clone)]
+pub(crate) struct HandlerParameters {
+    pub effect: Offset,
+    pub cancel: Offset,
+    pub resume: Offset,
+}
+
 pub(crate) trait StatefulChunkWriterExt:
     StackTracker + ChunkWriter + LabelMaker + Sized
 {
     fn r#continue<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        let cont = self.intermediate();
-        self.instruction(Instruction::Variable)
-            .continuation(|context| {
-                // Continue is called with a value that is ignored. This is definitely an oversight
-                // that I should get around to fixing... or maybe there's a way to use that value?
-                context
-                    .unlock_function()
-                    .instruction(Instruction::Pop)
-                    .jump(label);
-            })
-            .instruction(Instruction::SetLocal(cont));
-        self.end_intermediate();
-        self
+        self.continuation(|context| {
+            // Continue is called with a value that is ignored. This is definitely an oversight
+            // that I should get around to fixing... or maybe there's a way to use that value?
+            context
+                .unlock_function()
+                .instruction(Instruction::Pop)
+                .jump(label);
+        })
     }
 
     fn r#break<S: Into<String>>(&mut self, label: S) -> &mut Self {
@@ -32,7 +34,7 @@ pub(crate) trait StatefulChunkWriterExt:
         })
     }
 
-    fn with<F: FnOnce(&mut Self, Offset), G: FnOnce(&mut Self)>(
+    fn with<F: FnOnce(&mut Self, HandlerParameters), G: FnOnce(&mut Self)>(
         &mut self,
         handlers: F,
         handled: G,
@@ -62,7 +64,6 @@ pub(crate) trait StatefulChunkWriterExt:
                 c.unlock_function().jump(&end);
             })
             .intermediate();
-        self.push_cancel(cancel);
 
         // The new yield is created next.
         self.continuation(|context| {
@@ -105,7 +106,6 @@ pub(crate) trait StatefulChunkWriterExt:
                     context.end_intermediate(); // resume value
                 })
                 .intermediate();
-            context.push_resume(actual_resume);
 
             // Immediately restore the parent `yield` and module context, as a handler may use it.
             // The yielder's values aren't needed though, as the `yield` expression itself takes
@@ -116,14 +116,22 @@ pub(crate) trait StatefulChunkWriterExt:
                 .instruction(Instruction::LoadLocal(stored_context))
                 .instruction(Instruction::SetRegister(MODULE));
 
-            context.pipe(|c| handlers(c, effect));
+            context.pipe(|c| {
+                handlers(
+                    c,
+                    HandlerParameters {
+                        effect,
+                        cancel,
+                        resume: actual_resume,
+                    },
+                )
+            });
 
             // NOTE: this should be unreachable, seeing as effect handlers are required
             // to include the `else` clause... so if it happens lets fail in a weird way.
             context
                 .constant("unexpected unhandled effect")
                 .instruction(Instruction::Panic);
-            context.pop_resume();
             context.end_intermediate(); // actual resume
             context.end_intermediate(); // resume
             context.end_intermediate(); // effect
@@ -139,7 +147,6 @@ pub(crate) trait StatefulChunkWriterExt:
             .instruction(Instruction::Swap)
             .become_function()
             .end_intermediate() // cancel
-            .pop_cancel()
             .label(end)
             // Once we're out of the handler reset the state of the `yield` register and finally done!
             .instruction(Instruction::Swap)
@@ -148,6 +155,36 @@ pub(crate) trait StatefulChunkWriterExt:
             .instruction(Instruction::SetRegister(MODULE))
             .end_intermediate() // stored yield
             .end_intermediate() // stored module
+    }
+
+    fn iterate<F: FnOnce(&mut Self, HandlerParameters), G: FnOnce(&mut Self)>(
+        &mut self,
+        handler: F,
+        iterator: G,
+    ) -> &mut Self {
+        self.with(
+            |context, params| {
+                context
+                    .case(|context, next| {
+                        context
+                            .instruction(Instruction::LoadLocal(params.effect))
+                            .unwrap_next(next)
+                            .pipe(|c| handler(c, params));
+                    })
+                    .case(|context, _next| {
+                        context
+                            .instruction(Instruction::LoadLocal(params.effect))
+                            .r#yield()
+                            .instruction(Instruction::LoadLocal(params.resume))
+                            .instruction(Instruction::Swap)
+                            .call_function()
+                            .instruction(Instruction::LoadLocal(params.cancel))
+                            .instruction(Instruction::Swap)
+                            .call_function();
+                    });
+            },
+            iterator,
+        )
     }
 }
 
