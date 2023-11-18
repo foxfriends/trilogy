@@ -11,11 +11,12 @@ pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
 
 pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
     match &value {
+        ir::Value::Pack(..) => panic!(),
+        ir::Value::Mapping(..) => panic!(),
         ir::Value::Builtin(builtin) if is_referenceable_operator(*builtin) => {
             write_operator_reference(context, *builtin);
         }
         ir::Value::Builtin(builtin) => panic!("{builtin:?} is not a referenceable builtin"),
-        ir::Value::Pack(..) => unreachable!(),
         ir::Value::Sequence(seq) => {
             let mut seq = seq.iter();
             let Some(mut expr) = seq.next() else {
@@ -58,12 +59,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             },
             _ => unreachable!("LValues must be reference or application"),
         },
-        ir::Value::Mapping(value) => {
-            write_expression(context, &value.0);
-            context.scope.intermediate();
-            write_expression(context, &value.1);
-            context.scope.end_intermediate();
-        }
         ir::Value::Number(value) => {
             context.constant(value.value().clone());
         }
@@ -159,11 +154,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.constant(Record::default());
                 context.scope.intermediate();
                 for element in &pack.values {
-                    write_expression(context, &element.expression);
                     if element.is_spread {
+                        write_expression(context, &element.expression);
                         context.typecheck("record").instruction(Instruction::Glue);
-                    } else {
+                    } else if let ir::Value::Mapping(mapping) = &element.expression.value {
+                        write_expression(context, &mapping.0);
+                        context.scope.intermediate();
+                        write_expression(context, &mapping.1);
+                        context.scope.end_intermediate();
                         context.instruction(Instruction::Assign);
+                    } else {
+                        panic!("Record values must be mappings")
                     }
                 }
                 context.scope.end_intermediate();
