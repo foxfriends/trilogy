@@ -1,5 +1,7 @@
 use trilogy_ir::Id;
 
+use crate::prelude::LabelMaker;
+
 #[derive(Clone, Debug)]
 pub(crate) struct Labeler {
     counter: usize,
@@ -27,5 +29,11 @@ impl Labeler {
 
     pub fn for_id(&self, id: &Id) -> String {
         id.symbol()
+    }
+}
+
+impl LabelMaker for Labeler {
+    fn make_label(&mut self, label: &str) -> String {
+        self.unique_hint(label)
     }
 }

@@ -90,10 +90,11 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // returning the return value in 'next. We convert failure to
     // returning 'done, as in a regular iterator.
     let on_done = context.make_label("on_done");
-    context.instruction(Instruction::LoadLocal(actual_state));
-    write_query(context, &rule.body, &on_done);
-    context.instruction(Instruction::SetLocal(actual_state));
-    context.scope.end_intermediate();
+    context
+        .instruction(Instruction::LoadLocal(actual_state))
+        .execute_query(&rule.body, &on_done)
+        .instruction(Instruction::SetLocal(actual_state))
+        .end_intermediate();
     // The query is normal, then the value is computed by evaluating
     // the parameter patterns now as expressions.
     context.scope.intermediate(); // At this point, the query state is an intermediate

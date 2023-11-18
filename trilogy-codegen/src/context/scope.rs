@@ -1,3 +1,5 @@
+use crate::prelude::StackTracker;
+
 use super::StaticMember;
 use std::collections::HashMap;
 use trilogy_ir::Id;
@@ -98,33 +100,9 @@ impl<'a> Scope<'a> {
         self.parameters -= parameters;
     }
 
-    pub fn intermediate(&mut self) -> u32 {
-        self.closure(1)
-    }
-
-    pub fn end_intermediate(&mut self) {
-        self.unclosure(1)
-    }
-
-    pub fn push_break(&mut self, offset: Offset) {
-        self.kw_break.push(offset);
-    }
-
-    pub fn pop_break(&mut self) {
-        self.kw_break.pop();
-    }
-
     pub fn kw_break(&self) -> Option<Instruction> {
         let offset = self.kw_break.last()?;
         Some(Instruction::LoadLocal(*offset))
-    }
-
-    pub fn push_continue(&mut self, offset: Offset) {
-        self.kw_continue.push(offset);
-    }
-
-    pub fn pop_continue(&mut self) {
-        self.kw_continue.pop();
     }
 
     pub fn kw_continue(&self) -> Option<Instruction> {
@@ -132,25 +110,9 @@ impl<'a> Scope<'a> {
         Some(Instruction::LoadLocal(*offset))
     }
 
-    pub fn push_cancel(&mut self, offset: Offset) {
-        self.kw_cancel.push(offset);
-    }
-
-    pub fn pop_cancel(&mut self) {
-        self.kw_cancel.pop();
-    }
-
     pub fn kw_cancel(&self) -> Option<Instruction> {
         let offset = self.kw_cancel.last()?;
         Some(Instruction::LoadLocal(*offset))
-    }
-
-    pub fn push_resume(&mut self, offset: Offset) {
-        self.kw_resume.push(offset);
-    }
-
-    pub fn pop_resume(&mut self) {
-        self.kw_resume.pop();
     }
 
     pub fn kw_resume(&self) -> Option<Instruction> {
@@ -163,5 +125,56 @@ impl<'a> Scope<'a> {
             .values()
             .filter(|x| matches!(x, StaticMember::Context(..)))
             .count()
+    }
+}
+
+impl StackTracker for Scope<'_> {
+    fn intermediate(&mut self) -> Offset {
+        self.closure(1)
+    }
+
+    fn end_intermediate(&mut self) -> &mut Self {
+        self.unclosure(1);
+        self
+    }
+
+    fn push_resume(&mut self, offset: Offset) -> &mut Self {
+        self.kw_resume.push(offset);
+        self
+    }
+
+    fn pop_resume(&mut self) -> &mut Self {
+        self.kw_resume.pop();
+        self
+    }
+
+    fn push_cancel(&mut self, offset: Offset) -> &mut Self {
+        self.kw_cancel.push(offset);
+        self
+    }
+
+    fn pop_cancel(&mut self) -> &mut Self {
+        self.kw_cancel.pop();
+        self
+    }
+
+    fn push_break(&mut self, offset: Offset) -> &mut Self {
+        self.kw_break.push(offset);
+        self
+    }
+
+    fn pop_break(&mut self) -> &mut Self {
+        self.kw_break.pop();
+        self
+    }
+
+    fn push_continue(&mut self, offset: Offset) -> &mut Self {
+        self.kw_continue.push(offset);
+        self
+    }
+
+    fn pop_continue(&mut self) -> &mut Self {
+        self.kw_continue.pop();
+        self
     }
 }

@@ -137,10 +137,9 @@ impl IrVisitor for Evaluator<'_, '_> {
             let declared = self.context.declare_variables(decl.query.bindings());
             self.context
                 .prepare_query(&decl.query)
-                .label(reenter.clone());
-            write_query(self.context, &decl.query, END);
-            // After running the query, we don't need the state anymore
-            self.context
+                .label(reenter.clone())
+                .execute_query(&decl.query, END)
+                // After running the query, we don't need the state anymore
                 .instruction(Instruction::Pop)
                 .evaluate(&decl.body)
                 .instruction(Instruction::Slide(declared as u32))
@@ -151,9 +150,9 @@ impl IrVisitor for Evaluator<'_, '_> {
             let declared = self.context.declare_variables(decl.query.bindings());
             self.context
                 .prepare_query(&decl.query)
-                .label(reenter.clone());
-            write_query(self.context, &decl.query, END);
-            self.context.intermediate(); // query state
+                .label(reenter.clone())
+                .execute_query(&decl.query, END)
+                .intermediate(); // query state
             self.context
                 .instruction(Instruction::Const(Value::Bool(true)))
                 .instruction(Instruction::Const(Value::Bool(false)))
@@ -429,9 +428,9 @@ impl IrVisitor for Evaluator<'_, '_> {
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = self.context.make_label("is_fail");
                 let var_count = self.context.declare_variables(query.bindings());
-                self.context.prepare_query(&**query);
-                write_query(self.context, query, &is_fail);
                 self.context
+                    .prepare_query(&**query)
+                    .execute_query(&**query, &is_fail)
                     .constant(true)
                     .bubble(|c| {
                         c.label(&is_fail).constant(false);

@@ -6,6 +6,7 @@ use std::fmt::{self, Debug, Display};
 mod builder;
 mod error;
 mod iter;
+#[macro_use]
 mod writer;
 
 pub use builder::ChunkBuilder;
