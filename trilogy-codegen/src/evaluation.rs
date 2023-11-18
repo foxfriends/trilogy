@@ -192,54 +192,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 unreachable!("array is applied to pack or iterator");
             }
             (None, ir::Value::Builtin(ir::Builtin::For), ir::Value::Iterator(iter)) => {
-                let continued = context.make_label("for_next");
-                let broke = context.make_label("for_broke");
-
-                let did_match = context.constant(false).intermediate();
-                let r#break = context
-                    .continuation_fn(|c| {
-                        c.jump(&broke);
-                    })
-                    .intermediate();
-                context.declare_variables(iter.query.bindings());
-                write_query_state(context, &iter.query);
-                context
-                    .repeat(|context, exit| {
-                        write_query(context, &iter.query, exit);
-                        context
-                            // Mark down that this loop did get a match
-                            .constant(true)
-                            .instruction(Instruction::SetLocal(did_match))
-                            .intermediate(); // query state
-
-                        let r#continue = context
-                            .continuation_fn(|c| {
-                                c.jump(&continued);
-                            })
-                            .intermediate();
-                        context.push_continue(r#continue).push_break(r#break);
-                        write_expression(context, &iter.value);
-                        context
-                            .pop_break()
-                            .pop_continue()
-                            // Discard the now invalid "continue" keyword (second from top)
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Pop)
-                            .end_intermediate()
-                            .label(&continued)
-                            // Then discard the body value... for now. Someday will find a use for it.
-                            .instruction(Instruction::Pop)
-                            .end_intermediate(); // state (no longer intermediate)
-                    })
-                    // Discard query state
-                    .instruction(Instruction::Pop)
-                    .undeclare_variables(iter.query.bindings(), true);
-                context
-                    .label(&broke)
-                    // Remove the break (or break value)
-                    .instruction(Instruction::Pop)
-                    .end_intermediate()
-                    .end_intermediate(); // did match (no longer intermediate)
+                context.r#for(&iter.query, &iter.value.value);
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = context.make_label("is_fail");

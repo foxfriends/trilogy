@@ -138,7 +138,11 @@ impl Context<'_> {
         n
     }
 
-    pub fn undeclare_variables(&mut self, variables: impl IntoIterator<Item = Id>, pop: bool) {
+    pub fn undeclare_variables(
+        &mut self,
+        variables: impl IntoIterator<Item = Id>,
+        pop: bool,
+    ) -> &mut Self {
         for id in variables {
             if self.scope.undeclare_variable(&id) && pop {
                 let label = self.labeler.unvar(&id);
@@ -146,6 +150,7 @@ impl Context<'_> {
                 self.instruction(Instruction::Pop);
             }
         }
+        self
     }
 
     pub fn iterator(
@@ -282,5 +287,51 @@ impl Context<'_> {
             // Evaluation requires that an extra value ends up on the stack.
             // While "evaluates" to unit
             .constant(())
+    }
+
+    pub fn r#for(&mut self, query: &ir::Query, body: &ir::Value) -> &mut Self {
+        let start = self.make_label("for");
+        let cleanup = self.make_label("for_cleanup");
+        let exit = self.make_label("for_end");
+
+        let did_match = self.constant(false).intermediate();
+        let r#break = self
+            .continuation_fn(|c| {
+                c.instruction(Instruction::Pop).jump(&exit);
+            })
+            .intermediate();
+        self.declare_variables(query.bindings());
+        write_query_state(self, query);
+        self.label(&start);
+        write_query(self, query, &cleanup);
+        self
+            // Mark down that this loop did get a match
+            .constant(true)
+            .instruction(Instruction::SetLocal(did_match))
+            .intermediate(); // query state
+        let r#continue = self
+            .continuation_fn(|c| {
+                c.instruction(Instruction::Pop).jump(&start);
+            })
+            .intermediate();
+        self.push_continue(r#continue)
+            .push_break(r#break)
+            .evaluate(body)
+            .pop_break()
+            .pop_continue()
+            // Discard the now invalid "continue" keyword and body value
+            .instruction(Instruction::Pop)
+            .instruction(Instruction::Pop)
+            .end_intermediate() // continue
+            .end_intermediate() // state (no longer intermediate)
+            .jump(start)
+            .label(cleanup)
+            // Discard query state
+            .instruction(Instruction::Pop)
+            .undeclare_variables(query.bindings(), true)
+            .instruction(Instruction::Pop) // break
+            .label(exit)
+            .end_intermediate() // break
+            .end_intermediate() // did match (no longer intermediate)
     }
 }
