@@ -51,6 +51,7 @@ iterating on the design.
     - [ ] Formatter
     - [ ] Linter
     - [ ] LSP
+    - [ ] DAP
 - [ ] Future experimental features:
     - [ ] Optimization
     - [ ] Try out IC based VM (HVM)
