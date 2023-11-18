@@ -245,10 +245,21 @@ impl Context<'_> {
         )
     }
 
-    pub fn r#while(&mut self, condition: &ir::Value, body: &ir::Value) -> &mut Self {
-        let begin = self.make_label("while");
-        let cleanup = self.make_label("while_cleanup");
-        let end = self.make_label("while_end");
+    pub fn r#loop<
+        F: FnOnce(&mut Context),
+        G: FnOnce(&mut Context, &str),
+        H: FnOnce(&mut Context),
+        I: FnOnce(&mut Context),
+    >(
+        &mut self,
+        setup: F,
+        head: G,
+        body: H,
+        cleanup: I,
+    ) -> &mut Self {
+        let begin = self.make_label("loop");
+        let done = self.make_label("loop_done");
+        let end = self.make_label("loop_end");
 
         // Break is just a continuation that points to the end of the loop. The value
         // passed to break is discarded
@@ -259,11 +270,10 @@ impl Context<'_> {
             .intermediate();
         // The actual loop we can implement in the standard way after the continuations are
         // created.
-        self.label(&begin)
+        self.pipe(setup)
+            .label(&begin)
             // Check the condition
-            .evaluate(condition)
-            .typecheck("boolean")
-            .cond_jump(&cleanup);
+            .pipe(|c| head(c, &done));
         // If it's true, run the body. The body has access to continue and break.
         // Continue is a continuation much like break, but it points to the start of the loop
         let r#continue = self
@@ -273,65 +283,63 @@ impl Context<'_> {
             .intermediate();
         self.push_break(r#break)
             .push_continue(r#continue)
-            .evaluate(body)
+            .pipe(body)
             .pop_break()
             .pop_continue()
             .instruction(Instruction::Pop) // Body value
             .instruction(Instruction::Pop) // Continue
             .end_intermediate()
             .jump(&begin)
-            .label(&cleanup)
+            .label(&done)
+            .pipe(cleanup)
             .instruction(Instruction::Pop) // break
             .end_intermediate()
             .label(&end)
-            // Evaluation requires that an extra value ends up on the stack.
-            // While "evaluates" to unit
-            .constant(())
+    }
+
+    pub fn r#while(&mut self, condition: &ir::Value, body: &ir::Value) -> &mut Self {
+        self.r#loop(
+            |_| {},
+            |context, done| {
+                context
+                    .evaluate(condition)
+                    .typecheck("boolean")
+                    .cond_jump(done);
+            },
+            |context| {
+                context.evaluate(body);
+            },
+            |_| {},
+        )
+        // Evaluation requires that an extra value ends up on the stack.
+        // While "evaluates" to unit
+        .constant(())
     }
 
     pub fn r#for(&mut self, query: &ir::Query, body: &ir::Value) -> &mut Self {
-        let start = self.make_label("for");
-        let cleanup = self.make_label("for_cleanup");
-        let exit = self.make_label("for_end");
-
         let did_match = self.constant(false).intermediate();
-        let r#break = self
-            .continuation_fn(|c| {
-                c.instruction(Instruction::Pop).jump(&exit);
-            })
-            .intermediate();
-        self.declare_variables(query.bindings());
-        write_query_state(self, query);
-        self.label(&start);
-        write_query(self, query, &cleanup);
-        self
-            // Mark down that this loop did get a match
-            .constant(true)
-            .instruction(Instruction::SetLocal(did_match))
-            .intermediate(); // query state
-        let r#continue = self
-            .continuation_fn(|c| {
-                c.instruction(Instruction::Pop).jump(&start);
-            })
-            .intermediate();
-        self.push_continue(r#continue)
-            .push_break(r#break)
-            .evaluate(body)
-            .pop_break()
-            .pop_continue()
-            // Discard the now invalid "continue" keyword and body value
-            .instruction(Instruction::Pop)
-            .instruction(Instruction::Pop)
-            .end_intermediate() // continue
-            .end_intermediate() // state (no longer intermediate)
-            .jump(start)
-            .label(cleanup)
-            // Discard query state
-            .instruction(Instruction::Pop)
-            .undeclare_variables(query.bindings(), true)
-            .instruction(Instruction::Pop) // break
-            .label(exit)
-            .end_intermediate() // break
-            .end_intermediate() // did match (no longer intermediate)
+        self.r#loop(
+            |context| {
+                context.declare_variables(query.bindings());
+                write_query_state(context, query);
+            },
+            |context, done| {
+                write_query(context, query, &done);
+                context
+                    // Mark down that this loop did get a match
+                    .constant(true)
+                    .instruction(Instruction::SetLocal(did_match))
+                    .intermediate(); // query state
+            },
+            |context| {
+                context.evaluate(body).end_intermediate(); // query state
+            },
+            |context| {
+                context
+                    .instruction(Instruction::Pop)
+                    .undeclare_variables(query.bindings(), true);
+            },
+        )
+        .end_intermediate() // did match (no longer intermediate)
     }
 }
