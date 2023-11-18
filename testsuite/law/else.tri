@@ -2,6 +2,12 @@ test "when the first branch is satisfied, it is used" {
     assert [x for x = 1 else x = 2] == [1]
 }
 
+test "works with in queries on either side" {
+    assert [x for x in [1, 2] else x in [3, 4]] == [1, 2]
+    assert [x for x in [] else x in [3, 4]] == [3, 4]
+    assert [x for x in [1, 2] else x in []] == [1, 2]
+}
+
 test "when the first branch is not satisfied, the second is used" {
     assert [x for end else x = 1] == [1]
 }

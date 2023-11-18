@@ -287,7 +287,7 @@ fn write_query_value(
 
             let query_state = context.intermediate();
             // If the state is a callable, that means we're mid-iteration already, continue
-            // by calling it, provided with a continuation onto which to return.
+            // by calling it, provided with continuations onto which to return.
             context
                 .try_type("callable", Err(&begin))
                 .continuation(|context| {
@@ -300,14 +300,30 @@ fn write_query_value(
                         .instruction(Instruction::Pop)
                         .instruction(Instruction::Pop)
                         .instruction(Instruction::Pop)
+                        .jump(on_fail);
+                })
+                .intermediate();
+            context
+                .continuation(|context| {
+                    context
+                        // NOTE: continuation has 2 extra items on the stack which must be
+                        // discarded before jumping out.
+                        //
+                        // Two extra for the previous query state, and fail continuation
+                        .instruction(Instruction::Slide(4))
+                        .instruction(Instruction::Pop)
+                        .instruction(Instruction::Pop)
+                        .instruction(Instruction::Pop)
+                        .instruction(Instruction::Pop)
                         .jump(&end);
                 })
-                .instruction(Instruction::Become(1));
+                .end_intermediate()
+                .instruction(Instruction::Become(2));
 
             // Alternatively, begin the iteration:
             //
-            // Create a continuation onto which to continue for a pass
-            let pass_continuation = context
+            // Create a continuation onto which to continue for a fail
+            let fail_continuation = context
                 .label(&begin)
                 .continuation(|context| {
                     context
@@ -316,6 +332,22 @@ fn write_query_value(
                         //
                         // One extra for the previous query state
                         .instruction(Instruction::Slide(3))
+                        .instruction(Instruction::Pop)
+                        .instruction(Instruction::Pop)
+                        .instruction(Instruction::Pop)
+                        .jump(on_fail);
+                })
+                .intermediate();
+            // Create a continuation onto which to continue for a pass
+            let pass_continuation = context
+                .continuation(|context| {
+                    context
+                        // NOTE: continuation has 2 extra items on the stack which must be
+                        // discarded before jumping out.
+                        //
+                        // Two extra for the previous query state, and fail continuation
+                        .instruction(Instruction::Slide(4))
+                        .instruction(Instruction::Pop)
                         .instruction(Instruction::Pop)
                         .instruction(Instruction::Pop)
                         .instruction(Instruction::Pop)
@@ -342,9 +374,9 @@ fn write_query_value(
                                 // This "resume" is called with the new pass continuation
                                 context
                                     .instruction(Instruction::SetLocal(pass_continuation))
+                                    .instruction(Instruction::SetLocal(fail_continuation))
                                     // NOTE: continuation has 2 extra items on the stack which must be
                                     // discarded before jumping out.
-                                    .instruction(Instruction::Slide(2))
                                     .instruction(Instruction::Pop)
                                     .instruction(Instruction::Pop)
                                     // When continuing the iterator, start by unbinding the pattern, then
@@ -389,8 +421,10 @@ fn write_query_value(
                 .instruction(Instruction::Pop) // Final "value" of iteration
                 .instruction(Instruction::Pop) // Pass continuation
                 .end_intermediate() // pass continuation
+                .instruction(Instruction::Swap) // Swap bindset with fail continuation to call it
                 .end_intermediate() // bindset is no longer intermediate
-                .jump(on_fail)
+                .end_intermediate() // neither is fail continuation
+                .instruction(Instruction::Become(1))
                 .label(&end);
         }
         ir::QueryValue::Is(expr) => {
@@ -720,7 +754,7 @@ fn write_query_value(
                 .bubble(|context| {
                     // If doing the right side, it's much the same as the left, but there is no bindset
                     // because that will be handled by the subquery directly.
-                    context.end_intermediate(); // bindset:: TODO: is this in the right spot?
+                    context.end_intermediate(); // bindset // TODO: is this in the right spot?
                     context.label(second.clone());
                     write_query_value(context, &alt.1.value, &cleanup_second, bound);
                     context.constant(false).instruction(Instruction::Cons);
