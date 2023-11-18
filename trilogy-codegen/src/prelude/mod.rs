@@ -5,7 +5,6 @@ mod stateful_chunk_writer_ext;
 mod type_pattern;
 
 pub(crate) use crate::context::{Binding, Context};
-pub(crate) use crate::evaluation::{write_evaluation, write_expression};
 pub(crate) use crate::function::write_function;
 pub(crate) use crate::module::{write_module_definitions, write_module_prelude};
 pub(crate) use crate::operator::*;

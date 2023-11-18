@@ -172,10 +172,10 @@ fn continue_query_state(context: &mut Context, query: &ir::Query) {
             // Does require maintaining the bindset though.
             context
                 .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone);
-            context.scope.intermediate();
-            write_expression(context, &lookup.path);
+                .instruction(Instruction::Clone)
+                .intermediate();
             context
+                .evaluate(&lookup.path)
                 .typecheck("callable")
                 .instruction(Instruction::Call(0)) // The state is the closure
                 .instruction(Instruction::Cons) // with the bindset
@@ -432,13 +432,15 @@ fn write_query_value(
             context
                 .constant(false)
                 .instruction(Instruction::Swap)
-                .cond_jump(on_fail);
-            context.scope.intermediate(); // state
+                .cond_jump(on_fail)
+                .intermediate(); // state
 
             // Then it's just failed if the evaluation is false.
-            write_expression(context, expr);
-            context.scope.end_intermediate(); // state
-            context.typecheck("boolean").cond_jump(on_fail);
+            context
+                .evaluate(&**expr)
+                .end_intermediate() // state
+                .typecheck("boolean")
+                .cond_jump(on_fail);
         }
         ir::QueryValue::End => {
             // Always fail. The state isn't required at all.
@@ -950,7 +952,7 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
     if vars.iter().all(|var| bindset.is_bound(var)) {
         // When all variables in this expression are statically determined to be bound,
         // no checking needs to be done
-        write_expression(context, value);
+        context.evaluate(value);
     } else {
         // If some variables are not known statically, then those variables are checked
         // at runtime. If any are unset, then we just skip this expression and push an
@@ -968,8 +970,7 @@ fn evaluate(context: &mut Context, bindset: &Bindings<'_>, value: &ir::Expressio
                     .cond_jump(&nope);
             }
         }
-        write_expression(context, value);
-        context.bubble(|c| {
+        context.evaluate(value).bubble(|c| {
             c.label(nope).instruction(Instruction::Variable);
         });
     }
@@ -988,7 +989,7 @@ fn evaluate_or_fail(
     if vars.iter().all(|var| bindset.is_bound(var)) {
         // When all variables in this expression are statically determined to be bound,
         // no checking needs to be done
-        write_expression(context, value);
+        context.evaluate(value);
     } else {
         // If some variables are not known statically, then those variables are checked
         // at runtime. If any are unset, then we just skip this expression and push an
@@ -1006,6 +1007,6 @@ fn evaluate_or_fail(
                     .cond_jump(on_fail);
             }
         }
-        write_expression(context, value);
+        context.evaluate(value);
     }
 }

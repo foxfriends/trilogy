@@ -110,7 +110,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
             .jump(&next);
         context.label(eval);
         if param.can_evaluate() {
-            write_expression(context, param);
+            context.evaluate(param);
         } else {
             context.instruction(Instruction::Fizzle);
         }

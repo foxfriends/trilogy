@@ -1,4 +1,5 @@
 use super::{Labeler, Scope};
+use crate::evaluation::CodegenEvaluate;
 use crate::prelude::*;
 use trilogy_ir::ir::{self, Iterator};
 use trilogy_ir::visitor::HasBindings;
@@ -174,12 +175,15 @@ impl Context<'_> {
 
             match &iterator.value.value {
                 ir::Value::Mapping(mapping) => {
-                    write_expression(context, &mapping.0);
-                    context.intermediate();
-                    write_expression(context, &mapping.1);
-                    context.end_intermediate().instruction(Instruction::Cons);
+                    context.evaluate(&mapping.0).intermediate();
+                    context
+                        .evaluate(&mapping.1)
+                        .end_intermediate()
+                        .instruction(Instruction::Cons);
                 }
-                other => write_evaluation(context, other),
+                other => {
+                    context.evaluate(other);
+                }
             }
 
             if r#continue.is_some() {
@@ -196,12 +200,11 @@ impl Context<'_> {
                 .end_intermediate(); // state no longer intermediate
         })
         .instruction(Instruction::Pop)
-        .undeclare_variables(iterator.query.bindings(), true);
-        self
+        .undeclare_variables(iterator.query.bindings(), true)
     }
 
-    pub fn evaluate(&mut self, value: &ir::Value) -> &mut Self {
-        write_evaluation(self, value);
+    pub fn evaluate<E: CodegenEvaluate>(&mut self, value: &E) -> &mut Self {
+        value.evaluate(self);
         self
     }
 }

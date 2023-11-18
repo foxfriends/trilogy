@@ -110,16 +110,15 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 });
             }
             (None, ir::Value::Builtin(Builtin::Pin), value) => {
-                write_evaluation(context, value);
+                context.evaluate(value);
                 context.instruction(Instruction::ValEq).cond_jump(on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs @ ir::Value::String(..), rhs) => {
                 let cleanup = context.make_label("glue_cleanup");
                 let double_cleanup = context.make_label("glue_cleanup2");
                 context.try_type("string", Err(&cleanup));
-                let original = context.scope.intermediate();
-                write_evaluation(context, lhs);
-                let lhs_val = context.scope.intermediate();
+                let original = context.intermediate();
+                let lhs_val = context.evaluate(lhs).intermediate();
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Length)
@@ -130,9 +129,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::ValEq)
                     .cond_jump(&double_cleanup)
                     .instruction(Instruction::Length)
-                    .instruction(Instruction::Skip);
-                context.scope.end_intermediate();
-                context.scope.end_intermediate();
+                    .instruction(Instruction::Skip)
+                    .end_intermediate()
+                    .end_intermediate();
                 write_pattern(context, rhs, on_fail);
                 context.bubble(|c| {
                     c.label(double_cleanup)
@@ -146,9 +145,8 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 let cleanup = context.make_label("glue_cleanup");
                 let double_cleanup = context.make_label("glue_cleanup2");
                 context.try_type("string", Err(&cleanup));
-                let original = context.scope.intermediate();
-                write_evaluation(context, rhs);
-                let rhs_val = context.scope.intermediate();
+                let original = context.intermediate();
+                let rhs_val = context.evaluate(rhs).intermediate();
                 context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Length)
@@ -167,9 +165,9 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::Length)
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Subtract)
-                    .instruction(Instruction::Take);
-                context.scope.end_intermediate();
-                context.scope.end_intermediate();
+                    .instruction(Instruction::Take)
+                    .end_intermediate()
+                    .end_intermediate();
                 write_pattern(context, lhs, on_fail);
                 context.bubble(|c| {
                     c.label(double_cleanup)
@@ -305,8 +303,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     let ir::Value::Mapping(mapping) = &element.expression.value else {
                         panic!("record pattern elements must be mapping ");
                     };
-                    write_expression(context, &mapping.0);
-                    let key = context.scope.intermediate();
+                    let key = context.evaluate(&mapping.0).intermediate();
                     context
                         .instruction(Instruction::LoadLocal(record))
                         .instruction(Instruction::LoadLocal(key))
@@ -316,8 +313,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         .instruction(Instruction::LoadLocal(key))
                         .instruction(Instruction::Access);
                     write_pattern_match(context, &mapping.1, &cleanup2);
-                    context.instruction(Instruction::Delete);
-                    context.scope.end_intermediate();
+                    context.instruction(Instruction::Delete).end_intermediate();
                 }
                 context.scope.end_intermediate();
                 if let Some(spread) = spread {
@@ -350,15 +346,14 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         spread = Some(&element.expression);
                         continue;
                     }
-                    write_expression(context, &element.expression);
-                    let value = context.scope.intermediate();
+                    let value = context.evaluate(&element.expression).intermediate();
                     context
                         .instruction(Instruction::LoadLocal(set))
                         .instruction(Instruction::LoadLocal(value))
                         .instruction(Instruction::Contains)
                         .cond_jump(&cleanup2)
-                        .instruction(Instruction::Delete);
-                    context.scope.end_intermediate();
+                        .instruction(Instruction::Delete)
+                        .end_intermediate();
                 }
                 context.scope.end_intermediate();
                 if let Some(spread) = spread {

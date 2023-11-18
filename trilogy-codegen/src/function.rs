@@ -11,8 +11,7 @@ pub(crate) fn write_function(context: &mut Context, function: &ir::Function) {
         cleanup.push(context.make_label("cleanup"));
         write_pattern_match(context, parameter, &cleanup[i + 1]);
     }
-    write_expression(context, &function.body);
-
+    context.evaluate(&function.body);
     for parameter in function.parameters.iter().rev() {
         context.label(cleanup.pop().unwrap());
         context.undeclare_variables(parameter.bindings(), true);

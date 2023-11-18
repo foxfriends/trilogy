@@ -137,8 +137,7 @@ impl ProgramContext<'_> {
     ) {
         self.label("trilogy:__testentry__");
         let mut context = self.begin(statics, 0);
-        context.unlock_procedure(0);
-        write_expression(&mut context, &test.body);
+        context.unlock_procedure(0).evaluate(&test.body);
         context
             .instruction(Instruction::Const(Value::Unit))
             .instruction(Instruction::Return);

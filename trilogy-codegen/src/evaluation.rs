@@ -2,43 +2,22 @@ use crate::preamble::{END, RETURN};
 use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, IrVisitable, IrVisitor};
-use trilogy_parser::syntax;
 use trilogy_vm::{Array, Instruction, Record, Set, Value};
-
-#[inline(always)]
-pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
-    write_evaluation(context, &expr.value)
-}
 
 struct Evaluator<'b, 'a> {
     context: &'b mut Context<'a>,
 }
 
+pub(crate) trait CodegenEvaluate: IrVisitable {
+    fn evaluate(&self, context: &mut Context) {
+        self.visit(&mut Evaluator { context });
+    }
+}
+
+impl CodegenEvaluate for ir::Expression {}
+impl CodegenEvaluate for ir::Value {}
+
 impl IrVisitor for Evaluator<'_, '_> {
-    fn visit_query(&mut self, _node: &ir::Query) {
-        panic!()
-    }
-
-    fn visit_pack(&mut self, _node: &ir::Pack) {
-        panic!()
-    }
-
-    fn visit_mapping(&mut self, _node: &(ir::Expression, ir::Expression)) {
-        panic!()
-    }
-
-    fn visit_conjunction(&mut self, _node: &(ir::Expression, ir::Expression)) {
-        panic!()
-    }
-
-    fn visit_disjunction(&mut self, _node: &(ir::Expression, ir::Expression)) {
-        panic!()
-    }
-
-    fn visit_wildcard(&mut self) {
-        panic!()
-    }
-
     fn visit_builtin(&mut self, builtin: &ir::Builtin) {
         if is_referenceable_operator(*builtin) {
             write_operator_reference(self.context, *builtin);
@@ -59,7 +38,7 @@ impl IrVisitor for Evaluator<'_, '_> {
     fn visit_assignment(&mut self, assignment: &ir::Assignment) {
         match &assignment.lhs.value {
             ir::Value::Reference(var) => {
-                write_expression(self.context, &assignment.rhs);
+                self.context.evaluate(&assignment.rhs);
                 match self.context.scope.lookup(&var.id) {
                     Some(Binding::Variable(index)) => {
                         self.context
@@ -71,15 +50,16 @@ impl IrVisitor for Evaluator<'_, '_> {
             }
             ir::Value::Application(application) => match unapply_2(application) {
                 (Some(ir::Value::Builtin(ir::Builtin::Access)), collection, key) => {
-                    self.context.reference(ASSIGN);
-                    write_evaluation(self.context, collection);
-                    self.context.scope.intermediate();
-                    write_evaluation(self.context, key);
-                    self.context.scope.intermediate();
-                    write_expression(self.context, &assignment.rhs);
-                    self.context.scope.end_intermediate();
-                    self.context.scope.end_intermediate();
-                    self.context.call_procedure(3);
+                    self.context
+                        .reference(ASSIGN)
+                        .evaluate(collection)
+                        .intermediate();
+                    self.context.evaluate(key).intermediate();
+                    self.context
+                        .evaluate(&assignment.rhs)
+                        .end_intermediate()
+                        .end_intermediate()
+                        .call_procedure(3);
                 }
                 _ => unreachable!("LValue applications must be access"),
             },
@@ -127,14 +107,13 @@ impl IrVisitor for Evaluator<'_, '_> {
                             context.declare_variables(handler.pattern.bindings());
                             context.instruction(Instruction::LoadLocal(params.effect));
                             write_pattern_match(context, &handler.pattern, next);
-                            write_expression(context, &handler.guard);
                             context
+                                .evaluate(&handler.guard)
                                 .typecheck("boolean")
                                 .cond_jump(next)
                                 .push_cancel(params.cancel)
-                                .push_resume(params.resume);
-                            write_expression(context, &handler.body);
-                            context
+                                .push_resume(params.resume)
+                                .evaluate(&handler.body)
                                 .pop_cancel()
                                 .pop_resume()
                                 // At the end of an effect handler, everything just ends.
@@ -147,7 +126,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                 }
             },
             |context| {
-                write_expression(context, &handled.expression);
+                context.evaluate(&handled.expression);
             },
         );
     }
@@ -160,12 +139,11 @@ impl IrVisitor for Evaluator<'_, '_> {
             self.context.label(reenter.clone());
             write_query(self.context, &decl.query, END);
             // After running the query, we don't need the state anymore
-            self.context.instruction(Instruction::Pop);
-            write_expression(self.context, &decl.body);
             self.context
-                .instruction(Instruction::Slide(declared as u32));
-            // After the body has been executed, the variables bound in the query are dropped
-            self.context
+                .instruction(Instruction::Pop)
+                .evaluate(&decl.body)
+                .instruction(Instruction::Slide(declared as u32))
+                // After the body has been executed, the variables bound in the query are dropped
                 .undeclare_variables(decl.query.bindings(), true);
         } else {
             let reenter = self.context.make_label("let");
@@ -179,51 +157,50 @@ impl IrVisitor for Evaluator<'_, '_> {
                 .instruction(Instruction::Const(Value::Bool(false)))
                 .instruction(Instruction::Branch)
                 .cond_jump(&reenter)
-                .instruction(Instruction::Pop);
-            self.context.scope.end_intermediate();
-            write_expression(self.context, &decl.body);
-            self.context
-                .instruction(Instruction::Slide(declared as u32));
-            self.context
+                .instruction(Instruction::Pop)
+                .end_intermediate()
+                .evaluate(&decl.body)
+                .instruction(Instruction::Slide(declared as u32))
                 .undeclare_variables(decl.query.bindings(), true);
         }
     }
 
     fn visit_if_else(&mut self, cond: &ir::IfElse) {
         let when_false = self.context.make_label("else");
-        write_expression(self.context, &cond.condition);
-        self.context.typecheck("boolean").cond_jump(&when_false);
-        write_expression(self.context, &cond.when_true);
         let end = self.context.make_label("end_if");
-        self.context.jump(&end);
-        self.context.label(when_false);
-        write_expression(self.context, &cond.when_false);
-        self.context.label(end);
+        self.context
+            .evaluate(&cond.condition)
+            .typecheck("boolean")
+            .cond_jump(&when_false)
+            .evaluate(&cond.when_true)
+            .jump(&end)
+            .label(when_false)
+            .evaluate(&cond.when_false)
+            .label(end);
     }
 
     fn visit_match(&mut self, cond: &ir::Match) {
-        write_expression(self.context, &cond.expression);
-        let val = self.context.scope.intermediate();
+        let val = self.context.evaluate(&cond.expression).intermediate();
         let end = self.context.make_label("match_end");
         for case in &cond.cases {
             let cleanup = self.context.make_label("case_cleanup");
             let vars = self.context.declare_variables(case.pattern.bindings());
             self.context.instruction(Instruction::LoadLocal(val));
             write_pattern_match(self.context, &case.pattern, &cleanup);
-            write_expression(self.context, &case.guard);
-            self.context.typecheck("boolean").cond_jump(&cleanup);
-            write_expression(self.context, &case.body);
-            self.context.instruction(Instruction::SetLocal(val));
             self.context
-                .undeclare_variables(case.pattern.bindings(), true);
-            self.context.jump(&end);
-            self.context.label(cleanup);
+                .evaluate(&case.guard)
+                .typecheck("boolean")
+                .cond_jump(&cleanup)
+                .evaluate(&case.body)
+                .instruction(Instruction::SetLocal(val))
+                .undeclare_variables(case.pattern.bindings(), true)
+                .jump(&end)
+                .label(cleanup);
             for _ in 0..vars {
                 self.context.instruction(Instruction::Pop);
             }
         }
-        self.context.scope.end_intermediate();
-        self.context.label(end);
+        self.context.end_intermediate().label(end);
     }
 
     fn visit_fn(&mut self, closure: &ir::Function) {
@@ -240,7 +217,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                 .instruction(Instruction::LoadLocal(params + i as u32));
             write_pattern_match(self.context, parameter, END);
         }
-        write_expression(self.context, &closure.body);
+        self.context.evaluate(&closure.body);
         for parameter in closure.parameters.iter().rev() {
             self.context
                 .undeclare_variables(parameter.bindings(), false);
@@ -259,8 +236,8 @@ impl IrVisitor for Evaluator<'_, '_> {
                 context.instruction(Instruction::LoadLocal(param_start + offset as u32));
                 write_pattern_match(context, parameter, END);
             }
-            write_expression(context, &closure.body);
             context
+                .evaluate(&closure.body)
                 .instruction(Instruction::Const(Value::Unit))
                 .instruction(Instruction::Return);
             for parameter in closure.parameters.iter().rev() {
@@ -291,21 +268,17 @@ impl IrVisitor for Evaluator<'_, '_> {
         }
     }
 
-    fn visit_dynamic(&mut self, _value: &syntax::Identifier) {
-        panic!();
-    }
-
     fn visit_assert(&mut self, assert: &ir::Assert) {
         let failed = self.context.make_label("assertion_error");
-        write_expression(self.context, &assert.assertion);
         self.context
+            .evaluate(&assert.assertion)
             .instruction(Instruction::Copy)
             .typecheck("boolean")
             .cond_jump(&failed)
             .bubble(|context| {
-                context.label(failed);
-                write_expression(context, &assert.message);
                 context
+                    .label(failed)
+                    .evaluate(&assert.message)
                     .atom("AssertionError")
                     .instruction(Instruction::Construct)
                     .instruction(Instruction::Panic);
@@ -323,38 +296,35 @@ impl IrVisitor for Evaluator<'_, '_> {
                 module_ref,
                 ir::Value::Dynamic(ident),
             ) => {
-                write_evaluation(self.context, module_ref);
                 self.context
+                    .evaluate(module_ref)
                     .typecheck("callable")
                     .atom(&**ident)
                     .call_module();
             }
             (None, ir::Value::Builtin(builtin), arg) if is_unary_operator(*builtin) => {
-                write_evaluation(self.context, arg);
+                self.context.evaluate(arg);
                 write_operator(self.context, *builtin);
             }
             (Some(ir::Value::Builtin(builtin)), lhs, rhs) if is_operator(*builtin) => {
-                write_evaluation(self.context, lhs);
-                self.context.scope.intermediate();
-                write_evaluation(self.context, rhs);
-                self.context.scope.end_intermediate();
+                self.context.evaluate(lhs).intermediate();
+                self.context.evaluate(rhs).end_intermediate();
                 write_operator(self.context, *builtin);
             }
             (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Pack(pack)) => {
-                self.context.constant(Record::default());
-                self.context.scope.intermediate();
+                self.context.constant(Record::default()).intermediate();
                 for element in &pack.values {
                     if element.is_spread {
-                        write_expression(self.context, &element.expression);
                         self.context
+                            .evaluate(&element.expression)
                             .typecheck("record")
                             .instruction(Instruction::Glue);
                     } else if let ir::Value::Mapping(mapping) = &element.expression.value {
-                        write_expression(self.context, &mapping.0);
-                        self.context.scope.intermediate();
-                        write_expression(self.context, &mapping.1);
-                        self.context.scope.end_intermediate();
-                        self.context.instruction(Instruction::Assign);
+                        self.context.evaluate(&mapping.0).intermediate();
+                        self.context
+                            .evaluate(&mapping.1)
+                            .end_intermediate()
+                            .instruction(Instruction::Assign);
                     } else {
                         panic!("record values must be mappings")
                     }
@@ -387,7 +357,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                 self.context.constant(Set::default());
                 self.context.scope.intermediate();
                 for element in &pack.values {
-                    write_expression(self.context, &element.expression);
+                    self.context.evaluate(&element.expression);
                     if element.is_spread {
                         self.context.typecheck("set").instruction(Instruction::Glue);
                     } else {
@@ -419,7 +389,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                 self.context.scope.intermediate();
                 for element in &pack.values {
                     self.context.instruction(Instruction::Clone);
-                    write_expression(self.context, &element.expression);
+                    self.context.evaluate(&element.expression);
                     if element.is_spread {
                         self.context
                             .typecheck("array")
@@ -471,30 +441,26 @@ impl IrVisitor for Evaluator<'_, '_> {
                 }
             }
             _ => {
-                write_expression(self.context, &application.function);
-                self.context.typecheck("callable");
-                self.context.scope.intermediate();
+                self.context
+                    .evaluate(&application.function)
+                    .typecheck("callable")
+                    .intermediate();
                 match &application.argument.value {
                     ir::Value::Pack(pack) => {
                         let arity = pack
                             .len()
                             .expect("procedures may not have spread arguments");
                         for element in &pack.values {
-                            write_expression(self.context, &element.expression);
+                            self.context.evaluate(&element.expression);
                         }
                         self.context.call_procedure(arity);
                     }
                     _ => {
-                        write_expression(self.context, &application.argument);
-                        self.context.call_function();
+                        self.context.evaluate(&application.argument).call_function();
                     }
                 };
                 self.context.scope.end_intermediate();
             }
         }
     }
-}
-
-pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
-    value.visit(&mut Evaluator { context });
 }

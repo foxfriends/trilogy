@@ -9,8 +9,8 @@ pub(crate) fn write_procedure(mut context: Context, procedure: &ir::Procedure) {
         context.instruction(Instruction::LoadLocal(offset as u32));
         write_pattern_match(&mut context, parameter, END);
     }
-    write_expression(&mut context, &procedure.body);
     context
+        .evaluate(&procedure.body)
         .instruction(Instruction::Const(Value::Unit))
         .instruction(Instruction::Return);
 }

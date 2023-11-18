@@ -1272,7 +1272,6 @@ name = "trilogy-codegen"
 version = "0.1.0"
 dependencies = [
  "trilogy-ir",
- "trilogy-parser",
  "trilogy-vm",
 ]
 
