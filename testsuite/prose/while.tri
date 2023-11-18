@@ -88,8 +88,7 @@ test "can yield from inside a while loop" {
         while i < 10 {
             i = yield 'next(i)
         }
-    } when 'next(i) resume {
-        i + 1
-    } else cancel {}
+    } when 'next(i) resume i + 1
+      else cancel unit
     assert i == 10
 }

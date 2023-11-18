@@ -96,8 +96,8 @@ test "get returns the value at the key" {
 
 test "get yields 'MIA for missing keys" {
     with { get "hello" {| "a" => "1", "b" => "2" |} }
-        when 'MIA cancel { exit unit }
-        else cancel {}
+        when 'MIA invert { exit unit }
+        else cancel unit
     assert false
 }
 

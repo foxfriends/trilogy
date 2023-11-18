@@ -58,13 +58,10 @@ mod test {
 
     test_parse!(handled_block_else_yield: "with {} else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::Else _)])");
     test_parse!(handled_block_else_invert: "with {} else invert {}" => HandledBlock::parse => "(HandledBlock _ [(Handler::Else _)])");
-    test_parse!(handled_block_else_resume: "with {} else resume {}" => HandledBlock::parse => "(HandledBlock _ [(Handler::Else _)])");
-    test_parse!(handled_block_else_cancel: "with {} else cancel {}" => HandledBlock::parse => "(HandledBlock _ [(Handler::Else _)])");
+    test_parse!(handled_block_else_resume: "with {} else resume 3" => HandledBlock::parse => "(HandledBlock _ [(Handler::Else _)])");
+    test_parse!(handled_block_else_cancel: "with {} else cancel 3" => HandledBlock::parse => "(HandledBlock _ [(Handler::Else _)])");
     test_parse!(handled_block_yield: "with {} when 'x yield else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::Else _)])");
     test_parse!(handled_block_invert_block: "with {} when 'x invert {} else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::Else _)])");
-    test_parse!(handled_block_resume_block: "with {} when 'x resume {} else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::Else _)])");
-    test_parse!(handled_block_cancel_block: "with {} when 'x cancel {} else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::Else _)])");
-    test_parse!(handled_block_invert_expr: "with {} when 'x invert 3 else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::Else _)])");
     test_parse!(handled_block_resume_expr: "with {} when 'x resume 3 else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::Else _)])");
     test_parse!(handled_block_cancel_expr: "with {} when 'x cancel 3 else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::Else _)])");
     test_parse!(handled_block_multiple_yield: "with {} when 'x yield when 'y yield else yield" => HandledBlock::parse => "(HandledBlock _ [(Handler::When _) (Handler::When _) (Handler::Else _)])");

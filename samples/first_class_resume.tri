@@ -5,6 +5,6 @@ func doubleInto x into = into (2 * x)
 
 proc main!() {
     exit with divBy 8 0
-        when 'INF invert cancel doubleInto 2 (resume)
+        when 'INF cancel doubleInto 2 (resume)
         else yield
 }

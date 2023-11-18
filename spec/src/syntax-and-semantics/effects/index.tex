@@ -2,7 +2,7 @@
 \label{sec:effects}
 
 By no means is \Trilogy{} the first language to implement an effect system;
-much of what is presented here is inspired by, and cross checked against,
+much of what is presented here is inspired by, and (loosely) cross checked against,
 existing research on effects\cite{eff}.
 
 Sadly, mainstream languages featuring a full-fledged first class effect system
@@ -14,7 +14,7 @@ approach to implementing effects than other research languages.
 
 \Trilogy{} includes effects as its core advanced control flow mechanism because
 I believe it to be the most concretely conceptualized of the equivalent competing
-models: monads and delimited control\cite{effmondel}.
+models (namely monads and delimited control\cite{effmondel}).
 
 Now, with a complete lack of true expertise, I attempt to specify the effect
 system of \Trilogy{}, beginning by finally addressing the syntax of effect
@@ -65,26 +65,12 @@ handlers.
         \bnfsp
         \bnfpn{Expression}
         \bnfor
-        \bnfts{\kw{resume}}
-        \bnfsp
-        \bnfpn{Block}
-        \bnfor
-    } \\
-    \bnfmore{
         \bnfts{\kw{cancel}}
         \bnfsp
         \bnfpn{Expression}
         \bnfor
-        \bnfts{\kw{cancel}}
-        \bnfsp
-        \bnfpn{Block}
-        \bnfor
     } \\
     \bnfmore{
-        \bnfts{\kw{invert}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfor
         \bnfts{\kw{invert}}
         \bnfsp
         \bnfpn{Block}
@@ -99,21 +85,11 @@ included to describe what to do in the case of no handler matching; the default
 choice should be \kw{else yield}, but in some situations there may be reason to
 do otherwise.
 
-It is worth noting that dynamic rules are not necessarily here to stay, as
-they may be a hack given my relative lack of experience with both practical
-logic programming and effect systems. In particular, there are ways to both
-implement both higher-order predicates\cite{hologic} as well as effect
-handlers in logic languages\cite{prologeffects}. Most likely they aren't really
-meant to be part of the effect system at all and I have just smashed its syntax
-into the effect handler syntax because it was convenient. This constrained
-version of \texttt{assertz/1} is likely a good idea though, so it will make
-it into the first version of \Trilogy{}.
-
-Effects are similar in that they install a contextual handler around a piece
-of code. When an effect is yielded, the ``nearest'' handler with a matching pattern
-and guard will be used to handle that effect. The nearest handler in a chain of them
-on one expression is the first handler in the chain, meanwhile the nearest handler when
-nested is the one least scopes away from the point of the \kw{yield}.
+Handlersinstall a contextual handler around a piece of code. When an effect is
+yielded, the ``nearest'' handler with a matching pattern and guard will be used
+to handle that effect. The nearest handler in a chain of them on one expression
+is the first handler in the chain, meanwhile the nearest handler when nested is
+the one least scopes away from the point of the \kw{yield}.
 
 The three keywords \kw{resume}, \kw{cancel}, and \kw{invert} describe how the
 handler responds to the effect. The \kw{yield} keyword may also be used on a
@@ -121,20 +97,21 @@ handler to denote that no handling is done, and the effect is simply re-yielded
 to a handler in the parent scope (a re-yielded effect never gets handled by another
 handler on the same chain).
 
-A \kw{cancel} handler will not respond, instead aborting the entire expression
+A \kw{cancel} handler will not respond to the yielder, instead completing the entire expression
 or statement on which the handler was attached, as if the \kw{with} keyword evaluated
 to the value that \kw{cancel} was supplied. In the case of a handled block, the value
 is lost.
 
 A \kw{resume} handler will respond with the evaluation of the expression following
 the keyword. The \kw{yield} that performed the effect will evaluate to that value.
-If a block is used instead of an expression, the \kw{yield} evaluates to \kw{unit}.
 
-The \kw{invert} handler is the most powerful, and is the one that binds the
-first-class keywords \kw{resume} and \kw{cancel} to the current effect handler.
-The block or expression following the \kw{invert} keyword is run in response to
-the effect, and may use \kw{resume} or \kw{cancel} to respond to the \kw{yield},
-possibly multiple times.
+The \kw{invert} handler simply inverts control flow, not cancelling or resuming, expecting
+that the programmer will use imperative constructs to manually craft the exactly control
+flow as desired. When evaluation reaches the end of the block of the \kw{invert} handler,
+execution simply fizzles.
+
+In each case, the first-class keywords \kw{resume} and \kw{cancel} are bound to the
+current effect handler, and may be used as part of the handler body.
 
 The \kw{resume} in this situation is a bounded continuation that ranges from the
 \kw{yield} expression that is performing the effect until the \kw{with} keyword
@@ -145,28 +122,21 @@ to is used as the value of the \kw{resume} application.
 Only when the effect handler's body is finished executing does the original
 expression finally evaluate. In the case that the body is an expression, the
 final value of that expression is used. In the case of a block, the \kw{cancel}
-keyword is used to denote the value of that evaluation. If the block runs off
-the end without \kw{cancel}, the value is \kw{unit}. Of course, \kw{cancel} itself
+keyword is used to denote the value of that evaluation. As mentioned,i f the block runs off
+the end without \kw{cancel}, execution fizzles instead. Of course, \kw{cancel} itself
 is also a first class keyword that can be captured to get the unbounded continuation
 following the end of the original expression to be passed along to other code, if
 so desired.
 
-In any case, though the grammar appears to permit blocks and expressions interchangeably,
-blocks are only permitted inside procedures and will be reported as a syntax error if found
-in a function definition (including a \kw{fn} closure). This rule may be relaxed at a later
-time.
-
-As you can see, the \kw{invert} form holds the most power, while the \kw{yield}, \kw{resume}
+As you can see, the \kw{invert} form is the most controlled, while the \kw{yield}, \kw{resume}
 and \kw{cancel} forms are just special cases, the following syntax transformation
 formalizes them so that we only need to specify the semantics of \kw{invert}.
 Included as well is the transformation for the \kw{else} clause.
 
 \begin{align*}
     & \texttt{\kw{when} \$p:pat \kw{resume} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \kw{resume} \$e \}} \\ %
-    & \texttt{\kw{when} \$p:pat \kw{resume} \$block} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \$b; \kw{cancel} \kw{resume} \}} \\ %
     & \texttt{\kw{when} \$p:pat \kw{cancel} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \$e \}} \\ %
-    & \texttt{\kw{when} \$p:pat \kw{cancel} \$b:block} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \$b; \kw{cancel} \}} \\ %
-    & \texttt{\kw{when} \$p:pat \kw{yield}} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{resume} \kw{yield} \$p \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{yield}} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \kw{resume} \kw{yield} \$p \}} \\ %
     & \texttt{\kw{else} \$n:ident \$h:handler} \Rightarrow \texttt{\kw{when} \$n \$h} \\ %
     & \texttt{\kw{else} \$h:handler} \Rightarrow \texttt{\kw{else} \_ \$h} \\ %
 \end{align*}

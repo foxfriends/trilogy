@@ -20,11 +20,12 @@ test "can resume multiple times into a query" {
             out += x
         }
         assert out == 0 || out == 7 || out == 15
-    } when 'X cancel {
+    } when 'X invert {
         resume 5
         resume 6
         resume 7
         resume 8
+        cancel unit
     } else yield
     assert out == 15
 }

@@ -14,7 +14,7 @@ test "simple resume works fine" {
 
 test "simple invert works fine" {
     assert with 1 + yield 'hello
-        when 'hello invert cancel resume 1
+        when 'hello invert { cancel resume 1 }
         else yield
         == 2
 }
@@ -51,8 +51,8 @@ test "can handle different types of effects, resuming" {
 
 test "can handle different types of effects explicitly" {
     assert with (yield 'hello) + (yield 'world)
-        when 'hello invert cancel resume 1
-        when 'world invert cancel resume 2
+        when 'hello invert { cancel resume 1 }
+        when 'world invert { cancel resume 2 }
         else yield
         == 3
 }

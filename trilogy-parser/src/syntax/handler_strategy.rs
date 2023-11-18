@@ -4,9 +4,9 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum HandlerStrategy {
-    Cancel(Token),
-    Resume(Token),
-    Invert(Token),
+    Cancel { cancel: Token, body: Expression },
+    Resume { resume: Token, body: Expression },
+    Invert { invert: Token, body: Block },
     Yield(Token),
 }
 
@@ -22,9 +22,18 @@ impl HandlerStrategy {
             })?;
 
         match token.token_type {
-            KwCancel => Ok(Self::Cancel(token)),
-            KwResume => Ok(Self::Resume(token)),
-            KwInvert => Ok(Self::Invert(token)),
+            KwCancel => Ok(Self::Cancel {
+                cancel: token,
+                body: Expression::parse(parser)?,
+            }),
+            KwResume => Ok(Self::Resume {
+                resume: token,
+                body: Expression::parse(parser)?,
+            }),
+            KwInvert => Ok(Self::Invert {
+                invert: token,
+                body: Block::parse(parser)?,
+            }),
             KwYield => Ok(Self::Yield(token)),
             _ => unreachable!(),
         }
@@ -36,7 +45,7 @@ mod test {
     use super::*;
 
     test_parse!(handler_strategy_yield: "yield" => HandlerStrategy::parse => "(HandlerStrategy::Yield _)");
-    test_parse!(handler_strategy_cancel: "cancel" => HandlerStrategy::parse => "(HandlerStrategy::Cancel _)");
-    test_parse!(handler_strategy_invert: "invert" => HandlerStrategy::parse => "(HandlerStrategy::Invert _)");
-    test_parse!(handler_strategy_resume: "resume" => HandlerStrategy::parse => "(HandlerStrategy::Resume _)");
+    test_parse!(handler_strategy_cancel: "cancel 3" => HandlerStrategy::parse => "(HandlerStrategy::Cancel _ _)");
+    test_parse!(handler_strategy_invert: "invert {}" => HandlerStrategy::parse => "(HandlerStrategy::Invert _ _)");
+    test_parse!(handler_strategy_resume: "resume 4" => HandlerStrategy::parse => "(HandlerStrategy::Resume _ _)");
 }
