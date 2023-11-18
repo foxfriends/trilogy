@@ -162,46 +162,46 @@ impl Context<'_> {
         r#break: Option<Offset>,
     ) -> &mut Self {
         self.declare_variables(iterator.query.bindings());
-        write_query_state(self, &iterator.query);
-        self.repeat(|context, exit| {
-            write_query(context, &iterator.query, exit);
+        self.prepare_query(&iterator.query)
+            .repeat(|context, exit| {
+                write_query(context, &iterator.query, exit);
 
-            context.intermediate(); // state
-            if let Some(r#break) = r#break {
-                context.push_break(r#break);
-            }
-            if let Some(r#continue) = r#continue {
-                context.push_continue(r#continue);
-            }
-
-            match &iterator.value.value {
-                ir::Value::Mapping(mapping) => {
-                    context.evaluate(&mapping.0).intermediate();
-                    context
-                        .evaluate(&mapping.1)
-                        .end_intermediate()
-                        .instruction(Instruction::Cons);
+                context.intermediate(); // state
+                if let Some(r#break) = r#break {
+                    context.push_break(r#break);
                 }
-                other => {
-                    context.evaluate(other);
+                if let Some(r#continue) = r#continue {
+                    context.push_continue(r#continue);
                 }
-            }
 
-            if r#continue.is_some() {
-                context.pop_continue();
-            }
-            if r#break.is_some() {
-                context.pop_break();
-            }
-            context
-                .atom("next")
-                .instruction(Instruction::Construct)
-                .r#yield()
-                .instruction(Instruction::Pop) // resume value discarded
-                .end_intermediate(); // state no longer intermediate
-        })
-        .instruction(Instruction::Pop)
-        .undeclare_variables(iterator.query.bindings(), true)
+                match &iterator.value.value {
+                    ir::Value::Mapping(mapping) => {
+                        context.evaluate(&mapping.0).intermediate();
+                        context
+                            .evaluate(&mapping.1)
+                            .end_intermediate()
+                            .instruction(Instruction::Cons);
+                    }
+                    other => {
+                        context.evaluate(other);
+                    }
+                }
+
+                if r#continue.is_some() {
+                    context.pop_continue();
+                }
+                if r#break.is_some() {
+                    context.pop_break();
+                }
+                context
+                    .atom("next")
+                    .instruction(Instruction::Construct)
+                    .r#yield()
+                    .instruction(Instruction::Pop) // resume value discarded
+                    .end_intermediate(); // state no longer intermediate
+            })
+            .instruction(Instruction::Pop)
+            .undeclare_variables(iterator.query.bindings(), true)
     }
 
     pub fn evaluate<E: CodegenEvaluate>(&mut self, value: &E) -> &mut Self {
@@ -211,6 +211,16 @@ impl Context<'_> {
 
     pub fn pattern_match<E: CodegenPatternMatch>(&mut self, value: &E, on_fail: &str) -> &mut Self {
         value.pattern_match(self, on_fail);
+        self
+    }
+
+    pub fn prepare_query<E: CodegenQuery>(&mut self, value: &E) -> &mut Self {
+        value.prepare_query(self);
+        self
+    }
+
+    pub fn extend_query_state<E: CodegenQuery>(&mut self, value: &E) -> &mut Self {
+        value.extend_query_state(self);
         self
     }
 }
@@ -278,7 +288,7 @@ impl Context<'_> {
         self.r#loop(
             |context| {
                 context.declare_variables(query.bindings());
-                write_query_state(context, query);
+                context.prepare_query(query);
             },
             |context, done| {
                 write_query(context, query, done);

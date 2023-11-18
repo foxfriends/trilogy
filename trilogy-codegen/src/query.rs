@@ -1,55 +1,83 @@
 use crate::{preamble::ITERATE_COLLECTION, prelude::*};
 use std::borrow::Cow;
 use std::collections::HashSet;
-use trilogy_ir::visitor::{HasBindings, HasReferences};
+use trilogy_ir::visitor::{HasBindings, HasReferences, IrVisitable, IrVisitor};
 use trilogy_ir::{ir, Id};
 use trilogy_vm::Instruction;
 
-pub(crate) fn write_query_state(context: &mut Context, query: &ir::Query) {
-    // Prepare the initial bindset and store it in a register. We'll be
-    // referring to this register throughout.
-    //
-    // It is possible that as part of setting up a query state we need to
-    // execute (including setup) a whole other query, so preserve the previous
-    // register value.
-    context.instruction(Instruction::LoadRegister(BINDSET));
-    context.scope.intermediate();
-    context
-        // The initial bindset is empty for generic queries. Only for rules it's
-        // a bit different, as the initial bindset is based on the boundness of the
-        // parameters. Rule calls can just set that up and start from continue.
-        .constant(HashSet::new())
-        .instruction(Instruction::SetRegister(BINDSET));
-    continue_query_state(context, query);
-    // After writing out the query state, the final bindset doesn't matter (it's everything)
-    // and the intermediate bindsets have been integrated with the state, so just reset the
-    // register.
-    context
-        .instruction(Instruction::Swap)
-        .instruction(Instruction::SetRegister(BINDSET));
-    context.scope.end_intermediate();
+struct QueryState<'b, 'a> {
+    context: &'b mut Context<'a>,
 }
 
-// A continued query state is like a query state but the current bindset is currently on the
-// top of the stack already.
-//
-// Outside of this file, other than for rule definitions, it is better to just
-// call `write_query_state`, as there is no bindset. Inside this file, we use it for
-// subqueries of queries.
-pub(crate) fn write_continued_query_state(context: &mut Context, query: &ir::Query) {
-    // The same saving of previous bindset, in case we are mid way setting up a query.
-    context
-        .instruction(Instruction::LoadRegister(BINDSET))
-        .instruction(Instruction::Swap)
-        .instruction(Instruction::SetRegister(BINDSET));
-    context.scope.intermediate();
-    continue_query_state(context, query);
-    // Again the final continued bindset does not matter, just get rid of it and reset
-    // to the previous one.
-    context
-        .instruction(Instruction::Swap)
-        .instruction(Instruction::SetRegister(BINDSET));
-    context.scope.end_intermediate();
+pub(crate) trait CodegenQuery: IrVisitable {
+    fn prepare_query(&self, context: &mut Context) {
+        // Prepare the initial bindset and store it in a register. We'll be
+        // referring to this register throughout.
+        //
+        // It is possible that as part of setting up a query state we need to
+        // execute (including setup) a whole other query, so preserve the previous
+        // register value.
+        context.instruction(Instruction::LoadRegister(BINDSET));
+        context.scope.intermediate();
+        context
+            // The initial bindset is empty for generic queries. Only for rules it's
+            // a bit different, as the initial bindset is based on the boundness of the
+            // parameters. Rule calls can just set that up and start from continue.
+            .constant(HashSet::new())
+            .instruction(Instruction::SetRegister(BINDSET));
+        self.visit(&mut QueryState { context });
+        // After writing out the query state, the final bindset doesn't matter (it's everything)
+        // and the intermediate bindsets have been integrated with the state, so just reset the
+        // register.
+        context
+            .instruction(Instruction::Swap)
+            .instruction(Instruction::SetRegister(BINDSET));
+        context.scope.end_intermediate();
+    }
+
+    fn extend_query_state(&self, context: &mut Context) {
+        // The same saving of previous bindset, in case we are mid way setting up a query.
+        context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .instruction(Instruction::Swap)
+            .instruction(Instruction::SetRegister(BINDSET));
+        context.scope.intermediate();
+        self.visit(&mut QueryState { context });
+        // Again the final continued bindset does not matter, just get rid of it and reset
+        // to the previous one.
+        context
+            .instruction(Instruction::Swap)
+            .instruction(Instruction::SetRegister(BINDSET));
+        context.scope.end_intermediate();
+    }
+}
+
+impl CodegenQuery for ir::Query {}
+impl CodegenQuery for ir::QueryValue {}
+
+impl QueryState<'_, '_> {
+    fn add_bindings(&mut self, vars: impl IntoIterator<Item = Id>) {
+        for var in vars {
+            let index = self.context.scope.lookup(&var).unwrap().unwrap_local();
+            self.context
+                .constant(index)
+                .instruction(Instruction::Insert);
+        }
+        self.context.instruction(Instruction::Pop);
+    }
+
+    fn junction(&mut self, node: &(ir::Query, ir::Query)) {
+        self.context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .instruction(Instruction::Clone)
+            .intermediate();
+        node.0.visit(self);
+        self.context
+            .instruction(Instruction::Cons)
+            .constant(false)
+            .instruction(Instruction::Cons)
+            .end_intermediate();
+    }
 }
 
 // The actual writing of the query state happens here. The query state generally consists
@@ -64,142 +92,137 @@ pub(crate) fn write_continued_query_state(context: &mut Context, query: &ir::Que
 // that needs it, as otherwise it may get mutated in passing.
 //
 // "Continuing" the query state assumes that the current runtime bindset is in register 2.
-//
-fn continue_query_state(context: &mut Context, query: &ir::Query) {
-    match &query.value {
-        ir::QueryValue::Is(..) | ir::QueryValue::End | ir::QueryValue::Pass => {
-            // These don't require much state and do not care about the bindset as they won't
-            // backtrack, even internally. They will occur at most once, switching to false to
-            // indicate that they should not occur again.
-            context.constant(true);
-        }
-        ir::QueryValue::Not(..) => {
-            // While a `not` query doesn't require much state (it's just an at most once query),
-            // it actually can backtrack internally, so we have to keep the bindset. We also
-            // have to reset the bindset back to the previous state once complete, since the
-            // variables bound within a not query are not available outside.
-            context
-                .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone)
-                .constant(true)
-                .instruction(Instruction::Cons);
-        }
-        ir::QueryValue::Direct(unification) => {
-            // Though a direct unification does not backtrack on its own, we may still
-            // re-enter it at which point the bindset should be unbound before we go
-            // to the failed case, so the state of the direct query does need the bindset.
-            context
-                .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone)
-                .constant(true)
-                .instruction(Instruction::Cons);
+impl IrVisitor for QueryState<'_, '_> {
+    // These don't require much state and do not care about the bindset as they won't
+    // backtrack, or spawn children. They will occur at most once, switching to false to
+    // indicate that they should not occur again.
 
-            context.instruction(Instruction::LoadRegister(BINDSET));
-            for var in unification.pattern.bindings() {
-                let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context.constant(index).instruction(Instruction::Insert);
-            }
-            context.instruction(Instruction::Pop);
-        }
-        ir::QueryValue::Element(unification) => {
-            // Element unification iterates a collection. The state is a continuation to the
-            // iteration in progress. When the iteration has not yet begun, it's just the bindset.
-            context
-                .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone);
+    fn visit_query_is(&mut self, _: &ir::Expression) {
+        self.context.constant(true);
+    }
 
+    fn visit_query_pass(&mut self) {
+        self.context.constant(true);
+    }
+
+    fn visit_query_fail(&mut self) {
+        self.context.constant(false);
+    }
+
+    // While a `not` query doesn't require much state (it's just an at most once query),
+    // it actually can backtrack internally, so we have to keep the bindset. We also
+    // have to reset the bindset back to the previous state once complete, since the
+    // variables bound within a not query are not available outside.
+    fn visit_query_not(&mut self, _: &ir::Query) {
+        self.context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .instruction(Instruction::Clone)
+            .constant(true)
+            .instruction(Instruction::Cons);
+    }
+
+    // These all work basically the same. The state is the left state and a marker for whether
+    // we're on the first or second branch on this iteration. The marker just changes on
+    // different conditions.
+    //
+    // In all cases, the bindset must be kept because there is a subquery which will
+    // need it for computing its own initial state.
+    //
+    // It's kind of just a coincidence that these can be represented with the same data.
+    //
+    // The structure is ((bindset:state):marker)
+
+    fn visit_query_conjunction(&mut self, node: &(ir::Query, ir::Query)) {
+        self.junction(node);
+    }
+
+    fn visit_query_disjunction(&mut self, node: &(ir::Query, ir::Query)) {
+        self.junction(node);
+    }
+
+    fn visit_query_implication(&mut self, node: &(ir::Query, ir::Query)) {
+        self.junction(node);
+    }
+
+    // An alternative attempts the left side, and only if it fails attempts the right side.
+    //
+    // Its state is the left side's state, and a marker to indicate that we've not yet
+    // chosen a side. The `unit` becomes `true` or `false` later to indicate which side
+    // has been chosen, once it has been chosen.
+    //
+    // The bindset is kept because there is a subquery which might need it, but not for any
+    // backtracking.
+    fn visit_query_alternative(&mut self, node: &(ir::Query, ir::Query)) {
+        self.context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .instruction(Instruction::Clone)
+            .intermediate();
+        node.0.visit(self);
+        self.context
+            .instruction(Instruction::Cons)
+            .constant(())
+            .instruction(Instruction::Cons)
+            .end_intermediate();
+    }
+
+    // The direct unification happens at most once, and does produce bindings so it
+    // carries its own bindset.
+    fn visit_direct_unification(&mut self, node: &ir::Unification) {
+        self.context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .instruction(Instruction::Clone)
+            .constant(true)
+            .instruction(Instruction::Cons)
+            .instruction(Instruction::LoadRegister(BINDSET));
+        self.add_bindings(node.pattern.bindings());
+    }
+
+    // Element unification iterates a collection. The state is a continuation to the
+    // iteration in progress. When the iteration has not yet begun, it's just the bindset.
+    fn visit_element_unification(&mut self, node: &ir::Unification) {
+        self.context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .instruction(Instruction::Clone)
             // Bindset updates happen *after* the state is computed because the backtracker
             // needs to be able to go back to the previous bindset.
-            context.instruction(Instruction::LoadRegister(BINDSET));
-            for var in unification.pattern.bindings() {
-                let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context.constant(index).instruction(Instruction::Insert);
-            }
-            context.instruction(Instruction::Pop);
-        }
-        ir::QueryValue::Alternative(alt) => {
-            // An alternative attempts the left side, and only if it fails attempts the right side.
-            //
-            // Its state is the left side's state, and a marker to indicate that we've not yet
-            // chosen a side. The `unit` becomes `true` or `false` later to indicate which side
-            // has been chosen, once it has been chosen.
-            //
-            // The bindset is kept because there is a subquery which might need it, but not for any
-            // backtracking.
-            context
-                .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone);
-            context.scope.intermediate();
-            continue_query_state(context, &alt.0);
-            context
-                .instruction(Instruction::Cons)
-                .constant(())
-                .instruction(Instruction::Cons);
-            context.scope.end_intermediate();
-        }
-        ir::QueryValue::Implication(alt)
-        | ir::QueryValue::Conjunction(alt)
-        | ir::QueryValue::Disjunction(alt) => {
-            // These all work basically the same. The state is the left state and a marker for whether
-            // we're on the first or second branch on this iteration. The marker just changes on
-            // different conditions.
-            //
-            // In all cases, the bindset must be kept because there is a subquery which will
-            // need it for computing its own initial state.
-            //
-            // It's kind of just a coincidence that these can be represented with the same data.
-            //
-            // The structure is ((bindset:state):marker)
-            context
-                .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone);
-            context.scope.intermediate();
-            continue_query_state(context, &alt.0);
-            context
-                .instruction(Instruction::Cons)
-                .constant(false)
-                .instruction(Instruction::Cons);
-            context.scope.end_intermediate();
-        }
-        ir::QueryValue::Lookup(lookup) => {
-            // Lookups require setting up the rule. All the values of the expression must be
-            // bound ahead of time; there is no way to do something like `anything(x) and things(anything)`
-            // it would have to go in reverse (`things(anything) and anything(x)`). This makes more
-            // sense anyway. Works out because conjunctions and the like only prepare the state of their
-            // first branch ahead of time, so by the time we need anything from a previous clause, it
-            // will be bound already.
-            //
-            // Does require maintaining the bindset though.
-            context
-                .instruction(Instruction::LoadRegister(BINDSET))
-                .instruction(Instruction::Clone)
-                .intermediate();
-            context
-                .evaluate(&lookup.path)
-                .typecheck("callable")
-                .instruction(Instruction::Call(0)) // The state is the closure
-                .instruction(Instruction::Cons) // with the bindset
-                .constant(false) // and a flag to keep track of whether the closure is initialized or not
-                .instruction(Instruction::Cons);
-            context.scope.end_intermediate();
+            .instruction(Instruction::LoadRegister(BINDSET));
+        self.add_bindings(node.pattern.bindings());
+    }
 
-            // After a lookup, all its patterns will be bound. This implies that we must iterate
-            // every possible case for unbound patterns eagerly... but that's a sacrifice we have
-            // to make. Doesn't really hurt correctness I think, but it is a bit less performant
-            // than the optimal case, but... the optimal case gives SAT vibes so maybe it isn't
-            // even possible anyway. (What does Prolog do?)
-            context.instruction(Instruction::LoadRegister(BINDSET));
-            for var in lookup
-                .patterns
+    fn visit_lookup(&mut self, node: &ir::Lookup) {
+        // Lookups require setting up the rule. All the values of the expression must be
+        // bound ahead of time; there is no way to do something like `anything(x) and things(anything)`
+        // it would have to go in reverse (`things(anything) and anything(x)`). This makes more
+        // sense anyway. Works out because conjunctions and the like only prepare the state of their
+        // first branch ahead of time, so by the time we need anything from a previous clause, it
+        // will be bound already.
+        //
+        // Does require maintaining the bindset though.
+        self.context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .instruction(Instruction::Clone)
+            .intermediate();
+        self.context
+            .evaluate(&node.path)
+            .typecheck("callable")
+            .instruction(Instruction::Call(0)) // The state is the closure
+            .instruction(Instruction::Cons) // with the bindset
+            .constant(false) // and a flag to keep track of whether the closure is initialized or not
+            .instruction(Instruction::Cons)
+            .end_intermediate();
+
+        // After a lookup, all its patterns will be bound. This implies that we must iterate
+        // every possible case for unbound patterns eagerly... but that's a sacrifice we have
+        // to make. Doesn't really hurt correctness I think, but it is a bit less performant
+        // than the optimal case, but... the optimal case gives SAT vibes so maybe it isn't
+        // even possible anyway. (What does Prolog do?)
+        self.context.instruction(Instruction::LoadRegister(BINDSET));
+        self.add_bindings(
+            node.patterns
                 .iter()
                 .flat_map(|pat| pat.bindings())
-                .collect::<HashSet<_>>()
-            {
-                let index = context.scope.lookup(&var).unwrap().unwrap_local();
-                context.constant(index).instruction(Instruction::Insert);
-            }
-            context.instruction(Instruction::Pop);
-        }
+                .collect::<HashSet<_>>(),
+        );
     }
 }
 
@@ -477,8 +500,8 @@ fn write_query_value(
             // without mutating it by accident.
             context
                 .instruction(Instruction::LoadLocal(bindset))
-                .instruction(Instruction::Clone);
-            write_continued_query_state(context, query);
+                .instruction(Instruction::Clone)
+                .extend_query_state(&**query);
             // Then just immediately attempt the subquery.
             write_query_value(context, &query.value, &on_pass, bound);
             // If the subquery passes, it's actually supposed to be a fail.
@@ -570,10 +593,8 @@ fn write_query_value(
                     context.constant(index).instruction(Instruction::Insert);
                 }
                 // Then build the state for the right hand query out of that.
-                write_continued_query_state(context, &conj.1);
-
-                // Next we do a bit of witchcraft with continuations.
                 context
+                    .extend_query_state(&conj.1)
                     // The state of the inner query is reconstructed as if it were fully brand new
                     // and we weren't already halfway through the query.
                     //
@@ -641,13 +662,12 @@ fn write_query_value(
                     let index = context.scope.lookup(&var).unwrap().unwrap_local();
                     context.constant(index).instruction(Instruction::Insert);
                 }
-                write_continued_query_state(context, &imp.1);
-                // Then move on to the inner query like nothing ever happened.
-                context.jump(&inner);
-
-                // If either query fails, we're just reconstructing the state so
-                // that it is the same as before.
                 context
+                    .extend_query_state(&imp.1)
+                    // Then move on to the inner query like nothing ever happened.
+                    .jump(&inner)
+                    // If either query fails, we're just reconstructing the state so
+                    // that it is the same as before.
                     .label(cleanup_first)
                     // The outer query has a bindset attached
                     .instruction(Instruction::Cons)
@@ -693,27 +713,24 @@ fn write_query_value(
                 context
                     .instruction(Instruction::Cons)
                     .constant(false)
-                    .instruction(Instruction::Cons);
-
-                context.bubble(|context| {
-                    // When it fails, instead of failing now, move on to the second branch.
-                    context.label(next).instruction(Instruction::Pop); // Discard the lhs state
-
-                    context.scope.end_intermediate();
-
-                    // The bindset is the same because the left hand side has not bound anything
-                    // at this point. Just pass it along, it's already on top of stack.
-                    write_continued_query_state(context, &disj.1);
-                    // Then jump to second and run like normal
-                    context.jump(&second);
-
-                    // Once the second one fails, then we're really failed.
-                    context
-                        .label(cleanup)
-                        .constant(true)
-                        .instruction(Instruction::Cons)
-                        .jump(on_fail);
-                });
+                    .instruction(Instruction::Cons)
+                    .bubble(|context| {
+                        // When it fails, instead of failing now, move on to the second branch.
+                        context
+                            .label(next)
+                            .instruction(Instruction::Pop) // Discard the lhs state
+                            .end_intermediate()
+                            // The bindset is the same because the left hand side has not bound anything
+                            // at this point. Just pass it along, it's already on top of stack.
+                            .extend_query_state(&disj.1)
+                            // Then jump to second and run like normal
+                            .jump(&second)
+                            // Once the second one fails, then we're really failed.
+                            .label(cleanup)
+                            .constant(true)
+                            .instruction(Instruction::Cons)
+                            .jump(on_fail);
+                    });
             });
         }
         ir::QueryValue::Alternative(alt) => {
@@ -772,16 +789,13 @@ fn write_query_value(
                             .cond_jump(&cleanup_first)
                             // Otherwise, the left is failed but the right might not!
                             // Discard the left's now useless state.
-                            .instruction(Instruction::Pop);
-
-                        // Then build up the right's state. The bindset is the same and conveniently already
-                        // on the top of stack.
-                        write_continued_query_state(context, &alt.1);
-                        // Then we can just run the second like normal.
-                        context.jump(&second);
-
-                        // When failing from the first side, reconstruct the state with its bindset
-                        context
+                            .instruction(Instruction::Pop)
+                            // Then build up the right's state. The bindset is the same and conveniently already
+                            // on the top of stack.
+                            .extend_query_state(&alt.1)
+                            // Then we can just run the second like normal.
+                            .jump(&second)
+                            // When failing from the first side, reconstruct the state with its bindset
                             .label(cleanup_first)
                             .instruction(Instruction::Cons)
                             .constant(true)
@@ -789,9 +803,8 @@ fn write_query_value(
                             // Don't forget to discard the uncommitted flag
                             .instruction(Instruction::Swap)
                             .instruction(Instruction::Pop)
-                            .jump(on_fail);
-                        // Similar for the right side, but no bindset
-                        context
+                            .jump(on_fail)
+                            // Similar for the right side, but no bindset
                             .label(cleanup_second)
                             .constant(false)
                             .instruction(Instruction::Cons)

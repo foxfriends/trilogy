@@ -135,8 +135,9 @@ impl IrVisitor for Evaluator<'_, '_> {
         if decl.query.is_once() {
             let reenter = self.context.make_label("let");
             let declared = self.context.declare_variables(decl.query.bindings());
-            write_query_state(self.context, &decl.query);
-            self.context.label(reenter.clone());
+            self.context
+                .prepare_query(&decl.query)
+                .label(reenter.clone());
             write_query(self.context, &decl.query, END);
             // After running the query, we don't need the state anymore
             self.context
@@ -148,10 +149,11 @@ impl IrVisitor for Evaluator<'_, '_> {
         } else {
             let reenter = self.context.make_label("let");
             let declared = self.context.declare_variables(decl.query.bindings());
-            write_query_state(self.context, &decl.query);
-            self.context.label(reenter.clone());
+            self.context
+                .prepare_query(&decl.query)
+                .label(reenter.clone());
             write_query(self.context, &decl.query, END);
-            self.context.scope.intermediate();
+            self.context.intermediate(); // query state
             self.context
                 .instruction(Instruction::Const(Value::Bool(true)))
                 .instruction(Instruction::Const(Value::Bool(false)))
@@ -427,7 +429,7 @@ impl IrVisitor for Evaluator<'_, '_> {
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = self.context.make_label("is_fail");
                 let var_count = self.context.declare_variables(query.bindings());
-                write_query_state(self.context, query);
+                self.context.prepare_query(&**query);
                 write_query(self.context, query, &is_fail);
                 self.context
                     .constant(true)

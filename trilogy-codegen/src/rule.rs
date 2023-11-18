@@ -80,9 +80,10 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     total_declared += context.declare_variables(rule.body.bindings());
     // Put the final bindset down here. Register 3 no longer matters after
     // this.
-    context.instruction(Instruction::LoadRegister(TEMPORARY));
-    write_continued_query_state(context, &rule.body);
-    let actual_state = context.scope.intermediate();
+    let actual_state = context
+        .instruction(Instruction::LoadRegister(TEMPORARY))
+        .extend_query_state(&rule.body)
+        .intermediate();
     context.close(&precall);
 
     // The actual body of the rule involves running the query, then
