@@ -287,6 +287,10 @@ impl QueryEvaluation<'_, '_> {
         self.jump(self.on_fail)
     }
 
+    fn cond_fail(&mut self) -> &mut Self {
+        self.cond_jump(self.on_fail)
+    }
+
     /// Unbinds the variables in `vars` that are runtime unbound but statically bound.
     /// The runtime bindset is expected on top of stack, and will be consumed.
     fn unbind(&mut self, vars: HashSet<Id>) -> &mut Self {
@@ -552,14 +556,14 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         // Set the state marker to false so we can't re-enter here.
         self.constant(false)
             .instruction(Instruction::Swap)
-            .fail()
+            .cond_fail()
             .intermediate(); // state
 
         // Then it's just failed if the evaluation is false.
         self.context.evaluate(expr);
         self.end_intermediate() // state
             .typecheck("boolean")
-            .fail();
+            .cond_fail();
     }
 
     // Always fail. The state isn't required at all.
@@ -570,7 +574,9 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
     fn visit_query_pass(&mut self) {
         // Always pass (the first time). We still don't re-enter
         // here, so it does "fail" the second time.
-        self.constant(false).instruction(Instruction::Swap).fail();
+        self.constant(false)
+            .instruction(Instruction::Swap)
+            .cond_fail();
     }
 
     fn visit_query_not(&mut self, query: &ir::Query) {
