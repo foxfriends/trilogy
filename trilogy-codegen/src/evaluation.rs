@@ -15,14 +15,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             write_operator_reference(context, *builtin);
         }
         ir::Value::Builtin(builtin) => panic!("{builtin:?} is not a referenceable builtin"),
-        ir::Value::Pack(pack) => {
-            for element in &pack.values {
-                if element.is_spread {
-                    panic!("spread elements are not available in generalized packs");
-                }
-                write_expression(context, &element.expression);
-            }
-        }
+        ir::Value::Pack(..) => unreachable!(),
         ir::Value::Sequence(seq) => {
             let mut seq = seq.iter();
             let Some(mut expr) = seq.next() else {
@@ -87,7 +80,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             context.constant(*value);
         }
         ir::Value::Unit => {
-            context.instruction(Instruction::Const(Value::Unit));
+            context.constant(());
         }
         ir::Value::Conjunction(..) => unreachable!("Conjunction cannot appear in an evaluation"),
         ir::Value::Disjunction(..) => unreachable!("Disjunction cannot appear in an evaluation"),
@@ -362,19 +355,22 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 write_expression(context, &application.function);
                 context.typecheck("callable");
                 context.scope.intermediate();
-                write_expression(context, &application.argument);
-                context.scope.end_intermediate();
                 match &application.argument.value {
                     ir::Value::Pack(pack) => {
                         let arity = pack
                             .len()
                             .expect("procedures may not have spread arguments");
+                        for element in &pack.values {
+                            write_expression(context, &element.expression);
+                        }
                         context.call_procedure(arity);
                     }
                     _ => {
+                        write_expression(context, &application.argument);
                         context.call_function();
                     }
                 };
+                context.scope.end_intermediate();
             }
         },
         ir::Value::Let(decl) if decl.query.is_once() => {
