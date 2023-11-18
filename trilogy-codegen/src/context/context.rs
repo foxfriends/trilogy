@@ -1,11 +1,12 @@
 use super::{Labeler, Scope};
 use crate::evaluation::CodegenEvaluate;
 use crate::pattern_match::CodegenPatternMatch;
-use crate::prelude::*;
+use crate::query::{Bindings, CodegenQuery};
+use crate::{delegate_label_maker, delegate_stack_tracker, prelude::*};
 use trilogy_ir::ir::{self, Iterator};
 use trilogy_ir::visitor::HasBindings;
 use trilogy_ir::Id;
-use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Offset, Value};
+use trilogy_vm::{delegate_chunk_writer, ChunkBuilder, ChunkWriter, Instruction, Offset};
 
 pub(crate) struct Context<'a> {
     labeler: &'a mut Labeler,
@@ -23,110 +24,11 @@ impl<'a> Context<'a> {
     }
 }
 
-impl ChunkWriter for Context<'_> {
-    fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.reference(label);
-        self
-    }
+delegate_chunk_writer!(Context<'_>, builder);
+delegate_stack_tracker!(Context<'_>, scope);
+delegate_label_maker!(Context<'_>, labeler);
 
-    fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.cond_jump(label);
-        self
-    }
-
-    fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.jump(label);
-        self
-    }
-
-    fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.shift(label);
-        self
-    }
-
-    fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.close(label);
-        self
-    }
-
-    fn instruction(&mut self, instruction: Instruction) -> &mut Self {
-        self.builder.instruction(instruction);
-        self
-    }
-
-    fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.label(label);
-        self
-    }
-
-    fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
-        self.builder.constant(value);
-        self
-    }
-
-    fn make_atom<S: AsRef<str>>(&self, value: S) -> Atom {
-        self.builder.make_atom(value)
-    }
-}
-
-impl LabelMaker for Context<'_> {
-    fn make_label(&mut self, label: &str) -> String {
-        self.labeler.unique_hint(label)
-    }
-}
-
-impl StackTracker for Context<'_> {
-    fn intermediate(&mut self) -> Offset {
-        self.scope.intermediate()
-    }
-
-    fn end_intermediate(&mut self) -> &mut Self {
-        self.scope.end_intermediate();
-        self
-    }
-
-    fn push_continue(&mut self, offset: Offset) -> &mut Self {
-        self.scope.push_continue(offset);
-        self
-    }
-
-    fn pop_continue(&mut self) -> &mut Self {
-        self.scope.pop_continue();
-        self
-    }
-
-    fn push_break(&mut self, offset: Offset) -> &mut Self {
-        self.scope.push_break(offset);
-        self
-    }
-
-    fn pop_break(&mut self) -> &mut Self {
-        self.scope.pop_break();
-        self
-    }
-
-    fn push_cancel(&mut self, offset: Offset) -> &mut Self {
-        self.scope.push_cancel(offset);
-        self
-    }
-
-    fn pop_cancel(&mut self) -> &mut Self {
-        self.scope.pop_cancel();
-        self
-    }
-
-    fn push_resume(&mut self, offset: Offset) -> &mut Self {
-        self.scope.push_resume(offset);
-        self
-    }
-
-    fn pop_resume(&mut self) -> &mut Self {
-        self.scope.pop_resume();
-        self
-    }
-}
-
-impl Context<'_> {
+impl<'a> Context<'a> {
     pub fn declare_variables(&mut self, variables: impl IntoIterator<Item = Id>) -> usize {
         let mut n = 0;
         for id in variables {
@@ -162,46 +64,44 @@ impl Context<'_> {
         r#break: Option<Offset>,
     ) -> &mut Self {
         self.declare_variables(iterator.query.bindings());
-        write_query_state(self, &iterator.query);
-        self.repeat(|context, exit| {
-            write_query(context, &iterator.query, exit);
-
-            context.intermediate(); // state
-            if let Some(r#break) = r#break {
-                context.push_break(r#break);
-            }
-            if let Some(r#continue) = r#continue {
-                context.push_continue(r#continue);
-            }
-
-            match &iterator.value.value {
-                ir::Value::Mapping(mapping) => {
-                    context.evaluate(&mapping.0).intermediate();
-                    context
-                        .evaluate(&mapping.1)
-                        .end_intermediate()
-                        .instruction(Instruction::Cons);
+        self.prepare_query(&iterator.query)
+            .repeat(|context, exit| {
+                context.execute_query(&iterator.query, exit).intermediate(); // state
+                if let Some(r#break) = r#break {
+                    context.push_break(r#break);
                 }
-                other => {
-                    context.evaluate(other);
+                if let Some(r#continue) = r#continue {
+                    context.push_continue(r#continue);
                 }
-            }
 
-            if r#continue.is_some() {
-                context.pop_continue();
-            }
-            if r#break.is_some() {
-                context.pop_break();
-            }
-            context
-                .atom("next")
-                .instruction(Instruction::Construct)
-                .r#yield()
-                .instruction(Instruction::Pop) // resume value discarded
-                .end_intermediate(); // state no longer intermediate
-        })
-        .instruction(Instruction::Pop)
-        .undeclare_variables(iterator.query.bindings(), true)
+                match &iterator.value.value {
+                    ir::Value::Mapping(mapping) => {
+                        context.evaluate(&mapping.0).intermediate();
+                        context
+                            .evaluate(&mapping.1)
+                            .end_intermediate()
+                            .instruction(Instruction::Cons);
+                    }
+                    other => {
+                        context.evaluate(other);
+                    }
+                }
+
+                if r#continue.is_some() {
+                    context.pop_continue();
+                }
+                if r#break.is_some() {
+                    context.pop_break();
+                }
+                context
+                    .atom("next")
+                    .instruction(Instruction::Construct)
+                    .r#yield()
+                    .instruction(Instruction::Pop) // resume value discarded
+                    .end_intermediate(); // state no longer intermediate
+            })
+            .instruction(Instruction::Pop)
+            .undeclare_variables(iterator.query.bindings(), true)
     }
 
     pub fn evaluate<E: CodegenEvaluate>(&mut self, value: &E) -> &mut Self {
@@ -211,6 +111,31 @@ impl Context<'_> {
 
     pub fn pattern_match<E: CodegenPatternMatch>(&mut self, value: &E, on_fail: &str) -> &mut Self {
         value.pattern_match(self, on_fail);
+        self
+    }
+
+    pub fn prepare_query<E: CodegenQuery>(&mut self, value: &E) -> &mut Self {
+        value.prepare_query(self);
+        self
+    }
+
+    pub fn extend_query_state<E: CodegenQuery>(&mut self, value: &E) -> &mut Self {
+        value.extend_query_state(self);
+        self
+    }
+
+    pub fn execute_query<E: CodegenQuery>(&mut self, value: &E, on_fail: &str) -> &mut Self {
+        value.execute_query(self, on_fail);
+        self
+    }
+
+    pub fn continue_execute_query<E: CodegenQuery>(
+        &mut self,
+        value: &E,
+        on_fail: &str,
+        bindings: &Bindings<'a>,
+    ) -> &mut Self {
+        value.continue_execute_query(self, on_fail, bindings);
         self
     }
 }
@@ -278,11 +203,11 @@ impl Context<'_> {
         self.r#loop(
             |context| {
                 context.declare_variables(query.bindings());
-                write_query_state(context, query);
+                context.prepare_query(query);
             },
             |context, done| {
-                write_query(context, query, done);
                 context
+                    .execute_query(query, done)
                     // Mark down that this loop did get a match
                     .constant(true)
                     .instruction(Instruction::SetLocal(did_match))

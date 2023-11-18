@@ -75,3 +75,54 @@ pub trait ChunkWriter {
         self.constant(atom)
     }
 }
+
+#[macro_export]
+macro_rules! delegate_chunk_writer {
+    ($t:ty, $f:ident) => {
+        impl $crate::ChunkWriter for $t {
+            fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.reference(label);
+                self
+            }
+
+            fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.cond_jump(label);
+                self
+            }
+
+            fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.jump(label);
+                self
+            }
+
+            fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.shift(label);
+                self
+            }
+
+            fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.close(label);
+                self
+            }
+
+            fn instruction(&mut self, instruction: $crate::Instruction) -> &mut Self {
+                self.$f.instruction(instruction);
+                self
+            }
+
+            fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.label(label);
+                self
+            }
+
+            fn constant<V: Into<$crate::Value>>(&mut self, value: V) -> &mut Self {
+                self.$f.constant(value);
+                self
+            }
+
+            fn make_atom<S: AsRef<str>>(&self, value: S) -> $crate::Atom {
+                self.$f.make_atom(value)
+            }
+        }
+    };
+}

@@ -10,12 +10,12 @@ pub(crate) use crate::module::{write_module_definitions, write_module_prelude};
 pub(crate) use crate::operator::*;
 pub(crate) use crate::preamble::*;
 pub(crate) use crate::procedure::write_procedure;
-pub(crate) use crate::query::*;
 pub(crate) use crate::rule::write_rule;
 pub(crate) use chunk_writer_ext::*;
 pub(crate) use label_maker::*;
 pub(crate) use stack_tracker::*;
 pub(crate) use stateful_chunk_writer_ext::*;
+pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use type_pattern::*;
 
 use trilogy_ir::ir;

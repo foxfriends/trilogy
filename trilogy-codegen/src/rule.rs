@@ -80,19 +80,21 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     total_declared += context.declare_variables(rule.body.bindings());
     // Put the final bindset down here. Register 3 no longer matters after
     // this.
-    context.instruction(Instruction::LoadRegister(TEMPORARY));
-    write_continued_query_state(context, &rule.body);
-    let actual_state = context.scope.intermediate();
+    let actual_state = context
+        .instruction(Instruction::LoadRegister(TEMPORARY))
+        .extend_query_state(&rule.body)
+        .intermediate();
     context.close(&precall);
 
     // The actual body of the rule involves running the query, then
     // returning the return value in 'next. We convert failure to
     // returning 'done, as in a regular iterator.
     let on_done = context.make_label("on_done");
-    context.instruction(Instruction::LoadLocal(actual_state));
-    write_query(context, &rule.body, &on_done);
-    context.instruction(Instruction::SetLocal(actual_state));
-    context.scope.end_intermediate();
+    context
+        .instruction(Instruction::LoadLocal(actual_state))
+        .execute_query(&rule.body, &on_done)
+        .instruction(Instruction::SetLocal(actual_state))
+        .end_intermediate();
     // The query is normal, then the value is computed by evaluating
     // the parameter patterns now as expressions.
     context.scope.intermediate(); // At this point, the query state is an intermediate
