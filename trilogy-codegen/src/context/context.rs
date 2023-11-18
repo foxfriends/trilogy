@@ -324,7 +324,7 @@ impl Context<'_> {
                 write_query_state(context, query);
             },
             |context, done| {
-                write_query(context, query, &done);
+                write_query(context, query, done);
                 context
                     // Mark down that this loop did get a match
                     .constant(true)
