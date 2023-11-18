@@ -1,9 +1,9 @@
 use super::{Labeler, Scope, StaticMember};
-use crate::module::Mode;
 use crate::prelude::*;
+use crate::{delegate_label_maker, module::Mode};
 use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
-use trilogy_vm::{Atom, ChunkBuilder, ChunkWriter, Instruction, Value};
+use trilogy_vm::{delegate_chunk_writer, ChunkBuilder, ChunkWriter, Instruction, Value};
 
 pub(crate) struct ProgramContext<'a> {
     labeler: Labeler,
@@ -19,57 +19,8 @@ impl<'a> ProgramContext<'a> {
     }
 }
 
-impl ChunkWriter for ProgramContext<'_> {
-    fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.shift(label);
-        self
-    }
-
-    fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.close(label);
-        self
-    }
-
-    fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.cond_jump(label);
-        self
-    }
-
-    fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.jump(label);
-        self
-    }
-
-    fn instruction(&mut self, instruction: Instruction) -> &mut Self {
-        self.builder.instruction(instruction);
-        self
-    }
-
-    fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.builder.label(label);
-        self
-    }
-
-    fn constant<V: Into<Value>>(&mut self, value: V) -> &mut Self {
-        self.builder.constant(value);
-        self
-    }
-
-    fn make_atom<S: AsRef<str>>(&self, value: S) -> Atom {
-        self.builder.make_atom(value)
-    }
-
-    fn reference<S: Into<String>>(&mut self, value: S) -> &mut Self {
-        self.builder.reference(value);
-        self
-    }
-}
-
-impl LabelMaker for ProgramContext<'_> {
-    fn make_label(&mut self, label: &str) -> String {
-        self.labeler.unique_hint(label)
-    }
-}
+delegate_chunk_writer!(ProgramContext<'_>, builder);
+delegate_label_maker!(ProgramContext<'_>, labeler);
 
 impl ProgramContext<'_> {
     pub fn entrypoint(&mut self) -> &mut Self {
