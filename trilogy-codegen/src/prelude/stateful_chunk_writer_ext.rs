@@ -137,6 +137,58 @@ pub(crate) trait StatefulChunkWriterExt:
             .label(end)
     }
 
+    fn r#loop<
+        F: FnOnce(&mut Self),
+        G: FnOnce(&mut Self, &str),
+        H: FnOnce(&mut Self),
+        I: FnOnce(&mut Self),
+    >(
+        &mut self,
+        setup: F,
+        head: G,
+        body: H,
+        cleanup: I,
+    ) -> &mut Self {
+        let begin = self.make_label("loop");
+        let done = self.make_label("loop_done");
+        let end = self.make_label("loop_end");
+
+        // Break is just a continuation that points to the end of the loop. The value
+        // passed to break is discarded
+        let r#break = self
+            .continuation_fn(|c| {
+                c.instruction(Instruction::Pop).jump(&end);
+            })
+            .intermediate();
+        // The actual loop we can implement in the standard way after the continuations are
+        // created.
+        self.pipe(setup)
+            .label(&begin)
+            // Check the condition
+            .pipe(|c| head(c, &done));
+        // If it's true, run the body. The body has access to continue and break.
+        // Continue is a continuation much like break, but it points to the start of the loop
+        let r#continue = self
+            .continuation_fn(|c| {
+                c.instruction(Instruction::Pop).jump(&begin);
+            })
+            .intermediate();
+        self.push_break(r#break)
+            .push_continue(r#continue)
+            .pipe(body)
+            .pop_break()
+            .pop_continue()
+            .instruction(Instruction::Pop) // Body value
+            .instruction(Instruction::Pop) // Continue
+            .end_intermediate()
+            .jump(&begin)
+            .label(&done)
+            .pipe(cleanup)
+            .instruction(Instruction::Pop) // break
+            .end_intermediate()
+            .label(&end)
+    }
+
     fn iterate<F: FnOnce(&mut Self, HandlerParameters), G: FnOnce(&mut Self)>(
         &mut self,
         handler: F,
