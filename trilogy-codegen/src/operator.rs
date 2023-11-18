@@ -436,11 +436,9 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         Builtin::Continue => context.instruction(context.scope.kw_continue().unwrap()),
         Builtin::Resume => context.instruction(context.scope.kw_resume().unwrap()),
         Builtin::Cancel => context.instruction(context.scope.kw_cancel().unwrap()),
-        Builtin::Return => {
-            context.continuation_fn(|context| {
-                context.instruction(Instruction::Return);
-            })
-        }
+        Builtin::Return => context.continuation_fn(|context| {
+            context.instruction(Instruction::Return);
+        }),
 
         Builtin::Negate
         | Builtin::ModuleAccess
