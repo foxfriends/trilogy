@@ -19,8 +19,9 @@ pub(crate) trait CodegenQuery: IrVisitable {
         // It is possible that as part of setting up a query state we need to
         // execute (including setup) a whole other query, so preserve the previous
         // register value.
-        context.instruction(Instruction::LoadRegister(BINDSET));
-        context.scope.intermediate();
+        context
+            .instruction(Instruction::LoadRegister(BINDSET))
+            .intermediate();
         context
             // The initial bindset is empty for generic queries. Only for rules it's
             // a bit different, as the initial bindset is based on the boundness of the
@@ -33,8 +34,8 @@ pub(crate) trait CodegenQuery: IrVisitable {
         // register.
         context
             .instruction(Instruction::Swap)
-            .instruction(Instruction::SetRegister(BINDSET));
-        context.scope.end_intermediate();
+            .instruction(Instruction::SetRegister(BINDSET))
+            .end_intermediate();
     }
 
     fn extend_query_state(&self, context: &mut Context) {
@@ -42,15 +43,15 @@ pub(crate) trait CodegenQuery: IrVisitable {
         context
             .instruction(Instruction::LoadRegister(BINDSET))
             .instruction(Instruction::Swap)
-            .instruction(Instruction::SetRegister(BINDSET));
-        context.scope.intermediate();
+            .instruction(Instruction::SetRegister(BINDSET))
+            .intermediate();
         self.visit(&mut QueryState { context });
         // Again the final continued bindset does not matter, just get rid of it and reset
         // to the previous one.
         context
             .instruction(Instruction::Swap)
-            .instruction(Instruction::SetRegister(BINDSET));
-        context.scope.end_intermediate();
+            .instruction(Instruction::SetRegister(BINDSET))
+            .end_intermediate();
     }
 
     fn execute_query(&self, context: &mut Context, on_fail: &str) {
