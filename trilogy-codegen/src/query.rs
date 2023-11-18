@@ -60,19 +60,6 @@ pub(crate) trait CodegenQuery: IrVisitable {
             bindings: &Bindings::default(),
         });
     }
-
-    fn continue_execute_query<'a>(
-        &self,
-        context: &mut Context<'a>,
-        on_fail: &str,
-        bindings: &Bindings<'a>,
-    ) {
-        self.visit(&mut QueryEvaluation {
-            context,
-            on_fail,
-            bindings,
-        });
-    }
 }
 
 impl CodegenQuery for ir::Query {}
@@ -254,7 +241,7 @@ impl IrVisitor for QueryState<'_, '_> {
 /// Runtime bindsets are tracked separately and used to properly un-bind variables
 /// during the backtracking phase.
 #[derive(Clone, Default)]
-pub(crate) struct Bindings<'a>(Cow<'a, HashSet<Id>>);
+struct Bindings<'a>(Cow<'a, HashSet<Id>>);
 
 impl Bindings<'_> {
     fn is_bound(&self, var: &Id) -> bool {
@@ -282,7 +269,7 @@ delegate_chunk_writer!(QueryEvaluation<'_, '_>, context);
 delegate_stack_tracker!(QueryEvaluation<'_, '_>, context);
 delegate_label_maker!(QueryEvaluation<'_, '_>, context);
 
-impl QueryEvaluation<'_, '_> {
+impl<'b, 'a> QueryEvaluation<'b, 'a> {
     fn fail(&mut self) -> &mut Self {
         self.jump(self.on_fail)
     }
@@ -367,6 +354,20 @@ impl QueryEvaluation<'_, '_> {
             }
             self.context.evaluate(value);
         }
+        self
+    }
+
+    fn execute_subquery<E: CodegenQuery>(
+        &mut self,
+        value: &E,
+        on_fail: &str,
+        bindings: &Bindings<'a>,
+    ) -> &mut Self {
+        value.visit(&mut QueryEvaluation {
+            context: self.context,
+            on_fail,
+            bindings,
+        });
         self
     }
 }
@@ -601,12 +602,11 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         // without mutating it by accident.
         self.instruction(Instruction::LoadLocal(bindset))
             .instruction(Instruction::Clone);
-        self.context
-            .extend_query_state(query)
-            // Then just immediately attempt the subquery.
-            .continue_execute_query(&query.value, &on_pass, self.bindings);
-        // If the subquery passes, it's actually supposed to be a fail.
-        self.instruction(Instruction::Pop) // Discard the subquery state
+        self.context.extend_query_state(query);
+        // Then just immediately attempt the subquery.
+        self.execute_subquery(&query.value, &on_pass, self.bindings)
+            // If the subquery passes, it's actually supposed to be a fail.
+            .instruction(Instruction::Pop) // Discard the subquery state
             .label(&cleanup) // Then we leave via failure, fixing the `not` state back up
             .instruction(Instruction::Cons)
             .fail();
@@ -650,75 +650,71 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
 
         // There's nothing to reset to at this point, the inner query will do that
         // internally already, if needed.
-        self.context
-            .continue_execute_query(&conj.1.value, &reset, &rhs_bound)
+        self.execute_subquery(&conj.1.value, &reset, &rhs_bound)
             // On success, reconstruct the state
             .end_intermediate()
             // Reattach the outer state
             .instruction(Instruction::Cons)
             // Put the marker on top
             .constant(true)
-            .instruction(Instruction::Cons);
+            .instruction(Instruction::Cons)
+            .bubble(|context| {
+                // On failure, simply reset with the outer query's state. It'll continue from
+                // where it left off!
+                context
+                    .label(reset)
+                    // Discard the inner state, it's garbage now.
+                    .instruction(Instruction::Pop)
+                    // The outer state is already on the stack.
+                    .label(outer)
+                    // Take out the bindset from the state. We will have to reset to this
+                    // one every time the outer query gets evaluated.
+                    .instruction(Instruction::Uncons);
 
-        self.bubble(|context| {
-            // On failure, simply reset with the outer query's state. It'll continue from
-            // where it left off!
-            context
-                .label(reset)
-                // Discard the inner state, it's garbage now.
-                .instruction(Instruction::Pop)
-                // The outer state is already on the stack.
-                .label(outer)
-                // Take out the bindset from the state. We will have to reset to this
-                // one every time the outer query gets evaluated.
-                .instruction(Instruction::Uncons);
+                // Load up that bindset we just took out of the state and reset the bindings
+                // accordingly.
+                let outer_bindset = context.intermediate();
+                context
+                    .instruction(Instruction::LoadLocal(outer_bindset))
+                    .unbind(conj.0.value.bindings());
+                // Then run the outer query as normal.
+                context
+                    .execute_subquery(&conj.0.value, &cleanup, context.bindings)
+                    // When it succeeds, proceed to running the inner query.
+                    //
+                    // First, set up the inner query's state. This must continue from the current
+                    // bindset, which is the bindset from AFTER the outer query has been run. Add
+                    // all the outer query's bindings into the set now.
+                    .instruction(Instruction::LoadLocal(outer_bindset))
+                    .instruction(Instruction::Clone);
+                for var in conj.0.bindings() {
+                    let index = context.context.scope.lookup(&var).unwrap().unwrap_local();
+                    context.constant(index).instruction(Instruction::Insert);
+                }
+                // Then build the state for the right hand query out of that.
+                context
+                    .context
+                    .extend_query_state(&conj.1)
+                    // The state of the inner query is reconstructed as if it were fully brand new
+                    // and we weren't already halfway through the query.
+                    //
+                    // At this point the stack is outer_bindset, outer_state, inner_state.
+                    // We need to construct ((outer_bindset : outer_state):inner_state) so that things are easy later.
+                    .instruction(Instruction::Slide(2))
+                    .instruction(Instruction::Cons)
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Cons)
+                    .jump(inner);
 
-            // Load up that bindset we just took out of the state and reset the bindings
-            // accordingly.
-            let outer_bindset = context.context.scope.intermediate();
-            context
-                .instruction(Instruction::LoadLocal(outer_bindset))
-                .unbind(conj.0.value.bindings());
-            // Then run the outer query as normal.
-            context
-                .context
-                .continue_execute_query(&conj.0.value, &cleanup, context.bindings);
-            // When it succeeds, proceed to running the inner query.
-            //
-            // First, set up the inner query's state. This must continue from the current
-            // bindset, which is the bindset from AFTER the outer query has been run. Add
-            // all the outer query's bindings into the set now.
-            context
-                .instruction(Instruction::LoadLocal(outer_bindset))
-                .instruction(Instruction::Clone);
-            for var in conj.0.bindings() {
-                let index = context.context.scope.lookup(&var).unwrap().unwrap_local();
-                context.constant(index).instruction(Instruction::Insert);
-            }
-            // Then build the state for the right hand query out of that.
-            context
-                .context
-                .extend_query_state(&conj.1)
-                // The state of the inner query is reconstructed as if it were fully brand new
-                // and we weren't already halfway through the query.
-                //
-                // At this point the stack is outer_bindset, outer_state, inner_state.
-                // We need to construct ((outer_bindset : outer_state):inner_state) so that things are easy later.
-                .instruction(Instruction::Slide(2))
-                .instruction(Instruction::Cons)
-                .instruction(Instruction::Swap)
-                .instruction(Instruction::Cons)
-                .jump(inner);
-
-            // We go here if the outer query fails. Once that happens, the whole conjunction is failed.
-            context
-                .label(cleanup)
-                .instruction(Instruction::Cons) // Attach the state to the bindset
-                .constant(false)
-                .instruction(Instruction::Cons) // Then attach the marker
-                .fail()
-                .end_intermediate(); // outer_bindset
-        });
+                // We go here if the outer query fails. Once that happens, the whole conjunction is failed.
+                context
+                    .label(cleanup)
+                    .instruction(Instruction::Cons) // Attach the state to the bindset
+                    .constant(false)
+                    .instruction(Instruction::Cons) // Then attach the marker
+                    .fail()
+                    .end_intermediate(); // outer_bindset
+            });
     }
 
     fn visit_query_implication(&mut self, imp: &(ir::Query, ir::Query)) {
@@ -736,8 +732,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
 
         // If the condition was previously successful, just run the inner query like normal.
         self.label(inner.clone());
-        self.context
-            .continue_execute_query(&imp.1.value, &cleanup_second, &rhs_bound)
+        self.execute_subquery(&imp.1.value, &cleanup_second, &rhs_bound)
             // Only thing is to maintain the marker in the state.
             .constant(true)
             .instruction(Instruction::Cons);
@@ -754,11 +749,11 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // Don't need to unbind anything because we'll never backtrack if it succeeds.
             // Pretty simple after that, just run it.
             context
-                .context
-                .continue_execute_query(&imp.0.value, &cleanup_first, context.bindings);
-            // If it succeeds, discard the outer query's state, we don't need it
-            // anymore because we'll never come back to it.
-            context.instruction(Instruction::Pop).end_intermediate(); // bindset
+                .execute_subquery(&imp.0.value, &cleanup_first, context.bindings)
+                // If it succeeds, discard the outer query's state, we don't need it
+                // anymore because we'll never come back to it.
+                .instruction(Instruction::Pop)
+                .end_intermediate(); // bindset
 
             // We're replacing it with the inner query's state. It does need the context
             // of the bindset though, which is conveniently on the stack already. Again, we
@@ -801,10 +796,10 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // If the first query is exhausted, we're just running the second one until it
             // is also exhausted.
             .label(second.clone());
-        self.context
-            .continue_execute_query(&disj.1.value, &cleanup, self.bindings);
-        // Only concern is to maintain the state
-        self.constant(true).instruction(Instruction::Cons);
+        self.execute_subquery(&disj.1.value, &cleanup, self.bindings)
+            // Only concern is to maintain the state
+            .constant(true)
+            .instruction(Instruction::Cons);
 
         self.bubble(|context| {
             // Meanwhile if the first query is not exhausted, we're running it but do need
@@ -817,10 +812,8 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 .instruction(Instruction::LoadLocal(bindset))
                 .unbind(disj.0.value.bindings());
             context
-                .context
-                .continue_execute_query(&disj.0.value, &next, context.bindings);
-            // If it succeeds, just reconstruct the state before succeeding.
-            context
+                .execute_subquery(&disj.0.value, &next, context.bindings)
+                // If it succeeds, just reconstruct the state before succeeding.
                 .instruction(Instruction::Cons)
                 .constant(false)
                 .instruction(Instruction::Cons)
@@ -876,10 +869,9 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
 
         // If doing the left side, break out the bindset, we won't be needing it.
         self.instruction(Instruction::Uncons).intermediate();
-        self.context
-            .continue_execute_query(&alt.0.value, &maybe, self.bindings);
-        // If it succeeds, fix the state and set the marker `true` so we come back here next time.
-        self.instruction(Instruction::Cons)
+        self.execute_subquery(&alt.0.value, &maybe, self.bindings)
+            // If it succeeds, fix the state and set the marker `true` so we come back here next time.
+            .instruction(Instruction::Cons)
             .constant(true)
             .instruction(Instruction::Cons)
             .bubble(|context| {
@@ -888,12 +880,8 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 context
                     .end_intermediate() // bindset // TODO: is this in the right spot?
                     .label(second.clone());
-                context.context.continue_execute_query(
-                    &alt.1.value,
-                    &cleanup_second,
-                    context.bindings,
-                );
                 context
+                    .execute_subquery(&alt.1.value, &cleanup_second, context.bindings)
                     .constant(false)
                     .instruction(Instruction::Cons)
                     .bubble(|context| {

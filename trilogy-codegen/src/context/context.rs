@@ -1,7 +1,7 @@
 use super::{Labeler, Scope};
 use crate::evaluation::CodegenEvaluate;
 use crate::pattern_match::CodegenPatternMatch;
-use crate::query::{Bindings, CodegenQuery};
+use crate::query::CodegenQuery;
 use crate::{delegate_label_maker, delegate_stack_tracker, prelude::*};
 use trilogy_ir::ir::{self, Iterator};
 use trilogy_ir::visitor::HasBindings;
@@ -126,16 +126,6 @@ impl<'a> Context<'a> {
 
     pub fn execute_query<E: CodegenQuery>(&mut self, value: &E, on_fail: &str) -> &mut Self {
         value.execute_query(self, on_fail);
-        self
-    }
-
-    pub fn continue_execute_query<E: CodegenQuery>(
-        &mut self,
-        value: &E,
-        on_fail: &str,
-        bindings: &Bindings<'a>,
-    ) -> &mut Self {
-        value.continue_execute_query(self, on_fail, bindings);
         self
     }
 }
