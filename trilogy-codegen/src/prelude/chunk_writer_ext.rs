@@ -125,11 +125,6 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
         self.close(&end).pipe(contents).label(end)
     }
 
-    fn continuation<F: FnOnce(&mut Self)>(&mut self, contents: F) -> &mut Self {
-        let end = self.make_label("continuation_end");
-        self.shift(&end).pipe(contents).label(end)
-    }
-
     fn proc_closure<F: FnOnce(&mut Self)>(&mut self, arity: usize, contents: F) -> &mut Self {
         let end = self.make_label("closure_end");
         self.close(&end)

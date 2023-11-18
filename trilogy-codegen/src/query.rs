@@ -285,35 +285,41 @@ fn write_query_value(
             let cleanup = context.make_label("in_cleanup");
             let skip = context.make_label("in_skip");
 
+            let query_state = context.intermediate();
             // If the state is a callable, that means we're mid-iteration already, continue
-            // by calling it, provided with a pair of continuations onto which to return.
+            // by calling it, provided with a continuation onto which to return.
             context
                 .try_type("callable", Err(&begin))
                 .continuation(|context| {
                     context
-                        .instruction(Instruction::Swap)
+                        // NOTE: continuation has 2 extra items on the stack which must be
+                        // discarded before jumping out.
+                        //
+                        // One extra for the previous query state
+                        .instruction(Instruction::Slide(3))
                         .instruction(Instruction::Pop)
-                        .jump(on_fail);
+                        .instruction(Instruction::Pop)
+                        .instruction(Instruction::Pop)
+                        .jump(&end);
                 })
-                .continuation(|context| {
-                    context.jump(&end);
-                })
-                .instruction(Instruction::Become(2));
+                .instruction(Instruction::Become(1));
 
-            // Alternatively, begin the iteration
-            let bindset = context.label(&begin).intermediate();
-            // The first iteration also needs a place to exit to
-            let fail_continuation = context
+            // Alternatively, begin the iteration:
+            //
+            // Create a continuation onto which to continue for a pass
+            let pass_continuation = context
+                .label(&begin)
                 .continuation(|context| {
                     context
-                        .instruction(Instruction::Swap)
+                        // NOTE: continuation has 2 extra items on the stack which must be
+                        // discarded before jumping out.
+                        //
+                        // One extra for the previous query state
+                        .instruction(Instruction::Slide(3))
                         .instruction(Instruction::Pop)
-                        .jump(on_fail);
-                })
-                .intermediate();
-            let pass_continuation = context
-                .continuation(|context| {
-                    context.jump(&end);
+                        .instruction(Instruction::Pop)
+                        .instruction(Instruction::Pop)
+                        .jump(&end);
                 })
                 .intermediate();
             context
@@ -323,55 +329,69 @@ fn write_query_value(
                         // "returns" the state of the query, which is a continuation that resumes
                         // from here.
                         //
-                        // If the pattern fails to bind, skip this iteration
+                        // If the pattern fails to bind, skip this iteration but move on to the next,
+                        // don't fail the query.
                         write_pattern_match(context, &unification.pattern, &skip);
                         context
+                            // A pass is performed by calling the "pass" continuation with the
+                            // query state (which is in turn a continuation back to here).
                             .instruction(Instruction::LoadLocal(pass_continuation))
+                            .intermediate();
+                        context
                             .continuation(|context| {
+                                // This "resume" is called with the new pass continuation
                                 context
                                     .instruction(Instruction::SetLocal(pass_continuation))
-                                    .instruction(Instruction::SetLocal(fail_continuation))
+                                    // NOTE: continuation has 2 extra items on the stack which must be
+                                    // discarded before jumping out.
+                                    .instruction(Instruction::Slide(2))
+                                    .instruction(Instruction::Pop)
+                                    .instruction(Instruction::Pop)
                                     // When continuing the iterator, start by unbinding the pattern, then
                                     // just resume and cancel the iterator as in standard iteration.
                                     .label(&skip)
-                                    .instruction(Instruction::LoadLocal(bindset));
+                                    .instruction(Instruction::LoadLocal(query_state));
                                 unbind(context, bound, unification.pattern.bindings());
                                 context
+                                    .instruction(Instruction::LoadLocal(params.cancel))
                                     .instruction(Instruction::LoadLocal(params.resume))
+                                    // Resume the iterator with unit, since the value won't be used
                                     .constant(())
                                     .call_function()
-                                    .instruction(Instruction::LoadLocal(params.cancel))
-                                    .constant(())
-                                    .become_function(); // End with a unit, as unit is considered an empty collection
+                                    // The iterator eventually evaluates to something, which gets passed up
+                                    .become_function();
                             })
+                            .end_intermediate()
                             .instruction(Instruction::Become(1));
                     },
                     |context| {
                         // Since we allow this to either be an iterator or a collection, after evaluating
-                        // we attempt to iterate it as a collection. An iterator used as a value evaluates
+                        // we attempt to iterate it as a collection. An iterator used as a value should evaluate
                         // to unit, and unit is the same as empty list, so it gracefully handles the iterator
                         // case by just iterating while evaluating.
                         //
                         // If the value is not an iterator or collection, then ITERATE_COLLECTION will panic.
+                        //
+                        // NOTE: The weird case is if you write a procedural iterator that then returns some
+                        // array, and then this iterates that array right after... like a double iteration.
+                        // TODO: Maybe fix that later, if it confuses people.
                         evaluate_or_fail(context, bound, &unification.expression, &cleanup);
                         context
                             .reference(ITERATE_COLLECTION)
                             .instruction(Instruction::Swap)
+                            // ITERATE_COLLECTION is not a real function, so the call is bare.
                             .instruction(Instruction::Call(1))
-                            .label(&cleanup)
-                            .instruction(Instruction::LoadLocal(fail_continuation))
-                            .instruction(Instruction::LoadLocal(bindset))
-                            .instruction(Instruction::Become(1));
+                            // Afterwards, we just end, as there are no more items to iterate.
+                            .label(&cleanup);
                     },
                 )
-                .label(&end)
-                .instruction(Instruction::Swap)
-                .instruction(Instruction::Pop)
+                // Once iteration is complete, the query finally fails
+                .instruction(Instruction::Pop) // Final "value" of iteration
+                .instruction(Instruction::Pop) // Pass continuation
                 .end_intermediate() // pass continuation
-                .instruction(Instruction::Swap)
-                .instruction(Instruction::Pop)
-                .end_intermediate() // fail continuation
-                .end_intermediate(); // bindset
+                .end_intermediate() // bindset is no longer intermediate
+                .jump(on_fail)
+                .label(&end);
         }
         ir::QueryValue::Is(expr) => {
             // Set the state marker to false so we can't re-enter here.

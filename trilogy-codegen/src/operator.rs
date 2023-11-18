@@ -437,12 +437,9 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         Builtin::Resume => context.instruction(context.scope.kw_resume().unwrap()),
         Builtin::Cancel => context.instruction(context.scope.kw_cancel().unwrap()),
         Builtin::Return => {
-            let end = context.make_label("J");
-            context
-                .shift(&end)
-                .unlock_function()
-                .instruction(Instruction::Return)
-                .label(end)
+            context.continuation_fn(|context| {
+                context.instruction(Instruction::Return);
+            })
         }
 
         Builtin::Negate

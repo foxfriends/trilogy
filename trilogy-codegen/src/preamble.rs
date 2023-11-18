@@ -335,7 +335,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .shift(&yielding)
         // This is where we go when "resumed"
         .unlock_function()
-        // Restore the context and previous handler
+        // Restore the context and previous hadler
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::SetRegister(MODULE))
         .instruction(Instruction::LoadLocal(1))

@@ -104,8 +104,13 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             let cleanup = context.make_label("while_cleanup");
             let end = context.make_label("while_end");
 
-            // Break and continue are just regular intermediates at first
-            let r#break = context.r#break(&end).intermediate();
+            // Break is just a continuation that points to the end of the loop. The value
+            // passed to break is discarded
+            let r#break = context
+                .continuation_fn(|c| {
+                    c.instruction(Instruction::Pop).jump(&end);
+                })
+                .intermediate();
 
             // The actual loop we can implement in the standard way after the continuations are
             // created.
@@ -113,13 +118,17 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             // Check the condition
             write_expression(context, &stmt.condition);
             context.typecheck("boolean").cond_jump(&cleanup);
-            // It's only in the body of the loop that continue and break become usable,
-            // so we only make them referenceable here
-            context.scope.push_break(r#break);
-            let r#continue = context.r#continue(&begin).intermediate();
-            context.scope.push_continue(r#continue);
             // If it's true, run the body. The body has access to continue and break.
+            // Continue is a continuation much like break, but it points to the start of the loop
+            let r#continue = context
+                .continuation_fn(|c| {
+                    c.instruction(Instruction::Pop).jump(&begin);
+                })
+                .intermediate();
+            context.push_break(r#break).push_continue(r#continue);
             write_expression(context, &stmt.body);
+            context.pop_break().pop_continue();
+
             context
                 .instruction(Instruction::Pop) // Body value
                 .instruction(Instruction::Pop) // Continue
@@ -129,9 +138,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 .instruction(Instruction::Pop) // break
                 .end_intermediate()
                 .label(&end)
-                .constant(()); // The assumed value on stack at end of evaluation
-            context.scope.pop_break();
-            context.scope.pop_continue();
+                // Evaluation requires that an extra value ends up on the stack.
+                // While "evaluates" to unit
+                .constant(());
         }
         ir::Value::Application(application) => match unapply_2(application) {
             (
@@ -177,14 +186,13 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .instruction(Instruction::Assign)
                             .intermediate();
                         context
+                            .instruction(Instruction::LoadLocal(params.cancel))
                             .instruction(Instruction::LoadLocal(params.resume))
                             .constant(())
                             .call_function()
                             .instruction(Instruction::LoadLocal(record))
                             .instruction(Instruction::Clone)
                             .instruction(Instruction::Glue)
-                            .instruction(Instruction::LoadLocal(params.cancel))
-                            .instruction(Instruction::Swap)
                             .become_function()
                             .end_intermediate(); // record
                     },
@@ -220,6 +228,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .instruction(Instruction::Insert)
                             .intermediate();
                         context
+                            .instruction(Instruction::LoadLocal(params.cancel))
                             .instruction(Instruction::LoadLocal(params.resume))
                             .constant(())
                             .call_function()
@@ -227,8 +236,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .instruction(Instruction::Clone)
                             .instruction(Instruction::Swap)
                             .instruction(Instruction::Glue)
-                            .instruction(Instruction::LoadLocal(params.cancel))
-                            .instruction(Instruction::Swap)
                             .become_function()
                             .end_intermediate(); // record
                     },
@@ -263,6 +270,7 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .instruction(Instruction::Insert)
                             .intermediate();
                         context
+                            .instruction(Instruction::LoadLocal(params.cancel))
                             .instruction(Instruction::LoadLocal(params.resume))
                             .constant(())
                             .call_function()
@@ -270,8 +278,6 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                             .instruction(Instruction::Clone)
                             .instruction(Instruction::Swap)
                             .instruction(Instruction::Glue)
-                            .instruction(Instruction::LoadLocal(params.cancel))
-                            .instruction(Instruction::Swap)
                             .become_function()
                             .end_intermediate(); // record
                     },
@@ -290,46 +296,50 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 let broke = context.make_label("for_broke");
 
                 let did_match = context.constant(false).intermediate();
-                let r#break = context.r#break(&broke).intermediate();
+                let r#break = context
+                    .continuation_fn(|c| {
+                        c.jump(&broke);
+                    })
+                    .intermediate();
                 context.declare_variables(iter.query.bindings());
                 write_query_state(context, &iter.query);
-                let state = context.intermediate();
                 context
                     .repeat(|context, exit| {
-                        context.instruction(Instruction::LoadLocal(state));
                         write_query(context, &iter.query, exit);
                         context
-                            .instruction(Instruction::SetLocal(state))
+                            // Mark down that this loop did get a match
                             .constant(true)
-                            .instruction(Instruction::SetLocal(did_match));
+                            .instruction(Instruction::SetLocal(did_match))
+                            .intermediate(); // query state
 
-                        let r#continue = context.r#continue(&continued).intermediate();
+                        let r#continue = context
+                            .continuation_fn(|c| {
+                                c.jump(&continued);
+                            })
+                            .intermediate();
                         context.push_continue(r#continue).push_break(r#break);
                         write_expression(context, &iter.value);
                         context
                             .pop_break()
                             .pop_continue()
-                            // Discard body value
+                            // Discard the now invalid "continue" keyword (second from top)
+                            .instruction(Instruction::Swap)
                             .instruction(Instruction::Pop)
-                            // And now invalid "continue" keyword
+                            .end_intermediate()
+                            .label(&continued)
+                            // Then discard the body value... for now. Someday will find a use for it.
                             .instruction(Instruction::Pop)
-                            .end_intermediate() // continue
-                            .label(&continued);
+                            .end_intermediate(); // state (no longer intermediate)
                     })
-                    .instruction(Instruction::Pop) // latest query state
+                    // Discard query state
                     .instruction(Instruction::Pop)
-                    .end_intermediate() // break
-                    .instruction(Instruction::Pop)
-                    .end_intermediate(); // previous query state
-                context.undeclare_variables(iter.query.bindings(), true);
+                    .undeclare_variables(iter.query.bindings(), true);
                 context
-                    .bubble(|context| {
-                        context
-                            .label(&broke)
-                            .constant(true)
-                            .instruction(Instruction::SetLocal(did_match));
-                    })
-                    .end_intermediate(); // did match
+                    .label(&broke)
+                    // Remove the break (or break value)
+                    .instruction(Instruction::Pop)
+                    .end_intermediate()
+                    .end_intermediate(); // did match (no longer intermediate)
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = context.make_label("is_fail");

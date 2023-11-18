@@ -12,26 +12,37 @@ pub(crate) struct HandlerParameters {
 pub(crate) trait StatefulChunkWriterExt:
     StackTracker + ChunkWriter + LabelMaker + Sized
 {
-    fn r#continue<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.continuation(|context| {
-            // Continue is called with a value that is ignored. This is definitely an oversight
-            // that I should get around to fixing... or maybe there's a way to use that value?
-            context
-                .unlock_function()
+    fn continuation_fn<F: FnOnce(&mut Self)>(&mut self, body: F) -> &mut Self {
+        self.continuation(|c| {
+            c.unlock_function()
+                .instruction(Instruction::Slide(2))
                 .instruction(Instruction::Pop)
-                .jump(label);
+                .instruction(Instruction::Pop)
+                .pipe(body);
         })
     }
 
-    fn r#break<S: Into<String>>(&mut self, label: S) -> &mut Self {
-        self.continuation(|context| {
-            // Break is called with a value that is ignored. This is definitely an oversight
-            // that I should get around to fixing... or maybe there's a way to use that value?
-            context
-                .unlock_function()
-                .instruction(Instruction::Pop)
-                .jump(label);
-        })
+    fn continuation<F: FnOnce(&mut Self)>(&mut self, body: F) -> &mut Self {
+        let module = self
+            .instruction(Instruction::LoadRegister(MODULE))
+            .intermediate();
+        let handler = self
+            .instruction(Instruction::LoadRegister(HANDLER))
+            .intermediate();
+
+        let end = self.make_label("continuation_end");
+        self.shift(&end)
+            .instruction(Instruction::LoadLocal(module))
+            .instruction(Instruction::SetRegister(MODULE))
+            .instruction(Instruction::LoadLocal(handler))
+            .instruction(Instruction::SetRegister(HANDLER))
+            .pipe(body)
+            .label(end)
+            .instruction(Instruction::Slide(2))
+            .instruction(Instruction::Pop)
+            .end_intermediate()
+            .instruction(Instruction::Pop)
+            .end_intermediate()
     }
 
     fn with<F: FnOnce(&mut Self, HandlerParameters), G: FnOnce(&mut Self)>(
@@ -41,27 +52,13 @@ pub(crate) trait StatefulChunkWriterExt:
     ) -> &mut Self {
         let end = self.make_label("with_end");
 
-        // Effect handlers are implemented using continuations and a single global cell (Register(HANDLER)).
-        // There's a few extra things that are held in context too though, which must be preserved in order
-        // to effectively save and restore the program state.
-        // The module context must be preserved, as the yield of the effect may be in a different module
-        // than the handler is defined.
-        let stored_context = self
-            .instruction(Instruction::LoadRegister(MODULE))
-            .intermediate();
-        // The parent handler is preserved so that a yield in response to a yield correctly moves up
-        // the chain.
-        let stored_yield = self
-            .instruction(Instruction::LoadRegister(HANDLER))
-            .intermediate();
-
         // First step of entering an effect handler is to create the "cancel" continuation
         // (effectively defining the "reset" operator). From the top level, to reset is to
         // simply exit the effect handling. This operator will get replaced each time
         // a handler calls `resume` such that the `cancel` points to the last resume.
         let cancel = self
-            .continuation(|c| {
-                c.unlock_function().jump(&end);
+            .continuation_fn(|c| {
+                c.jump(&end);
             })
             .intermediate();
 
@@ -107,15 +104,6 @@ pub(crate) trait StatefulChunkWriterExt:
                 })
                 .intermediate();
 
-            // Immediately restore the parent `yield` and module context, as a handler may use it.
-            // The yielder's values aren't needed though, as the `yield` expression itself takes
-            // care of saving that to restore it when resumed.
-            context
-                .instruction(Instruction::LoadLocal(stored_yield))
-                .instruction(Instruction::SetRegister(HANDLER))
-                .instruction(Instruction::LoadLocal(stored_context))
-                .instruction(Instruction::SetRegister(MODULE));
-
             context.pipe(|c| {
                 handlers(
                     c,
@@ -126,7 +114,6 @@ pub(crate) trait StatefulChunkWriterExt:
                     },
                 )
             });
-
             // NOTE: this should be unreachable, seeing as effect handlers are required
             // to include the `else` clause... so if it happens lets fail in a weird way.
             context
@@ -148,13 +135,6 @@ pub(crate) trait StatefulChunkWriterExt:
             .become_function()
             .end_intermediate() // cancel
             .label(end)
-            // Once we're out of the handler reset the state of the `yield` register and finally done!
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::SetRegister(HANDLER))
-            .instruction(Instruction::Swap)
-            .instruction(Instruction::SetRegister(MODULE))
-            .end_intermediate() // stored yield
-            .end_intermediate() // stored module
     }
 
     fn iterate<F: FnOnce(&mut Self, HandlerParameters), G: FnOnce(&mut Self)>(
@@ -173,13 +153,11 @@ pub(crate) trait StatefulChunkWriterExt:
                     })
                     .case(|context, _next| {
                         context
+                            .instruction(Instruction::LoadLocal(params.cancel))
+                            .instruction(Instruction::LoadLocal(params.resume))
                             .instruction(Instruction::LoadLocal(params.effect))
                             .r#yield()
-                            .instruction(Instruction::LoadLocal(params.resume))
-                            .instruction(Instruction::Swap)
                             .call_function()
-                            .instruction(Instruction::LoadLocal(params.cancel))
-                            .instruction(Instruction::Swap)
                             .call_function();
                     });
             },

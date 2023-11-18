@@ -1,4 +1,12 @@
-test "for loops work with simple queries" {
+test "for loops work with = queries" {
+    let mut total = 0
+    for x = 15 {
+        total += x
+    }
+    assert total == 15
+}
+
+test "for loops work with in queries" {
     let mut total = 0
     for x in [1, 2, 3, 4, 5] {
         total += x
@@ -6,12 +14,20 @@ test "for loops work with simple queries" {
     assert total == 15
 }
 
-test "for loops work with complex queries" {
+test "for loops work with conjunction queries" {
     let mut total = 0
     for x in [1, 2, 3, 4, 5] and y in [1, 2, 3] {
         total += x + y
     }
     assert total == 75
+}
+
+test "for loops work with disjucnction queries" {
+    let mut total = 0
+    for x in [1, 2, 3, 4, 5] or x in [1, 2, 3] {
+        total += x
+    }
+    assert total == 21
 }
 
 test "can break in a for loop" {
