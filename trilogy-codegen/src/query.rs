@@ -462,7 +462,6 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             .intermediate();
         // Create a continuation onto which to continue for a pass
         let pass_continuation = self
-            .context
             .continuation(|context| {
                 context
                     // NOTE: continuation has 2 extra items on the stack which must be
@@ -849,7 +848,6 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         // To run the alternative thing, we need to keep a little extra state
         // temporarily. Slip that in behind the actual state before we begin.
         let is_uncommitted = self
-            .context
             .constant(false)
             .instruction(Instruction::Swap)
             .intermediate();
@@ -889,43 +887,44 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                     &cleanup_second,
                     context.bindings,
                 );
-                context.constant(false).instruction(Instruction::Cons);
-
-                context.bubble(|context| {
-                    // If the left side failed, we have to check if we were previously committed to the left
-                    // side or not.
-                    context
-                        .label(maybe)
-                        .instruction(Instruction::LoadLocal(is_uncommitted))
-                        // If we were committed (not uncommitted) then it's over, clean it all up.
-                        .cond_jump(&cleanup_first)
-                        // Otherwise, the left is failed but the right might not!
-                        // Discard the left's now useless state.
-                        .instruction(Instruction::Pop);
-                    // Then build up the right's state. The bindset is the same and conveniently already
-                    // on the top of stack.
-                    context.context.extend_query_state(&alt.1);
-                    // Then we can just run the second like normal.
-                    context
-                        .jump(&second)
-                        // When failing from the first side, reconstruct the state with its bindset
-                        .label(cleanup_first)
-                        .instruction(Instruction::Cons)
-                        .constant(true)
-                        .instruction(Instruction::Cons)
-                        // Don't forget to discard the uncommitted flag
-                        .instruction(Instruction::Swap)
-                        .instruction(Instruction::Pop)
-                        .fail()
-                        // Similar for the right side, but no bindset
-                        .label(cleanup_second)
-                        .constant(false)
-                        .instruction(Instruction::Cons)
-                        // Don't forget to discard the uncommitted flag
-                        .instruction(Instruction::Swap)
-                        .instruction(Instruction::Pop)
-                        .fail();
-                });
+                context
+                    .constant(false)
+                    .instruction(Instruction::Cons)
+                    .bubble(|context| {
+                        // If the left side failed, we have to check if we were previously committed to the left
+                        // side or not.
+                        context
+                            .label(maybe)
+                            .instruction(Instruction::LoadLocal(is_uncommitted))
+                            // If we were committed (not uncommitted) then it's over, clean it all up.
+                            .cond_jump(&cleanup_first)
+                            // Otherwise, the left is failed but the right might not!
+                            // Discard the left's now useless state.
+                            .instruction(Instruction::Pop);
+                        // Then build up the right's state. The bindset is the same and conveniently already
+                        // on the top of stack.
+                        context.context.extend_query_state(&alt.1);
+                        // Then we can just run the second like normal.
+                        context
+                            .jump(&second)
+                            // When failing from the first side, reconstruct the state with its bindset
+                            .label(cleanup_first)
+                            .instruction(Instruction::Cons)
+                            .constant(true)
+                            .instruction(Instruction::Cons)
+                            // Don't forget to discard the uncommitted flag
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Pop)
+                            .fail()
+                            // Similar for the right side, but no bindset
+                            .label(cleanup_second)
+                            .constant(false)
+                            .instruction(Instruction::Cons)
+                            // Don't forget to discard the uncommitted flag
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Pop)
+                            .fail();
+                    });
             })
             // And finally, when successful we end up here, and still have to discard the uncommitted flag
             .instruction(Instruction::Swap)
