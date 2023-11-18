@@ -105,8 +105,9 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
         .collect::<Vec<_>>();
     context.declare_variables(variables.iter().cloned());
     for (i, parameter) in module.parameters.iter().enumerate() {
-        context.instruction(Instruction::LoadLocal(i as u32));
-        write_pattern_match(context, parameter, END);
+        context
+            .instruction(Instruction::LoadLocal(i as u32))
+            .pattern_match(parameter, END);
     }
 
     // Then save the extracted bindings into an array which will be stored in the

@@ -9,7 +9,7 @@ pub(crate) fn write_function(context: &mut Context, function: &ir::Function) {
         context.declare_variables(parameter.bindings());
         context.instruction(Instruction::LoadLocal(i as u32));
         cleanup.push(context.make_label("cleanup"));
-        write_pattern_match(context, parameter, &cleanup[i + 1]);
+        context.pattern_match(parameter, &cleanup[i + 1]);
     }
     context.evaluate(&function.body);
     for parameter in function.parameters.iter().rev() {

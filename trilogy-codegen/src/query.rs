@@ -256,27 +256,28 @@ fn write_query_value(
         ir::QueryValue::Direct(unification) => {
             let cleanup = context.make_label("cleanup");
             // Take out the bindset
-            let bindset = context.scope.intermediate();
-            context.instruction(Instruction::Uncons);
+            let bindset = context.instruction(Instruction::Uncons).intermediate();
             // Set the state marker to false so we can't re-enter here.
             context
                 .constant(false)
                 .instruction(Instruction::Swap)
-                .cond_jump(&cleanup);
-            context.scope.intermediate(); // state marker
+                .cond_jump(&cleanup)
+                .intermediate(); // state marker
             evaluate_or_fail(context, bound, &unification.expression, on_fail);
-            context.scope.intermediate(); // value
+            context.intermediate(); // value
             context.instruction(Instruction::LoadLocal(bindset));
             // Unbind the bindset only right before assignment
             unbind(context, bound, unification.pattern.bindings());
-            context.scope.end_intermediate(); // value
-            write_pattern_match(context, &unification.pattern, &cleanup);
-            context.scope.end_intermediate(); // state marker
-            context.instruction(Instruction::Cons).bubble(|c| {
-                c.label(cleanup)
-                    .instruction(Instruction::Cons)
-                    .jump(on_fail);
-            });
+            context
+                .end_intermediate() // value
+                .pattern_match(&unification.pattern, &cleanup)
+                .end_intermediate() // state marker
+                .instruction(Instruction::Cons)
+                .bubble(|c| {
+                    c.label(cleanup)
+                        .instruction(Instruction::Cons)
+                        .jump(on_fail);
+                });
             context.scope.end_intermediate(); // bindset
         }
         ir::QueryValue::Element(unification) => {
@@ -363,8 +364,8 @@ fn write_query_value(
                         //
                         // If the pattern fails to bind, skip this iteration but move on to the next,
                         // don't fail the query.
-                        write_pattern_match(context, &unification.pattern, &skip);
                         context
+                            .pattern_match(&unification.pattern, &skip)
                             // A pass is performed by calling the "pass" continuation with the
                             // query state (which is in turn a continuation back to here).
                             .instruction(Instruction::LoadLocal(pass_continuation))
@@ -851,77 +852,77 @@ fn write_query_value(
                 .instruction(Instruction::Destruct)
                 .atom("next")
                 .instruction(Instruction::ValEq)
-                .cond_jump(RUNTIME_TYPE_ERROR);
+                .cond_jump(RUNTIME_TYPE_ERROR)
+                .intermediate(); // return value
+
             // If the iterator has yielded something, we have to destructure it into all the variables
             // of the unbound parameters.
-            context.scope.intermediate(); // return value
             let try_again = context.make_label("try_again");
             for pattern in lookup.patterns.iter().rev() {
-                context.instruction(Instruction::Uncons);
-                // If the pattern doesn't match, the next call of the rule might, so try again still.
-                write_pattern_match(context, pattern, &try_again);
+                context
+                    .instruction(Instruction::Uncons)
+                    // If the pattern doesn't match, the next call of the rule might, so try again still.
+                    .pattern_match(pattern, &try_again);
             }
-            context.scope.end_intermediate(); // return value
-            context.scope.end_intermediate(); // bindset
             context
+                .end_intermediate() // return value
+                .end_intermediate() // bindset
                 // Discard the now empty yielded return value
                 .instruction(Instruction::Pop)
                 // Reconstruct the bindset:state
                 .instruction(Instruction::Cons)
                 // Put the marker back in too
                 .constant(true)
-                .instruction(Instruction::Cons);
-            // And we're done!
+                .instruction(Instruction::Cons)
+                // And we're done!
+                .bubble(|context| {
+                    // To try again, just clean up this partial return value and start over.
+                    context
+                        .label(&try_again)
+                        .instruction(Instruction::Pop)
+                        .jump(&reenter)
+                        // In the failure case, just reconstruct the state too
+                        .label(cleanup)
+                        // Discard the invalid return value
+                        .instruction(Instruction::Pop)
+                        // Reattach the bindset:state
+                        .instruction(Instruction::Cons)
+                        // Put the marker back in too
+                        .constant(true)
+                        .instruction(Instruction::Cons)
+                        // And then call it failure
+                        .jump(on_fail);
 
-            context.bubble(|context| {
-                // To try again, just clean up this partial return value and start over.
-                context
-                    .label(&try_again)
-                    .instruction(Instruction::Pop)
-                    .jump(&reenter);
+                    // The setup of a lookup is to evaluate all the patterns and call the closure
+                    // that's currently in the state field, which will return an iterator that is
+                    // the actual query's state.
+                    context
+                        .label(setup)
+                        // First detach the bindset
+                        .instruction(Instruction::Uncons)
+                        .intermediate(); // bindset
+                    context.scope.intermediate(); // rule closure
 
-                // In the failure case, just reconstruct the state too
-                context
-                    .label(cleanup)
-                    // Discard the invalid return value
-                    .instruction(Instruction::Pop)
-                    // Reattach the bindset:state
-                    .instruction(Instruction::Cons)
-                    // Put the marker back in too
-                    .constant(true)
-                    .instruction(Instruction::Cons)
-                    // And then call it failure
-                    .jump(on_fail);
-
-                // The setup of a lookup is to evaluate all the patterns and call the closure
-                // that's currently in the state field, which will return an iterator that is
-                // the actual query's state.
-                context.label(setup);
-                // First detach the bindset
-                context.instruction(Instruction::Uncons);
-                context.scope.intermediate(); // bindset
-                context.scope.intermediate(); // rule closure
-
-                // Then do the evaluation. Patterns with unbound variables will evaluate to
-                // being unbound, as they are being used as output parameters at this time.
-                for pattern in &lookup.patterns {
-                    evaluate(context, bound, pattern);
-                    context.scope.intermediate();
-                }
-                // Then we do the call, with all those arguments
-                context.call_rule(lookup.patterns.len());
-                // Clean up the scope
-                for _ in &lookup.patterns {
-                    context.scope.end_intermediate();
-                }
-                context.scope.end_intermediate(); // rule closure
-                context.scope.end_intermediate(); // bindset
-                context
-                    // Bindset gets reattached to scope
-                    .instruction(Instruction::Cons)
-                    // Then continue as if we didn't just set up
-                    .jump(&enter);
-            });
+                    // Then do the evaluation. Patterns with unbound variables will evaluate to
+                    // being unbound, as they are being used as output parameters at this time.
+                    for pattern in &lookup.patterns {
+                        evaluate(context, bound, pattern);
+                        context.scope.intermediate();
+                    }
+                    // Then we do the call, with all those arguments
+                    context.call_rule(lookup.patterns.len());
+                    // Clean up the scope
+                    for _ in &lookup.patterns {
+                        context.scope.end_intermediate();
+                    }
+                    context
+                        .end_intermediate() // rule closure
+                        .end_intermediate() // bindset
+                        // Bindset gets reattached to scope
+                        .instruction(Instruction::Cons)
+                        // Then continue as if we didn't just set up
+                        .jump(&enter);
+                });
         }
     }
 }

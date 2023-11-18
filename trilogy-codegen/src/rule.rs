@@ -66,12 +66,13 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
             let index = context.scope.lookup(&var).unwrap().unwrap_local();
             context.constant(index).instruction(Instruction::Insert);
         }
-        context.scope.intermediate(); // Bindset
-        context.instruction(Instruction::LoadLocal(1 + i as u32));
-        write_pattern_match(context, parameter, &cleanup[i]);
-        context.scope.end_intermediate();
-        context.instruction(Instruction::SetRegister(TEMPORARY));
-        context.label(skip);
+        context.intermediate(); // Bindset
+        context
+            .instruction(Instruction::LoadLocal(1 + i as u32))
+            .pattern_match(parameter, &cleanup[i])
+            .end_intermediate()
+            .instruction(Instruction::SetRegister(TEMPORARY))
+            .label(skip);
     }
     // Happy path: we continue by writing the query state down, and then
     // encapsulating all that into a closure which will be the iterator for

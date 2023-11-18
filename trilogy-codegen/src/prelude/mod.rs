@@ -8,7 +8,6 @@ pub(crate) use crate::context::{Binding, Context};
 pub(crate) use crate::function::write_function;
 pub(crate) use crate::module::{write_module_definitions, write_module_prelude};
 pub(crate) use crate::operator::*;
-pub(crate) use crate::pattern_match::write_pattern_match;
 pub(crate) use crate::preamble::*;
 pub(crate) use crate::procedure::write_procedure;
 pub(crate) use crate::query::*;

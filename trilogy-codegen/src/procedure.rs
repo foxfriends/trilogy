@@ -6,8 +6,9 @@ use trilogy_vm::{Instruction, Value};
 pub(crate) fn write_procedure(mut context: Context, procedure: &ir::Procedure) {
     for (offset, parameter) in procedure.parameters.iter().enumerate() {
         context.declare_variables(parameter.bindings());
-        context.instruction(Instruction::LoadLocal(offset as u32));
-        write_pattern_match(&mut context, parameter, END);
+        context
+            .instruction(Instruction::LoadLocal(offset as u32))
+            .pattern_match(parameter, END);
     }
     context
         .evaluate(&procedure.body)

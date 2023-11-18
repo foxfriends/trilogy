@@ -1,88 +1,106 @@
 use crate::prelude::*;
 use trilogy_ir::ir::{self, Builtin, Expression};
+use trilogy_ir::visitor::{IrVisitable, IrVisitor};
 use trilogy_vm::Instruction;
 
-#[inline(always)]
-pub(crate) fn write_pattern_match(context: &mut Context, expr: &Expression, on_fail: &str) {
-    write_pattern(context, &expr.value, on_fail);
+struct PatternMatcher<'b, 'a> {
+    context: &'b mut Context<'a>,
+    on_fail: &'b str,
 }
 
-/// Pattern matches the top of the stack with an expression.
-/// * On success, the binding references found in the pattern have been set to the appropriate values.
-/// * On failure, the provided label is jumped to.
-/// * In either case, the original value is consumed.
-pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &str) {
-    match &value {
-        ir::Value::Mapping(..) => unreachable!(),
-        ir::Value::Number(value) => {
-            context
-                .constant(value.value().clone())
-                .instruction(Instruction::ValEq)
-                .cond_jump(on_fail);
-        }
-        ir::Value::Character(value) => {
-            context
-                .constant(*value)
-                .instruction(Instruction::ValEq)
-                .cond_jump(on_fail);
-        }
-        ir::Value::String(value) => {
-            context
-                .constant(value)
-                .instruction(Instruction::ValEq)
-                .cond_jump(on_fail);
-        }
-        ir::Value::Bits(value) => {
-            context
-                .constant(value.value().clone())
-                .instruction(Instruction::ValEq)
-                .cond_jump(on_fail);
-        }
-        ir::Value::Boolean(value) => {
-            context
-                .constant(*value)
-                .instruction(Instruction::ValEq)
-                .cond_jump(on_fail);
-        }
-        ir::Value::Unit => {
-            context
-                .constant(())
-                .instruction(Instruction::ValEq)
-                .cond_jump(on_fail);
-        }
-        ir::Value::Conjunction(conj) => {
-            let cleanup = context.make_label("conj_cleanup");
-            context.instruction(Instruction::Copy);
-            context.scope.intermediate();
-            write_pattern_match(context, &conj.0, &cleanup);
-            context.scope.end_intermediate();
-            write_pattern_match(context, &conj.1, on_fail);
-            context.bubble(|c| {
-                c.label(cleanup).instruction(Instruction::Pop).jump(on_fail);
+pub(crate) trait CodegenPatternMatch: IrVisitable {
+    fn pattern_match(&self, context: &mut Context, on_fail: &str) {
+        self.visit(&mut PatternMatcher { context, on_fail });
+    }
+}
+
+impl CodegenPatternMatch for ir::Value {}
+impl CodegenPatternMatch for ir::Expression {}
+
+impl IrVisitor for PatternMatcher<'_, '_> {
+    fn visit_number(&mut self, value: &ir::Number) {
+        self.context
+            .constant(value.value().clone())
+            .instruction(Instruction::ValEq)
+            .cond_jump(self.on_fail);
+    }
+
+    fn visit_character(&mut self, value: &char) {
+        self.context
+            .constant(*value)
+            .instruction(Instruction::ValEq)
+            .cond_jump(self.on_fail);
+    }
+
+    fn visit_string(&mut self, value: &str) {
+        self.context
+            .constant(value)
+            .instruction(Instruction::ValEq)
+            .cond_jump(self.on_fail);
+    }
+
+    fn visit_bits(&mut self, value: &ir::Bits) {
+        self.context
+            .constant(value.value().clone())
+            .instruction(Instruction::ValEq)
+            .cond_jump(self.on_fail);
+    }
+
+    fn visit_boolean(&mut self, value: &bool) {
+        self.context
+            .constant(*value)
+            .instruction(Instruction::ValEq)
+            .cond_jump(self.on_fail);
+    }
+
+    fn visit_unit(&mut self) {
+        self.context
+            .constant(())
+            .instruction(Instruction::ValEq)
+            .cond_jump(self.on_fail);
+    }
+
+    fn visit_conjunction(&mut self, conj: &(Expression, Expression)) {
+        let cleanup = self.context.make_label("conj_cleanup");
+        self.context.instruction(Instruction::Copy).intermediate();
+        self.context
+            .pattern_match(&conj.0, &cleanup)
+            .end_intermediate()
+            .pattern_match(&conj.1, self.on_fail)
+            .bubble(|c| {
+                c.label(cleanup)
+                    .instruction(Instruction::Pop)
+                    .jump(self.on_fail);
             });
-        }
-        ir::Value::Disjunction(disj) => {
-            let recover = context.make_label("disj2");
-            context.instruction(Instruction::Copy);
-            write_pattern_match(context, &disj.0, &recover);
-            context.instruction(Instruction::Pop).bubble(|c| {
-                c.label(recover);
-                write_pattern_match(c, &disj.1, on_fail);
+    }
+
+    fn visit_disjunction(&mut self, disj: &(Expression, Expression)) {
+        let recover = self.context.make_label("disj2");
+        self.context
+            .instruction(Instruction::Copy)
+            .pattern_match(&disj.0, &recover)
+            .instruction(Instruction::Pop)
+            .bubble(|c| {
+                c.label(recover).pattern_match(&disj.1, self.on_fail);
             });
-        }
-        ir::Value::Wildcard => {
-            context.instruction(Instruction::Pop);
-        }
-        ir::Value::Atom(value) => {
-            context
-                .atom(value)
-                .instruction(Instruction::ValEq)
-                .cond_jump(on_fail);
-        }
-        ir::Value::Reference(ident) => match context.scope.lookup(&ident.id).unwrap() {
+    }
+
+    fn visit_wildcard(&mut self) {
+        self.context.instruction(Instruction::Pop);
+    }
+
+    fn visit_atom(&mut self, value: &str) {
+        self.context
+            .atom(value)
+            .instruction(Instruction::ValEq)
+            .cond_jump(self.on_fail);
+    }
+
+    fn visit_reference(&mut self, ident: &ir::Identifier) {
+        match self.context.scope.lookup(&ident.id).unwrap() {
             Binding::Variable(offset) => {
-                let compare = context.make_label("compare");
-                context
+                let compare = self.context.make_label("compare");
+                self.context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::InitLocal(offset))
                     .cond_jump(&compare)
@@ -91,35 +109,42 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         c.label(compare)
                             .instruction(Instruction::LoadLocal(offset))
                             .instruction(Instruction::ValEq)
-                            .cond_jump(on_fail);
+                            .cond_jump(self.on_fail);
                     });
             }
             Binding::Static(..) | Binding::Context(..) => {
                 unreachable!("this is a new binding, so it cannot be static")
             }
-        },
-        ir::Value::Application(application) => match unapply_2(application) {
+        }
+    }
+
+    fn visit_application(&mut self, application: &ir::Application) {
+        match unapply_2(application) {
             (None, ir::Value::Builtin(Builtin::Negate), value) => {
-                let cleanup = context.make_label("negate_cleanup");
-                context
+                let cleanup = self.context.make_label("negate_cleanup");
+                self.context
                     .try_type("number", Err(&cleanup))
-                    .instruction(Instruction::Negate);
-                write_pattern(context, value, on_fail);
-                context.bubble(|c| {
-                    c.label(cleanup).jump(on_fail).instruction(Instruction::Pop);
-                });
+                    .instruction(Instruction::Negate)
+                    .pattern_match(value, self.on_fail)
+                    .bubble(|c| {
+                        c.label(cleanup)
+                            .jump(self.on_fail)
+                            .instruction(Instruction::Pop);
+                    });
             }
             (None, ir::Value::Builtin(Builtin::Pin), value) => {
-                context.evaluate(value);
-                context.instruction(Instruction::ValEq).cond_jump(on_fail);
+                self.context.evaluate(value);
+                self.context
+                    .instruction(Instruction::ValEq)
+                    .cond_jump(self.on_fail);
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs @ ir::Value::String(..), rhs) => {
-                let cleanup = context.make_label("glue_cleanup");
-                let double_cleanup = context.make_label("glue_cleanup2");
-                context.try_type("string", Err(&cleanup));
-                let original = context.intermediate();
-                let lhs_val = context.evaluate(lhs).intermediate();
-                context
+                let cleanup = self.context.make_label("glue_cleanup");
+                let double_cleanup = self.context.make_label("glue_cleanup2");
+                self.context.try_type("string", Err(&cleanup));
+                let original = self.context.intermediate();
+                let lhs_val = self.context.evaluate(lhs).intermediate();
+                self.context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Length)
                     .instruction(Instruction::LoadLocal(original))
@@ -131,23 +156,23 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::Length)
                     .instruction(Instruction::Skip)
                     .end_intermediate()
-                    .end_intermediate();
-                write_pattern(context, rhs, on_fail);
-                context.bubble(|c| {
-                    c.label(double_cleanup)
-                        .instruction(Instruction::Pop)
-                        .label(cleanup)
-                        .instruction(Instruction::Pop)
-                        .jump(on_fail);
-                });
+                    .end_intermediate()
+                    .pattern_match(rhs, self.on_fail)
+                    .bubble(|c| {
+                        c.label(double_cleanup)
+                            .instruction(Instruction::Pop)
+                            .label(cleanup)
+                            .instruction(Instruction::Pop)
+                            .jump(self.on_fail);
+                    });
             }
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs, rhs @ ir::Value::String(..)) => {
-                let cleanup = context.make_label("glue_cleanup");
-                let double_cleanup = context.make_label("glue_cleanup2");
-                context.try_type("string", Err(&cleanup));
-                let original = context.intermediate();
-                let rhs_val = context.evaluate(rhs).intermediate();
-                context
+                let cleanup = self.context.make_label("glue_cleanup");
+                let double_cleanup = self.context.make_label("glue_cleanup2");
+                self.context.try_type("string", Err(&cleanup));
+                let original = self.context.intermediate();
+                let rhs_val = self.context.evaluate(rhs).intermediate();
+                self.context
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Length)
                     .instruction(Instruction::LoadLocal(original))
@@ -167,45 +192,49 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     .instruction(Instruction::Subtract)
                     .instruction(Instruction::Take)
                     .end_intermediate()
-                    .end_intermediate();
-                write_pattern(context, lhs, on_fail);
-                context.bubble(|c| {
-                    c.label(double_cleanup)
-                        .instruction(Instruction::Pop)
-                        .label(cleanup)
-                        .instruction(Instruction::Pop)
-                        .jump(on_fail);
-                });
+                    .end_intermediate()
+                    .pattern_match(lhs, self.on_fail)
+                    .bubble(|c| {
+                        c.label(double_cleanup)
+                            .instruction(Instruction::Pop)
+                            .label(cleanup)
+                            .instruction(Instruction::Pop)
+                            .jump(self.on_fail);
+                    });
             }
             (Some(ir::Value::Builtin(Builtin::Construct)), lhs, rhs) => {
-                let cleanup = context.make_label("cleanup");
-                context
+                let cleanup = self.context.make_label("cleanup");
+                self.context
                     .try_type("struct", Err(&cleanup))
-                    .instruction(Instruction::Destruct);
-                // Match the atom
-                write_pattern(context, rhs, &cleanup);
-                // Then match the contents
-                write_pattern(context, lhs, on_fail);
-                context.bubble(|c| {
-                    // If the atom matching fails, we have to clean up the extra value
-                    c.label(cleanup).instruction(Instruction::Pop).jump(on_fail);
-                });
+                    .instruction(Instruction::Destruct)
+                    // Match the atom
+                    .pattern_match(rhs, &cleanup)
+                    // Then match the contents
+                    .pattern_match(lhs, self.on_fail)
+                    .bubble(|c| {
+                        // If the atom matching fails, we have to clean up the extra value
+                        c.label(cleanup)
+                            .instruction(Instruction::Pop)
+                            .jump(self.on_fail);
+                    });
             }
             (Some(ir::Value::Builtin(Builtin::Cons)), lhs, rhs) => {
-                let cleanup = context.make_label("cleanup");
-                context
+                let cleanup = self.context.make_label("cleanup");
+                self.context
                     .try_type("tuple", Err(&cleanup))
                     .instruction(Instruction::Uncons)
-                    .instruction(Instruction::Swap);
-                write_pattern(context, lhs, &cleanup);
-                write_pattern(context, rhs, on_fail);
-                // If the first matching fails, we have to clean up the second
-                context.bubble(|c| {
-                    c.label(cleanup).instruction(Instruction::Pop).jump(on_fail);
-                });
+                    .instruction(Instruction::Swap)
+                    .pattern_match(lhs, &cleanup)
+                    .pattern_match(rhs, self.on_fail)
+                    // If the first matching fails, we have to clean up the second
+                    .bubble(|c| {
+                        c.label(cleanup)
+                            .instruction(Instruction::Pop)
+                            .jump(self.on_fail);
+                    });
             }
             (None, ir::Value::Builtin(Builtin::Array), ir::Value::Pack(pack)) => {
-                let cleanup = context.make_label("array_cleanup");
+                let cleanup = self.context.make_label("array_cleanup");
                 // Before even attempting to match this array, check its length and the length of
                 // the pattern. If the pattern is longer than the array, then give up already.
                 // The spread element doesn't count towards length since it can be 0. If the pattern
@@ -220,7 +249,7 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                 } else {
                     Instruction::ValEq
                 };
-                context
+                self.context
                     .try_type("array", Err(&cleanup))
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Length)
@@ -232,69 +261,73 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
 
                 // Going to be modifying this array in place, so clone it before we begin.
                 // Trilogy does not have slices.
-                context.instruction(Instruction::Clone);
-                let array = context.scope.intermediate();
+                self.context.instruction(Instruction::Clone);
+                let array = self.context.scope.intermediate();
                 for (i, element) in pack.values.iter().enumerate() {
                     if element.is_spread {
                         // When it's the spread element, take all the elements we aren't going to
                         // need for the tail of this pattern from the array.
-                        let cleanup_spread = context.make_label("cleanup_spread");
+                        let cleanup_spread = self.context.make_label("cleanup_spread");
                         let elements_in_tail = pack.values.len() - i - 1;
-                        context
+                        let length = self
+                            .context
                             // First determine the runtime length to find out how many elements
                             // we don't need later.
                             .instruction(Instruction::Copy)
                             .instruction(Instruction::Length)
                             .constant(elements_in_tail)
-                            .instruction(Instruction::Subtract);
-                        let length = context.scope.intermediate();
-                        context
+                            .instruction(Instruction::Subtract)
+                            .intermediate();
+                        self.context
                             // Take that many elements from (a copy of) the array
                             .instruction(Instruction::LoadLocal(array))
                             .instruction(Instruction::LoadLocal(length))
-                            .instruction(Instruction::Take);
-                        // And match that prefix with the element pattern
-                        write_pattern_match(context, &element.expression, &cleanup_spread);
-                        // Then use the copy of length that's still on the stack to drop those
-                        // elements we just took from the original array.
-                        context.instruction(Instruction::Skip).bubble(|c| {
-                            // If we fail during the spread matching, the length that's on the stack has
-                            // to be discarded still.
-                            c.label(cleanup_spread)
-                                .instruction(Instruction::Pop)
-                                .jump(&cleanup);
-                        });
-                        context.scope.end_intermediate(); // length
+                            .instruction(Instruction::Take)
+                            // And match that prefix with the element pattern
+                            .pattern_match(&element.expression, &cleanup_spread)
+                            // Then use the copy of length that's still on the stack to drop those
+                            // elements we just took from the original array.
+                            .instruction(Instruction::Skip)
+                            .bubble(|c| {
+                                // If we fail during the spread matching, the length that's on the stack has
+                                // to be discarded still.
+                                c.label(cleanup_spread)
+                                    .instruction(Instruction::Pop)
+                                    .jump(&cleanup);
+                            })
+                            .end_intermediate(); // length
                     } else {
                         // When it's not the spread element, just match the first element.
-                        context
+                        self.context
                             .instruction(Instruction::Copy)
                             .constant(0)
-                            .instruction(Instruction::Access);
-                        write_pattern_match(context, &element.expression, &cleanup);
-                        // And then we drop that element from the array and leave just the tail on
-                        // the stack.
-                        context.constant(1).instruction(Instruction::Skip);
+                            .instruction(Instruction::Access)
+                            .pattern_match(&element.expression, &cleanup)
+                            // And then we drop that element from the array and leave just the tail on
+                            // the stack.
+                            .constant(1)
+                            .instruction(Instruction::Skip);
                     }
                 }
                 // There should now be an empty array on the stack, so get rid of it before continuing.
-                context.instruction(Instruction::Pop);
-                context.bubble(|c| {
-                    c.label(cleanup)
-                        // Otherwise, we have to cleanup. The only thing on the stack is the array.
-                        .instruction(Instruction::Pop)
-                        .jump(on_fail);
-                });
-                context.scope.end_intermediate(); // array
+                self.context
+                    .instruction(Instruction::Pop)
+                    .bubble(|c| {
+                        c.label(cleanup)
+                            // Otherwise, we have to cleanup. The only thing on the stack is the array.
+                            .instruction(Instruction::Pop)
+                            .jump(self.on_fail);
+                    })
+                    .end_intermediate(); // array
             }
             (None, ir::Value::Builtin(Builtin::Record), ir::Value::Pack(pack)) => {
-                let cleanup1 = context.make_label("record_cleanup1");
-                let cleanup2 = context.make_label("record_cleanup2");
+                let cleanup1 = self.context.make_label("record_cleanup1");
+                let cleanup2 = self.context.make_label("record_cleanup2");
                 let mut spread = None;
-                context
+                self.context
                     .try_type("record", Err(&cleanup1))
                     .instruction(Instruction::Clone);
-                let record = context.scope.intermediate();
+                let record = self.context.scope.intermediate();
                 for element in &pack.values {
                     if element.is_spread {
                         spread = Some(&element.expression);
@@ -303,51 +336,52 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                     let ir::Value::Mapping(mapping) = &element.expression.value else {
                         panic!("record pattern elements must be mapping ");
                     };
-                    let key = context.evaluate(&mapping.0).intermediate();
-                    context
+                    let key = self.context.evaluate(&mapping.0).intermediate();
+                    self.context
                         .instruction(Instruction::LoadLocal(record))
                         .instruction(Instruction::LoadLocal(key))
                         .instruction(Instruction::Contains)
                         .cond_jump(&cleanup2)
                         .instruction(Instruction::LoadLocal(record))
                         .instruction(Instruction::LoadLocal(key))
-                        .instruction(Instruction::Access);
-                    write_pattern_match(context, &mapping.1, &cleanup2);
-                    context.instruction(Instruction::Delete).end_intermediate();
+                        .instruction(Instruction::Access)
+                        .pattern_match(&mapping.1, &cleanup2)
+                        .instruction(Instruction::Delete)
+                        .end_intermediate();
                 }
-                context.scope.end_intermediate();
+                self.context.scope.end_intermediate();
                 if let Some(spread) = spread {
-                    write_pattern_match(context, spread, on_fail);
+                    self.context.pattern_match(spread, self.on_fail);
                 } else {
-                    context
+                    self.context
                         .instruction(Instruction::Length)
                         .constant(0)
                         .instruction(Instruction::ValEq)
-                        .cond_jump(on_fail);
+                        .cond_jump(self.on_fail);
                 }
-                context.bubble(|c| {
+                self.context.bubble(|c| {
                     c.label(cleanup2)
                         .instruction(Instruction::Pop)
                         .label(cleanup1)
                         .instruction(Instruction::Pop)
-                        .jump(on_fail);
+                        .jump(self.on_fail);
                 });
             }
             (None, ir::Value::Builtin(Builtin::Set), ir::Value::Pack(pack)) => {
-                let cleanup1 = context.make_label("set_cleanup1");
-                let cleanup2 = context.make_label("set_cleanup2");
+                let cleanup1 = self.context.make_label("set_cleanup1");
+                let cleanup2 = self.context.make_label("set_cleanup2");
                 let mut spread = None;
-                context
+                self.context
                     .try_type("set", Err(&cleanup1))
                     .instruction(Instruction::Clone);
-                let set = context.scope.intermediate();
+                let set = self.context.scope.intermediate();
                 for element in &pack.values {
                     if element.is_spread {
                         spread = Some(&element.expression);
                         continue;
                     }
-                    let value = context.evaluate(&element.expression).intermediate();
-                    context
+                    let value = self.context.evaluate(&element.expression).intermediate();
+                    self.context
                         .instruction(Instruction::LoadLocal(set))
                         .instruction(Instruction::LoadLocal(value))
                         .instruction(Instruction::Contains)
@@ -355,29 +389,25 @@ pub(crate) fn write_pattern(context: &mut Context, value: &ir::Value, on_fail: &
                         .instruction(Instruction::Delete)
                         .end_intermediate();
                 }
-                context.scope.end_intermediate();
+                self.context.scope.end_intermediate();
                 if let Some(spread) = spread {
-                    write_pattern_match(context, spread, on_fail);
+                    self.context.pattern_match(spread, self.on_fail);
                 } else {
-                    context
+                    self.context
                         .instruction(Instruction::Length)
                         .constant(0)
                         .instruction(Instruction::ValEq)
-                        .cond_jump(on_fail);
+                        .cond_jump(self.on_fail);
                 }
-                context.bubble(|c| {
+                self.context.bubble(|c| {
                     c.label(cleanup2)
                         .instruction(Instruction::Pop)
                         .label(cleanup1)
                         .instruction(Instruction::Pop)
-                        .jump(on_fail);
+                        .jump(self.on_fail);
                 });
             }
             what => panic!("not a pattern ({what:?})"),
-        },
-        ir::Value::Dynamic(dynamic) => {
-            panic!("Dynamic is not actually supposed to happen, but we got {dynamic:?}");
         }
-        value => panic!("{value:?} is not a pattern"),
     }
 }

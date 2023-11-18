@@ -1,5 +1,6 @@
 use super::{Labeler, Scope};
 use crate::evaluation::CodegenEvaluate;
+use crate::pattern_match::CodegenPatternMatch;
 use crate::prelude::*;
 use trilogy_ir::ir::{self, Iterator};
 use trilogy_ir::visitor::HasBindings;
@@ -205,6 +206,11 @@ impl Context<'_> {
 
     pub fn evaluate<E: CodegenEvaluate>(&mut self, value: &E) -> &mut Self {
         value.evaluate(self);
+        self
+    }
+
+    pub fn pattern_match<E: CodegenPatternMatch>(&mut self, value: &E, on_fail: &str) -> &mut Self {
+        value.pattern_match(self, on_fail);
         self
     }
 }

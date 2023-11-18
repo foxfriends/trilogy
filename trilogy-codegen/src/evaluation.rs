@@ -105,9 +105,9 @@ impl IrVisitor for Evaluator<'_, '_> {
                     context
                         .case(|context, next| {
                             context.declare_variables(handler.pattern.bindings());
-                            context.instruction(Instruction::LoadLocal(params.effect));
-                            write_pattern_match(context, &handler.pattern, next);
                             context
+                                .instruction(Instruction::LoadLocal(params.effect))
+                                .pattern_match(&handler.pattern, next)
                                 .evaluate(&handler.guard)
                                 .typecheck("boolean")
                                 .cond_jump(next)
@@ -185,9 +185,9 @@ impl IrVisitor for Evaluator<'_, '_> {
         for case in &cond.cases {
             let cleanup = self.context.make_label("case_cleanup");
             let vars = self.context.declare_variables(case.pattern.bindings());
-            self.context.instruction(Instruction::LoadLocal(val));
-            write_pattern_match(self.context, &case.pattern, &cleanup);
             self.context
+                .instruction(Instruction::LoadLocal(val))
+                .pattern_match(&case.pattern, &cleanup)
                 .evaluate(&case.guard)
                 .typecheck("boolean")
                 .cond_jump(&cleanup)
@@ -214,8 +214,8 @@ impl IrVisitor for Evaluator<'_, '_> {
         for (i, parameter) in closure.parameters.iter().enumerate() {
             self.context.declare_variables(parameter.bindings());
             self.context
-                .instruction(Instruction::LoadLocal(params + i as u32));
-            write_pattern_match(self.context, parameter, END);
+                .instruction(Instruction::LoadLocal(params + i as u32))
+                .pattern_match(parameter, END);
         }
         self.context.evaluate(&closure.body);
         for parameter in closure.parameters.iter().rev() {
@@ -233,8 +233,9 @@ impl IrVisitor for Evaluator<'_, '_> {
         self.context.proc_closure(arity, |context| {
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
-                context.instruction(Instruction::LoadLocal(param_start + offset as u32));
-                write_pattern_match(context, parameter, END);
+                context
+                    .instruction(Instruction::LoadLocal(param_start + offset as u32))
+                    .pattern_match(parameter, END);
             }
             context
                 .evaluate(&closure.body)
