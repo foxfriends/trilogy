@@ -11,25 +11,18 @@ pub(crate) fn write_expression(context: &mut Context, expr: &ir::Expression) {
 
 pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
     match &value {
-        ir::Value::Pack(..) => panic!(),
-        ir::Value::Mapping(..) => panic!(),
+        ir::Value::Query(..) => unreachable!("query may not appear in an evaluation"),
+        ir::Value::Pack(..) => panic!("pack may not appear in an evaluation"),
+        ir::Value::Mapping(..) => panic!("mapping may not appear in an evaluation"),
+        ir::Value::Conjunction(..) => panic!("conjunction may not appear in an evaluation"),
+        ir::Value::Disjunction(..) => panic!("disjunction may not appear in an evaluation"),
+        ir::Value::Wildcard => panic!("wildcard may not appear in an evaluation"),
         ir::Value::Builtin(builtin) if is_referenceable_operator(*builtin) => {
             write_operator_reference(context, *builtin);
         }
         ir::Value::Builtin(builtin) => panic!("{builtin:?} is not a referenceable builtin"),
         ir::Value::Sequence(seq) => {
-            let mut seq = seq.iter();
-            let Some(mut expr) = seq.next() else {
-                // An empty sequence must still have a value
-                context.constant(());
-                return;
-            };
-            loop {
-                write_expression(context, expr);
-                let Some(next_expr) = seq.next() else { break };
-                expr = next_expr;
-                context.instruction(Instruction::Pop);
-            }
+            context.sequence(seq);
         }
         ir::Value::Assignment(assignment) => match &assignment.lhs.value {
             ir::Value::Reference(var) => {
@@ -77,58 +70,14 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
         ir::Value::Unit => {
             context.constant(());
         }
-        ir::Value::Conjunction(..) => unreachable!("Conjunction cannot appear in an evaluation"),
-        ir::Value::Disjunction(..) => unreachable!("Disjunction cannot appear in an evaluation"),
-        ir::Value::Wildcard => unreachable!("Wildcard cannot appear in an evaluation"),
         ir::Value::Atom(value) => {
             context.atom(value);
         }
-        ir::Value::Query(..) => unreachable!("Query cannot appear in an evaluation"),
         ir::Value::Iterator(iter) => {
             context.iterator(iter, None, None).constant(());
         }
         ir::Value::While(stmt) => {
-            let begin = context.make_label("while");
-            let cleanup = context.make_label("while_cleanup");
-            let end = context.make_label("while_end");
-
-            // Break is just a continuation that points to the end of the loop. The value
-            // passed to break is discarded
-            let r#break = context
-                .continuation_fn(|c| {
-                    c.instruction(Instruction::Pop).jump(&end);
-                })
-                .intermediate();
-
-            // The actual loop we can implement in the standard way after the continuations are
-            // created.
-            context.label(&begin);
-            // Check the condition
-            write_expression(context, &stmt.condition);
-            context.typecheck("boolean").cond_jump(&cleanup);
-            // If it's true, run the body. The body has access to continue and break.
-            // Continue is a continuation much like break, but it points to the start of the loop
-            let r#continue = context
-                .continuation_fn(|c| {
-                    c.instruction(Instruction::Pop).jump(&begin);
-                })
-                .intermediate();
-            context.push_break(r#break).push_continue(r#continue);
-            write_expression(context, &stmt.body);
-            context.pop_break().pop_continue();
-
-            context
-                .instruction(Instruction::Pop) // Body value
-                .instruction(Instruction::Pop) // Continue
-                .end_intermediate()
-                .jump(&begin)
-                .label(&cleanup)
-                .instruction(Instruction::Pop) // break
-                .end_intermediate()
-                .label(&end)
-                // Evaluation requires that an extra value ends up on the stack.
-                // While "evaluates" to unit
-                .constant(());
+            context.r#while(&stmt.condition.value, &stmt.body.value);
         }
         ir::Value::Application(application) => match unapply_2(application) {
             (
@@ -164,31 +113,18 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                         context.scope.end_intermediate();
                         context.instruction(Instruction::Assign);
                     } else {
-                        panic!("Record values must be mappings")
+                        panic!("record values must be mappings")
                     }
                 }
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Iterator(iter)) => {
-                context.iterate(
-                    |context, params| {
-                        let record = context
-                            .typecheck("tuple")
-                            .constant(Record::default())
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Uncons)
-                            .instruction(Instruction::Assign)
-                            .intermediate();
+                context.comprehension(
+                    |context| {
                         context
-                            .instruction(Instruction::LoadLocal(params.cancel))
-                            .instruction(Instruction::LoadLocal(params.resume))
-                            .constant(())
-                            .call_function()
-                            .instruction(Instruction::LoadLocal(record))
-                            .instruction(Instruction::Clone)
-                            .instruction(Instruction::Glue)
-                            .become_function()
-                            .end_intermediate(); // record
+                            .typecheck("tuple")
+                            .instruction(Instruction::Uncons)
+                            .instruction(Instruction::Assign);
                     },
                     |context| {
                         context
@@ -214,24 +150,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::Set), ir::Value::Iterator(iter)) => {
-                context.iterate(
-                    |context, params| {
-                        let set = context
-                            .constant(Set::default())
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert)
-                            .intermediate();
-                        context
-                            .instruction(Instruction::LoadLocal(params.cancel))
-                            .instruction(Instruction::LoadLocal(params.resume))
-                            .constant(())
-                            .call_function()
-                            .instruction(Instruction::LoadLocal(set))
-                            .instruction(Instruction::Clone)
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Glue)
-                            .become_function()
-                            .end_intermediate(); // record
+                context.comprehension(
+                    |context| {
+                        context.instruction(Instruction::Insert);
                     },
                     |context| {
                         context.iterator(iter, None, None).constant(Set::default());
@@ -256,24 +177,9 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                 context.scope.end_intermediate();
             }
             (None, ir::Value::Builtin(ir::Builtin::Array), ir::Value::Iterator(iter)) => {
-                context.iterate(
-                    |context, params| {
-                        let array = context
-                            .constant(Array::default())
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert)
-                            .intermediate();
-                        context
-                            .instruction(Instruction::LoadLocal(params.cancel))
-                            .instruction(Instruction::LoadLocal(params.resume))
-                            .constant(())
-                            .call_function()
-                            .instruction(Instruction::LoadLocal(array))
-                            .instruction(Instruction::Clone)
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Glue)
-                            .become_function()
-                            .end_intermediate(); // record
+                context.comprehension(
+                    |context| {
+                        context.instruction(Instruction::Insert);
                     },
                     |context| {
                         context

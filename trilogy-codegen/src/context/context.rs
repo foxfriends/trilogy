@@ -194,4 +194,93 @@ impl Context<'_> {
         .undeclare_variables(iterator.query.bindings(), true);
         self
     }
+
+    pub fn evaluate(&mut self, value: &ir::Value) -> &mut Self {
+        write_evaluation(self, value);
+        self
+    }
+}
+
+impl Context<'_> {
+    pub fn sequence(&mut self, seq: &[ir::Expression]) -> &mut Self {
+        let mut seq = seq.iter();
+        let Some(mut expr) = seq.next() else {
+            // An empty sequence must still have a value
+            return self.constant(());
+        };
+        loop {
+            self.evaluate(&expr.value);
+            let Some(next_expr) = seq.next() else {
+                break self;
+            };
+            expr = next_expr;
+            self.instruction(Instruction::Pop);
+        }
+    }
+
+    pub fn comprehension<F: FnOnce(&mut Context), G: FnOnce(&mut Context)>(
+        &mut self,
+        append: F,
+        init: G,
+    ) -> &mut Self {
+        self.iterate(
+            |context, params| {
+                context
+                    .instruction(Instruction::LoadLocal(params.cancel))
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::LoadLocal(params.resume))
+                    .constant(())
+                    .call_function()
+                    .instruction(Instruction::Clone)
+                    .instruction(Instruction::Swap)
+                    .pipe(append)
+                    .become_function();
+            },
+            init,
+        )
+    }
+
+    pub fn r#while(&mut self, condition: &ir::Value, body: &ir::Value) -> &mut Self {
+        let begin = self.make_label("while");
+        let cleanup = self.make_label("while_cleanup");
+        let end = self.make_label("while_end");
+
+        // Break is just a continuation that points to the end of the loop. The value
+        // passed to break is discarded
+        let r#break = self
+            .continuation_fn(|c| {
+                c.instruction(Instruction::Pop).jump(&end);
+            })
+            .intermediate();
+        // The actual loop we can implement in the standard way after the continuations are
+        // created.
+        self.label(&begin)
+            // Check the condition
+            .evaluate(condition)
+            .typecheck("boolean")
+            .cond_jump(&cleanup);
+        // If it's true, run the body. The body has access to continue and break.
+        // Continue is a continuation much like break, but it points to the start of the loop
+        let r#continue = self
+            .continuation_fn(|c| {
+                c.instruction(Instruction::Pop).jump(&begin);
+            })
+            .intermediate();
+        self.push_break(r#break)
+            .push_continue(r#continue)
+            .evaluate(body)
+            .pop_break()
+            .pop_continue()
+            .instruction(Instruction::Pop) // Body value
+            .instruction(Instruction::Pop) // Continue
+            .end_intermediate()
+            .jump(&begin)
+            .label(&cleanup)
+            .instruction(Instruction::Pop) // break
+            .end_intermediate()
+            .label(&end)
+            // Evaluation requires that an extra value ends up on the stack.
+            // While "evaluates" to unit
+            .constant(())
+    }
 }
