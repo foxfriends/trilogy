@@ -123,8 +123,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
                     |context| {
                         context
                             .typecheck("tuple")
+                            .constant(Record::new())
+                            .instruction(Instruction::Swap)
                             .instruction(Instruction::Uncons)
-                            .instruction(Instruction::Assign);
+                            .instruction(Instruction::Assign)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Glue);
                     },
                     |context| {
                         context
@@ -152,7 +156,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             (None, ir::Value::Builtin(ir::Builtin::Set), ir::Value::Iterator(iter)) => {
                 context.comprehension(
                     |context| {
-                        context.instruction(Instruction::Insert);
+                        context
+                            .constant(Set::new())
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Glue);
                     },
                     |context| {
                         context.iterator(iter, None, None).constant(Set::default());
@@ -179,7 +188,12 @@ pub(crate) fn write_evaluation(context: &mut Context, value: &ir::Value) {
             (None, ir::Value::Builtin(ir::Builtin::Array), ir::Value::Iterator(iter)) => {
                 context.comprehension(
                     |context| {
-                        context.instruction(Instruction::Insert);
+                        context
+                            .constant(Array::new())
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Insert)
+                            .instruction(Instruction::Swap)
+                            .instruction(Instruction::Glue);
                     },
                     |context| {
                         context
