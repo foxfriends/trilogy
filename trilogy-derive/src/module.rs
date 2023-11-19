@@ -57,13 +57,13 @@ pub(crate) fn impl_attr(
         Item::Fn(fn_item) if fn_item.attrs.iter().any(is_proc) => {
             let fn_name = &fn_item.sig.ident;
             Some(quote! {
-                module = module.add_procedure(stringify!(#fn_name), #name::#fn_name);
+                module = module.add_item(stringify!(#fn_name), #name::#fn_name);
             })
         }
         Item::Mod(module_item) if module_item.attrs.iter().any(is_module) => {
             let child_name = &module_item.ident;
             Some(quote! {
-                module = module.add_submodule(stringify!(#child_name), #name::#child_name());
+                module = module.add_item(stringify!(#child_name), #name::#child_name());
             })
         }
         _ => None,

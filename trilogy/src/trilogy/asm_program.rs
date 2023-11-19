@@ -1,6 +1,6 @@
 use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
-use trilogy_vm::{ChunkBuilder, Program, Value};
+use trilogy_vm::{ChunkBuilder, ChunkWriter, Native, Program, Value};
 
 pub(super) struct AsmProgram<'a> {
     pub source: &'a str,
@@ -20,7 +20,9 @@ impl Program for AsmProgram<'_> {
             _ => panic!("invalid module specifier `{locator}`"),
         };
         if let Some(lib) = self.libraries.get(&location) {
-            lib.write_to_chunk(&location, chunk);
+            chunk
+                .constant(Native::from(lib.clone()))
+                .instruction(trilogy_vm::Instruction::Return);
         } else {
             chunk.entrypoint_existing(&format!("location:{}", location));
         }

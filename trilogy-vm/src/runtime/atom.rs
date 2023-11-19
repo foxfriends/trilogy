@@ -73,6 +73,12 @@ impl Display for Atom {
     }
 }
 
+impl AsRef<str> for Atom {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 struct AtomRaw(Arc<String>);
 

@@ -1,7 +1,8 @@
-use crate::location::Location;
+use crate::Runtime;
 use std::collections::HashMap;
-use trilogy_codegen::{INCORRECT_ARITY, INVALID_CALL, RETURN};
-use trilogy_vm::{ChunkBuilder, ChunkWriter, Instruction, Native, NativeFunction, Value};
+use trilogy_vm::{
+    Error, ErrorKind, Execution, InternalRuntimeError, Native, NativeFunction, Struct, Tuple, Value,
+};
 
 /// A module of native functions.
 ///
@@ -16,8 +17,7 @@ use trilogy_vm::{ChunkBuilder, ChunkWriter, Instruction, Native, NativeFunction,
 /// proc macro to create a `NativeModule` from a Rust module.
 #[derive(Clone, Debug)]
 pub struct NativeModule {
-    pub(crate) modules: HashMap<&'static str, NativeModule>,
-    pub(crate) procedures: HashMap<&'static str, Native>,
+    pub(crate) items: HashMap<&'static str, Native>,
 }
 
 /// Builder for native modules.
@@ -30,8 +30,7 @@ impl Default for NativeModuleBuilder {
     fn default() -> Self {
         Self {
             inner: NativeModule {
-                modules: Default::default(),
-                procedures: Default::default(),
+                items: Default::default(),
             },
         }
     }
@@ -43,44 +42,14 @@ impl NativeModuleBuilder {
         Self::default()
     }
 
-    /// Add a native module as a submodule to this module.
-    ///
-    /// The provided name will be used to reference the submodule from a Trilogy program
-    /// so it must be a valid name for use as an identifier in Trilogy, otherwise it will
-    /// not be referenceable.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use trilogy::NativeModuleBuilder;
-    /// # let some_submodule = NativeModuleBuilder::new().build();
-    /// let native_module = NativeModuleBuilder::new()
-    ///     .add_submodule("sub", some_submodule)
-    ///     .build();
-    /// ```
-    ///
-    /// Installing `native_module` at the location `Location::library("module")`, the submodule
-    /// could be referenced from a Trilogy program as follows:
-    ///
-    /// ```trilogy
-    /// module native from "trilogy:module"
-    /// proc main!() {
-    ///     let submodule = native::sub
-    /// }
-    /// ```
-    pub fn add_submodule(mut self, name: &'static str, module: NativeModule) -> Self {
-        self.inner.modules.insert(name, module);
-        self
-    }
-
-    /// Add a native function as a procedure to this module with the provided name.
+    /// Add a native procedure or module to this module under a given name.
     ///
     /// Native functions are typically created using the [`#[proc]`][trilogy_derive::proc]
-    /// attribute macro.
+    /// or [`#[module]`][trilogy_derive::module] attribute macros.
     ///
     /// The provided name will be used to reference the procedure from a Trilogy program
     /// so it must be a valid name for use as an identifier in Trilogy, otherwise it will
-    /// not be referenceable.
+    /// not be usable.
     ///
     /// # Examples
     ///
@@ -92,7 +61,7 @@ impl NativeModuleBuilder {
     /// }
     ///
     /// let native_module = NativeModuleBuilder::new()
-    ///     .add_procedure("hello", hello)
+    ///     .add_item("hello", hello)
     ///     .build();
     /// ```
     ///
@@ -105,12 +74,8 @@ impl NativeModuleBuilder {
     ///     let hello = native::hello!()
     /// }
     /// ```
-    pub fn add_procedure<N: NativeFunction + 'static>(
-        mut self,
-        name: &'static str,
-        proc: N,
-    ) -> Self {
-        self.inner.procedures.insert(name, proc.into());
+    pub fn add_item<N: NativeFunction + 'static>(mut self, name: &'static str, proc: N) -> Self {
+        self.inner.items.insert(name, proc.into());
         self
     }
 
@@ -120,71 +85,51 @@ impl NativeModuleBuilder {
     }
 }
 
-impl NativeModule {
-    pub(crate) fn write_to_chunk(&self, location: &Location, chunk: &mut ChunkBuilder) {
-        chunk.close(RETURN);
-        self.write_to_chunk_at_path(location, vec![], chunk)
+impl NativeFunction for NativeModule {
+    fn arity(&self) -> usize {
+        2 // the symbol + the module key
     }
 
-    fn write_to_chunk_at_path(
-        &self,
-        location: &Location,
-        path: Vec<&str>,
-        chunk: &mut ChunkBuilder,
-    ) {
-        let pathstr = path.iter().fold(String::new(), |s, seg| s + seg + "::");
-        chunk
-            .instruction(Instruction::Destruct)
-            .instruction(Instruction::Copy)
-            .atom("module")
-            .instruction(Instruction::ValEq)
-            .cond_jump(INVALID_CALL)
-            .instruction(Instruction::Pop)
-            .instruction(Instruction::Copy)
-            .constant(1)
-            .instruction(Instruction::ValEq)
-            .cond_jump(INCORRECT_ARITY)
-            .instruction(Instruction::Pop);
-        for (name, proc) in &self.procedures {
-            let next = format!("#skip::{location}::{pathstr}{name}");
-            chunk
-                .instruction(Instruction::Copy)
-                .atom(name)
-                .instruction(Instruction::ValEq)
-                .cond_jump(&next)
-                .instruction(Instruction::Pop)
-                .constant(proc.clone())
-                .instruction(Instruction::Return)
-                .label(next);
+    fn call(&mut self, runtime: &mut Execution, mut input: Vec<Value>) -> Result<(), Error> {
+        match input.pop().unwrap() {
+            Value::Struct(s) if s.name() == runtime.atom("module") => {
+                if *s.value() != Value::from(1) {
+                    let atom = runtime.atom("IncorrectArity");
+                    let err_value = Struct::new(atom, 1);
+                    return Err(runtime.error(ErrorKind::RuntimeError(err_value.into())));
+                }
+            }
+            Value::Struct(s) => {
+                let atom = runtime.atom("InvalidCall");
+                let err_value = Struct::new(atom, s.name());
+                return Err(runtime.error(ErrorKind::RuntimeError(err_value.into())));
+            }
+            _ => {
+                return Err(runtime.error(ErrorKind::InternalRuntimeError(
+                    InternalRuntimeError::TypeError,
+                )))
+            }
         }
-        for (name, module) in &self.modules {
-            let next = format!("#skip::{location}::{pathstr}{name}");
-            let module_label = format!("{location}::{pathstr}{name}");
-            chunk
-                .instruction(Instruction::Copy)
-                .atom(name)
-                .instruction(Instruction::ValEq)
-                .cond_jump(&next)
-                .instruction(Instruction::Pop)
-                .reference(&module_label)
-                .instruction(Instruction::Return)
-                .label(module_label);
-            let mut child_path = path.clone();
-            child_path.push(name);
-            module.write_to_chunk_at_path(location, child_path, chunk);
-            chunk.label(next);
+
+        let Value::Atom(atom) = input.pop().unwrap() else {
+            return Err(runtime.error(ErrorKind::InternalRuntimeError(
+                InternalRuntimeError::TypeError,
+            )));
+        };
+
+        if let Some(proc) = self.items.get(atom.as_ref()) {
+            return Runtime::new(runtime).r#return(proc.clone());
         }
+
         let symbol_list = self
-            .procedures
+            .items
             .keys()
-            .chain(self.modules.keys())
-            .map(|name| Value::from(chunk.make_atom(name)))
+            .map(|name| Value::from(runtime.atom(name)))
             .collect::<Vec<_>>();
-        chunk
-            .constant(symbol_list)
-            .instruction(Instruction::Cons)
-            .atom("UnresolvedImport")
-            .instruction(Instruction::Construct)
-            .instruction(Instruction::Panic);
+        let err_value = Struct::new(
+            runtime.atom("UnresolvedImport"),
+            Tuple::new(atom.into(), symbol_list.into()),
+        );
+        Err(runtime.error(ErrorKind::RuntimeError(err_value.into())))
     }
 }

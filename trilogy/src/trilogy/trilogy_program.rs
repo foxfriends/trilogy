@@ -1,7 +1,7 @@
 use crate::{location::Location, NativeModule};
 use std::collections::HashMap;
 use trilogy_ir::ir::Module;
-use trilogy_vm::{ChunkBuilder, ChunkWriter, Program, Value};
+use trilogy_vm::{ChunkBuilder, ChunkWriter, Native, Program, Value};
 
 pub(super) struct TrilogyProgram<'a> {
     pub modules: &'a HashMap<Location, Module>,
@@ -41,8 +41,10 @@ impl Program for TrilogyProgram<'_> {
                 if self.to_asm {
                     return;
                 }
-                chunk.label(format!("location:{location}"));
-                module.write_to_chunk(&location, chunk);
+                chunk
+                    .label(format!("location:{location}"))
+                    .constant(Native::from(module.clone()))
+                    .instruction(trilogy_vm::Instruction::Return);
             }
         }
     }

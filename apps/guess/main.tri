@@ -7,7 +7,7 @@ proc play!() {
     while true {
         io::print!("Guess: ")
         let guess = with io::readline!() |> str::chomp |> num::cast
-            when 'NAN cancel {
+            when 'NAN invert {
                 io::println!("That's not a valid number")
                 continue
             }
@@ -24,7 +24,7 @@ proc play!() {
 }
 
 proc main!() {
-    with play!()
-        when 'EOF cancel { io::println!("Give up? Too bad.") }
-        else cancel { exit 1 }
+    with { play!() }
+        when 'EOF cancel io::println!("Give up? Too bad.")
+        else invert { exit 1 }
 }

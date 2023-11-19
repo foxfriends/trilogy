@@ -9,11 +9,6 @@ use std::sync::{Arc, Mutex};
 /// `#[proc]` attribute macro from the `trilogy` crate.
 pub trait NativeFunction: Send + Sync {
     #[doc(hidden)]
-    fn name() -> &'static str
-    where
-        Self: Sized;
-
-    #[doc(hidden)]
     fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), Error>;
 
     #[doc(hidden)]

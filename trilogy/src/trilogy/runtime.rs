@@ -62,13 +62,6 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
         where
             F: FnMut(Runtime, [Value; N]) -> crate::Result<()> + Sync + Send + 'static,
         {
-            fn name() -> &'static str
-            where
-                Self: Sized,
-            {
-                "<anonymous>"
-            }
-
             fn arity(&self) -> usize {
                 N
             }

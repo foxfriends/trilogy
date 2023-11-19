@@ -2,8 +2,8 @@ module io at "trilogy:io"
 
 proc main!() {
     while true {
-        with io::print!(io::readline!())
-            when 'EOF cancel { break }
+        with { io::print!(io::readline!()) }
+            when 'EOF invert { break }
             else yield
     }
 }
