@@ -8,6 +8,7 @@ pub enum ErrorKind {
     KwNotInExpression,
     KwThenInStatement,
     RuleRightArrow,
+    MatchStatementExpressionCase,
     TripleDot { dot: Span },
 }
 
@@ -64,6 +65,9 @@ impl Display for SyntaxError {
             }
             ErrorKind::RuleRightArrow => {
                 write!(f, "right arrow following rule should be a left arrow")?
+            }
+            ErrorKind::MatchStatementExpressionCase => {
+                write!(f, "case in match statement should be a block")?
             }
             ErrorKind::TripleDot { .. } => write!(f, "triple `...` should be `..`")?,
         }

@@ -72,7 +72,16 @@ impl MatchStatementCase {
             .map(|_| Expression::parse(parser))
             .transpose()?
             .map(Into::into);
-        let body = Block::parse(parser)?;
+
+        let body = match parser.expect(KwThen) {
+            Ok(then) => {
+                let error = ErrorKind::MatchStatementExpressionCase.at(then.span);
+                parser.error(error.clone());
+                Expression::parse(parser)?;
+                return Err(error);
+            }
+            Err(_) => Block::parse(parser)?,
+        };
         Ok(Self {
             start,
             pattern,

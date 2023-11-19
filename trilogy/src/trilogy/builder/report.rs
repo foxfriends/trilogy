@@ -355,6 +355,9 @@ impl<E: std::error::Error> Error<E> {
                     KwNotInExpression => ariadne::Report::build(kind, location, span.1.start)
                         .with_message(format!("the `{}` keyword may not be used in an expression, did you mean to use the `!` operator?", "not".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing this `not` with `!`")),
+                    MatchStatementExpressionCase => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message(format!("cases in a match statement must be handled with blocks"))
+                        .with_label(Label::new(span).with_color(primary).with_message("try replacing this handler with a block")),
                     TripleDot { dot } => {
                         let dot = cache.span(location, *dot);
                         ariadne::Report::build(kind, location, span.1.start)

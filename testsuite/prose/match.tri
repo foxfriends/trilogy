@@ -1,0 +1,66 @@
+test "match can match a literal and find the correct case" {
+    match 3
+        case 1 { assert false }
+        case 2 { assert false }
+        case 3 {}
+        case 4 { assert false }
+        else { assert false }
+}
+
+test "no matching case reaches the else case" {
+    match 3
+        case 1 { assert false }
+        case 2 { assert false }
+        case 4 { assert false }
+        else {}
+}
+
+test "multiple matching cases gets handled by the first one" {
+    match 3
+        case 1 { assert false }
+        case _ {}
+        case 2 { assert false }
+        case 3 { assert false }
+        case 4 { assert false }
+        else {}
+}
+
+test "an else is not required" {
+    match 3
+        case 1 { assert false }
+        case 2 { assert false }
+        case 3 {}
+        case 4 { assert false }
+}
+
+test "a match with no matching case or else gets skipped" {
+    match 3
+        case 1 { assert false }
+        case 2 { assert false }
+        case 4 { assert false }
+}
+
+test "match can extract struct field" {
+    match 'hello("world":3)
+        case 'hello(value) { assert value == "world":3 }
+        else { assert false }
+}
+
+test "match expression can be nested in match value" {
+    match match 3 case 1 then 4 case 3 then 5 else 7
+        case 1 { assert false }
+        case 5 {}
+        case 7 { assert false }
+        else { assert false }
+}
+
+test "match can be nested in cases" {
+    match 'a : 'b
+        case 'b : _ { assert false }
+        case 'a : x {
+            match x
+                case 'b {}
+                else { assert false }
+        }
+        else { assert false }
+}
