@@ -184,7 +184,6 @@ impl NativeModule {
             .constant(symbol_list)
             .instruction(Instruction::Cons)
             .atom("UnresolvedImport")
-            .atom("UnresolvedImport")
             .instruction(Instruction::Construct)
             .instruction(Instruction::Panic);
     }
