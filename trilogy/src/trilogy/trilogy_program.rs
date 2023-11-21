@@ -1,11 +1,11 @@
-use crate::{location::Location, NativeModule};
+use crate::location::Location;
 use std::collections::HashMap;
 use trilogy_ir::ir::Module;
 use trilogy_vm::{ChunkBuilder, ChunkWriter, Native, Program, Value};
 
 pub(super) struct TrilogyProgram<'a> {
     pub modules: &'a HashMap<Location, Module>,
-    pub libraries: &'a HashMap<Location, NativeModule>,
+    pub libraries: &'a HashMap<Location, Native>,
     pub entrypoint: &'a Location,
     pub path: &'a [&'a str],
     pub to_asm: bool,
@@ -24,7 +24,7 @@ impl Program for TrilogyProgram<'_> {
         };
         enum Either<'a> {
             Source(&'a Module),
-            Native(&'a NativeModule),
+            Native(&'a Native),
         }
         let module = self
             .modules
@@ -43,7 +43,7 @@ impl Program for TrilogyProgram<'_> {
                 }
                 chunk
                     .label(format!("location:{location}"))
-                    .constant(Native::from(module.clone()))
+                    .constant(module.clone())
                     .instruction(trilogy_vm::Instruction::Return);
             }
         }

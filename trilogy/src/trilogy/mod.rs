@@ -1,8 +1,8 @@
-use crate::{location::Location, NativeModule};
+use crate::location::Location;
 use std::collections::HashMap;
 use std::path::Path;
 use trilogy_ir::ir::Module;
-use trilogy_vm::{Atom, Chunk, ChunkError, Value, VirtualMachine};
+use trilogy_vm::{Atom, Chunk, ChunkError, Native, Value, VirtualMachine};
 
 mod asm_program;
 mod builder;
@@ -45,12 +45,12 @@ enum Source {
 #[derive(Clone, Debug)]
 pub struct Trilogy {
     source: Source,
-    libraries: HashMap<Location, NativeModule>,
+    libraries: HashMap<Location, Native>,
     vm: VirtualMachine,
 }
 
 impl Trilogy {
-    fn new(source: Source, libraries: HashMap<Location, NativeModule>) -> Self {
+    fn new(source: Source, libraries: HashMap<Location, Native>) -> Self {
         Self {
             source,
             libraries,

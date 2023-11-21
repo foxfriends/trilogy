@@ -2,7 +2,7 @@ use crate::{Atom, Instruction, Value};
 
 /// Generic interface by which we can write to an underlying chunk.
 ///
-/// This crate provides the [`ChunkBuilder`][] as the primary implementer of this
+/// This crate provides the [`ChunkBuilder`][crate::ChunkBuilder] as the primary implementer of this
 /// trait, but your own crates may choose to implement this trait as well to make
 /// use of common helper functions that need to take various levels of abstraction
 /// around the writing of the chunk.

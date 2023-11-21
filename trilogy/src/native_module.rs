@@ -1,8 +1,6 @@
 use crate::Runtime;
 use std::collections::HashMap;
-use trilogy_vm::{
-    Error, ErrorKind, Execution, InternalRuntimeError, Native, NativeFunction, Struct, Tuple, Value,
-};
+use trilogy_vm::{Error, Execution, Native, NativeFunction, Value};
 
 /// A module of native functions.
 ///
@@ -90,35 +88,11 @@ impl NativeFunction for NativeModule {
         2 // the symbol + the module key
     }
 
-    fn call(&mut self, runtime: &mut Execution, mut input: Vec<Value>) -> Result<(), Error> {
-        match input.pop().unwrap() {
-            Value::Struct(s) if s.name() == runtime.atom("module") => {
-                if *s.value() != Value::from(1) {
-                    let atom = runtime.atom("IncorrectArity");
-                    let err_value = Struct::new(atom, 1);
-                    return Err(runtime.error(ErrorKind::RuntimeError(err_value.into())));
-                }
-            }
-            Value::Struct(s) => {
-                let atom = runtime.atom("InvalidCall");
-                let err_value = Struct::new(atom, s.name());
-                return Err(runtime.error(ErrorKind::RuntimeError(err_value.into())));
-            }
-            _ => {
-                return Err(runtime.error(ErrorKind::InternalRuntimeError(
-                    InternalRuntimeError::TypeError,
-                )))
-            }
-        }
-
-        let Value::Atom(atom) = input.pop().unwrap() else {
-            return Err(runtime.error(ErrorKind::InternalRuntimeError(
-                InternalRuntimeError::TypeError,
-            )));
-        };
-
+    fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), Error> {
+        let runtime = Runtime::new(ex);
+        let atom = runtime.unlock_module(input)?;
         if let Some(proc) = self.items.get(atom.as_ref()) {
-            return Runtime::new(runtime).r#return(proc.clone());
+            return runtime.r#return(proc.clone());
         }
 
         let symbol_list = self
@@ -126,10 +100,6 @@ impl NativeFunction for NativeModule {
             .keys()
             .map(|name| Value::from(runtime.atom(name)))
             .collect::<Vec<_>>();
-        let err_value = Struct::new(
-            runtime.atom("UnresolvedImport"),
-            Tuple::new(atom.into(), symbol_list.into()),
-        );
-        Err(runtime.error(ErrorKind::RuntimeError(err_value.into())))
+        Err(runtime.unresolved_import(atom, symbol_list))
     }
 }

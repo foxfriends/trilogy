@@ -47,6 +47,12 @@ impl InternalValue {
     }
 }
 
+impl From<Value> for InternalValue {
+    fn from(value: Value) -> Self {
+        Self::Value(value)
+    }
+}
+
 impl Display for InternalValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

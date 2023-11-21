@@ -9,11 +9,12 @@ keywords = ["programming-language", "language"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
-default = ["dev", "std"]
+default = ["dev", "std", "regex"]
 dev = []
 lax = ["trilogy-parser/lax"]
 macros = ["trilogy-derive"]
 std = ["macros"]
+regex = ["dep:regex"]
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }
@@ -33,3 +34,4 @@ ariadne = { version = "0.3.0", features = ["auto-color"] }
 source-span = "2.7.0"
 bitvec = "1.0.1"
 daggy = "0.8.0"
+regex = { version = "1.10.2", optional = true }

@@ -214,25 +214,27 @@ impl<'a> Execution<'a> {
         }
     }
 
-    fn call(&mut self, arity: usize) -> Result<(), Error> {
-        let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
-        let callable = self.stack.pop().map_err(|k| self.error(k))?;
+    fn call_internal(
+        &mut self,
+        callable: Value,
+        arguments: Vec<InternalValue>,
+    ) -> Result<(), Error> {
         match callable {
-            Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
+            Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
                 self.stack = continuation.stack();
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
+            Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 self.stack.push_frame(self.ip, arguments, None);
                 self.ip = procedure.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Closure(closure)))) => {
+            Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 self.stack
                     .push_frame(self.ip, arguments, Some(closure.stack().clone()));
                 self.ip = closure.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
+            Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack.push_frame(self.ip, vec![], None);
                 native.call(
                     self,
@@ -833,7 +835,12 @@ impl<'a> Execution<'a> {
                 self.stack.push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
             }
             Instruction::Call(arity) => {
-                self.call(arity as usize)?;
+                let arguments = self
+                    .stack
+                    .pop_n(arity as usize)
+                    .map_err(|k| self.error(k))?;
+                let callable = self.stack_pop()?;
+                self.call_internal(callable, arguments)?;
             }
             Instruction::Become(arity) => {
                 self.r#become(arity as usize)?;

@@ -1,10 +1,10 @@
-use crate::{location::Location, NativeModule};
+use crate::location::Location;
 use std::collections::HashMap;
 use trilogy_vm::{ChunkBuilder, ChunkWriter, Native, Program, Value};
 
 pub(super) struct AsmProgram<'a> {
     pub source: &'a str,
-    pub libraries: &'a HashMap<Location, NativeModule>,
+    pub libraries: &'a HashMap<Location, Native>,
 }
 
 impl Program for AsmProgram<'_> {
@@ -21,7 +21,7 @@ impl Program for AsmProgram<'_> {
         };
         if let Some(lib) = self.libraries.get(&location) {
             chunk
-                .constant(Native::from(lib.clone()))
+                .constant(lib.clone())
                 .instruction(trilogy_vm::Instruction::Return);
         } else {
             chunk.entrypoint_existing(&format!("location:{}", location));

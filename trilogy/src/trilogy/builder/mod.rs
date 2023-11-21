@@ -3,11 +3,12 @@ use crate::stdlib;
 
 use super::{Source, Trilogy};
 use crate::location::Location;
-use crate::{Cache, FileSystemCache, NativeModule, NoopCache};
+use crate::{Cache, FileSystemCache, NoopCache};
 use home::home_dir;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use trilogy_vm::Native;
 
 mod analyzer;
 mod converter;
@@ -25,7 +26,7 @@ use report::ReportBuilder;
 /// you will be using this Builder to provide those.
 pub struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
-    native_modules: HashMap<Location, NativeModule>,
+    native_modules: HashMap<Location, Native>,
     source_modules: HashMap<Location, String>,
     is_library: bool,
     cache: C,
@@ -49,37 +50,7 @@ impl Builder<FileSystemCache> {
                 FileSystemCache::new(home)
                     .expect("canonical cache dir ~/.trilogy/cache is occupied"),
             )
-            .native_module(Location::library("io/native").unwrap(), stdlib::io())
-            .source_module(
-                Location::library("io").unwrap(),
-                include_str!("../../stdlib/io.tri").to_owned(),
-            )
-            .native_module(Location::library("str/native").unwrap(), stdlib::str())
-            .source_module(
-                Location::library("str").unwrap(),
-                include_str!("../../stdlib/str.tri").to_owned(),
-            )
-            .native_module(Location::library("num/native").unwrap(), stdlib::num())
-            .source_module(
-                Location::library("num").unwrap(),
-                include_str!("../../stdlib/num.tri").to_owned(),
-            )
-            .source_module(
-                Location::library("array").unwrap(),
-                include_str!("../../stdlib/array.tri").to_owned(),
-            )
-            .source_module(
-                Location::library("tuple").unwrap(),
-                include_str!("../../stdlib/tuple.tri").to_owned(),
-            )
-            .source_module(
-                Location::library("set").unwrap(),
-                include_str!("../../stdlib/set.tri").to_owned(),
-            )
-            .source_module(
-                Location::library("record").unwrap(),
-                include_str!("../../stdlib/record.tri").to_owned(),
-            )
+            .map(stdlib::apply)
     }
 }
 
@@ -108,11 +79,15 @@ impl Builder<NoopCache> {
 }
 
 impl<C: Cache> Builder<C> {
+    fn map(self, f: impl FnOnce(Self) -> Self) -> Self {
+        f(self)
+    }
+
     /// Adds a native module to this builder as a library.
     ///
     /// The location describes how Trilogy code should reference this module.
-    pub fn native_module(mut self, location: Location, library: NativeModule) -> Self {
-        self.native_modules.insert(location, library);
+    pub fn native_module<N: Into<Native>>(mut self, location: Location, library: N) -> Self {
+        self.native_modules.insert(location, library.into());
         self
     }
 
