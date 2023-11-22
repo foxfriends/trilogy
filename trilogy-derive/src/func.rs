@@ -1,6 +1,6 @@
 use quote::{format_ident, quote, ToTokens};
 use syn::punctuated::Punctuated;
-use syn::{Fields, Item, ItemStruct, Token};
+use syn::{Fields, FnArg, Item, ItemFn, ItemStruct, Token};
 
 use crate::Argument;
 
@@ -8,13 +8,12 @@ type Options = Punctuated<Argument, Token![,]>;
 
 pub(crate) fn impl_attr(item: Item, options: Options) -> syn::Result<proc_macro2::TokenStream> {
     match item {
-        Item::Struct(module) => impl_struct(module, options),
-        _ => {
-            return Err(syn::Error::new_spanned(
-                item,
-                "the `#[func]` attribute may only be used on struct or fn items",
-            ));
-        }
+        Item::Struct(item) => impl_struct(item, options),
+        Item::Fn(item) => impl_fn(item, options),
+        _ => Err(syn::Error::new_spanned(
+            item,
+            "the `#[func]` attribute may only be used on struct or fn items",
+        )),
     }
 }
 
@@ -69,7 +68,7 @@ fn impl_struct(module: ItemStruct, options: Options) -> syn::Result<proc_macro2:
                 let runtime = #trilogy::Runtime::new(runtime);
                 let module_function = runtime.function_closure::<_, #arity>(|rt, input| {
                     let mut input = input.into_iter();
-                    rt.r#return(#trilogy_vm::Native::from(#name(#(#inputs),*)))
+                    rt.r#return(#name(#(#inputs),*))
                 });
                 let arg = runtime.unlock_function(input)?;
                 runtime.apply_function(module_function, arg, |rt, v| {
@@ -77,7 +76,60 @@ fn impl_struct(module: ItemStruct, options: Options) -> syn::Result<proc_macro2:
                 })
             }
 
-            fn arity(&self) -> usize { #arity + 1 }
+            fn arity(&self) -> usize { 2 }
+        }
+    })
+}
+
+pub(crate) fn impl_fn(
+    function: ItemFn,
+    options: Punctuated<Argument, Token![,]>,
+) -> syn::Result<proc_macro2::TokenStream> {
+    let trilogy = options
+        .iter()
+        .find_map(|arg| arg.crate_name())
+        .map(|id| quote! { #id })
+        .unwrap_or_else(|| quote! { trilogy });
+    let trilogy_vm = options
+        .iter()
+        .find_map(|arg| arg.vm_crate_name())
+        .map(|id| quote! { #id })
+        .unwrap_or_else(|| quote! { trilogy_vm });
+
+    let name = &function.sig.ident;
+    let vis = &function.vis;
+    let arity = function.sig.inputs.len() - 1;
+    if function.sig.receiver().is_some() {
+        return Ok(quote! {#function});
+    }
+
+    let inputs = function.sig.inputs.iter().skip(1).map(|param| match param {
+        FnArg::Typed(..) => quote! { inputs.next().unwrap() },
+        _ => unreachable!(),
+    });
+
+    Ok(quote! {
+        #[doc(hidden)]
+        #[allow(non_camel_case_types)]
+        #vis struct #name;
+
+        impl #trilogy::NativeFunction for #name {
+            fn call(&mut self, runtime: &mut #trilogy_vm::Execution, input: std::vec::Vec<#trilogy_vm::Value>) -> std::result::Result<(), #trilogy_vm::Error> {
+                let runtime = #trilogy::Runtime::new(runtime);
+                let module_function = runtime.function_closure::<_, #arity>(|rt, input| {
+                    let mut inputs = input.into_iter();
+                    #name(rt, #(#inputs),*)
+                });
+                let arg = runtime.unlock_function(input)?;
+
+                #function
+
+                runtime.apply_function(module_function, arg, |rt, v| {
+                    rt.r#return(v)
+                })
+            }
+
+            fn arity(&self) -> usize { 2 }
         }
     })
 }

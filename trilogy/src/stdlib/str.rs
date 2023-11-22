@@ -4,7 +4,7 @@ pub mod str {
 
     /// Converts a value to its string representation. This is the same representation
     /// that is used when printing the value with `print`.
-    #[trilogy_derive::proc(crate_name=crate)]
+    #[trilogy_derive::func(crate_name=crate)]
     pub fn cast(rt: Runtime, value: Value) -> Result<()> {
         match value {
             Value::String(s) => rt.r#return(s),

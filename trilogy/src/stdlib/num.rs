@@ -2,7 +2,7 @@
 pub mod num {
     use crate::{Number, Result, Runtime, Value};
 
-    #[trilogy_derive::proc(crate_name=crate)]
+    #[trilogy_derive::func(crate_name=crate)]
     pub fn cast(rt: Runtime, value: Value) -> Result<()> {
         let nan = rt.atom("NAN");
         match value {
@@ -20,7 +20,7 @@ pub mod num {
         }
     }
 
-    #[trilogy_derive::proc(crate_name=crate)]
+    #[trilogy_derive::func(crate_name=crate)]
     pub fn im(rt: Runtime, value: Value) -> Result<()> {
         let nan = rt.atom("NAN");
         match value {
@@ -29,7 +29,7 @@ pub mod num {
         }
     }
 
-    #[trilogy_derive::proc(crate_name=crate)]
+    #[trilogy_derive::func(crate_name=crate)]
     pub fn re(rt: Runtime, value: Value) -> Result<()> {
         let nan = rt.atom("NAN");
         match value {

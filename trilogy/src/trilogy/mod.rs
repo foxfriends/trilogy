@@ -1,4 +1,4 @@
-use crate::location::Location;
+use crate::{location::Location, RuntimeError};
 use std::collections::HashMap;
 use std::path::Path;
 use trilogy_ir::ir::Module;
@@ -6,15 +6,11 @@ use trilogy_vm::{Atom, Chunk, ChunkError, Native, Value, VirtualMachine};
 
 mod asm_program;
 mod builder;
-mod runtime;
-mod runtime_error;
 mod test_reporter;
 mod trilogy_program;
 mod trilogy_test;
 
 pub use builder::{Builder, Report};
-pub use runtime::Runtime;
-pub use runtime_error::RuntimeError;
 pub use test_reporter::{TestDescription, TestReporter};
 
 use asm_program::AsmProgram;

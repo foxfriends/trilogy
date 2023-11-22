@@ -11,19 +11,19 @@ module native at "trilogy:num/native"
 ##
 ## When the conversion is not possible (for other types, or the string
 ## does not represent a valid number) yields `'NAN`.
-func cast n = native::cast!(n)
+const cast = native::cast
 export cast
 
 ## Returns the magnitude of the imaginary portion of a number, discarding the real part.
-func im n = native::im!(n)
+const im = native::im
 export im
 
 ## Returns the real portion of a number, discarding any imaginary part.
-func re n = native::re!(n)
+const re = native::re
 export re
 
 ## Returns the real and imaginary parts of a number as a tuple of real numbers.
-func parts n = native::re!(n):native::im!(n)
+func parts n = (native::re n) : (native::im n)
 export parts
 
 ## Returns the absolute value of a number

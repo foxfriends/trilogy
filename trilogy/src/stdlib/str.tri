@@ -1,7 +1,7 @@
 module native at "trilogy:str/native"
 
 ## Converts a value to a string.
-func cast n = native::cast!(n)
+const cast = native::cast
 export cast
 
 test "cast converts numbers to string" {

@@ -1,7 +1,17 @@
+mod callback;
+mod curried_callback;
+mod native_method;
+mod native_module;
+mod runtime_error;
+
+pub use native_method::*;
+pub use native_module::*;
+pub use runtime_error::*;
+
+use callback::Callback;
+use curried_callback::CurriedCallback;
 use trilogy_codegen::YIELD;
-use trilogy_vm::{
-    Atom, ErrorKind, Execution, InternalRuntimeError, Native, NativeFunction, Struct, Tuple, Value,
-};
+use trilogy_vm::{Atom, ErrorKind, InternalRuntimeError, Native, Struct, Tuple, Value};
 
 /// A handle to the Trilogy language ex, allowing native functions written
 /// in Rust to interact effectively with the running Trilogy program.
@@ -129,24 +139,7 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
     where
         F: FnMut(Runtime, [Value; N]) -> crate::Result<()> + Sync + Send + 'static,
     {
-        struct Callback<F, const N: usize>(F);
-
-        impl<F, const N: usize> NativeFunction for Callback<F, N>
-        where
-            F: FnMut(Runtime, [Value; N]) -> crate::Result<()> + Sync + Send + 'static,
-        {
-            fn arity(&self) -> usize {
-                N
-            }
-
-            fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> crate::Result<()> {
-                let runtime = Runtime::new(ex);
-                let input = runtime.unlock_procedure(input)?;
-                self.0(runtime, input)
-            }
-        }
-
-        Value::from(Native::from(Callback(cb)))
+        Value::from(Native::from(Callback::new(cb)))
     }
 
     /// Construct a Trilogy function closure (e.g. `fn()`) from a Rust closure.
@@ -154,7 +147,7 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
     where
         F: FnMut(Runtime, [Value; N]) -> crate::Result<()> + Sync + Send + Clone + 'static,
     {
-        Value::from(Native::from(CurriedCallback::<F, N>(cb, vec![])))
+        Value::from(Native::from(CurriedCallback::<F, N>::new(cb)))
     }
 
     /// Apply a value that is expected to be a function.
@@ -173,30 +166,6 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
                     })
             }
             value => Err(self.runtime_type_error(value)),
-        }
-    }
-}
-
-#[derive(Clone)]
-struct CurriedCallback<F, const N: usize>(F, Vec<Value>);
-
-impl<F, const N: usize> NativeFunction for CurriedCallback<F, N>
-where
-    F: FnMut(Runtime, [Value; N]) -> crate::Result<()> + Sync + Send + Clone + 'static,
-{
-    fn arity(&self) -> usize {
-        2
-    }
-
-    fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), trilogy_vm::Error> {
-        let runtime = Runtime::new(ex);
-        let input = runtime.unlock_function(input)?;
-        let mut next = self.clone();
-        next.1.push(input);
-        if next.1.len() == N {
-            next.0(runtime, next.1.try_into().unwrap())
-        } else {
-            runtime.r#return(Native::from(next))
         }
     }
 }

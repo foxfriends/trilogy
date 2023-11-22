@@ -26,14 +26,10 @@ pub(crate) fn impl_attr(
 
     let name = &function.sig.ident;
     let vis = &function.vis;
-    let attrs = &function.attrs;
     let arity = function.sig.inputs.len() - 1;
-    let mut errors = vec![];
 
-    if matches!(function.sig.inputs.first(), Some(FnArg::Receiver(..))) {
-        errors.push(quote! {
-            compile_error!("a fn item used with this attribute may not have a receiver");
-        });
+    if function.sig.receiver().is_some() {
+        return Ok(quote! {#function});
     }
 
     let inputs = function.sig.inputs.iter().skip(1).map(|param| match param {
@@ -42,10 +38,8 @@ pub(crate) fn impl_attr(
     });
 
     Ok(quote! {
-        #(#errors)*
-
+        #[doc(hidden)]
         #[allow(non_camel_case_types)]
-        #(#attrs)*
         #vis struct #name;
 
         impl #trilogy::NativeFunction for #name {
@@ -53,7 +47,9 @@ pub(crate) fn impl_attr(
                 let runtime = #trilogy::Runtime::new(runtime);
                 let input = runtime.unlock_procedure::<#arity>(input)?;
                 let mut input = input.into_iter();
+
                 #function
+
                 #name(runtime, #(#inputs),*)
             }
 

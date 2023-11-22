@@ -35,13 +35,15 @@ pub use trilogy_vm::runtime::*;
 
 mod cache;
 mod location;
-mod native_module;
+mod runtime;
 pub(crate) mod trilogy;
 
 pub use cache::{Cache, FileSystemCache, NoopCache};
 pub use location::Location;
-pub use native_module::{NativeModule, NativeModuleBuilder};
-pub use trilogy::{Builder, Report, Runtime, RuntimeError, TestDescription, TestReporter, Trilogy};
+pub use runtime::{
+    NativeMethod, NativeMethodFn, NativeModule, NativeModuleBuilder, Runtime, RuntimeError,
+};
+pub use trilogy::{Builder, Report, TestDescription, TestReporter, Trilogy};
 
 /// The result type to use for native functions.
 pub type Result<T> = std::result::Result<T, trilogy_vm::Error>;

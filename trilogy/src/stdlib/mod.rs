@@ -1,4 +1,4 @@
-#![allow(clippy::module_inception)]
+#![allow(clippy::module_inception, clippy::wrong_self_convention)]
 
 mod io;
 mod num;
@@ -54,7 +54,12 @@ where
 
     #[cfg(feature = "regex")]
     {
-        builder = builder.native_module(Location::library("regex").unwrap(), regex);
+        builder = builder
+            .native_module(Location::library("regex/native").unwrap(), regex())
+            .source_module(
+                Location::library("regex").unwrap(),
+                include_str!("./regex.tri").to_owned(),
+            );
     }
 
     builder
