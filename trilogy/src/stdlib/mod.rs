@@ -1,5 +1,6 @@
 #![allow(clippy::module_inception, clippy::wrong_self_convention)]
 
+mod bits;
 mod io;
 mod num;
 mod str;
@@ -9,10 +10,6 @@ mod regex;
 #[cfg(feature = "regex")]
 pub use regex::*;
 
-pub use io::*;
-pub use num::*;
-pub use str::*;
-
 use crate::{Builder, Cache, Location};
 
 pub(crate) fn apply<C>(builder: Builder<C>) -> Builder<C>
@@ -20,20 +17,25 @@ where
     C: Cache,
 {
     let mut builder = builder
-        .native_module(Location::library("io/native").unwrap(), io())
+        .native_module(Location::library("io/native").unwrap(), io::io())
         .source_module(
             Location::library("io").unwrap(),
             include_str!("./io.tri").to_owned(),
         )
-        .native_module(Location::library("str/native").unwrap(), str())
+        .native_module(Location::library("str/native").unwrap(), str::str())
         .source_module(
             Location::library("str").unwrap(),
             include_str!("./str.tri").to_owned(),
         )
-        .native_module(Location::library("num/native").unwrap(), num())
+        .native_module(Location::library("num/native").unwrap(), num::num())
         .source_module(
             Location::library("num").unwrap(),
             include_str!("./num.tri").to_owned(),
+        )
+        .native_module(Location::library("bits/native").unwrap(), bits::bits())
+        .source_module(
+            Location::library("bits").unwrap(),
+            include_str!("./bits.tri").to_owned(),
         )
         .source_module(
             Location::library("array").unwrap(),

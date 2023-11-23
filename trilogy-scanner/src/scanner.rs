@@ -1,6 +1,6 @@
 use super::token::Token;
 use crate::TokenType::{self, *};
-use bitvec::vec::BitVec;
+use bitvec::prelude::*;
 use num::{BigInt, BigRational, Complex, Num, Zero};
 use peekmore::{PeekMore, PeekMoreIterator};
 use source_span::{DefaultMetrics, Span};
@@ -64,12 +64,12 @@ where
 enum Numberlike {
     Complete(BigInt),
     Incomplete(BigInt),
-    Bits(BitVec),
+    Bits(BitVec<usize, Msb0>),
 }
 
 enum BitsOrNumber<T> {
     Number(T),
-    Bits(BitVec),
+    Bits(BitVec<usize, Msb0>),
 }
 
 impl<'a> Scanner<'a> {
@@ -295,6 +295,7 @@ impl<'a> Scanner<'a> {
         let mut value = String::new();
         while let Some(ch) = self.expect('0'..='9') {
             value.push(ch);
+            while self.expect('_').is_some() {}
         }
         let num = BigInt::from_str_radix(&value, 10).unwrap();
         if num == BigInt::zero() {
@@ -307,6 +308,7 @@ impl<'a> Scanner<'a> {
     fn decimal(&mut self, mut value: String) -> BigInt {
         while let Some(ch) = self.expect('0'..='9') {
             value.push(ch);
+            while self.expect('_').is_some() {}
         }
         BigInt::from_str_radix(&value, 10).unwrap()
     }
@@ -315,6 +317,7 @@ impl<'a> Scanner<'a> {
         let mut value = String::new();
         while let Some(ch) = self.expect('0'..='1') {
             value.push(ch);
+            while self.expect('_').is_some() {}
         }
         BigInt::from_str_radix(&value, 2).unwrap()
     }
@@ -323,6 +326,7 @@ impl<'a> Scanner<'a> {
         let mut value = String::new();
         while let Some(ch) = self.expect('0'..='7') {
             value.push(ch);
+            while self.expect('_').is_some() {}
         }
         BigInt::from_str_radix(&value, 8).unwrap()
     }
@@ -331,35 +335,39 @@ impl<'a> Scanner<'a> {
         let mut value = String::new();
         while let Some(ch) = self.expect(|ch: char| ch.is_ascii_hexdigit()) {
             value.push(ch);
+            while self.expect('_').is_some() {}
         }
         BigInt::from_str_radix(&value, 16).unwrap()
     }
 
-    fn bits_binary(&mut self) -> BitVec {
+    fn bits_binary(&mut self) -> BitVec<usize, Msb0> {
         let mut value = BitVec::new();
         while let Some(ch) = self.expect('0'..='1') {
             value.push(ch == '1');
+            while self.expect('_').is_some() {}
         }
         value
     }
 
-    fn bits_octal(&mut self) -> BitVec {
+    fn bits_octal(&mut self) -> BitVec<usize, Msb0> {
         let mut value = BitVec::new();
         while let Some(ch) = self.expect('0'..='7') {
             value.push(hex_to_u32(ch) & 0b100 > 0);
             value.push(hex_to_u32(ch) & 0b010 > 0);
             value.push(hex_to_u32(ch) & 0b001 > 0);
+            while self.expect('_').is_some() {}
         }
         value
     }
 
-    fn bits_hexadecimal(&mut self) -> BitVec {
+    fn bits_hexadecimal(&mut self) -> BitVec<usize, Msb0> {
         let mut value = BitVec::new();
         while let Some(ch) = self.expect(|ch: char| ch.is_ascii_hexdigit()) {
             value.push(hex_to_u32(ch) & 0b1000 > 0);
             value.push(hex_to_u32(ch) & 0b0100 > 0);
             value.push(hex_to_u32(ch) & 0b0010 > 0);
             value.push(hex_to_u32(ch) & 0b0001 > 0);
+            while self.expect('_').is_some() {}
         }
         value
     }

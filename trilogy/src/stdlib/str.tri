@@ -41,6 +41,7 @@ test "cast converts character to string" {
 
 test "cast converts bits to string" {
     assert cast 0bb1100 == "1100"
+    assert cast 0bb == ""
 }
 
 test "cast converts array to string" {

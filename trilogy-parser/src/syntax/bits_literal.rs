@@ -1,6 +1,6 @@
 use super::*;
 use crate::Parser;
-use bitvec::vec::BitVec;
+use bitvec::prelude::*;
 use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -16,7 +16,7 @@ impl BitsLiteral {
         Ok(Self { token })
     }
 
-    pub fn value(&self) -> BitVec {
+    pub fn value(&self) -> BitVec<usize, Msb0> {
         let TokenValue::Bits(bits) = self.token.value.as_ref().unwrap() else {
             unreachable!()
         };

@@ -4,6 +4,7 @@ use super::callable::{Continuation, Native, Procedure};
 use super::{
     Array, Atom, Bits, Callable, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple,
 };
+use bitvec::prelude::*;
 use num::ToPrimitive;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
@@ -592,7 +593,7 @@ impl_from!(<HashMap<Value, Value>> for Record via Record);
 impl_from!(<HashSet<Value>> for Set via Set);
 impl_from!(<Vec<Value>> for Array via Array);
 impl_from!(<Vec<bool>> for Bits via Bits);
-impl_from!(<bitvec::vec::BitVec> for Bits via Bits);
+impl_from!(<BitVec<usize, Msb0>> for Bits via Bits);
 impl_from!(<&str> for String via String);
 impl_from!(<&String> for String via String);
 impl_from!(<usize> for Number via Number);

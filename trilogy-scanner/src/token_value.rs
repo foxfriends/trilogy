@@ -1,4 +1,4 @@
-use bitvec::vec::BitVec;
+use bitvec::prelude::*;
 use num::{rational::BigRational, Complex};
 
 /// The raw value a token represents.
@@ -24,7 +24,7 @@ pub enum TokenValue {
     /// A number value, having been parsed and converted to an actual number.
     Number(Box<Complex<BigRational>>),
     /// A bits value, having been parsed into an actual binary sequence.
-    Bits(BitVec),
+    Bits(BitVec<usize, Msb0>),
 }
 
 impl TokenValue {
@@ -72,8 +72,8 @@ impl From<Complex<BigRational>> for TokenValue {
     }
 }
 
-impl From<BitVec> for TokenValue {
-    fn from(value: BitVec) -> Self {
+impl From<BitVec<usize, Msb0>> for TokenValue {
+    fn from(value: BitVec<usize, Msb0>) -> Self {
         Self::Bits(value)
     }
 }
