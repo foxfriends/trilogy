@@ -212,3 +212,9 @@ impl FromStr for Number {
         Ok(Self(s.parse()?))
     }
 }
+
+impl From<Number> for Complex<BigRational> {
+    fn from(value: Number) -> Self {
+        value.0
+    }
+}

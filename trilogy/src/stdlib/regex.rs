@@ -1,8 +1,9 @@
 #[trilogy_derive::module(crate_name=crate)]
 pub mod regex {
     use crate::Runtime;
+    use regex::RegexBuilder;
     use std::collections::HashMap;
-    use trilogy_vm::Value;
+    use trilogy_vm::{Array, Value};
 
     #[derive(Clone)]
     pub struct Regex(::regex::Regex);
@@ -11,47 +12,66 @@ pub mod regex {
     impl Regex {
         #[trilogy_derive::func(crate_name=crate)]
         fn is_match(self, rt: Runtime, value: Value) -> crate::Result<()> {
-            match &value {
-                Value::String(string) => rt.r#return(self.0.is_match(string)),
-                _ => Err(rt.runtime_type_error(value)),
-            }
+            let value = rt.typecheck::<String>(value)?;
+            rt.r#return(self.0.is_match(&value))
         }
 
         #[trilogy_derive::func(crate_name=crate)]
         fn matches(self, rt: Runtime, value: Value) -> crate::Result<()> {
-            match &value {
-                Value::String(string) => {
-                    let Some(captures) = self.0.captures(string) else {
-                        let atom = rt.atom("NoMatch");
-                        return rt.r#yield(atom, |rt, val| rt.r#return(val));
-                    };
-                    let captures = self.0.capture_names().enumerate().fold(
-                        HashMap::<Value, Value>::new(),
-                        |mut map, (i, name)| {
-                            if let Some(capture) = captures.get(i) {
-                                map.insert(i.into(), capture.clone().as_str().into());
-                                if let Some(name) = name {
-                                    map.insert(name.into(), capture.clone().as_str().into());
-                                }
-                            }
-                            map
-                        },
-                    );
-                    rt.r#return(captures)
-                }
-                _ => Err(rt.runtime_type_error(value)),
+            let string = rt.typecheck::<String>(value)?;
+            let Some(captures) = self.0.captures(&string) else {
+                let atom = rt.atom("NoMatch");
+                return rt.r#yield(atom, |rt, val| rt.r#return(val));
+            };
+            let captures = self.0.capture_names().enumerate().fold(
+                HashMap::<Value, Value>::new(),
+                |mut map, (i, name)| {
+                    if let Some(capture) = captures.get(i) {
+                        map.insert(i.into(), capture.clone().as_str().into());
+                        if let Some(name) = name {
+                            map.insert(name.into(), capture.clone().as_str().into());
+                        }
+                    }
+                    map
+                },
+            );
+            rt.r#return(captures)
+        }
+    }
+
+    fn construct(rt: Runtime, builder: &RegexBuilder) -> crate::Result<()> {
+        match builder.build() {
+            Ok(regex) => rt.r#return(Regex(regex)),
+            Err(::regex::Error::Syntax(value)) => {
+                Err(rt.runtime_error(rt.r#struct("SyntaxError", value)))
             }
+            Err(..) => Err(rt.runtime_error(rt.atom("RegexError"))),
         }
     }
 
     #[trilogy_derive::func(crate_name=crate)]
-    pub fn regex(rt: Runtime, value: Value) -> crate::Result<()> {
-        match &value {
-            Value::String(string) => match ::regex::Regex::new(string) {
-                Ok(regex) => rt.r#return(Regex(regex)),
-                Err(..) => Err(rt.runtime_type_error(value)),
-            },
-            _ => Err(rt.runtime_type_error(value)),
-        }
+    pub fn new(rt: Runtime, flags: Value, pattern: Value) -> crate::Result<()> {
+        let pattern = rt.typecheck::<String>(pattern)?;
+        let flags = rt.typecheck::<Array>(flags)?;
+        let mut builder = ::regex::RegexBuilder::new(&pattern);
+        let builder = flags
+            .into_iter()
+            .try_fold(builder.octal(true), |rx, opt| match opt {
+                Value::Atom(atom) if atom.as_ref() == "i" => Ok(rx.case_insensitive(true)),
+                Value::Atom(atom) if atom.as_ref() == "m" => Ok(rx.multi_line(true)),
+                Value::Atom(atom) if atom.as_ref() == "s" => Ok(rx.dot_matches_new_line(true)),
+                Value::Atom(atom) if atom.as_ref() == "x" => Ok(rx.ignore_whitespace(true)),
+                Value::Atom(atom) if atom.as_ref() == "u" => Ok(rx.unicode(true)),
+                Value::Atom(atom) if atom.as_ref() == "U" => Ok(rx.swap_greed(true)),
+                Value::Atom(atom) if atom.as_ref() == "R" => Ok(rx.crlf(true)),
+                Value::Struct(opt) if opt.name().as_ref() == "n" => {
+                    let ch: char = opt.into_value().try_into()?;
+                    let ch = ch as u8;
+                    Ok(rx.line_terminator(ch))
+                }
+                _ => Err(opt),
+            })
+            .map_err(|_| rt.runtime_type_error(flags))?;
+        construct(rt, builder)
     }
 }

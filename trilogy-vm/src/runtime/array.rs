@@ -331,6 +331,12 @@ impl From<Vec<Value>> for Array {
     }
 }
 
+impl From<Array> for Vec<Value> {
+    fn from(value: Array) -> Self {
+        (*value.0.lock().unwrap()).clone()
+    }
+}
+
 impl FromIterator<Value> for Array {
     fn from_iter<T: IntoIterator<Item = Value>>(iter: T) -> Self {
         Self::from(Vec::from_iter(iter))

@@ -104,3 +104,15 @@ impl From<HashSet<Value>> for Set {
         Self(Arc::new(Mutex::new(set)))
     }
 }
+
+impl From<Set> for HashSet<Value> {
+    fn from(value: Set) -> Self {
+        (*value.0.lock().unwrap()).clone()
+    }
+}
+
+impl FromIterator<Value> for Set {
+    fn from_iter<T: IntoIterator<Item = Value>>(iter: T) -> Self {
+        Self::from(HashSet::from_iter(iter))
+    }
+}

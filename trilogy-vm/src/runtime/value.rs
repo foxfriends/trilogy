@@ -632,3 +632,46 @@ where
         Self::Tuple(Tuple::from(value))
     }
 }
+
+macro_rules! impl_into {
+    (<$intoty:ty> via $variant:ident) => {
+        impl TryFrom<Value> for $intoty {
+            type Error = Value;
+
+            fn try_from(value: Value) -> Result<Self, Self::Error> {
+                match value {
+                    Value::$variant(into) => Ok(into.into()),
+                    value => Err(value),
+                }
+            }
+        }
+    };
+}
+
+impl_into!(<String> via String);
+impl_into!(<Number> via Number);
+impl_into!(<char> via Char);
+impl_into!(<bool> via Bool);
+impl_into!(<Bits> via Bits);
+impl_into!(<Atom> via Atom);
+impl_into!(<Struct> via Struct);
+impl_into!(<Set> via Set);
+impl_into!(<Record> via Record);
+impl_into!(<Array> via Array);
+impl_into!(<Tuple> via Tuple);
+impl_into!(<Callable> via Callable);
+impl_into!(<Vec<Value>> via Array);
+impl_into!(<HashMap<Value, Value>> via Record);
+impl_into!(<HashSet<Value>> via Set);
+impl_into!(<num::Complex<num::BigRational>> via Number);
+
+impl TryFrom<Value> for () {
+    type Error = Value;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Unit => Ok(()),
+            value => Err(value),
+        }
+    }
+}

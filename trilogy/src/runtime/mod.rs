@@ -34,34 +34,34 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
         self.0.atom(tag)
     }
 
+    pub fn r#struct<V: Into<Value>>(&self, tag: &str, value: V) -> Struct {
+        Struct::new(self.0.atom(tag), value.into())
+    }
+
     pub fn atom_anon(&self, tag: &str) -> Atom {
         self.0.atom_anon(tag)
     }
 
-    pub fn runtime_type_error(&self, value: Value) -> trilogy_vm::Error {
-        let atom = self.atom("RuntimeTypeError");
-        let value = Struct::new(atom, value).into();
-        self.0.error(ErrorKind::RuntimeError(value))
+    pub fn runtime_error<V: Into<Value>>(&self, value: V) -> trilogy_vm::Error {
+        self.0.error(ErrorKind::RuntimeError(value.into()))
+    }
+
+    pub fn runtime_type_error<V: Into<Value>>(&self, value: V) -> trilogy_vm::Error {
+        self.runtime_error(self.r#struct("RuntimeTypeError", value))
     }
 
     pub fn incorrect_arity(&self, arity: usize) -> trilogy_vm::Error {
-        let atom = self.atom("IncorrectArity");
-        let err_value = Struct::new(atom, arity);
-        self.0.error(ErrorKind::RuntimeError(err_value.into()))
+        self.runtime_error(self.r#struct("IncorrectArity", arity))
     }
 
     pub fn unresolved_import(&self, atom: Atom, symbols: Vec<Value>) -> trilogy_vm::Error {
-        let err_value = Struct::new(
-            self.atom("UnresolvedImport"),
-            Tuple::new(atom.into(), symbols.into()),
-        );
-        self.0.error(ErrorKind::RuntimeError(err_value.into()))
+        self.runtime_error(
+            self.r#struct("UnresolvedImport", Tuple::new(atom.into(), symbols.into())),
+        )
     }
 
     pub fn invalid_call(&self, call_type: Atom) -> trilogy_vm::Error {
-        let atom = self.atom("InvalidCall");
-        let err_value = Struct::new(atom, call_type);
-        self.0.error(ErrorKind::RuntimeError(err_value.into()))
+        self.runtime_error(self.r#struct("InvalidCall", call_type))
     }
 
     fn unlock(&self, call_type: &str, arity: usize, args: &[Value]) -> crate::Result<()> {
@@ -167,5 +167,14 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
             }
             value => Err(self.runtime_type_error(value)),
         }
+    }
+
+    pub fn typecheck<T>(&self, value: Value) -> crate::Result<T>
+    where
+        Value: TryInto<T, Error = Value>,
+    {
+        value
+            .try_into()
+            .map_err(|value| self.runtime_type_error(value))
     }
 }

@@ -293,6 +293,12 @@ impl From<HashMap<Value, Value>> for Record {
     }
 }
 
+impl From<Record> for HashMap<Value, Value> {
+    fn from(value: Record) -> Self {
+        (*value.0.lock().unwrap()).clone()
+    }
+}
+
 impl FromIterator<(Value, Value)> for Record {
     fn from_iter<T: IntoIterator<Item = (Value, Value)>>(iter: T) -> Self {
         Self::from(HashMap::from_iter(iter))

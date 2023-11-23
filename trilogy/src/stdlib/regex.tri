@@ -1,21 +1,23 @@
 module native at "trilogy:regex/native"
 
-const regex = native::regex
-export regex
+const flagged = native::new
+const new = native::new []
+export new, flagged
 
 test "regex constructs a native regular expression from a string" {
-    regex "h[eu]llo"
+    new "h[eu]llo"
 }
 
 test "is_match returns true when the string matches, and false otherwise" {
-    let pat = regex "h[eu]llo"
+    let pat = new "h[eu]llo"
     assert pat::is_match "hello"
     assert pat::is_match "hullo"
     assert !(pat::is_match "hallo")
+    assert !(pat::is_match "hElLo")
 }
 
 test "matches returns the captured matches in a record" {
-    let pat = regex "h(?<v>[eu])(llo)"
+    let pat = new "h(?<v>[eu])(llo)"
     let rec = pat::matches "hello"
     assert rec == {|
         0 => "hello",
@@ -23,4 +25,10 @@ test "matches returns the captured matches in a record" {
         "v" => "e",
         2 => "llo",
     |}
+}
+
+test "flagged constructor adds flags that are respected" {
+    let pat = flagged ['i] "h[eu]llo"
+    assert pat::is_match "hElLo"
+    assert !(pat::is_match "hAlLo")
 }
