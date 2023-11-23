@@ -1,5 +1,4 @@
 module native at "trilogy:bits/native"
-module io at "trilogy:io"
 
 const cast = native::cast
 export cast
