@@ -8,6 +8,10 @@ test "regex constructs a native regular expression from a string" {
     new "h[eu]llo"
 }
 
+test not "an invalid regex is a runtime error" {
+    new "\\l"
+}
+
 test "is_match returns true when the string matches, and false otherwise" {
     let pat = new "h[eu]llo"
     assert pat::is_match "hello"
@@ -31,4 +35,8 @@ test "flagged constructor adds flags that are respected" {
     let pat = flagged ['i] "h[eu]llo"
     assert pat::is_match "hElLo"
     assert !(pat::is_match "hAlLo")
+}
+
+test not "invalid flags cause a runtime error" {
+    flagged ['p] "h[eu]llo"
 }

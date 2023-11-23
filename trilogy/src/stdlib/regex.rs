@@ -43,9 +43,11 @@ pub mod regex {
         match builder.build() {
             Ok(regex) => rt.r#return(Regex(regex)),
             Err(::regex::Error::Syntax(value)) => {
-                Err(rt.runtime_error(rt.r#struct("SyntaxError", value)))
+                Err(rt.runtime_error(rt.r#struct("RegexError", value)))
             }
-            Err(..) => Err(rt.runtime_error(rt.atom("RegexError"))),
+            Err(..) => Err(rt.runtime_error(
+                rt.r#struct("RegexError", "failed to safely compile regular expression"),
+            )),
         }
     }
 
@@ -71,7 +73,12 @@ pub mod regex {
                 }
                 _ => Err(opt),
             })
-            .map_err(|_| rt.runtime_type_error(flags))?;
+            .map_err(|er| {
+                rt.runtime_error(rt.r#struct(
+                    "RegexError",
+                    format!("invalid option `{er}` in regex flags"),
+                ))
+            })?;
         construct(rt, builder)
     }
 }
