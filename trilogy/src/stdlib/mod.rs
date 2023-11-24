@@ -3,6 +3,7 @@
 mod array;
 mod atom;
 mod bits;
+mod fs;
 mod io;
 mod num;
 mod str;
@@ -58,6 +59,11 @@ where
         .source_module(
             Location::library("atom").unwrap(),
             include_str!("./atom.tri").to_owned(),
+        )
+        .native_module(Location::library("fs/native").unwrap(), fs::fs())
+        .source_module(
+            Location::library("fs").unwrap(),
+            include_str!("./fs.tri").to_owned(),
         );
 
     #[cfg(feature = "regex")]

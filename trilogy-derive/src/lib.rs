@@ -10,9 +10,10 @@
 //! so it is not likely you will need to install it manually.
 
 use proc_macro::TokenStream;
+use quote::quote;
 use syn::parse::{Parse, ParseStream, Parser};
 use syn::punctuated::Punctuated;
-use syn::{Path, Token};
+use syn::{Attribute, LitStr, Path, Token};
 
 mod func;
 mod module;
@@ -38,7 +39,7 @@ pub(crate) enum Argument {
     Name {
         _crate_token: kw::name,
         _eq_token: Token![=],
-        value: Path,
+        value: LitStr,
     },
 }
 
@@ -57,9 +58,9 @@ impl Argument {
         }
     }
 
-    fn name(&self) -> Option<&Path> {
+    fn name(&self) -> Option<String> {
         match self {
-            Self::Name { value, .. } => Some(value),
+            Self::Name { value, .. } => Some(value.value()),
             _ => None,
         }
     }
@@ -92,6 +93,58 @@ impl Parse for Argument {
     }
 }
 
+struct Options {
+    args: Punctuated<Argument, Token![,]>,
+}
+
+impl Options {
+    fn trilogy(&self) -> proc_macro2::TokenStream {
+        self.args
+            .iter()
+            .find_map(|arg| arg.crate_name())
+            .map(|id| quote! { #id })
+            .unwrap_or_else(|| quote! { trilogy })
+    }
+
+    fn trilogy_vm(&self) -> proc_macro2::TokenStream {
+        self.args
+            .iter()
+            .find_map(|arg| arg.vm_crate_name())
+            .map(|id| quote! { #id })
+            .unwrap_or_else(|| quote! { trilogy_vm })
+    }
+
+    fn name(&self, ident: &syn::Ident) -> proc_macro2::TokenStream {
+        self.args
+            .iter()
+            .find_map(|arg| arg.name())
+            .map(|id| quote! { #id })
+            .unwrap_or_else(|| quote! { stringify!(#ident) })
+    }
+}
+
+impl TryFrom<Attribute> for Options {
+    type Error = syn::Error;
+
+    fn try_from(value: Attribute) -> Result<Self, Self::Error> {
+        Ok(Self {
+            args: value
+                .meta
+                .require_list()?
+                .parse_args_with(Punctuated::parse_terminated)?,
+        })
+    }
+}
+
+impl TryFrom<TokenStream> for Options {
+    type Error = syn::Error;
+
+    fn try_from(value: TokenStream) -> Result<Self, Self::Error> {
+        let args = Punctuated::parse_terminated.parse(value)?;
+        Ok(Self { args })
+    }
+}
+
 /// Constructs a Trilogy native procedure out of a Rust function.
 ///
 /// This is the only safe way to implement the `NativeFunction` trait for your
@@ -116,7 +169,7 @@ pub fn proc(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn module(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = syn::parse(item).unwrap();
-    let args: Punctuated<Argument, Token![,]> = Punctuated::parse_terminated.parse(attr).unwrap();
+    let args = Options::try_from(attr).unwrap();
     module::impl_attr(item, args)
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()

@@ -1,10 +1,6 @@
+use super::Options;
 use quote::quote;
-use syn::punctuated::Punctuated;
-use syn::{
-    AttrStyle, Attribute, FnArg, ImplItem, ImplItemFn, Item, ItemImpl, ItemMod, Meta, Token, Type,
-};
-
-use crate::Argument;
+use syn::{AttrStyle, Attribute, FnArg, ImplItem, ImplItemFn, Item, ItemImpl, ItemMod, Meta, Type};
 
 fn is_proc(attribute: &Attribute) -> bool {
     if !matches!(attribute.style, AttrStyle::Outer) {
@@ -39,8 +35,6 @@ fn is_func(attribute: &Attribute) -> bool {
     }
 }
 
-type Options = Punctuated<Argument, Token![,]>;
-
 pub(crate) fn impl_attr(item: Item, options: Options) -> syn::Result<proc_macro2::TokenStream> {
     match item {
         Item::Mod(module) => impl_module(module, options),
@@ -54,16 +48,8 @@ pub(crate) fn impl_attr(item: Item, options: Options) -> syn::Result<proc_macro2
 
 fn impl_impl(mut module: ItemImpl, options: Options) -> syn::Result<proc_macro2::TokenStream> {
     let self_ty = &module.self_ty;
-    let trilogy = options
-        .iter()
-        .find_map(|arg| arg.crate_name())
-        .map(|id| quote! { #id })
-        .unwrap_or_else(|| quote! { trilogy });
-    let trilogy_vm = options
-        .iter()
-        .find_map(|arg| arg.vm_crate_name())
-        .map(|id| quote! { #id })
-        .unwrap_or_else(|| quote! { trilogy_vm });
+    let trilogy = options.trilogy();
+    let trilogy_vm = options.trilogy_vm();
 
     let native_methods = module
         .items
@@ -88,13 +74,15 @@ fn impl_impl(mut module: ItemImpl, options: Options) -> syn::Result<proc_macro2:
                     .iter()
                     .any(|item| is_proc(item) || is_func(item)) =>
             {
+                let proc_attr = fn_item.attrs.iter().find(|item| is_proc(item) || is_func(item)).unwrap();
+                let name = Options::try_from(proc_attr.clone()).unwrap().name(&fn_item.sig.ident);
+                let fn_name = &fn_item.sig.ident;
                 fn_item
                     .attrs
                     .retain(|attr| !is_func(attr) && !is_proc(attr));
-                let name = &fn_item.sig.ident;
                 if fn_item.sig.receiver().is_some() {
                     Some(quote! {
-                        module = module.add_item(stringify!(#name), #trilogy::NativeMethod::new(value.clone(), #name));
+                        module = module.add_item(#name, #trilogy::NativeMethod::new(value.clone(), #fn_name));
                     })
                 } else {
                     None
@@ -121,11 +109,7 @@ fn impl_impl(mut module: ItemImpl, options: Options) -> syn::Result<proc_macro2:
 }
 
 fn impl_module(module: ItemMod, options: Options) -> syn::Result<proc_macro2::TokenStream> {
-    let trilogy = options
-        .iter()
-        .find_map(|arg| arg.crate_name())
-        .map(|id| quote! { #id })
-        .unwrap_or_else(|| quote! { trilogy });
+    let trilogy = options.trilogy();
 
     let name = &module.ident;
     let vis = &module.vis;
@@ -144,9 +128,17 @@ fn impl_module(module: ItemMod, options: Options) -> syn::Result<proc_macro2::To
                 .iter()
                 .any(|attr| is_proc(attr) || is_func(attr)) =>
         {
+            let proc_attr = fn_item
+                .attrs
+                .iter()
+                .find(|item| is_proc(item) || is_func(item))
+                .unwrap();
+            let tri_name = Options::try_from(proc_attr.clone())
+                .unwrap()
+                .name(&fn_item.sig.ident);
             let fn_name = &fn_item.sig.ident;
             Some(quote! {
-                module = module.add_item(stringify!(#fn_name), #name::#fn_name);
+                module = module.add_item(#tri_name, #name::#fn_name);
             })
         }
         Item::Struct(struct_item)
@@ -186,16 +178,8 @@ fn impl_proc_method(
     self_ty: &Type,
     options: &Options,
 ) -> proc_macro2::TokenStream {
-    let trilogy = options
-        .iter()
-        .find_map(|arg| arg.crate_name())
-        .map(|id| quote! { #id })
-        .unwrap_or_else(|| quote! { trilogy });
-    let trilogy_vm = options
-        .iter()
-        .find_map(|arg| arg.vm_crate_name())
-        .map(|id| quote! { #id })
-        .unwrap_or_else(|| quote! { trilogy_vm });
+    let trilogy = options.trilogy();
+    let trilogy_vm = options.trilogy_vm();
     let fn_name = &fn_item.sig.ident;
     let vis = &fn_item.vis;
     let is_method = fn_item.sig.receiver().is_some();
@@ -211,28 +195,47 @@ fn impl_proc_method(
         });
     let arity = fn_item.sig.inputs.len() - non_value_params;
 
-    quote! {
-        #[doc(hidden)]
-        #[allow(non_camel_case_type)]
-        #vis struct #fn_name;
+    if is_method {
+        quote! {
+            #[doc(hidden)]
+            #[allow(non_camel_case_types)]
+            #vis struct #fn_name;
 
-        impl #trilogy::NativeMethodFn for #fn_name {
-            type SelfType = #self_ty;
+            impl #trilogy::NativeMethodFn for #fn_name {
+                type SelfType = #self_ty;
 
-            fn arity(&self) -> usize {
-                #arity + 1
+                fn arity(&self) -> usize {
+                    #arity + 1
+                }
+
+                fn call(
+                    &mut self,
+                    receiver: &mut Self::SelfType,
+                    ex: &mut #trilogy_vm::Execution,
+                    input: Vec<#trilogy_vm::Value>,
+                ) -> #trilogy::Result<()> {
+                    let runtime = #trilogy::Runtime::new(ex);
+                    let inputs = runtime.unlock_procedure::<#arity>(input)?;
+                    let mut inputs = inputs.into_iter();
+                    Self::SelfType::#fn_name(receiver.clone(), runtime, #(#inputs),*)
+                }
             }
+        }
+    } else {
+        quote! {
+            #[doc(hidden)]
+            #[allow(non_camel_case_types)]
+            #vis struct #fn_name;
 
-            fn call(
-                &mut self,
-                receiver: &mut Self::SelfType,
-                ex: &mut #trilogy_vm::Execution,
-                input: Vec<#trilogy_vm::Value>,
-            ) -> #trilogy::Result<()> {
-                let runtime = #trilogy::Runtime::new(ex);
-                let inputs = runtime.unlock_procedure::<#arity>(input)?;
-                let mut inputs = inputs.into_iter();
-                Self::SelfType::#fn_name(receiver.clone(), runtime, #(#inputs),*)
+            impl #trilogy::NativeFunction for #fn_name {
+                fn call(&mut self, runtime: &mut #trilogy_vm::Execution, mut input: std::vec::Vec<#trilogy_vm::Value>) -> std::result::Result<(), #trilogy_vm::Error> {
+                    let runtime = #trilogy::Runtime::new(runtime);
+                    let input = runtime.unlock_procedure::<#arity>(input)?;
+                    let mut input = input.into_iter();
+                    #self_ty::#fn_name(runtime, #(#inputs),*)
+                }
+
+                fn arity(&self) -> usize { #arity + 1 }
             }
         }
     }
@@ -243,16 +246,8 @@ fn impl_func_method(
     self_ty: &Type,
     options: &Options,
 ) -> proc_macro2::TokenStream {
-    let trilogy = options
-        .iter()
-        .find_map(|arg| arg.crate_name())
-        .map(|id| quote! { #id })
-        .unwrap_or_else(|| quote! { trilogy });
-    let trilogy_vm = options
-        .iter()
-        .find_map(|arg| arg.vm_crate_name())
-        .map(|id| quote! { #id })
-        .unwrap_or_else(|| quote! { trilogy_vm });
+    let trilogy = options.trilogy();
+    let trilogy_vm = options.trilogy_vm();
     let fn_name = &fn_item.sig.ident;
     let vis = &fn_item.vis;
     let is_method = fn_item.sig.receiver().is_some();
