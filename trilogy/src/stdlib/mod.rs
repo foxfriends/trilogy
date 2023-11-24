@@ -1,5 +1,6 @@
 #![allow(clippy::module_inception, clippy::wrong_self_convention)]
 
+mod array;
 mod bits;
 mod io;
 mod num;
@@ -7,8 +8,6 @@ mod str;
 
 #[cfg(feature = "regex")]
 mod regex;
-#[cfg(feature = "regex")]
-pub use regex::*;
 
 use crate::{Builder, Cache, Location};
 
@@ -37,6 +36,7 @@ where
             Location::library("bits").unwrap(),
             include_str!("./bits.tri").to_owned(),
         )
+        .native_module(Location::library("array/native").unwrap(), array::array())
         .source_module(
             Location::library("array").unwrap(),
             include_str!("./array.tri").to_owned(),
@@ -57,7 +57,7 @@ where
     #[cfg(feature = "regex")]
     {
         builder = builder
-            .native_module(Location::library("regex/native").unwrap(), regex())
+            .native_module(Location::library("regex/native").unwrap(), regex::regex())
             .source_module(
                 Location::library("regex").unwrap(),
                 include_str!("./regex.tri").to_owned(),

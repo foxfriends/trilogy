@@ -1,5 +1,34 @@
 module native at "trilogy:str/native"
 
+## Replace all occurrences of needle with replacement in haystack.
+const replace = native::replace
+export replace
+
+test "replace replaces all occurrences" {
+    assert replace 'l' "n" "hello" == "henno"
+    assert replace "ll" "n" "hello" == "heno"
+    assert replace "lll" "ll" "llll" == "lll"
+}
+
+## Replace at most n occurrences of needle with replacement in haystack.
+const replace_n = native::replace_n
+export replace_n
+
+test "replace_n replaces at most n" {
+    assert replace_n 1 'l' "n" "hello" == "henlo"
+    assert replace_n 3 'l' "n" "hello" == "henno"
+    assert replace_n 1 "ll" "n" "hello hello" == "heno hello"
+}
+
+## Returns the length of the string.
+const length = native::length
+export length
+
+test "string length" {
+    assert length "hello" == 5
+    assert length "" == 0
+}
+
 ## Converts a value to a string.
 const cast = native::cast
 export cast
@@ -68,4 +97,36 @@ test "chomp removes only one trailing newline" {
 
 test "chome does not affect the string otherwise" {
     assert chomp "hello\nworld" == "hello\nworld"
+}
+
+## Extracts a slice of a string, given the start character and the number
+## of characters to take. Negative indices are not permitted. Ranges that
+## extend beyond the end of the string simply end at the end of the string.
+const slice = native::slice
+export slice
+
+test "slice can slice" {
+    assert slice 2 3 "hello world" == "llo"
+    assert slice 0 5 "hello world" == "hello"
+    assert slice 10 4 "hello world" == "d"
+}
+
+## Returns the first n characters of a string.
+func take n = slice 0 n
+export take
+
+test "take takes the first n characters" {
+    assert take 3 "hello" == "hel"
+    assert take 6 "hello" == "hello"
+    assert take 0 "hello" == ""
+}
+
+## Skips the first n characters of a string, returning the rest.
+func skip n s = slice n (length s) s
+export skip
+
+test "skip drops the first n characters" {
+    assert skip 3 "hello" == "lo"
+    assert skip 6 "hello" == ""
+    assert skip 0 "hello" == "hello"
 }

@@ -1,3 +1,29 @@
+module native at "trilogy:array/native"
+
+## Returns the length of the array.
+const length = native::length
+export length
+
+test "length returns the length" {
+    assert length [1, 2, 3] == 3
+}
+
+test "length returns the length of an empty array" {
+    assert length [] == 0
+}
+
+## Returns a slice of an array, given the starting index and the number of elements
+## to take. Negative indices are not permitted. A slice that extends beyond the end
+## of the array simply stops at the end of the array.
+const slice = native::slice
+export slice
+
+test "slice can slice" {
+    slice 2 4 [1, 2, 3, 4, 5, 6, 7, 8] == [3, 4, 5, 6]
+    slice 7 4 [1, 2, 3, 4, 5, 6, 7, 8] == [8]
+    slice 0 3 [1, 2, 3, 4, 5, 6, 7, 8] == [1, 2, 3]
+}
+
 ## Creates a new array from the elements of an iterator.
 func from iter = [x for x in iter]
 export from
@@ -158,9 +184,7 @@ test "last yields 'MIA when empty" {
 
 ## Takes the first `n` elements of the array, discarding the rest.
 ## If the array's length is less than `n`, returns the whole array.
-func take _ [] = []
-func take 0 [.._] = []
-func take n [x, ..xs] = [x, ..take (n - 1) xs]
+func take n = slice 0 n
 export take
 
 test "take returns the first `n` elements" {
@@ -181,9 +205,7 @@ test "take can take none" {
 
 ## Skips the first `n` elements of the array, returning the rest.
 ## If the array's length is less than `n`, returns an empty array.
-func skip _ [] = []
-func skip 0 [..xs] = xs
-func skip n [_, ..xs] = skip (n - 1) xs
+func skip n array = slice n (length array) array
 export skip
 
 test "skip drops the first `n` elements" {
@@ -200,19 +222,6 @@ test "skip works on empty arrays" {
 
 test "skip can skip none" {
     assert skip 0 [1, 2] == [1, 2]
-}
-
-## Returns the length of the array.
-func length [] = 0
-func length [_, ..xs] = 1 + length xs
-export length
-
-test "length returns the length" {
-    assert length [1, 2, 3] == 3
-}
-
-test "length returns the length of an empty array" {
-    assert length [] == 0
 }
 
 ## Returns true if the value `x` is contained within the array.

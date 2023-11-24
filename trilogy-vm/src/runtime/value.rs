@@ -647,10 +647,35 @@ macro_rules! impl_into {
             }
         }
     };
+
+    (try <$intoty:ty> via $variant:ident) => {
+        impl TryFrom<Value> for $intoty {
+            type Error = Value;
+
+            fn try_from(value: Value) -> Result<Self, Self::Error> {
+                match value {
+                    Value::$variant(into) => into.try_into().map_err(Value::$variant),
+                    value => Err(value),
+                }
+            }
+        }
+    };
 }
 
 impl_into!(<String> via String);
 impl_into!(<Number> via Number);
+impl_into!(try <usize> via Number);
+impl_into!(try <u8> via Number);
+impl_into!(try <u16> via Number);
+impl_into!(try <u32> via Number);
+impl_into!(try <u64> via Number);
+impl_into!(try <u128> via Number);
+impl_into!(try <isize> via Number);
+impl_into!(try <i8> via Number);
+impl_into!(try <i16> via Number);
+impl_into!(try <i32> via Number);
+impl_into!(try <i64> via Number);
+impl_into!(try <i128> via Number);
 impl_into!(<char> via Char);
 impl_into!(<bool> via Bool);
 impl_into!(<Bits> via Bits);

@@ -1,7 +1,7 @@
 use num::complex::ParseComplexError;
 use num::rational::ParseRatioError;
 use num::traits::Pow;
-use num::{BigInt, BigRational, BigUint, Complex, Zero};
+use num::{BigInt, BigRational, BigUint, Complex, ToPrimitive, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
@@ -218,3 +218,31 @@ impl From<Number> for Complex<BigRational> {
         value.0
     }
 }
+
+macro_rules! into_integer {
+    (<$t:ty> via $f:ident) => {
+        impl TryFrom<Number> for $t {
+            type Error = Number;
+
+            fn try_from(value: Number) -> Result<Self, Self::Error> {
+                let Some(int) = value.as_integer() else {
+                    return Err(value);
+                };
+                int.$f().ok_or(value)
+            }
+        }
+    };
+}
+
+into_integer!(<usize> via to_usize);
+into_integer!(<u8> via to_u8);
+into_integer!(<u16> via to_u16);
+into_integer!(<u32> via to_u32);
+into_integer!(<u64> via to_u64);
+into_integer!(<u128> via to_u128);
+into_integer!(<isize> via to_isize);
+into_integer!(<i8> via to_i8);
+into_integer!(<i16> via to_i16);
+into_integer!(<i32> via to_i32);
+into_integer!(<i64> via to_i64);
+into_integer!(<i128> via to_i128);
