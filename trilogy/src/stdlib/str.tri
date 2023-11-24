@@ -29,6 +29,28 @@ test "string length" {
     assert length "" == 0
 }
 
+## Splits a string at a separator, returning an array. The separator is not included
+## in any of the strings in the returned array. If no splits are performed, returns
+## an array of the whole string.
+const split = native::split
+export split
+
+test "string split" {
+    assert split " " "hello there world" == ["hello", "there", "world"]
+    assert split "f" "hello there world" == ["hello there world"]
+    assert split "l" "hello there world" == ["he", "", "o there wor", "d"]
+}
+
+## Splits a string at a separator at most n times.
+const split_n = native::split_n
+export split_n
+
+test "string split_n" {
+    assert split_n 1 " " "hello there world" == ["hello", "there world"]
+    assert split_n 2 "f" "hello there world" == ["hello there world"]
+    assert split_n 2 "l" "hello there world" == ["he", "", "o there world"]
+}
+
 ## Converts a value to a string.
 const cast = native::cast
 export cast

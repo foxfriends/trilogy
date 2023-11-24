@@ -1,5 +1,7 @@
 #[trilogy_derive::module(crate_name=crate)]
 pub mod str {
+    use trilogy_vm::Array;
+
     use crate::{Result, Runtime, Value};
 
     /// Converts a value to its string representation. This is the same representation
@@ -25,6 +27,12 @@ pub mod str {
     pub fn length(rt: Runtime, string: Value) -> Result<()> {
         let string = rt.typecheck::<String>(string)?;
         rt.r#return(string.len())
+    }
+
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn reverse(rt: Runtime, string: Value) -> Result<()> {
+        let string = rt.typecheck::<String>(string)?;
+        rt.r#return(string.chars().rev().collect::<String>())
     }
 
     #[trilogy_derive::func(crate_name=crate)]
@@ -55,6 +63,49 @@ pub mod str {
             Value::String(needle) => rt.r#return(string.replacen(&needle, &replacement, n)),
             Value::Char(needle) => rt.r#return(string.replacen(needle, &replacement, n)),
             _ => Err(rt.runtime_type_error(needle)),
+        }
+    }
+
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn split(rt: Runtime, separator: Value, string: Value) -> Result<()> {
+        let string = rt.typecheck::<String>(string)?;
+
+        match separator {
+            Value::String(separator) => rt.r#return(
+                string
+                    .split(&separator)
+                    .map(|val| val.into())
+                    .collect::<Array>(),
+            ),
+            Value::Char(separator) => rt.r#return(
+                string
+                    .split(separator)
+                    .map(|val| val.into())
+                    .collect::<Array>(),
+            ),
+            _ => Err(rt.runtime_type_error(separator)),
+        }
+    }
+
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn split_n(rt: Runtime, n: Value, separator: Value, string: Value) -> Result<()> {
+        let n = rt.typecheck::<usize>(n)?;
+        let string = rt.typecheck::<String>(string)?;
+
+        match separator {
+            Value::String(separator) => rt.r#return(
+                string
+                    .splitn(n + 1, &separator)
+                    .map(|val| val.into())
+                    .collect::<Array>(),
+            ),
+            Value::Char(separator) => rt.r#return(
+                string
+                    .splitn(n + 1, separator)
+                    .map(|val| val.into())
+                    .collect::<Array>(),
+            ),
+            _ => Err(rt.runtime_type_error(separator)),
         }
     }
 }
