@@ -1,6 +1,7 @@
 #![allow(clippy::module_inception, clippy::wrong_self_convention)]
 
 mod array;
+mod atom;
 mod bits;
 mod io;
 mod num;
@@ -52,6 +53,11 @@ where
         .source_module(
             Location::library("record").unwrap(),
             include_str!("./record.tri").to_owned(),
+        )
+        .native_module(Location::library("atom/native").unwrap(), atom::atom())
+        .source_module(
+            Location::library("atom").unwrap(),
+            include_str!("./atom.tri").to_owned(),
         );
 
     #[cfg(feature = "regex")]
