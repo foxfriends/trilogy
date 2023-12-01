@@ -18,6 +18,14 @@ module set at "trilogy:set"
 module record at "trilogy:record"
 module fp at "trilogy:fp"
 
+## Returns an empty iterator
+proc empty!() { return do() {} }
+export empty
+
+## Create an iterator from the elements of a collection.
+func of xs = do() { $(x for x in xs) }
+export of
+
 ## Consumes an iterator by folding each value along with an accumulator. The first
 ## yielded value is provided to the initialization function to produce the initial
 ## value of the accumulator. If no values are emitted, yields 'EMPTY
@@ -41,7 +49,7 @@ export reduce_init
 ## Consumes an iterator by folding each value along with an accumulator. The first
 ## yielded value is used as the initial value of the accumulator. If no values are
 ## emitted, yields 'EMPTY
-func reduce f = reduce_init f fp::id
+func reduce f = reduce_init f (fp::id)
 export reduce
 
 ## Consumes an iterator by folding each value along with an accumulator, starting
@@ -100,6 +108,7 @@ test "flatten" {
 ## transformed value to be an iterator which is flattened into the resulting
 ## iterator.
 func flatmap f = map f >> flatten
+export flatmap
 
 test "flatmap" {
     let ranges = range 1 3
@@ -115,6 +124,7 @@ func collect collection =
     with reduce_init (fp::flip (collection::append)) (collection::of)
         when 'EMPTY cancel (collection::empty!())
         else yield
+export collect
 
 test "collect" {
     assert collect array (do() { $(x for x in [1, 2, 3]) }) == [1, 2, 3]
@@ -138,13 +148,6 @@ test "filter" {
     assert odd == [1, 3]
 }
 
-## Create an iterator from the elements of a collection.
-func of xs = do() { $(x for x in xs) }
-export of
-
-## Returns an empty iterator
-proc empty!() { return do() {} }
-
 ## Creates an iterator that yields the integers in the range [lo..hi)
 func rangex lo hi = do() {
     let mut i = lo
@@ -153,6 +156,7 @@ func rangex lo hi = do() {
         i += 1
     }
 }
+export rangex
 
 test "rangex" {
     assert (rangex 0 5 |> collect array) == [0, 1, 2, 3, 4]
@@ -160,6 +164,7 @@ test "rangex" {
 
 ## Creates an iterator that yields the integers in the range [lo..hi]
 func range lo hi = rangex lo (hi + 1)
+export range
 
 test "range" {
     assert (range 0 5 |> collect array) == [0, 1, 2, 3, 4, 5]
@@ -173,6 +178,7 @@ func repeat n value = do() {
         i += 1
     }
 }
+export repeat
 
 test "repeat" {
     assert (repeat 3 'a |> collect array) == ['a, 'a, 'a]
@@ -183,6 +189,7 @@ func ignore xs =
     with xs!()
         when 'next(_) cancel resume unit
         else yield
+export ignore
 
 test "ignore" {
     of [1, 2, 3] |> ignore
