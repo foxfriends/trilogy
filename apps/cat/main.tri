@@ -1,8 +1,8 @@
-module io at "trilogy:io"
+module io at "trilogy:io" use print, readline
 
 proc main!() {
     while true {
-        with { io::print!(io::readline!()) }
+        with { print!(readline!()) }
             when 'EOF invert { break }
             else yield
     }

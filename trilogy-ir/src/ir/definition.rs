@@ -78,18 +78,86 @@ impl Definition {
                 };
                 function.overloads.push(Function::convert(converter, *ast))
             }
-            syntax::DefinitionItem::ExternalModule(..) => {}
+            syntax::DefinitionItem::ExternalModule(ast) => {
+                if let Some(module_use) = ast.module_use {
+                    let module_symbol = converter.declared(ast.head.name.as_ref()).unwrap().clone();
+                    let module_ident = Identifier::declared(converter, &ast.head.name).unwrap();
+                    let module_definition = definitions.get_mut(&module_symbol.id).unwrap();
+                    let DefinitionItem::Module(..) = &mut module_definition.item else {
+                        let error = Error::DuplicateDefinition {
+                            original: module_symbol.declaration_span,
+                            duplicate: ast.head.name,
+                        };
+                        converter.error(error);
+                        return;
+                    };
+
+                    for name in module_use.names {
+                        let symbol = converter.declared(name.as_ref()).unwrap().clone();
+                        let definition = definitions.get_mut(&symbol.id).unwrap();
+                        let DefinitionItem::Constant(constant) = &mut definition.item else {
+                            let error = Error::DuplicateDefinition {
+                                original: symbol.declaration_span,
+                                duplicate: name,
+                            };
+                            converter.error(error);
+                            return;
+                        };
+                        constant.value =
+                            Expression::builtin(module_use.kw_use.span, Builtin::ModuleAccess)
+                                .apply_to(
+                                    module_symbol.declaration_span,
+                                    Expression::reference(
+                                        module_symbol.declaration_span,
+                                        module_ident.clone(),
+                                    ),
+                                )
+                                .apply_to(module_symbol.declaration_span, Expression::dynamic(name))
+                    }
+                }
+            }
             syntax::DefinitionItem::Module(ast) => {
-                let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol.id).unwrap();
-                let DefinitionItem::Module(module) = &mut definition.item else {
+                let module_symbol = converter.declared(ast.head.name.as_ref()).unwrap().clone();
+
+                if let Some(module_use) = &ast.module_use {
+                    let module_ident = Identifier::declared(converter, &ast.head.name).unwrap();
+                    for name in &module_use.names {
+                        let symbol = converter.declared(name.as_ref()).unwrap().clone();
+                        let definition = definitions.get_mut(&symbol.id).unwrap();
+                        let DefinitionItem::Constant(constant) = &mut definition.item else {
+                            let error = Error::DuplicateDefinition {
+                                original: symbol.declaration_span,
+                                duplicate: name.clone(),
+                            };
+                            converter.error(error);
+                            return;
+                        };
+                        constant.value =
+                            Expression::builtin(module_use.kw_use.span, Builtin::ModuleAccess)
+                                .apply_to(
+                                    module_symbol.declaration_span,
+                                    Expression::reference(
+                                        module_symbol.declaration_span,
+                                        module_ident.clone(),
+                                    ),
+                                )
+                                .apply_to(
+                                    module_symbol.declaration_span,
+                                    Expression::dynamic(name.clone()),
+                                )
+                    }
+                }
+
+                let module_definition = definitions.get_mut(&module_symbol.id).unwrap();
+                let DefinitionItem::Module(module) = &mut module_definition.item else {
                     let error = Error::DuplicateDefinition {
-                        original: symbol.declaration_span,
+                        original: module_symbol.declaration_span,
                         duplicate: ast.head.name,
                     };
                     converter.error(error);
                     return;
                 };
+
                 module.module = Arc::new(ModuleCell::new(Module::convert_module(converter, *ast)));
             }
             syntax::DefinitionItem::Procedure(ast) => {
@@ -153,11 +221,32 @@ impl Definition {
                     });
                     return vec![];
                 }
+
                 let name = Identifier::declare(converter, ast.head.name.clone());
-                Self::new(
+                let mut names = vec![Self::new(
                     ast.span(),
                     ModuleDefinition::external(name, converter.resolve(&ast.locator.value())),
-                )
+                )];
+
+                if let Some(module_use) = &ast.module_use {
+                    for name in &module_use.names {
+                        if let Some(original) = converter.declared_no_shadow(name.as_ref()) {
+                            let original = original.declaration_span;
+                            converter.error(Error::DuplicateDefinition {
+                                original,
+                                duplicate: ast.head.name.clone(),
+                            });
+                        }
+
+                        let used_name = Identifier::declare(converter, name.clone());
+                        names.push(Self::new(
+                            name.span(),
+                            ConstantDefinition::declare(used_name),
+                        ));
+                    }
+                }
+
+                return names;
             }
             syntax::DefinitionItem::Function(ast) => {
                 if converter
