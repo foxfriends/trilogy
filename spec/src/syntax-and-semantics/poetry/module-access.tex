@@ -30,3 +30,21 @@ evaluate to a module, it is considered a runtime type error.
     \LeftLabel{Module Access}
     \TrinaryInfC{$\Gamma\vdash E\ \texttt{::}\ i : \tau$}
 \end{prooftree}
+
+Though not strictly module access itself, it makes sense to define \kw{super} in
+this section as well.
+
+\begin{bnf*}
+    \bnfprod{Super}{\bnfts{\kw{super}}}
+\end{bnf*}
+
+The \kw{super} keyword refers to the current module's parent module, allowing access
+to specific members (even shadowed ones) from the enclosing scope. Note that this always
+refers to the lexically enclosing module so the document-level module may not refer to
+\kw{super}.
+
+\begin{prooftree}
+    \AxiomC{}
+    \LeftLabel{Super}
+    \UnaryInfC{$\kw{super} : \ty{Module}$}
+\end{prooftree}

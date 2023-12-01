@@ -211,7 +211,16 @@ in two places in the source code. The full details of the path resolution
 algorithm are defined in \S\ref{sec:module-resolution}.
 
 \begin{bnf}
-    \bnfprod{ModuleDefinition}{
+    \bnfprod*{ModuleDefinition}{
+        \bnfpn{ModuleConstruction}
+        \bnfsp
+        \bnfpn{ModuleUse}
+        \bnfor
+    } \\
+    \bnfmore*{
+        \bnfpn{ModuleConstruction}
+    } \\
+    \bnfprod{ModuleConstruction}{
         \label{bnf:module-at}
         \bnfts{\kw{module}}
         \bnfsp
@@ -269,6 +278,11 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfts{\kw{as}}
         \bnfsp
         \bnfpn{Identifier}
+    } \\
+    \bnfprod*{ModuleUse}{
+        \bnfts{\kw{use}}
+        \bnfsp
+        \bnfpn{NameList}
     }
 \end{bnf}
 
@@ -297,6 +311,15 @@ externally also may not access members of the module in which they are declared.
     \LeftLabel{External Module}
     \TrinaryInfC{$\Gamma \vdash m\ \text{exports}\ p$}
 \end{prooftree}
+
+The \kw{use} keyword binds specific members of an imported or declared module into the
+scope of the current module. Otherwise, such members would need to be accessed using
+the module access operator (\S\ref{sec:module-access}). This is implemented by the
+following syntax transformation.
+
+\begin{align*}
+    \texttt{\kw{module}\ \$m:id\ $\cdots$\ \kw{use} \$(\$i:id),+} & \Rightarrow \texttt{\$(\kw{const}\ \$i\ =\ \$m::\$i)+} %
+\end{align*}
 
 \subsubsection{Constants}
 
