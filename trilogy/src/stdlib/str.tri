@@ -11,6 +11,14 @@ export empty
 func of s = s
 export of
 
+## Return an array of all the characters in this string
+const chars = native::chars
+export chars
+
+test "chars" {
+    assert chars "hello" == ['h', 'e', 'l', 'l', 'o']
+}
+
 ## Replace all occurrences of needle with replacement in haystack.
 const replace = native::replace
 export replace

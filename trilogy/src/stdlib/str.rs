@@ -67,6 +67,12 @@ pub mod str {
     }
 
     #[trilogy_derive::func(crate_name=crate)]
+    pub fn chars(rt: Runtime, string: Value) -> Result<()> {
+        let string = rt.typecheck::<String>(string)?;
+        rt.r#return(string.chars().map(Value::from).collect::<Array>())
+    }
+
+    #[trilogy_derive::func(crate_name=crate)]
     pub fn split(rt: Runtime, separator: Value, string: Value) -> Result<()> {
         let string = rt.typecheck::<String>(string)?;
 
