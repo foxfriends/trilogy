@@ -133,7 +133,7 @@ impl Definition {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
             syntax::DefinitionItem::Constant(ast) => {
-                if let Some(original) = converter.declared(ast.name.as_ref()) {
+                if let Some(original) = converter.declared_no_shadow(ast.name.as_ref()) {
                     let original = original.declaration_span;
                     converter.error(Error::DuplicateDefinition {
                         original,
@@ -145,7 +145,7 @@ impl Definition {
                 Self::new(ast.span(), ConstantDefinition::declare(name))
             }
             syntax::DefinitionItem::ExternalModule(ast) => {
-                if let Some(original) = converter.declared(ast.head.name.as_ref()) {
+                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
                     let original = original.declaration_span;
                     converter.error(Error::DuplicateDefinition {
                         original,
@@ -160,7 +160,10 @@ impl Definition {
                 )
             }
             syntax::DefinitionItem::Function(ast) => {
-                if converter.declared(ast.head.name.as_ref()).is_some() {
+                if converter
+                    .declared_no_shadow(ast.head.name.as_ref())
+                    .is_some()
+                {
                     return vec![];
                 }
                 let span = ast.span();
@@ -168,7 +171,7 @@ impl Definition {
                 Self::new(span, FunctionDefinition::declare(name))
             }
             syntax::DefinitionItem::Module(ast) => {
-                if let Some(original) = converter.declared(ast.head.name.as_ref()) {
+                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
                     let original = original.declaration_span;
                     converter.error(Error::DuplicateDefinition {
                         original,
@@ -180,7 +183,7 @@ impl Definition {
                 Self::new(ast.span(), ModuleDefinition::declare(name))
             }
             syntax::DefinitionItem::Procedure(ast) => {
-                if let Some(original) = converter.declared(ast.head.name.as_ref()) {
+                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
                     let original = original.declaration_span;
                     converter.error(Error::DuplicateDefinition {
                         original,
@@ -193,7 +196,10 @@ impl Definition {
                 Self::new(span, ProcedureDefinition::declare(name))
             }
             syntax::DefinitionItem::Rule(ast) => {
-                if converter.declared(ast.head.name.as_ref()).is_some() {
+                if converter
+                    .declared_no_shadow(ast.head.name.as_ref())
+                    .is_some()
+                {
                     return vec![];
                 }
                 let span = ast.span();

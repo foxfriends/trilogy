@@ -30,4 +30,8 @@ impl Scope {
             .reuse(name)
             .or_else(|| self.parent.as_ref()?.declared(name))
     }
+
+    pub fn declared_no_shadow(&self, name: &str) -> Option<&Symbol> {
+        self.symbols.reuse(name)
+    }
 }

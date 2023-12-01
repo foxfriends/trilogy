@@ -56,6 +56,10 @@ impl<'a> Converter<'a> {
         self.scope.declared(name)
     }
 
+    pub(crate) fn declared_no_shadow(&mut self, name: &str) -> Option<&Symbol> {
+        self.scope.declared_no_shadow(name)
+    }
+
     pub(crate) fn resolve(&self, locator: &str) -> String {
         self.resolver.resolve(locator)
     }

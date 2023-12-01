@@ -1,3 +1,5 @@
+#! Basic functions, helpers, and combinators for functional programming.
+
 ## Flips the arguments of a function
 func flip f x y = f y x
 export flip
@@ -14,4 +16,13 @@ test "id" {
     assert id 3 == 3
     let x = []
     assert id x === x
+}
+
+## Call a procedure with a single argument
+func call pr x = pr!(x)
+export call
+
+test "call" {
+    let pr = do(x) { return x * 2 }
+    assert call pr 4 == 8
 }

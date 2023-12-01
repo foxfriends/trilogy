@@ -197,16 +197,16 @@ test "skip drops the first n characters" {
     assert skip 0 "hello" == "hello"
 }
 
-# ## Collection interface for joining an iterator of strings into a single string
-# ## with a given joiner
-# module joined j {
-#     proc empty!() { return "" }
-#     func of x = x
-#     func append x y = y <> j <> x
-#     export empty, of, append
-# }
+## Collection interface for joining an iterator of strings into a single string
+## with a given joiner
+module joined j {
+    proc empty!() { return "" }
+    func of x = x
+    func append x y = y <> j <> x
+    export empty, of, append
+}
 
-# test "joined" {
-#     let str = iter::of ["a", "b", "c"] |> iter::collect (joined " ")
-#     assert str == "a b c"
-# }
+test "joined" {
+    let str = iter::of ["a", "b", "c"] |> iter::collect (joined " ")
+    assert str == "a b c"
+}
