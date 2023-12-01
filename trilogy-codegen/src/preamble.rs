@@ -144,7 +144,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     binop!(builder, CONS, &(), &(), Instruction::Cons);
 
     builder
-        .label(RCOMPOSE)
+        .label(COMPOSE)
         .unlock_function()
         .typecheck("callable")
         .close(RETURN)
@@ -161,7 +161,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
 
     builder
-        .label(COMPOSE)
+        .label(RCOMPOSE)
         .unlock_function()
         .typecheck("callable")
         .close(RETURN)

@@ -1,5 +1,15 @@
 module native at "trilogy:array/native"
 
+## Returns an empty array
+proc empty!() {
+    return []
+}
+export empty
+
+## Returns an array of a single value
+func of x = [x]
+export of
+
 ## Returns the length of the array.
 const length = native::length
 export length

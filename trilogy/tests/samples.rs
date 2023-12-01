@@ -168,8 +168,8 @@ fn sample_compose() {
     assert_eq!(
         program.run().unwrap(),
         Value::from((
-            Struct::new(program.atom("a"), Struct::new(program.atom("b"), 1)),
-            Struct::new(program.atom("b"), Struct::new(program.atom("a"), 1))
+            Struct::new(program.atom("b"), Struct::new(program.atom("a"), 1)),
+            Struct::new(program.atom("a"), Struct::new(program.atom("b"), 1))
         ))
     );
 }

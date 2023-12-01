@@ -1,0 +1,17 @@
+## Flips the arguments of a function
+func flip f x y = f y x
+export flip
+
+test "flip" {
+    assert flip (:) 1 2 == 2:1
+}
+
+## The identity function
+func id x = x
+export id
+
+test "id" {
+    assert id 3 == 3
+    let x = []
+    assert id x === x
+}

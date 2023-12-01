@@ -64,6 +64,14 @@ where
         .source_module(
             Location::library("fs").unwrap(),
             include_str!("./fs.tri").to_owned(),
+        )
+        .source_module(
+            Location::library("iter").unwrap(),
+            include_str!("./iter.tri").to_owned(),
+        )
+        .source_module(
+            Location::library("fp").unwrap(),
+            include_str!("./fp.tri").to_owned(),
         );
 
     #[cfg(feature = "regex")]

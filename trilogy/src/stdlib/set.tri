@@ -1,5 +1,15 @@
 module array at "trilogy:array"
 
+## Returns an empty set
+proc empty!() {
+    return [| |]
+}
+export empty
+
+## Returns a set of a single value
+func of x = [| x |]
+export of
+
 ## Returns true if the value `x` is contained within the set.
 func contains x [| x, .._ |] = true
 func contains _ [| .._ |] = false
@@ -32,6 +42,9 @@ test "insert cannot add a duplicate value to the set" {
 test "insert adds to the empty set" {
     assert insert 3 [| |] == [| 3 |]
 }
+
+const append = insert
+export append
 
 ## Removes a value from the set, returning a new set without that value.
 func remove x [| x, ..xs |] = xs

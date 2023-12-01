@@ -1,4 +1,15 @@
 module native at "trilogy:str/native"
+module iter at "trilogy:iter"
+
+## Returns an empty string
+proc empty!() {
+    return ""
+}
+export empty
+
+## Returns the string value
+func of s = s
+export of
 
 ## Replace all occurrences of needle with replacement in haystack.
 const replace = native::replace
@@ -49,6 +60,31 @@ test "string split_n" {
     assert split_n 1 " " "hello there world" == ["hello", "there world"]
     assert split_n 2 "f" "hello there world" == ["hello there world"]
     assert split_n 2 "l" "hello there world" == ["he", "", "o there world"]
+}
+
+## Split a string into lines. An empty trailing line is omitted.
+##
+## NOTE: At this time, lines are treated as "\n" characters. CRLF is not supported.
+## Maybe later.
+func lines str = match split '\n' str
+    case [..arr, ""] then arr
+    case arr then arr
+    else []
+export lines
+
+test "lines" {
+    assert lines "hello\nworld" == ["hello", "world"]
+    assert lines "hello\nworld\n" == ["hello", "world"]
+    assert lines "hello\n\nworld\n" == ["hello", "", "world"]
+    assert lines "hello world" == ["hello world"]
+}
+
+## Append a suffix to a string.
+func append suf str = str <> suf
+export append
+
+test "append" {
+    assert append "x" "y" == "yx"
 }
 
 ## Converts a value to a string.
@@ -152,3 +188,17 @@ test "skip drops the first n characters" {
     assert skip 6 "hello" == ""
     assert skip 0 "hello" == "hello"
 }
+
+# ## Collection interface for joining an iterator of strings into a single string
+# ## with a given joiner
+# module joined j {
+#     proc empty!() { return "" }
+#     func of x = x
+#     func append x y = y <> j <> x
+#     export empty, of, append
+# }
+
+# test "joined" {
+#     let str = iter::of ["a", "b", "c"] |> iter::collect (joined " ")
+#     assert str == "a b c"
+# }

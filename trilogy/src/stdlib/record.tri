@@ -1,5 +1,15 @@
 module array at "trilogy:array"
 
+## Returns an empty record.
+proc empty!() {
+    return {| |}
+}
+export empty
+
+## Returns a record of a single key:value pair
+func of (x:y) = {| x => y |}
+export of
+
 ## Returns true if the key is associated with a value in this record.
 func contains key {| key => _, .._ |} = true
 func contains _ {| .._ |} = false
@@ -106,6 +116,10 @@ test "get yields 'MIA for missing keys" {
 ## If the record already contained a value for the key, it is replaced.
 func insert key value {| ..xs |} = {| ..xs, key => value |}
 export insert
+
+## Appends a key:value pair to the record
+func append (key:value) = insert key value
+export append
 
 test "insert adds an entry to a nonempty record" {
     assert insert "a" 1 {| "b" => 2 |} == {| "a" => 1, "b" => 2 |}

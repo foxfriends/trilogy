@@ -7,6 +7,16 @@ const eprintln = native::eprintln
 const readline = native::readline
 export print, println, eprint, eprintln, readline
 
+## An iterator over all lines of standard input.
+proc readlines!() {
+    with {
+        while true {
+            yield 'next(readline!())
+        }
+    } when 'EOF cancel unit else yield
+}
+export readlines
+
 proc dbg!(v) {
     eprintln!(v)
     return v
