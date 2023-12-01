@@ -1,12 +1,23 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModuleDefinition {
     pub head: ModuleHead,
+    pub obrace: Token,
     pub definitions: Vec<Definition>,
-    end: Token,
+    pub cbrace: Token,
+    pub module_use: Option<ModuleUse>,
+}
+
+impl Spanned for ModuleDefinition {
+    fn span(&self) -> source_span::Span {
+        match &self.module_use {
+            Some(uses) => self.head.span().union(uses.span()),
+            None => self.head.span().union(self.cbrace.span),
+        }
+    }
 }
 
 impl ModuleDefinition {
@@ -17,14 +28,17 @@ impl ModuleDefinition {
     }
 
     pub(crate) fn parse(parser: &mut Parser, head: ModuleHead) -> SyntaxResult<Self> {
-        parser.expect(OBrace).expect("Caller should find `{`.");
+        let obrace = parser.expect(OBrace).expect("Caller should find `{`.");
 
-        if let Ok(end) = parser.expect(CBrace) {
+        if let Ok(cbrace) = parser.expect(CBrace) {
             // empty module may be single line
             return Ok(Self {
                 head,
+                obrace,
                 definitions: vec![],
-                end,
+                cbrace,
+                // Empty module does not export anything, so cannot have anything used
+                module_use: None,
             });
         }
 
@@ -45,14 +59,22 @@ impl ModuleDefinition {
             parser.error(error);
         }
 
-        let end = parser.expect(CBrace).map_err(|token| {
-            parser.expected(token, "expected } to end a local module definition")
+        let cbrace = parser.expect(CBrace).map_err(|token| {
+            parser.expected(token, "expected } to cbrace a local module definition")
         })?;
+
+        let module_use = if parser.check(KwUse).is_ok() {
+            Some(ModuleUse::parse(parser)?)
+        } else {
+            None
+        };
 
         Ok(Self {
             head,
+            obrace,
             definitions,
-            end,
+            cbrace,
+            module_use,
         })
     }
 }
