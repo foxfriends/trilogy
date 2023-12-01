@@ -1,12 +1,12 @@
 test "or patterns with <>" {
     match "a3"
-        case ("a" <> s) or ("b" <> s) { assert s == "3" as "s is 3" }
+        case ("a" <> s) or ("b" <> s) { assert s == "3" }
         else { assert false as "didn't match a3" }
 
     match "b4"
-        case ("a" <> s) or ("b" <> s) { assert s == "4" as "s is 4" }
+        case ("a" <> s) or ("b" <> s) { assert s == "4" }
         else { assert false as "didn't match b4" }
 
     match "c5"
-        case ("a" <> s) or ("b" <> s) { assert false as "matched c5" }
+        case ("a" <> s) or ("b" <> s) { assert false }
 }

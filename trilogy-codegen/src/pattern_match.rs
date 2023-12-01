@@ -76,10 +76,11 @@ impl IrVisitor for PatternMatcher<'_, '_> {
 
     fn visit_disjunction(&mut self, disj: &(Expression, Expression)) {
         let recover = self.context.make_label("disj2");
+        self.context.instruction(Instruction::Copy).intermediate();
         self.context
-            .instruction(Instruction::Copy)
             .pattern_match(&disj.0, &recover)
             .instruction(Instruction::Pop)
+            .end_intermediate()
             .bubble(|c| {
                 c.label(recover).pattern_match(&disj.1, self.on_fail);
             });
