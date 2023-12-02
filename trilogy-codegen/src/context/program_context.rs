@@ -30,25 +30,15 @@ impl ProgramContext<'_> {
 
     /// Writes the entrypoint of the program.
     pub fn write_main(&mut self, path: &[&str], default_exit: Value) {
-        self.builder
-            .entrypoint()
+        self.entrypoint()
             .label("trilogy:__entrypoint__")
             .reference("trilogy:__entrymodule__")
             .instruction(Instruction::Call(0));
 
         for seg in path {
-            self.builder
-                .atom(seg)
-                .constant(1)
-                .atom("module")
-                .instruction(Instruction::Construct)
-                .instruction(Instruction::Call(2));
+            self.atom(seg).call_module();
         }
-        self.builder
-            .constant(0)
-            .atom("procedure")
-            .instruction(Instruction::Construct)
-            .instruction(Instruction::Call(1))
+        self.call_procedure(0)
             .instruction(Instruction::Copy)
             .constant(())
             .instruction(Instruction::ValEq)

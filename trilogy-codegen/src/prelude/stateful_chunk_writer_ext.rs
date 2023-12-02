@@ -54,12 +54,50 @@ pub(crate) trait StatefulChunkWriterExt:
         )
     }
 
-    fn proc_closure<F: FnOnce(&mut Self)>(&mut self, arity: usize, contents: F) -> &mut Self {
+    fn func_closure<S: Into<String>>(&mut self, arity: usize, func: S) -> &mut Self {
+        self.closure(
+            |context| {
+                context.unlock_function();
+                for _ in 0..arity - 1 {
+                    context.close(RETURN).unlock_function();
+                }
+            },
+            |context| {
+                let parameters = context.intermediate();
+                context.reference(func);
+                for i in 0..arity - 1 {
+                    context
+                        .instruction(Instruction::LoadLocal(parameters + i as u32))
+                        .call_function();
+                }
+                context
+                    .instruction(Instruction::LoadLocal(parameters + arity as u32 - 1))
+                    .become_function();
+                context.instruction(Instruction::Return).end_intermediate();
+            },
+        )
+    }
+
+    fn do_closure<F: FnOnce(&mut Self)>(&mut self, arity: usize, contents: F) -> &mut Self {
         self.closure(
             |context| {
                 context.unlock_procedure(arity);
             },
             contents,
+        )
+    }
+
+    fn proc_closure<S: Into<String>>(&mut self, arity: usize, proc: S) -> &mut Self {
+        self.closure(
+            |context| {
+                context.unlock_procedure(arity);
+            },
+            |context| {
+                context
+                    .reference(proc)
+                    .instruction(Instruction::Slide(arity as u32))
+                    .become_procedure(arity);
+            },
         )
     }
 

@@ -224,7 +224,7 @@ impl IrVisitor for Evaluator<'_, '_> {
 
     fn visit_do(&mut self, closure: &ir::Procedure) {
         let arity = closure.parameters.len();
-        self.context.proc_closure(arity, |context| {
+        self.context.do_closure(arity, |context| {
             let param_start = context.scope.closure(arity);
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());

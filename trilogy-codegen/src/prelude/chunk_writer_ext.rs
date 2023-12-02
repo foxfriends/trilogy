@@ -60,13 +60,21 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
     }
 
     fn call_procedure(&mut self, arity: usize) -> &mut Self {
-        self.r#struct("procedure", arity)
+        self.instruction(Instruction::LoadRegister(MODULE))
+            .instruction(Instruction::Slide(arity as u32 + 1))
+            .r#struct("procedure", arity)
             .instruction(Instruction::Call(arity as u32 + 1))
+            .instruction(Instruction::Swap)
+            .instruction(Instruction::SetRegister(MODULE))
     }
 
     fn call_function(&mut self) -> &mut Self {
-        self.r#struct("function", 1)
+        self.instruction(Instruction::LoadRegister(MODULE))
+            .instruction(Instruction::Slide(2))
+            .r#struct("function", 1)
             .instruction(Instruction::Call(2))
+            .instruction(Instruction::Swap)
+            .instruction(Instruction::SetRegister(MODULE))
     }
 
     fn call_rule(&mut self, arity: usize) -> &mut Self {
@@ -77,6 +85,11 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
     fn become_function(&mut self) -> &mut Self {
         self.r#struct("function", 1)
             .instruction(Instruction::Become(2))
+    }
+
+    fn become_procedure(&mut self, arity: usize) -> &mut Self {
+        self.r#struct("procedure", arity)
+            .instruction(Instruction::Become(arity as u32 + 1))
     }
 
     fn call_module(&mut self) -> &mut Self {

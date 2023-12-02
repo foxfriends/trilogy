@@ -212,7 +212,30 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 }
                 Some(&definition.name.id)
             }
-            // Other types of definitions don't require constant evaluation.
+            ir::DefinitionItem::Function(definition) => {
+                let label = context
+                    .scope
+                    .lookup_static(&definition.name.id)
+                    .unwrap()
+                    .clone()
+                    .unwrap_label();
+                // Local functions are inserted into the context as closures
+                // over the module context.
+                //
+                // Same for procedures and rules.
+                context.func_closure(definition.overloads[0].parameters.len(), label);
+                Some(&definition.name.id)
+            }
+            ir::DefinitionItem::Procedure(definition) => {
+                let label = context
+                    .scope
+                    .lookup_static(&definition.name.id)
+                    .unwrap()
+                    .clone()
+                    .unwrap_label();
+                context.proc_closure(definition.overloads[0].parameters.len(), label);
+                Some(&definition.name.id)
+            }
             _ => None,
         };
 
@@ -317,56 +340,35 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         .instruction(Instruction::Return);
                 }
                 ir::DefinitionItem::Function(func) => {
-                    // All overloads must have the same arity, so get from the first one.
-                    let function_arity = func.overloads[0].parameters.len();
                     let label = context
                         .scope
                         .lookup_static(&func.name.id)
                         .unwrap()
                         .clone()
-                        .unwrap_label();
-                    // Capture all the parameters up front.
-                    for _ in 0..function_arity {
-                        context.close(RETURN).unlock_function();
-                    }
-                    // Once all parameters are located, set up the context register
-                    // and call the function by applying the parameters one by one.
+                        .unwrap_context();
                     context
                         .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
                         .instruction(Instruction::SetRegister(MODULE))
-                        .reference(label);
-                    for i in 0..function_arity {
-                        context
-                            .instruction(Instruction::LoadLocal(current_module + i as u32 + 1))
-                            .call_function();
-                    }
-                    // After every parameter was passed, then we have the return value which is
-                    // no longer subject to the context rules, so return the context register.
-                    context
+                        .reference(label)
+                        .instruction(Instruction::Call(0))
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Return);
                 }
                 ir::DefinitionItem::Procedure(proc) => {
-                    let proc_label = context
+                    let label = context
                         .scope
                         .lookup_static(&proc.name.id)
                         .unwrap()
                         .clone()
-                        .unwrap_label();
-                    // Procedure only has one overload. All overloads would have the same arity anyway.
-                    let arity = proc.overloads[0].parameters.len();
+                        .unwrap_context();
                     context
-                        .close(RETURN)
-                        .unlock_procedure(arity)
                         .instruction(Instruction::LoadRegister(MODULE))
                         .instruction(Instruction::LoadLocal(current_module))
                         .instruction(Instruction::SetRegister(MODULE))
-                        .instruction(Instruction::Slide(arity as u32))
-                        .reference(proc_label)
-                        .instruction(Instruction::Slide(arity as u32))
-                        .call_procedure(arity)
+                        .reference(label)
+                        .instruction(Instruction::Call(0))
                         .instruction(Instruction::Swap)
                         .instruction(Instruction::SetRegister(MODULE))
                         .instruction(Instruction::Return);
