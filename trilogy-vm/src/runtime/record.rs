@@ -66,7 +66,7 @@ impl StructuralEq for Record {
         }
         for key in lhs.keys() {
             let lval = &lhs[key];
-            let Some(rval) = rhs.get(&key) else {
+            let Some(rval) = rhs.get(key) else {
                 return false;
             };
             if !StructuralEq::eq(lval, rval) {
