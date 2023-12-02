@@ -1,0 +1,7 @@
+module num at "trilogy:num" use cast
+module array at "trilogy:array" use map
+
+test "fn closures retain their module scope" {
+    let recast = fn x. cast x
+    assert map recast ["1", "2", "3"] == [1, 2, 3]
+}

@@ -64,3 +64,12 @@ test not "non-functions cannot be applied" {
 test not "a non-total function called with a non-matching pattern is an error" {
     nontotal 'e(1)
 }
+
+module num at "trilogy:num" use cast
+module array at "trilogy:array" use map
+
+func recast x = cast x
+
+test "functions retain their module scope" {
+    assert map recast ["1", "2", "3"] == [1, 2, 3]
+}

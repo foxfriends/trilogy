@@ -85,6 +85,7 @@ impl StructuralEq for Set {
         let Ok(rhs) = other.0.lock() else {
             return false;
         };
+        // TODO: this is not super well defined...
         lhs.eq(&*rhs)
     }
 }

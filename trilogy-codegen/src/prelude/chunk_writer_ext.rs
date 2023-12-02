@@ -120,19 +120,6 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
             .label(exit)
     }
 
-    fn closure<F: FnOnce(&mut Self)>(&mut self, contents: F) -> &mut Self {
-        let end = self.make_label("closure_end");
-        self.close(&end).pipe(contents).label(end)
-    }
-
-    fn proc_closure<F: FnOnce(&mut Self)>(&mut self, arity: usize, contents: F) -> &mut Self {
-        let end = self.make_label("closure_end");
-        self.close(&end)
-            .unlock_procedure(arity)
-            .pipe(contents)
-            .label(end)
-    }
-
     fn case<F: FnOnce(&mut Self, &str)>(&mut self, contents: F) -> &mut Self {
         let end = self.make_label("case_end");
         self.pipe(|c| contents(c, &end)).label(end)

@@ -1,0 +1,11 @@
+module num at "trilogy:num" use cast
+module array at "trilogy:array" use map
+module fp at "trilogy:fp" use call
+
+proc recast!(x) {
+    return cast x
+}
+
+test "procedures retain their module scope" {
+    assert map (call recast) ["1", "2", "3"] == [1, 2, 3]
+}

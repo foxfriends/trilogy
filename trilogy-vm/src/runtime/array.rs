@@ -63,7 +63,15 @@ impl StructuralEq for Array {
         let Ok(rhs) = other.0.lock() else {
             return false;
         };
-        lhs.eq(&*rhs)
+        if lhs.len() != rhs.len() {
+            return false;
+        }
+        for i in 0..lhs.len() {
+            if !StructuralEq::eq(&lhs[i], &rhs[i]) {
+                return false;
+            }
+        }
+        true
     }
 }
 

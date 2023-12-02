@@ -104,6 +104,29 @@ test not "map accepts a closure" {
     map (do(n) { return 2 * n }) [1, 2, 3]
 }
 
+## Computes a new array by applying the function `f` to each element
+## of the original array to get intermediate arrays, which are each
+## flattened.
+func flatmap f [] = []
+func flatmap f [x, ..xs] = [..f x, ..flatmap f xs]
+export flatmap
+
+test "flatmap" {
+    assert flatmap (fn x. [x, x]) [1, 2, 3] == [1, 1, 2, 2, 3, 3]
+    assert flatmap (fn x. [x, [x]]) [1, 2, 3] == [1, [1], 2, [2], 3, [3]]
+}
+
+## Flattens an array of arrays into a single array. Only flattens
+## one layer deep.
+func flatten [] = []
+func flatten [x, ..xs] = [..x, ..flatten xs]
+export flatten
+
+test "flatten" {
+    assert flatten [[1, 2], [3, 4]] == [1, 2, 3, 4]
+    assert flatten [[1, [2]], [3, [4]]] == [1, [2], 3, [4]]
+}
+
 ## Computes a new array by removing all values for which the predicate `f`
 ## returns `false`.
 func filter f [] = []

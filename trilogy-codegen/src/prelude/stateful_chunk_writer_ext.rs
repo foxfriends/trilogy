@@ -22,6 +22,47 @@ pub(crate) trait StatefulChunkWriterExt:
         })
     }
 
+    fn closure<F: FnOnce(&mut Self), G: FnOnce(&mut Self)>(
+        &mut self,
+        params: F,
+        body: G,
+    ) -> &mut Self {
+        let end = self.make_label("closure_end");
+        let module = self
+            .instruction(Instruction::LoadRegister(MODULE))
+            .intermediate();
+        self.close(&end)
+            .pipe(params)
+            .instruction(Instruction::LoadLocal(module))
+            .instruction(Instruction::SetRegister(MODULE))
+            .pipe(body)
+            .label(end)
+            .instruction(Instruction::Swap)
+            .instruction(Instruction::Pop)
+            .end_intermediate()
+    }
+
+    fn fn_closure<F: FnOnce(&mut Self)>(&mut self, arity: usize, contents: F) -> &mut Self {
+        self.closure(
+            |context| {
+                context.unlock_function();
+                for _ in 0..arity - 1 {
+                    context.close(RETURN).unlock_function();
+                }
+            },
+            contents,
+        )
+    }
+
+    fn proc_closure<F: FnOnce(&mut Self)>(&mut self, arity: usize, contents: F) -> &mut Self {
+        self.closure(
+            |context| {
+                context.unlock_procedure(arity);
+            },
+            contents,
+        )
+    }
+
     fn continuation<F: FnOnce(&mut Self)>(&mut self, body: F) -> &mut Self {
         let module = self
             .instruction(Instruction::LoadRegister(MODULE))
@@ -76,32 +117,35 @@ pub(crate) trait StatefulChunkWriterExt:
             // While the caller gave us their half of the resume operator, we have to wrap
             // it so that it preserves all the context correctly.
             let actual_resume = context
-                .closure(|context| {
-                    context.unlock_function();
-                    let resume_value = context.intermediate();
-                    // To actually resume is to:
-                    // 1. Save the current cancellation
-                    let prev_cancel = context
-                        .instruction(Instruction::LoadLocal(cancel))
-                        .intermediate();
-                    // 2. Put a new cancellation in its place:
-                    context.continuation(|c| {
-                        c.unlock_function()
-                            // This cancellation restores the previous one
-                            .instruction(Instruction::LoadLocal(prev_cancel))
-                            .instruction(Instruction::SetLocal(cancel))
-                            // Then returns to whoever called resume
-                            .instruction(Instruction::Return);
-                    });
-                    context.instruction(Instruction::SetLocal(cancel));
-                    // 3. Actually do the resuming
-                    context
-                        .instruction(Instruction::LoadLocal(resume))
-                        .instruction(Instruction::LoadLocal(resume_value))
-                        .become_function();
-                    context.end_intermediate(); // prev cancel
-                    context.end_intermediate(); // resume value
-                })
+                .closure(
+                    |_| {},
+                    |context| {
+                        context.unlock_function();
+                        let resume_value = context.intermediate();
+                        // To actually resume is to:
+                        // 1. Save the current cancellation
+                        let prev_cancel = context
+                            .instruction(Instruction::LoadLocal(cancel))
+                            .intermediate();
+                        // 2. Put a new cancellation in its place:
+                        context.continuation(|c| {
+                            c.unlock_function()
+                                // This cancellation restores the previous one
+                                .instruction(Instruction::LoadLocal(prev_cancel))
+                                .instruction(Instruction::SetLocal(cancel))
+                                // Then returns to whoever called resume
+                                .instruction(Instruction::Return);
+                        });
+                        context.instruction(Instruction::SetLocal(cancel));
+                        // 3. Actually do the resuming
+                        context
+                            .instruction(Instruction::LoadLocal(resume))
+                            .instruction(Instruction::LoadLocal(resume_value))
+                            .become_function();
+                        context.end_intermediate(); // prev cancel
+                        context.end_intermediate(); // resume value
+                    },
+                )
                 .intermediate();
 
             context.pipe(|c| {

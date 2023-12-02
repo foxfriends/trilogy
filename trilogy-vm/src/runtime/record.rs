@@ -61,7 +61,19 @@ impl StructuralEq for Record {
         let Ok(rhs) = other.0.lock() else {
             return false;
         };
-        lhs.eq(&*rhs)
+        if lhs.len() != rhs.len() {
+            return false;
+        }
+        for key in lhs.keys() {
+            let lval = &lhs[key];
+            let Some(rval) = rhs.get(&key) else {
+                return false;
+            };
+            if !StructuralEq::eq(lval, rval) {
+                return false;
+            }
+        }
+        true
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::preamble::{END, RETURN};
+use crate::preamble::END;
 use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, IrVisitable, IrVisitor};
@@ -205,33 +205,27 @@ impl IrVisitor for Evaluator<'_, '_> {
     }
 
     fn visit_fn(&mut self, closure: &ir::Function) {
-        let end = self.context.make_label("end_fn");
-        let params = self.context.scope.closure(closure.parameters.len());
-        for i in 0..closure.parameters.len() {
-            self.context
-                .close(if i == 0 { &end } else { RETURN })
-                .unlock_function();
-        }
-        for (i, parameter) in closure.parameters.iter().enumerate() {
-            self.context.declare_variables(parameter.bindings());
-            self.context
-                .instruction(Instruction::LoadLocal(params + i as u32))
-                .pattern_match(parameter, END);
-        }
-        self.context.evaluate(&closure.body);
-        for parameter in closure.parameters.iter().rev() {
-            self.context
-                .undeclare_variables(parameter.bindings(), false);
-            self.context.scope.unclosure(1)
-        }
-
-        self.context.label(end);
+        let arity = closure.parameters.len();
+        self.context.fn_closure(arity, |context| {
+            let params = context.scope.closure(arity);
+            for (i, parameter) in closure.parameters.iter().enumerate() {
+                context.declare_variables(parameter.bindings());
+                context
+                    .instruction(Instruction::LoadLocal(params + i as u32))
+                    .pattern_match(parameter, END);
+            }
+            context.evaluate(&closure.body);
+            for parameter in closure.parameters.iter().rev() {
+                context.undeclare_variables(parameter.bindings(), false);
+            }
+            context.scope.unclosure(arity);
+        });
     }
 
     fn visit_do(&mut self, closure: &ir::Procedure) {
         let arity = closure.parameters.len();
-        let param_start = self.context.scope.closure(arity);
         self.context.proc_closure(arity, |context| {
+            let param_start = context.scope.closure(arity);
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context
@@ -245,8 +239,8 @@ impl IrVisitor for Evaluator<'_, '_> {
             for parameter in closure.parameters.iter().rev() {
                 context.undeclare_variables(parameter.bindings(), false);
             }
+            context.scope.unclosure(arity);
         });
-        self.context.scope.unclosure(arity);
     }
 
     fn visit_reference(&mut self, ident: &ir::Identifier) {
