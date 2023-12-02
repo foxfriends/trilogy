@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use crate::prelude::*;
 pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use trilogy_vm::Instruction;
@@ -72,8 +74,9 @@ pub(crate) trait StatefulChunkWriterExt:
                 }
                 context
                     .instruction(Instruction::LoadLocal(parameters + arity as u32 - 1))
-                    .become_function();
-                context.instruction(Instruction::Return).end_intermediate();
+                    .become_function()
+                    .instruction(Instruction::Return)
+                    .end_intermediate();
             },
         )
     }
@@ -97,6 +100,45 @@ pub(crate) trait StatefulChunkWriterExt:
                     .reference(proc)
                     .instruction(Instruction::Slide(arity as u32))
                     .become_procedure(arity);
+            },
+        )
+    }
+
+    fn rule_closure<S: Into<String>>(&mut self, arity: usize, rule: S) -> &mut Self {
+        let iterator = Cell::new(0);
+        let prev_module = Cell::new(0);
+        self.closure(
+            |context| {
+                let closure = context
+                    .reference(rule)
+                    .instruction(Instruction::Call(0))
+                    .intermediate();
+                iterator.set(
+                    context
+                        .close(RETURN)
+                        .unlock_rule(arity)
+                        .instruction(Instruction::LoadLocal(closure))
+                        .instruction(Instruction::Slide(arity as u32))
+                        .call_rule(arity)
+                        .intermediate(),
+                );
+                prev_module.set(
+                    context
+                        .close(RETURN)
+                        .instruction(Instruction::LoadRegister(MODULE))
+                        .intermediate(),
+                );
+            },
+            |context| {
+                context
+                    .instruction(Instruction::LoadLocal(iterator.get()))
+                    .instruction(Instruction::Call(0))
+                    .instruction(Instruction::LoadLocal(prev_module.get()))
+                    .instruction(Instruction::SetRegister(MODULE))
+                    .instruction(Instruction::Return)
+                    .end_intermediate()
+                    .end_intermediate()
+                    .end_intermediate();
             },
         )
     }
