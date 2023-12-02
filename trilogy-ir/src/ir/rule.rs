@@ -32,4 +32,21 @@ impl Rule {
             body,
         }
     }
+
+    pub(super) fn convert_qy(converter: &mut Converter, ast: syntax::QyExpression) -> Self {
+        let span = ast.span();
+        let head_span = ast.qy_token.span.union(ast.cparen.span);
+        let parameters = ast
+            .parameters
+            .into_iter()
+            .map(|param| Expression::convert_pattern(converter, param))
+            .collect();
+        let body = Query::convert(converter, ast.body);
+        Self {
+            span,
+            head_span,
+            parameters,
+            body,
+        }
+    }
 }

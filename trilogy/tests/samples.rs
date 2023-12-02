@@ -390,3 +390,9 @@ fn sample_evaluate_unbound_iter() {
     let program = include_tri!("evaluate_unbound_iter.tri");
     assert_eq!(program.run().unwrap(), Value::from(0));
 }
+
+#[test]
+fn sample_qy() {
+    let program = include_tri!("qy.tri");
+    assert_eq!(program.run().unwrap(), Value::from(6));
+}

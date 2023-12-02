@@ -23,7 +23,7 @@ proc empty!() { return do() {} }
 export empty
 
 ## Create an iterator from the elements of a collection.
-func of xs = do() { $(x for x in xs) }
+func of xs = do() $(x for x in xs)
 export of
 
 ## Consumes an iterator by folding each value along with an accumulator. The first
@@ -127,9 +127,9 @@ func collect collection =
 export collect
 
 test "collect" {
-    assert collect array (do() { $(x for x in [1, 2, 3]) }) == [1, 2, 3]
-    assert collect set (do() { $(x for x in [1, 2, 3]) }) == [| 1, 2, 3 |]
-    assert collect record (do() { $(x:1 for x in [1, 2, 3]) }) == {| 1 => 1, 2 => 1, 3 => 1 |}
+    assert collect array (of [1, 2, 3]) == [1, 2, 3]
+    assert collect set (of [1, 2, 3]) == [| 1, 2, 3 |]
+    assert collect record (do() $(x:1 for x in [1, 2, 3])) == {| 1 => 1, 2 => 1, 3 => 1 |}
 }
 
 ## Discard values yielded by the iterator for which a predicate returns false.

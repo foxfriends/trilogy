@@ -90,6 +90,13 @@ impl IrVisitor for References {
         node.body.visit(self)
     }
 
+    fn visit_qy(&mut self, node: &Rule) {
+        for param in &node.parameters {
+            self.ignore.extend(param.bindings());
+        }
+        node.body.visit(self)
+    }
+
     fn visit_query_value(&mut self, node: &QueryValue) {
         use QueryValue::*;
 

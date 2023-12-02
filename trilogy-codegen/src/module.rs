@@ -464,59 +464,6 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                     }
                     context.scope.end_intermediate();
                 }
-                // ir::DefinitionItem::Rule(rule) => {
-                //     let static_member = context
-                //         .scope
-                //         .lookup_static(&rule.name.id)
-                //         .unwrap()
-                //         .clone()
-                //         .unwrap_label();
-                //     let arity = rule.overloads[0].parameters.len();
-                //     // It's a rule, so it will be immediately called to perform setup.
-                //     // That setup does not require the context... I think. But it's easy
-                //     // to pass anyway and better safe than sorry, I suppose.
-                //     context
-                //         .close(RETURN)
-                //         .instruction(Instruction::LoadRegister(MODULE))
-                //         .instruction(Instruction::LoadLocal(current_module))
-                //         .instruction(Instruction::SetRegister(MODULE))
-                //         .reference(static_member)
-                //         .instruction(Instruction::Call(0))
-                //         .instruction(Instruction::Swap)
-                //         .instruction(Instruction::SetRegister(MODULE))
-                //         // That will produce the rule's closure, but we need to re-close that
-                //         // over the module scope
-                //         .close(RETURN)
-                //         .unlock_rule(arity);
-                //     let closure = context.scope.intermediate();
-                //     context
-                //         // When called again, it's to pass the parameters. Again, might not need
-                //         // the context, but let's pass it anyway.
-                //         .instruction(Instruction::LoadRegister(MODULE))
-                //         .instruction(Instruction::LoadLocal(current_module))
-                //         .instruction(Instruction::SetRegister(MODULE))
-                //         .instruction(Instruction::Slide(arity as u32))
-                //         .instruction(Instruction::LoadLocal(closure))
-                //         .instruction(Instruction::Slide(arity as u32))
-                //         .call_rule(arity);
-                //     context
-                //         .instruction(Instruction::Swap)
-                //         .instruction(Instruction::SetRegister(MODULE))
-                //         // That needs to be closed over to keep passing context too
-                //         .close(RETURN);
-                //     let iterator = context.scope.intermediate();
-                //     context
-                //         .instruction(Instruction::LoadRegister(MODULE))
-                //         .instruction(Instruction::LoadLocal(current_module))
-                //         .instruction(Instruction::SetRegister(MODULE))
-                //         .instruction(Instruction::LoadLocal(iterator))
-                //         .instruction(Instruction::Call(0))
-                //         .instruction(Instruction::Swap)
-                //         .instruction(Instruction::SetRegister(MODULE))
-                //         .instruction(Instruction::Return);
-                //     context.scope.end_intermediate();
-                //     context.scope.end_intermediate();
-                // }
                 ir::DefinitionItem::Test(..) => unreachable!("tests cannot be exported"),
             }
             context.label(next_export);

@@ -1,0 +1,17 @@
+rule ok(1)
+rule ok(2)
+rule ok(3)
+
+proc main!() {
+    let check = qy(a, b) <- ok(a) and ok(b)
+
+    let mut total = 0
+    for check(1, b) {
+        total += b
+    }
+
+    assert is check(1, 3)
+    assert is not check(2, 4)
+
+    exit total
+}

@@ -1,16 +1,16 @@
-\subsection{Semantic Types}
+\subsection{Callable Types}
 
-The remaining types are called ``semantic'' types, referring to how values of these
-types are what make up the semantic meaning of the program.
+The remaining types are called ``callable'' types, referring to how values of these
+types are used by calling them.
 
-All semantic types are non-structural and reference types. Semantic types do
+All callable types are non-structural and reference types. Callable types do
 have string and source representations, but in versions prior to the 1.0
 release of \Trilogy{}, converting to source representation of these types will
 not be officially defined or supported.
 
 \subsubsection{Procedures}
 
-The first semantic type is the Procedure type, which is the type of both
+The first callable type is the Procedure type, which is the type of both
 defined procedures and procedure closures.
 
 In type annotation, the Procedure type is written as in \texttt{!(A, B, C) -> T}
@@ -30,7 +30,7 @@ procedure closure is defined to be the literal string \texttt{<do>}.
 
 \subsubsection{Functions}
 
-The Function type is a semantic type, which is the type of defined functions and
+The Function type is a callable type, which is the type of defined functions and
 function closures.
 
 In type annotation, the Function type is written as \texttt{T -> U}. Notably, the
@@ -45,6 +45,20 @@ separated only by a space.
 The string representation of a defined (named) function is its name. Meanwhile, the
 string representation of an anonymous function closure is defined to be the literal
 string \texttt{<fn>}.
+
+\subsubsection{Queries}
+
+The Query type is a callable type, which is the type of defined rules and query
+closures.
+
+In type annotation, the Query type is written as \texttt{?(T, U)}. Notably, the
+Query type does not return any value. Instead, values of the Query type are
+``called'' in binding position, where their parameters are treated both as
+input expressions and output patterns.
+
+The string representation of a defined (named) query is its name. Meanwhile, the
+string representation of an anonymous query closure is defined to be the literal
+string \texttt{<qy>}.
 
 \subsubsection{Continuations}
 

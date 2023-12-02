@@ -41,6 +41,19 @@ in implementation.
         \bnfts{)}
         \bnfsp
         \bnfpn{Expression}
+    } \\
+    \bnfprod{QyClosure}{
+        \bnfts{\kw{qy}}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfsp
+        \bnfts{)}
+        \bnfsp
+        \bnfts{<-}
+        \bnfsp
+        \bnfpn{Query}
     }
 \end{bnf*}
 
@@ -116,4 +129,16 @@ It is only omitted from the \kw{do} notation because it is ugly.
     \AxiomC{$\Gamma,\setof{a_i\given a_i \defby P_i}\vdash E : \rho$}
     \LeftLabel{Procedure Closure}
     \TrinaryInfC{$\Gamma\vdash \kw{do}\texttt{(}\ P_{1\hdots n}\ \texttt{)}\ E : \texttt{!(} \tau_{1\hdots n} \texttt{)} \rightarrow \rho$}
+\end{prooftree}
+
+Query closures, designated by \kw{qy}, create closures similar to rules. Such queries
+can be used in \kw{for} loops, comprehensions, or passed to other higher-order rules,
+functions, or procedures.
+
+\begin{prooftree}
+    \AxiomC{$\Sigma\vdash X_i : \tau_i$}
+    \AxiomC{$P_i = X_i$}
+    \AxiomC{$\Gamma,\setof{a_i\given a_i \defby P_i}\vdash Q \Rightarrow \Phi$}
+    \LeftLabel{Query Closure}
+    \TrinaryInfC{$\Gamma\vdash \kw{qy}\texttt{(}\ P_{1\hdots n}\ \texttt{)}\ \texttt{<-}\ Q : \texttt{?(} \tau_{1\hdots n} \texttt{)} \Rightarrow \Phi$}
 \end{prooftree}

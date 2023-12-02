@@ -66,11 +66,11 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
             let index = context.scope.lookup(&var).unwrap().unwrap_local();
             context.constant(index).instruction(Instruction::Insert);
         }
-        context.intermediate(); // Bindset
+        context.intermediate(); // bindset
         context
             .instruction(Instruction::LoadLocal(1 + i as u32))
             .pattern_match(parameter, &cleanup[i])
-            .end_intermediate()
+            .end_intermediate() // bindset
             .instruction(Instruction::SetRegister(TEMPORARY))
             .label(skip);
     }

@@ -172,6 +172,7 @@ impl Expression {
             ),
             Fn(ast) => Self::function(ast.span(), Function::convert_fn(converter, *ast)),
             Do(ast) => Self::procedure(ast.span(), Procedure::convert_do(converter, *ast)),
+            Qy(ast) => Self::rule(ast.span(), Rule::convert_qy(converter, *ast)),
             Template(ast) => Self::convert_template(converter, *ast),
             Handled(ast) => crate::ir::Handled::convert_expression(converter, *ast),
             Parenthesized(ast) => Self::convert(converter, ast.expression),
@@ -655,6 +656,10 @@ impl Expression {
         Self::new(span, Value::Do(Box::new(procedure)))
     }
 
+    pub(super) fn rule(span: Span, query: Rule) -> Self {
+        Self::new(span, Value::Qy(Box::new(query)))
+    }
+
     pub(super) fn apply_to(self, span: Span, rhs: Expression) -> Self {
         Self::application(span, self, rhs)
     }
@@ -702,6 +707,7 @@ pub enum Value {
     Match(Box<Match>),
     Fn(Box<Function>),
     Do(Box<Procedure>),
+    Qy(Box<Rule>),
     Handled(Box<Handled>),
     Reference(Box<Identifier>),
     Dynamic(Box<syntax::Identifier>),

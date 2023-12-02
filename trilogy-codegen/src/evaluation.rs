@@ -1,7 +1,10 @@
+use std::cell::Cell;
+use std::collections::HashSet;
+
 use crate::preamble::END;
 use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
-use trilogy_ir::visitor::{HasBindings, IrVisitable, IrVisitor};
+use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, IrVisitable, IrVisitor};
 use trilogy_vm::{Array, Instruction, Record, Set, Value};
 
 struct Evaluator<'b, 'a> {
@@ -241,6 +244,96 @@ impl IrVisitor for Evaluator<'_, '_> {
             }
             context.scope.unclosure(arity);
         });
+    }
+
+    fn visit_qy(&mut self, closure: &ir::Rule) {
+        let arity = closure.parameters.len();
+        let param_start = Cell::new(0);
+        self.context.qy_closure(
+            arity,
+            |context| {
+                param_start.set(context.scope.closure(arity));
+                // We have to build a bindset, and then extend the state of the query from that,
+                // much like in the definition of a rule.
+                context
+                    .constant(HashSet::new())
+                    .instruction(Instruction::SetRegister(TEMPORARY));
+                for (offset, parameter) in closure.parameters.iter().enumerate() {
+                    let skip = context.make_label("skip");
+                    context.declare_variables(parameter.bindings());
+                    context
+                        .instruction(Instruction::IsSetLocal(param_start.get() + offset as u32))
+                        .cond_jump(&skip);
+                    // This parameter was set, so fill its bindings and mark them down in the bindset.
+                    context.instruction(Instruction::LoadRegister(TEMPORARY));
+                    for var in parameter.bindings() {
+                        let index = context.scope.lookup(&var).unwrap().unwrap_local();
+                        context.constant(index).instruction(Instruction::Insert);
+                    }
+                    context.intermediate(); // bindset
+                    context
+                        .instruction(Instruction::LoadLocal(param_start.get() + offset as u32))
+                        .pattern_match(parameter, END)
+                        .end_intermediate() // bindset
+                        .instruction(Instruction::SetRegister(TEMPORARY))
+                        .label(skip);
+                }
+                context
+                    .instruction(Instruction::LoadRegister(TEMPORARY))
+                    .extend_query_state(&closure.body);
+            },
+            |context, state| {
+                let on_fail = context.make_label("qy_fail");
+                context
+                    .instruction(Instruction::LoadLocal(state))
+                    .execute_query(&closure.body, &on_fail)
+                    .instruction(Instruction::SetLocal(state));
+
+                // Stack these up in reverse so that when the caller starts pattern matching they are
+                // doing it left to right, as expected.
+                for (i, param) in closure.parameters.iter().enumerate().rev() {
+                    let eval = context.make_label("eval");
+                    let next = context.make_label("next");
+                    context
+                        .instruction(Instruction::IsSetLocal(param_start.get() + i as u32))
+                        // Previously unset parameters get evaluated into
+                        .cond_jump(&eval)
+                        // Previously set parameters are just loaded back up directly
+                        .instruction(Instruction::LoadLocal(param_start.get() + i as u32))
+                        .jump(&next);
+                    context.label(eval);
+                    if param.can_evaluate() {
+                        context.evaluate(param);
+                    } else {
+                        context.instruction(Instruction::Fizzle);
+                    }
+                    context.scope.intermediate(); // As is each subsequent parameter value
+                    context.label(next);
+                }
+
+                // The return value is a (backwards) list
+                context.constant(());
+                for _ in &closure.parameters {
+                    context
+                        .instruction(Instruction::Swap)
+                        .instruction(Instruction::Cons);
+                    context.scope.end_intermediate();
+                }
+                // Finally, put the return value into 'next()
+                context
+                    .atom("next")
+                    .instruction(Instruction::Construct)
+                    .instruction(Instruction::Return);
+                context
+                    .label(on_fail)
+                    .atom("done")
+                    .instruction(Instruction::Return);
+                for parameter in closure.parameters.iter().rev() {
+                    context.undeclare_variables(parameter.bindings(), false);
+                }
+                context.scope.unclosure(arity);
+            },
+        );
     }
 
     fn visit_reference(&mut self, ident: &ir::Identifier) {

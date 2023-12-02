@@ -64,6 +64,8 @@ pub enum TokenType {
     KwPass,
     /// `proc`
     KwProc,
+    /// `qy`
+    KwQy,
     /// `resume`
     KwResume,
     /// `return`

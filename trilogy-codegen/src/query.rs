@@ -216,7 +216,7 @@ impl IrVisitor for QueryState<'_, '_> {
         self.context
             .evaluate(&node.path)
             .typecheck("callable")
-            .instruction(Instruction::Call(0)) // The state is the closure
+            .raw_call(0)
             .instruction(Instruction::Cons) // with the bindset
             .constant(false) // and a flag to keep track of whether the closure is initialized or not
             .instruction(Instruction::Cons)
@@ -955,7 +955,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         );
         // Then we do the actual iteration of the lookup.
         self.instruction(Instruction::Copy)
-            .instruction(Instruction::Call(0))
+            .raw_call(0)
             .instruction(Instruction::Copy)
             .atom("done")
             .instruction(Instruction::ValNeq)

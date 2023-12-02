@@ -98,6 +98,7 @@ pub trait IrVisitor: Sized {
     visit_node!(visit_case, Case);
     visit_via!(visit_fn, Function, visit_function);
     visit_via!(visit_do, Procedure, visit_procedure);
+    visit_via!(visit_qy, Rule, visit_rule);
     visit_node!(visit_handled, Handled);
     visit_via!(visit_module_reference, Identifier, visit_identifier);
     visit_via!(visit_reference, Identifier, visit_identifier);
@@ -159,6 +160,7 @@ impl IrVisitable for Value {
             Match(val) => visitor.visit_match(val),
             Fn(val) => visitor.visit_fn(val),
             Do(val) => visitor.visit_do(val),
+            Qy(val) => visitor.visit_qy(val),
             Handled(val) => visitor.visit_handled(val),
             Reference(val) => visitor.visit_reference(val),
             Dynamic(val) => visitor.visit_dynamic(val),

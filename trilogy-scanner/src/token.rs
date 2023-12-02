@@ -90,6 +90,7 @@ impl Token {
             "prec" => TokenType::KwPrec,
             "proc" => TokenType::KwProc,
             "protocol" => TokenType::KwProtocol,
+            "qy" => TokenType::KwQy,
             "resume" => TokenType::KwResume,
             "return" => TokenType::KwReturn,
             "rule" => TokenType::KwRule,

@@ -38,6 +38,7 @@ pub enum Expression {
     Continue(Box<ContinueExpression>),
     Fn(Box<FnExpression>),
     Do(Box<DoExpression>),
+    Qy(Box<QyExpression>),
     Template(Box<Template>),
     Handled(Box<HandledExpression>),
     Parenthesized(Box<ParenthesizedExpression>),
@@ -86,7 +87,7 @@ enum ExpressionResult {
 }
 
 impl Expression {
-    pub(crate) const PREFIX: [TokenType; 33] = [
+    pub(crate) const PREFIX: [TokenType; 34] = [
         Numeric,
         String,
         Bits,
@@ -117,6 +118,7 @@ impl Expression {
         KwWith,
         KwFn,
         KwDo,
+        KwQy,
         DollarString,
         TemplateStart,
         OParen,
@@ -353,6 +355,7 @@ impl Expression {
             )?)))),
             KwFn => Ok(Ok(Self::Fn(Box::new(FnExpression::parse(parser)?)))),
             KwDo => Ok(Ok(Self::Do(Box::new(DoExpression::parse(parser)?)))),
+            KwQy => Ok(Ok(Self::Qy(Box::new(QyExpression::parse(parser)?)))),
             DollarString | TemplateStart => {
                 Ok(Ok(Self::Template(Box::new(Template::parse(parser)?))))
             }
