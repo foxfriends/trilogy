@@ -84,7 +84,7 @@ test "positions returns the start:end of the captured matches in a record" {
     |}
 }
 
-test "all_positions returns all non-overlapping captured matches in an array of records" {
+test "all_positions returns all non-overlapping captured positions in an array of records" {
     let pat = new "h(?<v>[eu])(llo)"
     let all = pat::all_positions "hello hullo"
     assert all as all == [{|
@@ -98,4 +98,29 @@ test "all_positions returns all non-overlapping captured matches in an array of 
         "v" => 7:8,
         2 => 8:11,
     |}]
+}
+
+test "captures returns the capture objects of the captured matches in a record" {
+    let pat = new "h(?<v>[eu])(llo)"
+    let rec = pat::captures "hello"
+    assert (rec.0)::start!() == 0
+    assert (rec.0)::end_!() == 5
+    assert (rec.0)::value!() == "hello"
+
+    let rec = pat::captures "hello hullo"
+    assert (rec.0)::start!() == 0
+    assert (rec.0)::end_!() == 5
+    assert (rec.0)::value!() == "hello"
+}
+
+test "all_captures returns all non-overlapping captured objects in an array of records" {
+    let pat = new "h(?<v>[eu])(llo)"
+    let all = pat::all_captures "hello hullo"
+
+    assert (all . 0 . 0)::start!() == 0
+    assert (all . 0 . 0)::end_!() == 5
+    assert (all . 0 . 0)::value!() == "hello"
+    assert (all . 1 . 0)::start!() == 6
+    assert (all . 1 . 0)::end_!() == 11
+    assert (all . 1 . 0)::value!() == "hullo"
 }

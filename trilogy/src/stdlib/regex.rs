@@ -8,25 +8,112 @@ pub mod regex {
     #[derive(Clone)]
     pub struct Regex(::regex::Regex);
 
+    #[derive(Clone)]
+    pub struct Match {
+        start: usize,
+        end: usize,
+        value: String,
+    }
+
+    impl From<regex::Match<'_>> for Match {
+        fn from(value: regex::Match<'_>) -> Self {
+            Self {
+                start: value.start(),
+                end: value.end(),
+                value: value.as_str().to_owned(),
+            }
+        }
+    }
+
+    #[trilogy_derive::module(crate_name=crate)]
+    impl Match {
+        #[trilogy_derive::proc(crate_name=crate)]
+        fn start(self, rt: Runtime) -> crate::Result<()> {
+            rt.r#return(self.start)
+        }
+
+        #[trilogy_derive::proc(crate_name=crate)]
+        fn end_(self, rt: Runtime) -> crate::Result<()> {
+            rt.r#return(self.end)
+        }
+
+        #[trilogy_derive::proc(crate_name=crate)]
+        fn len(self, rt: Runtime) -> crate::Result<()> {
+            rt.r#return(self.end - self.start)
+        }
+
+        #[trilogy_derive::proc(crate_name=crate)]
+        fn value(self, rt: Runtime) -> crate::Result<()> {
+            rt.r#return(self.value)
+        }
+    }
+
     #[trilogy_derive::module(crate_name=crate)]
     impl Regex {
         #[trilogy_derive::func(crate_name=crate)]
-        fn is_match(self, rt: Runtime, value: Value) -> crate::Result<()> {
-            let value = rt.typecheck::<String>(value)?;
-            rt.r#return(self.0.is_match(&value))
+        fn is_match(self, rt: Runtime, haystack: Value) -> crate::Result<()> {
+            let haystack = rt.typecheck::<String>(haystack)?;
+            rt.r#return(self.0.is_match(&haystack))
         }
 
         #[trilogy_derive::func(crate_name=crate)]
-        fn matches(self, rt: Runtime, value: Value) -> crate::Result<()> {
-            let string = rt.typecheck::<String>(value)?;
-            let Some(captures) = self.0.captures(&string) else {
+        fn captures(self, rt: Runtime, haystack: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(haystack)?;
+            let Some(caps) = self.0.captures(&string) else {
                 let atom = rt.atom("NoMatch");
                 return rt.r#yield(atom, |rt, val| rt.r#return(val));
             };
-            let captures = self.0.capture_names().enumerate().fold(
+            let caps = self.0.capture_names().enumerate().fold(
                 HashMap::<Value, Value>::new(),
                 |mut map, (i, name)| {
-                    if let Some(capture) = captures.get(i) {
+                    if let Some(capture) = caps.get(i) {
+                        map.insert(i.into(), Match::from(capture).into());
+                        if let Some(name) = name {
+                            map.insert(name.into(), Match::from(capture).into());
+                        }
+                    }
+                    map
+                },
+            );
+            rt.r#return(caps)
+        }
+
+        #[trilogy_derive::func(crate_name=crate)]
+        fn all_captures(self, rt: Runtime, haystack: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(haystack)?;
+            let caps = self
+                .0
+                .captures_iter(&string)
+                .map(|caps| {
+                    self.0.capture_names().enumerate().fold(
+                        HashMap::<Value, Value>::new(),
+                        |mut map, (i, name)| {
+                            if let Some(capture) = caps.get(i) {
+                                map.insert(i.into(), Match::from(capture).into());
+                                if let Some(name) = name {
+                                    map.insert(name.into(), Match::from(capture).into());
+                                }
+                            }
+                            map
+                        },
+                    )
+                })
+                .map(Value::from)
+                .collect::<Array>();
+            rt.r#return(caps)
+        }
+
+        #[trilogy_derive::func(crate_name=crate)]
+        fn matches(self, rt: Runtime, haystack: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(haystack)?;
+            let Some(caps) = self.0.captures(&string) else {
+                let atom = rt.atom("NoMatch");
+                return rt.r#yield(atom, |rt, val| rt.r#return(val));
+            };
+            let caps = self.0.capture_names().enumerate().fold(
+                HashMap::<Value, Value>::new(),
+                |mut map, (i, name)| {
+                    if let Some(capture) = caps.get(i) {
                         map.insert(i.into(), capture.clone().as_str().into());
                         if let Some(name) = name {
                             map.insert(name.into(), capture.clone().as_str().into());
@@ -35,20 +122,20 @@ pub mod regex {
                     map
                 },
             );
-            rt.r#return(captures)
+            rt.r#return(caps)
         }
 
         #[trilogy_derive::func(crate_name=crate)]
-        fn all_matches(self, rt: Runtime, value: Value) -> crate::Result<()> {
-            let string = rt.typecheck::<String>(value)?;
-            let captures = self
+        fn all_matches(self, rt: Runtime, haystack: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(haystack)?;
+            let caps = self
                 .0
                 .captures_iter(&string)
-                .map(|captures| {
+                .map(|caps| {
                     self.0.capture_names().enumerate().fold(
                         HashMap::<Value, Value>::new(),
                         |mut map, (i, name)| {
-                            if let Some(capture) = captures.get(i) {
+                            if let Some(capture) = caps.get(i) {
                                 map.insert(i.into(), capture.clone().as_str().into());
                                 if let Some(name) = name {
                                     map.insert(
@@ -63,20 +150,20 @@ pub mod regex {
                 })
                 .map(Value::from)
                 .collect::<Array>();
-            rt.r#return(captures)
+            rt.r#return(caps)
         }
 
         #[trilogy_derive::func(crate_name=crate)]
-        fn positions(self, rt: Runtime, value: Value) -> crate::Result<()> {
-            let string = rt.typecheck::<String>(value)?;
-            let Some(captures) = self.0.captures(&string) else {
+        fn positions(self, rt: Runtime, haystack: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(haystack)?;
+            let Some(caps) = self.0.captures(&string) else {
                 let atom = rt.atom("NoMatch");
                 return rt.r#yield(atom, |rt, val| rt.r#return(val));
             };
-            let captures = self.0.capture_names().enumerate().fold(
+            let caps = self.0.capture_names().enumerate().fold(
                 HashMap::<Value, Value>::new(),
                 |mut map, (i, name)| {
-                    if let Some(capture) = captures.get(i) {
+                    if let Some(capture) = caps.get(i) {
                         map.insert(
                             i.into(),
                             Tuple::from((capture.start(), capture.end())).into(),
@@ -91,20 +178,20 @@ pub mod regex {
                     map
                 },
             );
-            rt.r#return(captures)
+            rt.r#return(caps)
         }
 
         #[trilogy_derive::func(crate_name=crate)]
-        fn all_positions(self, rt: Runtime, value: Value) -> crate::Result<()> {
-            let string = rt.typecheck::<String>(value)?;
-            let captures = self
+        fn all_positions(self, rt: Runtime, haystack: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(haystack)?;
+            let caps = self
                 .0
                 .captures_iter(&string)
-                .map(|captures| {
+                .map(|caps| {
                     self.0.capture_names().enumerate().fold(
                         HashMap::<Value, Value>::new(),
                         |mut map, (i, name)| {
-                            if let Some(capture) = captures.get(i) {
+                            if let Some(capture) = caps.get(i) {
                                 map.insert(
                                     i.into(),
                                     Tuple::from((capture.start(), capture.end())).into(),
@@ -122,15 +209,15 @@ pub mod regex {
                 })
                 .map(Value::from)
                 .collect::<Array>();
-            rt.r#return(captures)
+            rt.r#return(caps)
         }
     }
 
     fn construct(rt: Runtime, builder: &RegexBuilder) -> crate::Result<()> {
         match builder.build() {
             Ok(regex) => rt.r#return(Regex(regex)),
-            Err(::regex::Error::Syntax(value)) => {
-                Err(rt.runtime_error(rt.r#struct("RegexError", value)))
+            Err(::regex::Error::Syntax(haystack)) => {
+                Err(rt.runtime_error(rt.r#struct("RegexError", haystack)))
             }
             Err(..) => Err(rt.runtime_error(
                 rt.r#struct("RegexError", "failed to safely compile regular expression"),

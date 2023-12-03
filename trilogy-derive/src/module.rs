@@ -1,5 +1,5 @@
 use super::Options;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{AttrStyle, Attribute, FnArg, ImplItem, ImplItemFn, Item, ItemImpl, ItemMod, Meta, Type};
 
 fn is_proc(attribute: &Attribute) -> bool {
@@ -76,7 +76,7 @@ fn impl_impl(mut module: ItemImpl, options: Options) -> syn::Result<proc_macro2:
             {
                 let proc_attr = fn_item.attrs.iter().find(|item| is_proc(item) || is_func(item)).unwrap();
                 let name = Options::try_from(proc_attr.clone()).unwrap().name(&fn_item.sig.ident);
-                let fn_name = &fn_item.sig.ident;
+                let fn_name = format_ident!("trilogy_native_method_{}", fn_item.sig.ident);
                 fn_item
                     .attrs
                     .retain(|attr| !is_func(attr) && !is_proc(attr));
@@ -180,6 +180,7 @@ fn impl_proc_method(
 ) -> proc_macro2::TokenStream {
     let trilogy = options.trilogy();
     let trilogy_vm = options.trilogy_vm();
+    let native_name = format_ident!("trilogy_native_method_{}", fn_item.sig.ident);
     let fn_name = &fn_item.sig.ident;
     let vis = &fn_item.vis;
     let is_method = fn_item.sig.receiver().is_some();
@@ -199,9 +200,9 @@ fn impl_proc_method(
         quote! {
             #[doc(hidden)]
             #[allow(non_camel_case_types)]
-            #vis struct #fn_name;
+            #vis struct #native_name;
 
-            impl #trilogy::NativeMethodFn for #fn_name {
+            impl #trilogy::NativeMethodFn for #native_name {
                 type SelfType = #self_ty;
 
                 fn arity(&self) -> usize {
@@ -225,9 +226,9 @@ fn impl_proc_method(
         quote! {
             #[doc(hidden)]
             #[allow(non_camel_case_types)]
-            #vis struct #fn_name;
+            #vis struct #native_name;
 
-            impl #trilogy::NativeFunction for #fn_name {
+            impl #trilogy::NativeFunction for #native_name {
                 fn call(&mut self, runtime: &mut #trilogy_vm::Execution, mut input: std::vec::Vec<#trilogy_vm::Value>) -> std::result::Result<(), #trilogy_vm::Error> {
                     let runtime = #trilogy::Runtime::new(runtime);
                     let input = runtime.unlock_procedure::<#arity>(input)?;
@@ -248,6 +249,7 @@ fn impl_func_method(
 ) -> proc_macro2::TokenStream {
     let trilogy = options.trilogy();
     let trilogy_vm = options.trilogy_vm();
+    let native_name = format_ident!("trilogy_native_method_{}", fn_item.sig.ident);
     let fn_name = &fn_item.sig.ident;
     let vis = &fn_item.vis;
     let is_method = fn_item.sig.receiver().is_some();
@@ -267,9 +269,9 @@ fn impl_func_method(
         quote! {
             #[doc(hidden)]
             #[allow(non_camel_case_types)]
-            #vis struct #fn_name;
+            #vis struct #native_name;
 
-            impl #trilogy::NativeMethodFn for #fn_name {
+            impl #trilogy::NativeMethodFn for #native_name {
                 type SelfType = #self_ty;
 
                 fn arity(&self) -> usize {
@@ -299,9 +301,9 @@ fn impl_func_method(
         quote! {
             #[doc(hidden)]
             #[allow(non_camel_case_types)]
-            #vis struct #fn_name;
+            #vis struct #native_name;
 
-            impl #trilogy::NativeFunction for #fn_name {
+            impl #trilogy::NativeFunction for #native_name {
                 fn call(&mut self, runtime: &mut #trilogy_vm::Execution, input: std::vec::Vec<#trilogy_vm::Value>) -> std::result::Result<(), #trilogy_vm::Error> {
                     let runtime = #trilogy::Runtime::new(runtime);
                     let module_function = runtime.function_closure::<_, #arity>(|rt, input| {
