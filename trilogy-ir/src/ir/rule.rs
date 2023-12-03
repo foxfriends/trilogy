@@ -13,6 +13,7 @@ pub struct Rule {
 
 impl Rule {
     pub(super) fn convert(converter: &mut Converter, ast: syntax::RuleDefinition) -> Self {
+        converter.push_scope();
         let span = ast.span();
         let head_span = ast.head.span();
         let parameters = ast
@@ -25,6 +26,7 @@ impl Rule {
             .body
             .map(|query| Query::convert(converter, query))
             .unwrap_or_else(|| Query::pass(span));
+        converter.pop_scope();
         Self {
             span,
             head_span,
@@ -34,6 +36,7 @@ impl Rule {
     }
 
     pub(super) fn convert_qy(converter: &mut Converter, ast: syntax::QyExpression) -> Self {
+        converter.push_scope();
         let span = ast.span();
         let head_span = ast.qy_token.span.union(ast.cparen.span);
         let parameters = ast
@@ -42,6 +45,7 @@ impl Rule {
             .map(|param| Expression::convert_pattern(converter, param))
             .collect();
         let body = Query::convert(converter, ast.body);
+        converter.pop_scope();
         Self {
             span,
             head_span,

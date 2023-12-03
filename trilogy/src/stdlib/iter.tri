@@ -187,10 +187,30 @@ test "repeat" {
 ## Calls the iterator, discarding any yielded values.
 func ignore xs =
     with xs!()
-        when 'next(_) cancel resume unit
+        when 'next(_) resume unit
         else yield
 export ignore
 
 test "ignore" {
     of [1, 2, 3] |> ignore
+}
+
+## Tuples each element of an iterator with its index.
+func enumerate xs = do () {
+    let mut i = 0
+    with { xs!() }
+        when 'next(v) invert {
+            yield 'next(i:v)
+            i += 1
+            cancel resume unit
+        }
+        else yield
+}
+export enumerate
+
+test "enumerate" {
+    assert (of [1, 2, 3]
+        |> enumerate
+        |> collect array)
+        == [0:1, 1:2, 2:3]
 }

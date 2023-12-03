@@ -13,6 +13,7 @@ pub struct Procedure {
 
 impl Procedure {
     pub(super) fn convert(converter: &mut Converter, ast: syntax::ProcedureDefinition) -> Self {
+        converter.push_scope();
         let span = ast.span();
         let head_span = ast.head.span();
         let parameters: Vec<_> = ast
@@ -22,6 +23,7 @@ impl Procedure {
             .map(|param| Expression::convert_pattern(converter, param))
             .collect();
         let body = Expression::convert_block(converter, ast.body);
+        converter.pop_scope();
         Self {
             span,
             head_span,
@@ -31,6 +33,7 @@ impl Procedure {
     }
 
     pub(super) fn convert_do(converter: &mut Converter, ast: syntax::DoExpression) -> Self {
+        converter.push_scope();
         let span = ast.span();
         let do_span = ast.do_token().span();
         let parameters: Vec<_> = ast
@@ -43,6 +46,7 @@ impl Procedure {
             syntax::DoBody::Expression(expr) => Expression::builtin(do_span, Builtin::Return)
                 .apply_to(span, Expression::convert(converter, *expr)),
         };
+        converter.pop_scope();
         Self {
             span,
             head_span: do_span.union(ast.cparen.span),

@@ -13,6 +13,7 @@ pub struct Function {
 
 impl Function {
     pub(super) fn convert(converter: &mut Converter, ast: syntax::FunctionDefinition) -> Self {
+        converter.push_scope();
         let span = ast.span();
         let head_span = ast.head.span();
         let parameters: Vec<_> = ast
@@ -23,6 +24,7 @@ impl Function {
             .collect();
         let body = Expression::builtin(span, Builtin::Return)
             .apply_to(span, Expression::convert(converter, ast.body));
+        converter.pop_scope();
         Self {
             span,
             head_span,
@@ -32,6 +34,7 @@ impl Function {
     }
 
     pub(super) fn convert_fn(converter: &mut Converter, ast: syntax::FnExpression) -> Self {
+        converter.push_scope();
         let span = ast.span();
         let parameters: Vec<_> = ast
             .parameters
@@ -40,6 +43,7 @@ impl Function {
             .collect();
         let body = Expression::builtin(span, Builtin::Return)
             .apply_to(span, Expression::convert(converter, ast.body));
+        converter.pop_scope();
         Self {
             head_span: ast.r#fn.span.union(ast.dot.span),
             span,
