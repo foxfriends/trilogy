@@ -29,6 +29,14 @@ test "matches returns the captured matches in a record" {
         "v" => "e",
         2 => "llo",
     |}
+
+    let rec = pat::matches "hello hullo"
+    assert rec == {|
+        0 => "hello",
+        1 => "e",
+        "v" => "e",
+        2 => "llo",
+    |}
 }
 
 test "flagged constructor adds flags that are respected" {
@@ -39,4 +47,55 @@ test "flagged constructor adds flags that are respected" {
 
 test not "invalid flags cause a runtime error" {
     flagged ['p] "h[eu]llo"
+}
+
+test "all_matches returns all non-overlapping captured matches in an array of records" {
+    let pat = new "h(?<v>[eu])(llo)"
+    let all = pat::all_matches "hello hullo"
+    assert all == [{|
+        0 => "hello",
+        1 => "e",
+        "v" => "e",
+        2 => "llo",
+    |}, {|
+        0 => "hullo",
+        1 => "u",
+        "v" => "u",
+        2 => "llo",
+    |}]
+}
+
+test "positions returns the start:end of the captured matches in a record" {
+    let pat = new "h(?<v>[eu])(llo)"
+    let rec = pat::positions "hello"
+    assert rec == {|
+        0 => 0:5,
+        1 => 1:2,
+        "v" => 1:2,
+        2 => 2:5,
+    |}
+
+    let rec = pat::positions "hello hullo"
+    assert rec == {|
+        0 => 0:5,
+        1 => 1:2,
+        "v" => 1:2,
+        2 => 2:5,
+    |}
+}
+
+test "all_positions returns all non-overlapping captured matches in an array of records" {
+    let pat = new "h(?<v>[eu])(llo)"
+    let all = pat::all_positions "hello hullo"
+    assert all as all == [{|
+        0 => 0:5,
+        1 => 1:2,
+        "v" => 1:2,
+        2 => 2:5,
+    |}, {|
+        0 => 6:11,
+        1 => 7:8,
+        "v" => 7:8,
+        2 => 8:11,
+    |}]
 }

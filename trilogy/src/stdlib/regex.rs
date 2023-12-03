@@ -3,7 +3,7 @@ pub mod regex {
     use crate::Runtime;
     use regex::RegexBuilder;
     use std::collections::HashMap;
-    use trilogy_vm::{Array, Value};
+    use trilogy_vm::{Array, Tuple, Value};
 
     #[derive(Clone)]
     pub struct Regex(::regex::Regex);
@@ -35,6 +35,93 @@ pub mod regex {
                     map
                 },
             );
+            rt.r#return(captures)
+        }
+
+        #[trilogy_derive::func(crate_name=crate)]
+        fn all_matches(self, rt: Runtime, value: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(value)?;
+            let captures = self
+                .0
+                .captures_iter(&string)
+                .map(|captures| {
+                    self.0.capture_names().enumerate().fold(
+                        HashMap::<Value, Value>::new(),
+                        |mut map, (i, name)| {
+                            if let Some(capture) = captures.get(i) {
+                                map.insert(i.into(), capture.clone().as_str().into());
+                                if let Some(name) = name {
+                                    map.insert(
+                                        name.to_owned().into(),
+                                        capture.clone().as_str().into(),
+                                    );
+                                }
+                            }
+                            map
+                        },
+                    )
+                })
+                .map(Value::from)
+                .collect::<Array>();
+            rt.r#return(captures)
+        }
+
+        #[trilogy_derive::func(crate_name=crate)]
+        fn positions(self, rt: Runtime, value: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(value)?;
+            let Some(captures) = self.0.captures(&string) else {
+                let atom = rt.atom("NoMatch");
+                return rt.r#yield(atom, |rt, val| rt.r#return(val));
+            };
+            let captures = self.0.capture_names().enumerate().fold(
+                HashMap::<Value, Value>::new(),
+                |mut map, (i, name)| {
+                    if let Some(capture) = captures.get(i) {
+                        map.insert(
+                            i.into(),
+                            Tuple::from((capture.start(), capture.end())).into(),
+                        );
+                        if let Some(name) = name {
+                            map.insert(
+                                name.into(),
+                                Tuple::from((capture.start(), capture.end())).into(),
+                            );
+                        }
+                    }
+                    map
+                },
+            );
+            rt.r#return(captures)
+        }
+
+        #[trilogy_derive::func(crate_name=crate)]
+        fn all_positions(self, rt: Runtime, value: Value) -> crate::Result<()> {
+            let string = rt.typecheck::<String>(value)?;
+            let captures = self
+                .0
+                .captures_iter(&string)
+                .map(|captures| {
+                    self.0.capture_names().enumerate().fold(
+                        HashMap::<Value, Value>::new(),
+                        |mut map, (i, name)| {
+                            if let Some(capture) = captures.get(i) {
+                                map.insert(
+                                    i.into(),
+                                    Tuple::from((capture.start(), capture.end())).into(),
+                                );
+                                if let Some(name) = name {
+                                    map.insert(
+                                        name.into(),
+                                        Tuple::from((capture.start(), capture.end())).into(),
+                                    );
+                                }
+                            }
+                            map
+                        },
+                    )
+                })
+                .map(Value::from)
+                .collect::<Array>();
             rt.r#return(captures)
         }
     }
