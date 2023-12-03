@@ -255,7 +255,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .label(MIA)
         .reference(YIELD)
         .atom("MIA")
-        .call_function();
+        .become_function();
 
     builder
         .label(ITERATE_COLLECTION)
