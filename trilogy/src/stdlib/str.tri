@@ -1,6 +1,15 @@
 module native at "trilogy:str/native"
 module iter at "trilogy:iter"
 
+## A string template tag that casts all of its interpolations to strings.
+func fmt [s] [] = s
+func fmt [s, ..ss] [i, ..ii] = s <> cast i <> fmt ss ii
+export fmt
+
+test "fmt" {
+    assert $"hello ${1} ${true}" fmt == "hello 1 true"
+}
+
 ## Returns an empty string
 proc empty!() {
     return ""

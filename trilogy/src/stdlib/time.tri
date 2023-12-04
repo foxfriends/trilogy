@@ -1,0 +1,42 @@
+module str at "trilogy:str" use fmt
+
+module native at "trilogy:time/native" use now_ms, now_us, now_ns, now, instant
+export now_ms, now_us, now_ns, now, instant
+
+proc measure!(p) {
+    let begin = instant!()
+    let val = p!()
+    yield 'split(begin::elapsed_ns!() |> fmt_ns)
+    return val
+}
+export measure
+
+func fmt_ns n =
+    if n > 1000
+    then $"${fmt_us (n // 1000)} ${n % 1000}ns" fmt
+    else $"${n}ns" fmt
+func fmt_us n =
+    if n > 1000
+    then $"${fmt_ms (n // 1000)} ${n % 1000}μs" fmt
+    else $"${n}μs" fmt
+func fmt_ms n =
+    if n > 1000
+    then $"${fmt_secs (n // 1000)} ${n % 1000}ms" fmt
+    else $"${n}ms" fmt
+func fmt_secs n =
+    if n > 60
+    then $"${fmt_mins (n // 60)} ${n % 60}s" fmt
+    else $"${n}s" fmt
+func fmt_mins n =
+    if n > 60
+    then $"${fmt_hrs (n // 60)} ${n % 60}m" fmt
+    else $"${n}m" fmt
+func fmt_hrs n = $"${n}h" fmt
+
+export fmt_ns, fmt_us, fmt_ms, fmt_secs, fmt_mins, fmt_hrs
+
+test "fmt" {
+    assert fmt_ns 999 == "999ns"
+    assert fmt_ns 1999 == "1μs 999ns"
+    assert fmt_ns 1999999 == "1ms 999μs 999ns"
+}

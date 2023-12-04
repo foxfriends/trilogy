@@ -7,6 +7,7 @@ mod fs;
 mod io;
 mod num;
 mod str;
+mod time;
 
 #[cfg(feature = "regex")]
 mod regex;
@@ -72,6 +73,11 @@ where
         .source_module(
             Location::library("fp").unwrap(),
             include_str!("./fp.tri").to_owned(),
+        )
+        .native_module(Location::library("time/native").unwrap(), time::time())
+        .source_module(
+            Location::library("time").unwrap(),
+            include_str!("./time.tri").to_owned(),
         );
 
     #[cfg(feature = "regex")]
