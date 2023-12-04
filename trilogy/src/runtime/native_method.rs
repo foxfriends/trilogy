@@ -1,5 +1,10 @@
 use trilogy_vm::{Error, Execution, NativeFunction, Value};
 
+/// Wraps a Rust method for use as a Trilogy native function.
+///
+/// These are not typically created manually, but as part of the
+/// [`module`][trilogy_derive::module] proc macro when used on a
+/// Rust `impl` block.
 #[derive(Clone)]
 pub struct NativeMethod<T, F> {
     receiver: T,

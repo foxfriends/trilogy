@@ -7,7 +7,7 @@ use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
 /// A Trilogy Bits value.
 ///
-/// Bits values are represented internally using types from the [`bitvec`][] crate.
+/// Bits values are represented internally using types from the [`bitvec`][mod@bitvec] crate.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
 pub struct Bits(BitVec<usize, Msb0>);
 
