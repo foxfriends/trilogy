@@ -22,13 +22,21 @@ pub enum Instruction {
     /// This is a shallow copy, so it will be referentially equal to the
     /// previous value if it is of a reference type.
     Copy,
-    /// Replace the value on the top of the stack with a structural clone
+    /// Replace the value on the top of the stack with a shallow clone
     /// of itself.
     ///
     /// The new value will not be referentially equal to the previous value if it was
     /// of a compound reference type. Callable types will remain referentially equal,
     /// as they cannot be further cloned.
     Clone,
+    /// Replace the value on the top of the stack with a structural clone
+    /// of itself.
+    ///
+    /// The new value will not be referentially equal to the previous value if it was
+    /// of a compound reference type. Callable types will remain referentially equal,
+    /// as they cannot be further cloned.
+    #[asm(name = "CLONED")]
+    DeepClone,
     /// Remove the value from the top of the stack.
     Pop,
     /// Swap the value on the top of the stack with the second from the top value.

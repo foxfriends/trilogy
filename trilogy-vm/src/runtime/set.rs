@@ -13,8 +13,48 @@ impl Set {
         Self::default()
     }
 
-    pub fn structural_clone(&self) -> Self {
+    /// Performs a shallow clone of the set, returning a new set
+    /// instance over the same elements. The values of the set are not cloned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let set = Set::new();
+    /// let inner = Value::from(Set::new());
+    /// set.insert(inner.clone());
+    /// let clone = set.shallow_clone();
+    /// assert_ne!(set, clone);
+    /// assert!(set.has(&inner));
+    /// assert!(clone.has(&inner));
+    /// ```
+    pub fn shallow_clone(&self) -> Self {
         Self::from(self.0.lock().unwrap().clone())
+    }
+
+    /// Performs a deep structural clone of the set, returning a completely
+    /// fresh copy of the same value. All values are recursively structural
+    /// cloned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let set = Set::new();
+    /// let inner = Value::from(Set::new());
+    /// set.insert(inner.clone());
+    /// let clone = set.structural_clone();
+    /// assert_ne!(set, clone);
+    /// assert!(set.has(&inner));
+    /// assert!(!clone.has(&inner));
+    /// ```
+    pub fn structural_clone(&self) -> Self {
+        self.0
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|v| v.structural_clone())
+            .collect()
     }
 
     pub fn get(&self, value: &Value) -> Option<Value> {
@@ -25,8 +65,11 @@ impl Set {
         self.0.lock().unwrap().contains(value)
     }
 
-    pub fn insert(&self, value: Value) -> bool {
-        self.0.lock().unwrap().insert(value)
+    pub fn insert<V>(&self, value: V) -> bool
+    where
+        V: Into<Value>,
+    {
+        self.0.lock().unwrap().insert(value.into())
     }
 
     pub fn remove(&self, value: &Value) -> bool {

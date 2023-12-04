@@ -364,7 +364,11 @@ impl<'a> Execution<'a> {
             }
             Instruction::Clone => {
                 let value = self.stack_pop()?;
-                self.stack.push(value.structural_clone());
+                self.stack.push(value.shallow_clone());
+            }
+            Instruction::DeepClone => {
+                let value = self.stack_pop()?;
+                self.stack.push(value.shallow_clone());
             }
             Instruction::TypeOf => {
                 let value = self.stack_pop()?;

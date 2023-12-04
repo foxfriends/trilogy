@@ -367,11 +367,32 @@ impl Value {
 }
 
 impl Value {
+    /// Performs a deep clone of this value.
+    ///
+    /// This is only relevant for compound types, for which the deep clone
+    /// means that every value within the container is recursively cloned,
+    /// such that the new value is completely disjoint from the original.
+    /// As that sounds, this is potentially a very slow and expensive
+    /// operation.
     pub fn structural_clone(&self) -> Self {
         match self {
             Self::Array(array) => Self::Array(array.structural_clone()),
             Self::Set(array) => Self::Set(array.structural_clone()),
             Self::Record(array) => Self::Record(array.structural_clone()),
+            _ => self.clone(),
+        }
+    }
+
+    /// Performs a shallow clone of this value.
+    ///
+    /// This is only relevant for compound types, for which the shallow clone
+    /// means that the container is cloned but the values contained remain
+    /// references to the same values as the original container.
+    pub fn shallow_clone(&self) -> Self {
+        match self {
+            Self::Array(array) => Self::Array(array.shallow_clone()),
+            Self::Set(array) => Self::Set(array.shallow_clone()),
+            Self::Record(array) => Self::Record(array.shallow_clone()),
             _ => self.clone(),
         }
     }
