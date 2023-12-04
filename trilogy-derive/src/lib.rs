@@ -175,7 +175,7 @@ pub fn module(attr: TokenStream, item: TokenStream) -> TokenStream {
         .into()
 }
 
-/// Constructs a Trilogy native function out of a Rust module.
+/// Constructs a Trilogy native function out of a Rust function.
 ///
 /// This is the only safe way to implement the `NativeFunction` trait for your
 /// own functions. The result is a curried function that can be called from Trilogy,
