@@ -6,12 +6,14 @@ use std::fmt::{self, Debug, Display};
 mod builder;
 mod error;
 mod iter;
+mod line;
 #[macro_use]
 mod writer;
 
 pub use builder::ChunkBuilder;
 pub use error::ChunkError;
 pub use iter::ChunkIter;
+pub(crate) use line::Line;
 pub use writer::ChunkWriter;
 
 /// A chunk of independently compiled source code for the Trilogy VM.

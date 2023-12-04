@@ -1,30 +1,18 @@
-use std::collections::HashMap;
-
 use super::error::ChunkError;
+use super::line::{Line, Parameter};
 use super::{Chunk, ChunkWriter};
 use crate::atom::AtomInterner;
 use crate::bytecode::asm::{self, AsmReader};
+use crate::bytecode::optimization::optimize;
 use crate::callable::Procedure;
 use crate::{Atom, Instruction, Offset, OpCode, Value};
+use std::collections::HashMap;
 
 #[derive(Eq, PartialEq, Clone)]
 enum Entrypoint {
     Line(usize),
     Index(u32),
     Label(String),
-}
-
-pub(super) enum Parameter {
-    Value(Value),
-    Label(String),
-    Offset(u32),
-    Reference(String),
-}
-
-struct Line {
-    labels: Vec<String>,
-    opcode: OpCode,
-    value: Option<Parameter>,
 }
 
 /// Builder for constructing a chunk of bytecode for the [`VirtualMachine`][crate::VirtualMachine]
@@ -157,8 +145,13 @@ impl ChunkBuilder {
             return Err(error);
         }
 
+        let mut lines = match self.entrypoint {
+            Entrypoint::Line(index) => optimize(self.lines, index, &self.protected_labels),
+            _ => self.lines,
+        };
+
         let mut distance = chunk.bytes.len() as u32;
-        for (i, line) in self.lines.iter_mut().enumerate() {
+        for (i, line) in lines.iter_mut().enumerate() {
             if Entrypoint::Line(i) == self.entrypoint {
                 self.entrypoint = Entrypoint::Index(i as u32 + distance);
             }
@@ -170,7 +163,7 @@ impl ChunkBuilder {
             }
         }
 
-        for line in self.lines.into_iter() {
+        for line in lines.into_iter() {
             chunk.bytes.push(line.opcode as u8);
             match line.value {
                 None => {}
