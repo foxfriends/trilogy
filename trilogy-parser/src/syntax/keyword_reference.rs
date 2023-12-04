@@ -47,6 +47,7 @@ pub enum Keyword {
     Return(Token),
     Break(Token),
     Continue(Token),
+    Typeof(Token),
 }
 
 impl KeywordReference {
@@ -93,6 +94,7 @@ impl KeywordReference {
             KwResume => Keyword::Resume,
             KwCancel => Keyword::Cancel,
             KwReturn => Keyword::Return,
+            KwTypeof => Keyword::Typeof,
             _ => return None,
         };
         let start = parser.consume();

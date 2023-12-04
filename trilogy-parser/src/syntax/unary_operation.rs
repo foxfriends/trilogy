@@ -36,18 +36,20 @@ pub enum UnaryOperator {
     Not(Token),
     Invert(Token),
     Yield(Token),
+    Typeof(Token),
 }
 
 impl UnaryOperator {
     fn parse(parser: &mut Parser) -> Self {
         let token = parser
-            .expect([OpBang, OpMinus, OpTilde, KwYield])
+            .expect([OpBang, OpMinus, OpTilde, KwYield, KwTypeof])
             .expect("Caller should have found one of these");
         match token.token_type {
             OpBang => Self::Not(token),
             OpMinus => Self::Negate(token),
             OpTilde => Self::Invert(token),
             KwYield => Self::Yield(token),
+            KwTypeof => Self::Typeof(token),
             _ => unreachable!(),
         }
     }

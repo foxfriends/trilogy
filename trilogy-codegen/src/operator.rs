@@ -46,6 +46,7 @@ pub(crate) fn is_operator(builtin: Builtin) -> bool {
         Builtin::Yield => true,
         Builtin::Resume => true,
         Builtin::Cancel => true,
+        Builtin::Typeof => true,
         Builtin::Pin => true, // Pin is a noop when it appears in an evaluated pattern
         _ => false,
     }
@@ -65,6 +66,7 @@ pub(crate) fn is_unary_operator(builtin: Builtin) -> bool {
         Builtin::Yield => true,
         Builtin::Resume => true,
         Builtin::Cancel => true,
+        Builtin::Typeof => true,
         Builtin::Pin => true, // Pin is a noop when it appears in an evaluated pattern
         _ => false,
     }
@@ -343,6 +345,9 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
                 .constant(Struct::new(function, 1))
                 .instruction(Instruction::Become(2));
         }
+        Builtin::Typeof => {
+            context.instruction(Instruction::TypeOf);
+        }
         Builtin::Pin => {}
         Builtin::ModuleAccess
         | Builtin::Array
@@ -395,6 +400,7 @@ pub(crate) fn is_referenceable_operator(builtin: Builtin) -> bool {
         Builtin::Return => true,
         Builtin::Resume => true,
         Builtin::Cancel => true,
+        Builtin::Typeof => true,
         _ => false,
     }
 }
@@ -432,6 +438,7 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         Builtin::RPipe => context.reference(RPIPE),
         Builtin::Compose => context.reference(COMPOSE),
         Builtin::RCompose => context.reference(RCOMPOSE),
+        Builtin::Typeof => context.reference(TYPEOF),
         Builtin::Break => context.instruction(context.scope.kw_break().unwrap()),
         Builtin::Continue => context.instruction(context.scope.kw_continue().unwrap()),
         Builtin::Resume => context.instruction(context.scope.kw_resume().unwrap()),

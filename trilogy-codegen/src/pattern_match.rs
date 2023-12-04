@@ -133,6 +133,11 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                             .instruction(Instruction::Pop);
                     });
             }
+            (None, ir::Value::Builtin(Builtin::Typeof), value) => {
+                self.context
+                    .instruction(Instruction::TypeOf)
+                    .pattern_match(value, self.on_fail);
+            }
             (None, ir::Value::Builtin(Builtin::Pin), value) => {
                 self.context.evaluate(value);
                 self.context

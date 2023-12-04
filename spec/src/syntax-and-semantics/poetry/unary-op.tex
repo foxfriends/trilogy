@@ -23,6 +23,8 @@ and we prefer \texttt{+= 1} in general these days).
         \bnfor
         \bnfts{\op{\textasciitilde}}
         \bnfor
+        \bnfts{\kw{typeof}}
+        \bnfor
         \bnfts{\kw{yield}}
     }
 \end{bnf*}
@@ -109,10 +111,116 @@ Used on a non-Bits value, it causes a runtime type error.
     \UnaryInfC{$\Gamma\vdash \op{\textasciitilde}\ E:\ty{Bits}$}
 \end{prooftree}
 
-The \kw{yield} keyword used in \Poetry{} is actually also an operator, mostly for
-convenience. This operator works similarly to how the \kw{yield} statement of \Prose{}
-works, but the returned value is accessible. It may return more or less than once if
-the effect handler resumes more or less that once. Though it would be nice to explain
-it now, once again leave the detailed explanation to \S\ref{sec:effects}.
+The \kw{typeof} keyword is an operator which returns the type of its operand, as an
+atom. This is only a shallow type inspection, and only reflects the ``topmost'' type
+of the value; elements of compound types are not inspected. The type mappings are
+spelled out formally in figure \ref{fig:typeof}.
+
+\begin{figure}[h]
+    \centering
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Unit}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'unit}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Boolean}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'boolean}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Character}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'character}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Number}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'number}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Bits}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'bits}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{String}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'atom}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{String}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'string}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Tuple}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'tuple}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Array}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'array}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Set}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'set}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Record}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'record}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Struct}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'struct}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Procedure}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'callable}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Function}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'callable}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Rule}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'callable}$}
+        \end{prooftree}
+    }
+    \parbox[t]{0.48\linewidth}{
+        \begin{prooftree}
+            \AxiomC{$\Gamma\vdash E: \ty{Module}$}
+            \UnaryInfC{$\Gamma\vdash \kw{typeof}\ E = \texttt{'callable}$}
+        \end{prooftree}
+    }
+    \caption{\label{fig:typeof}Typeof}
+\end{figure}
+
+The \kw{yield} keyword used in \Poetry{} is actually also an operator. This operator
+works similarly to how the \kw{yield} statement of \Prose{} works, but the returned
+value is accessible. It may return more or less than once if the effect handler resumes
+more or less that once. Though it would be nice to explain it now, once again leave
+the detailed explanation to \S\ref{sec:effects}.
 
 \FloatBarrier

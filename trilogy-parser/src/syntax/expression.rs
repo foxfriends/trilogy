@@ -331,7 +331,8 @@ impl Expression {
             DollarOParen => Ok(Ok(Self::IteratorComprehension(Box::new(
                 IteratorComprehension::parse(parser)?,
             )))),
-            OpBang | OpMinus | OpTilde | KwYield => match UnaryOperation::parse(parser)? {
+            OpBang | OpMinus | OpTilde | KwYield | KwTypeof => match UnaryOperation::parse(parser)?
+            {
                 Ok(expr) => Ok(Ok(Self::Unary(Box::new(expr)))),
                 Err(patt) => Ok(Err(patt)),
             },

@@ -3,33 +3,33 @@ use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
-pub struct NegativePattern {
-    pub minus: Token,
+pub struct TypeofPattern {
+    pub type_of: Token,
     pub pattern: Pattern,
 }
 
-impl NegativePattern {
+impl TypeofPattern {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let minus = parser
-            .expect(OpMinus)
+        let type_of = parser
+            .expect(KwTypeof)
             .expect("Caller should have found this");
         let pattern = Pattern::parse_precedence(parser, Precedence::Unary)?;
-        Ok(Self { minus, pattern })
+        Ok(Self { type_of, pattern })
     }
 }
 
-impl TryFrom<UnaryOperation> for NegativePattern {
+impl TryFrom<UnaryOperation> for TypeofPattern {
     type Error = SyntaxError;
 
     fn try_from(value: UnaryOperation) -> Result<Self, Self::Error> {
         match value.operator {
-            UnaryOperator::Negate(token) => Ok(Self {
-                minus: token,
+            UnaryOperator::Typeof(token) => Ok(Self {
+                type_of: token,
                 pattern: value.operand.try_into()?,
             }),
             _ => Err(SyntaxError::new(
                 value.span(),
-                "incorrect operator for negative pattern",
+                "incorrect operator for typeof pattern",
             )),
         }
     }

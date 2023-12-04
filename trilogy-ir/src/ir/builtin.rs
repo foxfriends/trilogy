@@ -42,6 +42,7 @@ pub enum Builtin {
     Set,
     Record,
     Is,
+    Typeof,
     Pin,
     For,
     Yield,
@@ -93,6 +94,7 @@ impl Builtin {
             syntax::Keyword::Cancel(..) => Self::Cancel,
             syntax::Keyword::Return(..) => Self::Return,
             syntax::Keyword::Break(..) => Self::Break,
+            syntax::Keyword::Typeof(..) => Self::Typeof,
             syntax::Keyword::Continue(..) => Self::Continue,
         };
         Expression::builtin(span, op)
@@ -142,6 +144,7 @@ impl Builtin {
             syntax::UnaryOperator::Negate(..) => Builtin::Negate,
             syntax::UnaryOperator::Not(..) => Builtin::Not,
             syntax::UnaryOperator::Yield(..) => Builtin::Yield,
+            syntax::UnaryOperator::Typeof(..) => Builtin::Typeof,
         };
         Expression::builtin(span, op)
     }

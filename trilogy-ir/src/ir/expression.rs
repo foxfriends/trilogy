@@ -315,7 +315,9 @@ impl Expression {
             Unit(ast) => Self::unit(ast.span()),
             Atom(ast) => Self::atom(ast.span(), ast.value()),
             Wildcard(ast) => Self::wildcard(ast.span()),
-            Negative(ast) => Self::builtin(ast.minus_token().span, Builtin::Negate)
+            Negative(ast) => Self::builtin(ast.minus.span, Builtin::Negate)
+                .apply_to(ast.span(), Self::convert_pattern(converter, ast.pattern)),
+            Typeof(ast) => Self::builtin(ast.type_of.span, Builtin::Typeof)
                 .apply_to(ast.span(), Self::convert_pattern(converter, ast.pattern)),
             Glue(ast) => {
                 let glue_span = ast.glue.span;

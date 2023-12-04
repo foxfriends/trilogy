@@ -58,6 +58,8 @@ pub const END: &str = "core::end";
 pub const YIELD: &str = "core::yield";
 pub const EXIT: &str = "core::exit";
 
+pub const TYPEOF: &str = "core::typeof";
+
 pub const RUNTIME_TYPE_ERROR: &str = "panic::runtime_type_error";
 pub const INVALID_ACCESSOR: &str = "panic::invalid_accessor";
 pub const INCORRECT_ARITY: &str = "panic::incorrect_arity";
@@ -142,6 +144,8 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     binop_!(builder, RPIPE, &(), "callable", Instruction::Call(1));
 
     binop!(builder, CONS, &(), &(), Instruction::Cons);
+
+    unop!(builder, TYPEOF, &(), Instruction::TypeOf);
 
     builder
         .label(COMPOSE)

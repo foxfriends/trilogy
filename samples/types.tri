@@ -1,0 +1,7 @@
+func check_type x and typeof 'string = 'string
+func check_type x and typeof 'number = 'number
+func check_type x = typeof x
+func check_type x and typeof t = t
+
+proc main!() {
+}
