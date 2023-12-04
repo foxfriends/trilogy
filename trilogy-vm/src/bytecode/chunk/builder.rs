@@ -30,6 +30,7 @@ struct Line {
 /// Builder for constructing a chunk of bytecode for the [`VirtualMachine`][crate::VirtualMachine]
 /// to execute.
 pub struct ChunkBuilder {
+    protected_labels: Vec<String>,
     entrypoint: Entrypoint,
     interner: AtomInterner,
     lines: Vec<Line>,
@@ -40,6 +41,7 @@ pub struct ChunkBuilder {
 impl ChunkBuilder {
     pub(crate) fn new(interner: AtomInterner) -> Self {
         Self {
+            protected_labels: vec![],
             entrypoint: Entrypoint::Line(0),
             interner,
             lines: vec![],
@@ -230,8 +232,18 @@ impl ChunkWriter for ChunkBuilder {
         self.interner.intern(atom.as_ref())
     }
 
+    /// Stages a label, to be attached to the next instruction that is written.
     fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.current_labels.push(label.into());
+        self
+    }
+
+    /// Protects the currently staged labels, ensuring they don't get removed by dead
+    /// code elimination. Otherwise, any line deemed "unreachable" may be stripped,
+    /// including (incorrectly) lines that might be used by chunks that are loaded in
+    /// future.
+    fn protect(&mut self) -> &mut Self {
+        self.protected_labels.extend(self.current_labels.clone());
         self
     }
 

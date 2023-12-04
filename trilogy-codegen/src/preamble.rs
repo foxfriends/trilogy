@@ -71,6 +71,7 @@ macro_rules! binop {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
         $builder
             .label($label)
+            .protect()
             .unlock_function()
             .close(RETURN)
             .unlock_function()
@@ -87,6 +88,7 @@ macro_rules! binop_ {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
         $builder
             .label($label)
+            .protect()
             .unlock_function()
             .close(RETURN)
             .unlock_function()
@@ -100,6 +102,7 @@ macro_rules! unop {
     ($builder:expr, $label:expr, $ty:expr, $($op:expr),+) => {{
         $builder
             .label($label)
+            .protect()
             .unlock_function()
             .typecheck($ty)
             $(.instruction($op))+
@@ -149,6 +152,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(COMPOSE)
+        .protect()
         .unlock_function()
         .typecheck("callable")
         .close(RETURN)
@@ -166,6 +170,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(RCOMPOSE)
+        .protect()
         .unlock_function()
         .typecheck("callable")
         .close(RETURN)
@@ -183,6 +188,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(ASSIGN)
+        .protect()
         .unlock_procedure(3)
         .instruction(Instruction::LoadLocal(0))
         .try_type("record", Ok(ASSIGN_ANY))
@@ -192,11 +198,13 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Panic);
     builder
         .label(ASSIGN_ANY)
+        .protect()
         .instruction(Instruction::Pop)
         .instruction(Instruction::Assign)
         .instruction(Instruction::Return);
     builder
         .label(ASSIGN_INT)
+        .protect()
         .instruction(Instruction::Pop)
         .instruction(Instruction::LoadLocal(1))
         .typecheck("number")
@@ -210,6 +218,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(ACCESS)
+        .protect()
         .unlock_function()
         .try_type("record", Ok(ACCESS_ANY))
         .try_type("array", Ok(ACCESS_INT))
@@ -220,6 +229,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Panic);
     builder
         .label(ACCESS_ANY)
+        .protect()
         .close(RETURN)
         .unlock_function()
         .instruction(Instruction::LoadLocal(0))
@@ -232,6 +242,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return);
     builder
         .label(ACCESS_INT)
+        .protect()
         .close(RETURN)
         .unlock_function()
         .typecheck("number")
@@ -257,12 +268,14 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(MIA)
+        .protect()
         .reference(YIELD)
         .atom("MIA")
         .become_function();
 
     builder
         .label(ITERATE_COLLECTION)
+        .protect()
         .try_type("array", Ok(ITERATE_ARRAY))
         .try_type("set", Ok(ITERATE_SET))
         .try_type("record", Ok(ITERATE_RECORD))
@@ -275,8 +288,10 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder
         .label(ITERATE_SET)
         .label(ITERATE_RECORD)
+        .protect()
         .instruction(Instruction::Entries)
         .label(ITERATE_ARRAY)
+        .protect()
         .constant(0)
         .repeat(|context, end| {
             context
@@ -300,6 +315,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(ITERATE_LIST)
+        .protect()
         .repeat(|context, end| {
             context
                 .instruction(Instruction::Copy)
@@ -318,10 +334,13 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(END)
+        .protect()
         .instruction(Instruction::Fizzle)
         .label(RETURN)
+        .protect()
         .instruction(Instruction::Return)
         .label(EXIT)
+        .protect()
         .instruction(Instruction::Exit);
 
     let yielding = builder.make_label("yielding");
@@ -329,6 +348,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(YIELD)
+        .protect()
         .unlock_function()
         .instruction(Instruction::LoadRegister(HANDLER))
         .instruction(Instruction::Const(Value::Unit))
@@ -360,24 +380,28 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     builder
         .label(INVALID_ACCESSOR)
+        .protect()
         .atom("InvalidAccessor")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
     builder
         .label(INCORRECT_ARITY)
+        .protect()
         .atom("IncorrectArity")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
     builder
         .label(INVALID_CALL)
+        .protect()
         .atom("InvalidCall")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
 
     builder
         .label(RUNTIME_TYPE_ERROR)
+        .protect()
         .atom("RuntimeTypeError")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);

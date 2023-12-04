@@ -17,6 +17,13 @@ pub trait ChunkWriter {
     /// be treated as if it was not defined.
     fn label<S: Into<String>>(&mut self, label: S) -> &mut Self;
 
+    /// Protects the currently staged labels, ensuring they do not get stripped
+    /// by any dead code elimination that may occur.
+    ///
+    /// It is important to protect any labels that future chunks may assume the existence
+    /// of, as otherwise they might have already been removed.
+    fn protect(&mut self) -> &mut Self;
+
     /// Insert a CONST instruction that references a procedure located at the
     /// given label.
     ///
@@ -87,6 +94,11 @@ macro_rules! delegate_chunk_writer {
 
             fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
                 self.$f.cond_jump(label);
+                self
+            }
+
+            fn protect(&mut self) -> &mut Self {
+                self.$f.protect();
                 self
             }
 
