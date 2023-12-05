@@ -16,6 +16,15 @@ proc empty!() {
 }
 export empty
 
+func is_empty "" = true
+func is_empty typeof 'string = false
+export is_empty
+
+test "is_empty" {
+    assert is_empty ""
+    assert !(is_empty "A")
+}
+
 ## Returns the string value
 func of s = s
 export of

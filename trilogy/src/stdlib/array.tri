@@ -18,6 +18,17 @@ proc empty!() {
 }
 export empty
 
+## Returns true if the array is empty, and false otherwise.
+func is_empty [] = true
+func is_empty typeof 'array = false
+export is_empty
+
+test "is_empty" {
+    assert is_empty []
+    assert !(is_empty [1])
+    assert !(is_empty [[]])
+}
+
 ## Returns an array of a single value
 func of x = [x]
 export of
