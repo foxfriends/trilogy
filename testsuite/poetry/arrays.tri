@@ -52,11 +52,11 @@ test "array iteration" {
     }
     assert total == 6
 
-    let mut total = 0
+    let mut total2 = 0
     for x in [3, 3, 3] {
-        total += x
+        total2 += x
     }
-    assert total == 9
+    assert total2 == 9
 }
 
 test not "spread set into array" {
@@ -79,16 +79,16 @@ test "array patterns" {
     let ['a, ..xs] = ['a, 'b, 'c]
     assert xs == ['b, 'c]
 
-    let [..xs, 'c] = ['a, 'b, 'c]
-    assert xs == ['a, 'b]
+    let [..xs2, 'c] = ['a, 'b, 'c]
+    assert xs2 == ['a, 'b]
 
-    let [..xs, 'c] = ['c]
-    assert xs == []
+    let [..xs3, 'c] = ['c]
+    assert xs3 == []
 
     let abc = ['a, 'b, 'c]
-    let [..xs] = abc
-    assert abc == xs
-    assert abc !== xs
+    let [..xs4] = abc
+    assert abc == xs4
+    assert abc !== xs4
 
     assert is not ['c] = ['a]
     assert is not ['c] = []
