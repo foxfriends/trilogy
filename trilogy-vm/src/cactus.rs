@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 pub(crate) struct Cactus<T> {
     parent: Option<Arc<Mutex<Cactus<T>>>>,
     stack: Vec<T>,
+    len: usize,
 }
 
 impl<T: Debug> Debug for Cactus<T> {
@@ -31,6 +32,7 @@ impl<T> Default for Cactus<T> {
         Self {
             parent: None,
             stack: vec![],
+            len: 0,
         }
     }
 }
@@ -66,14 +68,17 @@ impl<T> Cactus<T> {
 
         // Remove the branched children from the parent
         let rest = parent.stack.split_off(stack_elements - distance);
+        let len = parent.len;
         // Set the current node's parent to a new node with that little bit of stack
-        let grandparent = std::mem::replace(
+        let mut grandparent = std::mem::replace(
             &mut *parent,
             Cactus {
                 parent: None,
                 stack: rest,
+                len,
             },
         );
+        grandparent.len = parent.len - parent.stack.len();
         // And set the parent's parent to the original parent (now grandparent)
         parent.parent = Some(Arc::new(Mutex::new(grandparent)));
     }
@@ -89,7 +94,7 @@ impl<T> Cactus<T> {
             let Some(parent) = &self.parent.take() else {
                 return;
             };
-            let Cactus { parent, stack } = parent.lock().unwrap().clone();
+            let Cactus { parent, stack, .. } = parent.lock().unwrap().clone();
             self.parent = parent;
             let mut rest = std::mem::replace(&mut self.stack, stack);
             self.stack.append(&mut rest);
@@ -97,6 +102,7 @@ impl<T> Cactus<T> {
     }
 
     pub fn push(&mut self, value: T) {
+        self.len += 1;
         self.stack.push(value);
     }
 
@@ -108,14 +114,17 @@ impl<T> Cactus<T> {
             self.insert_branch(1);
             self.consume_to_length(1);
         }
+        self.len = self.len.saturating_sub(1);
         self.stack.pop()
     }
 
     pub fn commit(&mut self) {
+        let len = self.len;
         let arced = Arc::new(Mutex::new(std::mem::take(self)));
         *self = Self {
             parent: Some(arced),
             stack: vec![],
+            len,
         };
     }
 
@@ -124,6 +133,7 @@ impl<T> Cactus<T> {
         Self {
             parent: self.parent.clone(),
             stack: vec![],
+            len: self.len,
         }
     }
 
@@ -162,20 +172,17 @@ impl<T> Cactus<T> {
             self.insert_branch(count - self.stack.len());
             self.consume_to_length(count);
         }
+        self.len = self.len.saturating_sub(count);
         Some(self.stack.split_off(self.stack.len() - count))
     }
 
     pub fn attach(&mut self, items: Vec<T>) {
+        self.len += items.len();
         self.stack.extend(items);
     }
 
     pub fn len(&self) -> usize {
-        self.stack.len()
-            + self
-                .parent
-                .as_ref()
-                .map(|parent| parent.lock().unwrap().len())
-                .unwrap_or(0)
+        self.len
     }
 }
 
@@ -275,5 +282,25 @@ mod test {
             Some(3),
             "shared value was set in the original too"
         );
+    }
+
+    #[test]
+    fn cactus_len() {
+        let mut cactus = Cactus::new();
+        cactus.push(3);
+        cactus.push(4);
+        cactus.push(5);
+        assert_eq!(cactus.len(), 3);
+        cactus.pop();
+        assert_eq!(cactus.len(), 2);
+        let mut branch = cactus.branch();
+        branch.push(5);
+        assert_eq!(cactus.len(), 2);
+        assert_eq!(branch.len(), 3);
+
+        cactus.push(6);
+        cactus.detach_at(2);
+        assert_eq!(branch.len(), 3);
+        assert_eq!(cactus.len(), 1);
     }
 }
