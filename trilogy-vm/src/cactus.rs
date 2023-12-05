@@ -4,14 +4,76 @@
 //! are used to represent continuations and closures that share a parent stack
 //! but have differing active stacks.
 use std::fmt::{self, Debug};
-use std::sync::{Arc, Mutex};
+
+#[cfg(feature = "multithread")]
+mod parent {
+    use super::*;
+    use std::ops::DerefMut;
+    use std::sync::{Arc, Mutex};
+
+    pub(super) struct Parent<T>(Arc<Mutex<Cactus<T>>>);
+
+    impl<T> Clone for Parent<T> {
+        fn clone(&self) -> Self {
+            Self(self.0.clone())
+        }
+    }
+
+    impl<T> Parent<T> {
+        pub(super) fn new(cactus: Cactus<T>) -> Self {
+            Self(Arc::new(Mutex::new(cactus)))
+        }
+
+        pub(super) fn get<'a>(&'a self) -> impl DerefMut<Target = Cactus<T>> + 'a {
+            self.0.lock().unwrap()
+        }
+
+        #[cfg(test)]
+        pub(super) fn ptr_eq(a: &Self, b: &Self) -> bool {
+            Arc::ptr_eq(&a.0, &b.0)
+        }
+    }
+}
+
+#[cfg(not(feature = "multithread"))]
+mod parent {
+    use super::*;
+    use std::cell::RefCell;
+    use std::ops::DerefMut;
+    use std::rc::Rc;
+
+    pub(super) struct Parent<T>(Rc<RefCell<Cactus<T>>>);
+
+    impl<T> Clone for Parent<T> {
+        fn clone(&self) -> Self {
+            Self(self.0.clone())
+        }
+    }
+
+    impl<T> Parent<T> {
+        pub(super) fn new(cactus: Cactus<T>) -> Self {
+            Self(Rc::new(RefCell::new(cactus)))
+        }
+
+        pub(super) fn get<'a>(&'a self) -> impl DerefMut<Target = Cactus<T>> + 'a {
+            self.0.borrow_mut()
+        }
+
+        #[cfg(test)]
+        pub(super) fn ptr_eq(a: &Self, b: &Self) -> bool {
+            Rc::ptr_eq(&a.0, &b.0)
+        }
+    }
+}
+
+use parent::Parent;
 
 /// A Cactus Stack.
 ///
 /// The cactus stack (or spaghetti stack)
 #[derive(Clone)]
 pub(crate) struct Cactus<T> {
-    parent: Option<Arc<Mutex<Cactus<T>>>>,
+    parent: Option<Parent<T>>,
     stack: Vec<T>,
     len: usize,
 }
@@ -20,7 +82,7 @@ impl<T: Debug> Debug for Cactus<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = f.debug_struct("Cactus");
         if let Some(parent) = &self.parent {
-            let parent = parent.lock().unwrap();
+            let parent = parent.get();
             debug.field("parent", &Some(&*parent));
         }
         debug.field("stack", &self.stack).finish()
@@ -51,7 +113,7 @@ impl<T> Cactus<T> {
             return;
         };
 
-        let mut parent = parent.lock().unwrap();
+        let mut parent = parent.get();
         let stack_elements = parent.stack.len();
         // If the branch point would land in a grandparent, pass the task up the chain.
         if stack_elements < distance {
@@ -80,7 +142,7 @@ impl<T> Cactus<T> {
         );
         grandparent.len = parent.len - parent.stack.len();
         // And set the parent's parent to the original parent (now grandparent)
-        parent.parent = Some(Arc::new(Mutex::new(grandparent)));
+        parent.parent = Some(Parent::new(grandparent));
     }
 
     /// Consumes parents until the current stack's length is at least the target length.
@@ -94,7 +156,7 @@ impl<T> Cactus<T> {
             let Some(parent) = &self.parent.take() else {
                 return;
             };
-            let Cactus { parent, stack, .. } = parent.lock().unwrap().clone();
+            let Cactus { parent, stack, .. } = parent.get().clone();
             self.parent = parent;
             let mut rest = std::mem::replace(&mut self.stack, stack);
             self.stack.append(&mut rest);
@@ -120,9 +182,9 @@ impl<T> Cactus<T> {
 
     pub fn commit(&mut self) {
         let len = self.len;
-        let arced = Arc::new(Mutex::new(std::mem::take(self)));
+        let parent = Parent::new(std::mem::take(self));
         *self = Self {
-            parent: Some(arced),
+            parent: Some(parent),
             stack: vec![],
             len,
         };
@@ -145,7 +207,7 @@ impl<T> Cactus<T> {
         if len > offset {
             self.stack.get(len - offset - 1).cloned()
         } else {
-            self.parent.as_ref()?.lock().unwrap().at(offset - len)
+            self.parent.as_ref()?.get().at(offset - len)
         }
     }
 
@@ -157,7 +219,7 @@ impl<T> Cactus<T> {
                 value,
             ))
         } else if let Some(parent) = self.parent.as_ref() {
-            let mut parent = parent.lock().unwrap();
+            let mut parent = parent.get();
             parent.replace_at(offset - len, value)
         } else {
             Err(OutOfBounds)
@@ -243,7 +305,7 @@ mod test {
     fn cactus_parent_shared() {
         let mut cactus = Cactus::<()>::new();
         let branch = cactus.branch();
-        assert!(Arc::ptr_eq(
+        assert!(Parent::ptr_eq(
             &cactus.parent.unwrap(),
             &branch.parent.unwrap()
         ));
