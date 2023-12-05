@@ -111,8 +111,8 @@ func flatmap f = map f >> flatten
 export flatmap
 
 test "flatmap" {
-    let ranges = range 1 3
-        |> flatmap (range 1)
+    let ranges = make_range 1 3
+        |> flatmap (make_range 1)
         |> collect array
     assert ranges == [1, 1, 2, 1, 2, 3]
 }
@@ -148,26 +148,46 @@ test "filter" {
     assert odd == [1, 3]
 }
 
-## Creates an iterator that yields the integers in the range [lo..hi)
-func rangex lo hi = do() {
-    let mut i = lo
-    while i < hi {
-        yield 'next(i)
-        i += 1
-    }
-}
+## Evaluates an iterator that yields the integers in the range [lo..hi)
+func rangex lo hi =
+    if lo < hi
+    then yield 'next(lo), rangex (lo + 1) hi
+    else unit
 export rangex
 
 test "rangex" {
-    assert (rangex 0 5 |> collect array) == [0, 1, 2, 3, 4]
+    let mut total = 0
+    for x in rangex 1 5 {
+        total += x
+    }
+    assert total == 10
 }
 
-## Creates an iterator that yields the integers in the range [lo..hi]
+## Evaluates an iterator that yields the integers in the range [lo..hi]
 func range lo hi = rangex lo (hi + 1)
 export range
 
 test "range" {
-    assert (range 0 5 |> collect array) == [0, 1, 2, 3, 4, 5]
+    let mut total = 0
+    for x in range 1 5 {
+        total += x
+    }
+    assert total == 15
+}
+
+## Creates an iterator that, when called, yields the integers inthe range [lo..hi]
+func make_range lo hi = do() range lo hi
+export make_range
+## Creates an iterator that, when called, yields the integers inthe range [lo..hi)
+func make_rangex lo hi = do() rangex lo hi
+export make_rangex
+
+test "make_rangex" {
+    assert (make_rangex 0 5 |> collect array) == [0, 1, 2, 3, 4]
+}
+
+test "make_range" {
+    assert (make_range 0 5 |> collect array) == [0, 1, 2, 3, 4, 5]
 }
 
 ## Creates an iterator that emits the value n times
