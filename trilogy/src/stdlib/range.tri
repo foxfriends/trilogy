@@ -57,6 +57,7 @@ func overlap (a:b) (c:d) =
         then c:d
         else c:b
     else yield 'disjoint
+export overlap
 
 test "overlap" {
     assert overlap (1:5) (3:6) == 3:5
@@ -92,6 +93,7 @@ func non_overlap (a:b) (c:d) =
         then [new a c, new b d]
         else [a:b, c:d],
     filter (fn r. !(is_empty r)) arrs
+export non_overlap
 
 test "non_overlap" {
     assert non_overlap (1:5) (3:6) == [1:3, 5:6]
