@@ -1,0 +1,105 @@
+module num at "trilogy:num" use min, max
+module array at "trilogy:array" use filter
+
+func new a b = min a b : max a b
+export new
+
+test "new" {
+    assert new 3 5 == 3:5
+    assert new 5 3 == 3:5
+    assert new 0 0 == 0:0
+    assert new (-5) 5 == (-5):5
+}
+
+func length (a:b) = b - a
+export length
+
+test "length" {
+    assert length (1:5) == 4
+    assert length (1:1) == 0
+}
+
+func is_empty (a:a) = true
+func is_empty (_:_) = false
+export is_empty
+
+test "is_empty" {
+    assert !(is_empty (1:5))
+    assert is_empty (1:1)
+}
+
+func shift n lo:hi = lo + n : hi + n
+export shift
+
+test "shift" {
+    assert shift 3 (1 : 5) == 4 : 8
+    assert shift (-3) (1 : 5) == (-2) : 2
+}
+
+func contains n (a:b) = n >= a && n < b
+export contains
+
+test "contains" {
+    assert contains 4 (1:5)
+    assert contains 1 (1:5)
+    assert !(contains 0 (1:5))
+    assert !(contains 6 (1:5))
+    assert !(contains 5 (1:5))
+}
+
+func overlap (a:b) (c:d) =
+    if contains a (c:d) then
+        if contains b (c:d)
+        then a:b
+        else a:d
+    else if contains c (a:b) then
+        if contains d (a:b)
+        then c:d
+        else c:b
+    else yield 'disjoint
+
+test "overlap" {
+    assert overlap (1:5) (3:6) == 3:5
+    assert overlap (3:6) (1:5) == 3:5
+    assert overlap (1:5) (3:6) == 3:5
+    assert overlap (3:6) (1:5) == 3:5
+    assert overlap (1:3) (1:3) == 1:3
+    assert overlap (1:1) (0:3) == 1:1
+    assert overlap (1:3) (2:3) == 2:3
+    let res = with overlap (1:3) (4:8)
+        when 'disjoint cancel 'ok
+        else yield
+    assert res == 'ok
+}
+
+func is_overlapping (a:b) (c:d) =
+    contains a (c:d) || contains b (c:d) || contains c (a:b) || contains d (a:b)
+export is_overlapping
+
+test "is_overlapping" {
+    assert is_overlapping (1:5) (3:6)
+    assert is_overlapping (3:6) (1:5)
+    assert is_overlapping (1:5) (3:6)
+    assert is_overlapping (3:6) (1:5)
+    assert is_overlapping (1:3) (1:3)
+    assert is_overlapping (1:1) (0:3)
+    assert is_overlapping (1:3) (2:3)
+    assert !(is_overlapping (1:3) (4:8))
+}
+
+func non_overlap (a:b) (c:d) =
+    let arrs = if is_overlapping (a:b) (c:d)
+        then [new a c, new b d]
+        else [a:b, c:d],
+    filter (fn r. !(is_empty r)) arrs
+
+test "non_overlap" {
+    assert non_overlap (1:5) (3:6) == [1:3, 5:6]
+    assert non_overlap (3:6) (1:5) == [1:3, 5:6]
+    assert non_overlap (1:5) (3:6) == [1:3, 5:6]
+    assert non_overlap (3:6) (1:5) == [1:3, 5:6]
+    assert non_overlap (1:3) (1:3) == []
+    assert non_overlap (1:1) (0:3) == [0:1, 1:3]
+    assert non_overlap (1:3) (2:3) == [1:2]
+    assert non_overlap (1:3) (4:8) == [1:3, 4:8]
+}
