@@ -1,0 +1,26 @@
+module io at "trilogy:io" use println
+module iter at "trilogy:iter" use range
+module time at "trilogy:time" use instant, fmt_ns
+
+proc benchmark!() {
+    let before = instant!()
+    return before::elapsed_ns!()
+}
+
+proc main!() {
+    let mut total = 0
+    let mut max = unit
+    let mut min = unit
+
+    for i in range 1 1000 {
+        let dur = benchmark!()
+        total += dur
+        max = if (max > dur) == true then max else dur
+        min = if (min < dur) == true then min else dur
+    }
+
+    println!($"Total: ${fmt_ns total}")
+    println!($"Max: ${fmt_ns max}")
+    println!($"Min: ${fmt_ns min}")
+    println!($"Average: ${fmt_ns (total // 1000)}")
+}
