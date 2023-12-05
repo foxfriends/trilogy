@@ -15,11 +15,13 @@ pub(crate) struct AsmReader<'a> {
     interner: AtomInterner,
 }
 
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Parameter {
     Label(String),
     Offset(Offset),
 }
 
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Value {
     Label(String),
     Value(crate::Value),

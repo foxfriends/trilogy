@@ -1,6 +1,7 @@
 use crate::runtime::Value;
 use crate::OpCode;
 
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Parameter {
     Value(Value),
     Label(String),

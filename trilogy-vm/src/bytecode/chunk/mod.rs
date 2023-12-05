@@ -13,7 +13,7 @@ mod writer;
 pub use builder::ChunkBuilder;
 pub use error::ChunkError;
 pub use iter::ChunkIter;
-pub(crate) use line::Line;
+pub(crate) use line::{Line, Parameter};
 pub use writer::ChunkWriter;
 
 /// A chunk of independently compiled source code for the Trilogy VM.
