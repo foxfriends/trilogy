@@ -223,6 +223,7 @@ module joined j {
     func append x y = y <> j <> x
     export empty, of, append
 }
+export joined
 
 test "joined" {
     let str = iter::of ["a", "b", "c"] |> iter::collect (joined " ")
