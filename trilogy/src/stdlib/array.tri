@@ -341,3 +341,17 @@ test "chunks" {
     assert chunks 1 [1, 2, 3] == [[1], [2], [3]]
     assert chunks 2 [1, 2, 3] == [[1, 2], [3]]
 }
+
+func zip [] _ = []
+func zip _ [] = []
+func zip [x, ..xs] [y, ..ys] = [(x:y), ..zip xs ys]
+export zip
+
+test "zip" {
+    assert zip [1, 2, 3] [4, 5, 6] == [1:4, 2:5, 3:6]
+    assert zip [1, 2] [4, 5, 6] == [1:4, 2:5]
+    assert zip [1, 2, 3] [4, 5] == [1:4, 2:5]
+    assert zip [] [4, 5] == []
+    assert zip [1, 2] [] == []
+    assert zip [] [] == []
+}
