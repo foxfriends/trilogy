@@ -9,3 +9,4 @@ edition = "2021"
 bitvec = "1.0.1"
 num = "0.4.0"
 trilogy-vm-derive = { path = "../trilogy-vm-derive/" }
+source-span = "2.7.0"

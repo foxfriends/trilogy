@@ -3,15 +3,14 @@ use super::line::{Line, Parameter};
 use super::{Chunk, ChunkWriter};
 use crate::atom::AtomInterner;
 use crate::bytecode::asm::{self, AsmReader};
-use crate::bytecode::optimization::optimize;
+use crate::bytecode::optimization::{optimize, LineAdjuster};
 use crate::callable::Procedure;
-use crate::{Atom, Instruction, Offset, OpCode, Value};
+use crate::{Annotation, Atom, Instruction, Offset, OpCode, Value};
 use std::collections::HashMap;
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Clone, Eq, PartialEq)]
 enum Entrypoint {
-    Line(usize),
-    Index(u32),
+    Offset(Offset),
     Label(String),
 }
 
@@ -23,18 +22,22 @@ pub struct ChunkBuilder {
     interner: AtomInterner,
     lines: Vec<Line>,
     current_labels: Vec<String>,
+    annotations: Vec<Annotation>,
     error: Option<ChunkError>,
+    ip: Offset,
 }
 
 impl ChunkBuilder {
     pub(crate) fn new(interner: AtomInterner) -> Self {
         Self {
             protected_labels: vec![],
-            entrypoint: Entrypoint::Line(0),
+            entrypoint: Entrypoint::Offset(0),
             interner,
             lines: vec![],
             current_labels: vec![],
+            annotations: vec![],
             error: None,
+            ip: 0,
         }
     }
 
@@ -49,11 +52,13 @@ impl ChunkBuilder {
 impl ChunkBuilder {
     pub(super) fn write_line(&mut self, opcode: OpCode, value: Option<Parameter>) -> &mut Self {
         let labels = self.current_labels.drain(..).collect();
-        self.lines.push(Line {
+        let line = Line {
             labels,
             opcode,
             value,
-        });
+        };
+        self.ip += line.byte_len();
+        self.lines.push(line);
         self
     }
 
@@ -62,7 +67,7 @@ impl ChunkBuilder {
     /// By default, the entrypoint is the start of the chunk, but this option may
     /// be used to start code execution from some point in the middle.
     pub fn entrypoint(&mut self) -> &mut Self {
-        self.entrypoint = Entrypoint::Line(self.lines.len());
+        self.entrypoint = Entrypoint::Offset(self.ip);
         self
     }
 
@@ -133,6 +138,7 @@ impl ChunkBuilder {
     pub(crate) fn build(self) -> Result<(Offset, Chunk), ChunkError> {
         let mut chunk = Chunk {
             labels: HashMap::default(),
+            annotations: vec![],
             constants: vec![],
             bytes: vec![],
         };
@@ -140,27 +146,26 @@ impl ChunkBuilder {
         Ok((offset, chunk))
     }
 
-    pub(crate) fn build_from(mut self, chunk: &mut Chunk) -> Result<Offset, ChunkError> {
+    pub(crate) fn build_from(self, chunk: &mut Chunk) -> Result<Offset, ChunkError> {
+        let initial_ip = chunk.bytes.len() as u32;
         if let Some(error) = self.error {
             return Err(error);
         }
 
-        let mut lines = match self.entrypoint {
-            Entrypoint::Line(index) => optimize(self.lines, index, &self.protected_labels),
-            _ => self.lines,
+        let mut lines = LineAdjuster::new(self.lines, self.annotations);
+        match self.entrypoint {
+            Entrypoint::Offset(index) => optimize(&mut lines, Some(index), &self.protected_labels),
+            _ => optimize(&mut lines, None, &self.protected_labels),
         };
+        let (mut lines, mut annotations) = lines.finish();
+        chunk.annotations.append(&mut annotations);
 
-        let mut distance = chunk.bytes.len() as u32;
-        for (i, line) in lines.iter_mut().enumerate() {
-            if Entrypoint::Line(i) == self.entrypoint {
-                self.entrypoint = Entrypoint::Index(i as u32 + distance);
-            }
+        let mut distance = initial_ip;
+        for line in lines.iter_mut() {
             for label in line.labels.drain(..) {
-                chunk.labels.insert(label, i as u32 + distance);
+                chunk.labels.insert(label, distance);
             }
-            if line.value.is_some() {
-                distance += 4;
-            }
+            distance += line.byte_len();
         }
 
         for line in lines.into_iter() {
@@ -206,90 +211,61 @@ impl ChunkBuilder {
         }
 
         let entry = match self.entrypoint {
-            Entrypoint::Line(..) => 0,
+            Entrypoint::Offset(offset) => initial_ip + offset,
             Entrypoint::Label(label) => chunk
                 .labels
                 .get(&label)
                 .copied()
                 .ok_or(ChunkError::MissingLabel(label))?,
-            Entrypoint::Index(index) => index,
         };
         Ok(entry)
     }
 }
 
 impl ChunkWriter for ChunkBuilder {
-    /// Instantiate an atom for the current runtime. Atoms cannot be created except
-    /// for within the context of a particular runtime's global atom table.
+    fn ip(&self) -> Offset {
+        self.ip
+    }
+
+    fn annotate(&mut self, annotation: Annotation) -> &mut Self {
+        self.annotations.push(annotation);
+        self
+    }
+
     fn make_atom<S: AsRef<str>>(&self, atom: S) -> Atom {
         self.interner.intern(atom.as_ref())
     }
 
-    /// Stages a label, to be attached to the next instruction that is written.
     fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.current_labels.push(label.into());
         self
     }
 
-    /// Protects the currently staged labels, ensuring they don't get removed by dead
-    /// code elimination. Otherwise, any line deemed "unreachable" may be stripped,
-    /// including (incorrectly) lines that might be used by chunks that are loaded in
-    /// future.
     fn protect(&mut self) -> &mut Self {
         self.protected_labels.extend(self.current_labels.clone());
         self
     }
 
-    /// Insert a CONST instruction that references a procedure located at the
-    /// given label.
-    ///
-    /// ```asm
-    /// CONST &label
-    /// ```
     fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Const, Some(Parameter::Reference(label.into())))
     }
 
-    /// Insert a JUMP instruction to a given label.
-    ///
-    /// ```asm
-    /// JUMP &label
-    /// ```
     fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Jump, Some(Parameter::Label(label.into())))
     }
 
-    /// Insert a JUMPF instruction to a given label.
-    ///
-    /// ```asm
-    /// JUMPF &label
-    /// ```
     fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::CondJump, Some(Parameter::Label(label.into())))
     }
 
-    /// Insert a CLOSE instruction to a given label.
-    ///
-    /// ```asm
-    /// CLOSE &label
-    /// ```
     fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Close, Some(Parameter::Label(label.into())))
     }
 
-    /// Insert a SHIFT instruction to a given label.
-    ///
-    /// ```asm
-    /// SHIFT &label
-    /// ```
     fn shift<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Shift, Some(Parameter::Label(label.into())))
     }
 
-    /// Insert an instruction.
-    ///
-    /// All labels currently in the buffer will be assigned to this line, and
-    /// the buffer will be cleared.
     fn instruction(&mut self, instruction: Instruction) -> &mut Self {
         let opcode = instruction.op_code();
         let value = match instruction {

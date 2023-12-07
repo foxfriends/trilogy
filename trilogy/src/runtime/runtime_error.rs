@@ -1,9 +1,13 @@
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 
 /// A black box of failure that occurred during the execution of a Trilogy program.
 ///
-/// Making runtime errors more accessible is a task of future implementation.
-#[derive(Debug)]
+/// Such an error might be a runtime error thrown by the program being executed, or
+/// an error that occurred within the virtual machine itself, likely from attempting
+/// to run invalid bytecode.
+///
+/// Language runtime errors may be unwrapped and inspected, but internal errors are
+/// inaccessible.
 pub struct RuntimeError {
     pub(super) error: trilogy_vm::Error,
 }
@@ -17,6 +21,13 @@ impl From<trilogy_vm::Error> for RuntimeError {
 impl std::error::Error for RuntimeError {}
 
 impl Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}", self.error)?;
+        Ok(())
+    }
+}
+
+impl Debug for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{}", self.error)?;
         writeln!(f, "Final IP: {}", self.error.ip)?;

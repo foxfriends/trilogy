@@ -3,6 +3,7 @@ use crate::{Instruction, Offset, OpCode, Value};
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display};
 
+mod annotation;
 mod builder;
 mod error;
 mod iter;
@@ -10,6 +11,7 @@ mod line;
 #[macro_use]
 mod writer;
 
+pub use annotation::{Annotation, Location, Note};
 pub use builder::ChunkBuilder;
 pub use error::ChunkError;
 pub use iter::ChunkIter;
@@ -22,6 +24,7 @@ pub use writer::ChunkWriter;
 /// [`VirtualMachine`][crate::VirtualMachine] instance that is not the one that compiled it.
 #[derive(Clone)]
 pub struct Chunk {
+    pub(crate) annotations: Vec<Annotation>,
     pub(crate) labels: HashMap<String, u32>,
     pub(crate) constants: Vec<Value>,
     pub(crate) bytes: Vec<u8>,

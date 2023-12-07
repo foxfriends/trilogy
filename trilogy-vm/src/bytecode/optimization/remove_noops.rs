@@ -1,22 +1,18 @@
+use super::LineAdjuster;
 use crate::bytecode::chunk::{Line, Parameter};
 use crate::OpCode;
 
-pub(super) fn remove_noops(mut lines: Vec<Line>) -> Vec<Line> {
-    let mut i = 0;
-    while i < lines.len() {
-        match &lines[i] {
+pub(super) fn remove_noops(lines: &mut LineAdjuster) {
+    for mut entry in lines {
+        if matches!(
+            entry.as_line(),
             Line {
                 opcode: OpCode::Slide,
                 value: Some(Parameter::Offset(0)),
                 ..
-            } => {
-                let Line { labels, .. } = lines.remove(i);
-                lines[i - 1].labels.extend(labels);
             }
-            _ => {
-                i += 1;
-            }
+        ) {
+            entry.erase();
         }
     }
-    lines
 }
