@@ -404,6 +404,8 @@ impl ReferentialEq for Value {
             (Self::Array(lhs), Self::Array(rhs)) => ReferentialEq::eq(lhs, rhs),
             (Self::Set(lhs), Self::Set(rhs)) => ReferentialEq::eq(lhs, rhs),
             (Self::Record(lhs), Self::Record(rhs)) => ReferentialEq::eq(lhs, rhs),
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => ReferentialEq::eq(lhs, rhs),
+            (Self::Struct(lhs), Self::Struct(rhs)) => ReferentialEq::eq(lhs, rhs),
             _ => self == other,
         }
     }
@@ -415,6 +417,8 @@ impl StructuralEq for Value {
             (Self::Array(lhs), Self::Array(rhs)) => StructuralEq::eq(lhs, rhs),
             (Self::Set(lhs), Self::Set(rhs)) => StructuralEq::eq(lhs, rhs),
             (Self::Record(lhs), Self::Record(rhs)) => StructuralEq::eq(lhs, rhs),
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => StructuralEq::eq(lhs, rhs),
+            (Self::Struct(lhs), Self::Struct(rhs)) => StructuralEq::eq(lhs, rhs),
             _ => self == other,
         }
     }

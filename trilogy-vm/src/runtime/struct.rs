@@ -1,4 +1,5 @@
 use super::{Atom, Value};
+use crate::{ReferentialEq, StructuralEq};
 use std::fmt::{self, Display};
 
 /// A Trilogy Struct value.
@@ -9,6 +10,18 @@ use std::fmt::{self, Display};
 pub struct Struct {
     name: Atom,
     value: Box<Value>,
+}
+
+impl StructuralEq for Struct {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && StructuralEq::eq(&*self.value, &*other.value)
+    }
+}
+
+impl ReferentialEq for Struct {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && ReferentialEq::eq(&*self.value, &*other.value)
+    }
 }
 
 impl Struct {

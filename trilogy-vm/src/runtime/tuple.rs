@@ -1,10 +1,22 @@
-use std::fmt::{self, Display};
-
 use super::Value;
+use super::{ReferentialEq, StructuralEq};
+use std::fmt::{self, Display};
 
 /// A Trilogy Tuple.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Debug, Hash)]
 pub struct Tuple(Box<(Value, Value)>);
+
+impl StructuralEq for Tuple {
+    fn eq(&self, other: &Self) -> bool {
+        StructuralEq::eq(&self.0 .0, &other.0 .0) && StructuralEq::eq(&self.0 .1, &other.0 .1)
+    }
+}
+
+impl ReferentialEq for Tuple {
+    fn eq(&self, other: &Self) -> bool {
+        ReferentialEq::eq(&self.0 .0, &other.0 .0) && ReferentialEq::eq(&self.0 .1, &other.0 .1)
+    }
+}
 
 impl Tuple {
     pub fn new(lhs: Value, rhs: Value) -> Self {
