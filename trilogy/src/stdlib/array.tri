@@ -365,13 +365,19 @@ test "partition" {
     assert partition ((<) 3) [1, 2, 3, 4, 5] == ([4, 5]:[1, 2, 3])
 }
 
-module io at "trilogy:io" use dbg
+func merge _ xs [] = xs
+func merge _ [] ys = ys
+func merge cmp [x, ..xs] [y, ..ys] =
+    if cmp x y
+    then [x, ..merge cmp xs [y, ..ys]]
+    else [y, ..merge cmp [x, ..xs] ys]
+export merge
 
 func sort _ [] = []
 func sort _ [a] = [a]
-func sort cmp [pivot, ..arr] =
-    let l:r = partition (fn x. cmp x pivot) arr,
-    [..sort cmp l, pivot, ..sort cmp r]
+func sort cmp arr =
+    let half = length arr // 2,
+    merge cmp (sort cmp <| take half arr) (sort cmp <| skip half arr)
 export sort
 
 test "sort" {
