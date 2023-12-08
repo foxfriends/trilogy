@@ -1,4 +1,4 @@
-//! A cactus stack that tries to be a standard stack for as long as possible.
+//! A cactus stack.
 //!
 //! This is the stack implementation that backs the Trilogy VM, where branches
 //! are used to represent continuations and closures that share a parent stack
@@ -7,8 +7,6 @@ use std::fmt::{self, Debug};
 use std::sync::{Arc, Mutex};
 
 /// A Cactus Stack.
-///
-/// The cactus stack (or spaghetti stack)
 #[derive(Clone)]
 pub(crate) struct Cactus<T> {
     parent: Option<Arc<Mutex<Cactus<T>>>>,
@@ -119,13 +117,15 @@ impl<T> Cactus<T> {
     }
 
     pub fn commit(&mut self) {
-        let len = self.len;
-        let arced = Arc::new(Mutex::new(std::mem::take(self)));
-        *self = Self {
-            parent: Some(arced),
-            stack: vec![],
-            len,
-        };
+        if !self.stack.is_empty() {
+            let len = self.len;
+            let arced = Arc::new(Mutex::new(std::mem::take(self)));
+            *self = Self {
+                parent: Some(arced),
+                stack: vec![],
+                len,
+            };
+        }
     }
 
     pub fn branch(&mut self) -> Self {
@@ -237,16 +237,6 @@ mod test {
         assert_eq!(branch.pop(), Some(4));
         assert_eq!(branch.pop(), Some(3));
         assert_eq!(branch.pop(), None);
-    }
-
-    #[test]
-    fn cactus_parent_shared() {
-        let mut cactus = Cactus::<()>::new();
-        let branch = cactus.branch();
-        assert!(Arc::ptr_eq(
-            &cactus.parent.unwrap(),
-            &branch.parent.unwrap()
-        ));
     }
 
     #[test]
