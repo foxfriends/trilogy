@@ -1,7 +1,8 @@
 use super::error::InternalRuntimeError;
 use super::execution::Cont;
-use crate::cactus::Cactus;
-use crate::Value;
+use super::program_reader::ProgramReader;
+use crate::{cactus::Cactus, Offset};
+use crate::{Location, Value};
 use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]
@@ -112,50 +113,48 @@ impl Debug for Stack {
 }
 
 #[derive(Clone, Debug)]
-pub struct Caller {
-    pub ip: usize,
-    pub name: Option<String>,
+pub struct StackTraceEntry {
+    pub annotations: Vec<(String, Location)>,
 }
 
-#[derive(Clone, Debug)]
-pub struct StackFrame {
-    pub caller: Caller,
-    pub callee: Caller,
-    pub exit_at: usize,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct StackTrace {
-    pub frames: Vec<StackFrame>,
-    pub ip: usize,
+    pub frames: Vec<StackTraceEntry>,
 }
 
-impl Display for StackTrace {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (
-            i,
-            StackFrame {
-                caller,
-                callee,
-                exit_at,
-            },
-        ) in self.frames.iter().rev().enumerate()
-        {
-            writeln!(
-                f,
-                "{i}. {}:{}",
-                callee.ip,
-                callee.name.as_deref().unwrap_or("<unknown>")
-            )?;
-            writeln!(
-                f,
-                "\tat {}:{}[{}]",
-                caller.ip,
-                caller.name.as_deref().unwrap_or("<unknown>"),
-                exit_at,
-            )?;
-        }
-        writeln!(f, "Final IP: {}", self.ip)
+impl Stack {
+    pub(super) fn trace(&self, program: &ProgramReader, ip: Offset) -> StackTrace {
+        let mut trace = StackTrace::default();
+        let annotations = program.annotations(ip);
+        trace.frames.push(StackTraceEntry {
+            annotations: annotations
+                .into_iter()
+                .filter_map(|annotation| annotation.note.into_source())
+                .collect(),
+        });
+
+        trace
+            .frames
+            .extend(self.cactus.clone().into_iter().filter_map(|entry| {
+                match entry {
+                    InternalValue::Return { cont, .. } => match cont {
+                        Cont::Callback(..) => Some(StackTraceEntry {
+                            annotations: vec![],
+                        }),
+                        Cont::Offset(ip) => Some(StackTraceEntry {
+                            annotations: program
+                                .annotations(ip)
+                                .into_iter()
+                                .filter_map(|annotation| annotation.note.into_source())
+                                .collect(),
+                        }),
+                    },
+                    _ => None,
+                }
+            }));
+
+        trace.frames.reverse();
+        trace
     }
 }
 

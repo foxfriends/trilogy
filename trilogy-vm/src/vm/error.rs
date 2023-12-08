@@ -1,4 +1,4 @@
-use super::stack::Stack;
+use super::stack::{Stack, StackTrace};
 use crate::bytecode::{ChunkError, Offset};
 use crate::Value;
 use std::fmt::{self, Display};
@@ -12,6 +12,8 @@ pub struct Error {
     pub ip: Offset,
     /// The type of error that occurred.
     pub kind: ErrorKind,
+    /// The stack trace.
+    pub stack_trace: StackTrace,
     /// A copy of the entire stack of the program at the time of this error.
     pub(crate) stack_dump: Stack,
 }

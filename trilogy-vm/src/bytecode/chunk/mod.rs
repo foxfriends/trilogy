@@ -139,4 +139,12 @@ impl Chunk {
     pub(crate) fn iter(&self) -> impl Iterator<Item = Instruction> + '_ {
         self.into_iter()
     }
+
+    pub(crate) fn get_annotations(&self, ip: Offset) -> Vec<Annotation> {
+        self.annotations
+            .iter()
+            .filter(|note| note.spans(ip))
+            .cloned()
+            .collect()
+    }
 }

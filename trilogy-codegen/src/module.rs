@@ -7,17 +7,20 @@ use trilogy_vm::{Instruction, Value};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Mode<'a> {
-    Module,
+    Module(&'a str),
     Document,
     Test(&'a [&'a str], &'a str),
 }
 
-impl Mode<'_> {
-    fn child(self) -> Self {
+impl<'a> Mode<'a> {
+    fn child<'b>(self, name: &'b str) -> Mode<'b>
+    where
+        'a: 'b,
+    {
         match self {
-            Self::Document | Self::Module => Self::Module,
-            Self::Test([], ..) => Self::Module,
-            Self::Test(path, name) => Self::Test(&path[1..], name),
+            Mode::Document | Mode::Module(..) => Mode::Module(name),
+            Mode::Test([], ..) => Mode::Module(name),
+            Mode::Test(path, name) => Mode::Test(&path[1..], name),
         }
     }
 }
@@ -35,7 +38,11 @@ pub(crate) fn write_module_definitions(
             ir::DefinitionItem::Module(definition) if definition.module.as_module().is_none() => {} // Imported modules are in prelude too
             ir::DefinitionItem::Module(definition) => {
                 // Regular modules are partially in prelude, but also they have a body.
-                context.write_module(statics.clone(), definition, mode.child());
+                context.write_module(
+                    statics.clone(),
+                    definition,
+                    mode.child(definition.name.id.name().unwrap()),
+                );
             }
             ir::DefinitionItem::Function(function) => {
                 context.write_function(statics, function);

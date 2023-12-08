@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::collections::HashSet;
 use trilogy_ir::visitor::{HasBindings, HasReferences, IrVisitable, IrVisitor};
 use trilogy_ir::{ir, Id};
-use trilogy_vm::{delegate_chunk_writer, Instruction};
+use trilogy_vm::{delegate_chunk_writer, Annotation, Instruction, Location};
 
 struct QueryState<'b, 'a> {
     context: &'b mut Context<'a>,
@@ -63,7 +63,24 @@ pub(crate) trait CodegenQuery: IrVisitable {
     }
 }
 
-impl CodegenQuery for ir::Query {}
+impl CodegenQuery for ir::Query {
+    fn execute_query(&self, context: &mut Context, on_fail: &str) {
+        let start = context.ip();
+        self.visit(&mut QueryEvaluation {
+            context,
+            on_fail,
+            bindings: &Bindings::default(),
+        });
+        let end = context.ip();
+        context.annotate(Annotation::source(
+            start,
+            end,
+            "<query>".to_owned(),
+            Location::new(context.location(), self.span),
+        ));
+    }
+}
+
 impl CodegenQuery for ir::QueryValue {}
 
 impl QueryState<'_, '_> {

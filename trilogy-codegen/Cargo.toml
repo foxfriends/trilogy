@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 trilogy-ir = { path = "../trilogy-ir" }
 trilogy-vm = { path = "../trilogy-vm" }
+source-span = "2.7.0"

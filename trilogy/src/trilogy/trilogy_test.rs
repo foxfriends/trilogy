@@ -15,7 +15,8 @@ pub(super) struct TrilogyTest<'a> {
 impl Program for TrilogyTest<'_> {
     fn entrypoint(&self, chunk: &mut ChunkBuilder) {
         let module = self.modules.get(self.entrypoint).unwrap();
-        trilogy_codegen::write_test(chunk, module, self.path, self.test);
+        let url = self.entrypoint.as_ref().as_str();
+        trilogy_codegen::write_test(url, chunk, module, self.path, self.test);
     }
 
     fn chunk(&self, locator: &Value, chunk: &mut ChunkBuilder) {
@@ -33,10 +34,11 @@ impl Program for TrilogyTest<'_> {
             .map(Either::Source)
             .or_else(|| self.libraries.get(&location).map(Either::Native))
             .unwrap_or_else(|| panic!("unknown module location `{location}`"));
+        let url = location.as_ref().as_str();
         match module {
             Either::Source(module) => {
                 chunk.label(format!("location:{location}"));
-                trilogy_codegen::write_module(chunk, module)
+                trilogy_codegen::write_module(url, chunk, module)
             }
             Either::Native(module) => {
                 if self.to_asm {

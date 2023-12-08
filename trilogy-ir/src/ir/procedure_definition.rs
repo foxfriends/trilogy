@@ -1,4 +1,5 @@
 use super::*;
+use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct ProcedureDefinition {
@@ -12,5 +13,13 @@ impl ProcedureDefinition {
             name,
             overloads: vec![],
         }
+    }
+
+    pub fn span(&self) -> Span {
+        self.overloads
+            .first()
+            .unwrap()
+            .span
+            .union(self.overloads.last().unwrap().span)
     }
 }

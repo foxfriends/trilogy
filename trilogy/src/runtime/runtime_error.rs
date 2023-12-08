@@ -23,6 +23,15 @@ impl std::error::Error for RuntimeError {}
 impl Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{}", self.error)?;
+
+        writeln!(f, "Stack trace:")?;
+        for (i, frame) in self.error.stack_trace.frames.iter().enumerate() {
+            writeln!(f, "{i}:")?;
+            for (label, location) in &frame.annotations {
+                writeln!(f, "\t{} ({})", label, location)?;
+            }
+        }
+
         Ok(())
     }
 }

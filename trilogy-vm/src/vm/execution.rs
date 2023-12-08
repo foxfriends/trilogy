@@ -70,6 +70,7 @@ impl From<Offset> for Cont {
 pub struct Execution<'a> {
     atom_interner: AtomInterner,
     program: ProgramReader<'a>,
+    error_ip: Offset,
     ip: Offset,
     stack: Stack,
     registers: Vec<Value>,
@@ -83,6 +84,7 @@ impl<'a> Execution<'a> {
     ) -> Self {
         Self {
             atom_interner: atom_interner.clone(),
+            error_ip: 0,
             ip: program.entrypoint(),
             program,
             stack: Stack::default(),
@@ -168,6 +170,7 @@ impl<'a> Execution<'a> {
         Self {
             atom_interner: self.atom_interner.clone(),
             program: self.program.clone(),
+            error_ip: self.error_ip,
             ip: self.ip,
             stack: branch,
             registers: self.registers.clone(),
@@ -179,7 +182,8 @@ impl<'a> Execution<'a> {
         ErrorKind: From<K>,
     {
         Error {
-            ip: self.ip,
+            ip: self.error_ip,
+            stack_trace: self.stack.trace(&self.program, self.error_ip),
             stack_dump: self.stack.clone(),
             kind: kind.into(),
         }
@@ -289,6 +293,7 @@ impl<'a> Execution<'a> {
 
     pub(super) fn step(&mut self) -> Result<Step<Self>, Error> {
         let instruction = self.program.read_instruction(self.ip);
+        self.error_ip = self.ip;
         self.ip += instruction.byte_len() as u32;
         self.eval(instruction)
     }

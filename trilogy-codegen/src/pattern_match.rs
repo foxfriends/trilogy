@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use trilogy_ir::ir::{self, Builtin, Expression};
 use trilogy_ir::visitor::{IrVisitable, IrVisitor};
-use trilogy_vm::Instruction;
+use trilogy_vm::{Annotation, Instruction, Location};
 
 struct PatternMatcher<'b, 'a> {
     context: &'b mut Context<'a>,
@@ -15,7 +15,19 @@ pub(crate) trait CodegenPatternMatch: IrVisitable {
 }
 
 impl CodegenPatternMatch for ir::Value {}
-impl CodegenPatternMatch for ir::Expression {}
+impl CodegenPatternMatch for ir::Expression {
+    fn pattern_match(&self, context: &mut Context, on_fail: &str) {
+        let start = context.ip();
+        self.visit(&mut PatternMatcher { context, on_fail });
+        let end = context.ip();
+        context.annotate(Annotation::source(
+            start,
+            end,
+            "<pattern>".to_owned(),
+            Location::new(context.location(), self.span),
+        ));
+    }
+}
 
 impl IrVisitor for PatternMatcher<'_, '_> {
     fn visit_number(&mut self, value: &ir::Number) {

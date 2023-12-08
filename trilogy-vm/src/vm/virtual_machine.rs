@@ -1,7 +1,7 @@
 use super::error::ErrorKind;
 use super::execution::Step;
 use super::program_reader::ProgramReader;
-use super::stack::Stack;
+use super::stack::{Stack, StackTrace};
 use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::ChunkError;
@@ -101,6 +101,7 @@ impl VirtualMachine {
             ProgramReader::new(self.atom_interner.clone(), program).map_err(|err| Error {
                 ip: 0,
                 kind: ErrorKind::InvalidBytecode(err),
+                stack_trace: StackTrace::default(),
                 stack_dump: Stack::default(),
             })?;
         let mut executions = vec![Execution::new(

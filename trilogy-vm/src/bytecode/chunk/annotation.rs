@@ -1,5 +1,6 @@
 use crate::Offset;
 use source_span::Span;
+use std::fmt::{self, Display};
 
 /// The fully specified location of a fragment of the source program.
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -10,6 +11,21 @@ pub struct Location {
     pub span: Span,
 }
 
+impl Location {
+    pub fn new<S: Into<String>>(file: S, span: Span) -> Self {
+        Self {
+            file: file.into(),
+            span,
+        }
+    }
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", self.file, self.span)
+    }
+}
+
 /// Marks an annotated range as having some meaning.
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Note {
@@ -18,7 +34,7 @@ pub enum Note {
         /// A name for this range, if applicable, recognizable to the developer.
         ///
         /// Likely a function name or similar.
-        name: Option<String>,
+        name: String,
         /// The source location.
         location: Location,
     },
@@ -33,6 +49,19 @@ pub enum Note {
     },
 }
 
+impl Note {
+    pub fn source(name: String, location: Location) -> Self {
+        Self::Source { name, location }
+    }
+
+    pub(crate) fn into_source(self) -> Option<(String, Location)> {
+        match self {
+            Self::Source { name, location } => Some((name, location)),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Annotation {
     /// The first instruction from which this annotation is in effect.
@@ -41,4 +70,18 @@ pub struct Annotation {
     pub end: Offset,
     /// The value of this annotation.
     pub note: Note,
+}
+
+impl Annotation {
+    pub fn source(start: Offset, end: Offset, name: String, location: Location) -> Self {
+        Self {
+            start,
+            end,
+            note: Note::Source { name, location },
+        }
+    }
+
+    pub fn spans(&self, offset: Offset) -> bool {
+        self.start <= offset && offset < self.end
+    }
 }
