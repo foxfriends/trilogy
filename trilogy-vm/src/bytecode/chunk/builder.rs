@@ -158,6 +158,10 @@ impl ChunkBuilder {
             _ => optimize(&mut lines, None, &self.protected_labels),
         };
         let (mut lines, mut annotations) = lines.finish();
+        for annotation in &mut annotations {
+            annotation.start += initial_ip;
+            annotation.end += initial_ip;
+        }
         chunk.annotations.append(&mut annotations);
 
         let mut distance = initial_ip;
