@@ -9,8 +9,18 @@ use std::sync::{Arc, Mutex};
 /// A Cactus Stack.
 #[derive(Clone)]
 pub(crate) struct Cactus<T> {
+    /// The parent of this cactus.
+    ///
+    /// All elements in the parent stack are (potentially) shared with other
+    /// branches. Mutations to these elements will be reflected in all other branches.
     parent: Option<Arc<Mutex<Cactus<T>>>>,
+    /// The elements in the current branch of this cactus. These elements are not
+    /// shared with any other branch.
     stack: Vec<T>,
+    /// The number of elements in this cactus.
+    ///
+    /// This is the total of `stack.len() + parent.len`, but is maintained here
+    /// to ensure that `len` remains O(1).
     len: usize,
 }
 
@@ -42,6 +52,8 @@ impl<T> Cactus<T> {
     }
 
     /// Inserts a branch point some number of cells into this cactus's parent.
+    ///
+    /// If there is already a branch at that point, does nothing.
     fn insert_branch(&mut self, distance: usize) {
         // If no parent, rebasing will fail to do anything and that's ok. The method
         // originally called should also fail right after.
@@ -105,11 +117,16 @@ impl<T> Cactus<T> {
         }
     }
 
+    /// Add a value to the end of this cactus.
     pub fn push(&mut self, value: T) {
         self.len += 1;
         self.stack.push(value);
     }
 
+    /// Pop the topmost value from this cactus.
+    ///
+    /// If the current branch's stack is empty, consumes one value from the parent
+    /// and pops that. This preserves the sharedness of more distant elements.
     pub fn pop(&mut self) -> Option<T>
     where
         T: Clone,
@@ -122,7 +139,10 @@ impl<T> Cactus<T> {
         self.stack.pop()
     }
 
-    pub fn commit(&mut self) {
+    /// Moves all the values in this current branch into a new parent.
+    ///
+    /// The current stack will be empty.
+    fn commit(&mut self) {
         if !self.stack.is_empty() {
             let len = self.len;
             let arced = Arc::new(Mutex::new(std::mem::take(self)));
