@@ -16,6 +16,10 @@ test "a <> b pattern" {
 
     let "br" <> i <> "ck" = "brick"
     assert i == "i"
+
+    match ""
+        case "A" <> _ { assert false }
+        case _ <> "A" { assert false }
 }
 
 test "(<>) a b" {
