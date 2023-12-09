@@ -1,7 +1,7 @@
 use num::complex::ParseComplexError;
 use num::rational::ParseRatioError;
 use num::traits::Pow;
-use num::{BigInt, BigRational, BigUint, Complex, ToPrimitive, Zero};
+use num::{BigInt, BigRational, BigUint, Complex, One, ToPrimitive, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
@@ -216,6 +216,42 @@ impl FromStr for Number {
 impl From<Number> for Complex<BigRational> {
     fn from(value: Number) -> Self {
         value.0
+    }
+}
+
+impl TryFrom<Number> for BigRational {
+    type Error = Number;
+
+    fn try_from(value: Number) -> Result<Self, Self::Error> {
+        if value.0.im.is_zero() {
+            Ok(value.0.re)
+        } else {
+            Err(value)
+        }
+    }
+}
+
+impl TryFrom<Number> for BigInt {
+    type Error = Number;
+
+    fn try_from(value: Number) -> Result<Self, Self::Error> {
+        if value.0.im.is_zero() && value.0.re.denom().is_one() {
+            Ok(value.0.re.numer().clone())
+        } else {
+            Err(value)
+        }
+    }
+}
+
+impl TryFrom<Number> for BigUint {
+    type Error = Number;
+
+    fn try_from(value: Number) -> Result<Self, Self::Error> {
+        if value.0.im.is_zero() && value.0.re.denom().is_one() {
+            value.0.re.numer().to_biguint().ok_or(value)
+        } else {
+            Err(value)
+        }
     }
 }
 

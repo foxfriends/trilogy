@@ -701,6 +701,10 @@ impl_into!(try <i16> via Number);
 impl_into!(try <i32> via Number);
 impl_into!(try <i64> via Number);
 impl_into!(try <i128> via Number);
+impl_into!(<num::Complex<num::BigRational>> via Number);
+impl_into!(try <num::BigRational> via Number);
+impl_into!(try <num::BigInt> via Number);
+impl_into!(try <num::BigUint> via Number);
 impl_into!(<char> via Char);
 impl_into!(<bool> via Bool);
 impl_into!(<Bits> via Bits);
@@ -714,7 +718,6 @@ impl_into!(<Callable> via Callable);
 impl_into!(<Vec<Value>> via Array);
 impl_into!(<HashMap<Value, Value>> via Record);
 impl_into!(<HashSet<Value>> via Set);
-impl_into!(<num::Complex<num::BigRational>> via Number);
 
 impl TryFrom<Value> for () {
     type Error = Value;
