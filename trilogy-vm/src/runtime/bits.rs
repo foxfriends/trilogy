@@ -133,6 +133,12 @@ impl From<Vec<bool>> for Bits {
     }
 }
 
+impl From<&Bits> for Bits {
+    fn from(value: &Bits) -> Self {
+        value.clone()
+    }
+}
+
 impl From<()> for Bits {
     fn from((): ()) -> Self {
         Self::new()

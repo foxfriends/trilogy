@@ -219,6 +219,12 @@ impl From<Number> for Complex<BigRational> {
     }
 }
 
+impl From<&Number> for Number {
+    fn from(value: &Number) -> Self {
+        value.clone()
+    }
+}
+
 impl TryFrom<Number> for BigRational {
     type Error = Number;
 
@@ -261,6 +267,17 @@ macro_rules! into_integer {
             type Error = Number;
 
             fn try_from(value: Number) -> Result<Self, Self::Error> {
+                let Some(int) = value.as_integer() else {
+                    return Err(value);
+                };
+                int.$f().ok_or(value)
+            }
+        }
+
+        impl<'a> TryFrom<&'a Number> for $t {
+            type Error = &'a Number;
+
+            fn try_from(value: &'a Number) -> Result<Self, Self::Error> {
                 let Some(int) = value.as_integer() else {
                     return Err(value);
                 };

@@ -22,7 +22,7 @@ pub mod bits {
             Value::Char(ch) => rt.r#return(Bits::from(ch)),
             Value::Bool(val) => rt.r#return(Bits::from(val)),
             Value::Unit => rt.r#return(Bits::new()),
-            Value::Bits(bits) => rt.r#return(bits),
+            Value::Bits(bits) => rt.r#return((*bits).clone()),
             _ => rt.r#yield(no_bits, |rt, val| rt.r#return(val)),
         }
     }

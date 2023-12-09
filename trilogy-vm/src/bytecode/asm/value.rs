@@ -1,6 +1,6 @@
 use super::string::{escape_sequence, extract_string_prefix};
 use crate::atom::AtomInterner;
-use crate::{Array, Bits, Record, Set, Struct, Tuple, Value};
+use crate::{Array, Bits, Number, Record, Set, Struct, Tuple, Value};
 use std::collections::{HashMap, HashSet};
 
 impl Value {
@@ -33,9 +33,9 @@ impl Value {
                         if let Some(s) = s.strip_prefix('(') {
                             let (value, s) = Value::parse_prefix(s, atom_interner)?;
                             let s = s.strip_prefix(')')?;
-                            Some((Value::Struct(Struct::new(atom, value)), s))
+                            Some((Value::from(Struct::new(atom, value)), s))
                         } else {
-                            Some((Value::Atom(atom), s))
+                            Some((Value::from(atom), s))
                         }
                     }
                 }
@@ -46,9 +46,9 @@ impl Value {
                 let s = s.strip_prefix(':')?;
                 let (rhs, s) = Value::parse_prefix(s, atom_interner)?;
                 let s = s.strip_prefix(')')?;
-                Some((Value::Tuple(Tuple::new(lhs, rhs)), s))
+                Some((Value::from(Tuple::new(lhs, rhs)), s))
             }
-            _ if s.starts_with('"') => extract_string_prefix(s).map(|(v, s)| (Value::String(v), s)),
+            _ if s.starts_with('"') => extract_string_prefix(s).map(|(v, s)| (Value::from(v), s)),
             _ if s.starts_with("[|") => {
                 let mut set = HashSet::new();
                 let mut s = &s[2..];
@@ -106,7 +106,7 @@ impl Value {
                     }
                     s = rest.strip_prefix(',')?;
                 };
-                Some((Value::Array(Array::from(array)), s))
+                Some((Value::from(Array::from(array)), s))
             }
             _ if s.starts_with("0b") => {
                 let bits: Bits = s[2..]
@@ -115,7 +115,7 @@ impl Value {
                     .map(|ch| ch == '1')
                     .collect();
                 let s = &s[bits.len() + 2..];
-                Some((Value::Bits(bits), s))
+                Some((Value::from(bits), s))
             }
             s => {
                 let numberlike: String = s
@@ -133,7 +133,7 @@ impl Value {
                     })
                     .collect();
                 Some((
-                    Value::Number(numberlike.parse().ok()?),
+                    Value::from(numberlike.parse::<Number>().ok()?),
                     &s[numberlike.len()..],
                 ))
             }

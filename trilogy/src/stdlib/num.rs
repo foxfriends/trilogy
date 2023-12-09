@@ -18,7 +18,7 @@ pub mod num {
     pub fn cast(rt: Runtime, value: Value) -> Result<()> {
         let nan = rt.atom("NAN");
         match value {
-            Value::Number(n) => rt.r#return(n),
+            Value::Number(n) => rt.r#return((*n).clone()),
             Value::String(s) => match s.parse::<Number>() {
                 Ok(num) => rt.r#return(num),
                 Err(..) => rt.r#yield(nan, |rt, val| rt.r#return(val)),
@@ -27,7 +27,7 @@ pub mod num {
             Value::Bool(true) => rt.r#return(1),
             Value::Bool(false) => rt.r#return(0),
             Value::Unit => rt.r#return(0),
-            Value::Bits(bits) => rt.r#return(Number::from(bits)),
+            Value::Bits(bits) => rt.r#return(Number::from((*bits).clone())),
             _ => rt.r#yield(nan, |rt, val| rt.r#return(val)),
         }
     }
