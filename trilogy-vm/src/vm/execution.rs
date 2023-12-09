@@ -490,7 +490,7 @@ impl<'a> Execution<'a> {
                         .as_uinteger()
                         .unwrap()
                         .to_usize()
-                        .ok_or(self.error(InternalRuntimeError::TypeError))?,
+                        .ok_or_else(|| self.error(InternalRuntimeError::TypeError))?,
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 };
                 match lhs {
@@ -511,7 +511,7 @@ impl<'a> Execution<'a> {
                         .as_uinteger()
                         .unwrap()
                         .to_usize()
-                        .ok_or(self.error(InternalRuntimeError::TypeError))?,
+                        .ok_or_else(|| self.error(InternalRuntimeError::TypeError))?,
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 };
                 match lhs {
