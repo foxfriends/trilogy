@@ -10,6 +10,7 @@ pub(crate) enum InternalValue {
     Return {
         cont: Cont,
         frame: usize,
+        ghost_frame: usize,
         ghost: Option<Ghost>,
     },
 }

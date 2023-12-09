@@ -15,6 +15,7 @@ pub use trace::{StackTrace, StackTraceEntry};
 #[derive(Default, Clone)]
 pub(crate) struct Stack {
     cactus: Cactus<InternalValue>,
+    ghost_frame: usize,
     frame: usize,
 }
 
@@ -49,6 +50,7 @@ impl Stack {
     pub(super) fn branch(&mut self) -> Self {
         Self {
             cactus: self.cactus.branch(),
+            ghost_frame: self.ghost_frame,
             frame: self.frame,
         }
     }
@@ -152,8 +154,15 @@ impl Stack {
                 .cactus
                 .pop()
                 .ok_or(InternalRuntimeError::ExpectedReturn)?;
-            if let InternalValue::Return { cont, frame, .. } = popped {
+            if let InternalValue::Return {
+                cont,
+                frame,
+                ghost_frame,
+                ..
+            } = popped
+            {
                 self.frame = frame;
+                self.ghost_frame = ghost_frame;
                 return Ok(cont);
             }
         }
@@ -166,9 +175,12 @@ impl Stack {
         stack: Option<Stack>,
     ) {
         let frame = self.frame;
+        let ghost_frame = self.ghost_frame;
+        self.ghost_frame = stack.as_ref().map(|st| st.count_locals()).unwrap_or(0);
         self.cactus.push(InternalValue::Return {
             cont: c.into(),
             frame,
+            ghost_frame,
             ghost: stack.map(Ghost::from),
         });
         self.frame = self.len();
@@ -292,12 +304,6 @@ impl Stack {
     }
 
     fn count_locals(&self) -> usize {
-        let local_locals = self.len() - self.frame;
-        match self.cactus.at(self.len() - self.frame) {
-            Some(InternalValue::Return {
-                ghost: Some(ghost), ..
-            }) => ghost.len + local_locals,
-            _ => local_locals,
-        }
+        self.len() - self.frame + self.ghost_frame
     }
 }
