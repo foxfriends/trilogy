@@ -5,56 +5,39 @@ use num::{BigInt, BigRational, BigUint, Complex, One, ToPrimitive, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
+use std::sync::Arc;
 
 /// A Trilogy Number value.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct Number(Complex<BigRational>);
+pub struct Number(Arc<Complex<BigRational>>);
 
-impl Add for Number {
-    type Output = Self;
+macro_rules! proxy_op {
+    ($t:ty, $f:ident) => {
+        impl $t for Number {
+            type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
+            fn $f(self, rhs: Self) -> Self::Output {
+                if let (Some(lhs), Some(rhs)) = (self.as_real(), rhs.as_real()) {
+                    Self::from(lhs.$f(rhs))
+                } else {
+                    Self::from((*self.0).clone().$f(&*rhs.0))
+                }
+            }
+        }
+    };
 }
 
-impl Sub for Number {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl Mul for Number {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0)
-    }
-}
-
-impl Div for Number {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0)
-    }
-}
-
-impl Rem for Number {
-    type Output = Self;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        Self(self.0 % rhs.0)
-    }
-}
+proxy_op!(Add, add);
+proxy_op!(Sub, sub);
+proxy_op!(Mul, mul);
+proxy_op!(Div, div);
+proxy_op!(Rem, rem);
 
 impl Neg for Number {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self(-self.0)
+        Self(Arc::new(-(*self.0).clone()))
     }
 }
 
@@ -78,8 +61,8 @@ impl Number {
         Self::from(num) / Self::from(den)
     }
 
-    pub fn as_complex(&self) -> Complex<BigRational> {
-        self.0.clone()
+    pub fn as_complex(&self) -> &Complex<BigRational> {
+        &self.0
     }
 
     pub fn is_real(&self) -> bool {
@@ -146,10 +129,10 @@ macro_rules! from_integer {
     ($t:ty) => {
         impl From<$t> for Number {
             fn from(value: $t) -> Self {
-                Self(Complex::new(
+                Self(Arc::new(Complex::new(
                     BigRational::from(BigInt::from(value)),
                     Zero::zero(),
-                ))
+                )))
             }
         }
     };
@@ -170,28 +153,31 @@ from_integer!(i128);
 
 impl From<Complex<BigRational>> for Number {
     fn from(value: Complex<BigRational>) -> Self {
-        Self(value)
+        Self(Arc::new(value))
     }
 }
 
 impl From<BigRational> for Number {
     fn from(value: BigRational) -> Self {
-        Self(Complex::new(value, Zero::zero()))
+        Self(Arc::new(Complex::new(value, Zero::zero())))
     }
 }
 
 impl From<BigInt> for Number {
     fn from(value: BigInt) -> Self {
-        Self(Complex::new(BigRational::from(value), Zero::zero()))
+        Self(Arc::new(Complex::new(
+            BigRational::from(value),
+            Zero::zero(),
+        )))
     }
 }
 
 impl From<BigUint> for Number {
     fn from(value: BigUint) -> Self {
-        Self(Complex::new(
+        Self(Arc::new(Complex::new(
             BigRational::from(BigInt::from(value)),
             Zero::zero(),
-        ))
+        )))
     }
 }
 
@@ -209,13 +195,19 @@ impl FromStr for Number {
     type Err = ParseComplexError<ParseRatioError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.parse()?))
+        Ok(Self(Arc::new(s.parse()?)))
     }
 }
 
 impl From<Number> for Complex<BigRational> {
     fn from(value: Number) -> Self {
-        value.0
+        (*value.0).clone()
+    }
+}
+
+impl From<&Number> for Number {
+    fn from(value: &Number) -> Self {
+        value.clone()
     }
 }
 
@@ -224,7 +216,7 @@ impl TryFrom<Number> for BigRational {
 
     fn try_from(value: Number) -> Result<Self, Self::Error> {
         if value.0.im.is_zero() {
-            Ok(value.0.re)
+            Ok(value.0.re.clone())
         } else {
             Err(value)
         }
@@ -261,6 +253,17 @@ macro_rules! into_integer {
             type Error = Number;
 
             fn try_from(value: Number) -> Result<Self, Self::Error> {
+                let Some(int) = value.as_integer() else {
+                    return Err(value);
+                };
+                int.$f().ok_or(value)
+            }
+        }
+
+        impl<'a> TryFrom<&'a Number> for $t {
+            type Error = &'a Number;
+
+            fn try_from(value: &'a Number) -> Result<Self, Self::Error> {
                 let Some(int) = value.as_integer() else {
                     return Err(value);
                 };

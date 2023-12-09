@@ -448,7 +448,7 @@ impl<'a> Execution<'a> {
                 let lhs = self.stack_pop()?;
                 match (lhs, rhs) {
                     (Value::Number(lhs), Value::Number(rhs)) => {
-                        self.stack.push(Value::Number(lhs.pow(&rhs)));
+                        self.stack.push(lhs.pow(&rhs));
                     }
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
@@ -464,9 +464,7 @@ impl<'a> Execution<'a> {
                 let rhs = self.stack_pop()?;
                 let lhs = self.stack_pop()?;
                 match (lhs, rhs) {
-                    (Value::String(lhs), Value::String(rhs)) => {
-                        self.stack.push(Value::String(lhs + &rhs))
-                    }
+                    (Value::String(lhs), Value::String(rhs)) => self.stack.push(lhs + &rhs),
                     (Value::Array(lhs), Value::Array(rhs)) => {
                         lhs.append(&rhs);
                         self.stack.push(Value::Array(lhs));
@@ -494,9 +492,9 @@ impl<'a> Execution<'a> {
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 };
                 match lhs {
-                    Value::String(lhs) => self
-                        .stack
-                        .push(Value::String(lhs.chars().skip(count).collect())),
+                    Value::String(lhs) => {
+                        self.stack.push(lhs.chars().skip(count).collect::<String>())
+                    }
                     Value::Array(lhs) => {
                         self.stack.push(Value::Array(lhs.range(count..).to_owned()))
                     }
@@ -517,7 +515,7 @@ impl<'a> Execution<'a> {
                 match lhs {
                     Value::String(lhs) => {
                         self.stack
-                            .push(Value::String(lhs.chars().take(count).collect()));
+                            .push(lhs.as_ref().chars().take(count).collect::<String>());
                     }
                     Value::Array(lhs) => {
                         self.stack.push(Value::Array(lhs.range(..count).to_owned()));
@@ -720,7 +718,7 @@ impl<'a> Execution<'a> {
             Instruction::BitwiseNeg => {
                 let val = self.stack_pop()?;
                 match val {
-                    Value::Bits(val) => self.stack.push(Value::Bits(!val)),
+                    Value::Bits(val) => self.stack.push(!val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }

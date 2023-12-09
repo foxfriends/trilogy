@@ -41,7 +41,7 @@ pub mod str {
         let string = rt.typecheck::<String>(string)?;
 
         match needle {
-            Value::String(needle) => rt.r#return(string.replace(&needle, &replacement)),
+            Value::String(needle) => rt.r#return(string.replace(&*needle, &replacement)),
             Value::Char(needle) => rt.r#return(string.replace(needle, &replacement)),
             _ => Err(rt.runtime_type_error(needle)),
         }
@@ -60,7 +60,7 @@ pub mod str {
         let string = rt.typecheck::<String>(string)?;
 
         match needle {
-            Value::String(needle) => rt.r#return(string.replacen(&needle, &replacement, n)),
+            Value::String(needle) => rt.r#return(string.replacen(&*needle, &replacement, n)),
             Value::Char(needle) => rt.r#return(string.replacen(needle, &replacement, n)),
             _ => Err(rt.runtime_type_error(needle)),
         }
@@ -79,7 +79,7 @@ pub mod str {
         match separator {
             Value::String(separator) => rt.r#return(
                 string
-                    .split(&separator)
+                    .split(&*separator)
                     .map(|val| val.into())
                     .collect::<Array>(),
             ),
@@ -101,7 +101,7 @@ pub mod str {
         match separator {
             Value::String(separator) => rt.r#return(
                 string
-                    .splitn(n + 1, &separator)
+                    .splitn(n + 1, &*separator)
                     .map(|val| val.into())
                     .collect::<Array>(),
             ),

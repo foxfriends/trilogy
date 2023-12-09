@@ -1,9 +1,9 @@
-use crate::callable::Closure;
-
 use super::callable::{Continuation, Native, Procedure};
 use super::{
-    Array, Atom, Bits, Callable, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple,
+    Array, Atom, Bits, Callable, Number, Record, ReferentialEq, Set, String, Struct, StructuralEq,
+    Tuple,
 };
+use crate::callable::Closure;
 use bitvec::prelude::*;
 use num::ToPrimitive;
 use std::collections::{HashMap, HashSet};
@@ -109,7 +109,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::Value;
-    /// assert!(Value::String("hello world".into()).is_string());
+    /// assert!(Value::from("hello world").is_string());
     /// assert!(!Value::Unit.is_string());
     /// ```
     pub fn is_string(&self) -> bool {
@@ -120,12 +120,12 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::Value;
-    /// assert_eq!(Value::String("hello world".into()).as_str(), Some("hello world"));
+    /// assert_eq!(Value::from("hello world").as_str(), Some("hello world"));
     /// assert_eq!(Value::Unit.as_str(), None);
     /// ```
     pub fn as_str(&self) -> Option<&str> {
         match self {
-            Value::String(value) => Some(value),
+            Value::String(value) => Some(value.as_ref()),
             _ => None,
         }
     }
@@ -134,7 +134,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Number};
-    /// assert!(Value::Number(Number::from(1)).is_number());
+    /// assert!(Value::from(Number::from(1)).is_number());
     /// assert!(!Value::Unit.is_number());
     /// ```
     pub fn is_number(&self) -> bool {
@@ -149,7 +149,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Number};
-    /// assert_eq!(Value::Number(Number::from(1)).as_number(), Some(&Number::from(1)));
+    /// assert_eq!(Value::from(Number::from(1)).as_number(), Some(&Number::from(1)));
     /// assert_eq!(Value::Unit.as_number(), None);
     /// ```
     pub fn as_number(&self) -> Option<&Number> {
@@ -163,7 +163,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Bits};
-    /// assert!(Value::Bits(Bits::from_iter(b"123")).is_bits());
+    /// assert!(Value::from(Bits::from_iter(b"123")).is_bits());
     /// assert!(!Value::Unit.is_bits());
     /// ```
     pub fn is_bits(&self) -> bool {
@@ -174,7 +174,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Bits};
-    /// assert_eq!(Value::Bits(Bits::from_iter(b"123")).as_bits(), Some(&Bits::from_iter(b"123")));
+    /// assert_eq!(Value::from(Bits::from_iter(b"123")).as_bits(), Some(&Bits::from_iter(b"123")));
     /// assert_eq!(Value::Unit.as_bits(), None);
     /// ```
     pub fn as_bits(&self) -> Option<&Bits> {
@@ -429,7 +429,7 @@ impl Add for Value {
 
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs + rhs)),
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::from(lhs + rhs)),
             _ => Err(()),
         }
     }
@@ -440,7 +440,7 @@ impl Sub for Value {
 
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs - rhs)),
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::from(lhs - rhs)),
             _ => Err(()),
         }
     }
@@ -451,7 +451,7 @@ impl Mul for Value {
 
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs * rhs)),
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::from(lhs * rhs)),
             _ => Err(()),
         }
     }
@@ -462,7 +462,7 @@ impl Div for Value {
 
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs / rhs)),
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::from(lhs / rhs)),
             _ => Err(()),
         }
     }
@@ -473,7 +473,7 @@ impl Rem for Value {
 
     fn rem(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs % rhs)),
+            (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::from(lhs % rhs)),
             _ => Err(()),
         }
     }
@@ -484,7 +484,7 @@ impl Neg for Value {
 
     fn neg(self) -> Self::Output {
         match self {
-            Self::Number(val) => Ok(Self::Number(-val)),
+            Self::Number(val) => Ok(Self::from(-val)),
             _ => Err(()),
         }
     }
@@ -495,7 +495,7 @@ impl BitAnd for Value {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::Bits(lhs & rhs)),
+            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::from(lhs & rhs)),
             _ => Err(()),
         }
     }
@@ -506,7 +506,7 @@ impl BitOr for Value {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::Bits(lhs | rhs)),
+            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::from(lhs | rhs)),
             _ => Err(()),
         }
     }
@@ -517,7 +517,7 @@ impl BitXor for Value {
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::Bits(lhs ^ rhs)),
+            (Self::Bits(lhs), Self::Bits(rhs)) => Ok(Self::from(lhs ^ rhs)),
             _ => Err(()),
         }
     }
@@ -528,7 +528,7 @@ impl Shl for Value {
 
     fn shl(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Bits(lhs), Self::Number(rhs)) if rhs.is_integer() => Ok(Value::Bits(
+            (Self::Bits(lhs), Self::Number(rhs)) if rhs.is_integer() => Ok(Value::from(
                 lhs << rhs.as_integer().ok_or(())?.to_usize().ok_or(())?,
             )),
             _ => Err(()),
@@ -541,7 +541,7 @@ impl Shr for Value {
 
     fn shr(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Self::Bits(lhs), Self::Number(rhs)) if rhs.is_integer() => Ok(Value::Bits(
+            (Self::Bits(lhs), Self::Number(rhs)) if rhs.is_integer() => Ok(Value::from(
                 lhs >> rhs.as_integer().ok_or(())?.to_usize().ok_or(())?,
             )),
             _ => Err(()),
@@ -594,20 +594,26 @@ macro_rules! impl_from {
         }
     };
 
-    (<$fromty:ty> for $variant:ident via $via:ident) => {
+    (<$fromty:ty> for $variant:ident via $via:ty) => {
         impl From<$fromty> for Value {
             fn from(value: $fromty) -> Self {
-                Self::$variant($via::from(value))
+                Self::$variant(<$via>::from(value))
             }
         }
     };
 }
 
-impl_from!(<String> for String);
-impl_from!(<Number> for Number);
+impl_from!(<String> for String via String);
+impl_from!(<std::string::String> for String via String);
+impl_from!(<&str> for String via String);
+impl_from!(<&String> for String via String);
+impl_from!(<&std::string::String> for String via String);
+impl_from!(<Number> for Number via Number);
 impl_from!(<char> for Char);
 impl_from!(<bool> for Bool);
-impl_from!(<Bits> for Bits);
+impl_from!(<Bits> for Bits via Bits);
+impl_from!(<Vec<bool>> for Bits via Bits);
+impl_from!(<BitVec<usize, Msb0>> for Bits via Bits);
 impl_from!(<Atom> for Atom);
 impl_from!(<Struct> for Struct);
 impl_from!(<Set> for Set);
@@ -617,10 +623,6 @@ impl_from!(<Tuple> for Tuple);
 impl_from!(<HashMap<Value, Value>> for Record via Record);
 impl_from!(<HashSet<Value>> for Set via Set);
 impl_from!(<Vec<Value>> for Array via Array);
-impl_from!(<Vec<bool>> for Bits via Bits);
-impl_from!(<BitVec<usize, Msb0>> for Bits via Bits);
-impl_from!(<&str> for String via String);
-impl_from!(<&String> for String via String);
 impl_from!(<usize> for Number via Number);
 impl_from!(<u8> for Number via Number);
 impl_from!(<u16> for Number via Number);
@@ -660,34 +662,30 @@ where
 }
 
 macro_rules! impl_into {
-    (<$intoty:ty> via $variant:ident) => {
+    (<$intoty:ty> via $variant:ident as $id:ident => $expr:expr) => {
         impl TryFrom<Value> for $intoty {
             type Error = Value;
 
             fn try_from(value: Value) -> Result<Self, Self::Error> {
                 match value {
-                    Value::$variant(into) => Ok(into.into()),
+                    Value::$variant($id) => $expr,
                     value => Err(value),
                 }
             }
         }
     };
 
-    (try <$intoty:ty> via $variant:ident) => {
-        impl TryFrom<Value> for $intoty {
-            type Error = Value;
+    (<$intoty:ty> via $variant:ident) => {
+        impl_into!(<$intoty> via $variant as into => Ok(into.into()));
+    };
 
-            fn try_from(value: Value) -> Result<Self, Self::Error> {
-                match value {
-                    Value::$variant(into) => into.try_into().map_err(Value::$variant),
-                    value => Err(value),
-                }
-            }
-        }
+    (try <$intoty:ty> via $variant:ident) => {
+        impl_into!(<$intoty> via $variant as into => into.try_into().map_err(Value::from));
     };
 }
 
 impl_into!(<String> via String);
+impl_into!(<std::string::String> via String);
 impl_into!(<Number> via Number);
 impl_into!(try <usize> via Number);
 impl_into!(try <u8> via Number);
