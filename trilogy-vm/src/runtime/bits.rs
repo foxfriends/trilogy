@@ -4,12 +4,13 @@ use num::bigint::Sign;
 use num::BigInt;
 use std::fmt::{self, Debug, Display};
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
+use std::sync::Arc;
 
 /// A Trilogy Bits value.
 ///
 /// Bits values are represented internally using types from the [`bitvec`][mod@bitvec] crate.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
-pub struct Bits(BitVec<usize, Msb0>);
+pub struct Bits(Arc<BitVec<usize, Msb0>>);
 
 impl Bits {
     pub fn new() -> Self {
@@ -28,12 +29,8 @@ impl Bits {
         self.0.get(index).as_deref().copied()
     }
 
-    pub fn set(&mut self, index: usize, value: bool) {
-        self.0.set(index, value);
-    }
-
     pub fn to_bitvec(self) -> BitVec<usize, Msb0> {
-        self.0
+        (*self.0).clone()
     }
 
     pub fn as_bitslice(&self) -> &BitSlice<usize, Msb0> {
@@ -117,13 +114,13 @@ impl IntoIterator for Bits {
     type IntoIter = <BitVec<usize, Msb0> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        (*self.0).clone().into_iter()
     }
 }
 
 impl FromIterator<bool> for Bits {
     fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
-        Self(BitVec::from_iter(iter))
+        Self(Arc::new(BitVec::from_iter(iter)))
     }
 }
 
@@ -153,8 +150,18 @@ impl From<BigInt> for Bits {
         } else {
             bitvec![usize, Msb0; 0]
         };
-        let mut bits = Bits::from_iter(bits);
-        sign.append(&mut bits.0);
+        sign.extend(bits.into_iter().flat_map(|byte| {
+            [
+                byte & 0b10000000 > 0,
+                byte & 0b01000000 > 0,
+                byte & 0b00100000 > 0,
+                byte & 0b00010000 > 0,
+                byte & 0b00001000 > 0,
+                byte & 0b00000100 > 0,
+                byte & 0b00000010 > 0,
+                byte & 0b00000001 > 0,
+            ]
+        }));
         Bits::from(sign)
     }
 }
@@ -225,13 +232,13 @@ impl<'a> FromIterator<&'a u8> for Bits {
 
 impl From<BitVec<usize, Msb0>> for Bits {
     fn from(value: BitVec<usize, Msb0>) -> Self {
-        Self(value)
+        Self(Arc::new(value))
     }
 }
 
 impl From<&BitSlice<usize, Msb0>> for Bits {
     fn from(value: &BitSlice<usize, Msb0>) -> Self {
-        Self(value.to_bitvec())
+        Self(Arc::new(value.to_bitvec()))
     }
 }
 
@@ -240,11 +247,11 @@ impl BitAnd for Bits {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         let len = usize::max(self.0.len(), rhs.0.len());
-        let mut lhs_ext = self.0.clone();
+        let mut lhs_ext = (*self.0).clone();
         lhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - self.0.len()));
-        let mut rhs_ext = rhs.0.clone();
+        let mut rhs_ext = (*rhs.0).clone();
         rhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.0.len()));
-        Self(lhs_ext & rhs_ext)
+        Self::from(lhs_ext & rhs_ext)
     }
 }
 
@@ -253,11 +260,11 @@ impl BitOr for Bits {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         let len = usize::max(self.0.len(), rhs.0.len());
-        let mut lhs_ext = self.0.clone();
+        let mut lhs_ext = (*self.0).clone();
         lhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - self.0.len()));
-        let mut rhs_ext = rhs.0.clone();
+        let mut rhs_ext = (*rhs.0).clone();
         rhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.0.len()));
-        Self(lhs_ext | rhs_ext)
+        Self::from(lhs_ext | rhs_ext)
     }
 }
 
@@ -266,31 +273,33 @@ impl BitXor for Bits {
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         let len = usize::max(self.0.len(), rhs.0.len());
-        let mut lhs_ext = self.0.clone();
+        let mut lhs_ext = (*self.0).clone();
         lhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - self.0.len()));
-        let mut rhs_ext = rhs.0.clone();
+        let mut rhs_ext = (*rhs.0).clone();
         rhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.0.len()));
-        Self(lhs_ext ^ rhs_ext)
+        Self::from(lhs_ext ^ rhs_ext)
     }
 }
 
 impl Shl<usize> for Bits {
     type Output = Bits;
 
-    fn shl(mut self, rhs: usize) -> Self::Output {
+    fn shl(self, rhs: usize) -> Self::Output {
         let len = usize::min(self.0.len(), rhs);
-        self.0.shift_left(len);
-        self
+        let mut val = (*self.0).clone();
+        val.shift_left(len);
+        Self::from(val)
     }
 }
 
 impl Shr<usize> for Bits {
     type Output = Bits;
 
-    fn shr(mut self, rhs: usize) -> Self::Output {
+    fn shr(self, rhs: usize) -> Self::Output {
         let len = usize::min(self.0.len(), rhs);
-        self.0.shift_right(len);
-        self
+        let mut val = (*self.0).clone();
+        val.shift_right(len);
+        Self::from(val)
     }
 }
 
@@ -298,13 +307,13 @@ impl Not for Bits {
     type Output = Bits;
 
     fn not(self) -> Self::Output {
-        Self(!self.0)
+        Self::from(!(*self.0).clone())
     }
 }
 
 impl Display for Bits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for bit in &self.0 {
+        for bit in self.0.as_ref() {
             write!(f, "{}", if *bit { 1 } else { 0 })?;
         }
         Ok(())
@@ -314,7 +323,7 @@ impl Display for Bits {
 impl Debug for Bits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "0bb")?;
-        for bit in &self.0 {
+        for bit in self.0.as_ref() {
             write!(f, "{}", if *bit { 1 } else { 0 })?;
         }
         Ok(())

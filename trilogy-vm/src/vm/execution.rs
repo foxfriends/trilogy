@@ -719,7 +719,7 @@ impl<'a> Execution<'a> {
             Instruction::BitwiseNeg => {
                 let val = self.stack_pop()?;
                 match val {
-                    Value::Bits(val) => self.stack.push(!(*val).clone()),
+                    Value::Bits(val) => self.stack.push(!val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
