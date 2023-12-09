@@ -131,12 +131,36 @@ impl<T> Cactus<T> {
     where
         T: Clone,
     {
-        if self.stack.is_empty() {
+        if self.len == 0 {
+            return None;
+        }
+        if self.stack.is_empty() && !self.reduce() {
             self.insert_branch(1);
             self.consume_to_length(1);
         }
         self.len = self.len.saturating_sub(1);
         self.stack.pop()
+    }
+
+    fn reduce(&mut self) -> bool {
+        let can_take = self
+            .parent
+            .as_ref()
+            .map(|arc| Arc::strong_count(arc) == 1)
+            .unwrap_or(false);
+        if !can_take {
+            return false;
+        }
+        let parent = Arc::into_inner(self.parent.take().unwrap())
+            .unwrap()
+            .into_inner()
+            .unwrap();
+        let mut old_self = std::mem::replace(self, parent);
+        if !old_self.stack.is_empty() {
+            self.stack.append(&mut old_self.stack);
+            self.len = old_self.len;
+        }
+        true
     }
 
     /// Moves all the values in this current branch into a new parent.
@@ -198,7 +222,10 @@ impl<T> Cactus<T> {
     where
         T: Clone,
     {
-        if self.stack.len() < count {
+        while self.stack.len() < count {
+            if self.reduce() {
+                continue;
+            }
             self.insert_branch(count - self.stack.len());
             self.consume_to_length(count);
         }
