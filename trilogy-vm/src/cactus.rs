@@ -41,7 +41,7 @@ impl<T> Cactus<T> {
         Self::default()
     }
 
-    /// Inserts a branch point some number of into this cactus's parent.
+    /// Inserts a branch point some number of cells into this cactus's parent.
     fn insert_branch(&mut self, distance: usize) {
         // If no parent, rebasing will fail to do anything and that's ok. The method
         // originally called should also fail right after.
@@ -51,6 +51,13 @@ impl<T> Cactus<T> {
 
         let mut parent = parent.lock().unwrap();
         let stack_elements = parent.stack.len();
+        // If the distance exactly equals the number of elements already on this stack, and this
+        // stack already has a parent, then there is already a suitable branch there and no work
+        // needs to be done
+        if stack_elements == distance && parent.parent.is_some() {
+            return;
+        }
+
         // If the branch point would land in a grandparent, pass the task up the chain.
         if stack_elements < distance {
             parent.insert_branch(distance - stack_elements);
