@@ -11,3 +11,6 @@ members = [
     "trilogy-vm",
     "trilogy-vm-derive",
 ]
+
+[profile.release]
+panic = "abort"
