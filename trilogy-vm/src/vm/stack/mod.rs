@@ -12,10 +12,21 @@ use ghost::Ghost;
 pub(super) use internal_value::InternalValue;
 pub use trace::{StackTrace, StackTraceEntry};
 
+/// The stack implementation for the Trilogy VM.
+///
+/// The Trilogy VM is backed by a cactus stack, the core of which is implemented as [`Cactus`][].
+/// This wrapper around that base cactus implements the operations used in the execution of
+/// Trilogy VM bytecode.
 #[derive(Default, Clone)]
 pub(crate) struct Stack {
+    /// The actual cactus that backs this stack.
     cactus: Cactus<InternalValue>,
+    /// The size of the ghost stack's frame. The ghost stack is the closed-over stack of
+    /// a closure, which is visible from closure calls. The closure returns onto the live
+    /// stack, but has access to variables on the ghost.
     ghost_frame: usize,
+    /// The size of the current stack frame. This is the offset at which the return pointer
+    /// is written to the stack, to which the stack falls back to when a frame is popped.
     frame: usize,
 }
 
@@ -299,10 +310,17 @@ impl Stack {
         Ok(internal_values)
     }
 
+    /// The full length of the live stack, including entries inaccessible to the VM
+    /// at this time (e.g. cells in call frames beyond the current one).
     fn len(&self) -> usize {
         self.cactus.len()
     }
 
+    /// The number of local offsets on the stack currently accessible by the VM. This
+    /// includes the current stack frame and the frames of the ghost stack.
+    ///
+    /// A ghost stack may itself have parent ghost stacks and so on, all of which are
+    /// reflected by the `ghost_frame`.
     fn count_locals(&self) -> usize {
         self.len() - self.frame + self.ghost_frame
     }
