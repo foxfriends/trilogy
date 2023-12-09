@@ -1,15 +1,14 @@
-use crate::callable::Closure;
-
 use super::callable::{Continuation, Native, Procedure};
 use super::{
-    Array, Atom, Bits, Callable, Number, Record, ReferentialEq, Set, Struct, StructuralEq, Tuple,
+    Array, Atom, Bits, Callable, Number, Record, ReferentialEq, Set, String, Struct, StructuralEq,
+    Tuple,
 };
+use crate::callable::Closure;
 use bitvec::prelude::*;
 use num::ToPrimitive;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
-use std::sync::Arc;
 
 /// Generic value type, encapsulating every type of value that can be handled by
 /// the Trilogy Virtual Machine.
@@ -18,7 +17,7 @@ pub enum Value {
     Unit,
     Bool(bool),
     Char(char),
-    String(Arc<String>),
+    String(String),
     Number(Number),
     Bits(Bits),
     Atom(Atom),
@@ -126,7 +125,7 @@ impl Value {
     /// ```
     pub fn as_str(&self) -> Option<&str> {
         match self {
-            Value::String(value) => Some(value),
+            Value::String(value) => Some(value.as_ref()),
             _ => None,
         }
     }
@@ -602,21 +601,19 @@ macro_rules! impl_from {
             }
         }
     };
-
-    (<$fromty:ty> for $variant:ident arc via $via:ty) => {
-        impl From<$fromty> for Value {
-            fn from(value: $fromty) -> Self {
-                Self::$variant(Arc::new(<$via>::from(value)))
-            }
-        }
-    };
 }
 
-impl_from!(<String> for String arc via String);
+impl_from!(<String> for String via String);
+impl_from!(<std::string::String> for String via String);
+impl_from!(<&str> for String via String);
+impl_from!(<&String> for String via String);
+impl_from!(<&std::string::String> for String via String);
 impl_from!(<Number> for Number via Number);
 impl_from!(<char> for Char);
 impl_from!(<bool> for Bool);
 impl_from!(<Bits> for Bits via Bits);
+impl_from!(<Vec<bool>> for Bits via Bits);
+impl_from!(<BitVec<usize, Msb0>> for Bits via Bits);
 impl_from!(<Atom> for Atom);
 impl_from!(<Struct> for Struct);
 impl_from!(<Set> for Set);
@@ -626,10 +623,6 @@ impl_from!(<Tuple> for Tuple);
 impl_from!(<HashMap<Value, Value>> for Record via Record);
 impl_from!(<HashSet<Value>> for Set via Set);
 impl_from!(<Vec<Value>> for Array via Array);
-impl_from!(<Vec<bool>> for Bits via Bits);
-impl_from!(<BitVec<usize, Msb0>> for Bits via Bits);
-impl_from!(<&str> for String arc via String);
-impl_from!(<&String> for String arc via String);
 impl_from!(<usize> for Number via Number);
 impl_from!(<u8> for Number via Number);
 impl_from!(<u16> for Number via Number);
@@ -686,20 +679,13 @@ macro_rules! impl_into {
         impl_into!(<$intoty> via $variant as into => Ok(into.into()));
     };
 
-    (clone <$intoty:ty> via $variant:ident) => {
-        impl_into!(<$intoty> via $variant as into => Ok((*into).clone().into()));
-    };
-
-    (try clone <$intoty:ty> via $variant:ident) => {
-        impl_into!(<$intoty> via $variant as into => (*into).clone().try_into().map_err(Value::from));
-    };
-
     (try <$intoty:ty> via $variant:ident) => {
         impl_into!(<$intoty> via $variant as into => into.try_into().map_err(Value::from));
     };
 }
 
-impl_into!(clone <String> via String);
+impl_into!(<String> via String);
+impl_into!(<std::string::String> via String);
 impl_into!(<Number> via Number);
 impl_into!(try <usize> via Number);
 impl_into!(try <u8> via Number);

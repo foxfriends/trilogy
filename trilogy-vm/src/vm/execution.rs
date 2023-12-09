@@ -464,9 +464,7 @@ impl<'a> Execution<'a> {
                 let rhs = self.stack_pop()?;
                 let lhs = self.stack_pop()?;
                 match (lhs, rhs) {
-                    (Value::String(lhs), Value::String(rhs)) => {
-                        self.stack.push((*lhs).clone() + &*rhs)
-                    }
+                    (Value::String(lhs), Value::String(rhs)) => self.stack.push(lhs + &rhs),
                     (Value::Array(lhs), Value::Array(rhs)) => {
                         lhs.append(&rhs);
                         self.stack.push(Value::Array(lhs));
@@ -516,7 +514,8 @@ impl<'a> Execution<'a> {
                 };
                 match lhs {
                     Value::String(lhs) => {
-                        self.stack.push(lhs.chars().take(count).collect::<String>());
+                        self.stack
+                            .push(lhs.as_ref().chars().take(count).collect::<String>());
                     }
                     Value::Array(lhs) => {
                         self.stack.push(Value::Array(lhs.range(..count).to_owned()));
