@@ -110,7 +110,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::Value;
-    /// assert!(Value::String("hello world".into()).is_string());
+    /// assert!(Value::from("hello world").is_string());
     /// assert!(!Value::Unit.is_string());
     /// ```
     pub fn is_string(&self) -> bool {
@@ -121,7 +121,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::Value;
-    /// assert_eq!(Value::String("hello world".into()).as_str(), Some("hello world"));
+    /// assert_eq!(Value::from("hello world").as_str(), Some("hello world"));
     /// assert_eq!(Value::Unit.as_str(), None);
     /// ```
     pub fn as_str(&self) -> Option<&str> {
@@ -135,7 +135,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Number};
-    /// assert!(Value::Number(Number::from(1)).is_number());
+    /// assert!(Value::from(Number::from(1)).is_number());
     /// assert!(!Value::Unit.is_number());
     /// ```
     pub fn is_number(&self) -> bool {
@@ -150,7 +150,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Number};
-    /// assert_eq!(Value::Number(Number::from(1)).as_number(), Some(&Number::from(1)));
+    /// assert_eq!(Value::from(Number::from(1)).as_number(), Some(&Number::from(1)));
     /// assert_eq!(Value::Unit.as_number(), None);
     /// ```
     pub fn as_number(&self) -> Option<&Number> {
@@ -164,7 +164,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Bits};
-    /// assert!(Value::Bits(Bits::from_iter(b"123")).is_bits());
+    /// assert!(Value::from(Bits::from_iter(b"123")).is_bits());
     /// assert!(!Value::Unit.is_bits());
     /// ```
     pub fn is_bits(&self) -> bool {
@@ -175,7 +175,7 @@ impl Value {
     ///
     /// ```
     /// # use trilogy_vm::{Value, Bits};
-    /// assert_eq!(Value::Bits(Bits::from_iter(b"123")).as_bits(), Some(&Bits::from_iter(b"123")));
+    /// assert_eq!(Value::from(Bits::from_iter(b"123")).as_bits(), Some(&Bits::from_iter(b"123")));
     /// assert_eq!(Value::Unit.as_bits(), None);
     /// ```
     pub fn as_bits(&self) -> Option<&Bits> {
