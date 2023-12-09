@@ -470,7 +470,11 @@ impl Div for Value {
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Number(lhs), Self::Number(rhs)) => {
-                Ok(Self::from((*lhs).clone() / (*rhs).clone()))
+                if let (Some(lhs), Some(rhs)) = (lhs.as_real(), rhs.as_real()) {
+                    Ok(Self::from(lhs / rhs))
+                } else {
+                    Ok(Self::from((*lhs).clone() / (*rhs).clone()))
+                }
             }
             _ => Err(()),
         }
@@ -483,7 +487,11 @@ impl Rem for Value {
     fn rem(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Number(lhs), Self::Number(rhs)) => {
-                Ok(Self::from((*lhs).clone() % (*rhs).clone()))
+                if let (Some(lhs), Some(rhs)) = (lhs.as_real(), rhs.as_real()) {
+                    Ok(Self::from(lhs % rhs))
+                } else {
+                    Ok(Self::from((*lhs).clone() % (*rhs).clone()))
+                }
             }
             _ => Err(()),
         }
