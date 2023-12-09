@@ -141,7 +141,7 @@ impl<T> Cactus<T> {
 
     /// Moves all the values in this current branch into a new parent.
     ///
-    /// The current stack will be empty.
+    /// The current stack will be empty afterwards.
     fn commit(&mut self) {
         if !self.stack.is_empty() {
             let len = self.len;
@@ -154,6 +154,10 @@ impl<T> Cactus<T> {
         }
     }
 
+    /// Branches a cactus into two. Returns one of them, and replaces
+    /// self with the other.
+    ///
+    /// The shared parent of both will be what was the current cactus.
     pub fn branch(&mut self) -> Self {
         self.commit();
         Self {
@@ -192,7 +196,7 @@ impl<T> Cactus<T> {
 
     pub fn detach_at(&mut self, count: usize) -> Option<Vec<T>>
     where
-        T: Clone + std::fmt::Debug,
+        T: Clone,
     {
         if self.stack.len() < count {
             self.insert_branch(count - self.stack.len());
