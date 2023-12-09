@@ -1,83 +1,16 @@
 use super::error::InternalRuntimeError;
 use super::execution::Cont;
-use super::program_reader::ProgramReader;
-use crate::{cactus::Cactus, Offset};
-use crate::{Location, Value};
+use crate::cactus::Cactus;
+use crate::Value;
 use std::fmt::{self, Debug, Display};
 
-#[derive(Clone, Debug)]
-pub(super) enum InternalValue {
-    Unset,
-    Value(Value),
-    Return {
-        cont: Cont,
-        frame: usize,
-        ghost: Option<Stack>,
-    },
-}
+mod ghost;
+mod internal_value;
+mod trace;
 
-impl InternalValue {
-    pub fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
-        match self {
-            InternalValue::Value(value) => Ok(value),
-            InternalValue::Unset => Err(InternalRuntimeError::ExpectedValue("empty cell")),
-            InternalValue::Return { .. } => {
-                Err(InternalRuntimeError::ExpectedValue("return pointer"))
-            }
-        }
-    }
-
-    fn try_into_value_maybe(self) -> Result<Option<Value>, InternalRuntimeError> {
-        match self {
-            InternalValue::Value(value) => Ok(Some(value)),
-            InternalValue::Unset => Ok(None),
-            InternalValue::Return { .. } => {
-                Err(InternalRuntimeError::ExpectedValue("return pointer"))
-            }
-        }
-    }
-
-    fn is_set(&self) -> Result<bool, InternalRuntimeError> {
-        match self {
-            InternalValue::Value(..) => Ok(true),
-            InternalValue::Unset => Ok(false),
-            InternalValue::Return { .. } => {
-                Err(InternalRuntimeError::ExpectedValue("return pointer"))
-            }
-        }
-    }
-}
-
-impl From<Value> for InternalValue {
-    fn from(value: Value) -> Self {
-        Self::Value(value)
-    }
-}
-
-impl Display for InternalValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            InternalValue::Unset => write!(f, "<unset>"),
-            InternalValue::Value(value) => write!(f, "{value}"),
-            InternalValue::Return {
-                cont, ghost: None, ..
-            } => write!(f, "-> {cont:?}"),
-            InternalValue::Return {
-                cont,
-                ghost: Some(ghost),
-                ..
-            } => {
-                let ghost_str = format!("{}", ghost)
-                    .lines()
-                    .map(|line| format!("\t{line}"))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                writeln!(f, "{}", ghost_str)?;
-                write!(f, "-> {cont:?}\t[closure]")
-            }
-        }
-    }
-}
+use ghost::Ghost;
+pub(super) use internal_value::InternalValue;
+pub use trace::{StackTrace, StackTraceEntry};
 
 #[derive(Default, Clone)]
 pub(crate) struct Stack {
@@ -109,52 +42,6 @@ impl Debug for Stack {
             .rev()
             .fold(&mut tuple, |f, v| f.field(&v))
             .finish()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct StackTraceEntry {
-    pub annotations: Vec<(String, Location)>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct StackTrace {
-    pub frames: Vec<StackTraceEntry>,
-}
-
-impl Stack {
-    pub(super) fn trace(&self, program: &ProgramReader, ip: Offset) -> StackTrace {
-        let mut trace = StackTrace::default();
-        let annotations = program.annotations(ip);
-        trace.frames.push(StackTraceEntry {
-            annotations: annotations
-                .into_iter()
-                .filter_map(|annotation| annotation.note.into_source())
-                .collect(),
-        });
-
-        trace
-            .frames
-            .extend(self.cactus.clone().into_iter().filter_map(|entry| {
-                match entry {
-                    InternalValue::Return { cont, .. } => match cont {
-                        Cont::Callback(..) => Some(StackTraceEntry {
-                            annotations: vec![],
-                        }),
-                        Cont::Offset(ip) => Some(StackTraceEntry {
-                            annotations: program
-                                .annotations(ip)
-                                .into_iter()
-                                .filter_map(|annotation| annotation.note.into_source())
-                                .collect(),
-                        }),
-                    },
-                    _ => None,
-                }
-            }));
-
-        trace.frames.reverse();
-        trace
     }
 }
 
@@ -226,12 +113,12 @@ impl Stack {
         let local_locals = self.len() - self.frame;
         if offset >= local_locals {
             let InternalValue::Return {
-                ghost: Some(stack), ..
+                ghost: Some(ghost), ..
             } = self.cactus.at(self.len() - self.frame).unwrap()
             else {
                 panic!()
             };
-            return stack.at_local(index);
+            return ghost.stack.at_local(index);
         }
         self.cactus
             .at(offset)
@@ -244,12 +131,12 @@ impl Stack {
         let local_locals = self.len() - self.frame;
         if offset >= local_locals {
             let InternalValue::Return {
-                ghost: Some(stack), ..
+                ghost: Some(ghost), ..
             } = self.cactus.at(self.len() - self.frame).unwrap()
             else {
                 panic!()
             };
-            return stack.is_set_local(index);
+            return ghost.stack.is_set_local(index);
         }
         self.cactus
             .at(offset)
@@ -282,7 +169,7 @@ impl Stack {
         self.cactus.push(InternalValue::Return {
             cont: c.into(),
             frame,
-            ghost: stack,
+            ghost: stack.map(Ghost::from),
         });
         self.frame = self.len();
         self.push_many(arguments);
@@ -312,7 +199,7 @@ impl Stack {
             else {
                 panic!()
             };
-            return stack.set_local(index, value);
+            return stack.stack.set_local(index, value);
         }
         self.cactus
             .replace_at(offset, InternalValue::Value(value))
@@ -337,13 +224,13 @@ impl Stack {
             // is built. I hope someday a more explicitly shared stack representation is devised...
             // Unless this is actually correct and I just don't understand what I'm doing but it's working.
             let InternalValue::Return {
-                ghost: Some(mut stack),
+                ghost: Some(mut ghost),
                 ..
             } = self.cactus.at(self.len() - self.frame).unwrap()
             else {
                 panic!()
             };
-            return stack.unset_local(index);
+            return ghost.stack.unset_local(index);
         }
         self.cactus
             .replace_at(offset, InternalValue::Unset)
@@ -369,13 +256,13 @@ impl Stack {
             // is built. I hope someday a more explicitly shared stack representation is devised...
             // Unless this is actually correct and I just don't understand what I'm doing but it's working.
             let InternalValue::Return {
-                ghost: Some(mut stack),
+                ghost: Some(mut ghost),
                 ..
             } = self.cactus.at(self.len() - self.frame).unwrap()
             else {
                 panic!()
             };
-            return stack.init_local(index, value);
+            return ghost.stack.init_local(index, value);
         }
         if matches!(self.cactus.at(offset), Some(InternalValue::Unset)) {
             self.cactus
@@ -408,8 +295,8 @@ impl Stack {
         let local_locals = self.len() - self.frame;
         match self.cactus.at(self.len() - self.frame) {
             Some(InternalValue::Return {
-                ghost: Some(stack), ..
-            }) => stack.count_locals() + local_locals,
+                ghost: Some(ghost), ..
+            }) => ghost.len + local_locals,
             _ => local_locals,
         }
     }
