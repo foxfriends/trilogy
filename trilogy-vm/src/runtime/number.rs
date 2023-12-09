@@ -17,7 +17,11 @@ macro_rules! proxy_op {
             type Output = Self;
 
             fn $f(self, rhs: Self) -> Self::Output {
-                Self::from((*self.0).clone().$f(&*rhs.0))
+                if let (Some(lhs), Some(rhs)) = (self.as_real(), rhs.as_real()) {
+                    Self::from(lhs.$f(rhs))
+                } else {
+                    Self::from((*self.0).clone().$f(&*rhs.0))
+                }
             }
         }
     };

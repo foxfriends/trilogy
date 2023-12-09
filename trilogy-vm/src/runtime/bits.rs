@@ -337,108 +337,108 @@ mod test {
 
     #[test]
     fn bitand() {
-        let lhs = Bits(bitvec![usize, Msb0; 0, 1, 0, 1]);
-        let rhs = Bits(bitvec![usize, Msb0; 0, 0, 1, 1]);
-        assert_eq!(lhs & rhs, Bits(bitvec![usize, Msb0; 0, 0, 0, 1]));
+        let lhs = Bits::from(bitvec![usize, Msb0; 0, 1, 0, 1]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 0, 0, 1, 1]);
+        assert_eq!(lhs & rhs, Bits::from(bitvec![usize, Msb0; 0, 0, 0, 1]));
     }
 
     #[test]
     fn bitand_rhs_extend() {
-        let lhs = Bits(bitvec![usize, Msb0; 1, 1]);
-        let rhs = Bits(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs & rhs, Bits(bitvec![usize, Msb0; 1, 0]));
+        let lhs = Bits::from(bitvec![usize, Msb0; 1, 1]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 1]);
+        assert_eq!(lhs & rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
     }
 
     #[test]
     fn bitand_lhs_extend() {
-        let rhs = Bits(bitvec![usize, Msb0; 1, 1]);
-        let lhs = Bits(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs & rhs, Bits(bitvec![usize, Msb0; 1, 0]));
+        let rhs = Bits::from(bitvec![usize, Msb0; 1, 1]);
+        let lhs = Bits::from(bitvec![usize, Msb0; 1]);
+        assert_eq!(lhs & rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
     }
 
     #[test]
     fn bitor() {
-        let lhs = Bits(bitvec![usize, Msb0; 0, 1, 0, 1]);
-        let rhs = Bits(bitvec![usize, Msb0; 0, 0, 1, 1]);
-        assert_eq!(lhs | rhs, Bits(bitvec![usize, Msb0; 0, 1, 1, 1]));
+        let lhs = Bits::from(bitvec![usize, Msb0; 0, 1, 0, 1]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 0, 0, 1, 1]);
+        assert_eq!(lhs | rhs, Bits::from(bitvec![usize, Msb0; 0, 1, 1, 1]));
     }
 
     #[test]
     fn bitor_rhs_extend() {
-        let lhs = Bits(bitvec![usize, Msb0; 0, 0]);
-        let rhs = Bits(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs | rhs, Bits(bitvec![usize, Msb0; 1, 0]));
+        let lhs = Bits::from(bitvec![usize, Msb0; 0, 0]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 1]);
+        assert_eq!(lhs | rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
     }
 
     #[test]
     fn bitor_lhs_extend() {
-        let rhs = Bits(bitvec![usize, Msb0; 0, 0]);
-        let lhs = Bits(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs | rhs, Bits(bitvec![usize, Msb0; 1, 0]));
+        let rhs = Bits::from(bitvec![usize, Msb0; 0, 0]);
+        let lhs = Bits::from(bitvec![usize, Msb0; 1]);
+        assert_eq!(lhs | rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
     }
 
     #[test]
     fn bitxor() {
-        let lhs = Bits(bitvec![usize, Msb0; 0, 1, 0, 1]);
-        let rhs = Bits(bitvec![usize, Msb0; 0, 0, 1, 1]);
-        assert_eq!(lhs ^ rhs, Bits(bitvec![usize, Msb0; 0, 1, 1, 0]));
+        let lhs = Bits::from(bitvec![usize, Msb0; 0, 1, 0, 1]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 0, 0, 1, 1]);
+        assert_eq!(lhs ^ rhs, Bits::from(bitvec![usize, Msb0; 0, 1, 1, 0]));
     }
 
     #[test]
     fn bitxor_rhs_extend() {
-        let lhs = Bits(bitvec![usize, Msb0; 0, 0]);
-        let rhs = Bits(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs ^ rhs, Bits(bitvec![usize, Msb0; 1, 0]));
+        let lhs = Bits::from(bitvec![usize, Msb0; 0, 0]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 1]);
+        assert_eq!(lhs ^ rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
     }
 
     #[test]
     fn bitxor_lhs_extend() {
-        let rhs = Bits(bitvec![usize, Msb0; 0, 0]);
-        let lhs = Bits(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs ^ rhs, Bits(bitvec![usize, Msb0; 1, 0]));
+        let rhs = Bits::from(bitvec![usize, Msb0; 0, 0]);
+        let lhs = Bits::from(bitvec![usize, Msb0; 1]);
+        assert_eq!(lhs ^ rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
     }
 
     #[test]
     fn not() {
-        let val = Bits(bitvec![usize, Msb0; 0, 1]);
-        assert_eq!(!val, Bits(bitvec![usize, Msb0; 1, 0]));
+        let val = Bits::from(bitvec![usize, Msb0; 0, 1]);
+        assert_eq!(!val, Bits::from(bitvec![usize, Msb0; 1, 0]));
     }
 
     #[test]
     fn shl() {
-        let val = Bits(bitvec![usize, Msb0; 0, 0, 1, 0]);
-        assert_eq!(val << 2, Bits(bitvec![usize, Msb0; 1, 0, 0, 0]))
+        let val = Bits::from(bitvec![usize, Msb0; 0, 0, 1, 0]);
+        assert_eq!(val << 2, Bits::from(bitvec![usize, Msb0; 1, 0, 0, 0]))
     }
 
     #[test]
     fn shr() {
-        let val = Bits(bitvec![usize, Msb0; 1, 1, 0]);
-        assert_eq!(val >> 2, Bits(bitvec![usize, Msb0; 0, 0, 1]))
+        let val = Bits::from(bitvec![usize, Msb0; 1, 1, 0]);
+        assert_eq!(val >> 2, Bits::from(bitvec![usize, Msb0; 0, 0, 1]))
     }
 
     #[test]
     fn ord_gt() {
-        let lhs = Bits(bitvec![usize, Msb0; 1, 0]);
-        let rhs = Bits(bitvec![usize, Msb0; 0, 1]);
+        let lhs = Bits::from(bitvec![usize, Msb0; 1, 0]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 0, 1]);
         assert!(lhs > rhs)
     }
 
     #[test]
     fn ord_lt() {
-        let lhs = Bits(bitvec![usize, Msb0; 0, 1]);
-        let rhs = Bits(bitvec![usize, Msb0; 1, 0]);
+        let lhs = Bits::from(bitvec![usize, Msb0; 0, 1]);
+        let rhs = Bits::from(bitvec![usize, Msb0; 1, 0]);
         assert!(lhs < rhs)
     }
 
     #[test]
     fn display() {
-        let bits = Bits(bitvec![usize, Msb0; 0, 1, 0, 0, 1]);
+        let bits = Bits::from(bitvec![usize, Msb0; 0, 1, 0, 0, 1]);
         assert_eq!(format!("{bits}"), "01001");
     }
 
     #[test]
     fn debug() {
-        let bits = Bits(bitvec![usize, Msb0; 0, 1, 0, 0, 1]);
+        let bits = Bits::from(bitvec![usize, Msb0; 0, 1, 0, 0, 1]);
         assert_eq!(format!("{bits:?}"), "0bb01001");
     }
 }
