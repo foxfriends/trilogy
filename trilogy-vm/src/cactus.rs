@@ -61,7 +61,6 @@ impl<T> Cactus<T> {
         // If the branch point would land in a grandparent, pass the task up the chain.
         if stack_elements < distance {
             parent.insert_branch(distance - stack_elements);
-            std::mem::drop(parent);
             return;
         }
 
@@ -99,9 +98,9 @@ impl<T> Cactus<T> {
             let Some(parent) = &self.parent.take() else {
                 return;
             };
-            let Cactus { parent, stack, .. } = parent.lock().unwrap().clone();
-            self.parent = parent;
-            let mut rest = std::mem::replace(&mut self.stack, stack);
+            let Cactus { parent, stack, .. } = &*parent.lock().unwrap();
+            self.parent = parent.clone();
+            let mut rest = std::mem::replace(&mut self.stack, stack.clone());
             self.stack.append(&mut rest);
         }
     }
