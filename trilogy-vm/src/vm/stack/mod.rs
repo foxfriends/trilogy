@@ -99,11 +99,17 @@ impl Stack {
             .and_then(InternalValue::try_into_value_maybe)
     }
 
+    fn reserve(&mut self, additional: usize) {
+        self.cactus.reserve(additional);
+    }
+
     pub(super) fn slide(&mut self, count: usize) -> Result<(), InternalRuntimeError> {
+        self.cactus.consume_exact(count + 1);
         let top = self
             .pop()?
             .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))?;
         let slide = self.pop_n(count)?;
+        self.reserve(count);
         self.push(top);
         self.push_many(slide);
         Ok(())
@@ -303,7 +309,7 @@ impl Stack {
     /// The full length of the live stack, including entries inaccessible to the VM
     /// at this time (e.g. cells in call frames beyond the current one).
     fn len(&self) -> usize {
-        self.cactus.len()
+        self.cactus.count()
     }
 
     /// The number of local offsets on the stack currently accessible by the VM. This

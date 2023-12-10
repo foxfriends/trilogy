@@ -5,7 +5,7 @@
 //! chunk resolution system.
 
 mod bytecode;
-mod cactus;
+pub mod cactus;
 pub mod runtime;
 mod vm;
 

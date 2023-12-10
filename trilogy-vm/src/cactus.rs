@@ -6,9 +6,9 @@
 use std::fmt::{self, Debug};
 use std::sync::{Arc, Mutex};
 
-/// A Cactus Stack.
+/// The Cactus Stack.
 #[derive(Clone)]
-pub(crate) struct Cactus<T> {
+pub struct Cactus<T> {
     /// The parent of this cactus.
     ///
     /// All elements in the parent stack are (potentially) shared with other
@@ -46,17 +46,89 @@ impl<T> Default for Cactus<T> {
 }
 
 impl<T> Cactus<T> {
-    #[cfg(test)]
+    /// Creates a new empty cactus.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::<usize>::new();
+    /// ```
+    #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Initializes a cactus with a specific capacity.
+    ///
+    /// The capacity of a cactus only relates to the elements in the live branch. Past
+    /// branches each have their own capacity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::<usize>::with_capacity(10);
+    /// assert!(cactus.capacity() >= 10);
+    /// ```
+    #[inline(always)]
     pub fn with_capacity(cap: usize) -> Self {
         Self {
             parent: None,
             stack: Vec::with_capacity(cap),
             len: 0,
         }
+    }
+
+    /// Returns the total number of elements this branch of the Cactus can hold without reallocating.
+    #[inline(always)]
+    pub fn capacity(&self) -> usize {
+        self.stack.capacity()
+    }
+
+    /// Reserves capacity for at least `additional` more elements to be added to this Cactus.
+    #[inline(always)]
+    pub fn reserve(&mut self, additional: usize) {
+        self.stack.reserve(additional);
+    }
+
+    /// Returns the length of this branch of the cactus. Does not take into account parents.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// cactus.push(1);
+    /// assert_eq!(cactus.len(), 2);
+    /// let mut branch = cactus.branch();
+    /// branch.push(1);
+    /// assert_eq!(cactus.len(), 0);
+    /// assert_eq!(branch.len(), 1);
+    /// ```
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.stack.len()
+    }
+
+    /// Returns the total length of this cactus, including all parents of the current branch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// cactus.push(1);
+    /// let mut branch = cactus.branch();
+    /// branch.push(1);
+    /// assert_eq!(cactus.count(), 2);
+    /// assert_eq!(branch.count(), 3);
+    /// ```
+    #[inline(always)]
+    pub fn count(&self) -> usize {
+        self.len
     }
 
     /// Inserts a branch point some number of cells into this cactus's parent.
@@ -107,21 +179,93 @@ impl<T> Cactus<T> {
         parent.parent = Some(Arc::new(Mutex::new(grandparent)));
     }
 
-    /// Consumes parents until the current stack's length is at least the target length.
-    /// Might end up longer depending on the position of the branch points in the parent
-    /// stack.
-    fn consume_to_length(&mut self, target: usize)
+    fn consume_into(mut self, target_stack: &mut Vec<T>, target: usize) -> Option<Arc<Mutex<Self>>>
     where
         T: Clone,
     {
-        while self.stack.len() < target {
-            let Some(parent) = &self.parent.take() else {
-                return;
-            };
-            let Cactus { parent, stack, .. } = &*parent.lock().unwrap();
-            self.parent = parent.clone();
-            let mut rest = std::mem::replace(&mut self.stack, stack.clone());
-            self.stack.append(&mut rest);
+        if self.len() < target {
+            if let Some(parent) = self.parent.take() {
+                self.parent = parent
+                    .lock()
+                    .unwrap()
+                    .clone()
+                    .consume_into(target_stack, target - self.stack.len());
+            }
+        }
+        target_stack.append(&mut self.stack);
+        self.parent
+    }
+
+    /// Consumes parents until the current stack's length is at least the target length.
+    /// Might end up longer depending on the position of the branch points in the parent
+    /// stack, as this will not insert new branches while consuming.
+    ///
+    /// If there are no more parents to consume, then the current stack's resulting length
+    /// will still be less than the requested length.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// let mut branch = cactus.branch();
+    /// branch.push(2);
+    /// branch.push(3);
+    /// let mut sub_branch = branch.branch();
+    /// sub_branch.push(4);
+    /// sub_branch.consume_to_length(2);
+    /// assert_eq!(sub_branch.len(), 3);
+    /// assert_eq!(sub_branch.count(), 4);
+    /// ```
+    pub fn consume_to_length(&mut self, target: usize)
+    where
+        T: Clone,
+    {
+        if self.stack.len() >= target {
+            return;
+        }
+        let mut target_stack = Vec::with_capacity(target + self.stack.capacity());
+        if let Some(parent) = self.parent.take() {
+            self.parent = parent
+                .lock()
+                .unwrap()
+                .clone()
+                .consume_into(&mut target_stack, target - self.stack.len());
+        }
+        target_stack.append(&mut self.stack);
+        self.stack = target_stack;
+    }
+
+    /// Consumes parents until the current stack's length is exactly the target length.
+    /// If necessary, this will insert a branch point at the specified distance into the
+    /// stack's parent.
+    ///
+    /// If there are no more parents to consume, then the current stack's resulting length
+    /// will still be less than the requested length.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// let mut branch = cactus.branch();
+    /// branch.push(2);
+    /// branch.push(3);
+    /// let mut sub_branch = branch.branch();
+    /// sub_branch.push(4);
+    /// sub_branch.consume_exact(2);
+    /// assert_eq!(sub_branch.len(), 2);
+    /// assert_eq!(sub_branch.count(), 4);
+    /// ```
+    pub fn consume_exact(&mut self, target: usize)
+    where
+        T: Clone,
+    {
+        if target > self.len() {
+            self.insert_branch(target - self.stack.len());
+            self.consume_to_length(target);
         }
     }
 
@@ -143,8 +287,7 @@ impl<T> Cactus<T> {
             return None;
         }
         if self.stack.is_empty() && !self.reduce() {
-            self.insert_branch(1);
-            self.consume_to_length(1);
+            self.consume_exact(1);
         }
         self.len = self.len.saturating_sub(1);
         self.stack.pop()
@@ -251,8 +394,7 @@ impl<T> Cactus<T> {
             if self.reduce() {
                 continue;
             }
-            self.insert_branch(count - self.stack.len());
-            self.consume_to_length(count);
+            self.consume_exact(count);
         }
         self.len = self.len.saturating_sub(count);
         Some(self.stack.split_off(self.stack.len() - count))
@@ -261,10 +403,6 @@ impl<T> Cactus<T> {
     pub fn attach(&mut self, items: Vec<T>) {
         self.len += items.len();
         self.stack.extend(items);
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
     }
 
     pub fn iter(&self) -> impl Iterator<Item = T>
@@ -369,17 +507,17 @@ mod test {
         cactus.push(3);
         cactus.push(4);
         cactus.push(5);
-        assert_eq!(cactus.len(), 3);
+        assert_eq!(cactus.count(), 3);
         cactus.pop();
-        assert_eq!(cactus.len(), 2);
+        assert_eq!(cactus.count(), 2);
         let mut branch = cactus.branch();
         branch.push(5);
-        assert_eq!(cactus.len(), 2);
-        assert_eq!(branch.len(), 3);
+        assert_eq!(cactus.count(), 2);
+        assert_eq!(branch.count(), 3);
 
         cactus.push(6);
         cactus.detach_at(2);
-        assert_eq!(branch.len(), 3);
-        assert_eq!(cactus.len(), 1);
+        assert_eq!(branch.count(), 3);
+        assert_eq!(cactus.count(), 1);
     }
 }
