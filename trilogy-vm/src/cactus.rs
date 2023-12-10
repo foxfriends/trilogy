@@ -26,7 +26,7 @@ mod parent {
 
         pub(super) fn into_inner(a: Self) -> Option<Cactus<T>> {
             let inner = Arc::into_inner(a.0);
-            Some(inner?.into_inner())
+            Some(inner?.into_inner().unwrap())
         }
 
         pub(super) fn new(cactus: Cactus<T>) -> Self {
