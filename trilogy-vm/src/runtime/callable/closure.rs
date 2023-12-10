@@ -11,54 +11,53 @@ use std::sync::Arc;
 /// It is not possible to construct a value of this type except from within a
 /// Trilogy program.
 #[derive(Clone)]
-pub(crate) struct Closure {
-    ip: Offset,
-    stack: Arc<Stack>,
-}
+pub(crate) struct Closure(Arc<InnerClosure>);
 
 impl Debug for Closure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Closure")
-            .field("ip", &self.ip)
-            .field("stack", &self.stack)
+            .field("ip", &self.0.ip)
+            .field("stack", &self.0.stack)
             .finish()
     }
+}
+
+#[derive(Clone, Debug)]
+struct InnerClosure {
+    ip: Offset,
+    stack: Stack,
 }
 
 impl Eq for Closure {}
 
 impl PartialEq for Closure {
     fn eq(&self, other: &Self) -> bool {
-        self.ip == other.ip && Arc::ptr_eq(&self.stack, &other.stack)
+        Arc::ptr_eq(&self.0, &other.0)
     }
 }
 
 impl Hash for Closure {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.ip.hash(state);
-        Arc::as_ptr(&self.stack).hash(state);
+        Arc::as_ptr(&self.0).hash(state);
     }
 }
 
 impl Closure {
     pub(crate) fn new(pointer: Offset, stack: Stack) -> Self {
-        Self {
-            ip: pointer,
-            stack: Arc::new(stack),
-        }
+        Self(Arc::new(InnerClosure { ip: pointer, stack }))
     }
 
     pub(crate) fn ip(&self) -> Offset {
-        self.ip
+        self.0.ip
     }
 
     pub(crate) fn stack(&self) -> &Stack {
-        &self.stack
+        &self.0.stack
     }
 }
 
 impl Display for Closure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "&({}) [closure]", self.ip)
+        write!(f, "&({}) [closure]", self.0.ip)
     }
 }
