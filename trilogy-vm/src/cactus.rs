@@ -372,7 +372,7 @@ impl<T> Cactus<T> {
             let arced = Arc::new(Mutex::new(std::mem::take(self)));
             *self = Self {
                 parent: Some(arced),
-                stack: vec![],
+                stack: Vec::with_capacity(self.capacity()),
                 len,
             };
         }
@@ -403,7 +403,7 @@ impl<T> Cactus<T> {
         self.commit();
         Self {
             parent: self.parent.clone(),
-            stack: vec![],
+            stack: Vec::with_capacity(self.capacity()),
             len: self.len,
         }
     }
