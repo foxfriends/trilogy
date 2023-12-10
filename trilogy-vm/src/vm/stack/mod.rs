@@ -183,10 +183,14 @@ impl Stack {
 
     #[inline(always)]
     pub(super) fn pop_frame(&mut self) -> Result<Cont, InternalRuntimeError> {
-        let removed = self.cactus.detach_at(self.len() - self.frame + 1);
-        let ret = removed
-            .into_iter()
-            .next()
+        // TODO: thought using `discard` here would be faster than `detach_at`, but
+        // practically it appears not. Maybe something is weird with the `discard`
+        // implementation?
+        self.cactus.consume_exact(self.len() - self.frame + 1);
+        self.cactus.detach_at(self.len() - self.frame);
+        let ret = self
+            .cactus
+            .pop()
             .unwrap()
             .into_return()
             .ok_or(InternalRuntimeError::ExpectedReturn)?;

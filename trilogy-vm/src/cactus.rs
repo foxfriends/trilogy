@@ -448,7 +448,9 @@ impl<T> Cactus<T> {
         if len > offset {
             self.stack.get(len - offset - 1).cloned()
         } else {
-            self.parent.as_ref()?.lock().unwrap().at_impl(offset - len)
+            let mut parent = self.parent.as_ref()?.lock().unwrap();
+            while parent.reduce() {}
+            parent.at_impl(offset - len)
         }
     }
 
@@ -516,9 +518,6 @@ impl<T> Cactus<T> {
     /// The returned `Vec` of elements has them *in stack order*. That is, the opposite
     /// order of what they would be if you popped them individually one at a time.
     ///
-    /// If the cactus does contain enough elements, the returned value will be shorter
-    /// than requested.
-    ///
     /// # Examples
     ///
     /// ```
@@ -537,8 +536,52 @@ impl<T> Cactus<T> {
             while self.reduce() {}
             self.consume_exact(count);
         }
-        self.len = self.len.saturating_sub(count);
+        self.len -= count;
         self.stack.split_off(self.stack.len() - count)
+    }
+
+    /// Discards a number of elements from this stack.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// cactus.push(2);
+    /// let mut branch = cactus.branch();
+    /// branch.push(3);
+    /// branch.discard(2);
+    /// assert_eq!(branch.pop(), Some(1));
+    /// assert_eq!(cactus.pop(), Some(2));
+    /// ```
+    pub fn discard(&mut self, mut count: usize)
+    where
+        T: Clone,
+    {
+        if self.stack.len() >= count {
+            self.len -= count;
+            self.stack.truncate(self.stack.len() - count);
+            return;
+        }
+
+        count -= self.stack.len();
+        let mut parent = self.parent.take();
+        loop {
+            let Some(par) = parent else {
+                *self = Cactus::new();
+                return;
+            };
+            let par = par.lock().unwrap();
+            if par.stack.len() >= count {
+                *self = par.clone();
+                break;
+            }
+            count -= par.stack.len();
+            parent = par.parent.clone();
+        }
+        self.len -= count;
+        self.stack.truncate(self.stack.len() - count);
     }
 
     /// Attaches in bulk a chunk of elements to the live branch. These items
