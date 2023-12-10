@@ -15,10 +15,14 @@ pub(crate) struct Return {
 pub(crate) enum InternalValue {
     Unset,
     Value(Value),
-    Return(Return),
+    Return(Box<Return>),
 }
 
 impl InternalValue {
+    pub fn ret(ret: Return) -> Self {
+        Self::Return(Box::new(ret))
+    }
+
     pub fn try_into_value(self) -> Result<Value, InternalRuntimeError> {
         match self {
             InternalValue::Value(value) => Ok(value),
@@ -52,7 +56,7 @@ impl InternalValue {
 
     pub(super) fn into_return(self) -> Option<Return> {
         match self {
-            InternalValue::Return(ret) => Some(ret),
+            InternalValue::Return(ret) => Some(*ret),
             _ => None,
         }
     }

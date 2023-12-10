@@ -188,7 +188,7 @@ impl Stack {
         let frame = self.frame;
         let ghost_frame = self.ghost_frame;
         self.ghost_frame = stack.as_ref().map(|st| st.count_locals()).unwrap_or(0);
-        self.cactus.push(InternalValue::Return(Return {
+        self.cactus.push(InternalValue::ret(Return {
             cont: c.into(),
             frame,
             ghost_frame,
