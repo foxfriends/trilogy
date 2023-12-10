@@ -11,6 +11,24 @@ use std::sync::Arc;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Number(Arc<Complex<BigRational>>);
 
+macro_rules! proxy_op_int_opt {
+    ($t:ty, $f:ident) => {
+        impl $t for Number {
+            type Output = Self;
+
+            fn $f(self, rhs: Self) -> Self::Output {
+                if let (Some(lhs), Some(rhs)) = (self.as_integer(), rhs.as_integer()) {
+                    Self::from(lhs.$f(rhs))
+                } else if let (Some(lhs), Some(rhs)) = (self.as_real(), rhs.as_real()) {
+                    Self::from(lhs.$f(rhs))
+                } else {
+                    Self::from((*self.0).clone().$f(&*rhs.0))
+                }
+            }
+        }
+    };
+}
+
 macro_rules! proxy_op {
     ($t:ty, $f:ident) => {
         impl $t for Number {
@@ -27,9 +45,9 @@ macro_rules! proxy_op {
     };
 }
 
-proxy_op!(Add, add);
-proxy_op!(Sub, sub);
-proxy_op!(Mul, mul);
+proxy_op_int_opt!(Add, add);
+proxy_op_int_opt!(Sub, sub);
+proxy_op_int_opt!(Mul, mul);
 proxy_op!(Div, div);
 proxy_op!(Rem, rem);
 
