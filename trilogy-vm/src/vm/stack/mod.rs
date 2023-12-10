@@ -65,6 +65,7 @@ impl Stack {
         }
     }
 
+    #[inline(always)]
     pub(super) fn branch(&mut self) -> Self {
         Self {
             cactus: self.cactus.branch(),
@@ -73,10 +74,12 @@ impl Stack {
         }
     }
 
+    #[inline(always)]
     pub(super) fn push_unset(&mut self) {
         self.cactus.push(InternalValue::Unset);
     }
 
+    #[inline(always)]
     pub(super) fn push<V>(&mut self, value: V)
     where
         V: Into<Value>,
@@ -86,10 +89,12 @@ impl Stack {
 
     /// Pushes many values at once, not reversing their order as they would be if they
     /// were each pushed individually.
+    #[inline(always)]
     pub(super) fn push_many(&mut self, values: Vec<InternalValue>) {
         self.cactus.attach(values);
     }
 
+    #[inline(always)]
     pub(super) fn pop(&mut self) -> Result<Option<Value>, InternalRuntimeError> {
         self.cactus
             .pop()
@@ -97,14 +102,17 @@ impl Stack {
             .and_then(InternalValue::try_into_value_maybe)
     }
 
+    #[inline(always)]
     pub(super) fn prepare_to_pop(&mut self, count: usize) {
         self.cactus.consume_exact(count);
     }
 
+    #[inline(always)]
     fn reserve(&mut self, additional: usize) {
         self.cactus.reserve(additional);
     }
 
+    #[inline(always)]
     pub(super) fn slide(&mut self, count: usize) -> Result<(), InternalRuntimeError> {
         self.cactus.consume_exact(count + 1);
         let top = self
@@ -117,6 +125,7 @@ impl Stack {
         Ok(())
     }
 
+    #[inline(always)]
     pub(super) fn at(&self, index: usize) -> Result<Value, InternalRuntimeError> {
         self.cactus
             .at(index)
@@ -124,12 +133,14 @@ impl Stack {
             .and_then(InternalValue::try_into_value)
     }
 
+    #[inline(always)]
     pub(super) fn at_raw(&self, index: usize) -> Result<InternalValue, InternalRuntimeError> {
         self.cactus
             .at(index)
             .ok_or(InternalRuntimeError::ExpectedValue("out of bounds"))
     }
 
+    #[inline(always)]
     fn get_local_offset(&self, index: usize) -> Result<usize, InternalRuntimeError> {
         let locals = self.count_locals();
         if index >= locals {
@@ -138,6 +149,7 @@ impl Stack {
         Ok(locals - index - 1)
     }
 
+    #[inline(always)]
     pub(super) fn at_local(&self, index: usize) -> Result<Value, InternalRuntimeError> {
         let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
@@ -153,6 +165,7 @@ impl Stack {
             .and_then(InternalValue::try_into_value)
     }
 
+    #[inline(always)]
     pub(super) fn is_set_local(&self, index: usize) -> Result<bool, InternalRuntimeError> {
         let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
@@ -168,6 +181,7 @@ impl Stack {
             .and_then(|val| val.is_set())
     }
 
+    #[inline(always)]
     pub(super) fn pop_frame(&mut self) -> Result<Cont, InternalRuntimeError> {
         let removed = self.cactus.detach_at(self.len() - self.frame + 1);
         let ret = removed
@@ -181,6 +195,7 @@ impl Stack {
         Ok(ret.cont)
     }
 
+    #[inline(always)]
     pub(super) fn push_frame<C: Into<Cont>>(
         &mut self,
         c: C,
@@ -200,6 +215,7 @@ impl Stack {
         self.push_many(arguments);
     }
 
+    #[inline(always)]
     pub(super) fn set_local(
         &mut self,
         index: usize,
@@ -238,6 +254,7 @@ impl Stack {
             .and_then(|val| val.try_into_value_maybe())
     }
 
+    #[inline(always)]
     pub(super) fn unset_local(
         &mut self,
         index: usize,
@@ -271,6 +288,7 @@ impl Stack {
             .and_then(|val| val.try_into_value_maybe())
     }
 
+    #[inline(always)]
     pub(super) fn init_local(
         &mut self,
         index: usize,
@@ -297,6 +315,7 @@ impl Stack {
 
     /// Pops `n` values from the stack at once, returning them in an array __not__ in reverse order
     /// the way they would be if they were popped individually one after the other.
+    #[inline(always)]
     pub(super) fn pop_n(
         &mut self,
         arity: usize,
@@ -307,6 +326,7 @@ impl Stack {
 
     /// The full length of the live stack, including entries inaccessible to the VM
     /// at this time (e.g. cells in call frames beyond the current one).
+    #[inline(always)]
     fn len(&self) -> usize {
         self.cactus.count()
     }
@@ -316,6 +336,7 @@ impl Stack {
     ///
     /// A ghost stack may itself have parent ghost stacks and so on, all of which are
     /// reflected by the `ghost_frame`.
+    #[inline(always)]
     fn count_locals(&self) -> usize {
         self.len() - self.frame + self.ghost_frame
     }

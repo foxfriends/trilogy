@@ -125,6 +125,7 @@ impl<T> Cactus<T> {
     /// cactus.branch();
     /// assert!(cactus.is_empty());
     /// ```
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.stack.is_empty()
     }
@@ -298,6 +299,7 @@ impl<T> Cactus<T> {
     /// cactus.push(1);
     /// assert_eq!(cactus.at(0), Some(1));
     /// ```
+    #[inline(always)]
     pub fn push(&mut self, value: T) {
         self.len += 1;
         self.stack.push(value);
@@ -322,6 +324,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.pop(), Some(2));
     /// assert_eq!(cactus.pop(), Some(1));
     /// ```
+    #[inline(always)]
     pub fn pop(&mut self) -> Option<T>
     where
         T: Clone,
@@ -337,6 +340,7 @@ impl<T> Cactus<T> {
         self.stack.pop()
     }
 
+    #[inline(always)]
     fn reduce(&mut self) -> bool {
         let can_take = self
             .parent
@@ -361,6 +365,7 @@ impl<T> Cactus<T> {
     /// Moves all the values in this current branch into a new parent.
     ///
     /// The current stack will be empty afterwards.
+    #[inline(always)]
     fn commit(&mut self) {
         if !self.stack.is_empty() {
             let len = self.len;
@@ -393,6 +398,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.pop(), Some(1));
     /// assert_eq!(branch.pop(), Some(1));
     /// ```
+    #[inline(always)]
     pub fn branch(&mut self) -> Self {
         self.commit();
         Self {
@@ -419,6 +425,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.at(0), Some(2));
     /// assert_eq!(cactus.at(1), Some(1));
     /// ```
+    #[inline(always)]
     pub fn at(&self, offset: usize) -> Option<T>
     where
         T: Clone,
@@ -426,8 +433,22 @@ impl<T> Cactus<T> {
         let len = self.stack.len();
         if len > offset {
             self.stack.get(len - offset - 1).cloned()
+        } else if offset >= self.len {
+            None
         } else {
-            self.parent.as_ref()?.lock().unwrap().at(offset - len)
+            self.at_impl(offset)
+        }
+    }
+
+    fn at_impl(&self, offset: usize) -> Option<T>
+    where
+        T: Clone,
+    {
+        let len = self.stack.len();
+        if len > offset {
+            self.stack.get(len - offset - 1).cloned()
+        } else {
+            self.parent.as_ref()?.lock().unwrap().at_impl(offset - len)
         }
     }
 
