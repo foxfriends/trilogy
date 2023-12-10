@@ -1,4 +1,4 @@
-use super::Ghost;
+use super::Stack;
 use crate::vm::execution::Cont;
 use crate::{InternalRuntimeError, Value};
 use std::fmt::{self, Debug, Display};
@@ -8,7 +8,7 @@ pub(crate) struct Return {
     pub cont: Cont,
     pub frame: usize,
     pub ghost_frame: usize,
-    pub ghost: Option<Ghost>,
+    pub ghost: Option<Stack>,
 }
 
 #[derive(Clone, Debug)]
@@ -76,7 +76,7 @@ impl Display for InternalValue {
             InternalValue::Return(ret) => match &ret.ghost {
                 None => write!(f, "-> {:?}", ret.cont),
                 Some(ghost) => {
-                    let ghost_str = format!("{}", ghost.stack)
+                    let ghost_str = format!("{}", ghost)
                         .lines()
                         .map(|line| format!("\t{line}"))
                         .collect::<Vec<_>>()

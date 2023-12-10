@@ -4,11 +4,9 @@ use crate::cactus::Cactus;
 use crate::Value;
 use std::fmt::{self, Debug, Display};
 
-mod ghost;
 mod internal_value;
 mod trace;
 
-use ghost::Ghost;
 use internal_value::Return;
 
 pub(super) use internal_value::InternalValue;
@@ -143,7 +141,7 @@ impl Stack {
             let val = self.cactus.at(self.len() - self.frame).unwrap();
             let ret = val.as_return().unwrap();
             let ghost = ret.ghost.as_ref().unwrap();
-            return ghost.stack.at_local(index);
+            return ghost.at_local(index);
         }
         self.cactus
             .at(offset)
@@ -158,7 +156,7 @@ impl Stack {
             let val = self.cactus.at(self.len() - self.frame).unwrap();
             let ret = val.as_return().unwrap();
             let ghost = ret.ghost.as_ref().unwrap();
-            return ghost.stack.is_set_local(index);
+            return ghost.is_set_local(index);
         }
         self.cactus
             .at(offset)
@@ -192,7 +190,7 @@ impl Stack {
             cont: c.into(),
             frame,
             ghost_frame,
-            ghost: stack.map(Ghost::from),
+            ghost: stack,
         }));
         self.frame = self.len();
         self.push_many(arguments);
@@ -209,7 +207,7 @@ impl Stack {
             let val = self.cactus.at(self.len() - self.frame).unwrap();
             let ret = val.as_return().unwrap();
             let ghost = ret.ghost.as_ref().unwrap();
-            return ghost.stack.set_local_shared(index, value);
+            return ghost.set_local_shared(index, value);
         }
         self.cactus
             .replace_at(offset, InternalValue::Value(value))
@@ -228,7 +226,7 @@ impl Stack {
             let val = self.cactus.at(self.len() - self.frame).unwrap();
             let ret = val.as_return().unwrap();
             let ghost = ret.ghost.as_ref().unwrap();
-            return ghost.stack.set_local_shared(index, value);
+            return ghost.set_local_shared(index, value);
         }
         self.cactus
             .replace_shared(offset, InternalValue::Value(value))
@@ -246,7 +244,7 @@ impl Stack {
             let val = self.cactus.at(self.len() - self.frame).unwrap();
             let ret = val.as_return().unwrap();
             let ghost = ret.ghost.as_ref().unwrap();
-            return ghost.stack.unset_local_shared(index);
+            return ghost.unset_local_shared(index);
         }
         self.cactus
             .replace_at(offset, InternalValue::Unset)
@@ -261,7 +259,7 @@ impl Stack {
             let val = self.cactus.at(self.len() - self.frame).unwrap();
             let ret = val.as_return().unwrap();
             let ghost = ret.ghost.as_ref().unwrap();
-            return ghost.stack.unset_local_shared(index);
+            return ghost.unset_local_shared(index);
         }
         self.cactus
             .replace_shared(offset, InternalValue::Unset)
@@ -283,7 +281,7 @@ impl Stack {
             let val = self.cactus.at(self.len() - self.frame).unwrap();
             let ret = val.as_return().unwrap();
             let ghost = ret.ghost.as_ref().unwrap();
-            ghost.stack.set_local_shared(index, value).unwrap();
+            ghost.set_local_shared(index, value).unwrap();
             Ok(true)
         } else {
             self.cactus
