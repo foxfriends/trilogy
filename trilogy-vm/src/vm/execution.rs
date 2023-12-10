@@ -190,9 +190,10 @@ impl<'a> Execution<'a> {
     }
 
     fn stack_pop(&mut self) -> Result<Value, Error> {
-        self.stack.pop().map_err(|k| self.error(k)).and_then(|v| {
-            v.ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))
-        })
+        self.stack
+            .pop()
+            .map_err(|k| self.error(k))?
+            .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))
     }
 
     /// Return a value from the current procedure.

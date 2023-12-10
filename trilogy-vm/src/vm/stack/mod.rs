@@ -9,6 +9,8 @@ mod internal_value;
 mod trace;
 
 use ghost::Ghost;
+use internal_value::Return;
+
 pub(super) use internal_value::InternalValue;
 pub use trace::{StackTrace, StackTraceEntry};
 
@@ -125,12 +127,9 @@ impl Stack {
         let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
         if offset >= local_locals {
-            let InternalValue::Return {
-                ghost: Some(ghost), ..
-            } = self.cactus.at(self.len() - self.frame).unwrap()
-            else {
-                panic!()
-            };
+            let val = self.cactus.at(self.len() - self.frame).unwrap();
+            let ret = val.as_return().unwrap();
+            let ghost = ret.ghost.as_ref().unwrap();
             return ghost.stack.at_local(index);
         }
         self.cactus
@@ -143,12 +142,9 @@ impl Stack {
         let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
         if offset >= local_locals {
-            let InternalValue::Return {
-                ghost: Some(ghost), ..
-            } = self.cactus.at(self.len() - self.frame).unwrap()
-            else {
-                panic!()
-            };
+            let val = self.cactus.at(self.len() - self.frame).unwrap();
+            let ret = val.as_return().unwrap();
+            let ghost = ret.ghost.as_ref().unwrap();
             return ghost.stack.is_set_local(index);
         }
         self.cactus
@@ -158,25 +154,16 @@ impl Stack {
     }
 
     pub(super) fn pop_frame(&mut self) -> Result<Cont, InternalRuntimeError> {
-        loop {
-            // TODO: This is pretty inefficient! Popping repeatedly is sometimes slow, rather
-            // pop in one big chunk.
-            let popped = self
-                .cactus
-                .pop()
-                .ok_or(InternalRuntimeError::ExpectedReturn)?;
-            if let InternalValue::Return {
-                cont,
-                frame,
-                ghost_frame,
-                ..
-            } = popped
-            {
-                self.frame = frame;
-                self.ghost_frame = ghost_frame;
-                return Ok(cont);
-            }
-        }
+        let removed = self.cactus.detach_at(self.len() - self.frame + 1).unwrap();
+        let ret = removed
+            .into_iter()
+            .next()
+            .unwrap()
+            .into_return()
+            .ok_or(InternalRuntimeError::ExpectedReturn)?;
+        self.frame = ret.frame;
+        self.ghost_frame = ret.ghost_frame;
+        Ok(ret.cont)
     }
 
     pub(super) fn push_frame<C: Into<Cont>>(
@@ -188,12 +175,12 @@ impl Stack {
         let frame = self.frame;
         let ghost_frame = self.ghost_frame;
         self.ghost_frame = stack.as_ref().map(|st| st.count_locals()).unwrap_or(0);
-        self.cactus.push(InternalValue::Return {
+        self.cactus.push(InternalValue::Return(Return {
             cont: c.into(),
             frame,
             ghost_frame,
             ghost: stack.map(Ghost::from),
-        });
+        }));
         self.frame = self.len();
         self.push_many(arguments);
     }
@@ -203,29 +190,35 @@ impl Stack {
         index: usize,
         value: Value,
     ) -> Result<Option<Value>, InternalRuntimeError> {
-        let offset = self.count_locals() - index - 1;
+        let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
         if offset >= local_locals {
-            // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
-            //
-            // The stack here just happens to be a cactus with nothing in its immediate list,
-            // and everything in its parent. Editing it therefore occurs on the shared parent
-            // which is in a mutex and does not require mutable access.
-            //
-            // Overall it's just a convenient coincidence coming from the weird way the cactus
-            // is built. I hope someday a more explicitly shared stack representation is devised...
-            // Unless this is actually correct and I just don't understand what I'm doing but it's working.
-            let InternalValue::Return {
-                ghost: Some(mut stack),
-                ..
-            } = self.cactus.at(self.len() - self.frame).unwrap()
-            else {
-                panic!()
-            };
-            return stack.stack.set_local(index, value);
+            let val = self.cactus.at(self.len() - self.frame).unwrap();
+            let ret = val.as_return().unwrap();
+            let ghost = ret.ghost.as_ref().unwrap();
+            return ghost.stack.set_local_shared(index, value);
         }
         self.cactus
             .replace_at(offset, InternalValue::Value(value))
+            .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
+            .and_then(|val| val.try_into_value_maybe())
+    }
+
+    fn set_local_shared(
+        &self,
+        index: usize,
+        value: Value,
+    ) -> Result<Option<Value>, InternalRuntimeError> {
+        let offset = self.get_local_offset(index)?;
+        let local_locals = self.len() - self.frame;
+        if offset >= local_locals {
+            let val = self.cactus.at(self.len() - self.frame).unwrap();
+            let ret = val.as_return().unwrap();
+            let ghost = ret.ghost.as_ref().unwrap();
+            return ghost.stack.set_local_shared(index, value);
+        }
+        self.cactus
+            .replace_shared(offset, InternalValue::Value(value))
             .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(|val| val.try_into_value_maybe())
     }
@@ -237,26 +230,28 @@ impl Stack {
         let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
         if offset >= local_locals {
-            // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
-            //
-            // The stack here just happens to be a cactus with nothing in its immediate list,
-            // and everything in its parent. Editing it therefore occurs on the shared parent
-            // which is in a mutex and does not require mutable access.
-            //
-            // Overall it's just a convenient coincidence coming from the weird way the cactus
-            // is built. I hope someday a more explicitly shared stack representation is devised...
-            // Unless this is actually correct and I just don't understand what I'm doing but it's working.
-            let InternalValue::Return {
-                ghost: Some(mut ghost),
-                ..
-            } = self.cactus.at(self.len() - self.frame).unwrap()
-            else {
-                panic!()
-            };
-            return ghost.stack.unset_local(index);
+            let val = self.cactus.at(self.len() - self.frame).unwrap();
+            let ret = val.as_return().unwrap();
+            let ghost = ret.ghost.as_ref().unwrap();
+            return ghost.stack.unset_local_shared(index);
         }
         self.cactus
             .replace_at(offset, InternalValue::Unset)
+            .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
+            .and_then(|val| val.try_into_value_maybe())
+    }
+
+    fn unset_local_shared(&self, index: usize) -> Result<Option<Value>, InternalRuntimeError> {
+        let offset = self.get_local_offset(index)?;
+        let local_locals = self.len() - self.frame;
+        if offset >= local_locals {
+            let val = self.cactus.at(self.len() - self.frame).unwrap();
+            let ret = val.as_return().unwrap();
+            let ghost = ret.ghost.as_ref().unwrap();
+            return ghost.stack.unset_local_shared(index);
+        }
+        self.cactus
+            .replace_shared(offset, InternalValue::Unset)
             .map_err(|_| InternalRuntimeError::ExpectedValue("local out of bounds"))
             .and_then(|val| val.try_into_value_maybe())
     }
@@ -266,34 +261,22 @@ impl Stack {
         index: usize,
         value: Value,
     ) -> Result<bool, InternalRuntimeError> {
+        if self.is_set_local(index)? {
+            return Ok(false);
+        }
         let offset = self.get_local_offset(index)?;
         let local_locals = self.len() - self.frame;
         if offset >= local_locals {
-            // NOTE: The `mut` (and requirement for `mut`) is sort of fake.
-            //
-            // The stack here just happens to be a cactus with nothing in its immediate list,
-            // and everything in its parent. Editing it therefore occurs on the shared parent
-            // which is in a mutex and does not require mutable access.
-            //
-            // Overall it's just a convenient coincidence coming from the weird way the cactus
-            // is built. I hope someday a more explicitly shared stack representation is devised...
-            // Unless this is actually correct and I just don't understand what I'm doing but it's working.
-            let InternalValue::Return {
-                ghost: Some(mut ghost),
-                ..
-            } = self.cactus.at(self.len() - self.frame).unwrap()
-            else {
-                panic!()
-            };
-            return ghost.stack.init_local(index, value);
-        }
-        if matches!(self.cactus.at(offset), Some(InternalValue::Unset)) {
+            let val = self.cactus.at(self.len() - self.frame).unwrap();
+            let ret = val.as_return().unwrap();
+            let ghost = ret.ghost.as_ref().unwrap();
+            ghost.stack.set_local_shared(index, value).unwrap();
+            Ok(true)
+        } else {
             self.cactus
                 .replace_at(offset, InternalValue::Value(value))
                 .unwrap();
             Ok(true)
-        } else {
-            Ok(false)
         }
     }
 

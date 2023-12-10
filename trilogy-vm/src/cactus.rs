@@ -16,7 +16,7 @@ pub(crate) struct Cactus<T> {
     parent: Option<Arc<Mutex<Cactus<T>>>>,
     /// The elements in the current branch of this cactus. These elements are not
     /// shared with any other branch.
-    stack: Vec<T>,
+    pub stack: Vec<T>,
     /// The number of elements in this cactus.
     ///
     /// This is the total of `stack.len() + parent.len`, but is maintained here
@@ -210,6 +210,23 @@ impl<T> Cactus<T> {
                 self.stack.get_mut(len - offset - 1).unwrap(),
                 value,
             ))
+        } else if let Some(parent) = self.parent.as_ref() {
+            let mut parent = parent.lock().unwrap();
+            parent.replace_at(offset - len, value)
+        } else {
+            Err(OutOfBounds)
+        }
+    }
+
+    /// Replace a shared value in this cactus with another.
+    ///
+    /// This does not require a mutable reference as the shared portion of the cactus
+    /// is accessed via interior mutability. The tradeoff is that values in the unshared
+    /// portion of this live cactus cannot be replaced.
+    pub fn replace_shared(&self, offset: usize, value: T) -> Result<T, OutOfBounds> {
+        let len = self.stack.len();
+        if offset < len {
+            Err(OutOfBounds)
         } else if let Some(parent) = self.parent.as_ref() {
             let mut parent = parent.lock().unwrap();
             parent.replace_at(offset - len, value)

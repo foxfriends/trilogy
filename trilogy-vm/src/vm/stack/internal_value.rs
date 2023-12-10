@@ -4,15 +4,18 @@ use crate::{InternalRuntimeError, Value};
 use std::fmt::{self, Debug, Display};
 
 #[derive(Clone, Debug)]
+pub(crate) struct Return {
+    pub cont: Cont,
+    pub frame: usize,
+    pub ghost_frame: usize,
+    pub ghost: Option<Ghost>,
+}
+
+#[derive(Clone, Debug)]
 pub(crate) enum InternalValue {
     Unset,
     Value(Value),
-    Return {
-        cont: Cont,
-        frame: usize,
-        ghost_frame: usize,
-        ghost: Option<Ghost>,
-    },
+    Return(Return),
 }
 
 impl InternalValue {
@@ -20,9 +23,7 @@ impl InternalValue {
         match self {
             InternalValue::Value(value) => Ok(value),
             InternalValue::Unset => Err(InternalRuntimeError::ExpectedValue("empty cell")),
-            InternalValue::Return { .. } => {
-                Err(InternalRuntimeError::ExpectedValue("return pointer"))
-            }
+            InternalValue::Return(..) => Err(InternalRuntimeError::ExpectedValue("return pointer")),
         }
     }
 
@@ -30,9 +31,7 @@ impl InternalValue {
         match self {
             InternalValue::Value(value) => Ok(Some(value)),
             InternalValue::Unset => Ok(None),
-            InternalValue::Return { .. } => {
-                Err(InternalRuntimeError::ExpectedValue("return pointer"))
-            }
+            InternalValue::Return(..) => Err(InternalRuntimeError::ExpectedValue("return pointer")),
         }
     }
 
@@ -40,9 +39,21 @@ impl InternalValue {
         match self {
             InternalValue::Value(..) => Ok(true),
             InternalValue::Unset => Ok(false),
-            InternalValue::Return { .. } => {
-                Err(InternalRuntimeError::ExpectedValue("return pointer"))
-            }
+            InternalValue::Return(..) => Err(InternalRuntimeError::ExpectedValue("return pointer")),
+        }
+    }
+
+    pub(super) fn as_return(&self) -> Option<&Return> {
+        match self {
+            InternalValue::Return(ret) => Some(ret),
+            _ => None,
+        }
+    }
+
+    pub(super) fn into_return(self) -> Option<Return> {
+        match self {
+            InternalValue::Return(ret) => Some(ret),
+            _ => None,
         }
     }
 }
@@ -58,22 +69,18 @@ impl Display for InternalValue {
         match self {
             InternalValue::Unset => write!(f, "<unset>"),
             InternalValue::Value(value) => write!(f, "{value}"),
-            InternalValue::Return {
-                cont, ghost: None, ..
-            } => write!(f, "-> {cont:?}"),
-            InternalValue::Return {
-                cont,
-                ghost: Some(ghost),
-                ..
-            } => {
-                let ghost_str = format!("{}", ghost.stack)
-                    .lines()
-                    .map(|line| format!("\t{line}"))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                writeln!(f, "{}", ghost_str)?;
-                write!(f, "-> {cont:?}\t[closure]")
-            }
+            InternalValue::Return(ret) => match &ret.ghost {
+                None => write!(f, "-> {:?}", ret.cont),
+                Some(ghost) => {
+                    let ghost_str = format!("{}", ghost.stack)
+                        .lines()
+                        .map(|line| format!("\t{line}"))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    writeln!(f, "{}", ghost_str)?;
+                    write!(f, "-> {:?}\t[closure]", ret.cont)
+                }
+            },
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::{InternalValue, Stack};
+use super::Stack;
 use crate::vm::execution::Cont;
 use crate::vm::program_reader::ProgramReader;
 use crate::{Location, Offset};
@@ -27,21 +27,20 @@ impl Stack {
         trace
             .frames
             .extend(self.cactus.clone().into_iter().filter_map(|entry| {
-                match entry {
-                    InternalValue::Return { cont, .. } => match cont {
-                        Cont::Callback(..) => Some(StackTraceEntry {
+                Some({
+                    match entry.as_return()?.cont {
+                        Cont::Callback(..) => StackTraceEntry {
                             annotations: vec![],
-                        }),
-                        Cont::Offset(ip) => Some(StackTraceEntry {
+                        },
+                        Cont::Offset(ip) => StackTraceEntry {
                             annotations: program
                                 .annotations(ip)
                                 .into_iter()
                                 .filter_map(|annotation| annotation.note.into_source())
                                 .collect(),
-                        }),
-                    },
-                    _ => None,
-                }
+                        },
+                    }
+                })
             }));
 
         trace.frames.reverse();
