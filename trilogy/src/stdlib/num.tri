@@ -1,26 +1,5 @@
-module native at "trilogy:num/native"
-
-## Converts an arbitrary value to a number, if possible. The conversion
-## depends on the type of input:
-## * Number: Unchanged
-## * Char: The value of the character's unicode code point
-## * String: Attempt to parse the string as a number
-## * Bool: true = 1, false = 0
-## * Unit: always 0
-## * Bits: Interpret the bits as a unsigned integer of arbitrary size
-##
-## When the conversion is not possible (for other types, or the string
-## does not represent a valid number) yields `'NAN`.
-const cast = native::cast
-export cast
-
-## Returns the magnitude of the imaginary portion of a number, discarding the real part.
-const im = native::im
-export im
-
-## Returns the real portion of a number, discarding any imaginary part.
-const re = native::re
-export re
+module native at "trilogy:num/native" use cast, im, re, lcm
+export re, im, cast, lcm
 
 ## Returns the real and imaginary parts of a number as a tuple of real numbers.
 func parts n = (native::re n) : (native::im n)

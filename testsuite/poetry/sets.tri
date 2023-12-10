@@ -47,9 +47,9 @@ test "set iteration" {
     }
     assert total == 6
 
-    let mut total = 0
+    let mut total2 = 0
     for x in [| 3, 3, 3 |] {
-        total += x
+        total2 += x
     }
-    assert total == 3
+    assert total2 == 3
 }

@@ -59,7 +59,7 @@ pub mod io {
                 let error = Struct::new(atom, error.to_string());
                 rt.r#yield(error, |rt, val| rt.r#return(val))
             }
-            _ => rt.r#return(Value::String(s)),
+            _ => rt.r#return(Value::from(s)),
         }
     }
 }

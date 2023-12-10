@@ -1,6 +1,6 @@
 use crate::callable::Procedure;
 use crate::{atom::AtomInterner, Chunk, ChunkBuilder, ChunkError, Instruction, Value};
-use crate::{Offset, Program};
+use crate::{Annotation, Offset, Program};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -77,5 +77,9 @@ impl<'a> ProgramReader<'a> {
             .get(label)
             .map(|ip| Value::from(Procedure::new(*ip)))
             .ok_or_else(|| ChunkError::MissingLabel(label.to_owned()))
+    }
+
+    pub(super) fn annotations(&self, ip: Offset) -> Vec<Annotation> {
+        self.chunk.read().unwrap().get_annotations(ip)
     }
 }

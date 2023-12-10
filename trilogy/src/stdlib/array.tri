@@ -1,4 +1,16 @@
-module native at "trilogy:array/native"
+module native at "trilogy:array/native" use length, slice
+export length, slice
+
+test "length" {
+    assert length [1, 2, 3] == 3
+    assert length [] == 0
+}
+
+test "slice" {
+    slice 2 4 [1, 2, 3, 4, 5, 6, 7, 8] == [3, 4, 5, 6]
+    slice 7 4 [1, 2, 3, 4, 5, 6, 7, 8] == [8]
+    slice 0 3 [1, 2, 3, 4, 5, 6, 7, 8] == [1, 2, 3]
+}
 
 ## Returns an empty array
 proc empty!() {
@@ -6,57 +18,38 @@ proc empty!() {
 }
 export empty
 
+## Returns true if the array is empty, and false otherwise.
+func is_empty [] = true
+func is_empty typeof 'array = false
+export is_empty
+
+test "is_empty" {
+    assert is_empty []
+    assert !(is_empty [1])
+    assert !(is_empty [[]])
+}
+
 ## Returns an array of a single value
 func of x = [x]
 export of
-
-## Returns the length of the array.
-const length = native::length
-export length
-
-test "length returns the length" {
-    assert length [1, 2, 3] == 3
-}
-
-test "length returns the length of an empty array" {
-    assert length [] == 0
-}
-
-## Returns a slice of an array, given the starting index and the number of elements
-## to take. Negative indices are not permitted. A slice that extends beyond the end
-## of the array simply stops at the end of the array.
-const slice = native::slice
-export slice
-
-test "slice can slice" {
-    slice 2 4 [1, 2, 3, 4, 5, 6, 7, 8] == [3, 4, 5, 6]
-    slice 7 4 [1, 2, 3, 4, 5, 6, 7, 8] == [8]
-    slice 0 3 [1, 2, 3, 4, 5, 6, 7, 8] == [1, 2, 3]
-}
 
 ## Creates a new array from the elements of an iterator.
 func from iter = [x for x in iter]
 export from
 
-test "from works on an array" {
+test "from" {
     assert from [1, 2, 3] == [1, 2, 3]
-}
 
-test "from works on a set" {
     let arr = from [| 1, 2, 3 |]
     assert contains 1 arr
     assert contains 2 arr
     assert contains 3 arr
-}
 
-test "from works on a record" {
-    let arr = from {| 1 => 1, 2 => 2, 3 => 3 |}
-    assert contains (1:1) arr
-    assert contains (2:2) arr
-    assert contains (3:3) arr
-}
+    let arr2 = from {| 1 => 1, 2 => 2, 3 => 3 |}
+    assert contains (1:1) arr2
+    assert contains (2:2) arr2
+    assert contains (3:3) arr2
 
-test "from works on a list" {
     assert from (1:2:3:unit) == [1, 2, 3]
 }
 
@@ -64,11 +57,8 @@ test "from works on a list" {
 func append x arr = [..arr, x]
 export append
 
-test "append adds an element to the array" {
+test "append" {
     assert append 3 [1, 2] == [1, 2 ,3]
-}
-
-test "append adds to the empty array" {
     assert append 3 [] == [3]
 }
 
@@ -80,7 +70,7 @@ proc push!(array, x) {
 }
 export push
 
-test "push adds an element to the array" {
+test "push" {
     let arr = [1, 2]
     assert push!(arr, 3) === arr
     assert arr == [1, 2, 3]
@@ -92,11 +82,8 @@ func map f [] = []
 func map f [x, ..xs] = [f x, ..map f xs]
 export map
 
-test "map transforms every element" {
+test "map" {
     assert map (fn x. x * 2) [1, 2, 3] == [2, 4, 6]
-}
-
-test "map works on empty arrays" {
     assert map (fn _. end) [] == []
 }
 
@@ -281,12 +268,23 @@ func find _ [] = yield 'MIA
 func find f [x, ..xs] = if f x then x else find f xs
 export find
 
-test "find finds the first matching element" {
+test "find" {
     assert find (fn x. x > 1) [1, 2, 3] == 2
+    with { find (fn x. x > 4) [1, 2, 3] [] }
+        when 'MIA invert { exit unit }
+        else cancel unit
+    assert false
 }
 
-test "find yields 'MIA when not found" {
-    with { find (fn x. x > 4) [1, 2, 3] [] }
+## Returns the index of the first element in the array for which the predicate returns true.
+## If none is found, yields 'MIA
+func position _ [] = yield 'MIA
+func position f [x, ..xs] = if f x then 0 else 1 + position f xs
+export position
+
+test "position" {
+    assert position (fn x. x > 1) [1, 2, 3] == 1
+    with { position (fn x. x > 4) [1, 2, 3] [] }
         when 'MIA invert { exit unit }
         else cancel unit
     assert false
@@ -334,4 +332,72 @@ test "all returns true for an empty array" {
 
 test "all short circuits on the first failing element" {
     assert !(all (fn x. if x == 1 then false else end) [1, 2])
+}
+
+func split_acc acc _ [] = [acc]
+func split_acc acc f [x, ..xs] = if f x then [acc, ..split_acc [] f xs] else split_acc [..acc, x] f xs
+func split pred arr = split_acc [] pred arr
+export split
+
+test "split" {
+    assert split (fn x. x % 2 == 0) [1, 2, 3, 5, 4, 7] == [[1], [3, 5], [7]]
+}
+
+func chunks _ [] = []
+func chunks 0 _ = []
+func chunks n arr = [take n arr, ..chunks n (skip n arr)]
+export chunks
+
+test "chunks" {
+    assert chunks 1 [1, 2, 3] == [[1], [2], [3]]
+    assert chunks 2 [1, 2, 3] == [[1, 2], [3]]
+}
+
+func zip [] _ = []
+func zip _ [] = []
+func zip [x, ..xs] [y, ..ys] = [(x:y), ..zip xs ys]
+export zip
+
+test "zip" {
+    assert zip [1, 2, 3] [4, 5, 6] == [1:4, 2:5, 3:6]
+    assert zip [1, 2] [4, 5, 6] == [1:4, 2:5]
+    assert zip [1, 2, 3] [4, 5] == [1:4, 2:5]
+    assert zip [] [4, 5] == []
+    assert zip [1, 2] [] == []
+    assert zip [] [] == []
+}
+
+func partition pred arr =
+    fold (fn l:r e. if pred e then append e l:r else l:append e r) ([]:[]) arr
+export partition
+
+test "partition" {
+    assert partition ((>) 3) [1, 2, 3, 4, 5] == ([1, 2]:[3, 4, 5])
+    assert partition ((<) 3) [1, 2, 3, 4, 5] == ([4, 5]:[1, 2, 3])
+}
+
+func merge _ xs [] = xs
+func merge _ [] ys = ys
+func merge cmp [x, ..xs] [y, ..ys] =
+    if cmp x y
+    then [x, ..merge cmp xs [y, ..ys]]
+    else [y, ..merge cmp [x, ..xs] ys]
+export merge
+
+func sort _ [] = []
+func sort _ [a] = [a]
+func sort cmp arr =
+    let half = length arr // 2,
+    merge cmp (sort cmp <| take half arr) (sort cmp <| skip half arr)
+export sort
+
+test "sort" {
+    assert sort (<) [3, 2, 5, 1, 4, 2, 7, 6, 5] == [1, 2, 2, 3, 4, 5, 5, 6, 7]
+    assert sort (>) [3, 2, 5, 1, 4, 2, 7, 6, 5] == [7, 6, 5, 5, 4, 3, 2, 2, 1]
+    assert sort (>) [[1, 2, 3], [1, 1, 1], [2, 3, 4], [3, 3, 3]] == [
+        [3, 3, 3],
+        [2, 3, 4],
+        [1, 2, 3],
+        [1, 1, 1],
+    ]
 }

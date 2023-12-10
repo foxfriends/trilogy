@@ -1,19 +1,26 @@
 use super::{Labeler, Scope, StaticMember};
 use crate::prelude::*;
 use crate::{delegate_label_maker, module::Mode};
+use source_span::Span;
 use std::collections::HashMap;
 use trilogy_ir::{ir, Id};
-use trilogy_vm::{delegate_chunk_writer, ChunkBuilder, ChunkWriter, Instruction, Value};
+use trilogy_vm::{
+    delegate_chunk_writer, Annotation, ChunkBuilder, ChunkWriter, Instruction, Location, Value,
+};
 
 pub(crate) struct ProgramContext<'a> {
     labeler: Labeler,
+    location: &'a str,
+    path: Vec<String>,
     builder: &'a mut ChunkBuilder,
 }
 
 impl<'a> ProgramContext<'a> {
-    pub fn new(builder: &'a mut ChunkBuilder) -> Self {
+    pub fn new(location: &'a str, builder: &'a mut ChunkBuilder) -> Self {
         Self {
             builder,
+            location,
+            path: vec![],
             labeler: Labeler::new(),
         }
     }
@@ -23,6 +30,10 @@ delegate_chunk_writer!(ProgramContext<'_>, builder);
 delegate_label_maker!(ProgramContext<'_>, labeler);
 
 impl ProgramContext<'_> {
+    fn location(&self, span: Span) -> Location {
+        Location::new(self.location, span)
+    }
+
     pub fn entrypoint(&mut self) -> &mut Self {
         self.builder.entrypoint();
         self
@@ -30,6 +41,7 @@ impl ProgramContext<'_> {
 
     /// Writes the entrypoint of the program.
     pub fn write_main(&mut self, path: &[&str], default_exit: Value) {
+        let start = self.ip();
         self.entrypoint()
             .label("trilogy:__entrypoint__")
             .reference("trilogy:__entrymodule__")
@@ -46,6 +58,13 @@ impl ProgramContext<'_> {
             .constant(default_exit)
             .label("trilogy:__exit_runoff__")
             .instruction(Instruction::Exit);
+        let end = self.ip();
+        self.annotate(Annotation::source(
+            start,
+            end,
+            "entrypoint".to_owned(),
+            self.location(Span::default()),
+        ));
     }
 
     /// Writes a procedure.
@@ -58,6 +77,7 @@ impl ProgramContext<'_> {
         statics: &mut HashMap<Id, StaticMember>,
         procedure: &ir::ProcedureDefinition,
     ) {
+        let start = self.ip();
         let for_id = self.labeler.for_id(&procedure.name.id);
         self.label(for_id);
         assert!(procedure.overloads.len() == 1);
@@ -65,6 +85,13 @@ impl ProgramContext<'_> {
         let mut context = self.begin(statics, overload.parameters.len());
         context.unlock_procedure(overload.parameters.len());
         write_procedure(context, overload);
+        let end = self.ip();
+        self.annotate(Annotation::source(
+            start,
+            end,
+            self.path.join("::") + procedure.name.id.name().unwrap(),
+            self.location(procedure.span()),
+        ));
     }
 
     /// Writes a test.
@@ -76,12 +103,20 @@ impl ProgramContext<'_> {
         statics: &mut HashMap<Id, StaticMember>,
         test: &ir::TestDefinition,
     ) {
+        let start = self.ip();
         self.label("trilogy:__testentry__");
         let mut context = self.begin(statics, 0);
         context.unlock_procedure(0).evaluate(&test.body);
         context
             .instruction(Instruction::Const(Value::Unit))
             .instruction(Instruction::Return);
+        let end = self.ip();
+        self.annotate(Annotation::source(
+            start,
+            end,
+            test.name.clone(),
+            self.location(test.span),
+        ));
     }
 
     /// Writes a rule.
@@ -99,6 +134,9 @@ impl ProgramContext<'_> {
         statics: &mut HashMap<Id, StaticMember>,
         rule: &ir::RuleDefinition,
     ) {
+        let path = self.path.join("::");
+        let location = self.location;
+        let start = self.ip();
         let for_id = self.labeler.for_id(&rule.name.id);
         self.label(for_id);
         let arity = rule.overloads[0].parameters.len();
@@ -113,6 +151,7 @@ impl ProgramContext<'_> {
             .instruction(Instruction::LoadLocal(0))
             .instruction(Instruction::Uncons);
         for (i, overload) in rule.overloads.iter().enumerate() {
+            let start = context.ip();
             let skip = context.make_label("next_overload");
             let fail = context.make_label("fail");
             context
@@ -135,12 +174,26 @@ impl ProgramContext<'_> {
                 .constant(())
                 .constant(i + 1)
                 .label(skip);
+            let end = context.ip();
+            context.annotate(Annotation::source(
+                start,
+                end,
+                path.clone() + rule.name.id.name().unwrap(),
+                Location::new(location, rule.span()),
+            ));
         }
         context
             .instruction(Instruction::Cons)
             .instruction(Instruction::SetLocal(0))
             .atom("done")
             .instruction(Instruction::Return);
+        let end = self.ip();
+        self.annotate(Annotation::source(
+            start,
+            end,
+            path + rule.name.id.name().unwrap(),
+            Location::new(location, rule.span()),
+        ));
     }
 
     /// Writes a function. Calling convention of functions is to pass one arguments at a time
@@ -154,7 +207,10 @@ impl ProgramContext<'_> {
         statics: &mut HashMap<Id, StaticMember>,
         function: &ir::FunctionDefinition,
     ) {
+        let path = self.path.join("::");
+        let location = self.location;
         let for_id = self.labeler.for_id(&function.name.id);
+        let start = self.ip();
         self.label(for_id);
         let arity = function.overloads[0].parameters.len();
         let mut context = self.begin(statics, arity);
@@ -163,11 +219,26 @@ impl ProgramContext<'_> {
             context.close(RETURN).unlock_function();
         }
         for overload in &function.overloads {
+            let start = context.ip();
             write_function(&mut context, overload);
+            let end = context.ip();
+            context.annotate(Annotation::source(
+                start,
+                end,
+                path.clone() + function.name.id.name().unwrap(),
+                Location::new(location, overload.span),
+            ));
         }
         context
             .atom("NoMatchingFunctionOverload")
             .instruction(Instruction::Panic);
+        let end = self.ip();
+        self.annotate(Annotation::source(
+            start,
+            end,
+            path + function.name.id.name().unwrap(),
+            Location::new(location, function.span()),
+        ));
     }
 
     /// Writes a module. Modules are prefixed with a single prelude function, which takes
@@ -188,6 +259,9 @@ impl ProgramContext<'_> {
         def: &ir::ModuleDefinition,
         mode: Mode,
     ) {
+        if let Mode::Module(name) = mode {
+            self.path.push(name.to_owned());
+        }
         let for_id = self.labeler.for_id(&def.name.id);
         self.label(for_id);
         let module = def.module.as_module().unwrap();
@@ -195,6 +269,9 @@ impl ProgramContext<'_> {
         let mut context = self.begin(&mut statics, module.parameters.len());
         write_module_prelude(&mut context, module, mode);
         write_module_definitions(self, module, &mut statics, mode);
+        if let Mode::Module(..) = mode {
+            self.path.pop();
+        }
     }
 
     pub fn collect_static(&self, module: &ir::Module, statics: &mut HashMap<Id, StaticMember>) {
@@ -226,6 +303,6 @@ impl ProgramContext<'_> {
         parameters: usize,
     ) -> Context<'a> {
         let scope = Scope::new(statics, parameters);
-        Context::new(self.builder, &mut self.labeler, scope)
+        Context::new(self.location, self.builder, &mut self.labeler, scope)
     }
 }

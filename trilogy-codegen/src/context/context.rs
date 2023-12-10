@@ -12,15 +12,26 @@ pub(crate) struct Context<'a> {
     labeler: &'a mut Labeler,
     pub scope: Scope<'a>,
     builder: &'a mut ChunkBuilder,
+    location: &'a str,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(builder: &'a mut ChunkBuilder, labeler: &'a mut Labeler, scope: Scope<'a>) -> Self {
+    pub fn new(
+        location: &'a str,
+        builder: &'a mut ChunkBuilder,
+        labeler: &'a mut Labeler,
+        scope: Scope<'a>,
+    ) -> Self {
         Self {
             labeler,
             scope,
             builder,
+            location,
         }
+    }
+
+    pub fn location(&self) -> &str {
+        self.location
     }
 }
 

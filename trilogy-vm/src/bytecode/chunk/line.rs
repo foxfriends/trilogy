@@ -1,5 +1,5 @@
 use crate::runtime::Value;
-use crate::OpCode;
+use crate::{Offset, OpCode};
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Parameter {
@@ -13,4 +13,10 @@ pub(crate) struct Line {
     pub labels: Vec<String>,
     pub opcode: OpCode,
     pub value: Option<Parameter>,
+}
+
+impl Line {
+    pub(crate) const fn byte_len(&self) -> Offset {
+        8
+    }
 }

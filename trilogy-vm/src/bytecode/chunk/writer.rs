@@ -1,4 +1,4 @@
-use crate::{Atom, Instruction, Value};
+use crate::{Annotation, Atom, Instruction, Offset, Value};
 
 /// Generic interface by which we can write to an underlying chunk.
 ///
@@ -7,6 +7,17 @@ use crate::{Atom, Instruction, Value};
 /// use of common helper functions that need to take various levels of abstraction
 /// around the writing of the chunk.
 pub trait ChunkWriter {
+    /// The IP of the line that is about to be written.
+    ///
+    /// Use this to get the information required to add annotations.
+    fn ip(&self) -> Offset;
+
+    /// Add an annotation to this chunk.
+    ///
+    /// Annotations have no effect on the program, but are used to provide meaningful information
+    /// in stack traces, error messages, and debuggers.
+    fn annotate(&mut self, annotation: Annotation) -> &mut Self;
+
     /// Add a label to the next instruction to be inserted.
     ///
     /// ```asm
@@ -87,6 +98,15 @@ pub trait ChunkWriter {
 macro_rules! delegate_chunk_writer {
     ($t:ty, $f:ident) => {
         impl $crate::ChunkWriter for $t {
+            fn ip(&self) -> $crate::Offset {
+                self.$f.ip()
+            }
+
+            fn annotate(&mut self, annotation: $crate::Annotation) -> &mut Self {
+                self.$f.annotate(annotation);
+                self
+            }
+
             fn reference<S: Into<String>>(&mut self, label: S) -> &mut Self {
                 self.$f.reference(label);
                 self

@@ -70,6 +70,7 @@ impl From<Offset> for Cont {
 pub struct Execution<'a> {
     atom_interner: AtomInterner,
     program: ProgramReader<'a>,
+    error_ip: Offset,
     ip: Offset,
     stack: Stack,
     registers: Vec<Value>,
@@ -83,9 +84,10 @@ impl<'a> Execution<'a> {
     ) -> Self {
         Self {
             atom_interner: atom_interner.clone(),
+            error_ip: 0,
             ip: program.entrypoint(),
             program,
-            stack: Stack::default(),
+            stack: Stack::new(),
             registers,
         }
     }
@@ -93,6 +95,7 @@ impl<'a> Execution<'a> {
     /// Create an atom in the context of the VM that this Execution belongs to.
     ///
     /// See [`Atom`][] for more details.
+    #[inline(always)]
     pub fn atom(&self, atom: &str) -> Atom {
         self.atom_interner.intern(atom)
     }
@@ -100,6 +103,7 @@ impl<'a> Execution<'a> {
     /// Create an anonymous atom, that can never be recreated.
     ///
     /// See [`Atom`][] for more details.
+    #[inline(always)]
     pub fn atom_anon(&self, label: &str) -> Atom {
         Atom::new_unique(label.to_owned())
     }
@@ -163,11 +167,13 @@ impl<'a> Execution<'a> {
         self.program.procedure(label).map_err(|k| self.error(k))
     }
 
+    #[inline(always)]
     fn branch(&mut self) -> Self {
         let branch = self.stack.branch();
         Self {
             atom_interner: self.atom_interner.clone(),
             program: self.program.clone(),
+            error_ip: self.error_ip,
             ip: self.ip,
             stack: branch,
             registers: self.registers.clone(),
@@ -179,16 +185,27 @@ impl<'a> Execution<'a> {
         ErrorKind: From<K>,
     {
         Error {
-            ip: self.ip,
+            ip: self.error_ip,
+            stack_trace: self.stack.trace(&self.program, self.error_ip),
             stack_dump: self.stack.clone(),
             kind: kind.into(),
         }
     }
 
+    #[inline(always)]
     fn stack_pop(&mut self) -> Result<Value, Error> {
-        self.stack.pop().map_err(|k| self.error(k)).and_then(|v| {
-            v.ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))
-        })
+        self.stack
+            .pop()
+            .map_err(|k| self.error(k))?
+            .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))
+    }
+
+    #[inline(always)]
+    fn stack_pop_2(&mut self) -> Result<(Value, Value), Error> {
+        self.stack.prepare_to_pop(2);
+        let rhs = self.stack_pop()?;
+        let lhs = self.stack_pop()?;
+        Ok((rhs, lhs))
     }
 
     /// Return a value from the current procedure.
@@ -251,6 +268,7 @@ impl<'a> Execution<'a> {
     }
 
     fn r#become(&mut self, arity: usize) -> Result<(), Error> {
+        self.stack.prepare_to_pop(arity + 1);
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
@@ -289,10 +307,12 @@ impl<'a> Execution<'a> {
 
     pub(super) fn step(&mut self) -> Result<Step<Self>, Error> {
         let instruction = self.program.read_instruction(self.ip);
+        self.error_ip = self.ip;
         self.ip += instruction.byte_len() as u32;
         self.eval(instruction)
     }
 
+    #[inline(always)]
     fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
         match instruction {
             Instruction::Const(value) => {
@@ -389,48 +409,42 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::Add => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs + rhs {
                     Ok(val) => self.stack.push(val),
                     Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Subtract => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs - rhs {
                     Ok(val) => self.stack.push(val),
                     Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Multiply => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs * rhs {
                     Ok(val) => self.stack.push(val),
                     Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Divide => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs / rhs {
                     Ok(val) => self.stack.push(val),
                     Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Remainder => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs % rhs {
                     Ok(val) => self.stack.push(val),
                     Err(..) => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::IntDivide => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs / rhs {
                     Ok(Value::Number(val)) => {
                         self.stack.push(Number::from(val.as_complex().re.floor()));
@@ -439,11 +453,10 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::Power => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match (lhs, rhs) {
                     (Value::Number(lhs), Value::Number(rhs)) => {
-                        self.stack.push(Value::Number(lhs.pow(&rhs)));
+                        self.stack.push(lhs.pow(&rhs));
                     }
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
@@ -456,12 +469,9 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::Glue => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match (lhs, rhs) {
-                    (Value::String(lhs), Value::String(rhs)) => {
-                        self.stack.push(Value::String(lhs + &rhs))
-                    }
+                    (Value::String(lhs), Value::String(rhs)) => self.stack.push(lhs + &rhs),
                     (Value::Array(lhs), Value::Array(rhs)) => {
                         lhs.append(&rhs);
                         self.stack.push(Value::Array(lhs));
@@ -478,20 +488,19 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::Skip => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 let count = match rhs {
                     Value::Number(number) if number.is_uinteger() => number
                         .as_uinteger()
                         .unwrap()
                         .to_usize()
-                        .ok_or(self.error(InternalRuntimeError::TypeError))?,
+                        .ok_or_else(|| self.error(InternalRuntimeError::TypeError))?,
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 };
                 match lhs {
-                    Value::String(lhs) => self
-                        .stack
-                        .push(Value::String(lhs.chars().skip(count).collect())),
+                    Value::String(lhs) => {
+                        self.stack.push(lhs.chars().skip(count).collect::<String>())
+                    }
                     Value::Array(lhs) => {
                         self.stack.push(Value::Array(lhs.range(count..).to_owned()))
                     }
@@ -499,20 +508,19 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::Take => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 let count = match rhs {
                     Value::Number(number) if number.is_uinteger() => number
                         .as_uinteger()
                         .unwrap()
                         .to_usize()
-                        .ok_or(self.error(InternalRuntimeError::TypeError))?,
+                        .ok_or_else(|| self.error(InternalRuntimeError::TypeError))?,
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 };
                 match lhs {
                     Value::String(lhs) => {
                         self.stack
-                            .push(Value::String(lhs.chars().take(count).collect()));
+                            .push(lhs.as_ref().chars().take(count).collect::<String>());
                     }
                     Value::Array(lhs) => {
                         self.stack.push(Value::Array(lhs.range(..count).to_owned()));
@@ -521,8 +529,7 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::Access => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match (lhs, rhs) {
                     (Value::Record(record), rhs) => match record.get(&rhs) {
                         Some(value) => self.stack.push(value),
@@ -563,8 +570,7 @@ impl<'a> Execution<'a> {
             }
             Instruction::Assign => {
                 let value = self.stack_pop()?;
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match (&lhs, rhs, value) {
                     (Value::Record(record), rhs, value) => {
                         record.insert(rhs, value);
@@ -669,8 +675,7 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::And => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match (lhs, rhs) {
                     (Value::Bool(lhs), Value::Bool(rhs)) => {
                         self.stack.push(Value::Bool(lhs && rhs))
@@ -679,8 +684,7 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::Or => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match (lhs, rhs) {
                     (Value::Bool(lhs), Value::Bool(rhs)) => {
                         self.stack.push(Value::Bool(lhs || rhs))
@@ -689,24 +693,21 @@ impl<'a> Execution<'a> {
                 }
             }
             Instruction::BitwiseAnd => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs & rhs {
                     Ok(val) => self.stack.push(val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::BitwiseOr => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs | rhs {
                     Ok(val) => self.stack.push(val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::BitwiseXor => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs ^ rhs {
                     Ok(val) => self.stack.push(val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
@@ -715,29 +716,26 @@ impl<'a> Execution<'a> {
             Instruction::BitwiseNeg => {
                 let val = self.stack_pop()?;
                 match val {
-                    Value::Bits(val) => self.stack.push(Value::Bits(!val)),
+                    Value::Bits(val) => self.stack.push(!val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::LeftShift => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs << rhs {
                     Ok(val) => self.stack.push(val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::RightShift => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 match lhs >> rhs {
                     Ok(val) => self.stack.push(val),
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
             Instruction::Cons => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 self.stack.push(Value::Tuple(Tuple::new(lhs, rhs)));
             }
             Instruction::Uncons => {
@@ -779,8 +777,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(atom);
             }
             Instruction::Leq => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 let cmp = match lhs.partial_cmp(&rhs) {
                     Some(Ordering::Less | Ordering::Equal) => Value::Bool(true),
                     Some(Ordering::Greater) => Value::Bool(false),
@@ -789,8 +786,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(cmp);
             }
             Instruction::Lt => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 let cmp = match lhs.partial_cmp(&rhs) {
                     Some(Ordering::Less) => Value::Bool(true),
                     Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(false),
@@ -799,8 +795,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(cmp);
             }
             Instruction::Geq => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 let cmp = match lhs.partial_cmp(&rhs) {
                     Some(Ordering::Less) => Value::Bool(false),
                     Some(Ordering::Greater) | Some(Ordering::Equal) => Value::Bool(true),
@@ -809,8 +804,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(cmp);
             }
             Instruction::Gt => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 let cmp = match lhs.partial_cmp(&rhs) {
                     Some(Ordering::Less) | Some(Ordering::Equal) => Value::Bool(false),
                     Some(Ordering::Greater) => Value::Bool(true),
@@ -819,26 +813,23 @@ impl<'a> Execution<'a> {
                 self.stack.push(cmp);
             }
             Instruction::RefEq => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 self.stack.push(Value::Bool(ReferentialEq::eq(&lhs, &rhs)));
             }
             Instruction::ValEq => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 self.stack.push(Value::Bool(StructuralEq::eq(&lhs, &rhs)));
             }
             Instruction::RefNeq => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 self.stack.push(Value::Bool(!ReferentialEq::eq(&lhs, &rhs)));
             }
             Instruction::ValNeq => {
-                let rhs = self.stack_pop()?;
-                let lhs = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 self.stack.push(Value::Bool(!StructuralEq::eq(&lhs, &rhs)));
             }
             Instruction::Call(arity) => {
+                self.stack.prepare_to_pop(arity as usize + 1);
                 let arguments = self
                     .stack
                     .pop_n(arity as usize)
@@ -877,11 +868,10 @@ impl<'a> Execution<'a> {
             Instruction::Branch => {
                 // A branch requires two values on the stack; the two branches get the
                 // different values, respectively.
-                let right = self.stack_pop()?;
-                let left = self.stack_pop()?;
+                let (rhs, lhs) = self.stack_pop_2()?;
                 let mut branch = self.branch();
-                self.stack.push(left);
-                branch.stack.push(right);
+                self.stack.push(lhs);
+                branch.stack.push(rhs);
                 return Ok(Step::Spawn(branch));
             }
             Instruction::Fizzle => return Ok(Step::End),

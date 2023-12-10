@@ -1,14 +1,8 @@
-use super::stack::Stack;
-use crate::{
-    bytecode::{ChunkError, Offset},
-    Value,
-};
+use super::stack::{Stack, StackTrace};
+use crate::bytecode::{ChunkError, Offset};
+use crate::Value;
 use std::fmt::{self, Display};
 
-// I am aware these names are not all that ergonomic, but they line up
-// with what they are documented as.
-//
-// Maybe `Error` is not the best name for this enum, will revisit later.
 /// An error that has occurred during the execution of a program.
 #[derive(Clone, Debug)]
 pub struct Error {
@@ -18,6 +12,9 @@ pub struct Error {
     pub ip: Offset,
     /// The type of error that occurred.
     pub kind: ErrorKind,
+    /// The stack trace.
+    pub stack_trace: StackTrace,
+    /// A copy of the entire stack of the program at the time of this error.
     pub(crate) stack_dump: Stack,
 }
 
@@ -48,10 +45,12 @@ impl Display for Error {
 #[derive(Clone, Debug)]
 pub enum ErrorKind {
     /// A runtime error explicitly raised by the program.
+    ///
+    /// This is the type of error produced by the `PANIC` instruction.
     RuntimeError(Value),
     /// All executions in the program have fizzled without reaching a suitable exit.
     ExecutionFizzledError,
-    /// The code generator has produced invalid bytecode.
+    /// The code generator has produced something that cannot be compiled into valid bytecode.
     InvalidBytecode(ChunkError),
     /// Something went wrong inside the virtual machine. Likely an issue with the compiler
     /// of the language which is being run, rather than with the execution of the program

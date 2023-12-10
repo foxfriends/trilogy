@@ -9,6 +9,7 @@ use syn::{
 
 mod kw {
     syn::custom_keyword!(name);
+    syn::custom_keyword!(raw_name);
     syn::custom_keyword!(derive);
     syn::custom_keyword!(repr);
     syn::custom_keyword!(doc);
@@ -17,6 +18,11 @@ mod kw {
 enum Argument {
     Name {
         _name_token: kw::name,
+        _eq_token: Token![=],
+        value: Ident,
+    },
+    RawName {
+        _name_token: kw::raw_name,
         _eq_token: Token![=],
         value: Ident,
     },
@@ -43,6 +49,12 @@ impl Parse for Argument {
         if lookahead.peek(kw::name) {
             Ok(Self::Name {
                 _name_token: input.parse::<kw::name>()?,
+                _eq_token: input.parse()?,
+                value: input.parse()?,
+            })
+        } else if lookahead.peek(kw::raw_name) {
+            Ok(Self::RawName {
+                _name_token: input.parse::<kw::raw_name>()?,
                 _eq_token: input.parse()?,
                 value: input.parse()?,
             })
@@ -111,6 +123,13 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
         .into_iter()
         .flatten()
         .collect();
+    let raw_name = attrs
+        .iter()
+        .find_map(|arg| match arg {
+            Argument::RawName { value, .. } => Some(value.clone()),
+            _ => None,
+        })
+        .unwrap_or(format_ident!("Raw{instruction}"));
     let name = attrs
         .iter()
         .find_map(|arg| match arg {
@@ -191,8 +210,8 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                         conversions.push(quote! { #instruction::#ident(..)  => #name::#ident });
                         let count = fields.unnamed.len();
                         params.push(quote! { #name::#ident => #count });
-                        let get_params = (0..count as u32).map(|i| {
-                            quote! { FromChunk::from_chunk(chunk, offset + 1 + #i * 4) }
+                        let get_params = (0..count as u32).map(|_| {
+                            quote! { FromChunk::from_chunk(chunk, u32::from_be(raw.param)) }
                         });
                         from_chunk.push(
                             quote! { #name::#ident => #instruction::#ident(#(#get_params),*) },
@@ -223,6 +242,12 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
         #(#doc)*
         #vis enum #name {
             #(#declarations),*
+        }
+
+        #[repr(C)]
+        #vis struct #raw_name {
+            opcode: Offset,
+            param: Offset,
         }
 
         impl #name {
@@ -265,15 +290,14 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
 
         impl #instruction {
             pub(crate) fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
-                match chunk.opcode(offset) {
+                let raw = chunk.instruction_bytes(offset);
+                match OpCode::try_from(u32::from_be(raw.opcode)).unwrap() {
                     #(#from_chunk),*
                 }
             }
 
             /// The number of bytes this instruction takes up in bytecode form.
-            pub const fn byte_len(&self) -> usize {
-                self.op_code().params() * 4 + 1
-            }
+            pub const fn byte_len(&self) -> usize { 8 }
 
             /// The opcode corresponding to this instruction.
             pub const fn op_code(&self) -> #name {

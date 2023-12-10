@@ -1,5 +1,7 @@
 use super::{Atom, Value};
+use crate::{ReferentialEq, StructuralEq};
 use std::fmt::{self, Display};
+use std::sync::Arc;
 
 /// A Trilogy Struct value.
 ///
@@ -8,7 +10,19 @@ use std::fmt::{self, Display};
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Struct {
     name: Atom,
-    value: Box<Value>,
+    value: Arc<Value>,
+}
+
+impl StructuralEq for Struct {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && StructuralEq::eq(&*self.value, &*other.value)
+    }
+}
+
+impl ReferentialEq for Struct {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && ReferentialEq::eq(&*self.value, &*other.value)
+    }
 }
 
 impl Struct {
@@ -31,7 +45,7 @@ impl Struct {
     {
         Self {
             name,
-            value: Box::new(value.into()),
+            value: Arc::new(value.into()),
         }
     }
 
@@ -77,7 +91,7 @@ impl Struct {
     /// assert_eq!(struct_value.destruct(), (tag, Value::from(3)));
     /// ```
     pub fn destruct(self) -> (Atom, Value) {
-        (self.name, *self.value)
+        (self.name, (*self.value).clone())
     }
 
     /// Returns the contained value of this struct, consuming the struct.
@@ -92,7 +106,7 @@ impl Struct {
     /// assert_eq!(struct_value.into_value(), Value::from(3));
     /// ```
     pub fn into_value(self) -> Value {
-        *self.value
+        (*self.value).clone()
     }
 }
 

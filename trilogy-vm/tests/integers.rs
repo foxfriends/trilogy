@@ -61,7 +61,7 @@ fn test_div() {
     let vm = VirtualMachine::new();
     assert_eq!(
         vm.run(&mut StaticProgram(PROGRAM)).unwrap(),
-        Value::Number(Number::rational(12, 14))
+        Value::from(Number::rational(12, 14))
     );
 }
 

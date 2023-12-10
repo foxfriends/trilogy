@@ -11,3 +11,13 @@ members = [
     "trilogy-vm",
     "trilogy-vm-derive",
 ]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = "fat"
+
+[profile.perf]
+inherits = "release"
+codegen-units = 16
+lto = false

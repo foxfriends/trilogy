@@ -5,7 +5,7 @@ use crate::preamble::END;
 use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, IrVisitable, IrVisitor};
-use trilogy_vm::{Array, Instruction, Record, Set, Value};
+use trilogy_vm::{Annotation, Array, Instruction, Location, Record, Set, Value};
 
 struct Evaluator<'b, 'a> {
     context: &'b mut Context<'a>,
@@ -17,7 +17,20 @@ pub(crate) trait CodegenEvaluate: IrVisitable {
     }
 }
 
-impl CodegenEvaluate for ir::Expression {}
+impl CodegenEvaluate for ir::Expression {
+    fn evaluate(&self, context: &mut Context) {
+        let start = context.ip();
+        self.visit(&mut Evaluator { context });
+        let end = context.ip();
+        context.annotate(Annotation::source(
+            start,
+            end,
+            "<intermediate>".to_owned(),
+            Location::new(context.location(), self.span),
+        ));
+    }
+}
+
 impl CodegenEvaluate for ir::Value {}
 
 impl IrVisitor for Evaluator<'_, '_> {
@@ -209,6 +222,7 @@ impl IrVisitor for Evaluator<'_, '_> {
 
     fn visit_fn(&mut self, closure: &ir::Function) {
         let arity = closure.parameters.len();
+        let start = self.context.ip();
         self.context.fn_closure(arity, |context| {
             let params = context.scope.closure(arity);
             for (i, parameter) in closure.parameters.iter().enumerate() {
@@ -223,10 +237,18 @@ impl IrVisitor for Evaluator<'_, '_> {
             }
             context.scope.unclosure(arity);
         });
+        let end = self.context.ip();
+        self.context.annotate(Annotation::source(
+            start,
+            end,
+            "<anonymous function>".to_owned(),
+            Location::new(self.context.location(), closure.span),
+        ));
     }
 
     fn visit_do(&mut self, closure: &ir::Procedure) {
         let arity = closure.parameters.len();
+        let start = self.context.ip();
         self.context.do_closure(arity, |context| {
             let param_start = context.scope.closure(arity);
             for (offset, parameter) in closure.parameters.iter().enumerate() {
@@ -244,11 +266,19 @@ impl IrVisitor for Evaluator<'_, '_> {
             }
             context.scope.unclosure(arity);
         });
+        let end = self.context.ip();
+        self.context.annotate(Annotation::source(
+            start,
+            end,
+            "<anonymous procedure>".to_owned(),
+            Location::new(self.context.location(), closure.span),
+        ));
     }
 
     fn visit_qy(&mut self, closure: &ir::Rule) {
         let arity = closure.parameters.len();
         let param_start = Cell::new(0);
+        let start = self.context.ip();
         self.context.qy_closure(
             arity,
             |context| {
@@ -334,6 +364,13 @@ impl IrVisitor for Evaluator<'_, '_> {
                 context.scope.unclosure(arity);
             },
         );
+        let end = self.context.ip();
+        self.context.annotate(Annotation::source(
+            start,
+            end,
+            "<anonymous query>".to_owned(),
+            Location::new(self.context.location(), closure.span),
+        ));
     }
 
     fn visit_reference(&mut self, ident: &ir::Identifier) {
