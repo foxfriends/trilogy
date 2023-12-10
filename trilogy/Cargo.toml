@@ -15,6 +15,7 @@ lax = ["trilogy-parser/lax"]
 macros = ["trilogy-derive"]
 std = ["macros"]
 regex = ["dep:regex"]
+multithread = ["trilogy-vm/multithread"]
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }

@@ -3,11 +3,21 @@ use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::{Arc, Mutex};
 
+#[cfg(not(feature = "multithread"))]
+pub trait Threading {}
+#[cfg(not(feature = "multithread"))]
+impl<T> Threading for T {}
+
+#[cfg(feature = "multithread")]
+pub trait Threading: Send + Sync {}
+#[cfg(feature = "multithread")]
+impl<T: Send + Sync> Threading for T {}
+
 /// Trait allowing Rust functions to be called by Trilogy programs.
 ///
 /// Implementing this trait manually is not recommended, see instead the macro
 /// `#[proc]` attribute macro from the `trilogy` crate.
-pub trait NativeFunction: Send + Sync {
+pub trait NativeFunction: Threading {
     #[doc(hidden)]
     fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), Error>;
 
