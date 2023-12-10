@@ -19,7 +19,7 @@ pub use trace::{StackTrace, StackTraceEntry};
 /// The Trilogy VM is backed by a cactus stack, the core of which is implemented as [`Cactus`][].
 /// This wrapper around that base cactus implements the operations used in the execution of
 /// Trilogy VM bytecode.
-#[derive(Default, Clone)]
+#[derive(Clone, Default)]
 pub(crate) struct Stack {
     /// The actual cactus that backs this stack.
     cactus: Cactus<InternalValue>,
@@ -34,7 +34,7 @@ pub(crate) struct Stack {
 
 impl Display for Stack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let items = self.cactus.clone().into_iter().collect::<Vec<_>>();
+        let items = self.cactus.iter().collect::<Vec<_>>();
         for (i, item) in items.iter().enumerate().rev() {
             if i != items.len() - 1 {
                 writeln!(f)?;
@@ -49,8 +49,7 @@ impl Debug for Stack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut tuple = f.debug_tuple("Stack");
         self.cactus
-            .clone()
-            .into_iter()
+            .iter()
             .collect::<Vec<_>>()
             .into_iter()
             .rev()
@@ -60,6 +59,14 @@ impl Debug for Stack {
 }
 
 impl Stack {
+    pub(super) fn new() -> Self {
+        Self {
+            cactus: Cactus::with_capacity(16),
+            ghost_frame: 0,
+            frame: 0,
+        }
+    }
+
     pub(super) fn branch(&mut self) -> Self {
         Self {
             cactus: self.cactus.branch(),

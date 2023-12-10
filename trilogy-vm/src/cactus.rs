@@ -16,7 +16,7 @@ pub(crate) struct Cactus<T> {
     parent: Option<Arc<Mutex<Cactus<T>>>>,
     /// The elements in the current branch of this cactus. These elements are not
     /// shared with any other branch.
-    pub stack: Vec<T>,
+    stack: Vec<T>,
     /// The number of elements in this cactus.
     ///
     /// This is the total of `stack.len() + parent.len`, but is maintained here
@@ -49,6 +49,14 @@ impl<T> Cactus<T> {
     #[cfg(test)]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_capacity(cap: usize) -> Self {
+        Self {
+            parent: None,
+            stack: Vec::with_capacity(cap),
+            len: 0,
+        }
     }
 
     /// Inserts a branch point some number of cells into this cactus's parent.
@@ -257,6 +265,13 @@ impl<T> Cactus<T> {
 
     pub fn len(&self) -> usize {
         self.len
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = T>
+    where
+        T: Clone,
+    {
+        self.clone().into_iter()
     }
 }
 

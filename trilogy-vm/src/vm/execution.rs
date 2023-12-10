@@ -87,7 +87,7 @@ impl<'a> Execution<'a> {
             error_ip: 0,
             ip: program.entrypoint(),
             program,
-            stack: Stack::default(),
+            stack: Stack::new(),
             registers,
         }
     }
