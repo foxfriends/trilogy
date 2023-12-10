@@ -268,12 +268,23 @@ func find _ [] = yield 'MIA
 func find f [x, ..xs] = if f x then x else find f xs
 export find
 
-test "find finds the first matching element" {
+test "find" {
     assert find (fn x. x > 1) [1, 2, 3] == 2
+    with { find (fn x. x > 4) [1, 2, 3] [] }
+        when 'MIA invert { exit unit }
+        else cancel unit
+    assert false
 }
 
-test "find yields 'MIA when not found" {
-    with { find (fn x. x > 4) [1, 2, 3] [] }
+## Returns the index of the first element in the array for which the predicate returns true.
+## If none is found, yields 'MIA
+func position _ [] = yield 'MIA
+func position f [x, ..xs] = if f x then 0 else 1 + position f xs
+export position
+
+test "position" {
+    assert position (fn x. x > 1) [1, 2, 3] == 1
+    with { position (fn x. x > 4) [1, 2, 3] [] }
         when 'MIA invert { exit unit }
         else cancel unit
     assert false
