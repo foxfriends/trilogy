@@ -97,6 +97,10 @@ impl Stack {
             .and_then(InternalValue::try_into_value_maybe)
     }
 
+    pub(super) fn prepare_to_pop(&mut self, count: usize) {
+        self.cactus.consume_exact(count);
+    }
+
     fn reserve(&mut self, additional: usize) {
         self.cactus.reserve(additional);
     }
