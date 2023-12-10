@@ -270,6 +270,17 @@ impl<T> Cactus<T> {
     }
 
     /// Add a value to the end of this cactus.
+    ///
+    /// If the cactus is at capacity, this may trigger a reallocation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// assert_eq!(cactus.at(0), Some(1));
+    /// ```
     pub fn push(&mut self, value: T) {
         self.len += 1;
         self.stack.push(value);
@@ -277,8 +288,23 @@ impl<T> Cactus<T> {
 
     /// Pop the topmost value from this cactus.
     ///
-    /// If the current branch's stack is empty, consumes one value from the parent
+    /// If the current branch's stack is empty, consumes exactly one value from the parent
     /// and pops that. This preserves the sharedness of more distant elements.
+    ///
+    /// Popping repeatedly can get inefficient, if you expect to pop more than once, consider
+    /// using [`detach_at`][Self::detach_at] or explicitly preparing more elements to be popped with
+    /// [`consume_exact`][Self::consume_exact].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// cactus.push(2);
+    /// assert_eq!(cactus.pop(), Some(2));
+    /// assert_eq!(cactus.pop(), Some(1));
+    /// ```
     pub fn pop(&mut self) -> Option<T>
     where
         T: Clone,
@@ -286,7 +312,8 @@ impl<T> Cactus<T> {
         if self.len == 0 {
             return None;
         }
-        if self.stack.is_empty() && !self.reduce() {
+        if self.stack.is_empty() {
+            while self.reduce() {}
             self.consume_exact(1);
         }
         self.len = self.len.saturating_sub(1);
@@ -332,7 +359,23 @@ impl<T> Cactus<T> {
     /// Branches a cactus into two. Returns one of them, and replaces
     /// self with the other.
     ///
-    /// The shared parent of both will be what was the current cactus.
+    /// The shared parent of both will be what was the current cactus,
+    /// and both of the new branches will hold 0 active elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// let mut branch = cactus.branch();
+    /// assert_eq!(cactus.len(), 0);
+    /// assert_eq!(branch.len(), 0);
+    /// assert_eq!(cactus.count(), 1);
+    /// assert_eq!(branch.count(), 1);
+    /// assert_eq!(cactus.pop(), Some(1));
+    /// assert_eq!(branch.pop(), Some(1));
+    /// ```
     pub fn branch(&mut self) -> Self {
         self.commit();
         Self {
@@ -342,6 +385,23 @@ impl<T> Cactus<T> {
         }
     }
 
+    /// Retrieves a value from the cactus at a specific offset from the top.
+    /// Returns `None` if the offset is out of bounds.
+    ///
+    /// This is an efficient operation for elements in the live portion of
+    /// the current branch, but can be costly to access elements in parent
+    /// stacks.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// cactus.push(2);
+    /// assert_eq!(cactus.at(0), Some(2));
+    /// assert_eq!(cactus.at(1), Some(1));
+    /// ```
     pub fn at(&self, offset: usize) -> Option<T>
     where
         T: Clone,
@@ -354,6 +414,28 @@ impl<T> Cactus<T> {
         }
     }
 
+    /// Replace a value in this cactus at a specific distance from the top with a new value.
+    ///
+    /// If the value is in a parent (`offset > self.len()`), the change will be reflected in
+    /// all other branches that share that parent.
+    ///
+    /// # Errors
+    ///
+    /// `OutOfBounds` if the index is in the current stack's live elements, or beyond
+    /// the last parent.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// let mut branch = cactus.branch();
+    /// branch.push(2);
+    /// branch.replace_at(1, 3);
+    /// assert_eq!(branch.at(1), Some(3));
+    /// assert_eq!(cactus.at(0), Some(3));
+    /// ```
     pub fn replace_at(&mut self, offset: usize, value: T) -> Result<T, OutOfBounds> {
         let len = self.stack.len();
         if offset < len {
@@ -374,6 +456,11 @@ impl<T> Cactus<T> {
     /// This does not require a mutable reference as the shared portion of the cactus
     /// is accessed via interior mutability. The tradeoff is that values in the unshared
     /// portion of this live cactus cannot be replaced.
+    ///
+    /// # Errors
+    ///
+    /// `OutOfBounds` if the index is in the current stack's live elements, or beyond
+    /// the last parent.
     pub fn replace_shared(&self, offset: usize, value: T) -> Result<T, OutOfBounds> {
         let len = self.stack.len();
         if offset < len {
@@ -386,25 +473,55 @@ impl<T> Cactus<T> {
         }
     }
 
-    pub fn detach_at(&mut self, count: usize) -> Option<Vec<T>>
+    /// Detaches in bulk a chunk of values off the top of the stack.
+    ///
+    /// The returned `Vec` of elements has them *in stack order*. That is, the opposite
+    /// order of what they would be if you popped them individually one at a time.
+    ///
+    /// If the cactus does contain enough elements, the returned value will be shorter
+    /// than requested.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.push(1);
+    /// cactus.push(2);
+    /// cactus.push(3);
+    /// assert_eq!(cactus.detach_at(2), vec![2, 3]);
+    /// ```
+    pub fn detach_at(&mut self, count: usize) -> Vec<T>
     where
         T: Clone,
     {
-        while self.stack.len() < count {
-            if self.reduce() {
-                continue;
-            }
+        if self.stack.len() < count {
+            while self.reduce() {}
             self.consume_exact(count);
         }
         self.len = self.len.saturating_sub(count);
-        Some(self.stack.split_off(self.stack.len() - count))
+        self.stack.split_off(self.stack.len() - count)
     }
 
+    /// Attaches in bulk a chunk of elements to the live branch. These items
+    /// will be pushed in order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// cactus.attach(vec![1, 2, 3]);
+    /// assert_eq!(cactus.at(0), Some(3));
+    /// assert_eq!(cactus.at(1), Some(2));
+    /// assert_eq!(cactus.at(2), Some(1));
+    /// ```
     pub fn attach(&mut self, items: Vec<T>) {
         self.len += items.len();
         self.stack.extend(items);
     }
 
+    #[doc(hidden)]
     pub fn iter(&self) -> impl Iterator<Item = T>
     where
         T: Clone,
@@ -490,7 +607,7 @@ mod test {
         cactus.push(2);
         let mut branch = cactus.branch();
         branch.push(3);
-        assert_eq!(branch.detach_at(2), Some(vec![2, 3]));
+        assert_eq!(branch.detach_at(2), vec![2, 3]);
         branch.replace_at(0, 3).unwrap();
         assert_eq!(branch.pop(), Some(3), "value was set in the new branch");
         assert_eq!(cactus.pop(), Some(2));

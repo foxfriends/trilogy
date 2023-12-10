@@ -165,7 +165,7 @@ impl Stack {
     }
 
     pub(super) fn pop_frame(&mut self) -> Result<Cont, InternalRuntimeError> {
-        let removed = self.cactus.detach_at(self.len() - self.frame + 1).unwrap();
+        let removed = self.cactus.detach_at(self.len() - self.frame + 1);
         let ret = removed
             .into_iter()
             .next()
@@ -297,10 +297,7 @@ impl Stack {
         &mut self,
         arity: usize,
     ) -> Result<Vec<InternalValue>, InternalRuntimeError> {
-        let internal_values = self
-            .cactus
-            .detach_at(arity)
-            .ok_or(InternalRuntimeError::ExpectedValue("stack too short"))?;
+        let internal_values = self.cactus.detach_at(arity);
         Ok(internal_values)
     }
 
