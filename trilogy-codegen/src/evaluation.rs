@@ -5,7 +5,7 @@ use crate::preamble::END;
 use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, IrVisitable, IrVisitor};
-use trilogy_vm::{Annotation, Array, Instruction, Location, Record, Set, Value};
+use trilogy_vm::{Annotation, Array, Instruction, Location, Offset, Record, Set, Value};
 
 struct Evaluator<'b, 'a> {
     context: &'b mut Context<'a>,
@@ -158,7 +158,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                 // After running the query, we don't need the state anymore
                 .instruction(Instruction::Pop)
                 .evaluate(&decl.body)
-                .instruction(Instruction::Slide(declared as u32))
+                .instruction(Instruction::Slide(declared as Offset))
                 // After the body has been executed, the variables bound in the query are dropped
                 .undeclare_variables(decl.query.bindings(), true);
         } else {
@@ -177,7 +177,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                 .instruction(Instruction::Pop)
                 .end_intermediate()
                 .evaluate(&decl.body)
-                .instruction(Instruction::Slide(declared as u32))
+                .instruction(Instruction::Slide(declared as Offset))
                 .undeclare_variables(decl.query.bindings(), true);
         }
     }
@@ -228,7 +228,7 @@ impl IrVisitor for Evaluator<'_, '_> {
             for (i, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context
-                    .instruction(Instruction::LoadLocal(params + i as u32))
+                    .instruction(Instruction::LoadLocal(params + i as Offset))
                     .pattern_match(parameter, END);
             }
             context.evaluate(&closure.body);
@@ -254,7 +254,7 @@ impl IrVisitor for Evaluator<'_, '_> {
             for (offset, parameter) in closure.parameters.iter().enumerate() {
                 context.declare_variables(parameter.bindings());
                 context
-                    .instruction(Instruction::LoadLocal(param_start + offset as u32))
+                    .instruction(Instruction::LoadLocal(param_start + offset as Offset))
                     .pattern_match(parameter, END);
             }
             context
@@ -292,7 +292,9 @@ impl IrVisitor for Evaluator<'_, '_> {
                     let skip = context.make_label("skip");
                     context.declare_variables(parameter.bindings());
                     context
-                        .instruction(Instruction::IsSetLocal(param_start.get() + offset as u32))
+                        .instruction(Instruction::IsSetLocal(
+                            param_start.get() + offset as Offset,
+                        ))
                         .cond_jump(&skip);
                     // This parameter was set, so fill its bindings and mark them down in the bindset.
                     context.instruction(Instruction::LoadRegister(TEMPORARY));
@@ -302,7 +304,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                     }
                     context.intermediate(); // bindset
                     context
-                        .instruction(Instruction::LoadLocal(param_start.get() + offset as u32))
+                        .instruction(Instruction::LoadLocal(param_start.get() + offset as Offset))
                         .pattern_match(parameter, END)
                         .end_intermediate() // bindset
                         .instruction(Instruction::SetRegister(TEMPORARY))
@@ -325,11 +327,11 @@ impl IrVisitor for Evaluator<'_, '_> {
                     let eval = context.make_label("eval");
                     let next = context.make_label("next");
                     context
-                        .instruction(Instruction::IsSetLocal(param_start.get() + i as u32))
+                        .instruction(Instruction::IsSetLocal(param_start.get() + i as Offset))
                         // Previously unset parameters get evaluated into
                         .cond_jump(&eval)
                         // Previously set parameters are just loaded back up directly
-                        .instruction(Instruction::LoadLocal(param_start.get() + i as u32))
+                        .instruction(Instruction::LoadLocal(param_start.get() + i as Offset))
                         .jump(&next);
                     context.label(eval);
                     if param.can_evaluate() {
@@ -559,7 +561,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                     .bubble(|c| {
                         c.label(&is_fail).constant(false);
                     })
-                    .instruction(Instruction::Slide(var_count as u32 + 1));
+                    .instruction(Instruction::Slide(var_count as Offset + 1));
                 self.context.undeclare_variables(query.bindings(), false);
                 for _ in 0..=var_count {
                     // One extra POP to discard the query state

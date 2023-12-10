@@ -3,7 +3,7 @@ use crate::preamble::{END, RETURN};
 use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
 use trilogy_ir::{ir, visitor::HasBindings, Id};
-use trilogy_vm::{Instruction, Value};
+use trilogy_vm::{Instruction, Offset, Value};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum Mode<'a> {
@@ -113,7 +113,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
     context.declare_variables(variables.iter().cloned());
     for (i, parameter) in module.parameters.iter().enumerate() {
         context
-            .instruction(Instruction::LoadLocal(i as u32))
+            .instruction(Instruction::LoadLocal(i as Offset))
             .pattern_match(parameter, END);
     }
 

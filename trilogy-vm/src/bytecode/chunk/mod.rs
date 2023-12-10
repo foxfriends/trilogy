@@ -26,7 +26,7 @@ pub use writer::ChunkWriter;
 #[derive(Clone)]
 pub struct Chunk {
     pub(crate) annotations: Vec<Annotation>,
-    pub(crate) labels: HashMap<String, u32>,
+    pub(crate) labels: HashMap<String, Offset>,
     pub(crate) constants: Vec<Value>,
     pub(crate) bytes: Vec<u8>,
 }
@@ -121,6 +121,7 @@ impl Debug for Chunk {
 
 impl Chunk {
     #[inline(always)]
+    #[allow(clippy::unnecessary_cast)]
     pub(crate) fn instruction_bytes(&self, index: Offset) -> RawInstruction {
         let mut bytes = [0; std::mem::size_of::<RawInstruction>()];
         bytes.copy_from_slice(
@@ -130,6 +131,7 @@ impl Chunk {
     }
 
     #[inline(always)]
+    #[allow(clippy::unnecessary_cast)]
     pub(crate) fn constant(&self, index: Offset) -> Value {
         self.constants[index as usize].clone()
     }

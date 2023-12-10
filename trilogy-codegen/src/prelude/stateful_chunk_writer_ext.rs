@@ -61,11 +61,11 @@ pub(crate) trait StatefulChunkWriterExt:
             context.reference(func);
             for i in 0..arity - 1 {
                 context
-                    .instruction(Instruction::LoadLocal(parameters + i as u32))
+                    .instruction(Instruction::LoadLocal(parameters + i as Offset))
                     .call_function();
             }
             context
-                .instruction(Instruction::LoadLocal(parameters + arity as u32 - 1))
+                .instruction(Instruction::LoadLocal(parameters + arity as Offset - 1))
                 .become_function()
                 .instruction(Instruction::Return)
                 .end_intermediate();
@@ -84,12 +84,12 @@ pub(crate) trait StatefulChunkWriterExt:
                 .unlock_procedure(arity)
                 .pipe(restore)
                 .reference(proc)
-                .instruction(Instruction::Slide(arity as u32))
+                .instruction(Instruction::Slide(arity as Offset))
                 .become_procedure(arity);
         })
     }
 
-    fn qy_closure<F: FnOnce(&mut Self), G: FnOnce(&mut Self, u32)>(
+    fn qy_closure<F: FnOnce(&mut Self), G: FnOnce(&mut Self, Offset)>(
         &mut self,
         arity: usize,
         setup: F,
@@ -122,7 +122,7 @@ pub(crate) trait StatefulChunkWriterExt:
                 .unlock_rule(arity)
                 .pipe(restore)
                 .instruction(Instruction::LoadLocal(closure))
-                .instruction(Instruction::Slide(arity as u32))
+                .instruction(Instruction::Slide(arity as Offset))
                 .call_rule(arity)
                 .intermediate();
             context

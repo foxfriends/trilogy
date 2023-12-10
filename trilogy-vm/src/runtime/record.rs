@@ -1,8 +1,9 @@
+use super::RefCount;
 use super::{ReferentialEq, StructuralEq, Value};
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::hash::{self, Hash};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 /// An instance of a Trilogy Record.
 ///
@@ -30,23 +31,23 @@ use std::sync::{Arc, Mutex};
 /// assert_ne!(record, Record::new());
 /// ```
 #[derive(Clone, Default, Debug)]
-pub struct Record(Arc<Mutex<HashMap<Value, Value>>>);
+pub struct Record(RefCount<Mutex<HashMap<Value, Value>>>);
 
 impl Eq for Record {}
 impl PartialEq for Record {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 impl Hash for Record {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        Arc::as_ptr(&self.0).hash(state);
+        RefCount::as_ptr(&self.0).hash(state);
     }
 }
 
 impl ReferentialEq for Record {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
@@ -54,7 +55,7 @@ impl StructuralEq for Record {
     fn eq(&self, other: &Self) -> bool {
         // Check pointer equality first: if it's the same instance, we can't
         // do structural comparison like this because of the locks
-        if Arc::ptr_eq(&self.0, &other.0) {
+        if RefCount::ptr_eq(&self.0, &other.0) {
             return true;
         }
         let Ok(lhs) = self.0.lock() else { return false };
@@ -301,7 +302,7 @@ impl Display for Record {
 
 impl From<HashMap<Value, Value>> for Record {
     fn from(value: HashMap<Value, Value>) -> Self {
-        Self(Arc::new(Mutex::new(value)))
+        Self(RefCount::new(Mutex::new(value)))
     }
 }
 

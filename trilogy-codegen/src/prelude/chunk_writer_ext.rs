@@ -61,8 +61,8 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
 
     fn raw_call(&mut self, arity: usize) -> &mut Self {
         self.instruction(Instruction::LoadRegister(MODULE))
-            .instruction(Instruction::Slide(arity as u32 + 1))
-            .instruction(Instruction::Call(arity as u32))
+            .instruction(Instruction::Slide(arity as Offset + 1))
+            .instruction(Instruction::Call(arity as Offset))
             .instruction(Instruction::Swap)
             .instruction(Instruction::SetRegister(MODULE))
     }
@@ -86,7 +86,7 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
 
     fn become_procedure(&mut self, arity: usize) -> &mut Self {
         self.r#struct("procedure", arity)
-            .instruction(Instruction::Become(arity as u32 + 1))
+            .instruction(Instruction::Become(arity as Offset + 1))
     }
 
     fn call_module(&mut self) -> &mut Self {

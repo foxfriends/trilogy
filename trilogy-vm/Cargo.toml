@@ -8,6 +8,8 @@ edition = "2021"
 [features]
 default = []
 multithread = []
+64bit = []
+32bit = []
 
 [dependencies]
 bitvec = "1.0.1"

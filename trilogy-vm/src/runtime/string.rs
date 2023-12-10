@@ -1,9 +1,9 @@
+use super::RefCount;
 use std::fmt::{self, Display};
 use std::ops::{Add, Deref};
-use std::sync::Arc;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct String(Arc<std::string::String>);
+pub struct String(RefCount<std::string::String>);
 
 impl Display for String {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -25,13 +25,13 @@ impl From<String> for std::string::String {
 
 impl From<std::string::String> for String {
     fn from(value: std::string::String) -> Self {
-        Self(Arc::new(value))
+        Self(RefCount::new(value))
     }
 }
 
 impl From<&std::string::String> for String {
     fn from(value: &std::string::String) -> Self {
-        Self(Arc::new(value.into()))
+        Self(RefCount::new(value.into()))
     }
 }
 
@@ -43,7 +43,7 @@ impl From<&String> for String {
 
 impl From<&str> for String {
     fn from(value: &str) -> Self {
-        Self(Arc::new(value.to_owned()))
+        Self(RefCount::new(value.to_owned()))
     }
 }
 
@@ -60,7 +60,7 @@ where
     std::string::String: FromIterator<C>,
 {
     fn from_iter<T: IntoIterator<Item = C>>(iter: T) -> Self {
-        Self(Arc::new(iter.into_iter().collect()))
+        Self(RefCount::new(iter.into_iter().collect()))
     }
 }
 

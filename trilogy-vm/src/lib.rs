@@ -15,3 +15,9 @@ pub use bytecode::{
 };
 pub use runtime::*;
 pub use vm::{Error, ErrorKind, Execution, InternalRuntimeError, Program, VirtualMachine};
+
+#[cfg(feature = "multithread")]
+type RefCount<T> = std::arc::Arc<T>;
+
+#[cfg(not(feature = "multithread"))]
+type RefCount<T> = std::rc::Rc<T>;

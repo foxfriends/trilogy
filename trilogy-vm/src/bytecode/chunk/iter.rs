@@ -25,7 +25,7 @@ impl Iterator for ChunkIter<'_> {
         if self.offset == self.chunk.bytes.len() {
             return None;
         }
-        let instruction = Instruction::from_chunk(self.chunk, self.offset as u32);
+        let instruction = Instruction::from_chunk(self.chunk, self.offset as Offset);
         self.offset += instruction.byte_len();
         Some(instruction)
     }
@@ -43,7 +43,7 @@ impl<'a> ChunkIter<'a> {
             fn next(&mut self) -> Option<Self::Item> {
                 let offset = self.chunks.offset;
                 let next = self.chunks.next()?;
-                Some((offset as u32, next))
+                Some((offset as Offset, next))
             }
         }
 

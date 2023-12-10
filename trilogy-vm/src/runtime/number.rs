@@ -1,3 +1,4 @@
+use super::RefCount;
 use num::complex::ParseComplexError;
 use num::rational::ParseRatioError;
 use num::traits::Pow;
@@ -5,11 +6,10 @@ use num::{BigInt, BigRational, BigUint, Complex, One, ToPrimitive, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
-use std::sync::Arc;
 
 /// A Trilogy Number value.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct Number(Arc<Complex<BigRational>>);
+pub struct Number(RefCount<Complex<BigRational>>);
 
 macro_rules! proxy_op_int_opt {
     ($t:ty, $f:ident) => {
@@ -55,7 +55,7 @@ impl Neg for Number {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self(Arc::new(-(*self.0).clone()))
+        Self(RefCount::new(-(*self.0).clone()))
     }
 }
 
@@ -147,7 +147,7 @@ macro_rules! from_integer {
     ($t:ty) => {
         impl From<$t> for Number {
             fn from(value: $t) -> Self {
-                Self(Arc::new(Complex::new(
+                Self(RefCount::new(Complex::new(
                     BigRational::from(BigInt::from(value)),
                     Zero::zero(),
                 )))
@@ -171,19 +171,19 @@ from_integer!(i128);
 
 impl From<Complex<BigRational>> for Number {
     fn from(value: Complex<BigRational>) -> Self {
-        Self(Arc::new(value))
+        Self(RefCount::new(value))
     }
 }
 
 impl From<BigRational> for Number {
     fn from(value: BigRational) -> Self {
-        Self(Arc::new(Complex::new(value, Zero::zero())))
+        Self(RefCount::new(Complex::new(value, Zero::zero())))
     }
 }
 
 impl From<BigInt> for Number {
     fn from(value: BigInt) -> Self {
-        Self(Arc::new(Complex::new(
+        Self(RefCount::new(Complex::new(
             BigRational::from(value),
             Zero::zero(),
         )))
@@ -192,7 +192,7 @@ impl From<BigInt> for Number {
 
 impl From<BigUint> for Number {
     fn from(value: BigUint) -> Self {
-        Self(Arc::new(Complex::new(
+        Self(RefCount::new(Complex::new(
             BigRational::from(BigInt::from(value)),
             Zero::zero(),
         )))
@@ -213,7 +213,7 @@ impl FromStr for Number {
     type Err = ParseComplexError<ParseRatioError>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(Arc::new(s.parse()?)))
+        Ok(Self(RefCount::new(s.parse()?)))
     }
 }
 

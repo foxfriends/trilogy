@@ -3,7 +3,7 @@ use crate::prelude::*;
 use std::collections::HashSet;
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
-use trilogy_vm::Instruction;
+use trilogy_vm::{Instruction, Offset};
 
 pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) {
     let setup = context.make_label("setup");
@@ -58,7 +58,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         total_declared += context.declare_variables(parameter.bindings());
         // Then we only set those bindings if the parameter was passed.
         context
-            .instruction(Instruction::IsSetLocal(1 + i as u32))
+            .instruction(Instruction::IsSetLocal(1 + i as Offset))
             .cond_jump(&skip);
         // Parameter *was* passed, so update the bindset and the bindings together.
         context.instruction(Instruction::LoadRegister(TEMPORARY));
@@ -68,7 +68,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         }
         context.intermediate(); // bindset
         context
-            .instruction(Instruction::LoadLocal(1 + i as u32))
+            .instruction(Instruction::LoadLocal(1 + i as Offset))
             .pattern_match(parameter, &cleanup[i])
             .end_intermediate() // bindset
             .instruction(Instruction::SetRegister(TEMPORARY))
@@ -105,11 +105,11 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         let eval = context.make_label("eval");
         let next = context.make_label("next");
         context
-            .instruction(Instruction::IsSetLocal(1 + i as u32))
+            .instruction(Instruction::IsSetLocal(1 + i as Offset))
             // Previously unset parameters get evaluated into
             .cond_jump(&eval)
             // Previously set parameters are just loaded back up directly
-            .instruction(Instruction::LoadLocal(1 + i as u32))
+            .instruction(Instruction::LoadLocal(1 + i as Offset))
             .jump(&next);
         context.label(eval);
         if param.can_evaluate() {
@@ -157,7 +157,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         //
         // That state is the query state + all the query's parameters + all the query's body variables
         .label(&precall)
-        .instruction(Instruction::Slide(total_declared as u32 + 1))
+        .instruction(Instruction::Slide(total_declared as Offset + 1))
         .instruction(Instruction::Pop);
     for _ in 0..total_declared {
         // The query's parameters and body variables are popped manually,

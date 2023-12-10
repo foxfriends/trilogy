@@ -30,18 +30,20 @@ impl LineAdjuster {
             .map(|(_, l)| l)
             .collect();
         for annotation in &mut self.annotations.iter_mut() {
+            #[allow(clippy::unnecessary_cast)]
             let before = self
                 .erased
                 .iter()
                 .filter(|&&i| i < annotation.start as usize)
                 .count();
+            #[allow(clippy::unnecessary_cast)]
             let in_range = self
                 .erased
                 .iter()
                 .filter(|&&i| i >= annotation.start as usize && i < annotation.end as usize)
                 .count();
-            annotation.start -= before as u32;
-            annotation.end -= in_range as u32 + before as u32;
+            annotation.start -= before as Offset;
+            annotation.end -= in_range as Offset + before as Offset;
         }
         (lines, self.annotations)
     }

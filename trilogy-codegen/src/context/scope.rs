@@ -7,13 +7,13 @@ use trilogy_vm::{Instruction, Offset};
 
 #[derive(Clone, Debug)]
 pub(crate) enum Binding<'a> {
-    Variable(u32),
+    Variable(Offset),
     Context(&'a str),
     Static(&'a str),
 }
 
 impl Binding<'_> {
-    pub fn unwrap_local(&self) -> u32 {
+    pub fn unwrap_local(&self) -> Offset {
         match self {
             Self::Variable(index) => *index,
             _ => panic!("attemped to unwrap local, but {self:?} is not a local"),
@@ -36,13 +36,13 @@ impl<'a> From<&'a StaticMember> for Binding<'a> {
 #[derive(Debug)]
 pub(crate) struct Scope<'a> {
     statics: &'a mut HashMap<Id, StaticMember>,
-    locals: HashMap<Id, u32>,
+    locals: HashMap<Id, Offset>,
     parameters: usize,
 
-    kw_resume: Vec<u32>,
-    kw_cancel: Vec<u32>,
-    kw_break: Vec<u32>,
-    kw_continue: Vec<u32>,
+    kw_resume: Vec<Offset>,
+    kw_cancel: Vec<Offset>,
+    kw_break: Vec<Offset>,
+    kw_continue: Vec<Offset>,
 }
 
 impl<'a> Scope<'a> {
@@ -66,7 +66,7 @@ impl<'a> Scope<'a> {
         if self.locals.contains_key(&id) {
             return false;
         }
-        self.remember_variable(id, (self.parameters + self.locals.len()) as u32);
+        self.remember_variable(id, (self.parameters + self.locals.len()) as Offset);
         true
     }
 
@@ -90,10 +90,10 @@ impl<'a> Scope<'a> {
         self.statics.insert(id, static_member)
     }
 
-    pub fn closure(&mut self, parameters: usize) -> u32 {
+    pub fn closure(&mut self, parameters: usize) -> Offset {
         let offset = self.parameters + self.locals.len();
         self.parameters += parameters;
-        offset as u32
+        offset as Offset
     }
 
     pub fn unclosure(&mut self, parameters: usize) {

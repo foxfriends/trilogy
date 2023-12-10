@@ -5,7 +5,7 @@ use crate::{Offset, OpCode};
 pub(crate) enum Parameter {
     Value(Value),
     Label(String),
-    Offset(u32),
+    Offset(Offset),
     Reference(String),
 }
 
@@ -16,7 +16,7 @@ pub(crate) struct Line {
 }
 
 impl Line {
-    pub(crate) const fn byte_len(&self) -> Offset {
-        8
+    pub(crate) const fn byte_len(&self) -> usize {
+        std::mem::size_of::<Offset>() * 2
     }
 }

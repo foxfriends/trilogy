@@ -1,8 +1,8 @@
+use super::super::RefCount;
 use crate::bytecode::Offset;
 use crate::vm::stack::Stack;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
-use std::sync::Arc;
 
 /// A closure from a Trilogy program.
 ///
@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// It is not possible to construct a value of this type except from within a
 /// Trilogy program.
 #[derive(Clone)]
-pub(crate) struct Closure(Arc<InnerClosure>);
+pub(crate) struct Closure(RefCount<InnerClosure>);
 
 impl Debug for Closure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,19 +32,19 @@ impl Eq for Closure {}
 
 impl PartialEq for Closure {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
 impl Hash for Closure {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        Arc::as_ptr(&self.0).hash(state);
+        RefCount::as_ptr(&self.0).hash(state);
     }
 }
 
 impl Closure {
     pub(crate) fn new(pointer: Offset, stack: Stack) -> Self {
-        Self(Arc::new(InnerClosure { ip: pointer, stack }))
+        Self(RefCount::new(InnerClosure { ip: pointer, stack }))
     }
 
     pub(crate) fn ip(&self) -> Offset {

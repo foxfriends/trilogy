@@ -68,7 +68,7 @@ mod parent {
             Self(Rc::new(RefCell::new(cactus)))
         }
 
-        pub(super) fn get<'a>(&'a self) -> impl DerefMut<Target = Cactus<T>> + 'a {
+        pub(super) fn get(&self) -> impl DerefMut<Target = Cactus<T>> + '_ {
             self.0.borrow_mut()
         }
     }

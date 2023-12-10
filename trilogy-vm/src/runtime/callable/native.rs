@@ -1,7 +1,8 @@
+use super::super::RefCount;
 use crate::{Error, Execution, ReferentialEq, StructuralEq, Value};
 use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 #[cfg(not(feature = "multithread"))]
 pub trait Threading {}
@@ -29,7 +30,7 @@ pub trait NativeFunction: Threading {
 ///
 /// From within the program this is seen as an opaque "callable" value.
 #[derive(Clone)]
-pub struct Native(Arc<Mutex<dyn NativeFunction + 'static>>);
+pub struct Native(RefCount<Mutex<dyn NativeFunction + 'static>>);
 
 impl Debug for Native {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -41,25 +42,25 @@ impl Eq for Native {}
 
 impl PartialEq for Native {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
 impl Hash for Native {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        Arc::as_ptr(&self.0).hash(state);
+        RefCount::as_ptr(&self.0).hash(state);
     }
 }
 
 impl ReferentialEq for Native {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
 impl StructuralEq for Native {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
@@ -72,6 +73,6 @@ impl Native {
 
 impl<T: NativeFunction + 'static> From<T> for Native {
     fn from(value: T) -> Self {
-        Self(Arc::new(Mutex::new(value)))
+        Self(RefCount::new(Mutex::new(value)))
     }
 }

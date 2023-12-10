@@ -1,7 +1,7 @@
-use super::{ReferentialEq, StructuralEq, Value};
+use super::{RefCount, ReferentialEq, StructuralEq, Value};
 use std::fmt::{self, Display};
 use std::hash::{self, Hash};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 /// An instance of a Trilogy Array.
 ///
@@ -28,7 +28,7 @@ use std::sync::{Arc, Mutex};
 /// assert_ne!(array, Array::new());
 /// ```
 #[derive(Clone, Default, Debug)]
-pub struct Array(Arc<Mutex<Vec<Value>>>);
+pub struct Array(RefCount<Mutex<Vec<Value>>>);
 
 impl Eq for Array {}
 
@@ -36,19 +36,19 @@ impl Eq for Array {}
 /// instance.
 impl PartialEq for Array {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
 impl Hash for Array {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        Arc::as_ptr(&self.0).hash(state);
+        RefCount::as_ptr(&self.0).hash(state);
     }
 }
 
 impl ReferentialEq for Array {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
@@ -56,7 +56,7 @@ impl StructuralEq for Array {
     fn eq(&self, other: &Self) -> bool {
         // Check pointer equality first: if it's the same instance, we can't
         // do structural comparison like this because of the locks
-        if Arc::ptr_eq(&self.0, &other.0) {
+        if RefCount::ptr_eq(&self.0, &other.0) {
             return true;
         }
         let Ok(lhs) = self.0.lock() else { return false };
@@ -335,7 +335,7 @@ impl Display for Array {
 
 impl From<Vec<Value>> for Array {
     fn from(value: Vec<Value>) -> Self {
-        Self(Arc::new(Mutex::new(value)))
+        Self(RefCount::new(Mutex::new(value)))
     }
 }
 

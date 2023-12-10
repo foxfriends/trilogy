@@ -1,7 +1,5 @@
-use super::{Atom, Value};
-use crate::{ReferentialEq, StructuralEq};
+use super::{Atom, RefCount, ReferentialEq, StructuralEq, Value};
 use std::fmt::{self, Display};
-use std::sync::Arc;
 
 /// A Trilogy Struct value.
 ///
@@ -10,7 +8,7 @@ use std::sync::Arc;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Struct {
     name: Atom,
-    value: Arc<Value>,
+    value: RefCount<Value>,
 }
 
 impl StructuralEq for Struct {
@@ -45,7 +43,7 @@ impl Struct {
     {
         Self {
             name,
-            value: Arc::new(value.into()),
+            value: RefCount::new(value.into()),
         }
     }
 

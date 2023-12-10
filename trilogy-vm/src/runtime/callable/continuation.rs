@@ -1,8 +1,8 @@
+use super::super::RefCount;
 use crate::bytecode::Offset;
 use crate::vm::stack::Stack;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
-use std::sync::Arc;
 
 /// A continuation from a Trilogy program.
 ///
@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// It is not possible to construct a value of this type except from within a
 /// Trilogy program.
 #[derive(Clone)]
-pub(crate) struct Continuation(Arc<InnerContinuation>);
+pub(crate) struct Continuation(RefCount<InnerContinuation>);
 
 impl Debug for Continuation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,19 +32,19 @@ impl Eq for Continuation {}
 
 impl PartialEq for Continuation {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
+        RefCount::ptr_eq(&self.0, &other.0)
     }
 }
 
 impl Hash for Continuation {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        Arc::as_ptr(&self.0).hash(state);
+        RefCount::as_ptr(&self.0).hash(state);
     }
 }
 
 impl Continuation {
     pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
-        Self(Arc::new(InnerContinuation { ip, stack }))
+        Self(RefCount::new(InnerContinuation { ip, stack }))
     }
 
     pub(crate) fn ip(&self) -> Offset {

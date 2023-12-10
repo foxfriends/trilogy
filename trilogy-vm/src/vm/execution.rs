@@ -1,3 +1,5 @@
+#![allow(clippy::unnecessary_cast)]
+
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::program_reader::ProgramReader;
 use super::stack::{InternalValue, Stack};
@@ -308,7 +310,7 @@ impl<'a> Execution<'a> {
     pub(super) fn step(&mut self) -> Result<Step<Self>, Error> {
         let instruction = self.program.read_instruction(self.ip);
         self.error_ip = self.ip;
-        self.ip += instruction.byte_len() as u32;
+        self.ip += instruction.byte_len() as Offset;
         self.eval(instruction)
     }
 

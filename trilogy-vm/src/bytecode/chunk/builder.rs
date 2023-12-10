@@ -57,7 +57,7 @@ impl ChunkBuilder {
             opcode,
             value,
         };
-        self.ip += line.byte_len();
+        self.ip += line.byte_len() as Offset;
         self.lines.push(line);
         self
     }
@@ -147,7 +147,7 @@ impl ChunkBuilder {
     }
 
     pub(crate) fn build_from(self, chunk: &mut Chunk) -> Result<Offset, ChunkError> {
-        let initial_ip = chunk.bytes.len() as u32;
+        let initial_ip = chunk.bytes.len() as Offset;
         if let Some(error) = self.error {
             return Err(error);
         }
@@ -169,13 +169,13 @@ impl ChunkBuilder {
             for label in line.labels.drain(..) {
                 chunk.labels.insert(label, distance);
             }
-            distance += line.byte_len();
+            distance += line.byte_len() as Offset;
         }
 
         for line in lines.into_iter() {
-            chunk.bytes.extend((line.opcode as u32).to_be_bytes());
+            chunk.bytes.extend((line.opcode as Offset).to_be_bytes());
             match line.value {
-                None => chunk.bytes.extend([0; 4]),
+                None => chunk.bytes.extend([0; std::mem::size_of::<Offset>()]),
                 Some(Parameter::Offset(offset)) => chunk.bytes.extend(offset.to_be_bytes()),
                 Some(Parameter::Label(label)) => {
                     let offset = *chunk
@@ -187,11 +187,11 @@ impl ChunkBuilder {
                 Some(Parameter::Value(value)) => {
                     let index = match chunk.constants.iter().position(|val| *val == value) {
                         None => {
-                            let index = chunk.constants.len() as u32;
+                            let index = chunk.constants.len() as Offset;
                             chunk.constants.push(value);
                             index
                         }
-                        Some(index) => index as u32,
+                        Some(index) => index as Offset,
                     };
                     chunk.bytes.extend(index.to_be_bytes());
                 }
@@ -203,11 +203,11 @@ impl ChunkBuilder {
                     let value = Value::from(Procedure::new(offset));
                     let index = match chunk.constants.iter().position(|val| *val == value) {
                         None => {
-                            let index = chunk.constants.len() as u32;
+                            let index = chunk.constants.len() as Offset;
                             chunk.constants.push(value);
                             index
                         }
-                        Some(index) => index as u32,
+                        Some(index) => index as Offset,
                     };
                     chunk.bytes.extend(index.to_be_bytes());
                 }

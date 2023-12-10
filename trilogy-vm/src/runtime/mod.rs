@@ -25,3 +25,5 @@ pub use set::Set;
 pub use string::String;
 pub use tuple::Tuple;
 pub use value::Value;
+
+use super::RefCount;

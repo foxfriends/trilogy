@@ -1,13 +1,13 @@
 use crate::callable::Procedure;
 use crate::{atom::AtomInterner, Chunk, ChunkBuilder, ChunkError, Instruction, Value};
-use crate::{Annotation, Offset, Program};
+use crate::{Annotation, Offset, Program, RefCount};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 pub(super) struct ProgramReader<'a> {
     program: &'a dyn Program,
-    chunk: Arc<RwLock<Chunk>>,
-    chunk_cache: Arc<RwLock<HashMap<Value, Value>>>,
+    chunk: RefCount<RwLock<Chunk>>,
+    chunk_cache: RefCount<RwLock<HashMap<Value, Value>>>,
     atom_interner: AtomInterner,
     entrypoint: Offset,
 }
@@ -34,14 +34,14 @@ impl<'a> ProgramReader<'a> {
         let (entrypoint, chunk) = builder.build()?;
         Ok(Self {
             program,
-            chunk: Arc::new(RwLock::new(chunk)),
-            chunk_cache: Arc::default(),
+            chunk: RefCount::new(RwLock::new(chunk)),
+            chunk_cache: RefCount::default(),
             atom_interner,
             entrypoint,
         })
     }
 
-    pub(super) fn read_instruction(&self, offset: u32) -> Instruction {
+    pub(super) fn read_instruction(&self, offset: Offset) -> Instruction {
         Instruction::from_chunk(&self.chunk.read().unwrap(), offset)
     }
 

@@ -1,7 +1,7 @@
 use super::error::InternalRuntimeError;
 use super::execution::Cont;
-use crate::cactus::Cactus;
 use crate::Value;
+use crate::{cactus::Cactus, Offset};
 use std::fmt::{self, Debug, Display};
 
 mod internal_value;
@@ -144,7 +144,7 @@ impl Stack {
     fn get_local_offset(&self, index: usize) -> Result<usize, InternalRuntimeError> {
         let locals = self.count_locals();
         if index >= locals {
-            return Err(InternalRuntimeError::OutOfStackRange(index as u32));
+            return Err(InternalRuntimeError::OutOfStackRange(index as Offset));
         }
         Ok(locals - index - 1)
     }

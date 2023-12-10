@@ -210,8 +210,8 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                         conversions.push(quote! { #instruction::#ident(..)  => #name::#ident });
                         let count = fields.unnamed.len();
                         params.push(quote! { #name::#ident => #count });
-                        let get_params = (0..count as u32).map(|_| {
-                            quote! { FromChunk::from_chunk(chunk, u32::from_be(raw.param)) }
+                        let get_params = (0..count).map(|_| {
+                            quote! { FromChunk::from_chunk(chunk, Offset::from_be(raw.param)) }
                         });
                         from_chunk.push(
                             quote! { #name::#ident => #instruction::#ident(#(#get_params),*) },
@@ -251,7 +251,7 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
         }
 
         impl #name {
-            pub const fn params(&self)-> usize {
+            pub const fn params(&self) -> usize {
                 match self {
                     #(#params),*
                 }
@@ -291,13 +291,13 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> syn::Result<TokenStream> {
         impl #instruction {
             pub(crate) fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
                 let raw = chunk.instruction_bytes(offset);
-                match OpCode::try_from(u32::from_be(raw.opcode)).unwrap() {
+                match OpCode::try_from(Offset::from_be(raw.opcode)).unwrap() {
                     #(#from_chunk),*
                 }
             }
 
             /// The number of bytes this instruction takes up in bytecode form.
-            pub const fn byte_len(&self) -> usize { 8 }
+            pub const fn byte_len(&self) -> usize { std::mem::size_of::<Offset>() * 2 }
 
             /// The opcode corresponding to this instruction.
             pub const fn op_code(&self) -> #name {

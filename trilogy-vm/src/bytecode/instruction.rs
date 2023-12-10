@@ -3,7 +3,19 @@ use crate::Value;
 use trilogy_vm_derive::Asm;
 
 /// Integer type used as the single parameter to some instructions.
+#[cfg(not(any(feature = "64bit", feature = "32bit")))]
+pub type Offset = usize;
+
+/// Integer type used as the single parameter to some instructions.
+#[cfg(all(feature = "64bit", not(feature = "#2bit")))]
+pub type Offset = u64;
+
+/// Integer type used as the single parameter to some instructions.
+#[cfg(feature = "32bit")]
 pub type Offset = u32;
+
+#[cfg(all(feature = "32bit", feature = "64bit"))]
+compile_error!("Exactly one of the features `32bit` or `64bit` may be specified at one time.");
 
 /// An instruction for the Trilogy VM.
 ///
@@ -12,7 +24,9 @@ pub type Offset = u32;
 /// is different depending on the specific instruction.
 #[rustfmt::skip]
 #[derive(Debug, Asm)]
-#[asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u32))]
+#[cfg_attr(not(any(feature = "64bit", feature = "32bit")), asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(usize)))]
+#[cfg_attr(all(feature = "64bit", not(feature = "#2bit")), asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u64)))]
+#[cfg_attr(feature = "32bit", asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u32)))]
 pub enum Instruction {
     // Stack
     /// Push a constant value to the top of the stack
@@ -296,11 +310,11 @@ pub enum Instruction {
     Debug,
 }
 
-impl TryFrom<u32> for OpCode {
-    type Error = u32;
+impl TryFrom<Offset> for OpCode {
+    type Error = Offset;
 
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        if value <= Self::Debug as u32 {
+    fn try_from(value: Offset) -> Result<Self, Self::Error> {
+        if value <= Self::Debug as Offset {
             Ok(unsafe { std::mem::transmute(value) })
         } else {
             Err(value)

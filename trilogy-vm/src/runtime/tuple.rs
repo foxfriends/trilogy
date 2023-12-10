@@ -1,11 +1,9 @@
-use super::Value;
-use super::{ReferentialEq, StructuralEq};
+use super::{RefCount, ReferentialEq, StructuralEq, Value};
 use std::fmt::{self, Display};
-use std::sync::Arc;
 
 /// A Trilogy Tuple.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Debug, Hash)]
-pub struct Tuple(Arc<(Value, Value)>);
+pub struct Tuple(RefCount<(Value, Value)>);
 
 impl StructuralEq for Tuple {
     fn eq(&self, other: &Self) -> bool {
@@ -21,7 +19,7 @@ impl ReferentialEq for Tuple {
 
 impl Tuple {
     pub fn new(lhs: Value, rhs: Value) -> Self {
-        Self(Arc::new((lhs, rhs)))
+        Self(RefCount::new((lhs, rhs)))
     }
 
     pub fn uncons(self) -> (Value, Value) {
