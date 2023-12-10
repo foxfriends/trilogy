@@ -12,10 +12,9 @@ pub type Offset = u32;
 /// is different depending on the specific instruction.
 #[rustfmt::skip]
 #[derive(Debug, Asm)]
-#[asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u8))]
+#[asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u32))]
 pub enum Instruction {
     // Stack
-
     /// Push a constant value to the top of the stack
     Const(Value),
     /// Push a second copy of the value currently on the top of the stack.
@@ -297,11 +296,11 @@ pub enum Instruction {
     Debug,
 }
 
-impl TryFrom<u8> for OpCode {
-    type Error = u8;
+impl TryFrom<u32> for OpCode {
+    type Error = u32;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value <= Self::Debug as u8 {
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value <= Self::Debug as u32 {
             Ok(unsafe { std::mem::transmute(value) })
         } else {
             Err(value)
@@ -314,12 +313,14 @@ trait FromChunk {
 }
 
 impl FromChunk for Offset {
-    fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
-        chunk.offset(offset)
+    #[inline(always)]
+    fn from_chunk(_: &Chunk, offset: Offset) -> Self {
+        offset
     }
 }
 
 impl FromChunk for Value {
+    #[inline(always)]
     fn from_chunk(chunk: &Chunk, offset: Offset) -> Self {
         chunk.constant(offset)
     }

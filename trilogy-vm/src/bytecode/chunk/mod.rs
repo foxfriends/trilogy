@@ -1,5 +1,6 @@
+use super::instruction::{Instruction, RawInstruction};
 use crate::callable::{Callable, CallableKind};
-use crate::{Instruction, Offset, OpCode, Value};
+use crate::{Offset, Value};
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display};
 
@@ -119,20 +120,17 @@ impl Debug for Chunk {
 }
 
 impl Chunk {
-    pub(crate) fn opcode(&self, offset: Offset) -> OpCode {
-        OpCode::try_from(self.bytes[offset as usize]).unwrap()
+    #[inline(always)]
+    pub(crate) fn instruction_bytes(&self, index: Offset) -> RawInstruction {
+        let mut bytes = [0; std::mem::size_of::<RawInstruction>()];
+        bytes.copy_from_slice(
+            &self.bytes[index as usize..index as usize + std::mem::size_of::<RawInstruction>()],
+        );
+        unsafe { std::mem::transmute(bytes) }
     }
 
-    pub(crate) fn offset(&self, offset: Offset) -> Offset {
-        Offset::from_be_bytes(
-            self.bytes[offset as usize..offset as usize + 4]
-                .try_into()
-                .unwrap(),
-        )
-    }
-
-    pub(crate) fn constant(&self, offset: Offset) -> Value {
-        let index = self.offset(offset);
+    #[inline(always)]
+    pub(crate) fn constant(&self, index: Offset) -> Value {
         self.constants[index as usize].clone()
     }
 

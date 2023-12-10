@@ -173,9 +173,9 @@ impl ChunkBuilder {
         }
 
         for line in lines.into_iter() {
-            chunk.bytes.push(line.opcode as u8);
+            chunk.bytes.extend((line.opcode as u32).to_be_bytes());
             match line.value {
-                None => {}
+                None => chunk.bytes.extend([0; 4]),
                 Some(Parameter::Offset(offset)) => chunk.bytes.extend(offset.to_be_bytes()),
                 Some(Parameter::Label(label)) => {
                     let offset = *chunk
@@ -289,14 +289,7 @@ impl ChunkWriter for ChunkBuilder {
             Instruction::Shift(offset) => Some(Parameter::Offset(offset)),
             Instruction::Jump(offset) => Some(Parameter::Offset(offset)),
             Instruction::CondJump(offset) => Some(Parameter::Offset(offset)),
-            _ => {
-                assert_eq!(
-                    instruction.byte_len(),
-                    1,
-                    "{instruction} needs to be handled"
-                );
-                None
-            }
+            _ => None,
         };
         self.write_line(opcode, value)
     }

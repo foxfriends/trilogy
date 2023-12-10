@@ -16,11 +16,7 @@ pub(crate) struct Line {
 }
 
 impl Line {
-    pub(crate) fn byte_len(&self) -> Offset {
-        if self.value.is_some() {
-            5
-        } else {
-            1
-        }
+    pub(crate) const fn byte_len(&self) -> Offset {
+        8
     }
 }
