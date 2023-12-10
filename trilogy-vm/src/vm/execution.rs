@@ -263,7 +263,7 @@ impl<'a> Execution<'a> {
     }
 
     fn r#become(&mut self, arity: usize) -> Result<(), Error> {
-        self.stack.prepare_to_pop(arity as usize + 1);
+        self.stack.prepare_to_pop(arity + 1);
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {

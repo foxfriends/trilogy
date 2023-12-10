@@ -112,6 +112,23 @@ impl<T> Cactus<T> {
         self.stack.len()
     }
 
+    /// Returns true if the current branch of this cactus is empty. Does not take into account parents.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let mut cactus = Cactus::new();
+    /// assert!(cactus.is_empty());
+    /// cactus.push(1);
+    /// assert!(!cactus.is_empty());
+    /// cactus.branch();
+    /// assert!(cactus.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.stack.is_empty()
+    }
+
     /// Returns the total length of this cactus, including all parents of the current branch.
     ///
     /// # Examples
