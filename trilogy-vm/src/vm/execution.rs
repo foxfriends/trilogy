@@ -24,12 +24,12 @@ pub(super) enum Step<E> {
 
 #[allow(clippy::type_complexity)]
 #[derive(Clone)]
-pub(super) struct Callback(
+pub(crate) struct Callback(
     Arc<Mutex<dyn FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static>>,
 );
 
 #[derive(Clone)]
-pub(super) enum Cont {
+pub(crate) enum Cont {
     Offset(Offset),
     Callback(Callback),
 }
