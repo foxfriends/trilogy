@@ -45,17 +45,19 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     context.instruction(Instruction::SetRegister(TEMPORARY));
     // First check all the parameters, make sure they work. If they don't
     // match, we can fail without even constructing the state.
-    let mut cleanup = vec![];
+    let cleanup = context.make_label("cleanup");
     // Track how many variables get declared in the parameters so that they
     // can properly be cleaned up at the end. These parameters only need to
     // exist inside the closure, and must not exist on stack outside the closure.
-    let mut total_declared = 0;
+    let all_bindings = rule
+        .parameters
+        .iter()
+        .flat_map(|param| param.bindings())
+        .collect::<HashSet<_>>();
+    // Variables of every binding are declared up front.
+    let mut total_declared = context.declare_variables(all_bindings.clone());
     for (i, parameter) in rule.parameters.iter().enumerate() {
         let skip = context.make_label("skip");
-        cleanup.push(context.make_label("cleanup"));
-        // Variables of this binding must be declared, whether they are about to
-        // be set or not.
-        total_declared += context.declare_variables(parameter.bindings());
         // Then we only set those bindings if the parameter was passed.
         context
             .instruction(Instruction::IsSetLocal(1 + i as Offset))
@@ -69,7 +71,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.intermediate(); // bindset
         context
             .instruction(Instruction::LoadLocal(1 + i as Offset))
-            .pattern_match(parameter, &cleanup[i])
+            .pattern_match(parameter, &cleanup)
             .end_intermediate() // bindset
             .instruction(Instruction::SetRegister(TEMPORARY))
             .label(skip);
@@ -165,10 +167,8 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
 
     // Sad path: we have to undeclare all the variables that have been
     // declared so far, then fail as regular.
-    for parameter in rule.parameters.iter().rev() {
-        context.label(cleanup.pop().unwrap());
-        context.undeclare_variables(parameter.bindings(), true);
-    }
+    context.label(&cleanup);
+    context.undeclare_variables(all_bindings, true);
     context
         .instruction(Instruction::Pop) // The bindset is still on the stack during cleanup!
         .jump(on_fail)
