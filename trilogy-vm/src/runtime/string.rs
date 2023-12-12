@@ -1,13 +1,19 @@
 use super::RefCount;
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Deref};
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct String(RefCount<std::string::String>);
 
 impl Display for String {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Debug for String {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
     }
 }
 
