@@ -93,3 +93,16 @@ test "a rule is not equal to another rule" {
     assert ab != fact
     assert ab !== fact
 }
+
+rule always(_)
+rule always_but_bound(s)
+rule only(3)
+
+test "wildcards in rules work correctly" {
+    assert is always(3)
+    assert is always_but_bound(3)
+    # assert is not always(_) # TODO this case is not yet implemented
+    assert is not always_but_bound(_)
+    assert is only(3)
+    assert is only(_)
+}

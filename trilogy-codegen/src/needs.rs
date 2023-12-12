@@ -74,6 +74,7 @@ pub(crate) struct ResumeCancel {
 }
 
 impl ResumeCancel {
+    #[allow(dead_code)]
     pub fn check(val: impl IrVisitable) -> Self {
         let mut needs = Self {
             st_cancel: false,

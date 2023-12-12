@@ -29,6 +29,9 @@ enum Command {
         /// Print the exit value instead of using it as the exit code.
         #[arg(short, long)]
         print: bool,
+        /// Print the debug trace instead of the regular stack trace on error.
+        #[arg(long)]
+        debug: bool,
     },
     /// Runs a pre-compiled Trilogy program by interfacing with the VM directly.
     Vm {
@@ -42,6 +45,9 @@ enum Command {
         /// Print the exit value instead of using it as the exit code.
         #[arg(short, long)]
         print: bool,
+        /// Print the debug trace instead of the regular stack trace on error.
+        #[arg(long)]
+        debug: bool,
     },
     /// Compile a Trilogy program, printing the ASM it compiles to.
     /// Redirect to a file is recommended.
@@ -87,7 +93,7 @@ enum Command {
     Dev(dev::Command),
 }
 
-fn handle(result: Result<Value, RuntimeError>, print: bool) {
+fn handle(result: Result<Value, RuntimeError>, print: bool, debug: bool) {
     match result {
         Ok(value) if print => {
             println!("{}", value);
@@ -109,6 +115,10 @@ fn handle(result: Result<Value, RuntimeError>, print: bool) {
             std::process::exit(255)
         }
         Ok(..) => std::process::exit(255),
+        Err(error) if debug => {
+            eprintln!("{error:?}");
+            std::process::exit(255);
+        }
         Err(error) => {
             eprintln!("{error}");
             std::process::exit(255);
@@ -116,8 +126,8 @@ fn handle(result: Result<Value, RuntimeError>, print: bool) {
     }
 }
 
-fn run(trilogy: Trilogy, print: bool) {
-    handle(trilogy.run(), print)
+fn run(trilogy: Trilogy, print: bool, debug: bool) {
+    handle(trilogy.run(), print, debug)
 }
 
 fn main() -> std::io::Result<()> {
@@ -128,8 +138,9 @@ fn main() -> std::io::Result<()> {
             file,
             print,
             no_std: _,
+            debug,
         } => match Trilogy::from_file(file) {
-            Ok(trilogy) => run(trilogy, print),
+            Ok(trilogy) => run(trilogy, print, debug),
             Err(report) => {
                 report.eprint();
                 std::process::exit(1);
@@ -139,8 +150,9 @@ fn main() -> std::io::Result<()> {
             file: Some(path),
             print,
             no_std: _,
+            debug,
         } => match Builder::default().build_from_asm(&mut std::fs::File::open(path)?) {
-            Ok(trilogy) => run(trilogy, print),
+            Ok(trilogy) => run(trilogy, print, debug),
             Err(errors) => {
                 eprintln!("{errors}");
                 std::process::exit(1);
@@ -150,8 +162,9 @@ fn main() -> std::io::Result<()> {
             file: None,
             print,
             no_std: _,
+            debug,
         } => match Builder::default().build_from_asm(&mut stdin()) {
-            Ok(trilogy) => run(trilogy, print),
+            Ok(trilogy) => run(trilogy, print, debug),
             Err(errors) => {
                 eprintln!("{errors}");
                 std::process::exit(1);

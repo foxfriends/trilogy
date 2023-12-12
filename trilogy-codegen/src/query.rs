@@ -3,7 +3,7 @@ use crate::{delegate_label_maker, delegate_stack_tracker};
 use crate::{preamble::ITERATE_COLLECTION, prelude::*};
 use std::borrow::Cow;
 use std::collections::HashSet;
-use trilogy_ir::visitor::{HasBindings, HasReferences, IrVisitable, IrVisitor};
+use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, HasReferences, IrVisitable, IrVisitor};
 use trilogy_ir::{ir, Id};
 use trilogy_vm::{delegate_chunk_writer, Annotation, Instruction, Location};
 
@@ -1037,7 +1037,11 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 // Then do the evaluation. Patterns with unbound variables will evaluate to
                 // being unbound, as they are being used as output parameters at this time.
                 for pattern in &lookup.patterns {
-                    context.evaluate_or_skip(pattern).intermediate();
+                    if pattern.can_evaluate() {
+                        context.evaluate_or_skip(pattern).intermediate();
+                    } else {
+                        context.instruction(Instruction::Variable).intermediate();
+                    }
                 }
                 // Then we do the call, with all those arguments
                 context.call_rule(lookup.patterns.len());

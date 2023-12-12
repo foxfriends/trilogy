@@ -2,7 +2,7 @@ use crate::context::Context;
 use crate::prelude::*;
 use std::collections::HashSet;
 use trilogy_ir::ir;
-use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
+use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, HasReferences};
 use trilogy_vm::{Instruction, Offset};
 
 pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) {
@@ -90,7 +90,9 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // returning the return value in 'next. We convert failure to
     // returning 'done, as in a regular iterator.
     let on_done = context.make_label("on_done");
+    let start = context.make_label("start");
     context
+        .label(&start)
         .instruction(Instruction::LoadLocal(actual_state))
         .execute_query(&rule.body, &on_done)
         .instruction(Instruction::SetLocal(actual_state))
@@ -99,6 +101,24 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // the parameter patterns now as expressions.
     context.scope.intermediate(); // At this point, the query state is an intermediate
 
+    // Every parameter must be fully evaluated in order for a rule to return those values.
+    // This is probably a limitation right now, and maybe can be relaxed allowing returning
+    // still-unbound variables, but that is unecessary right now.
+    //
+    // Instead, just ensure that every variable referenced in every parameter is bound before
+    // returning. If any are not, then call the rule again.
+    for id in rule
+        .parameters
+        .iter()
+        .flat_map(|param| param.references())
+        .collect::<HashSet<_>>()
+    {
+        if let Binding::Variable(index) = context.scope.lookup(&id).unwrap() {
+            context
+                .instruction(Instruction::IsSetLocal(index))
+                .cond_jump(&start);
+        }
+    }
     // Stack these up in reverse so that when the caller starts pattern matching they are
     // doing it left to right, as expected.
     for (i, param) in rule.parameters.iter().enumerate().rev() {
