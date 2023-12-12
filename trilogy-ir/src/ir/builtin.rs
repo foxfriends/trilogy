@@ -44,7 +44,6 @@ pub enum Builtin {
     Is,
     Typeof,
     Pin,
-    For,
     Yield,
     Resume,
     Cancel,

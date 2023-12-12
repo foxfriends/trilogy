@@ -3,6 +3,7 @@ mod entrypoint;
 mod evaluation;
 mod function;
 mod module;
+mod needs;
 mod operator;
 mod pattern_match;
 mod preamble;

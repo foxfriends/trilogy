@@ -1,8 +1,6 @@
+use crate::prelude::*;
 use std::cell::Cell;
 use std::collections::HashSet;
-
-use crate::preamble::END;
-use crate::{prelude::*, ASSIGN};
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, IrVisitable, IrVisitor};
 use trilogy_vm::{Annotation, Array, Instruction, Location, Offset, Record, Set, Value};
@@ -417,6 +415,10 @@ impl IrVisitor for Evaluator<'_, '_> {
         self.context.instruction(Instruction::Fizzle);
     }
 
+    fn visit_for(&mut self, iter: &ir::Iterator) {
+        self.context.r#for(&iter.query, &iter.value.value);
+    }
+
     fn visit_application(&mut self, application: &ir::Application) {
         match unapply_2(application) {
             (
@@ -547,9 +549,6 @@ impl IrVisitor for Evaluator<'_, '_> {
             }
             (None, ir::Value::Builtin(ir::Builtin::Array), ..) => {
                 unreachable!("array is applied to pack or iterator");
-            }
-            (None, ir::Value::Builtin(ir::Builtin::For), ir::Value::Iterator(iter)) => {
-                self.context.r#for(&iter.query, &iter.value.value);
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = self.context.make_label("is_fail");

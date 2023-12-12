@@ -91,6 +91,7 @@ pub trait IrVisitor: Sized {
     visit_node!(visit_query, Query);
     visit_node!(visit_iterator, Iterator);
     visit_node!(visit_while, While);
+    visit_node!(visit_for, Iterator);
     visit_node!(visit_application, Application);
     visit_node!(visit_let, Let);
     visit_node!(visit_if_else, IfElse);
@@ -154,6 +155,7 @@ impl IrVisitable for Value {
             Query(val) => visitor.visit_query(val),
             Iterator(val) => visitor.visit_iterator(val),
             While(val) => visitor.visit_while(val),
+            For(val) => visitor.visit_for(val),
             Application(val) => visitor.visit_application(val),
             Let(val) => visitor.visit_let(val),
             IfElse(val) => visitor.visit_if_else(val),

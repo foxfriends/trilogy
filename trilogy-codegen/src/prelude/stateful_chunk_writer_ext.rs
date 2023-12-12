@@ -1,3 +1,4 @@
+use crate::needs::BreakContinue;
 use crate::prelude::*;
 pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use trilogy_vm::Instruction;
@@ -262,6 +263,7 @@ pub(crate) trait StatefulChunkWriterExt:
         head: G,
         body: H,
         cleanup: I,
+        needs: BreakContinue,
     ) -> &mut Self {
         let begin = self.make_label("loop");
         let done = self.make_label("loop_done");
@@ -270,8 +272,14 @@ pub(crate) trait StatefulChunkWriterExt:
         // Break is just a continuation that points to the end of the loop. The value
         // passed to break is discarded
         let r#break = self
-            .continuation_fn(|c| {
-                c.instruction(Instruction::Pop).jump(&end);
+            .pipe(|c| {
+                if needs.fc_break || needs.st_break {
+                    c.continuation_fn(|c| {
+                        c.instruction(Instruction::Pop).jump(&end);
+                    });
+                } else {
+                    c.constant(());
+                }
             })
             .intermediate();
         // The actual loop we can implement in the standard way after the continuations are
@@ -283,8 +291,14 @@ pub(crate) trait StatefulChunkWriterExt:
         // If it's true, run the body. The body has access to continue and break.
         // Continue is a continuation much like break, but it points to the start of the loop
         let r#continue = self
-            .continuation_fn(|c| {
-                c.instruction(Instruction::Pop).jump(&begin);
+            .pipe(|c| {
+                if needs.fc_continue || needs.st_continue {
+                    c.continuation_fn(|c| {
+                        c.instruction(Instruction::Pop).jump(&begin);
+                    });
+                } else {
+                    c.constant(());
+                }
             })
             .intermediate();
         self.push_break(r#break)

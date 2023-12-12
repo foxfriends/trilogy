@@ -1,5 +1,6 @@
 use super::{Labeler, Scope};
 use crate::evaluation::CodegenEvaluate;
+use crate::needs::BreakContinue;
 use crate::pattern_match::CodegenPatternMatch;
 use crate::query::CodegenQuery;
 use crate::{delegate_label_maker, delegate_stack_tracker, prelude::*};
@@ -181,6 +182,7 @@ impl Context<'_> {
     }
 
     pub fn r#while(&mut self, condition: &ir::Value, body: &ir::Value) -> &mut Self {
+        let needs = BreakContinue::check(body);
         self.r#loop(
             |_| {},
             |context, done| {
@@ -193,6 +195,7 @@ impl Context<'_> {
                 context.evaluate(body);
             },
             |_| {},
+            needs,
         )
         // Evaluation requires that an extra value ends up on the stack.
         // While "evaluates" to unit
@@ -201,6 +204,7 @@ impl Context<'_> {
 
     pub fn r#for(&mut self, query: &ir::Query, body: &ir::Value) -> &mut Self {
         let did_match = self.constant(false).intermediate();
+        let needs = BreakContinue::check(body);
         self.r#loop(
             |context| {
                 context.declare_variables(query.bindings());
@@ -222,6 +226,7 @@ impl Context<'_> {
                     .instruction(Instruction::Pop)
                     .undeclare_variables(query.bindings(), true);
             },
+            needs,
         )
         .end_intermediate() // did match (no longer intermediate)
     }

@@ -349,12 +349,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             context.instruction(Instruction::TypeOf);
         }
         Builtin::Pin => {}
-        Builtin::ModuleAccess
-        | Builtin::Array
-        | Builtin::Set
-        | Builtin::Record
-        | Builtin::Is
-        | Builtin::For => {
+        Builtin::ModuleAccess | Builtin::Array | Builtin::Set | Builtin::Record | Builtin::Is => {
             panic!("write_operator was called with a builtin that is not an operator")
         }
     };
@@ -454,7 +449,6 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         | Builtin::Record
         | Builtin::Is
         | Builtin::Pin
-        | Builtin::For
         | Builtin::Yield
         | Builtin::Sequence
         | Builtin::Construct

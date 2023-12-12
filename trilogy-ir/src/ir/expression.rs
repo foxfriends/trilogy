@@ -453,14 +453,12 @@ impl Expression {
         else_block
             .into_iter()
             .chain(ast.branches.into_iter().rev().map(|branch| {
-                let for_span = branch.for_token().span;
                 let span = branch.span();
                 converter.push_scope();
                 let query = Query::convert(converter, branch.query);
                 let value = Expression::convert_block(converter, branch.body);
                 converter.pop_scope();
-                Expression::builtin(for_span, Builtin::For)
-                    .apply_to(span, Expression::iterator(span, query, value))
+                Expression::r#for(span, Iterator::new(query, value))
             }))
             .reduce(|if_none, case| {
                 let case_span = case.span;
@@ -611,6 +609,10 @@ impl Expression {
         Self::new(span, Value::While(Box::new(body)))
     }
 
+    pub(super) fn r#for(span: Span, body: Iterator) -> Self {
+        Self::new(span, Value::For(Box::new(body)))
+    }
+
     pub(super) fn r#match(span: Span, body: Match) -> Self {
         Self::new(span, Value::Match(Box::new(body)))
     }
@@ -703,6 +705,7 @@ pub enum Value {
     Query(Box<Query>),
     Iterator(Box<Iterator>),
     While(Box<While>),
+    For(Box<Iterator>),
     Application(Box<Application>),
     Let(Box<Let>),
     IfElse(Box<IfElse>),
