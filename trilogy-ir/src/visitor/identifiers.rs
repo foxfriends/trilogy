@@ -24,4 +24,8 @@ impl IrVisitor for Identifiers {
             _ => node.visit(self),
         }
     }
+
+    fn visit_fn(&mut self, _node: &Function) {}
+    fn visit_do(&mut self, _node: &Procedure) {}
+    fn visit_qy(&mut self, _node: &Rule) {}
 }
