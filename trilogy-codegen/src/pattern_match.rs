@@ -246,7 +246,10 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                     .try_type("tuple", Err(&cleanup))
                     .instruction(Instruction::Uncons)
                     .instruction(Instruction::Swap)
+                    .intermediate(); // rhs
+                self.context
                     .pattern_match(lhs, &cleanup)
+                    .end_intermediate() // rhs
                     .pattern_match(rhs, self.on_fail)
                     // If the first matching fails, we have to clean up the second
                     .bubble(|c| {

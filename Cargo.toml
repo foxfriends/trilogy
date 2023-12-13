@@ -14,10 +14,8 @@ members = [
 
 [profile.release]
 panic = "abort"
+#
+[profile.release-lto]
+inherits = "release"
 codegen-units = 1
 lto = "fat"
-
-[profile.perf]
-inherits = "release"
-codegen-units = 16
-lto = false
