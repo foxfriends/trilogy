@@ -43,7 +43,7 @@ func length x : xs = 1 + length xs
 export length
 
 test "length" {
-    assert length 1:2:3:unit == 3
+    assert length (1:2:3:unit) == 3
     assert length unit == 0
 }
 
