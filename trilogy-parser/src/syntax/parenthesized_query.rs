@@ -4,25 +4,29 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ParenthesizedQuery {
-    start: Token,
+    pub oparen: Token,
     pub query: Query,
-    end: Token,
+    pub cparen: Token,
 }
 
 impl ParenthesizedQuery {
     pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
-        let start = parser
+        let oparen = parser
             .expect(OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;
         match Query::parse_or_pattern_parenthesized(parser)? {
             Ok(query) => {
-                let end = parser
+                let cparen = parser
                     .expect(CParen)
                     .map_err(|token| parser.expected(token, "expected `)`"))?;
-                Ok(Ok(Self { start, query, end }))
+                Ok(Ok(Self {
+                    oparen,
+                    query,
+                    cparen,
+                }))
             }
             Err(pattern) => Ok(Err(Pattern::Parenthesized(Box::new(
-                ParenthesizedPattern::finish(parser, start, pattern)?,
+                ParenthesizedPattern::finish(parser, oparen, pattern)?,
             )))),
         }
     }

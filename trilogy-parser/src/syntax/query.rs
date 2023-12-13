@@ -1,5 +1,5 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -148,10 +148,7 @@ impl Query {
         parser: &mut Parser,
     ) -> SyntaxResult<Result<Self, Pattern>> {
         use TokenType::*;
-        if parser
-            .check([KwIf, KwPass, KwEnd, KwIs, KwNot, OParen])
-            .is_ok()
-        {
+        if parser.check([KwIf, KwPass, KwEnd, KwIs, KwNot]).is_ok() {
             // Definitely a query
             Self::parse_precedence(parser, Precedence::None).map(Ok)
         } else if parser.check(OParen).is_ok() {
@@ -159,8 +156,29 @@ impl Query {
             Ok(ParenthesizedQuery::parse_or_pattern(parser)?
                 .map(|query| Self::Parenthesized(Box::new(query))))
         } else {
-            // Starts with a pattern, but might be a unification
-            let pattern = Pattern::parse(parser)?;
+            // Starts with a pattern, but might be a unification or lookup
+            let expression_or_pattern = Expression::parse_or_pattern(parser)?;
+            let pattern = match expression_or_pattern {
+                Ok(expression) if parser.check(OParen).is_ok() => {
+                    // If the next character is `(`, then this is a lookup
+                    let lookup = Self::Lookup(Box::new(Lookup::parse_rest(parser, expression)?));
+                    return Ok(Ok(Self::parse_precedence_followers(
+                        parser,
+                        Precedence::None,
+                        lookup,
+                    )?));
+                }
+                Ok(expression) if expression.is_pattern() => expression.try_into().unwrap(),
+                Ok(expression) => {
+                    let error = SyntaxError::new(
+                        expression.span(),
+                        "bare expressions are not valid in queries",
+                    );
+                    parser.error(error.clone());
+                    return Err(error);
+                }
+                Err(pattern) => pattern,
+            };
             if parser.check(CParen).is_ok() {
                 // Some parentheses have ended, the caller is going to be expecting to handle
                 // that.
