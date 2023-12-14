@@ -9,6 +9,8 @@ pub struct Stats {
     pub instruction_timing: BTreeMap<OpCode, Duration>,
     pub instruction_read_duration: Duration,
     pub native_duration: Duration,
+    pub branch_hits: usize,
+    pub branch_misses: usize,
 }
 
 impl Display for Stats {
@@ -21,16 +23,19 @@ impl Display for Stats {
         writeln!(f, "--- Basic Statistics ---")?;
         writeln!(
             f,
-            "Reading Instructions: {:?} (avg: {:?})",
+            "Read instruction duration: {:?} (avg: {:?})",
             self.instruction_read_duration,
             self.instruction_read_duration / total_instructions as u32,
         )?;
-        writeln!(f, "Native call duration: {:?}", self.native_duration,)?;
+        writeln!(f, "     Native call duration: {:?}", self.native_duration,)?;
         writeln!(
             f,
-            "Total duration: {:?}",
+            "           Total duration: {:?}",
             self.instruction_read_duration + total_duration,
         )?;
+
+        writeln!(f, "JUMPF accuracy: {:>8} hits", self.branch_hits)?;
+        writeln!(f, "                {:>8} miss", self.branch_misses)?;
 
         let max_times = self
             .instructions_executed

@@ -90,6 +90,8 @@ pub struct Execution<'a> {
 #[derive(Default)]
 struct StepStats {
     native_duration: Duration,
+    branch_hit: bool,
+    branch_miss: bool,
 }
 
 impl<'a> Execution<'a> {
@@ -377,6 +379,12 @@ impl<'a> Execution<'a> {
             let mut stats = self.stats.lock().unwrap();
             *stats.instruction_timing.entry(opcode).or_default() += duration;
             stats.native_duration += self.step_stats.native_duration;
+            if self.step_stats.branch_hit {
+                stats.branch_hits += 1;
+            }
+            if self.step_stats.branch_miss {
+                stats.branch_misses += 1;
+            }
         }
         res
     }
@@ -929,8 +937,19 @@ impl<'a> Execution<'a> {
             Instruction::CondJump(offset) => {
                 let cond = self.stack_pop()?;
                 match cond {
-                    Value::Bool(false) => self.ip = offset,
-                    Value::Bool(true) => {}
+                    Value::Bool(false) => {
+                        #[cfg(feature = "stats")]
+                        {
+                            self.step_stats.branch_miss = true;
+                        }
+                        self.ip = offset;
+                    }
+                    Value::Bool(true) => {
+                        #[cfg(feature = "stats")]
+                        {
+                            self.step_stats.branch_hit = true;
+                        }
+                    }
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),
                 }
             }
