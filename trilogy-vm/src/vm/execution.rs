@@ -9,6 +9,8 @@ use super::Stats;
 use crate::atom::AtomInterner;
 use crate::callable::{Closure, Continuation};
 use crate::runtime::callable::{Callable, CallableKind};
+#[cfg(feature = "stats")]
+use crate::RefCount;
 use crate::{Atom, Instruction, Number, Offset, ReferentialEq, Struct, StructuralEq, Tuple, Value};
 use num::ToPrimitive;
 use std::cmp::Ordering;
@@ -83,7 +85,7 @@ pub struct Execution<'a> {
     stack: Stack,
     registers: Vec<Value>,
     #[cfg(feature = "stats")]
-    stats: Arc<Stats>,
+    stats: RefCount<Stats>,
     #[cfg(feature = "stats")]
     step_stats: StepStats,
 }
@@ -101,7 +103,7 @@ impl<'a> Execution<'a> {
         atom_interner: AtomInterner,
         program: ProgramReader<'a>,
         registers: Vec<Value>,
-        #[cfg(feature = "stats")] stats: Arc<Stats>,
+        #[cfg(feature = "stats")] stats: RefCount<Stats>,
     ) -> Self {
         Self {
             atom_interner: atom_interner.clone(),

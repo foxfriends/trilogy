@@ -11,7 +11,7 @@ use std::collections::HashSet;
 #[cfg(feature = "stats")]
 use super::Stats;
 #[cfg(feature = "stats")]
-use std::sync::Arc;
+use crate::RefCount;
 
 /// Interface to the Trilogy Virtual Machine.
 ///
@@ -21,7 +21,7 @@ use std::sync::Arc;
 pub struct VirtualMachine {
     atom_interner: AtomInterner,
     #[cfg(feature = "stats")]
-    stats: Arc<Stats>,
+    stats: RefCount<Stats>,
 }
 
 impl Default for VirtualMachine {
@@ -45,7 +45,7 @@ impl VirtualMachine {
     /// This method is only available with feature `stats` enabled, which has
     /// a not-insignificant performance penalty to record the stats.
     #[cfg(feature = "stats")]
-    pub fn stats(&self) -> Arc<Stats> {
+    pub fn stats(&self) -> RefCount<Stats> {
         self.stats.clone()
     }
 

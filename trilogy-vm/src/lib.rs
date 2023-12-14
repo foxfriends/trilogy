@@ -19,10 +19,10 @@ pub use vm::Stats;
 pub use vm::{Error, ErrorKind, Execution, InternalRuntimeError, Program, VirtualMachine};
 
 #[cfg(feature = "multithread")]
-type RefCount<T> = std::arc::Arc<T>;
+pub type RefCount<T> = std::arc::Arc<T>;
 
 #[cfg(not(feature = "multithread"))]
-type RefCount<T> = std::rc::Rc<T>;
+pub type RefCount<T> = std::rc::Rc<T>;
 
 #[cfg(feature = "stats")]
 mod global_stats;
