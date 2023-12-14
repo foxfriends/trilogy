@@ -1,4 +1,4 @@
-module array at "trilogy:array" use length, slice, is_empty, from, append, push, map, not, flatmap, flatten, filter, not, fold, foldr, first, last, take, skip, contains, find, position, any, all, split, chunks, zip, partition, sort, transpose
+module array at "trilogy:array" use length, slice, is_empty, from, append, push, map, flatmap, flatten, filter, fold, foldr, first, last, take, skip, contains, find, position, any, all, split, chunks, zip, partition, sort, transpose
 
 test "length" {
     assert length [1, 2, 3] == 3
