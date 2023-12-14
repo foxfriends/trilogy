@@ -19,7 +19,7 @@ pub use vm::Stats;
 pub use vm::{Error, ErrorKind, Execution, InternalRuntimeError, Program, VirtualMachine};
 
 #[cfg(feature = "multithread")]
-pub type RefCount<T> = std::arc::Arc<T>;
+pub type RefCount<T> = std::sync::Arc<T>;
 
 #[cfg(not(feature = "multithread"))]
 pub type RefCount<T> = std::rc::Rc<T>;

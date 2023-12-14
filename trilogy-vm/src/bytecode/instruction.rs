@@ -7,7 +7,7 @@ use trilogy_vm_derive::Asm;
 pub type Offset = usize;
 
 /// Integer type used as the single parameter to some instructions.
-#[cfg(all(feature = "64bit", not(feature = "#2bit")))]
+#[cfg(all(feature = "64bit", not(feature = "32bit")))]
 pub type Offset = u64;
 
 /// Integer type used as the single parameter to some instructions.
