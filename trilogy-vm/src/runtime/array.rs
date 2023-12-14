@@ -38,26 +38,30 @@ mod inner {
     pub(super) struct ArrayInner(Vec<Value>);
 
     impl Default for ArrayInner {
+        #[inline(always)]
         fn default() -> Self {
-            Self::new(vec![])
+            Self::new(Default::default())
         }
     }
 
     impl std::ops::Deref for ArrayInner {
         type Target = Vec<Value>;
 
+        #[inline(always)]
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
 
     impl std::ops::DerefMut for ArrayInner {
+        #[inline(always)]
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
 
     impl ArrayInner {
+        #[inline(always)]
         pub(super) fn new(array: Vec<Value>) -> Self {
             #[cfg(feature = "stats")]
             crate::GLOBAL_STATS
@@ -148,6 +152,7 @@ impl Array {
     /// # use trilogy_vm::runtime::Array;
     /// let array = Array::new();
     /// ```
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
@@ -165,6 +170,7 @@ impl Array {
     /// assert_ne!(array, clone);
     /// assert_eq!(array.get(0), clone.get(0));
     /// ```
+    #[inline]
     pub fn shallow_clone(&self) -> Self {
         Self::from(self.0.lock().unwrap().clone())
     }
@@ -183,6 +189,7 @@ impl Array {
     /// assert_ne!(array, clone);
     /// assert_ne!(array.get(0), clone.get(0));
     /// ```
+    #[inline]
     pub fn structural_clone(&self) -> Self {
         self.0
             .lock()
@@ -204,6 +211,7 @@ impl Array {
     /// assert_eq!(array.get(0), Some(Value::from(3)));
     /// assert_eq!(array.get(1), None);
     /// ```
+    #[inline]
     pub fn get(&self, index: usize) -> Option<Value> {
         self.0.lock().unwrap().get(index).cloned()
     }
@@ -224,6 +232,7 @@ impl Array {
     /// assert_eq!(array.get(0), Some(Value::Unit));
     /// assert_eq!(array.get(3), Some(Value::from("hello")));
     /// ```
+    #[inline]
     pub fn set<V: Into<Value>>(&self, index: usize, value: V) {
         let mut array = self.0.lock().unwrap();
         if array.len() <= index {
@@ -245,6 +254,7 @@ impl Array {
     /// assert!(array.contains(&Value::from(1)));
     /// assert!(!array.contains(&Value::from(4)));
     /// ```
+    #[inline]
     pub fn contains(&self, value: &Value) -> bool {
         self.0.lock().unwrap().contains(value)
     }
@@ -265,6 +275,7 @@ impl Array {
     /// assert_eq!(array.remove(1), Some(Value::from(2)));
     /// assert_eq!(array.len(), 1);
     /// ```
+    #[inline]
     pub fn remove(&self, index: usize) -> Option<Value> {
         let mut array = self.0.lock().unwrap();
         if index <= array.len() {
@@ -284,6 +295,7 @@ impl Array {
     /// array.push(3);
     /// assert_eq!(array.get(0), Some(Value::from(3)));
     /// ```
+    #[inline]
     pub fn push<V: Into<Value>>(&self, value: V) {
         self.0.lock().unwrap().push(value.into());
     }
@@ -302,6 +314,7 @@ impl Array {
     /// assert_eq!(first.get(1), Some(Value::from(2)));
     /// assert_eq!(second.len(), 1);
     /// ```
+    #[inline]
     pub fn append(&self, other: &Array) {
         let mut other = other.0.lock().unwrap().clone();
         self.0.lock().unwrap().append(&mut other);
@@ -319,6 +332,7 @@ impl Array {
     /// ]);
     /// assert_eq!(array.len(), 2);
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.lock().unwrap().len()
     }
@@ -335,10 +349,12 @@ impl Array {
     /// array.push(1);
     /// assert!(!array.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.lock().unwrap().is_empty()
     }
 
+    #[inline]
     pub fn range<I>(&self, range: I) -> Self
     where
         Vec<Value>: std::ops::Index<I, Output = [Value]>,
@@ -365,6 +381,7 @@ impl Array {
     ///     Value::from(2),
     /// ]);
     /// ```
+    #[inline]
     pub fn to_vec(self) -> Vec<Value> {
         self.0.lock().unwrap().clone()
     }

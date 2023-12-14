@@ -18,26 +18,32 @@ impl ReferentialEq for Tuple {
 }
 
 impl Tuple {
+    #[inline]
     pub fn new(lhs: Value, rhs: Value) -> Self {
         Self(RefCount::new((lhs, rhs)))
     }
 
+    #[inline]
     pub fn uncons(self) -> (Value, Value) {
         (*self.0).clone()
     }
 
+    #[inline]
     pub fn first(&self) -> &Value {
         &(self.0).0
     }
 
+    #[inline]
     pub fn into_first(self) -> Value {
         (*self.0).clone().0
     }
 
+    #[inline]
     pub fn second(&self) -> &Value {
         &(self.0).1
     }
 
+    #[inline]
     pub fn into_second(self) -> Value {
         (*self.0).clone().1
     }

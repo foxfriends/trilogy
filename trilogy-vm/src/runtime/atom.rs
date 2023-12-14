@@ -49,6 +49,7 @@ impl Debug for Atom {
 }
 
 impl Atom {
+    #[inline]
     pub(crate) fn new_unique(label: String) -> Self {
         Self(Arc::new(label))
     }
@@ -56,6 +57,7 @@ impl Atom {
 
 impl Eq for Atom {}
 impl PartialEq for Atom {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.0, &other.0)
     }

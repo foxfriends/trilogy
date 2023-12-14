@@ -37,6 +37,7 @@ impl Struct {
     /// let tag = vm.atom("number");
     /// let struct_value = Struct::new(tag, 3);
     /// ```
+    #[inline]
     pub fn new<V>(name: Atom, value: V) -> Self
     where
         Value: From<V>,
@@ -58,6 +59,7 @@ impl Struct {
     /// let struct_value = Struct::new(tag.clone(), 3);
     /// assert_eq!(struct_value.name(), tag);
     /// ```
+    #[inline]
     pub fn name(&self) -> Atom {
         self.name.clone()
     }
@@ -73,6 +75,7 @@ impl Struct {
     /// let struct_value = Struct::new(tag.clone(), 3);
     /// assert_eq!(struct_value.value(), &Value::from(3));
     /// ```
+    #[inline]
     pub fn value(&self) -> &Value {
         &self.value
     }
@@ -88,6 +91,7 @@ impl Struct {
     /// let struct_value = Struct::new(tag.clone(), 3);
     /// assert_eq!(struct_value.destruct(), (tag, Value::from(3)));
     /// ```
+    #[inline]
     pub fn destruct(self) -> (Atom, Value) {
         (self.name, (*self.value).clone())
     }
@@ -103,6 +107,7 @@ impl Struct {
     /// let struct_value = Struct::new(tag, 3);
     /// assert_eq!(struct_value.into_value(), Value::from(3));
     /// ```
+    #[inline]
     pub fn into_value(self) -> Value {
         (*self.value).clone()
     }

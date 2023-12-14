@@ -18,23 +18,27 @@ mod inner {
     impl std::ops::Deref for SetInner {
         type Target = HashSet<Value>;
 
+        #[inline(always)]
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
     impl std::ops::DerefMut for SetInner {
+        #[inline(always)]
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
 
     impl Default for SetInner {
+        #[inline(always)]
         fn default() -> Self {
             Self::new(Default::default())
         }
     }
 
     impl SetInner {
+        #[inline(always)]
         pub(super) fn new(value: HashSet<Value>) -> Self {
             #[cfg(feature = "stats")]
             crate::GLOBAL_STATS
@@ -55,6 +59,15 @@ mod inner {
 }
 
 impl Set {
+    /// Creates a new empty set instance.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::Set;
+    /// let set = Set::new();
+    /// ```
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
@@ -74,6 +87,7 @@ impl Set {
     /// assert!(set.has(&inner));
     /// assert!(clone.has(&inner));
     /// ```
+    #[inline]
     pub fn shallow_clone(&self) -> Self {
         Self::from(self.0.lock().unwrap().clone())
     }
@@ -94,6 +108,7 @@ impl Set {
     /// assert!(set.has(&inner));
     /// assert!(!clone.has(&inner));
     /// ```
+    #[inline]
     pub fn structural_clone(&self) -> Self {
         self.0
             .lock()
@@ -103,14 +118,17 @@ impl Set {
             .collect()
     }
 
+    #[inline]
     pub fn get(&self, value: &Value) -> Option<Value> {
         self.0.lock().unwrap().get(value).cloned()
     }
 
+    #[inline]
     pub fn has(&self, value: &Value) -> bool {
         self.0.lock().unwrap().contains(value)
     }
 
+    #[inline]
     pub fn insert<V>(&self, value: V) -> bool
     where
         V: Into<Value>,
@@ -118,19 +136,23 @@ impl Set {
         self.0.lock().unwrap().insert(value.into())
     }
 
+    #[inline]
     pub fn remove(&self, value: &Value) -> bool {
         self.0.lock().unwrap().remove(value)
     }
 
+    #[inline]
     pub fn union(&self, other: &Set) {
         let mut other = other.0.lock().unwrap().clone();
         self.0.lock().unwrap().extend(other.drain());
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.lock().unwrap().len()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.lock().unwrap().is_empty()
     }

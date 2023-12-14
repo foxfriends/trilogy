@@ -43,23 +43,27 @@ mod inner {
     impl std::ops::Deref for RecordInner {
         type Target = HashMap<Value, Value>;
 
+        #[inline(always)]
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
     impl std::ops::DerefMut for RecordInner {
+        #[inline(always)]
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
 
     impl Default for RecordInner {
+        #[inline(always)]
         fn default() -> Self {
             Self::new(Default::default())
         }
     }
 
     impl RecordInner {
+        #[inline(always)]
         pub(super) fn new(value: HashMap<Value, Value>) -> Self {
             #[cfg(feature = "stats")]
             crate::GLOBAL_STATS
@@ -133,6 +137,7 @@ impl Record {
     /// # use trilogy_vm::runtime::Record;
     /// let record = Record::new();
     /// ```
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
@@ -150,6 +155,7 @@ impl Record {
     /// assert_ne!(record, clone);
     /// assert_eq!(record.get(&Value::from(0)), clone.get(&Value::from(0)));
     /// ```
+    #[inline]
     pub fn shallow_clone(&self) -> Self {
         Self::from(self.0.lock().unwrap().clone())
     }
@@ -168,6 +174,7 @@ impl Record {
     /// assert_ne!(record, clone);
     /// assert_ne!(record.get(&Value::from(0)), clone.get(&Value::from(0)));
     /// ```
+    #[inline]
     pub fn structural_clone(&self) -> Self {
         self.0
             .lock()
@@ -189,6 +196,7 @@ impl Record {
     /// assert_eq!(record.get(&Value::from(0)), Some(Value::from("hello")));
     /// assert_eq!(record.get(&Value::from(1)), None);
     /// ```
+    #[inline]
     pub fn get(&self, key: &Value) -> Option<Value> {
         self.0.lock().unwrap().get(key).cloned()
     }
@@ -204,6 +212,7 @@ impl Record {
     /// assert!(record.contains_key(&Value::from(0)));
     /// assert!(!record.contains_key(&Value::from(1)));
     /// ```
+    #[inline]
     pub fn contains_key(&self, key: &Value) -> bool {
         self.0.lock().unwrap().contains_key(key)
     }
@@ -222,6 +231,7 @@ impl Record {
     /// record.insert(0, "hello");
     /// assert!(record.contains_key(&Value::from(0)));
     /// ```
+    #[inline]
     pub fn insert<K, V>(&self, key: K, value: V) -> Option<Value>
     where
         K: Into<Value>,
@@ -251,6 +261,7 @@ impl Record {
     /// assert_eq!(first.get(&Value::from(2)), Some(Value::from(2)));
     /// assert_eq!(second.len(), 2);
     /// ```
+    #[inline]
     pub fn union(&self, other: &Record) {
         let mut other = other.0.lock().unwrap().clone();
         self.0.lock().unwrap().extend(other.drain());
@@ -270,6 +281,7 @@ impl Record {
     /// assert_eq!(record.remove(&Value::from(0)), Some(Value::from(0)));
     /// assert_eq!(record.len(), 0);
     /// ```
+    #[inline]
     pub fn remove(&self, key: &Value) -> Option<Value> {
         self.0.lock().unwrap().remove(key)
     }
@@ -285,6 +297,7 @@ impl Record {
     /// record.insert(1, 1);
     /// assert_eq!(record.len(), 2);
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.lock().unwrap().len()
     }
@@ -301,6 +314,7 @@ impl Record {
     /// record.insert(1, 1);
     /// assert!(!record.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.lock().unwrap().is_empty()
     }
@@ -322,6 +336,7 @@ impl Record {
     /// map.insert(Value::from(0), Value::from(0));
     /// assert_eq!(record.to_map(), map);
     /// ```
+    #[inline]
     pub fn to_map(&self) -> HashMap<Value, Value> {
         self.0.lock().unwrap().clone()
     }

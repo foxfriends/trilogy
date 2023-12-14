@@ -13,26 +13,32 @@ use std::sync::Arc;
 pub struct Bits(Arc<BitVec<usize, Msb0>>);
 
 impl Bits {
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    #[inline]
     pub fn get(&self, index: usize) -> Option<bool> {
         self.0.get(index).as_deref().copied()
     }
 
+    #[inline]
     pub fn to_bitvec(self) -> BitVec<usize, Msb0> {
         (*self.0).clone()
     }
 
+    #[inline]
     pub fn as_bitslice(&self) -> &BitSlice<usize, Msb0> {
         &self.0
     }

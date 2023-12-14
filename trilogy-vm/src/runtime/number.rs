@@ -72,6 +72,7 @@ impl PartialOrd for Number {
 }
 
 impl Number {
+    #[inline]
     pub fn rational<T>(num: T, den: T) -> Self
     where
         Self: From<T>,
@@ -79,18 +80,22 @@ impl Number {
         Self::from(num) / Self::from(den)
     }
 
+    #[inline]
     pub fn as_complex(&self) -> &Complex<BigRational> {
         &self.0
     }
 
+    #[inline]
     pub fn is_real(&self) -> bool {
         self.0.im.is_zero()
     }
 
+    #[inline]
     pub fn is_imaginary(&self) -> bool {
         self.0.re.is_zero() && !self.0.im.is_zero()
     }
 
+    #[inline]
     pub fn as_real(&self) -> Option<BigRational> {
         if self.is_real() {
             Some(self.0.re.clone())
@@ -99,14 +104,17 @@ impl Number {
         }
     }
 
+    #[inline]
     pub fn is_integer(&self) -> bool {
         self.is_real() && self.0.re.is_integer()
     }
 
+    #[inline]
     pub fn is_uinteger(&self) -> bool {
         self.is_integer() && *self.0.re.numer() >= BigInt::zero()
     }
 
+    #[inline]
     pub fn as_integer(&self) -> Option<BigInt> {
         if self.is_integer() {
             Some(self.0.re.numer().clone())
@@ -115,6 +123,7 @@ impl Number {
         }
     }
 
+    #[inline]
     pub fn as_uinteger(&self) -> Option<BigUint> {
         if self.is_uinteger() {
             self.0.re.numer().to_biguint()
@@ -123,10 +132,12 @@ impl Number {
         }
     }
 
+    #[inline]
     pub fn re(&self) -> Number {
         self.0.re.clone().into()
     }
 
+    #[inline]
     pub fn im(&self) -> Number {
         self.0.im.clone().into()
     }

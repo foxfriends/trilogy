@@ -29,6 +29,7 @@ struct InnerContinuation {
 }
 
 impl InnerContinuation {
+    #[inline(always)]
     fn new(ip: Offset, stack: Stack) -> Self {
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
@@ -62,14 +63,17 @@ impl Hash for Continuation {
 }
 
 impl Continuation {
+    #[inline(always)]
     pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
         Self(RefCount::new(InnerContinuation::new(ip, stack)))
     }
 
+    #[inline(always)]
     pub(crate) fn ip(&self) -> Offset {
         self.0.ip
     }
 
+    #[inline(always)]
     pub(crate) fn stack(&self) -> Stack {
         self.0.stack.clone()
     }

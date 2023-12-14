@@ -29,6 +29,7 @@ struct InnerClosure {
 }
 
 impl InnerClosure {
+    #[inline(always)]
     fn new(ip: Offset, stack: Stack) -> Self {
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
@@ -62,14 +63,17 @@ impl Hash for Closure {
 }
 
 impl Closure {
+    #[inline(always)]
     pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
         Self(RefCount::new(InnerClosure::new(ip, stack)))
     }
 
+    #[inline(always)]
     pub(crate) fn ip(&self) -> Offset {
         self.0.ip
     }
 
+    #[inline(always)]
     pub(crate) fn stack(&self) -> &Stack {
         &self.0.stack
     }
