@@ -1,3 +1,4 @@
+module iter at "trilogy:iter"
 module native at "trilogy:array/native" use length, slice
 export length, slice
 
@@ -400,4 +401,11 @@ test "sort" {
         [1, 2, 3],
         [1, 1, 1],
     ]
+}
+
+func transpose arr = [[arr.y.x for y in iter::rangex 0 (length arr)] for x in iter::rangex 0 (length (arr.0))]
+export transpose
+
+test "transpose" {
+    assert transpose [[1, 2, 3], [4, 5, 6], [7, 8, 9]] == [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
 }
