@@ -6,6 +6,7 @@ use source_span::Span;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::{self, Display};
 use std::fs;
+use std::time::Instant;
 use trilogy_parser::syntax::{DefinitionItem, Document, ModuleDefinition, StringLiteral};
 use trilogy_parser::{Parse, Parser, Spanned};
 use trilogy_scanner::Scanner;
@@ -72,9 +73,11 @@ impl<E: std::error::Error + 'static> ErrorKind<E> {
 
 impl Module {
     fn new(source: &str) -> Self {
+        let time_parsing = Instant::now();
         let scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
         let contents = parser.parse();
+        log::trace!("module parsed: {:?}", time_parsing.elapsed());
         Self { contents }
     }
 
@@ -134,7 +137,9 @@ where
     }
 
     pub fn load_source(&self, location: &Location) -> Result<Option<String>, ErrorKind<E>> {
+        log::debug!("locating module `{}`", location);
         if self.cache.has(location) {
+            log::trace!("module cache hit");
             return Ok(Some(self.cache.load(location).map_err(ErrorKind::Cache)?));
         }
         let url = location.as_ref();

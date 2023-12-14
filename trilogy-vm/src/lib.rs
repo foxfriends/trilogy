@@ -14,6 +14,8 @@ pub use bytecode::{
     OpCode,
 };
 pub use runtime::*;
+#[cfg(feature = "stats")]
+pub use vm::Stats;
 pub use vm::{Error, ErrorKind, Execution, InternalRuntimeError, Program, VirtualMachine};
 
 #[cfg(feature = "multithread")]

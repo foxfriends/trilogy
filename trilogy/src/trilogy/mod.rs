@@ -67,6 +67,11 @@ impl Trilogy {
         ]
     }
 
+    #[cfg(feature = "stats")]
+    pub fn stats(&self) -> trilogy_vm::Stats {
+        self.vm.stats()
+    }
+
     /// Loads a Trilogy program from a Trilogy source file on the local file system.
     ///
     /// A program loaded this way uses the default global `~/.trilogy/` cache directory

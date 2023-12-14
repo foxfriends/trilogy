@@ -1,5 +1,5 @@
 use crate::location::Location;
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Instant};
 use trilogy_ir::ir::Module;
 use trilogy_vm::{ChunkBuilder, ChunkWriter, Native, Program, Value};
 
@@ -13,16 +13,20 @@ pub(super) struct TrilogyProgram<'a> {
 
 impl Program for TrilogyProgram<'_> {
     fn entrypoint(&self, chunk: &mut ChunkBuilder) {
+        let time_generating = Instant::now();
         let module = self.modules.get(self.entrypoint).unwrap();
         let url = self.entrypoint.as_ref().as_str();
         trilogy_codegen::write_program(url, chunk, module, self.path);
+        log::trace!("entrypoint written: {:?}", time_generating.elapsed());
     }
 
     fn chunk(&self, locator: &Value, chunk: &mut ChunkBuilder) {
+        let time_generating = Instant::now();
         let location = match locator {
             Value::String(url) => Location::absolute(url.parse().expect("invalid module location")),
             _ => panic!("invalid module specifier `{locator}`"),
         };
+        log::debug!("loading chunk: {}", location);
         enum Either<'a> {
             Source(&'a Module),
             Native(&'a Native),
@@ -49,5 +53,6 @@ impl Program for TrilogyProgram<'_> {
                     .instruction(trilogy_vm::Instruction::Return);
             }
         }
+        log::trace!("chunk written: {:?}", time_generating.elapsed());
     }
 }

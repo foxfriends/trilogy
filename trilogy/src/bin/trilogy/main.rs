@@ -127,10 +127,14 @@ fn handle(result: Result<Value, RuntimeError>, print: bool, debug: bool) {
 }
 
 fn run(trilogy: Trilogy, print: bool, debug: bool) {
-    handle(trilogy.run(), print, debug)
+    let result = trilogy.run();
+    #[cfg(feature = "stats")]
+    log::info!("execution statistics\n{}", trilogy.stats());
+    handle(result, print, debug)
 }
 
 fn main() -> std::io::Result<()> {
+    pretty_env_logger::init();
     let args = Cli::parse();
 
     match args.command {

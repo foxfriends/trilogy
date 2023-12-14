@@ -14,7 +14,7 @@ members = [
 
 [profile.release]
 panic = "abort"
-#
+
 [profile.release-lto]
 inherits = "release"
 codegen-units = 1

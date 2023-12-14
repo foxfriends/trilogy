@@ -4,6 +4,8 @@ use super::error::{ErrorKind, InternalRuntimeError};
 use super::program_reader::ProgramReader;
 use super::stack::{InternalValue, Stack};
 use super::Error;
+#[cfg(feature = "stats")]
+use super::Stats;
 use crate::atom::AtomInterner;
 use crate::callable::{Closure, Continuation};
 use crate::runtime::callable::{Callable, CallableKind};
@@ -12,6 +14,7 @@ use num::ToPrimitive;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 pub(super) enum Step<E> {
     End,
@@ -76,6 +79,8 @@ pub struct Execution<'a> {
     ip: Offset,
     stack: Stack,
     registers: Vec<Value>,
+    #[cfg(feature = "stats")]
+    stats: Arc<Mutex<Stats>>,
 }
 
 impl<'a> Execution<'a> {
@@ -83,6 +88,7 @@ impl<'a> Execution<'a> {
         atom_interner: AtomInterner,
         program: ProgramReader<'a>,
         registers: Vec<Value>,
+        #[cfg(feature = "stats")] stats: Arc<Mutex<Stats>>,
     ) -> Self {
         Self {
             atom_interner: atom_interner.clone(),
@@ -91,6 +97,8 @@ impl<'a> Execution<'a> {
             program,
             stack: Stack::new(),
             registers,
+            #[cfg(feature = "stats")]
+            stats,
         }
     }
 
@@ -179,6 +187,8 @@ impl<'a> Execution<'a> {
             ip: self.ip,
             stack: branch,
             registers: self.registers.clone(),
+            #[cfg(feature = "stats")]
+            stats: self.stats.clone(),
         }
     }
 
@@ -311,7 +321,34 @@ impl<'a> Execution<'a> {
         let instruction = self.program.read_instruction(self.ip);
         self.error_ip = self.ip;
         self.ip += instruction.byte_len() as Offset;
-        self.eval(instruction)
+        #[cfg(feature = "stats")]
+        let opcode = instruction.op_code();
+        #[cfg(feature = "stats")]
+        {
+            *self
+                .stats
+                .lock()
+                .unwrap()
+                .instructions_executed
+                .entry(opcode)
+                .or_default() += 1;
+        }
+        log::trace!("executing: {}", instruction);
+        let time_executing = Instant::now();
+        let res = self.eval(instruction);
+        let duration = time_executing.elapsed();
+        log::trace!(" duration: {:?}", duration);
+        #[cfg(feature = "stats")]
+        {
+            *self
+                .stats
+                .lock()
+                .unwrap()
+                .instruction_timing
+                .entry(opcode)
+                .or_default() += duration;
+        }
+        res
     }
 
     #[inline(always)]

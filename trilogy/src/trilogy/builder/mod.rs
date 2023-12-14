@@ -8,6 +8,7 @@ use home::home_dir;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 use trilogy_vm::Native;
 
 mod analyzer;
@@ -132,6 +133,7 @@ impl<C: Cache> Builder<C> {
     /// valid piece of Trilogy code, it is not necessarily a valid program that can be
     /// run. In particular, libraries are valid code but cannot be run.
     pub fn build_from_source(self, file: impl AsRef<Path>) -> Result<Trilogy, Report<C::Error>> {
+        log::trace!("begin constructing Trilogy program");
         let Self {
             mut cache,
             root_dir,
@@ -151,11 +153,17 @@ impl<C: Cache> Builder<C> {
             },
         };
         let entrypoint = Location::entrypoint(root_path.clone(), file);
+        let time_loading = Instant::now();
         let documents = loader::load(&cache, &entrypoint, &source_modules, &mut report);
         cache = report.checkpoint(&root_path, cache)?;
+        log::trace!("all modules loaded: {:?}", time_loading.elapsed());
+
+        let time_analyzing = Instant::now();
         let mut modules = converter::convert(documents, &mut report);
         analyzer::analyze(&mut modules, &entrypoint, &mut report, is_library);
         report.checkpoint(&root_path, cache)?;
+        log::trace!("program analyzed: {:?}", time_analyzing.elapsed());
+
         Ok(Trilogy::new(
             Source::Trilogy {
                 modules,

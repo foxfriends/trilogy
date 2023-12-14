@@ -5,9 +5,13 @@ use super::stack::{Stack, StackTrace};
 use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::ChunkError;
-use crate::Value;
-use crate::{Atom, Chunk, ChunkBuilder, Instruction, Program};
+use crate::{Atom, Chunk, ChunkBuilder, Instruction, Program, Value};
 use std::collections::HashSet;
+
+#[cfg(feature = "stats")]
+use super::Stats;
+#[cfg(feature = "stats")]
+use std::sync::{Arc, Mutex};
 
 /// Interface to the Trilogy Virtual Machine.
 ///
@@ -16,6 +20,8 @@ use std::collections::HashSet;
 #[derive(Clone, Debug)]
 pub struct VirtualMachine {
     atom_interner: AtomInterner,
+    #[cfg(feature = "stats")]
+    stats: Arc<Mutex<Stats>>,
 }
 
 impl Default for VirtualMachine {
@@ -29,7 +35,18 @@ impl VirtualMachine {
     pub fn new() -> Self {
         Self {
             atom_interner: AtomInterner::default(),
+            #[cfg(feature = "stats")]
+            stats: Default::default(),
         }
+    }
+
+    /// Reports statistics about the execution of the program.
+    ///
+    /// This method is only available with feature `stats` enabled, which has
+    /// a not-insignificant performance penalty to record the stats.
+    #[cfg(feature = "stats")]
+    pub fn stats(&self) -> Stats {
+        self.stats.lock().unwrap().clone()
     }
 
     /// Create an atom in the context of this VM.
@@ -108,6 +125,8 @@ impl VirtualMachine {
             self.atom_interner.clone(),
             program,
             registers,
+            #[cfg(feature = "stats")]
+            self.stats.clone(),
         )];
         // In future, multiple executions will likely be run in parallel on different
         // threads. Maybe this should be a compile time option, where the alternatives
@@ -123,16 +142,21 @@ impl VirtualMachine {
             match ex.step()? {
                 Step::Continue => {}
                 Step::Suspend => {
+                    log::debug!("execution suspended ({})", ep);
                     ep = (ep + 1) % executions.len();
                 }
                 Step::End => {
+                    log::debug!("execution ended ({})", ep);
                     let ex = executions.remove(ep);
                     if executions.is_empty() {
                         break ex;
                     }
                     ep %= executions.len();
                 }
-                Step::Spawn(ex) => executions.push(ex),
+                Step::Spawn(ex) => {
+                    log::debug!("execution spawned");
+                    executions.push(ex);
+                }
                 Step::Exit(value) => return Ok(value),
             }
         };
