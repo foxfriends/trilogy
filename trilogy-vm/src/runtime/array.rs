@@ -28,7 +28,54 @@ use std::sync::Mutex;
 /// assert_ne!(array, Array::new());
 /// ```
 #[derive(Clone, Default, Debug)]
-pub struct Array(RefCount<Mutex<Vec<Value>>>);
+pub struct Array(RefCount<Mutex<ArrayInner>>);
+use inner::ArrayInner;
+
+mod inner {
+    use super::*;
+
+    #[derive(Debug)]
+    pub(super) struct ArrayInner(Vec<Value>);
+
+    impl Default for ArrayInner {
+        fn default() -> Self {
+            Self::new(vec![])
+        }
+    }
+
+    impl std::ops::Deref for ArrayInner {
+        type Target = Vec<Value>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
+    impl std::ops::DerefMut for ArrayInner {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
+    }
+
+    impl ArrayInner {
+        pub(super) fn new(array: Vec<Value>) -> Self {
+            #[cfg(feature = "stats")]
+            crate::GLOBAL_STATS
+                .arrays_allocated
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            Self(array)
+        }
+    }
+
+    #[cfg(feature = "stats")]
+    impl Drop for ArrayInner {
+        fn drop(&mut self) {
+            crate::GLOBAL_STATS
+                .arrays_freed
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+}
 
 impl Eq for Array {}
 
@@ -326,7 +373,7 @@ impl Array {
 impl Display for Array {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[")?;
-        for item in &*self.0.lock().unwrap() {
+        for item in &**self.0.lock().unwrap() {
             write!(f, "{item},")?;
         }
         write!(f, "]")
@@ -335,7 +382,7 @@ impl Display for Array {
 
 impl From<Vec<Value>> for Array {
     fn from(value: Vec<Value>) -> Self {
-        Self(RefCount::new(Mutex::new(value)))
+        Self(RefCount::new(Mutex::new(ArrayInner::new(value))))
     }
 }
 

@@ -2,7 +2,6 @@ use trilogy_ir::ir;
 use trilogy_ir::visitor::{IrVisitable, IrVisitor};
 
 #[derive(Copy, Clone, Debug)]
-#[repr(packed)]
 pub(crate) struct BreakContinue {
     pub st_break: bool,
     pub fc_break: bool,
@@ -64,7 +63,6 @@ impl IrVisitor for BreakContinue {
 }
 
 #[derive(Copy, Clone, Debug)]
-#[repr(packed)]
 pub(crate) struct ResumeCancel {
     pub st_cancel: bool,
     pub fc_cancel: bool,

@@ -14,7 +14,8 @@ use num::ToPrimitive;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+#[cfg(feature = "stats")]
+use std::time::{Duration, Instant};
 
 pub(super) enum Step<E> {
     End,
@@ -81,6 +82,14 @@ pub struct Execution<'a> {
     registers: Vec<Value>,
     #[cfg(feature = "stats")]
     stats: Arc<Mutex<Stats>>,
+    #[cfg(feature = "stats")]
+    step_stats: StepStats,
+}
+
+#[cfg(feature = "stats")]
+#[derive(Default)]
+struct StepStats {
+    native_duration: Duration,
 }
 
 impl<'a> Execution<'a> {
@@ -99,6 +108,8 @@ impl<'a> Execution<'a> {
             registers,
             #[cfg(feature = "stats")]
             stats,
+            #[cfg(feature = "stats")]
+            step_stats: StepStats::default(),
         }
     }
 
@@ -161,7 +172,13 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack.push_frame(callback, vec![], None);
+                #[cfg(feature = "stats")]
+                let time_native = Instant::now();
                 native.call(self, arguments)?;
+                #[cfg(feature = "stats")]
+                {
+                    self.step_stats.native_duration += time_native.elapsed();
+                }
             }
             _ => return Err(self.error(InternalRuntimeError::TypeError)),
         }
@@ -189,6 +206,8 @@ impl<'a> Execution<'a> {
             registers: self.registers.clone(),
             #[cfg(feature = "stats")]
             stats: self.stats.clone(),
+            #[cfg(feature = "stats")]
+            step_stats: StepStats::default(),
         }
     }
 
@@ -265,14 +284,18 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack.push_frame(self.ip, vec![], None);
-                native.call(
-                    self,
-                    arguments
-                        .into_iter()
-                        .map(|val| val.try_into_value())
-                        .collect::<Result<Vec<_>, _>>()
-                        .map_err(|k| self.error(k))?,
-                )?;
+                let arguments = arguments
+                    .into_iter()
+                    .map(|val| val.try_into_value())
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|k| self.error(k))?;
+                #[cfg(feature = "stats")]
+                let time_native = Instant::now();
+                native.call(self, arguments)?;
+                #[cfg(feature = "stats")]
+                {
+                    self.step_stats.native_duration += time_native.elapsed();
+                }
             }
             _ => return Err(self.error(InternalRuntimeError::TypeError)),
         }
@@ -303,14 +326,18 @@ impl<'a> Execution<'a> {
             Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack.push_frame(ip, vec![], None);
-                native.call(
-                    self,
-                    arguments
-                        .into_iter()
-                        .map(|val| val.try_into_value())
-                        .collect::<Result<Vec<_>, _>>()
-                        .map_err(|k| self.error(k))?,
-                )?;
+                let arguments = arguments
+                    .into_iter()
+                    .map(|val| val.try_into_value())
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|k| self.error(k))?;
+                #[cfg(feature = "stats")]
+                let time_native = Instant::now();
+                native.call(self, arguments)?;
+                #[cfg(feature = "stats")]
+                {
+                    self.step_stats.native_duration += time_native.elapsed();
+                }
             }
             _ => return Err(self.error(InternalRuntimeError::TypeError)),
         }
@@ -318,7 +345,15 @@ impl<'a> Execution<'a> {
     }
 
     pub(super) fn step(&mut self) -> Result<Step<Self>, Error> {
+        #[cfg(feature = "stats")]
+        let time_reading = Instant::now();
         let instruction = self.program.read_instruction(self.ip);
+        #[cfg(feature = "stats")]
+        {
+            let duration = time_reading.elapsed();
+            self.stats.lock().unwrap().instruction_read_duration += duration;
+            self.step_stats = StepStats::default();
+        }
         self.error_ip = self.ip;
         self.ip += instruction.byte_len() as Offset;
         #[cfg(feature = "stats")]
@@ -333,20 +368,15 @@ impl<'a> Execution<'a> {
                 .entry(opcode)
                 .or_default() += 1;
         }
-        log::trace!("executing: {}", instruction);
+        #[cfg(feature = "stats")]
         let time_executing = Instant::now();
         let res = self.eval(instruction);
-        let duration = time_executing.elapsed();
-        log::trace!(" duration: {:?}", duration);
         #[cfg(feature = "stats")]
         {
-            *self
-                .stats
-                .lock()
-                .unwrap()
-                .instruction_timing
-                .entry(opcode)
-                .or_default() += duration;
+            let duration = time_executing.elapsed();
+            let mut stats = self.stats.lock().unwrap();
+            *stats.instruction_timing.entry(opcode).or_default() += duration;
+            stats.native_duration += self.step_stats.native_duration;
         }
         res
     }

@@ -7,10 +7,31 @@ use std::time::Duration;
 pub struct Stats {
     pub instructions_executed: BTreeMap<OpCode, usize>,
     pub instruction_timing: BTreeMap<OpCode, Duration>,
+    pub instruction_read_duration: Duration,
+    pub native_duration: Duration,
 }
 
 impl Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let total_instructions = self.instructions_executed.values().fold(0, |a, b| a + *b);
+        let total_duration = self
+            .instruction_timing
+            .values()
+            .fold(Duration::default(), |a, b| a + *b);
+        writeln!(f, "--- Basic Statistics ---")?;
+        writeln!(
+            f,
+            "Reading Instructions: {:?} (avg: {:?})",
+            self.instruction_read_duration,
+            self.instruction_read_duration / total_instructions as u32,
+        )?;
+        writeln!(f, "Native call duration: {:?}", self.native_duration,)?;
+        writeln!(
+            f,
+            "Total duration: {:?}",
+            self.instruction_read_duration + total_duration,
+        )?;
+
         let max_times = self
             .instructions_executed
             .values()
@@ -22,14 +43,10 @@ impl Display for Stats {
                 "{:>10} {:>16} {}",
                 opcode,
                 times,
-                "=".repeat(times * 50 / max_times)
+                "#".repeat(times * 50 / max_times)
             )?;
         }
-        writeln!(
-            f,
-            "Total: {:?}",
-            self.instructions_executed.values().fold(0, |a, b| a + *b)
-        )?;
+        writeln!(f, "Total: {}", total_instructions,)?;
 
         writeln!(f, "--- Instruction Timing ---")?;
         let max_duration = self
@@ -42,16 +59,10 @@ impl Display for Stats {
                 "{:>10} {:>16?} {}",
                 opcode,
                 duration,
-                "=".repeat((duration.as_nanos() * 50 / max_duration.as_nanos()) as usize)
+                "#".repeat((duration.as_nanos() * 50 / max_duration.as_nanos()) as usize)
             )?;
         }
-        writeln!(
-            f,
-            "Total: {:?}",
-            self.instruction_timing
-                .values()
-                .fold(Duration::default(), |a, b| a + *b)
-        )?;
+        writeln!(f, "Total: {:?}", total_duration,)?;
 
         writeln!(f, "--- Average Duration ---")?;
         let max_average = self
@@ -76,7 +87,7 @@ impl Display for Stats {
                     "[unmeasured]".to_owned()
                 } else {
                     let percentage = (average.as_nanos() * 50 / max_average.as_nanos()) as usize;
-                    "=".repeat(percentage)
+                    "#".repeat(percentage)
                 }
             )?;
         }

@@ -129,7 +129,10 @@ fn handle(result: Result<Value, RuntimeError>, print: bool, debug: bool) {
 fn run(trilogy: Trilogy, print: bool, debug: bool) {
     let result = trilogy.run();
     #[cfg(feature = "stats")]
-    log::info!("execution statistics\n{}", trilogy.stats());
+    {
+        log::info!("stats\n{}", trilogy.stats());
+        log::info!("stats\n{}", trilogy_vm::GLOBAL_STATS);
+    }
     handle(result, print, debug)
 }
 

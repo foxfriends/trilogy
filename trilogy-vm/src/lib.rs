@@ -23,3 +23,8 @@ type RefCount<T> = std::arc::Arc<T>;
 
 #[cfg(not(feature = "multithread"))]
 type RefCount<T> = std::rc::Rc<T>;
+
+#[cfg(feature = "stats")]
+mod global_stats;
+#[cfg(feature = "stats")]
+pub static GLOBAL_STATS: global_stats::GlobalStats = global_stats::GlobalStats::new();

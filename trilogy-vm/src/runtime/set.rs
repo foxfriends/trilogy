@@ -6,7 +6,53 @@ use std::sync::Mutex;
 
 /// A Trilogy Set value.
 #[derive(Clone, Default, Debug)]
-pub struct Set(RefCount<Mutex<HashSet<Value>>>);
+pub struct Set(RefCount<Mutex<SetInner>>);
+
+use inner::SetInner;
+mod inner {
+    use super::*;
+
+    #[derive(Debug)]
+    pub(super) struct SetInner(HashSet<Value>);
+
+    impl std::ops::Deref for SetInner {
+        type Target = HashSet<Value>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+    impl std::ops::DerefMut for SetInner {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
+    }
+
+    impl Default for SetInner {
+        fn default() -> Self {
+            Self::new(Default::default())
+        }
+    }
+
+    impl SetInner {
+        pub(super) fn new(value: HashSet<Value>) -> Self {
+            #[cfg(feature = "stats")]
+            crate::GLOBAL_STATS
+                .sets_allocated
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            Self(value)
+        }
+    }
+
+    #[cfg(feature = "stats")]
+    impl Drop for SetInner {
+        fn drop(&mut self) {
+            crate::GLOBAL_STATS
+                .sets_freed
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+}
 
 impl Set {
     pub fn new() -> Self {
@@ -136,7 +182,7 @@ impl StructuralEq for Set {
 impl Display for Set {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[|")?;
-        for item in &*self.0.lock().unwrap() {
+        for item in &**self.0.lock().unwrap() {
             write!(f, "{item},")?;
         }
         write!(f, "|]")
@@ -145,7 +191,7 @@ impl Display for Set {
 
 impl From<HashSet<Value>> for Set {
     fn from(set: HashSet<Value>) -> Self {
-        Self(RefCount::new(Mutex::new(set)))
+        Self(RefCount::new(Mutex::new(SetInner::new(set))))
     }
 }
 

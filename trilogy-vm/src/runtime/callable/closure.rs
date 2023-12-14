@@ -28,6 +28,25 @@ struct InnerClosure {
     stack: Stack,
 }
 
+impl InnerClosure {
+    fn new(ip: Offset, stack: Stack) -> Self {
+        #[cfg(feature = "stats")]
+        crate::GLOBAL_STATS
+            .closures_allocated
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Self { ip, stack }
+    }
+}
+
+#[cfg(feature = "stats")]
+impl Drop for InnerClosure {
+    fn drop(&mut self) {
+        crate::GLOBAL_STATS
+            .closures_freed
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 impl Eq for Closure {}
 
 impl PartialEq for Closure {
@@ -43,8 +62,8 @@ impl Hash for Closure {
 }
 
 impl Closure {
-    pub(crate) fn new(pointer: Offset, stack: Stack) -> Self {
-        Self(RefCount::new(InnerClosure { ip: pointer, stack }))
+    pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
+        Self(RefCount::new(InnerClosure::new(ip, stack)))
     }
 
     pub(crate) fn ip(&self) -> Offset {

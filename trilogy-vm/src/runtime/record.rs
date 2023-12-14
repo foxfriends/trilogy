@@ -31,7 +31,53 @@ use std::sync::Mutex;
 /// assert_ne!(record, Record::new());
 /// ```
 #[derive(Clone, Default, Debug)]
-pub struct Record(RefCount<Mutex<HashMap<Value, Value>>>);
+pub struct Record(RefCount<Mutex<RecordInner>>);
+
+use inner::RecordInner;
+mod inner {
+    use super::*;
+
+    #[derive(Debug)]
+    pub(super) struct RecordInner(HashMap<Value, Value>);
+
+    impl std::ops::Deref for RecordInner {
+        type Target = HashMap<Value, Value>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+    impl std::ops::DerefMut for RecordInner {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
+    }
+
+    impl Default for RecordInner {
+        fn default() -> Self {
+            Self::new(Default::default())
+        }
+    }
+
+    impl RecordInner {
+        pub(super) fn new(value: HashMap<Value, Value>) -> Self {
+            #[cfg(feature = "stats")]
+            crate::GLOBAL_STATS
+                .records_allocated
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            Self(value)
+        }
+    }
+
+    #[cfg(feature = "stats")]
+    impl Drop for RecordInner {
+        fn drop(&mut self) {
+            crate::GLOBAL_STATS
+                .records_freed
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+}
 
 impl Eq for Record {}
 impl PartialEq for Record {
@@ -293,7 +339,7 @@ impl IntoIterator for &'_ Record {
 impl Display for Record {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{|")?;
-        for (key, value) in &*self.0.lock().unwrap() {
+        for (key, value) in &**self.0.lock().unwrap() {
             write!(f, "{key}=>{value},")?;
         }
         write!(f, "|}}")
@@ -302,7 +348,7 @@ impl Display for Record {
 
 impl From<HashMap<Value, Value>> for Record {
     fn from(value: HashMap<Value, Value>) -> Self {
-        Self(RefCount::new(Mutex::new(value)))
+        Self(RefCount::new(Mutex::new(RecordInner::new(value))))
     }
 }
 

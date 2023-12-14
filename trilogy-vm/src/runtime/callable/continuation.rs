@@ -28,6 +28,25 @@ struct InnerContinuation {
     stack: Stack,
 }
 
+impl InnerContinuation {
+    fn new(ip: Offset, stack: Stack) -> Self {
+        #[cfg(feature = "stats")]
+        crate::GLOBAL_STATS
+            .continuations_allocated
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Self { ip, stack }
+    }
+}
+
+#[cfg(feature = "stats")]
+impl Drop for InnerContinuation {
+    fn drop(&mut self) {
+        crate::GLOBAL_STATS
+            .continuations_freed
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 impl Eq for Continuation {}
 
 impl PartialEq for Continuation {
@@ -44,7 +63,7 @@ impl Hash for Continuation {
 
 impl Continuation {
     pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
-        Self(RefCount::new(InnerContinuation { ip, stack }))
+        Self(RefCount::new(InnerContinuation::new(ip, stack)))
     }
 
     pub(crate) fn ip(&self) -> Offset {
