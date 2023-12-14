@@ -13,6 +13,8 @@ use crate::{Atom, Instruction, Number, Offset, ReferentialEq, Struct, Structural
 use num::ToPrimitive;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
+#[cfg(feature = "stats")]
+use std::sync::atomic;
 use std::sync::{Arc, Mutex};
 #[cfg(feature = "stats")]
 use std::time::{Duration, Instant};
@@ -81,7 +83,7 @@ pub struct Execution<'a> {
     stack: Stack,
     registers: Vec<Value>,
     #[cfg(feature = "stats")]
-    stats: Arc<Mutex<Stats>>,
+    stats: Arc<Stats>,
     #[cfg(feature = "stats")]
     step_stats: StepStats,
 }
@@ -99,7 +101,7 @@ impl<'a> Execution<'a> {
         atom_interner: AtomInterner,
         program: ProgramReader<'a>,
         registers: Vec<Value>,
-        #[cfg(feature = "stats")] stats: Arc<Mutex<Stats>>,
+        #[cfg(feature = "stats")] stats: Arc<Stats>,
     ) -> Self {
         Self {
             atom_interner: atom_interner.clone(),
@@ -353,7 +355,9 @@ impl<'a> Execution<'a> {
         #[cfg(feature = "stats")]
         {
             let duration = time_reading.elapsed();
-            self.stats.lock().unwrap().instruction_read_duration += duration;
+            self.stats
+                .instruction_read_duration
+                .fetch_add(duration, atomic::Ordering::Relaxed);
             self.step_stats = StepStats::default();
         }
         self.error_ip = self.ip;
@@ -362,13 +366,8 @@ impl<'a> Execution<'a> {
         let opcode = instruction.op_code();
         #[cfg(feature = "stats")]
         {
-            *self
-                .stats
-                .lock()
-                .unwrap()
-                .instructions_executed
-                .entry(opcode)
-                .or_default() += 1;
+            self.stats.instructions_executed[opcode as usize]
+                .fetch_add(1, atomic::Ordering::Relaxed);
         }
         #[cfg(feature = "stats")]
         let time_executing = Instant::now();
@@ -376,14 +375,20 @@ impl<'a> Execution<'a> {
         #[cfg(feature = "stats")]
         {
             let duration = time_executing.elapsed();
-            let mut stats = self.stats.lock().unwrap();
-            *stats.instruction_timing.entry(opcode).or_default() += duration;
-            stats.native_duration += self.step_stats.native_duration;
+            self.stats.instruction_timing[opcode as usize]
+                .fetch_add(duration, atomic::Ordering::Relaxed);
+            self.stats
+                .native_duration
+                .fetch_add(self.step_stats.native_duration, atomic::Ordering::Relaxed);
             if self.step_stats.branch_hit {
-                stats.branch_hits += 1;
+                self.stats
+                    .branch_hits
+                    .fetch_add(1, atomic::Ordering::Relaxed);
             }
             if self.step_stats.branch_miss {
-                stats.branch_misses += 1;
+                self.stats
+                    .branch_misses
+                    .fetch_add(1, atomic::Ordering::Relaxed);
             }
         }
         res

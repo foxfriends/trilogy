@@ -11,7 +11,7 @@ use std::collections::HashSet;
 #[cfg(feature = "stats")]
 use super::Stats;
 #[cfg(feature = "stats")]
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// Interface to the Trilogy Virtual Machine.
 ///
@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 pub struct VirtualMachine {
     atom_interner: AtomInterner,
     #[cfg(feature = "stats")]
-    stats: Arc<Mutex<Stats>>,
+    stats: Arc<Stats>,
 }
 
 impl Default for VirtualMachine {
@@ -45,8 +45,8 @@ impl VirtualMachine {
     /// This method is only available with feature `stats` enabled, which has
     /// a not-insignificant performance penalty to record the stats.
     #[cfg(feature = "stats")]
-    pub fn stats(&self) -> Stats {
-        self.stats.lock().unwrap().clone()
+    pub fn stats(&self) -> Arc<Stats> {
+        self.stats.clone()
     }
 
     /// Create an atom in the context of this VM.

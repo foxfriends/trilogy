@@ -68,7 +68,7 @@ impl Trilogy {
     }
 
     #[cfg(feature = "stats")]
-    pub fn stats(&self) -> trilogy_vm::Stats {
+    pub fn stats(&self) -> std::sync::Arc<trilogy_vm::Stats> {
         self.vm.stats()
     }
 
