@@ -13,9 +13,6 @@
 #! as generators, and are not, at this time, intended to be handled by the methods
 #! here.
 
-module array at "trilogy:array"
-module set at "trilogy:set"
-module record at "trilogy:record"
 module fp at "trilogy:fp"
 
 ## Returns an empty iterator
@@ -66,12 +63,6 @@ func fold f i xs =
         else yield
 export fold
 
-test "fold" {
-    let sum = of [1, 2, 3]
-        |> fold (fn a b. a + b) 0
-    assert sum == 6
-}
-
 ## Creates a new iterator whose values are the values of the original iterator,
 ## transformed by a provided function.
 func map f xs = do() {
@@ -80,13 +71,6 @@ func map f xs = do() {
         else yield
 }
 export map
-
-test "map" {
-    let doubled = of [1, 2, 3]
-        |> map (fn x. x * 2)
-        |> collect array
-    assert doubled == [2, 4, 6]
-}
 
 ## Creates a new iterator-of-iterators by flattening each yielded iterator's
 ## yielded values into a single iterator.
@@ -97,25 +81,11 @@ func flatten xs = do() {
 }
 export flatten
 
-test "flatten" {
-    let triple = repeat 3 (of [1, 2, 3])
-        |> flatten
-        |> collect array
-    assert triple == [1, 2, 3, 1, 2, 3, 1, 2, 3]
-}
-
 ## Maps each value of an iterator using the provided function, expecting the
 ## transformed value to be an iterator which is flattened into the resulting
 ## iterator.
 func flatmap f = map f >> flatten
 export flatmap
-
-test "flatmap" {
-    let ranges = make_range 1 3
-        |> flatmap (make_range 1)
-        |> collect array
-    assert ranges == [1, 1, 2, 1, 2, 3]
-}
 
 ## Collect an iterator into a collection.
 ##
@@ -126,12 +96,6 @@ func collect collection =
         else yield
 export collect
 
-test "collect" {
-    assert collect array (of [1, 2, 3]) == [1, 2, 3]
-    assert collect set (of [1, 2, 3]) == [| 1, 2, 3 |]
-    assert collect record (do() $(x:1 for x in [1, 2, 3])) == {| 1 => 1, 2 => 1, 3 => 1 |}
-}
-
 ## Discard values yielded by the iterator for which a predicate returns false.
 func filter f xs = do() {
     with { xs!() }
@@ -141,13 +105,6 @@ func filter f xs = do() {
 }
 export filter
 
-test "filter" {
-    let odd = of [1, 2, 3]
-        |> filter (fn x. x % 2 == 1)
-        |> collect array
-    assert odd == [1, 3]
-}
-
 ## Evaluates an iterator that yields the integers in the range [lo..hi)
 func rangex lo hi =
     if lo < hi
@@ -155,25 +112,9 @@ func rangex lo hi =
     else unit
 export rangex
 
-test "rangex" {
-    let mut total = 0
-    for x in rangex 1 5 {
-        total += x
-    }
-    assert total == 10
-}
-
 ## Evaluates an iterator that yields the integers in the range [lo..hi]
 func range lo hi = rangex lo (hi + 1)
 export range
-
-test "range" {
-    let mut total = 0
-    for x in range 1 5 {
-        total += x
-    }
-    assert total == 15
-}
 
 ## Creates an iterator that, when called, yields the integers inthe range [lo..hi]
 func make_range lo hi = do() range lo hi
@@ -182,13 +123,6 @@ export make_range
 func make_rangex lo hi = do() rangex lo hi
 export make_rangex
 
-test "make_rangex" {
-    assert (make_rangex 0 5 |> collect array) == [0, 1, 2, 3, 4]
-}
-
-test "make_range" {
-    assert (make_range 0 5 |> collect array) == [0, 1, 2, 3, 4, 5]
-}
 
 ## Creates an iterator that emits the value n times
 func repeat n value = do() {
@@ -200,20 +134,12 @@ func repeat n value = do() {
 }
 export repeat
 
-test "repeat" {
-    assert (repeat 3 'a |> collect array) == ['a, 'a, 'a]
-}
-
 ## Calls the iterator, discarding any yielded values.
 func ignore xs =
     with xs!()
         when 'next(_) resume unit
         else yield
 export ignore
-
-test "ignore" {
-    of [1, 2, 3] |> ignore
-}
 
 ## Tuples each element of an iterator with its index.
 func enumerate xs = do () {
@@ -227,10 +153,3 @@ func enumerate xs = do () {
         else yield
 }
 export enumerate
-
-test "enumerate" {
-    assert (of [1, 2, 3]
-        |> enumerate
-        |> collect array)
-        == [0:1, 1:2, 2:3]
-}

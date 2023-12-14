@@ -1,4 +1,4 @@
-module iter at "trilogy:iter"
+module iter at "trilogy:iter" use rangex
 module native at "trilogy:array/native" use length, slice
 export length, slice
 
@@ -403,7 +403,7 @@ test "sort" {
     ]
 }
 
-func transpose arr = [[arr.y.x for y in iter::rangex 0 (length arr)] for x in iter::rangex 0 (length (arr.0))]
+func transpose arr = [[arr.y.x for y in rangex 0 (length arr)] for x in rangex 0 (length (arr.0))]
 export transpose
 
 test "transpose" {
