@@ -822,13 +822,10 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         self.bubble(|context| {
             // Meanwhile if the first query is not exhausted, we're running it but do need
             // to worry about backtracking. This is much like conjunction.
-            let bindset = context
+            context
                 .label(first)
                 .instruction(Instruction::Uncons)
                 .intermediate();
-            context
-                .instruction(Instruction::LoadLocal(bindset))
-                .unbind(disj.0.value.bindings());
             context
                 .execute_subquery(&disj.0.value, &next, context.bindings)
                 // If it succeeds, just reconstruct the state before succeeding.
