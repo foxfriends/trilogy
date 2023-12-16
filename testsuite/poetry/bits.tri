@@ -16,11 +16,12 @@ test "type" {
 }
 
 test "a | b" {
-    assert 0bb | 0bb001 == 0bb001
+    assert 0bb | 0bb001 == 0bb
+    assert 0bb001 | 0bb == 0bb001
     assert 0bb100 | 0bb001 == 0bb101
     assert 0bb111 | 0bb001 == 0bb111
     assert 0bb00111 | 0bb111 == 0bb11111
-    assert 0bb111 | 0bb11001 == 0bb11101
+    assert 0bb111 | 0bb11001 == 0bb111
 }
 
 test "(|) a b" {
@@ -31,8 +32,8 @@ test "(|) a b" {
     assert bor 0bb111 0bb001 == 0bb111
 
     let bor1 = (|) 0bb1
-    assert bor1 0bb01 == 0bb11
-    assert bor1 0bb00 == 0bb10
+    assert bor1 0bb01 == 0bb1
+    assert bor1 0bb00 == 0bb1
 }
 
 test not "| only works on bits" {
@@ -40,11 +41,12 @@ test not "| only works on bits" {
 }
 
 test "a & b" {
-    assert 0bb & 0bb001 == 0bb000
+    assert 0bb & 0bb001 == 0bb
+    assert 0bb001 & 0bb == 0bb000
     assert 0bb100 & 0bb001 == 0bb000
     assert 0bb111 & 0bb001 == 0bb001
     assert 0bb00111 & 0bb111 == 0bb00100
-    assert 0bb111 & 0bb11001 == 0bb11000
+    assert 0bb111 & 0bb11001 == 0bb110
 }
 
 test "(&) a b" {
@@ -55,8 +57,8 @@ test "(&) a b" {
     assert band 0bb111 0bb001 == 0bb001
 
     let band1 = (&) 0bb1
-    assert band1 0bb11 == 0bb10
-    assert band1 0bb01 == 0bb00
+    assert band1 0bb11 == 0bb1
+    assert band1 0bb01 == 0bb0
 }
 
 test not "& only works on bits" {
@@ -64,11 +66,12 @@ test not "& only works on bits" {
 }
 
 test "a ^ b" {
-    assert 0bb ^ 0bb001 == 0bb001
+    assert 0bb ^ 0bb001 == 0bb
+    assert 0bb001 ^ 0bb == 0bb001
     assert 0bb100 ^ 0bb001 == 0bb101
     assert 0bb111 ^ 0bb001 == 0bb110
     assert 0bb00111 ^ 0bb111 == 0bb11011
-    assert 0bb111 ^ 0bb11001 == 0bb00101
+    assert 0bb111 ^ 0bb11001 == 0bb001
 }
 
 test "(^) a b" {
@@ -79,8 +82,8 @@ test "(^) a b" {
     assert xor 0bb111 0bb001 == 0bb110
 
     let xor1 = (^) 0bb1
-    assert xor1 0bb11 == 0bb01
-    assert xor1 0bb01 == 0bb11
+    assert xor1 0bb11 == 0bb0
+    assert xor1 0bb01 == 0bb1
 }
 
 test not "^ only works on bits" {

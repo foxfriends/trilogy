@@ -304,11 +304,14 @@ impl BitAnd for Bits {
 
     fn bitand(self, rhs: Self) -> Self::Output {
         let len = usize::max(self.0.len(), rhs.0.len());
-        let mut lhs_ext = (*self.0).clone();
-        lhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - self.0.len()));
-        let mut rhs_ext = (*rhs.0).clone();
-        rhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.0.len()));
-        Self::from(lhs_ext & rhs_ext)
+        let lhs = (*self.0).clone();
+        let mut rhs = (*rhs.0).clone();
+        if lhs.len() > rhs.len() {
+            rhs.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.len()));
+        } else {
+            rhs.truncate(lhs.len());
+        }
+        Self::from(lhs & rhs)
     }
 }
 
@@ -317,11 +320,14 @@ impl BitOr for Bits {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         let len = usize::max(self.0.len(), rhs.0.len());
-        let mut lhs_ext = (*self.0).clone();
-        lhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - self.0.len()));
-        let mut rhs_ext = (*rhs.0).clone();
-        rhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.0.len()));
-        Self::from(lhs_ext | rhs_ext)
+        let lhs = (*self.0).clone();
+        let mut rhs = (*rhs.0).clone();
+        if lhs.len() > rhs.len() {
+            rhs.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.len()));
+        } else {
+            rhs.truncate(lhs.len());
+        }
+        Self::from(lhs | rhs)
     }
 }
 
@@ -330,11 +336,14 @@ impl BitXor for Bits {
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         let len = usize::max(self.0.len(), rhs.0.len());
-        let mut lhs_ext = (*self.0).clone();
-        lhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - self.0.len()));
-        let mut rhs_ext = (*rhs.0).clone();
-        rhs_ext.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.0.len()));
-        Self::from(lhs_ext ^ rhs_ext)
+        let lhs = (*self.0).clone();
+        let mut rhs = (*rhs.0).clone();
+        if lhs.len() > rhs.len() {
+            rhs.extend(BitVec::<usize, Lsb0>::repeat(false, len - rhs.len()));
+        } else {
+            rhs.truncate(lhs.len());
+        }
+        Self::from(lhs ^ rhs)
     }
 }
 
@@ -407,10 +416,10 @@ mod test {
     }
 
     #[test]
-    fn bitand_lhs_extend() {
+    fn bitand_rhs_trunc() {
         let rhs = Bits::from(bitvec![usize, Msb0; 1, 1]);
         let lhs = Bits::from(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs & rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
+        assert_eq!(lhs & rhs, Bits::from(bitvec![usize, Msb0; 1]));
     }
 
     #[test]
@@ -428,10 +437,10 @@ mod test {
     }
 
     #[test]
-    fn bitor_lhs_extend() {
+    fn bitor_rhs_trunc() {
         let rhs = Bits::from(bitvec![usize, Msb0; 0, 0]);
         let lhs = Bits::from(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs | rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
+        assert_eq!(lhs | rhs, Bits::from(bitvec![usize, Msb0; 1]));
     }
 
     #[test]
@@ -449,10 +458,10 @@ mod test {
     }
 
     #[test]
-    fn bitxor_lhs_extend() {
+    fn bitxor_rhs_trunc() {
         let rhs = Bits::from(bitvec![usize, Msb0; 0, 0]);
         let lhs = Bits::from(bitvec![usize, Msb0; 1]);
-        assert_eq!(lhs ^ rhs, Bits::from(bitvec![usize, Msb0; 1, 0]));
+        assert_eq!(lhs ^ rhs, Bits::from(bitvec![usize, Msb0; 1]));
     }
 
     #[test]
