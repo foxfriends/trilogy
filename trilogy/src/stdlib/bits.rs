@@ -34,4 +34,11 @@ pub mod bits {
         let rhs = rt.typecheck::<Bits>(rhs)?;
         rt.r#return(lhs.concat(&rhs))
     }
+
+    /// Creates a Bits of the given length, all initialized to zero.
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn zeros(rt: Runtime, len: Value) -> Result<()> {
+        let len = rt.typecheck::<usize>(len)?;
+        rt.r#return(Bits::zeros(len))
+    }
 }

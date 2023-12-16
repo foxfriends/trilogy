@@ -27,6 +27,20 @@ impl Bits {
         Self::default()
     }
 
+    /// Creates a Bits value of the specified length, initialized to 0
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::Bits;
+    /// let bits = Bits::new();
+    /// assert_eq!(bits.len(), 0);
+    /// ```
+    #[inline]
+    pub fn zeros(len: usize) -> Self {
+        Self::from(bitvec![usize, Msb0; 0; len])
+    }
+
     /// Returns the number of bits contained in this Bits value.
     ///
     /// # Examples

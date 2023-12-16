@@ -1,4 +1,4 @@
-module native at "trilogy:bits/native" use cast, concat
+module native at "trilogy:bits/native" use cast, concat, zeros
 
 export cast, concat
 
@@ -19,4 +19,9 @@ test "cast" {
     assert cast true == 0bb1
     assert cast false == 0bb0
     assert cast unit == 0bb
+}
+
+test "zeros" {
+    assert zeros 3 == 0bb000
+    assert zeros 15 == 0bb000000000000000
 }
