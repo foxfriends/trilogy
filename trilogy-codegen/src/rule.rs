@@ -15,7 +15,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
     // first time into this branch of the rule, so we have to run setup.
     context
         .instruction(Instruction::Copy)
-        .constant(())
+        .instruction(Instruction::Unit)
         .instruction(Instruction::ValNeq)
         .cond_jump(&setup)
         // Once setup is complete, we end up here where the rule's iterator is actually
@@ -143,7 +143,7 @@ pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) 
         context.label(next);
     }
     // The return value is a (backwards) list
-    context.constant(());
+    context.instruction(Instruction::Unit);
     for _ in &rule.parameters {
         context
             .instruction(Instruction::Swap)

@@ -278,7 +278,7 @@ pub(crate) trait StatefulChunkWriterExt:
                         c.instruction(Instruction::Pop).jump(&end);
                     });
                 } else {
-                    c.constant(());
+                    c.instruction(Instruction::Unit);
                 }
             })
             .intermediate();
@@ -297,7 +297,7 @@ pub(crate) trait StatefulChunkWriterExt:
                         c.instruction(Instruction::Pop).jump(&begin);
                     });
                 } else {
-                    c.constant(());
+                    c.instruction(Instruction::Unit);
                 }
             })
             .intermediate();

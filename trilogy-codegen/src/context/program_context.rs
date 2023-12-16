@@ -52,7 +52,7 @@ impl ProgramContext<'_> {
         }
         self.call_procedure(0)
             .instruction(Instruction::Copy)
-            .constant(())
+            .instruction(Instruction::Unit)
             .instruction(Instruction::ValEq)
             .cond_jump("trilogy:__exit_runoff__")
             .constant(default_exit)
@@ -108,7 +108,7 @@ impl ProgramContext<'_> {
         let mut context = self.begin(statics, 0);
         context.unlock_procedure(0).evaluate(&test.body);
         context
-            .instruction(Instruction::Const(Value::Unit))
+            .instruction(Instruction::Unit)
             .instruction(Instruction::Return);
         let end = self.ip();
         self.annotate(Annotation::source(
@@ -171,7 +171,7 @@ impl ProgramContext<'_> {
                 .label(fail)
                 // The 'done and the state are discarded by write_rule, so here we just
                 // have to create the next state
-                .constant(())
+                .instruction(Instruction::Unit)
                 .constant(i + 1)
                 .label(skip);
             let end = context.ip();

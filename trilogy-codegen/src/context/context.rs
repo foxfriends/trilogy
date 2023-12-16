@@ -147,7 +147,7 @@ impl Context<'_> {
         let mut seq = seq.iter();
         let Some(mut expr) = seq.next() else {
             // An empty sequence must still have a value
-            return self.constant(());
+            return self.instruction(Instruction::Unit);
         };
         loop {
             self.evaluate(&expr.value);
@@ -170,7 +170,7 @@ impl Context<'_> {
                     .instruction(Instruction::LoadLocal(params.cancel))
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::LoadLocal(params.resume))
-                    .constant(())
+                    .instruction(Instruction::Unit)
                     .call_function()
                     .instruction(Instruction::Clone)
                     .instruction(Instruction::Swap)
@@ -199,7 +199,7 @@ impl Context<'_> {
         )
         // Evaluation requires that an extra value ends up on the stack.
         // While "evaluates" to unit
-        .constant(())
+        .instruction(Instruction::Unit)
     }
 
     pub fn r#for(&mut self, query: &ir::Query, body: &ir::Value) -> &mut Self {

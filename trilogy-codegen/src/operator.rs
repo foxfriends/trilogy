@@ -1,6 +1,6 @@
 use crate::{preamble::*, prelude::*};
 use trilogy_ir::ir::Builtin;
-use trilogy_vm::{Instruction, Struct, Value};
+use trilogy_vm::{Instruction, Struct};
 
 pub(crate) fn is_operator(builtin: Builtin) -> bool {
     #[allow(clippy::match_like_matches_macro)]
@@ -137,7 +137,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
                 .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Copy)
-                .constant(0)
+                .instruction(Instruction::Zero)
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&divzero)
                 .instruction(Instruction::Divide)
@@ -156,7 +156,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
                 .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Copy)
-                .constant(0)
+                .instruction(Instruction::Zero)
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&remzero)
                 .instruction(Instruction::Remainder)
@@ -183,7 +183,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
                 .typecheck("number")
                 .instruction(Instruction::Swap)
                 .instruction(Instruction::Copy)
-                .constant(0)
+                .instruction(Instruction::Zero)
                 .instruction(Instruction::ValNeq)
                 .cond_jump(&intdivzero)
                 .instruction(Instruction::IntDivide)
@@ -302,7 +302,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             let function = context.make_atom("function");
             context
                 .instruction(context.scope.kw_break().unwrap())
-                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Unit)
                 .constant(Struct::new(function, 1))
                 .instruction(Instruction::Become(2));
         }
@@ -310,7 +310,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             let function = context.make_atom("function");
             context
                 .instruction(context.scope.kw_continue().unwrap())
-                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Unit)
                 .constant(Struct::new(function, 1))
                 .instruction(Instruction::Become(2));
         }

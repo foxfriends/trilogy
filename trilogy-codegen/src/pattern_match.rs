@@ -67,7 +67,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
 
     fn visit_unit(&mut self) {
         self.context
-            .constant(())
+            .instruction(Instruction::Unit)
             .instruction(Instruction::ValEq)
             .cond_jump(self.on_fail);
     }
@@ -198,7 +198,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Subtract)
                     .instruction(Instruction::Copy)
-                    .constant(0)
+                    .instruction(Instruction::Zero)
                     .instruction(Instruction::Geq)
                     .cond_jump(&cleanup)
                     .instruction(Instruction::LoadLocal(original))
@@ -325,12 +325,12 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                         // When it's not the spread element, just match the first element.
                         self.context
                             .instruction(Instruction::Copy)
-                            .constant(0)
+                            .instruction(Instruction::Zero)
                             .instruction(Instruction::Access)
                             .pattern_match(&element.expression, &cleanup)
                             // And then we drop that element from the array and leave just the tail on
                             // the stack.
-                            .constant(1)
+                            .instruction(Instruction::One)
                             .instruction(Instruction::Skip);
                     }
                 }
@@ -380,7 +380,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                 } else {
                     self.context
                         .instruction(Instruction::Length)
-                        .constant(0)
+                        .instruction(Instruction::Zero)
                         .instruction(Instruction::ValEq)
                         .cond_jump(self.on_fail);
                 }
@@ -420,7 +420,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                 } else {
                     self.context
                         .instruction(Instruction::Length)
-                        .constant(0)
+                        .instruction(Instruction::Zero)
                         .instruction(Instruction::ValEq)
                         .cond_jump(self.on_fail);
                 }

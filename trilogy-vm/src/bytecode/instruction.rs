@@ -29,6 +29,25 @@ compile_error!("Exactly one of the features `32bit` or `64bit` may be specified 
 #[cfg_attr(feature = "32bit", asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u32)))]
 pub enum Instruction {
     // Stack
+    /// Push a `unit` to the top of the stack
+    Unit,
+    /// Push a `true` to the top of the stack
+    True,
+    /// Push a `false` to the top of the stack
+    False,
+    /// Push a `0` to the top of the stack
+    Zero,
+    /// Push a `1` to the top of the stack
+    One,
+    /// Pop a number from the top of the stack, and then collect that number of following
+    /// stack elements into an array.
+    #[asm(name="CARRAY")] CollectArray,
+    /// Pop a number from the top of the stack, and then collect that number of following
+    /// stack elements into a set.
+    #[asm(name="CSET")] CollectSet,
+    /// Pop a number from the top of the stack, and then collect that number of following
+    /// stack elements into a record.
+    #[asm(name="CRECORD")] CollectRecord,
     /// Push a constant value to the top of the stack
     Const(Value),
     /// Push a second copy of the value currently on the top of the stack.
@@ -48,8 +67,7 @@ pub enum Instruction {
     /// The new value will not be referentially equal to the previous value if it was
     /// of a compound reference type. Callable types will remain referentially equal,
     /// as they cannot be further cloned.
-    #[asm(name = "CLONED")]
-    DeepClone,
+    #[asm(name = "CLONED")] DeepClone,
     /// Remove the value from the top of the stack.
     Pop,
     /// Swap the value on the top of the stack with the second from the top value.

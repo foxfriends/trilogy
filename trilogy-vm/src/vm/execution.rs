@@ -11,7 +11,10 @@ use crate::callable::{Closure, Continuation};
 use crate::runtime::callable::{Callable, CallableKind};
 #[cfg(feature = "stats")]
 use crate::RefCount;
-use crate::{Atom, Instruction, Number, Offset, ReferentialEq, Struct, StructuralEq, Tuple, Value};
+use crate::{
+    Array, Atom, Instruction, Number, Offset, Record, ReferentialEq, Set, Struct, StructuralEq,
+    Tuple, Value,
+};
 use num::ToPrimitive;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
@@ -399,6 +402,85 @@ impl<'a> Execution<'a> {
     #[inline(always)]
     fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
         match instruction {
+            Instruction::Unit => {
+                self.stack.push(());
+            }
+            Instruction::True => {
+                self.stack.push(true);
+            }
+            Instruction::False => {
+                self.stack.push(false);
+            }
+            Instruction::One => {
+                self.stack.push(1);
+            }
+            Instruction::Zero => {
+                self.stack.push(0);
+            }
+            Instruction::CollectArray => {
+                let len = self.stack_pop()?;
+                let len = match len {
+                    Value::Number(number) if number.is_uinteger() => number
+                        .as_uinteger()
+                        .unwrap()
+                        .to_usize()
+                        .ok_or_else(|| self.error(InternalRuntimeError::TypeError))?,
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
+                };
+                let array = self
+                    .stack
+                    .pop_n(len)
+                    .map_err(|k| self.error(k))?
+                    .into_iter()
+                    .map(|val| val.try_into_value())
+                    .collect::<Result<Array, _>>()
+                    .map_err(|k| self.error(k))?;
+                self.stack.push(array);
+            }
+            Instruction::CollectSet => {
+                let len = self.stack_pop()?;
+                let len = match len {
+                    Value::Number(number) if number.is_uinteger() => number
+                        .as_uinteger()
+                        .unwrap()
+                        .to_usize()
+                        .ok_or_else(|| self.error(InternalRuntimeError::TypeError))?,
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
+                };
+                let set = self
+                    .stack
+                    .pop_n(len)
+                    .map_err(|k| self.error(k))?
+                    .into_iter()
+                    .map(|val| val.try_into_value())
+                    .collect::<Result<Set, _>>()
+                    .map_err(|k| self.error(k))?;
+                self.stack.push(set);
+            }
+            Instruction::CollectRecord => {
+                let len = self.stack_pop()?;
+                let len = match len {
+                    Value::Number(number) if number.is_uinteger() => number
+                        .as_uinteger()
+                        .unwrap()
+                        .to_usize()
+                        .ok_or_else(|| self.error(InternalRuntimeError::TypeError))?,
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
+                };
+                let set = self
+                    .stack
+                    .pop_n(len)
+                    .map_err(|k| self.error(k))?
+                    .into_iter()
+                    .map(|val| val.try_into_value())
+                    .map(|val| match val? {
+                        Value::Tuple(tuple) => Ok(tuple.uncons()),
+                        _ => Err(InternalRuntimeError::TypeError),
+                    })
+                    .collect::<Result<Record, _>>()
+                    .map_err(|k| self.error(k))?;
+                self.stack.push(set);
+            }
             Instruction::Const(value) => {
                 self.stack.push(value.structural_clone());
             }

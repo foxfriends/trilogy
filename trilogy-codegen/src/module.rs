@@ -213,7 +213,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                         // Local modules get written into the context as `unit` first,
                         // ensuring that they are reserved space in the context without
                         // initializing them. The initialization comes later.
-                        context.constant(());
+                        context.instruction(Instruction::Unit);
                     }
                     StaticMember::Context(..) => unreachable!(),
                 }

@@ -102,7 +102,7 @@ impl QueryState<'_, '_> {
         node.0.visit(self);
         self.context
             .instruction(Instruction::Cons)
-            .constant(false)
+            .instruction(Instruction::False)
             .instruction(Instruction::Cons)
             .end_intermediate();
     }
@@ -126,15 +126,15 @@ impl IrVisitor for QueryState<'_, '_> {
     // indicate that they should not occur again.
 
     fn visit_query_is(&mut self, _: &ir::Expression) {
-        self.context.constant(true);
+        self.context.instruction(Instruction::True);
     }
 
     fn visit_query_pass(&mut self) {
-        self.context.constant(true);
+        self.context.instruction(Instruction::True);
     }
 
     fn visit_query_fail(&mut self) {
-        self.context.constant(false);
+        self.context.instruction(Instruction::False);
     }
 
     // While a `not` query doesn't require much state (it's just an at most once query),
@@ -145,7 +145,7 @@ impl IrVisitor for QueryState<'_, '_> {
         self.context
             .instruction(Instruction::LoadRegister(BINDSET))
             .instruction(Instruction::Clone)
-            .constant(true)
+            .instruction(Instruction::True)
             .instruction(Instruction::Cons);
     }
 
@@ -188,7 +188,7 @@ impl IrVisitor for QueryState<'_, '_> {
         node.0.visit(self);
         self.context
             .instruction(Instruction::Cons)
-            .constant(())
+            .instruction(Instruction::Unit)
             .instruction(Instruction::Cons)
             .end_intermediate();
     }
@@ -199,7 +199,7 @@ impl IrVisitor for QueryState<'_, '_> {
         self.context
             .instruction(Instruction::LoadRegister(BINDSET))
             .instruction(Instruction::Clone)
-            .constant(true)
+            .instruction(Instruction::True)
             .instruction(Instruction::Cons)
             .instruction(Instruction::LoadRegister(BINDSET));
         self.add_bindings(node.pattern.bindings());
@@ -235,7 +235,7 @@ impl IrVisitor for QueryState<'_, '_> {
             .typecheck("callable")
             .raw_call(0)
             .instruction(Instruction::Cons) // with the bindset
-            .constant(false) // and a flag to keep track of whether the closure is initialized or not
+            .instruction(Instruction::False) // and a flag to keep track of whether the closure is initialized or not
             .instruction(Instruction::Cons)
             .end_intermediate();
 
@@ -407,7 +407,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         // Take out the bindset
         let bindset = self.instruction(Instruction::Uncons).intermediate();
         // Set the state marker to false so we can't re-enter here.
-        self.constant(false)
+        self.instruction(Instruction::False)
             .instruction(Instruction::Swap)
             .cond_jump(&cleanup)
             .intermediate(); // state marker
@@ -531,7 +531,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                             .instruction(Instruction::LoadLocal(params.cancel))
                             .instruction(Instruction::LoadLocal(params.resume))
                             // Resume the iterator with unit, since the value won't be used
-                            .constant(())
+                            .instruction(Instruction::Unit)
                             .call_function()
                             // The iterator eventually evaluates to something, which gets passed up
                             .become_function();
@@ -573,7 +573,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
 
     fn visit_query_is(&mut self, expr: &ir::Expression) {
         // Set the state marker to false so we can't re-enter here.
-        self.constant(false)
+        self.instruction(Instruction::False)
             .instruction(Instruction::Swap)
             .cond_fail()
             .intermediate(); // state
@@ -593,7 +593,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
     fn visit_query_pass(&mut self) {
         // Always pass (the first time). We still don't re-enter
         // here, so it does "fail" the second time.
-        self.constant(false)
+        self.instruction(Instruction::False)
             .instruction(Instruction::Swap)
             .cond_fail();
     }
@@ -604,7 +604,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // Take up the bindset for later
             .instruction(Instruction::Uncons)
             // Set the state marker to false so we can't re-enter here.
-            .constant(false)
+            .instruction(Instruction::False)
             .instruction(Instruction::Swap)
             .cond_jump(&cleanup);
 
@@ -674,7 +674,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // Reattach the outer state
             .instruction(Instruction::Cons)
             // Put the marker on top
-            .constant(true)
+            .instruction(Instruction::True)
             .instruction(Instruction::Cons)
             .bubble(|context| {
                 // On failure, simply reset with the outer query's state. It'll continue from
@@ -728,7 +728,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 context
                     .label(cleanup)
                     .instruction(Instruction::Cons) // Attach the state to the bindset
-                    .constant(false)
+                    .instruction(Instruction::False)
                     .instruction(Instruction::Cons) // Then attach the marker
                     .fail()
                     .end_intermediate(); // outer_bindset
@@ -752,7 +752,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         self.label(inner.clone());
         self.execute_subquery(&imp.1.value, &cleanup_second, &rhs_bound)
             // Only thing is to maintain the marker in the state.
-            .constant(true)
+            .instruction(Instruction::True)
             .instruction(Instruction::Cons);
 
         self.bubble(|context| {
@@ -790,12 +790,12 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 .label(cleanup_first)
                 // The outer query has a bindset attached
                 .instruction(Instruction::Cons)
-                .constant(false)
+                .instruction(Instruction::False)
                 .instruction(Instruction::Cons)
                 .fail()
                 .label(cleanup_second)
                 // The inner query is opaque
-                .constant(true)
+                .instruction(Instruction::True)
                 .instruction(Instruction::Cons)
                 .fail();
         });
@@ -816,7 +816,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             .label(second.clone());
         self.execute_subquery(&disj.1.value, &cleanup, self.bindings)
             // Only concern is to maintain the state
-            .constant(true)
+            .instruction(Instruction::True)
             .instruction(Instruction::Cons);
 
         self.bubble(|context| {
@@ -833,7 +833,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 .execute_subquery(&disj.0.value, &next, context.bindings)
                 // If it succeeds, just reconstruct the state before succeeding.
                 .instruction(Instruction::Cons)
-                .constant(false)
+                .instruction(Instruction::False)
                 .instruction(Instruction::Cons)
                 .bubble(|context| {
                     // When it fails, instead of failing now, move on to the second branch.
@@ -849,7 +849,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                         .jump(&second)
                         // Once the second one fails, then we're really failed.
                         .label(cleanup)
-                        .constant(true)
+                        .instruction(Instruction::True)
                         .instruction(Instruction::Cons)
                         .fail();
                 });
@@ -865,7 +865,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         // To run the alternative thing, we need to keep a little extra state
         // temporarily. Slip that in behind the actual state before we begin.
         let is_uncommitted = self
-            .constant(false)
+            .instruction(Instruction::False)
             .instruction(Instruction::Swap)
             .intermediate();
 
@@ -876,12 +876,12 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         self.instruction(Instruction::Uncons)
             // If it's unit, set the uncommitted flag
             .instruction(Instruction::Copy)
-            .constant(())
+            .instruction(Instruction::Unit)
             .instruction(Instruction::ValEq)
             .instruction(Instruction::SetLocal(is_uncommitted))
             // Then we do an equality check, making unit look the same as true so that
             // it runs the left side.
-            .constant(false)
+            .instruction(Instruction::False)
             .instruction(Instruction::ValNeq)
             .cond_jump(&second); // false = second! Backwards from other query types
 
@@ -890,7 +890,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
         self.execute_subquery(&alt.0.value, &maybe, self.bindings)
             // If it succeeds, fix the state and set the marker `true` so we come back here next time.
             .instruction(Instruction::Cons)
-            .constant(true)
+            .instruction(Instruction::True)
             .instruction(Instruction::Cons)
             .bubble(|context| {
                 // If doing the right side, it's much the same as the left, but there is no bindset
@@ -900,7 +900,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                     .label(second.clone());
                 context
                     .execute_subquery(&alt.1.value, &cleanup_second, context.bindings)
-                    .constant(false)
+                    .instruction(Instruction::False)
                     .instruction(Instruction::Cons)
                     .bubble(|context| {
                         // If the left side failed, we have to check if we were previously committed to the left
@@ -922,7 +922,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                             // When failing from the first side, reconstruct the state with its bindset
                             .label(cleanup_first)
                             .instruction(Instruction::Cons)
-                            .constant(true)
+                            .instruction(Instruction::True)
                             .instruction(Instruction::Cons)
                             // Don't forget to discard the uncommitted flag
                             .instruction(Instruction::Swap)
@@ -930,7 +930,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                             .fail()
                             // Similar for the right side, but no bindset
                             .label(cleanup_second)
-                            .constant(false)
+                            .instruction(Instruction::False)
                             .instruction(Instruction::Cons)
                             // Don't forget to discard the uncommitted flag
                             .instruction(Instruction::Swap)
@@ -1003,7 +1003,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // Reconstruct the bindset:state
             .instruction(Instruction::Cons)
             // Put the marker back in too
-            .constant(true)
+            .instruction(Instruction::True)
             .instruction(Instruction::Cons)
             // And we're done!
             .bubble(|context| {
@@ -1019,7 +1019,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                     // Reattach the bindset:state
                     .instruction(Instruction::Cons)
                     // Put the marker back in too
-                    .constant(true)
+                    .instruction(Instruction::True)
                     .instruction(Instruction::Cons)
                     // And then call it failure
                     .fail();

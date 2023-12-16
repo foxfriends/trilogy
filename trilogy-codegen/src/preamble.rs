@@ -1,6 +1,6 @@
 use super::prelude::*;
 use crate::context::ProgramContext;
-use trilogy_vm::{Instruction, Value};
+use trilogy_vm::Instruction;
 
 pub const ADD: &str = "core::add";
 pub const SUB: &str = "core::sub";
@@ -209,7 +209,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::LoadLocal(1))
         .typecheck("number")
         .instruction(Instruction::Copy)
-        .constant(1)
+        .instruction(Instruction::One)
         .instruction(Instruction::IntDivide)
         .instruction(Instruction::ValEq)
         .cond_jump(INVALID_ACCESSOR)
@@ -252,12 +252,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Lt)
         .cond_jump(MIA)
         .instruction(Instruction::Copy)
-        .constant(0)
+        .instruction(Instruction::Zero)
         .instruction(Instruction::Geq)
         .cond_jump(MIA)
         .instruction(Instruction::Copy)
         .instruction(Instruction::Copy)
-        .constant(1)
+        .instruction(Instruction::One)
         .instruction(Instruction::IntDivide)
         .instruction(Instruction::ValEq)
         .cond_jump(INVALID_ACCESSOR)
@@ -292,7 +292,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Entries)
         .label(ITERATE_ARRAY)
         .protect()
-        .constant(0)
+        .instruction(Instruction::Zero)
         .repeat(|context, end| {
             context
                 .instruction(Instruction::LoadLocal(0))
@@ -307,7 +307,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
                 .instruction(Instruction::Construct)
                 .r#yield()
                 .instruction(Instruction::Pop)
-                .constant(1)
+                .instruction(Instruction::One)
                 .instruction(Instruction::Add);
         })
         .constant(())
@@ -319,7 +319,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .repeat(|context, end| {
             context
                 .instruction(Instruction::Copy)
-                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Unit)
                 .instruction(Instruction::ValNeq)
                 .cond_jump(end)
                 .typecheck("tuple")
@@ -351,7 +351,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .protect()
         .unlock_function()
         .instruction(Instruction::LoadRegister(HANDLER))
-        .instruction(Instruction::Const(Value::Unit))
+        .instruction(Instruction::Unit)
         .instruction(Instruction::ValNeq)
         .cond_jump(&no_handler)
         // Save the module context and handler to restore after resuming

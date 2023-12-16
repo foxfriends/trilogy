@@ -3,7 +3,7 @@ use std::cell::Cell;
 use std::collections::HashSet;
 use trilogy_ir::ir;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, IrVisitable, IrVisitor};
-use trilogy_vm::{Annotation, Array, Instruction, Location, Offset, Record, Set, Value};
+use trilogy_vm::{Annotation, Array, Instruction, Location, Offset, Record, Set};
 
 struct Evaluator<'b, 'a> {
     context: &'b mut Context<'a>,
@@ -101,7 +101,7 @@ impl IrVisitor for Evaluator<'_, '_> {
         self.context.constant(*value);
     }
     fn visit_unit(&mut self) {
-        self.context.constant(());
+        self.context.instruction(Instruction::Unit);
     }
 
     fn visit_atom(&mut self, value: &str) {
@@ -109,7 +109,9 @@ impl IrVisitor for Evaluator<'_, '_> {
     }
 
     fn visit_iterator(&mut self, iter: &ir::Iterator) {
-        self.context.iterator(iter, None, None).constant(());
+        self.context
+            .iterator(iter, None, None)
+            .instruction(Instruction::Unit);
     }
 
     fn visit_handled(&mut self, handled: &ir::Handled) {
@@ -168,8 +170,8 @@ impl IrVisitor for Evaluator<'_, '_> {
                 .execute_query(&decl.query, END)
                 .intermediate(); // query state
             self.context
-                .instruction(Instruction::Const(Value::Bool(true)))
-                .instruction(Instruction::Const(Value::Bool(false)))
+                .instruction(Instruction::True)
+                .instruction(Instruction::False)
                 .instruction(Instruction::Branch)
                 .cond_jump(&reenter)
                 .instruction(Instruction::Pop)
@@ -257,7 +259,7 @@ impl IrVisitor for Evaluator<'_, '_> {
             }
             context
                 .evaluate(&closure.body)
-                .instruction(Instruction::Const(Value::Unit))
+                .instruction(Instruction::Unit)
                 .instruction(Instruction::Return);
             for parameter in closure.parameters.iter().rev() {
                 context.undeclare_variables(parameter.bindings(), false);
@@ -342,7 +344,7 @@ impl IrVisitor for Evaluator<'_, '_> {
                 }
 
                 // The return value is a (backwards) list
-                context.constant(());
+                context.instruction(Instruction::Unit);
                 for _ in &closure.parameters {
                     context
                         .instruction(Instruction::Swap)
