@@ -1,6 +1,6 @@
 module native at "trilogy:bits/native" use cast, concat, zeros
 
-export cast, concat
+export cast, concat, zeros
 
 test "cast" {
     assert cast 0  == 0bb000000000
