@@ -26,4 +26,12 @@ pub mod bits {
             _ => rt.r#yield(no_bits, |rt, val| rt.r#return(val)),
         }
     }
+
+    /// Concatentate two bits values together.
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn concat(rt: Runtime, lhs: Value, rhs: Value) -> Result<()> {
+        let lhs = rt.typecheck::<Bits>(lhs)?;
+        let rhs = rt.typecheck::<Bits>(rhs)?;
+        rt.r#return(lhs.concat(&rhs))
+    }
 }

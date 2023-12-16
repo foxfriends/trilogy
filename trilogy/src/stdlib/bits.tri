@@ -1,9 +1,8 @@
-module native at "trilogy:bits/native"
+module native at "trilogy:bits/native" use cast, concat
 
-const cast = native::cast
-export cast
+export cast, concat
 
-test "cast bits" {
+test "cast" {
     assert cast 0  == 0bb000000000
     assert cast 1  == 0bb000000001
     assert cast (-1) == 0bb100000001

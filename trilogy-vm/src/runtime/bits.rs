@@ -13,16 +13,43 @@ use std::sync::Arc;
 pub struct Bits(Arc<BitVec<usize, Msb0>>);
 
 impl Bits {
+    /// Creates a new empty bits value, containing 0 bits.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::Bits;
+    /// let bits = Bits::new();
+    /// assert_eq!(bits.len(), 0);
+    /// ```
     #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Returns the number of bits contained in this Bits value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::Bits;
+    /// let bits = Bits::from(0u32);
+    /// assert_eq!(bits.len(), 32);
+    /// ```
     #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Returns true if this Bits contains no bits.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::Bits;
+    /// let bits = Bits::new();
+    /// assert!(bits.is_empty());
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -36,6 +63,14 @@ impl Bits {
     #[inline]
     pub fn to_bitvec(self) -> BitVec<usize, Msb0> {
         (*self.0).clone()
+    }
+
+    #[inline]
+    pub fn concat(&self, other: &Self) -> Bits {
+        let mut lhs = (*self.0).clone();
+        let mut rhs = (*other.0).clone();
+        lhs.append(&mut rhs);
+        Bits::from(lhs)
     }
 
     #[inline]
@@ -114,6 +149,22 @@ impl From<Bits> for Number {
         Number::from(BigInt::from_bytes_le(sign, &bytes))
     }
 }
+
+macro_rules! from_num {
+    ($num:ty) => {
+        impl From<$num> for Bits {
+            fn from(value: $num) -> Self {
+                <$num>::to_be_bytes(value).into_iter().collect()
+            }
+        }
+    };
+}
+
+from_num!(u8);
+from_num!(u16);
+from_num!(u32);
+from_num!(u64);
+from_num!(u128);
 
 impl IntoIterator for Bits {
     type Item = <BitVec<usize, Msb0> as IntoIterator>::Item;
