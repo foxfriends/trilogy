@@ -18,3 +18,4 @@ num = "0.4.0"
 trilogy-vm-derive = { path = "../trilogy-vm-derive/" }
 source-span = "2.7.0"
 log = "0.4.20"
+rangemap = "1.4.0"
