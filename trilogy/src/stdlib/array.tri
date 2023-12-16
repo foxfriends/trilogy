@@ -145,6 +145,9 @@ func zip _ [] = []
 func zip [x, ..xs] [y, ..ys] = [(x:y), ..zip xs ys]
 export zip
 
+## Separate an array into two arrays based on a predicate.
+## The left returned array contains all elements for which the predicate was true.
+## The right returned array contains all elements for which the predicate was false.
 func partition pred arr =
     fold (fn l:r e. if pred e then append e l:r else l:append e r) ([]:[]) arr
 export partition
@@ -157,6 +160,11 @@ func merge cmp [x, ..xs] [y, ..ys] =
     else [y, ..merge cmp [x, ..xs] ys]
 export merge
 
+## Sort an array according to a predicate. When the predicate returns true for
+## values which are equal, this is a stable sort.
+##
+## The resulting array is a new array sorted in "ascending" order, assuming the
+## predicate was `(<=)`.
 func sort _ [] = []
 func sort _ [a] = [a]
 func sort cmp arr =
@@ -164,5 +172,13 @@ func sort cmp arr =
     merge cmp (sort cmp <| take half arr) (sort cmp <| skip half arr)
 export sort
 
+## Transpose an array of arrays, swapping the first and second indices of each element.
+##
+## This works on rectangular arrays. Behaviour on non-rectangular arrays is not currently
+## defined.
 func transpose arr = [[arr.y.x for y in rangex 0 (length arr)] for x in rangex 0 (length (arr.0))]
 export transpose
+
+## Concatenates two arrays, returning the elements of both in order.
+func concat a b = [..a, ..b]
+export concat
