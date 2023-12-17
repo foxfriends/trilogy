@@ -25,9 +25,14 @@ impl ParenthesizedQuery {
                     cparen,
                 }))
             }
-            Err(pattern) => Ok(Err(Pattern::Parenthesized(Box::new(
-                ParenthesizedPattern::finish(parser, oparen, pattern)?,
-            )))),
+            Err(pattern) => {
+                let parenthesized = Pattern::Parenthesized(Box::new(ParenthesizedPattern::finish(
+                    parser, oparen, pattern,
+                )?));
+                let pattern =
+                    Pattern::parse_suffix(parser, pattern::Precedence::None, parenthesized)?;
+                Ok(Err(pattern))
+            }
         }
     }
 }
