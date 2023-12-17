@@ -21,6 +21,16 @@ module btree cmp {
         else 'node(v2:lhs:insert value rhs)
     export insert
 
+    func remove _ 'empty = 'empty
+    func remove value 'node(value:'empty:rhs) = rhs
+    func remove value 'node(value:lhs:'empty) = lhs
+    func remove value 'node(value:lhs:rhs) = let v:rhs2 = pop_min rhs, 'node(v:lhs:rhs2)
+    func remove value 'node(v2:lhs:rhs) =
+        if cmp value v2
+        then 'node(v2:remove value lhs:rhs)
+        else 'node(v2:lhs:remove value rhs)
+    export remove
+
     func min 'empty = yield 'MIA
     func min 'node(v2:'empty:_) = v2
     func min 'node(_:tree:_) = min tree

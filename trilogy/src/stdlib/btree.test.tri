@@ -14,6 +14,14 @@ test "insert" {
 
 test "from" {
     assert ltree::from [2, 1, 3] == 'node(2:(ltree::of 1):(ltree::of 3))
+    assert ltree::from [] == 'empty
+}
+
+test "remove" {
+    let tree = ltree::from [2, 1, 3]
+    assert ltree::remove 3 tree == ltree::from [2, 1]
+    assert ltree::remove 2 tree == ltree::insert 1 (ltree::of 3)
+    assert ltree::remove 1 tree == ltree::from [2, 3]
 }
 
 test "min" {
