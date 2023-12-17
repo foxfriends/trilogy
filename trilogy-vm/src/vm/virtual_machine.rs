@@ -1,10 +1,11 @@
 use super::error::ErrorKind;
 use super::execution::Step;
 use super::program_reader::ProgramReader;
-use super::stack::{Stack, StackTrace};
+use super::stack::{StackCell, StackTrace};
 use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::ChunkError;
+use crate::cactus::Cactus;
 use crate::{Atom, Chunk, ChunkBuilder, Instruction, Program, Value};
 use std::collections::HashSet;
 
@@ -114,16 +115,18 @@ impl VirtualMachine {
         program: &P,
         registers: Vec<Value>,
     ) -> Result<Value, Error> {
+        let stack = Cactus::<StackCell>::new();
         let program =
             ProgramReader::new(self.atom_interner.clone(), program).map_err(|err| Error {
                 ip: 0,
                 kind: ErrorKind::InvalidBytecode(err),
                 stack_trace: StackTrace::default(),
-                stack_dump: Stack::default(),
+                // stack_dump: Stack::default(),
             })?;
         let mut executions = vec![Execution::new(
             self.atom_interner.clone(),
             program,
+            stack.branch(),
             registers,
             #[cfg(feature = "stats")]
             self.stats.clone(),

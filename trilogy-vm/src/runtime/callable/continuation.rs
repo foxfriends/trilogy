@@ -17,7 +17,7 @@ impl Debug for Continuation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Continuation")
             .field("ip", &self.0.ip)
-            .field("stack", &self.0.stack)
+            .field("stack", &"<stack>") //&self.0.stack)
             .finish()
     }
 }

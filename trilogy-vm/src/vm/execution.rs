@@ -2,11 +2,12 @@
 
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::program_reader::ProgramReader;
-use super::stack::{InternalValue, Stack};
+use super::stack::{Stack, StackCell};
 use super::Error;
 #[cfg(feature = "stats")]
 use super::Stats;
 use crate::atom::AtomInterner;
+use crate::cactus::Branch;
 use crate::callable::{Closure, Continuation};
 use crate::runtime::callable::{Callable, CallableKind};
 #[cfg(feature = "stats")]
@@ -85,7 +86,7 @@ pub struct Execution<'a> {
     program: ProgramReader<'a>,
     error_ip: Offset,
     ip: Offset,
-    stack: Stack,
+    stack: Stack<'a>,
     registers: Vec<Value>,
     #[cfg(feature = "stats")]
     stats: RefCount<Stats>,
@@ -105,6 +106,7 @@ impl<'a> Execution<'a> {
     pub(super) fn new(
         atom_interner: AtomInterner,
         program: ProgramReader<'a>,
+        branch: Branch<'a, StackCell>,
         registers: Vec<Value>,
         #[cfg(feature = "stats")] stats: RefCount<Stats>,
     ) -> Self {
@@ -113,7 +115,7 @@ impl<'a> Execution<'a> {
             error_ip: 0,
             ip: program.entrypoint(),
             program,
-            stack: Stack::new(),
+            stack: Stack::new(branch),
             registers,
             #[cfg(feature = "stats")]
             stats,
@@ -160,13 +162,13 @@ impl<'a> Execution<'a> {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
                 self.stack = continuation.stack();
                 self.stack
-                    .push_many(arguments.into_iter().map(InternalValue::Value).collect());
+                    .push_many(arguments.into_iter().map(StackCell::Set).collect());
                 self.ip = continuation.ip();
             }
             Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 self.stack.push_frame(
                     callback,
-                    arguments.into_iter().map(InternalValue::Value).collect(),
+                    arguments.into_iter().map(StackCell::Set).collect(),
                     None,
                 );
                 self.ip = procedure.ip();
@@ -174,7 +176,7 @@ impl<'a> Execution<'a> {
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 self.stack.push_frame(
                     callback,
-                    arguments.into_iter().map(InternalValue::Value).collect(),
+                    arguments.into_iter().map(StackCell::Set).collect(),
                     Some(closure.stack().clone()),
                 );
                 self.ip = closure.ip();
@@ -227,17 +229,14 @@ impl<'a> Execution<'a> {
         Error {
             ip: self.error_ip,
             stack_trace: self.stack.trace(&self.program, self.error_ip),
-            stack_dump: self.stack.clone(),
+            // stack_dump: self.stack.clone(),
             kind: kind.into(),
         }
     }
 
     #[inline(always)]
     fn stack_pop(&mut self) -> Result<Value, Error> {
-        self.stack
-            .pop()
-            .map_err(|k| self.error(k))?
-            .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))
+        self.stack.pop().map_err(|k| self.error(k))
     }
 
     #[inline(always)]
@@ -271,11 +270,7 @@ impl<'a> Execution<'a> {
         }
     }
 
-    fn call_internal(
-        &mut self,
-        callable: Value,
-        arguments: Vec<InternalValue>,
-    ) -> Result<(), Error> {
+    fn call_internal(&mut self, callable: Value, arguments: Vec<StackCell>) -> Result<(), Error> {
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
                 self.stack = continuation.stack();
@@ -295,9 +290,9 @@ impl<'a> Execution<'a> {
                 self.stack.push_frame(self.ip, vec![], None);
                 let arguments = arguments
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 #[cfg(feature = "stats")]
                 let time_native = Instant::now();
                 native.call(self, arguments)?;
@@ -316,30 +311,30 @@ impl<'a> Execution<'a> {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
-            Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
+            Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
                 self.stack = continuation.stack();
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
+            Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack.push_frame(ip, arguments, None);
                 self.ip = procedure.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Closure(closure)))) => {
+            Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack
                     .push_frame(ip, arguments, Some(closure.stack().clone()));
                 self.ip = closure.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
+            Value::Callable(Callable(CallableKind::Native(native))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack.push_frame(ip, vec![], None);
                 let arguments = arguments
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 #[cfg(feature = "stats")]
                 let time_native = Instant::now();
                 native.call(self, arguments)?;
@@ -432,9 +427,9 @@ impl<'a> Execution<'a> {
                     .pop_n(len)
                     .map_err(|k| self.error(k))?
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Array, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Array>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 self.stack.push(array);
             }
             Instruction::CollectSet => {
@@ -452,9 +447,9 @@ impl<'a> Execution<'a> {
                     .pop_n(len)
                     .map_err(|k| self.error(k))?
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Set, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Set>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 self.stack.push(set);
             }
             Instruction::CollectRecord => {
@@ -472,10 +467,12 @@ impl<'a> Execution<'a> {
                     .pop_n(len)
                     .map_err(|k| self.error(k))?
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .map(|val| match val? {
-                        Value::Tuple(tuple) => Ok(tuple.uncons()),
-                        _ => Err(InternalRuntimeError::TypeError),
+                    .map(|val| val.into_set())
+                    .map(|val| {
+                        match val.ok_or(InternalRuntimeError::ExpectedValue("empty cell"))? {
+                            Value::Tuple(tuple) => Ok(tuple.uncons()),
+                            _ => Err(InternalRuntimeError::TypeError),
+                        }
                     })
                     .collect::<Result<Record, _>>()
                     .map_err(|k| self.error(k))?;
@@ -485,10 +482,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(value.structural_clone());
             }
             Instruction::LoadLocal(offset) => {
-                let value = self
-                    .stack
-                    .at_local(offset as usize)
-                    .map_err(|k| self.error(k))?;
+                let value = self.stack.get(offset as usize).map_err(|k| self.error(k))?;
                 self.stack.push(value);
             }
             Instruction::Variable => {
@@ -496,27 +490,23 @@ impl<'a> Execution<'a> {
             }
             Instruction::SetLocal(offset) => {
                 let value = self.stack_pop()?;
-                self.stack
-                    .set_local(offset as usize, value)
-                    .map_err(|k| self.error(k))?;
+                self.stack.set(offset as usize, value);
             }
             Instruction::UnsetLocal(offset) => {
-                self.stack
-                    .unset_local(offset as usize)
-                    .map_err(|k| self.error(k))?;
+                self.stack.unset(offset as usize);
             }
             Instruction::InitLocal(offset) => {
                 let value = self.stack_pop()?;
                 let did_set = self
                     .stack
-                    .init_local(offset as usize, value)
+                    .init(offset as usize, value)
                     .map_err(|k| self.error(k))?;
                 self.stack.push(did_set);
             }
             Instruction::IsSetLocal(offset) => {
                 let is_set = self
                     .stack
-                    .is_set_local(offset as usize)
+                    .is_set(offset as usize)
                     .map_err(|k| self.error(k))?;
                 self.stack.push(is_set);
             }
@@ -545,7 +535,10 @@ impl<'a> Execution<'a> {
                     .map_err(|k| self.error(k))?;
             }
             Instruction::Copy => {
-                let value = self.stack.at(0).map_err(|k| self.error(k))?;
+                let value = self
+                    .stack
+                    .get(self.stack.len() - 1)
+                    .map_err(|k| self.error(k))?;
                 self.stack.push(value);
             }
             Instruction::Clone => {
@@ -1068,7 +1061,10 @@ impl<'a> Execution<'a> {
                 self.stack.push(value);
             }
             Instruction::Debug => {
-                let val = self.stack.at_raw(0).map_err(|k| self.error(k))?;
+                let val = self
+                    .stack
+                    .get_raw(self.stack.len() - 1)
+                    .map_err(|k| self.error(k))?;
                 eprintln!("{}", val);
             }
         }

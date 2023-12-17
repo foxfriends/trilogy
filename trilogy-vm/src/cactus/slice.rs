@@ -20,12 +20,9 @@ impl<'a, T> Drop for Slice<'a, T> {
     }
 }
 
-impl<T: Clone> Clone for Slice<'_, T> {
+impl<T> Clone for Slice<'_, T> {
     fn clone(&self) -> Self {
-        let ranges = self.cactus.ranges.lock().unwrap();
-        for range in self.parents {
-            self.cactus.acquire_range(range);
-        }
+        self.cactus.acquire_ranges(&self.parents);
         Self {
             cactus: self.cactus,
             parents: self.parents.clone(),
@@ -35,6 +32,14 @@ impl<T: Clone> Clone for Slice<'_, T> {
 }
 
 impl<T> Slice<'_, T> {
+    pub(super) fn new(cactus: &Cactus<T>) -> Self {
+        Self {
+            cactus,
+            parents: vec![],
+            len: 0,
+        }
+    }
+
     #[inline]
     pub fn len(&self) -> usize {
         self.len
@@ -46,7 +51,7 @@ impl<T> Slice<'_, T> {
     }
 
     #[inline]
-    fn resolve_index(&self, mut index: usize) -> Option<usize> {
+    pub(super) fn resolve_index(&self, mut index: usize) -> Option<usize> {
         for range in &self.parents {
             if range.len() > index {
                 return Some(range.start + index);
@@ -71,5 +76,50 @@ impl<T> Slice<'_, T> {
         unsafe {
             self.cactus.set_unchecked(parent_index, value);
         }
+    }
+
+    pub fn pop(&mut self) -> Option<T>
+    where
+        T: Clone,
+    {
+        let mut parent = self.parents.last_mut()?;
+        let index = parent.end;
+        let value = unsafe { self.cactus.get_release(index) };
+        parent.end -= 1;
+        if parent.end == parent.start {
+            self.parents.pop();
+        }
+        self.len -= 1;
+        Some(value)
+    }
+
+    pub fn pop_n(&mut self, n: usize) -> Vec<T>
+    where
+        T: Clone,
+    {
+        let mut ranges = vec![];
+        let mut popped = 0;
+        while popped < n {
+            let parent = self
+                .parents
+                .pop()
+                .expect("attempted to pop elements out of range");
+            if popped + parent.len() > n {
+                let from_range = n - popped;
+                self.parents.push(parent.start..parent.start + from_range);
+                ranges.push(parent.start + from_range..parent.end);
+                break;
+            } else {
+                ranges.push(parent);
+            }
+        }
+        ranges.reverse();
+        unsafe { self.cactus.get_release_ranges(&ranges) }
+    }
+
+    #[inline]
+    pub fn append(&mut self, elements: &mut Vec<T>) {
+        let range = self.cactus.append(elements);
+        self.parents.push(range);
     }
 }

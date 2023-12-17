@@ -13,7 +13,7 @@ pub struct StackTrace {
     pub frames: Vec<StackTraceEntry>,
 }
 
-impl Stack {
+impl Stack<'_> {
     pub(in super::super) fn trace(&self, program: &ProgramReader, ip: Offset) -> StackTrace {
         let mut trace = StackTrace::default();
         let annotations = program.annotations(ip);
@@ -24,9 +24,9 @@ impl Stack {
                 .collect(),
         });
 
-        trace.frames.extend(self.cactus.iter().filter_map(|entry| {
+        trace.frames.extend(self.frames.iter().filter_map(|entry| {
             Some({
-                match entry.as_return()?.cont {
+                match entry.cont {
                     Cont::Callback(..) => StackTraceEntry {
                         annotations: vec![],
                     },
