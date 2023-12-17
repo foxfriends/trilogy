@@ -232,7 +232,8 @@ pub(crate) trait StatefulChunkWriterExt:
             // NOTE: this should be unreachable, seeing as effect handlers are required
             // to include the `else` clause... so if it happens lets fail in a weird way.
             context
-                .constant("unexpected unhandled effect")
+                .atom("UnexpectedUnhandledEffect")
+                .instruction(Instruction::Construct)
                 .instruction(Instruction::Panic);
             context.end_intermediate(); // actual resume
             context.end_intermediate(); // resume

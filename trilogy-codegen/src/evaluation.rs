@@ -64,13 +64,12 @@ impl IrVisitor for Evaluator<'_, '_> {
             }
             ir::Value::Application(application) => match unapply_2(application) {
                 (Some(ir::Value::Builtin(ir::Builtin::Access)), collection, key) => {
-                    self.context
-                        .reference(ASSIGN)
-                        .evaluate(collection)
-                        .intermediate();
+                    self.context.reference(ASSIGN).intermediate();
+                    self.context.evaluate(collection).intermediate();
                     self.context.evaluate(key).intermediate();
                     self.context
                         .evaluate(&assignment.rhs)
+                        .end_intermediate()
                         .end_intermediate()
                         .end_intermediate()
                         .call_procedure(3);
