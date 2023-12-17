@@ -82,6 +82,10 @@ where
         .source_module(
             Location::library("range").unwrap(),
             include_str!("./range.tri").to_owned(),
+        )
+        .source_module(
+            Location::library("btree").unwrap(),
+            include_str!("./btree.tri").to_owned(),
         );
 
     #[cfg(feature = "regex")]

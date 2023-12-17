@@ -1,0 +1,55 @@
+#! Ordered binary tree
+module array at "trilogy:array" use fold
+module fp at "trilogy:fp" use flip
+
+module btree cmp {
+    const empty = 'empty
+    export empty
+
+    func is_empty 'empty = true
+    func is_empty 'node(_) = false
+    export is_empty
+
+    func length 'empty = 0
+    func length 'node(_:lhs:rhs) = length lhs + length rhs + 1
+    export length
+
+    func insert value 'empty = 'node(value:'empty:'empty)
+    func insert value 'node(v2:lhs:rhs) =
+        if cmp value v2
+        then 'node(v2:insert value lhs:rhs)
+        else 'node(v2:lhs:insert value rhs)
+    export insert
+
+    func min 'empty = yield 'MIA
+    func min 'node(v2:'empty:_) = v2
+    func min 'node(_:tree:_) = min tree
+    export min
+
+    func pop_min 'empty = yield 'MIA
+    func pop_min 'node(v2:'empty:rhs) = v2 : rhs
+    func pop_min 'node(v:lhs:rhs) =
+        let minv:rest = pop_min lhs,
+        minv:'node(v:rest:rhs)
+    export pop_min
+
+    func max 'empty = yield 'MIA
+    func max 'node(v2:_:'empty) = v2
+    func max 'node(_:_:tree) = min tree
+    export max
+
+    func pop_max 'empty = yield 'MIA
+    func pop_max 'node(v2:lhs:'empty) = v2 : lhs
+    func pop_max 'node(v:lhs:rhs) =
+        let maxv:rest = pop_max rhs,
+        maxv:'node(v:lhs:rest)
+    export pop_max
+
+    func from arr = fold (flip insert) 'empty arr
+    export from
+
+    func of val = 'node(val:'empty:'empty)
+    export of
+}
+
+export btree
