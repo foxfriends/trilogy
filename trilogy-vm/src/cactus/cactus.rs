@@ -1,6 +1,6 @@
 use rangemap::RangeMap;
 use std::mem::MaybeUninit;
-use std::ops::{DerefMut, Range};
+use std::ops::Range;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::Branch;
@@ -78,17 +78,19 @@ impl<T> Cactus<T> {
         Branch::new(self)
     }
 
+    #[inline]
     pub(super) unsafe fn get_release(&self, index: usize) -> T
     where
         T: Clone,
     {
-        let ranges = self.ranges.lock().unwrap();
-        let stack = self.stack.lock().unwrap();
+        let mut ranges = self.ranges.lock().unwrap();
+        let mut stack = self.stack.lock().unwrap();
         let value = stack[index].assume_init_ref().clone();
-        self.release_range_from(Some(ranges), Some(stack), index..index + 1);
+        self.release_range_from(&mut ranges, &mut stack, index..index + 1);
         value
     }
 
+    #[inline]
     pub(super) unsafe fn get_release_ranges(&self, read_ranges: &[Range<usize>]) -> Vec<T>
     where
         T: Clone,
@@ -96,19 +98,20 @@ impl<T> Cactus<T> {
         let len = read_ranges.iter().map(|rng| rng.len()).sum();
         let mut buf = Vec::with_capacity(len);
 
-        let ranges = self.ranges.lock().unwrap();
-        let stack = self.stack.lock().unwrap();
+        let mut ranges = self.ranges.lock().unwrap();
+        let mut stack = self.stack.lock().unwrap();
         for range in read_ranges {
             buf.extend(
-                stack[*range]
+                stack[range.clone()]
                     .iter()
                     .map(|val| val.assume_init_ref().clone()),
             );
-            self.release_range_from(Some(ranges), Some(stack), *range)
+            self.release_range_from(&mut ranges, &mut stack, range.clone())
         }
         buf
     }
 
+    #[inline]
     pub(super) unsafe fn get_unchecked(&self, index: usize) -> Option<T>
     where
         T: Clone,
@@ -120,6 +123,7 @@ impl<T> Cactus<T> {
             .map(|val| val.assume_init_ref().clone())
     }
 
+    #[inline]
     pub(super) unsafe fn set_unchecked(&self, index: usize, value: T) {
         self.stack.lock().unwrap()[index].write(value);
     }
@@ -128,13 +132,14 @@ impl<T> Cactus<T> {
     pub(super) fn acquire_ranges(&self, ranges_to_acquire: &[Range<usize>]) {
         let mut ranges = self.ranges.lock().unwrap();
         for range in ranges_to_acquire {
-            self.acquire_range_from(Some(ranges), *range)
+            self.acquire_range_from(&mut ranges, range.clone())
         }
     }
 
     #[inline]
     pub(super) fn acquire_range(&self, range: Range<usize>) {
-        self.acquire_range_from(None, range)
+        let mut ranges = self.ranges.lock().unwrap();
+        self.acquire_range_from(&mut ranges, range)
     }
 
     #[inline]
@@ -144,56 +149,76 @@ impl<T> Cactus<T> {
 
     #[inline]
     pub(super) fn release_range(&self, range: Range<usize>) {
-        self.release_range_from(None, None, range)
+        let mut ranges = self.ranges.lock().unwrap();
+        let mut stack = self.stack.lock().unwrap();
+        self.release_range_from(&mut ranges, &mut stack, range)
+    }
+
+    #[inline]
+    pub(super) fn release_ranges(&self, ranges_to_release: &[Range<usize>]) {
+        let mut ranges = self.ranges.lock().unwrap();
+        let mut stack = self.stack.lock().unwrap();
+        for range in ranges_to_release {
+            self.release_range_from(&mut ranges, &mut stack, range.clone())
+        }
     }
 
     #[inline]
     pub(super) fn acquire_range_from(
         &self,
-        ranges: Option<MutexGuard<RangeMap<usize, usize>>>,
+        ranges: &mut MutexGuard<RangeMap<usize, usize>>,
         range: Range<usize>,
     ) {
-        let mut ranges = ranges.unwrap_or_else(|| self.ranges.lock().unwrap());
-        for (&subrange, &value) in ranges.overlapping(&range) {
-            let subrange =
-                usize::max(subrange.start, range.start)..usize::min(subrange.end, range.end);
-            ranges.insert(subrange, value + 1);
+        let ranges_acquired = ranges
+            .overlapping(&range)
+            .map(|(subrange, value)| {
+                let subrange =
+                    usize::max(subrange.start, range.start)..usize::min(subrange.end, range.end);
+                (subrange, value + 1)
+            })
+            .collect::<Vec<_>>();
+        for (range, value) in ranges_acquired {
+            ranges.insert(range, value);
         }
     }
 
     #[inline]
     fn release_range_from(
         &self,
-        ranges: Option<MutexGuard<RangeMap<usize, usize>>>,
-        mut stack: Option<MutexGuard<Vec<MaybeUninit<T>>>>,
+        ranges: &mut MutexGuard<RangeMap<usize, usize>>,
+        stack: &mut MutexGuard<Vec<MaybeUninit<T>>>,
         range: Range<usize>,
     ) {
-        let mut ranges = ranges.unwrap_or_else(|| self.ranges.lock().unwrap());
-        for (&subrange, &value) in ranges.overlapping(&range) {
-            let subrange =
-                usize::max(subrange.start, range.start)..usize::min(subrange.end, range.end);
-            if value == 1 {
-                ranges.remove(subrange);
-                let stack = stack.get_or_insert_with(|| self.stack.lock().unwrap());
-                for i in subrange {
+        let ranges_to_remove = ranges
+            .overlapping(&range)
+            .map(|(subrange, value)| {
+                let subrange =
+                    usize::max(subrange.start, range.start)..usize::min(subrange.end, range.end);
+                (subrange, value - 1)
+            })
+            .collect::<Vec<_>>();
+        for (range, value) in ranges_to_remove {
+            if value == 0 {
+                ranges.remove(range.clone());
+                for i in range {
                     unsafe {
                         stack[i].assume_init_drop();
                     }
                 }
             } else {
-                ranges.insert(subrange, value - 1);
+                ranges.insert(range, value);
             }
         }
     }
 
     #[inline]
     pub(super) fn append(&self, values: &mut Vec<T>) -> Range<usize> {
-        let ranges = self.ranges.lock().unwrap();
+        let mut ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
         let len = values.len();
         let range = stack.len()..stack.len() + len;
         stack.extend(values.drain(..).map(MaybeUninit::new));
-        self.acquire_range_from(Some(ranges), range);
+        self.acquire_range_from(&mut ranges, range.clone());
         range
     }
 }

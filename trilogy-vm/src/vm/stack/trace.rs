@@ -1,5 +1,4 @@
-use super::Stack;
-use crate::vm::execution::Cont;
+use super::{Cont, Stack};
 use crate::vm::program_reader::ProgramReader;
 use crate::{Location, Offset};
 
@@ -24,7 +23,7 @@ impl Stack<'_> {
                 .collect(),
         });
 
-        trace.frames.extend(self.frames.iter().filter_map(|entry| {
+        trace.frames.extend(self.frames().filter_map(|entry| {
             Some({
                 match entry.cont {
                     Cont::Callback(..) => StackTraceEntry {

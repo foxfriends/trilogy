@@ -1,19 +1,16 @@
 use super::error::InternalRuntimeError;
-use super::execution::Cont;
-use crate::cactus::{Branch, Slice};
+use crate::cactus::{Branch, Cactus, Slice};
 use crate::Value;
 
+mod cont;
 mod stack_cell;
+mod stack_frame;
 mod trace;
 
+pub(crate) use cont::Cont;
 pub use stack_cell::StackCell;
+pub(crate) use stack_frame::StackFrame;
 pub use trace::{StackTrace, StackTraceEntry};
-
-#[derive(Clone)]
-struct StackFrame<'a> {
-    cactus: Option<Branch<'a, StackCell>>,
-    cont: Cont,
-}
 
 /// The stack implementation for the Trilogy VM.
 ///
@@ -53,11 +50,27 @@ pub(crate) struct Stack<'a> {
 // }
 
 impl<'a> Stack<'a> {
+    #[inline]
     pub(super) fn new(cactus: Branch<'a, StackCell>) -> Self {
         Self {
             frames: vec![],
             cactus,
         }
+    }
+
+    #[inline]
+    pub(crate) fn from_parts(frames: Vec<StackFrame<'a>>, cactus: Branch<'a, StackCell>) -> Self {
+        Self { frames, cactus }
+    }
+
+    #[inline]
+    pub(crate) fn into_parts(self) -> (Vec<StackFrame<'a>>, Branch<'a, StackCell>) {
+        (self.frames, self.cactus)
+    }
+
+    #[inline]
+    pub(super) fn cactus(&self) -> &'a Cactus<StackCell> {
+        self.cactus.cactus()
     }
 
     #[inline(always)]
@@ -66,6 +79,16 @@ impl<'a> Stack<'a> {
             frames: self.frames.clone(),
             cactus: self.cactus.branch(),
         }
+    }
+
+    #[inline(always)]
+    pub(super) fn commit(&mut self) -> Slice<'a, StackCell> {
+        self.cactus.commit()
+    }
+
+    #[inline]
+    pub(crate) fn frames(&self) -> impl Iterator<Item = &StackFrame<'a>> {
+        self.frames.iter()
     }
 
     #[inline(always)]
@@ -98,7 +121,7 @@ impl<'a> Stack<'a> {
     }
 
     #[inline(always)]
-    pub(super) fn prepare_to_pop(&mut self, count: usize) {
+    pub(super) fn prepare_to_pop(&mut self, _count: usize) {
         // self.cactus.consume_exact(count);
     }
 
@@ -144,7 +167,7 @@ impl<'a> Stack<'a> {
             .pop()
             .ok_or(InternalRuntimeError::ExpectedReturn)?;
         if let Some(cactus) = frame.cactus {
-            self.cactus = cactus;
+            self.cactus = Branch::from(cactus);
         }
         Ok(frame.cont)
     }
@@ -158,7 +181,10 @@ impl<'a> Stack<'a> {
     ) {
         let return_stack = match stack {
             None => None,
-            Some(stack) => Some(std::mem::replace(&mut self.cactus, Branch::from(stack))),
+            Some(stack) => {
+                let mut branch = std::mem::replace(&mut self.cactus, Branch::from(stack));
+                Some(branch.commit())
+            }
         };
         self.frames.push(StackFrame {
             cactus: return_stack,

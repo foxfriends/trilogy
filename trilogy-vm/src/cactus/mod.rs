@@ -6,8 +6,10 @@
 
 mod branch;
 mod cactus;
+mod pointer;
 mod slice;
 
 pub use branch::Branch;
 pub use cactus::Cactus;
+pub use pointer::Pointer;
 pub use slice::Slice;

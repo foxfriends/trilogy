@@ -1,4 +1,4 @@
-use super::Cactus;
+use super::{Cactus, Pointer};
 use std::ops::Range;
 
 /// A slice of a Cactus stack.
@@ -14,9 +14,7 @@ pub struct Slice<'a, T> {
 
 impl<'a, T> Drop for Slice<'a, T> {
     fn drop(&mut self) {
-        for range in self.parents {
-            self.cactus.release_range(range);
-        }
+        self.cactus.release_ranges(&self.parents);
     }
 }
 
@@ -31,13 +29,38 @@ impl<T> Clone for Slice<'_, T> {
     }
 }
 
-impl<T> Slice<'_, T> {
-    pub(super) fn new(cactus: &Cactus<T>) -> Self {
+impl<'a, T> Slice<'a, T> {
+    #[inline]
+    pub(super) fn new(cactus: &'a Cactus<T>) -> Self {
         Self {
             cactus,
             parents: vec![],
             len: 0,
         }
+    }
+
+    #[inline]
+    pub fn cactus(&self) -> &'a Cactus<T> {
+        self.cactus
+    }
+
+    #[inline]
+    pub unsafe fn from_pointer(cactus: &'a Cactus<T>, pointer: Pointer<T>) -> Self {
+        Slice {
+            cactus,
+            parents: pointer.parents,
+            len: pointer.len,
+        }
+    }
+
+    #[inline]
+    pub unsafe fn reacquire(&self) {
+        self.cactus.acquire_ranges(&self.parents);
+    }
+
+    #[inline]
+    pub fn into_pointer(self) -> Pointer<T> {
+        Pointer::new(self.parents.clone(), self.len)
     }
 
     #[inline]
@@ -82,7 +105,7 @@ impl<T> Slice<'_, T> {
     where
         T: Clone,
     {
-        let mut parent = self.parents.last_mut()?;
+        let parent = self.parents.last_mut()?;
         let index = parent.end;
         let value = unsafe { self.cactus.get_release(index) };
         parent.end -= 1;
@@ -110,10 +133,12 @@ impl<T> Slice<'_, T> {
                 ranges.push(parent.start + from_range..parent.end);
                 break;
             } else {
+                popped += parent.len();
                 ranges.push(parent);
             }
         }
         ranges.reverse();
+        self.len -= n;
         unsafe { self.cactus.get_release_ranges(&ranges) }
     }
 

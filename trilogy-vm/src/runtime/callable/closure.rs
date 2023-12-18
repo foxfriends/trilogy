@@ -1,6 +1,7 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
-use crate::vm::stack::Stack;
+use crate::cactus::{Cactus, Pointer, Slice};
+use crate::vm::stack::StackCell;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
 
@@ -25,17 +26,20 @@ impl Debug for Closure {
 #[derive(Clone, Debug)]
 struct InnerClosure {
     ip: Offset,
-    stack: Stack,
+    stack: Pointer<StackCell>,
 }
 
 impl InnerClosure {
     #[inline(always)]
-    fn new(ip: Offset, stack: Stack) -> Self {
+    fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
             .closures_allocated
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        Self { ip, stack }
+        Self {
+            ip,
+            stack: stack.into_pointer(),
+        }
     }
 }
 
@@ -64,7 +68,7 @@ impl Hash for Closure {
 
 impl Closure {
     #[inline(always)]
-    pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
+    pub(crate) fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
         Self(RefCount::new(InnerClosure::new(ip, stack)))
     }
 
@@ -74,8 +78,8 @@ impl Closure {
     }
 
     #[inline(always)]
-    pub(crate) fn stack(&self) -> &Stack {
-        &self.0.stack
+    pub(crate) unsafe fn stack<'a>(&self, cactus: &'a Cactus<StackCell>) -> Slice<'a, StackCell> {
+        Slice::from_pointer(cactus, self.0.stack.clone())
     }
 }
 

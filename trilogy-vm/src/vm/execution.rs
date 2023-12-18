@@ -2,7 +2,7 @@
 
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::program_reader::ProgramReader;
-use super::stack::{Stack, StackCell};
+use super::stack::{Cont, Stack, StackCell};
 use super::Error;
 #[cfg(feature = "stats")]
 use super::Stats;
@@ -18,10 +18,8 @@ use crate::{
 };
 use num::ToPrimitive;
 use std::cmp::Ordering;
-use std::fmt::{self, Debug};
 #[cfg(feature = "stats")]
 use std::sync::atomic;
-use std::sync::{Arc, Mutex};
 #[cfg(feature = "stats")]
 use std::time::{Duration, Instant};
 
@@ -32,42 +30,6 @@ pub(super) enum Step<E> {
     Suspend,
     Spawn(E),
     Exit(Value),
-}
-
-#[allow(clippy::type_complexity)]
-#[derive(Clone)]
-pub(crate) struct Callback(
-    Arc<Mutex<dyn FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static>>,
-);
-
-#[derive(Clone)]
-pub(crate) enum Cont {
-    Offset(Offset),
-    Callback(Callback),
-}
-
-impl Debug for Cont {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Offset(ip) => write!(f, "{ip}"),
-            Self::Callback(..) => write!(f, "rust"),
-        }
-    }
-}
-
-impl<F> From<F> for Cont
-where
-    F: FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static,
-{
-    fn from(value: F) -> Self {
-        Cont::Callback(Callback(Arc::new(Mutex::new(value))))
-    }
-}
-
-impl From<Offset> for Cont {
-    fn from(value: Offset) -> Self {
-        Cont::Offset(value)
-    }
 }
 
 /// Represents a currently active execution of the Trilogy VM on a program.
@@ -160,7 +122,7 @@ impl<'a> Execution<'a> {
     ) -> Result<(), Error> {
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = continuation.stack();
+                self.stack = unsafe { continuation.stack(self.stack.cactus()) };
                 self.stack
                     .push_many(arguments.into_iter().map(StackCell::Set).collect());
                 self.ip = continuation.ip();
@@ -174,10 +136,15 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
+                let ghost = unsafe {
+                    let ghost = closure.stack(self.stack.cactus());
+                    ghost.reacquire();
+                    ghost
+                };
                 self.stack.push_frame(
                     callback,
                     arguments.into_iter().map(StackCell::Set).collect(),
-                    Some(closure.stack().clone()),
+                    Some(ghost),
                 );
                 self.ip = closure.ip();
             }
@@ -263,17 +230,14 @@ impl<'a> Execution<'a> {
                 self.stack.push(return_value);
                 Ok(())
             }
-            Cont::Callback(cb) => {
-                let mut callback = cb.0.lock().unwrap();
-                callback(self, return_value)
-            }
+            Cont::Callback(cb) => cb.call(self, return_value),
         }
     }
 
     fn call_internal(&mut self, callable: Value, arguments: Vec<StackCell>) -> Result<(), Error> {
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = continuation.stack();
+                self.stack = unsafe { continuation.stack(self.stack.cactus()) };
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
@@ -282,8 +246,12 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
-                self.stack
-                    .push_frame(self.ip, arguments, Some(closure.stack().clone()));
+                let ghost = unsafe {
+                    let ghost = closure.stack(self.stack.cactus());
+                    ghost.reacquire();
+                    ghost
+                };
+                self.stack.push_frame(self.ip, arguments, Some(ghost));
                 self.ip = closure.ip();
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
@@ -312,7 +280,7 @@ impl<'a> Execution<'a> {
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = continuation.stack();
+                self.stack = unsafe { continuation.stack(self.stack.cactus()) };
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
@@ -323,8 +291,12 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-                self.stack
-                    .push_frame(ip, arguments, Some(closure.stack().clone()));
+                let ghost = unsafe {
+                    let ghost = closure.stack(self.stack.cactus());
+                    ghost.reacquire();
+                    ghost
+                };
+                self.stack.push_frame(ip, arguments, Some(ghost));
                 self.ip = closure.ip();
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
@@ -1004,12 +976,14 @@ impl<'a> Execution<'a> {
                 self.r#return(return_value)?;
             }
             Instruction::Close(offset) => {
-                let closure = Closure::new(self.ip, self.stack.branch());
+                let slice = self.stack.commit();
+                let closure = Closure::new(self.ip, slice);
                 self.stack.push(Value::from(closure));
                 self.ip = offset;
             }
             Instruction::Shift(offset) => {
-                let continuation = Continuation::new(self.ip, self.stack.branch());
+                let stack = self.stack.branch();
+                let continuation = Continuation::new(self.ip, stack);
                 self.stack.push(Value::from(continuation));
                 self.ip = offset;
             }

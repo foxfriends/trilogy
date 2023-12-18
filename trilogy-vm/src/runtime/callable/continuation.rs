@@ -1,6 +1,7 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
-use crate::vm::stack::Stack;
+use crate::cactus::{Branch, Cactus, Pointer, Slice};
+use crate::vm::stack::{Cont, Stack, StackCell, StackFrame};
 use std::fmt::{self, Debug};
 use std::hash::Hash;
 
@@ -23,19 +24,37 @@ impl Debug for Continuation {
 }
 
 #[derive(Clone, Debug)]
+struct FramePointer {
+    stack: Option<Pointer<StackCell>>,
+    cont: Cont,
+}
+
+#[derive(Clone, Debug)]
 struct InnerContinuation {
     ip: Offset,
-    stack: Stack,
+    frames: Vec<FramePointer>,
+    branch: Pointer<StackCell>,
 }
 
 impl InnerContinuation {
     #[inline(always)]
-    fn new(ip: Offset, stack: Stack) -> Self {
+    fn new(ip: Offset, stack: Stack<'_>) -> Self {
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
             .continuations_allocated
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        Self { ip, stack }
+        let (frames, mut branch) = stack.into_parts();
+        Self {
+            ip,
+            frames: frames
+                .into_iter()
+                .map(|frame| FramePointer {
+                    stack: frame.cactus.map(|cactus| cactus.into_pointer()),
+                    cont: frame.cont.clone(),
+                })
+                .collect(),
+            branch: branch.commit().into_pointer(),
+        }
     }
 }
 
@@ -64,7 +83,7 @@ impl Hash for Continuation {
 
 impl Continuation {
     #[inline(always)]
-    pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
+    pub(crate) fn new(ip: Offset, stack: Stack<'_>) -> Self {
         Self(RefCount::new(InnerContinuation::new(ip, stack)))
     }
 
@@ -74,7 +93,28 @@ impl Continuation {
     }
 
     #[inline(always)]
-    pub(crate) fn stack(&self) -> Stack {
-        self.0.stack.clone()
+    pub(crate) unsafe fn stack<'a>(&self, cactus: &'a Cactus<StackCell>) -> Stack<'a> {
+        let frames = self
+            .0
+            .frames
+            .iter()
+            .map(|frame| {
+                let stack = frame.stack.as_ref().map(|frame| unsafe {
+                    let slice = Slice::from_pointer(cactus, frame.clone());
+                    slice.reacquire();
+                    slice
+                });
+                StackFrame {
+                    cactus: stack,
+                    cont: frame.cont.clone(),
+                }
+            })
+            .collect();
+        let branch = unsafe {
+            let slice = Slice::from_pointer(cactus, self.0.branch.clone());
+            slice.reacquire();
+            Branch::from(slice)
+        };
+        Stack::from_parts(frames, branch)
     }
 }

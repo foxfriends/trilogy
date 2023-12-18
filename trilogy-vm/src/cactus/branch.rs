@@ -10,13 +10,18 @@ pub struct Branch<'a, T> {
     len: usize,
 }
 
-impl<T> Branch<'_, T> {
-    pub(super) fn new(cactus: &Cactus<T>) -> Self {
+impl<'a, T> Branch<'a, T> {
+    pub(super) fn new(cactus: &'a Cactus<T>) -> Self {
         Self {
             cactus: Slice::new(cactus),
             stack: vec![],
             len: 0,
         }
+    }
+
+    #[inline]
+    pub fn cactus(&self) -> &'a Cactus<T> {
+        self.cactus.cactus()
     }
 
     /// Pops a locally owned value off this branch.
@@ -65,7 +70,7 @@ impl<T> Branch<'_, T> {
     where
         T: Clone,
     {
-        if self.len < length {
+        if self.stack.len() < length {
             let mut popped = self.cactus.pop_n(length - self.len);
             popped.append(&mut self.stack);
             self.stack = popped;
@@ -95,7 +100,7 @@ impl<T> Branch<'_, T> {
     }
 
     #[inline]
-    pub fn reserve(&self, count: usize) {
+    pub fn reserve(&mut self, count: usize) {
         self.stack.reserve(count);
     }
 
@@ -135,7 +140,7 @@ impl<T> Branch<'_, T> {
     /// Future clones of this branch will share those elements. Previously existing
     /// clones will remain distinct.
     #[inline]
-    pub fn commit(&mut self) -> Slice<T> {
+    pub fn commit(&mut self) -> Slice<'a, T> {
         self.cactus.append(&mut self.stack);
         self.cactus.clone()
     }
