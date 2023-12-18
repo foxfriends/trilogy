@@ -5,6 +5,7 @@
 //! but have differing active stacks.
 
 mod branch;
+#[allow(clippy::module_inception)]
 mod cactus;
 mod pointer;
 mod slice;

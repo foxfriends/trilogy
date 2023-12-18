@@ -44,6 +44,17 @@ impl<'a, T> Slice<'a, T> {
         self.cactus
     }
 
+    /// Constructs a slice from a pointer and the cactus it is pointing to.
+    ///
+    /// # Safety
+    ///
+    /// The pointer should have been created using [`into_pointer`][Self::into_pointer]
+    /// from a Slice on the same Cactus that has been provided.
+    ///
+    /// The caller must also ensure that the Cactus has not yet freed the elements that
+    /// this pointer points to.
+    ///
+    /// The invariants required here are very similar to those of [`Arc::from_raw`][std::sync::Arc::from_raw]
     #[inline]
     pub unsafe fn from_pointer(cactus: &'a Cactus<T>, pointer: Pointer<T>) -> Self {
         Slice {
@@ -53,6 +64,13 @@ impl<'a, T> Slice<'a, T> {
         }
     }
 
+    /// Increases the reference counts for all values pointed to by this slice.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that this does not reacquire elements already freed.
+    /// It is also recommended to ensure that the re-acquired elements are correctly
+    /// released.
     #[inline]
     pub unsafe fn reacquire(&self) {
         self.cactus.acquire_ranges(&self.parents);

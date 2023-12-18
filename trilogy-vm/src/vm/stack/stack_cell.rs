@@ -16,7 +16,7 @@ impl StackCell {
         }
     }
 
-    pub fn is_set(self) -> bool {
+    pub fn is_set(&self) -> bool {
         matches!(self, StackCell::Set(..))
     }
 }

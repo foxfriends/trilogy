@@ -28,6 +28,22 @@ impl<T> Default for Cactus<T> {
     }
 }
 
+impl<T> Drop for Cactus<T> {
+    fn drop(&mut self) {
+        let ranges = self.ranges.lock().unwrap();
+        let mut stack = self.stack.lock().unwrap();
+        for (range, value) in ranges.iter() {
+            if *value > 0 {
+                for val in &mut stack[range.clone()] {
+                    unsafe {
+                        val.assume_init_drop();
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl<T> Cactus<T> {
     /// Creates a new empty cactus.
     ///
