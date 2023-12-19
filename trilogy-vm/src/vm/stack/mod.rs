@@ -226,12 +226,12 @@ impl<'a> Stack<'a> {
             .frames
             .pop()
             .ok_or(InternalRuntimeError::ExpectedReturn)?;
-        self.fp = frame.fp;
         if let Some(slice) = frame.slice {
             self.branch = Branch::from(slice);
         } else {
             self.branch.truncate(self.fp);
         }
+        self.fp = frame.fp;
         Ok(frame.cont)
     }
 
