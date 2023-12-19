@@ -170,24 +170,6 @@ impl<T> Cactus<T> {
     }
 
     #[inline]
-    pub(super) fn acquire_range(&self, range: Range<usize>) {
-        let mut ranges = self.ranges.lock().unwrap();
-        self.acquire_range_from(&mut ranges, range)
-    }
-
-    #[inline]
-    pub(super) fn release(&self, index: usize) {
-        self.release_range(index..index + 1);
-    }
-
-    #[inline]
-    pub(super) fn release_range(&self, range: Range<usize>) {
-        let mut ranges = self.ranges.lock().unwrap();
-        let mut stack = self.stack.lock().unwrap();
-        self.release_range_from(&mut ranges, &mut stack, range)
-    }
-
-    #[inline]
     pub(super) fn release_ranges(&self, ranges_to_release: &[Range<usize>]) {
         let mut ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
