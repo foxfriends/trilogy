@@ -162,6 +162,7 @@ impl<'a, T> Slice<'a, T> {
 
     #[inline]
     pub fn append(&mut self, elements: &mut Vec<T>) {
+        self.len += elements.len();
         let range = self.cactus.append(elements);
         self.parents.push(range);
     }
