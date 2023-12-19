@@ -159,6 +159,14 @@ impl<'a> Stack<'a> {
     }
 
     #[inline]
+    pub(super) fn pop_discard(&mut self) -> Result<(), InternalRuntimeError> {
+        self.branch
+            .pop()
+            .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))?;
+        Ok(())
+    }
+
+    #[inline]
     pub(super) fn peek(&mut self) -> Result<Value, InternalRuntimeError> {
         self.peek_raw()?
             .into_set()

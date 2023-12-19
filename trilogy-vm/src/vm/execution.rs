@@ -496,7 +496,7 @@ impl<'a> Execution<'a> {
                 self.registers[offset as usize] = value;
             }
             Instruction::Pop => {
-                self.stack.pop().map_err(|k| self.error(k))?;
+                self.stack.pop_discard().map_err(|k| self.error(k))?;
             }
             Instruction::Swap => {
                 self.stack.slide(1).map_err(|k| self.error(k))?;
