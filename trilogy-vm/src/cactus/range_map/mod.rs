@@ -88,17 +88,22 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn range(&self, range: Range<usize>) -> impl Iterator<Item = (Range<usize>, usize)> + '_ {
+        if range.len() == 0 {
+            return Box::new(std::iter::empty()) as Box<dyn Iterator<Item = (Range<usize>, usize)>>;
+        }
         let start_val = self.get(range.start);
-        std::iter::once((range.start, start_val))
-            .chain(
-                self.0
-                    .range((Bound::Excluded(range.start), Bound::Excluded(range.end)))
-                    .map(|(s, v)| (*s, *v)),
-            )
-            .chain(std::iter::once((range.end, 0)))
-            .peekable()
-            .pairwise()
-            .map(|((s, v), (e, _))| (s..e, v))
+        Box::new(
+            std::iter::once((range.start, start_val))
+                .chain(
+                    self.0
+                        .range((Bound::Excluded(range.start), Bound::Excluded(range.end)))
+                        .map(|(s, v)| (*s, *v)),
+                )
+                .chain(std::iter::once((range.end, 0)))
+                .peekable()
+                .pairwise()
+                .map(|((s, v), (e, _))| (s..e, v)),
+        )
     }
 
     /// Gets the value at a specific index. If the index is not included in any
@@ -173,6 +178,9 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn insert(&mut self, range: Range<usize>, value: usize) {
+        if range.len() == 0 {
+            return;
+        }
         let before = self.before(range.start);
         let after = self.get(range.end);
         let keys_to_remove = self
@@ -215,6 +223,9 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn remove(&mut self, range: Range<usize>) {
+        if range.len() == 0 {
+            return;
+        }
         self.insert(range, 0);
     }
 
@@ -243,6 +254,9 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn update<F: Fn(&mut usize)>(&mut self, range: Range<usize>, f: F) {
+        if range.len() == 0 {
+            return;
+        }
         let mut start_val = self.get(range.start);
         f(&mut start_val);
         if Some(start_val) == self.before(range.start) {
@@ -303,6 +317,13 @@ mod test {
         map.insert(0..4, 3);
         map.insert(0..2, 3);
         assert_eq!(map.0.into_iter().collect::<Vec<_>>(), vec![(0, 3), (4, 0)]);
+    }
+
+    #[test]
+    fn insert_empty_noop() {
+        let mut map = RangeMap::new();
+        map.insert(3..3, 3);
+        assert_eq!(map.0.into_iter().collect::<Vec<_>>(), vec![(0, 0)]);
     }
 
     #[test]
