@@ -1,5 +1,5 @@
 use super::{RefCount, ReferentialEq, StructuralEq, Value};
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::hash::{self, Hash};
 use std::sync::Mutex;
 
@@ -27,15 +27,27 @@ use std::sync::Mutex;
 /// assert_eq!(array, array.clone());
 /// assert_ne!(array, Array::new());
 /// ```
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct Array(RefCount<Mutex<ArrayInner>>);
 use inner::ArrayInner;
+
+impl Debug for Array {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let inner = self.0.lock().unwrap();
+        f.debug_tuple("Array").field(&*inner).finish()
+    }
+}
 
 mod inner {
     use super::*;
 
-    #[derive(Debug)]
     pub(super) struct ArrayInner(Vec<Value>);
+
+    impl Debug for ArrayInner {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_list().entries(&self.0).finish()
+        }
+    }
 
     impl Default for ArrayInner {
         #[inline(always)]
