@@ -1,7 +1,7 @@
 module array at "trilogy:array"
 module set at "trilogy:set"
 module record at "trilogy:record"
-module iter at "trilogy:iter" use of, fold, map, flatten, flatmap, collect, filter, rangex, range, make_rangex, make_range, repeat, ignore, enumerate
+module iter at "trilogy:iter" use of, fold, map, flatten, flatmap, collect, filter, rangex, range, make_rangex, make_range, repeat, ignore, enumerate, count, sum
 
 test "fold" {
     let sum = of [1, 2, 3]
@@ -80,4 +80,12 @@ test "enumerate" {
         |> enumerate
         |> collect array)
         == [0:1, 1:2, 2:3]
+}
+
+test "sum" {
+    assert sum (of [1, 2, 3]) == 6
+}
+
+test "count" {
+    assert count (of [1, 2, 3]) == 3
 }

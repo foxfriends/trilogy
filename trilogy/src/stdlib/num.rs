@@ -1,7 +1,7 @@
 #[trilogy_derive::module(crate_name=crate)]
 pub mod num {
     use crate::{Number, Result, Runtime, Value};
-    use num::{BigInt, Integer};
+    use num::{BigInt, Integer, Num};
 
     /// Converts an arbitrary value to a number, if possible. The conversion
     /// depends on the type of input:
@@ -29,6 +29,21 @@ pub mod num {
             Value::Unit => rt.r#return(0),
             Value::Bits(bits) => rt.r#return(Number::from(bits)),
             _ => rt.r#yield(nan, |rt, val| rt.r#return(val)),
+        }
+    }
+
+    /// Parse a string in a particular base as an integer.
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn parse_int(rt: Runtime, base: Value, value: Value) -> Result<()> {
+        let base = rt.typecheck::<u32>(base)?;
+        let value = rt.typecheck::<String>(value)?;
+        let parsed = BigInt::from_str_radix(&value, base);
+        match parsed {
+            Ok(number) => rt.r#return(number),
+            Err(..) => {
+                let nan = rt.atom("NAN");
+                rt.r#yield(nan, |rt, val| rt.r#return(val))
+            }
         }
     }
 
