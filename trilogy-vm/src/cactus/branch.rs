@@ -71,7 +71,7 @@ impl<'a, T> Branch<'a, T> {
         T: Clone,
     {
         if self.stack.len() < length {
-            let mut popped = self.cactus.pop_n(length - self.len);
+            let mut popped = self.cactus.pop_n(length - self.stack.len());
             popped.append(&mut self.stack);
             self.stack = popped;
         }
