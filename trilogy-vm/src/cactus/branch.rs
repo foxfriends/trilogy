@@ -1,4 +1,5 @@
 use super::{Cactus, Slice};
+use std::ops::Range;
 
 /// A branch of a Cactus stack.
 ///
@@ -42,6 +43,16 @@ impl<'a, T> Branch<'a, T> {
     #[inline]
     pub fn peek_local(&self) -> Option<&T> {
         self.stack.last()
+    }
+
+    /// Takes a slice of the shared portion of this branch.
+    ///
+    /// NOTE: this does __not__ have the ability to slice the local portion of the
+    /// branch. If you need to slice those, it is required to explicitly [`commit`][Self::commit]
+    /// this branch first.
+    #[inline]
+    pub fn slice(&self, range: Range<usize>) -> Slice<'a, T> {
+        self.slice.slice(range)
     }
 
     /// Pops a value off this stack. If there are values in the local stack, those will

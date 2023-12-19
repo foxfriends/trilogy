@@ -40,7 +40,7 @@ impl Debug for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{}", self.error)?;
         writeln!(f, "Final IP: {}", self.error.ip)?;
-        // write!(f, "Stack Dump:\n{}", self.error.dump())?;
+        write!(f, "Stack Dump:\n{}", self.error.dump())?;
         Ok(())
     }
 }

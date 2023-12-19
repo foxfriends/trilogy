@@ -1,4 +1,4 @@
-use super::stack::StackTrace;
+use super::stack::{StackDump, StackTrace};
 use crate::bytecode::{ChunkError, Offset};
 use crate::Value;
 use std::fmt::{self, Display};
@@ -14,8 +14,8 @@ pub struct Error {
     pub kind: ErrorKind,
     /// The stack trace.
     pub stack_trace: StackTrace,
-    // /// A copy of the entire stack of the program at the time of this error.
-    // pub(crate) stack_dump: Stack,
+    /// A copy of the entire stack of the program at the time of this error.
+    pub(crate) stack_dump: StackDump,
 }
 
 impl std::error::Error for Error {
@@ -25,6 +25,12 @@ impl std::error::Error for Error {
             ErrorKind::InternalRuntimeError(error) => Some(error),
             _ => None,
         }
+    }
+}
+
+impl Error {
+    pub fn dump(&self) -> &StackDump {
+        &self.stack_dump
     }
 }
 

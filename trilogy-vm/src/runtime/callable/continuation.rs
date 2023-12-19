@@ -52,7 +52,7 @@ impl InnerContinuation {
             frames: frames
                 .into_iter()
                 .map(|frame| FramePointer {
-                    stack: frame.cactus.map(|cactus| cactus.into_pointer()),
+                    stack: frame.slice.map(|cactus| cactus.into_pointer()),
                     cont: frame.cont.clone(),
                     fp: frame.fp,
                 })
@@ -110,7 +110,7 @@ impl Continuation {
                     slice
                 });
                 StackFrame {
-                    cactus: stack,
+                    slice: stack,
                     cont: frame.cont.clone(),
                     fp: frame.fp,
                 }

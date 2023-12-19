@@ -8,7 +8,7 @@ use super::Error;
 use super::Stats;
 use crate::atom::AtomInterner;
 use crate::cactus::Branch;
-use crate::callable::{Closure, Continuation};
+use crate::callable::Continuation;
 use crate::runtime::callable::{Callable, CallableKind};
 #[cfg(feature = "stats")]
 use crate::RefCount;
@@ -196,7 +196,7 @@ impl<'a> Execution<'a> {
         Error {
             ip: self.error_ip,
             stack_trace: self.stack.trace(&self.program, self.error_ip),
-            // stack_dump: self.stack.clone(),
+            stack_dump: self.stack.dump(),
             kind: kind.into(),
         }
     }
@@ -973,8 +973,7 @@ impl<'a> Execution<'a> {
                 self.r#return(return_value)?;
             }
             Instruction::Close(offset) => {
-                let slice = self.stack.commit();
-                let closure = Closure::new(self.ip, slice);
+                let closure = self.stack.closure(self.ip);
                 self.stack.push(Value::from(closure));
                 self.ip = offset;
             }

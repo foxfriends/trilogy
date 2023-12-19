@@ -84,6 +84,38 @@ impl<'a, T> Slice<'a, T> {
         Pointer::new(self.parents.drain(..).collect(), self.len)
     }
 
+    /// Takes a sub-slice of the `Slice`.
+    ///
+    /// # Panics
+    ///
+    /// If the range extends beyond the bounds of this `Slice`.
+    #[inline]
+    pub fn slice(&self, mut range: Range<usize>) -> Self {
+        let len = range.len();
+        let mut i = 0;
+        let mut sliced_parents = vec![];
+        for parent in &self.parents {
+            if i + parent.len() >= range.start {
+                let overlap_start = parent.start + range.start - i;
+                let overlapping_range =
+                    overlap_start..usize::min(parent.end, overlap_start + range.len());
+                range.start += overlapping_range.len();
+                sliced_parents.push(overlapping_range);
+            }
+            i += parent.len();
+            if i >= range.end {
+                break;
+            }
+        }
+        self.cactus.acquire_ranges(&sliced_parents);
+        let slice = Self {
+            cactus: self.cactus,
+            parents: sliced_parents,
+            len,
+        };
+        slice
+    }
+
     #[inline]
     pub fn len(&self) -> usize {
         self.len
