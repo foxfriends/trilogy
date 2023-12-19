@@ -283,6 +283,21 @@ mod test {
     }
 
     #[test]
+    fn update_merging_ends() {
+        let mut map = RangeMap::new();
+        map.insert(1..4, 3);
+        map.insert(4..7, 2);
+        map.insert(7..10, 3);
+        map.update(4..7, |x| {
+            *x = 3;
+        });
+        assert_eq!(
+            map.0.into_iter().collect::<Vec<_>>(),
+            vec![(0, 0), (1, 3), (10, 0)]
+        );
+    }
+
+    #[test]
     fn insert_overlap_noop() {
         let mut map = RangeMap::new();
         map.insert(0..4, 3);
