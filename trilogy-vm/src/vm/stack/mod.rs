@@ -226,10 +226,12 @@ impl<'a> Stack<'a> {
             .frames
             .pop()
             .ok_or(InternalRuntimeError::ExpectedReturn)?;
+        self.fp = frame.fp;
         if let Some(slice) = frame.slice {
             self.branch = Branch::from(slice);
+        } else {
+            self.branch.truncate(self.fp);
         }
-        self.fp = frame.fp;
         Ok(frame.cont)
     }
 
@@ -287,6 +289,8 @@ impl<'a> Stack<'a> {
     /// the way they would be if they were popped individually one after the other.
     #[inline]
     pub(super) fn pop_n(&mut self, arity: usize) -> Result<Vec<StackCell>, InternalRuntimeError> {
-        Ok(self.branch.pop_n(arity))
+        self.branch
+            .pop_n(arity)
+            .ok_or_else(|| InternalRuntimeError::ExpectedValue("less than requested"))
     }
 }

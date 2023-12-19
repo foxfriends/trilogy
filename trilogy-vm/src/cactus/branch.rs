@@ -89,24 +89,35 @@ impl<'a, T> Branch<'a, T> {
     ///
     /// The returned items are popped in their original order, opposite the order they would be
     /// after popping n times separately and pushing into a new vec.
-    pub fn pop_n(&mut self, n: usize) -> Vec<T>
+    ///
+    /// If there are not enough values, returns None without attempting to pop any.
+    pub fn pop_n(&mut self, n: usize) -> Option<Vec<T>>
     where
         T: Clone,
     {
+        if self.len < n {
+            return None;
+        }
         self.consume_to_length(n);
-        let elements = self.stack.drain(self.stack.len() - n..).collect();
+        let elements: Vec<_> = self.stack.drain(self.stack.len() - n..).collect();
         self.len -= n;
-        elements
+        Some(elements)
     }
 
     /// Un-shares elements from the parent until this branch's local length is at least
     /// `length`.
+    ///
+    /// If there are not enough elements, the branch's local length may still be less
+    /// than desired.
     pub fn consume_to_length(&mut self, length: usize)
     where
         T: Clone,
     {
         if self.stack.len() < length {
-            let mut popped = self.slice.pop_n(length - self.stack.len());
+            let mut popped = match self.slice.pop_n(length - self.stack.len()) {
+                Ok(vals) => vals,
+                Err(vals) => vals,
+            };
             popped.append(&mut self.stack);
             self.stack = popped;
         }
@@ -137,6 +148,17 @@ impl<'a, T> Branch<'a, T> {
     #[inline]
     pub fn reserve(&mut self, count: usize) {
         self.stack.reserve(count);
+    }
+
+    #[inline]
+    pub fn truncate(&mut self, len: usize) {
+        if self.slice.len() <= len {
+            self.stack.truncate(len - self.slice.len());
+        } else {
+            self.slice.truncate(len);
+            self.stack.clear();
+        }
+        self.len = self.slice.len() + self.stack.len();
     }
 
     #[inline]

@@ -127,6 +127,24 @@ impl<'a, T> Slice<'a, T> {
     }
 
     #[inline]
+    pub fn truncate(&mut self, len: usize) {
+        let mut to_release = vec![];
+        while self.len > len {
+            let parent = self.parents.pop().unwrap();
+            if parent.len() <= self.len - len {
+                self.len -= parent.len();
+                to_release.push(parent);
+            } else {
+                let to_pop = self.len - len;
+                to_release.push(parent.end - to_pop..parent.end);
+                self.parents.push(parent.start..parent.end - to_pop);
+                self.len -= to_pop;
+            }
+        }
+        self.cactus.release_ranges(&to_release);
+    }
+
+    #[inline]
     pub(super) fn resolve_index(&self, mut index: usize) -> Option<usize> {
         for range in &self.parents {
             if range.len() > index {
@@ -178,17 +196,20 @@ impl<'a, T> Slice<'a, T> {
         unsafe { self.cactus.get_unchecked(index) }
     }
 
-    pub fn pop_n(&mut self, n: usize) -> Vec<T>
+    pub fn pop_n(&mut self, n: usize) -> Result<Vec<T>, Vec<T>>
     where
         T: Clone,
     {
         let mut ranges = vec![];
         let mut popped = 0;
         while popped < n {
-            let parent = self
-                .parents
-                .pop()
-                .expect("attempted to pop elements out of range");
+            let parent = match self.parents.pop() {
+                Some(parent) => parent,
+                None => {
+                    self.len = 0;
+                    return Err(unsafe { self.cactus.get_release_ranges(&ranges) });
+                }
+            };
             if popped + parent.len() > n {
                 let from_range = n - popped;
                 self.parents.push(parent.start..parent.end - from_range);
@@ -201,7 +222,7 @@ impl<'a, T> Slice<'a, T> {
         }
         ranges.reverse();
         self.len -= n;
-        unsafe { self.cactus.get_release_ranges(&ranges) }
+        Ok(unsafe { self.cactus.get_release_ranges(&ranges) })
     }
 
     #[inline]
