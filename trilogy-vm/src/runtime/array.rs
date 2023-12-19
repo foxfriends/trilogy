@@ -34,7 +34,7 @@ use inner::ArrayInner;
 impl Debug for Array {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let inner = self.0.lock().unwrap();
-        f.debug_list().entries(inner.iter()).finish()
+        f.debug_tuple("Array").field(&*inner).finish()
     }
 }
 
@@ -42,6 +42,12 @@ mod inner {
     use super::*;
 
     pub(super) struct ArrayInner(Vec<Value>);
+
+    impl Debug for ArrayInner {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_list().entries(&self.0).finish()
+        }
+    }
 
     impl Default for ArrayInner {
         #[inline(always)]
