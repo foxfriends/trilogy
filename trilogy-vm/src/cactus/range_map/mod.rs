@@ -79,6 +79,11 @@ impl RangeMap {
     ///     ((6..8), 2),
     ///     ((8..9), 0),
     /// ]);
+    ///
+    /// let ranges = map.range(2..4).collect::<Vec<_>>();
+    /// assert_eq!(ranges, vec![
+    ///     ((2..4), 1),
+    /// ]);
     /// ```
     #[inline]
     pub fn range(&self, range: Range<usize>) -> impl Iterator<Item = (Range<usize>, usize)> + '_ {
