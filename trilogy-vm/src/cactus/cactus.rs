@@ -1,10 +1,9 @@
-use rangemap::RangeMap;
 use std::fmt::Debug;
 use std::mem::MaybeUninit;
 use std::ops::Range;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use super::Branch;
+use super::{Branch, RangeMap};
 
 /// The root of the Cactus Stack.
 ///
@@ -16,7 +15,7 @@ pub struct Cactus<T> {
     /// Reference counts for each range in the stack. When a range reaches 0 references,
     /// its elements should be uninitialized. It is only safe to access values where
     /// the reference count for its index is non-zero.
-    ranges: Arc<Mutex<RangeMap<usize, usize>>>,
+    ranges: Arc<Mutex<RangeMap>>,
 }
 
 impl<T: Debug> Debug for Cactus<T> {
@@ -24,8 +23,8 @@ impl<T: Debug> Debug for Cactus<T> {
         let ranges = self.ranges.lock().unwrap();
         let stack = self.stack.lock().unwrap();
         let elements = ranges
-            .iter()
-            .flat_map(|(rng, _)| rng.clone())
+            .ranges()
+            .flat_map(|range| range.into_iter())
             .map(|i| unsafe { stack[i].assume_init_ref() })
             .collect::<Vec<_>>();
         f.debug_struct("Cactus")
@@ -49,12 +48,10 @@ impl<T> Drop for Cactus<T> {
     fn drop(&mut self) {
         let ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
-        for (range, value) in ranges.iter() {
-            if *value > 0 {
-                for val in &mut stack[range.clone()] {
-                    unsafe {
-                        val.assume_init_drop();
-                    }
+        for range in ranges.ranges() {
+            for val in &mut stack[range] {
+                unsafe {
+                    val.assume_init_drop();
                 }
             }
         }
@@ -181,48 +178,35 @@ impl<T> Cactus<T> {
     #[inline]
     pub(super) fn acquire_range_from(
         &self,
-        ranges: &mut MutexGuard<RangeMap<usize, usize>>,
+        ranges: &mut MutexGuard<RangeMap>,
         range: Range<usize>,
     ) {
-        let ranges_acquired = ranges
-            .overlapping(&range)
-            .map(|(subrange, value)| {
-                let subrange =
-                    usize::max(subrange.start, range.start)..usize::min(subrange.end, range.end);
-                (subrange, value + 1)
-            })
-            .chain(ranges.gaps(&range).map(|gap| (gap, 1)))
-            .collect::<Vec<_>>();
-        for (range, value) in ranges_acquired {
-            ranges.insert(range, value);
-        }
+        ranges.update(range, |val| {
+            *val += 1;
+        });
     }
 
     #[inline]
     fn release_range_from(
         &self,
-        ranges: &mut MutexGuard<RangeMap<usize, usize>>,
+        ranges: &mut MutexGuard<RangeMap>,
         stack: &mut MutexGuard<Vec<MaybeUninit<T>>>,
         range: Range<usize>,
     ) {
+        ranges.update(range.clone(), |val| {
+            *val -= 1;
+        });
         let ranges_to_remove = ranges
-            .overlapping(&range)
-            .map(|(subrange, value)| {
-                let subrange =
-                    usize::max(subrange.start, range.start)..usize::min(subrange.end, range.end);
-                (subrange, value - 1)
-            })
+            .range(range)
+            .filter(|(_, value)| *value == 0)
+            .map(|(range, _)| range)
             .collect::<Vec<_>>();
-        for (range, value) in ranges_to_remove {
-            if value == 0 {
-                ranges.remove(range.clone());
-                for i in range {
-                    unsafe {
-                        stack[i].assume_init_drop();
-                    }
+        for range in ranges_to_remove {
+            ranges.remove(range.clone());
+            for val in &mut stack[range] {
+                unsafe {
+                    val.assume_init_drop();
                 }
-            } else {
-                ranges.insert(range, value);
             }
         }
     }
