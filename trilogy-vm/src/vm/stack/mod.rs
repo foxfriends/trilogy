@@ -291,6 +291,6 @@ impl<'a> Stack<'a> {
     pub(super) fn pop_n(&mut self, arity: usize) -> Result<Vec<StackCell>, InternalRuntimeError> {
         self.branch
             .pop_n(arity)
-            .ok_or_else(|| InternalRuntimeError::ExpectedValue("less than requested"))
+            .ok_or(InternalRuntimeError::ExpectedValue("less than requested"))
     }
 }

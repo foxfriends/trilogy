@@ -108,12 +108,11 @@ impl<'a, T> Slice<'a, T> {
             }
         }
         self.cactus.acquire_ranges(&sliced_parents);
-        let slice = Self {
+        Self {
             cactus: self.cactus,
             parents: sliced_parents,
             len,
-        };
-        slice
+        }
     }
 
     #[inline]
