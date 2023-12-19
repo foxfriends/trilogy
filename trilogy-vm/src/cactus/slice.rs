@@ -95,7 +95,7 @@ impl<'a, T> Slice<'a, T> {
         let mut i = 0;
         let mut sliced_parents = vec![];
         for parent in &self.parents {
-            if i + parent.len() >= range.start {
+            if i + parent.len() > range.start {
                 let overlap_start = parent.start + range.start - i;
                 let overlapping_range =
                     overlap_start..usize::min(parent.end, overlap_start + range.len());
