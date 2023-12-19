@@ -10,7 +10,8 @@ use pairwise::*;
 
 /// A map of ranges to values.
 ///
-/// This map is specialized for `usize` ranges to `usize` values.
+/// This map is specialized for `usize` ranges to `usize` values. It could
+/// be expanded to any `Ord` key and any `copy` (or `Clone`) value if desired.
 #[derive(Clone, Debug)]
 pub struct RangeMap(BTreeMap<usize, usize>);
 
@@ -187,7 +188,7 @@ impl RangeMap {
         } else {
             self.0.insert(range.start, value);
         }
-        if range.end == value {
+        if after == value {
             self.0.remove(&range.end);
         } else {
             self.0.insert(range.end, after);
@@ -262,5 +263,30 @@ impl RangeMap {
         } else {
             self.0.insert(range.end, original_end_val);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn insert_merging_ends() {
+        let mut map = RangeMap::new();
+        map.insert(1..4, 3);
+        map.insert(7..10, 3);
+        map.insert(2..8, 3);
+        assert_eq!(
+            map.0.into_iter().collect::<Vec<_>>(),
+            vec![(0, 0), (1, 3), (10, 0)]
+        );
+    }
+
+    #[test]
+    fn insert_overlap_noop() {
+        let mut map = RangeMap::new();
+        map.insert(0..4, 3);
+        map.insert(0..2, 3);
+        assert_eq!(map.0.into_iter().collect::<Vec<_>>(), vec![(0, 3), (4, 0)]);
     }
 }
