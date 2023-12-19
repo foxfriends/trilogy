@@ -63,7 +63,7 @@ impl<'a, T> Branch<'a, T> {
         T: Clone,
     {
         self.consume_to_length(n);
-        self.stack.drain(self.len - n..self.len).collect()
+        self.stack.drain(self.stack.len() - n..).collect()
     }
 
     fn consume_to_length(&mut self, length: usize)
@@ -119,8 +119,8 @@ impl<'a, T> Branch<'a, T> {
     where
         T: Clone,
     {
-        if index >= self.len - self.stack.len() {
-            Some(self.stack[index].clone())
+        if index >= self.cactus.len() {
+            Some(self.stack[index - self.cactus.len()].clone())
         } else {
             self.cactus.get(index)
         }
@@ -128,8 +128,8 @@ impl<'a, T> Branch<'a, T> {
 
     #[inline]
     pub fn set(&mut self, index: usize, value: T) {
-        if index >= self.len - self.stack.len() {
-            self.stack[index] = value;
+        if index >= self.cactus.len() {
+            self.stack[index - self.cactus.len()] = value;
         } else {
             self.cactus.set(index, value);
         }
