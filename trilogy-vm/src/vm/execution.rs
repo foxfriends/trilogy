@@ -368,8 +368,6 @@ impl<'a> Execution<'a> {
 
     #[inline(always)]
     fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
-        println!("{:?}", instruction);
-        println!("{:#?}", self.stack);
         match instruction {
             Instruction::Unit => {
                 self.stack.push(());
@@ -509,10 +507,7 @@ impl<'a> Execution<'a> {
                     .map_err(|k| self.error(k))?;
             }
             Instruction::Copy => {
-                let value = self
-                    .stack
-                    .get(self.stack.len() - 1)
-                    .map_err(|k| self.error(k))?;
+                let value = self.stack.peek().map_err(|k| self.error(k))?;
                 self.stack.push(value);
             }
             Instruction::Clone => {
@@ -521,7 +516,7 @@ impl<'a> Execution<'a> {
             }
             Instruction::DeepClone => {
                 let value = self.stack_pop()?;
-                self.stack.push(value.shallow_clone());
+                self.stack.push(value.structural_clone());
             }
             Instruction::TypeOf => {
                 let value = self.stack_pop()?;
@@ -1037,10 +1032,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(value);
             }
             Instruction::Debug => {
-                let val = self
-                    .stack
-                    .get_raw(self.stack.len() - 1)
-                    .map_err(|k| self.error(k))?;
+                let val = self.stack.peek().map_err(|k| self.error(k))?;
                 eprintln!("{}", val);
             }
         }

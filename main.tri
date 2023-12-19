@@ -1,9 +1,0 @@
-proc other!() {}
-export other
-
-proc main!() {
-    let mut x = do() other!()
-    x = do() other!()
-    x = do() other!()
-    x = do() other!()
-}

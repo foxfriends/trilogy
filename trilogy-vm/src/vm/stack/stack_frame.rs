@@ -5,4 +5,5 @@ use crate::cactus::Slice;
 pub(crate) struct StackFrame<'a> {
     pub cactus: Option<Slice<'a, StackCell>>,
     pub cont: Cont,
+    pub fp: usize,
 }

@@ -15,7 +15,9 @@ pub struct Slice<'a, T> {
 
 impl<'a, T> Drop for Slice<'a, T> {
     fn drop(&mut self) {
-        self.cactus.release_ranges(&self.parents);
+        if !self.parents.is_empty() {
+            self.cactus.release_ranges(&self.parents);
+        }
     }
 }
 
@@ -78,8 +80,8 @@ impl<'a, T> Slice<'a, T> {
     }
 
     #[inline]
-    pub fn into_pointer(self) -> Pointer<T> {
-        Pointer::new(self.parents.clone(), self.len)
+    pub fn into_pointer(mut self) -> Pointer<T> {
+        Pointer::new(self.parents.drain(..).collect(), self.len)
     }
 
     #[inline]
@@ -125,7 +127,7 @@ impl<'a, T> Slice<'a, T> {
         T: Clone,
     {
         let parent = self.parents.last_mut()?;
-        let index = parent.end;
+        let index = parent.end - 1;
         let value = unsafe { self.cactus.get_release(index) };
         parent.end -= 1;
         if parent.end == parent.start {
@@ -133,6 +135,15 @@ impl<'a, T> Slice<'a, T> {
         }
         self.len -= 1;
         Some(value)
+    }
+
+    pub fn peek(&mut self) -> Option<T>
+    where
+        T: Clone,
+    {
+        let parent = self.parents.last()?;
+        let index = parent.end - 1;
+        unsafe { self.cactus.get_unchecked(index) }
     }
 
     pub fn pop_n(&mut self, n: usize) -> Vec<T>
@@ -148,8 +159,8 @@ impl<'a, T> Slice<'a, T> {
                 .expect("attempted to pop elements out of range");
             if popped + parent.len() > n {
                 let from_range = n - popped;
-                self.parents.push(parent.start..parent.start + from_range);
-                ranges.push(parent.start + from_range..parent.end);
+                self.parents.push(parent.start..parent.end - from_range);
+                ranges.push(parent.end - from_range..parent.end);
                 break;
             } else {
                 popped += parent.len();
@@ -163,6 +174,9 @@ impl<'a, T> Slice<'a, T> {
 
     #[inline]
     pub fn append(&mut self, elements: &mut Vec<T>) {
+        if elements.is_empty() {
+            return;
+        }
         self.len += elements.len();
         let range = self.cactus.append(elements);
         self.parents.push(range);

@@ -28,6 +28,7 @@ impl Debug for Continuation {
 struct FramePointer {
     stack: Option<Pointer<StackCell>>,
     cont: Cont,
+    fp: usize,
 }
 
 #[derive(Clone)]
@@ -35,6 +36,7 @@ struct InnerContinuation {
     ip: Offset,
     frames: Vec<FramePointer>,
     branch: Pointer<StackCell>,
+    fp: usize,
 }
 
 impl InnerContinuation {
@@ -44,7 +46,7 @@ impl InnerContinuation {
         crate::GLOBAL_STATS
             .continuations_allocated
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let (frames, mut branch) = stack.into_parts();
+        let (frames, mut branch, fp) = stack.into_parts();
         Self {
             ip,
             frames: frames
@@ -52,9 +54,11 @@ impl InnerContinuation {
                 .map(|frame| FramePointer {
                     stack: frame.cactus.map(|cactus| cactus.into_pointer()),
                     cont: frame.cont.clone(),
+                    fp: frame.fp,
                 })
                 .collect(),
             branch: branch.commit().into_pointer(),
+            fp,
         }
     }
 }
@@ -108,6 +112,7 @@ impl Continuation {
                 StackFrame {
                     cactus: stack,
                     cont: frame.cont.clone(),
+                    fp: frame.fp,
                 }
             })
             .collect();
@@ -116,6 +121,6 @@ impl Continuation {
             slice.reacquire();
             Branch::from(slice)
         };
-        Stack::from_parts(frames, branch)
+        Stack::from_parts(frames, branch, self.0.fp)
     }
 }

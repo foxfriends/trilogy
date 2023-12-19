@@ -5,7 +5,7 @@ use super::{Cactus, Slice};
 /// A branch is a regular stack which may be "attached" to a shared portion of a root Cactus.
 #[derive(Clone, Debug)]
 pub struct Branch<'a, T> {
-    cactus: Slice<'a, T>,
+    slice: Slice<'a, T>,
     stack: Vec<T>,
     len: usize,
 }
@@ -13,7 +13,7 @@ pub struct Branch<'a, T> {
 impl<'a, T> Branch<'a, T> {
     pub(super) fn new(cactus: &'a Cactus<T>) -> Self {
         Self {
-            cactus: Slice::new(cactus),
+            slice: Slice::new(cactus),
             stack: vec![],
             len: 0,
         }
@@ -21,7 +21,7 @@ impl<'a, T> Branch<'a, T> {
 
     #[inline]
     pub fn cactus(&self) -> &'a Cactus<T> {
-        self.cactus.cactus()
+        self.slice.cactus()
     }
 
     /// Pops a locally owned value off this branch.
@@ -36,6 +36,14 @@ impl<'a, T> Branch<'a, T> {
         value
     }
 
+    /// Peeks a locally owned value from this stack.
+    ///
+    /// This will never peek at a value from the parent stack.
+    #[inline]
+    pub fn peek_local(&self) -> Option<&T> {
+        self.stack.last()
+    }
+
     /// Pops a value off this stack. If there are values in the local stack, those will
     /// be popped first, otherwise a cloned value from the shared stack is "popped" from
     /// this branch's view of its parents.
@@ -47,11 +55,23 @@ impl<'a, T> Branch<'a, T> {
         if popped.is_some() {
             return popped;
         }
-        let value = self.cactus.pop();
+        let value = self.slice.pop();
         if value.is_some() {
             self.len -= 1;
         }
         value
+    }
+
+    /// Peeks at the last value on this stack without popping it.
+    pub fn peek(&mut self) -> Option<T>
+    where
+        T: Clone,
+    {
+        let peeked = self.peek_local();
+        if peeked.is_some() {
+            return peeked.cloned();
+        }
+        self.slice.peek()
     }
 
     /// Pops multiple values off the stack.
@@ -63,15 +83,19 @@ impl<'a, T> Branch<'a, T> {
         T: Clone,
     {
         self.consume_to_length(n);
-        self.stack.drain(self.stack.len() - n..).collect()
+        let elements = self.stack.drain(self.stack.len() - n..).collect();
+        self.len -= n;
+        elements
     }
 
-    fn consume_to_length(&mut self, length: usize)
+    /// Un-shares elements from the parent until this branch's local length is at least
+    /// `length`.
+    pub fn consume_to_length(&mut self, length: usize)
     where
         T: Clone,
     {
         if self.stack.len() < length {
-            let mut popped = self.cactus.pop_n(length - self.stack.len());
+            let mut popped = self.slice.pop_n(length - self.stack.len());
             popped.append(&mut self.stack);
             self.stack = popped;
         }
@@ -119,19 +143,23 @@ impl<'a, T> Branch<'a, T> {
     where
         T: Clone,
     {
-        if index >= self.cactus.len() {
-            Some(self.stack[index - self.cactus.len()].clone())
+        if index >= self.slice.len() {
+            if index - self.slice.len() < self.stack.len() {
+                Some(self.stack[index - self.slice.len()].clone())
+            } else {
+                None
+            }
         } else {
-            self.cactus.get(index)
+            self.slice.get(index)
         }
     }
 
     #[inline]
     pub fn set(&mut self, index: usize, value: T) {
-        if index >= self.cactus.len() {
-            self.stack[index - self.cactus.len()] = value;
+        if index >= self.slice.len() {
+            self.stack[index - self.slice.len()] = value;
         } else {
-            self.cactus.set(index, value);
+            self.slice.set(index, value);
         }
     }
 
@@ -141,8 +169,8 @@ impl<'a, T> Branch<'a, T> {
     /// clones will remain distinct.
     #[inline]
     pub fn commit(&mut self) -> Slice<'a, T> {
-        self.cactus.append(&mut self.stack);
-        self.cactus.clone()
+        self.slice.append(&mut self.stack);
+        self.slice.clone()
     }
 
     /// Branches the current branch into two, being self as one, and returning the other.
@@ -150,21 +178,46 @@ impl<'a, T> Branch<'a, T> {
     /// All elements in the current branch are moved to the shared base, and both branches
     /// will have the same shared parents.
     pub fn branch(&mut self) -> Self {
-        let cactus = self.commit();
+        let slice = self.commit();
         Self {
-            cactus,
+            slice,
             stack: vec![],
             len: self.len,
+        }
+    }
+
+    pub fn iter<'b>(&'b self) -> BranchIter<'a, 'b, T> {
+        BranchIter {
+            branch: self,
+            index: 0,
         }
     }
 }
 
 impl<'a, T> From<Slice<'a, T>> for Branch<'a, T> {
-    fn from(value: Slice<'a, T>) -> Self {
+    fn from(slice: Slice<'a, T>) -> Self {
         Self {
-            len: value.len(),
-            cactus: value,
+            len: slice.len(),
+            slice,
             stack: vec![],
         }
+    }
+}
+
+pub struct BranchIter<'a, 'b, T> {
+    branch: &'b Branch<'a, T>,
+    index: usize,
+}
+
+impl<'a, 'b, T> Iterator for BranchIter<'a, 'b, T>
+where
+    T: Clone,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let val = self.branch.get(self.index);
+        self.index += 1;
+        val
     }
 }

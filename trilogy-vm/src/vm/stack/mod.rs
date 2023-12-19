@@ -1,6 +1,7 @@
 use super::error::InternalRuntimeError;
 use crate::cactus::{Branch, Cactus, Slice};
 use crate::Value;
+use std::fmt::{self, Display};
 
 mod cont;
 mod stack_cell;
@@ -20,57 +21,71 @@ pub use trace::{StackTrace, StackTraceEntry};
 #[derive(Clone, Debug)]
 pub(crate) struct Stack<'a> {
     frames: Vec<StackFrame<'a>>,
-    cactus: Branch<'a, StackCell>,
+    branch: Branch<'a, StackCell>,
+    fp: usize,
 }
 
-// impl Display for Stack<'_> {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         let items = self.cactus.iter().collect::<Vec<_>>();
-//         for (i, item) in items.iter().enumerate().rev() {
-//             if i != items.len() - 1 {
-//                 writeln!(f)?;
-//             }
-//             write!(f, "{}: {}", i, item)?;
-//         }
-//         Ok(())
-//     }
-// }
+impl Display for Stack<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let items = self.branch.iter().collect::<Vec<_>>();
+        if items.is_empty() {
+            return write!(f, "<empty stack>");
+        }
+        for (i, item) in items.iter().enumerate() {
+            if i != 0 {
+                writeln!(f)?;
+            }
+            write!(f, "{}: {}", i, item)?;
+        }
+        Ok(())
+    }
+}
 
 impl<'a> Stack<'a> {
     #[inline]
     pub(super) fn new(cactus: Branch<'a, StackCell>) -> Self {
         Self {
             frames: vec![],
-            cactus,
+            branch: cactus,
+            fp: 0,
         }
     }
 
     #[inline]
-    pub(crate) fn from_parts(frames: Vec<StackFrame<'a>>, cactus: Branch<'a, StackCell>) -> Self {
-        Self { frames, cactus }
+    pub(crate) fn from_parts(
+        frames: Vec<StackFrame<'a>>,
+        cactus: Branch<'a, StackCell>,
+        fp: usize,
+    ) -> Self {
+        Self {
+            frames,
+            branch: cactus,
+            fp,
+        }
     }
 
     #[inline]
-    pub(crate) fn into_parts(self) -> (Vec<StackFrame<'a>>, Branch<'a, StackCell>) {
-        (self.frames, self.cactus)
+    pub(crate) fn into_parts(self) -> (Vec<StackFrame<'a>>, Branch<'a, StackCell>, usize) {
+        (self.frames, self.branch, self.fp)
     }
 
     #[inline]
     pub(super) fn cactus(&self) -> &'a Cactus<StackCell> {
-        self.cactus.cactus()
+        self.branch.cactus()
     }
 
     #[inline(always)]
     pub(super) fn branch(&mut self) -> Self {
         Self {
             frames: self.frames.clone(),
-            cactus: self.cactus.branch(),
+            branch: self.branch.branch(),
+            fp: self.fp,
         }
     }
 
     #[inline(always)]
     pub(super) fn commit(&mut self) -> Slice<'a, StackCell> {
-        self.cactus.commit()
+        self.branch.commit()
     }
 
     #[inline]
@@ -80,7 +95,7 @@ impl<'a> Stack<'a> {
 
     #[inline(always)]
     pub(super) fn push_unset(&mut self) {
-        self.cactus.push(StackCell::Unset);
+        self.branch.push(StackCell::Unset);
     }
 
     #[inline(always)]
@@ -88,23 +103,37 @@ impl<'a> Stack<'a> {
     where
         V: Into<Value>,
     {
-        self.cactus.push(StackCell::Set(value.into()));
+        self.branch.push(StackCell::Set(value.into()));
     }
 
     /// Pushes many values at once, not reversing their order as they would be if they
     /// were each pushed individually.
     #[inline(always)]
     pub(super) fn push_many(&mut self, mut values: Vec<StackCell>) {
-        self.cactus.append(&mut values);
+        self.branch.append(&mut values);
     }
 
     #[inline(always)]
     pub(super) fn pop(&mut self) -> Result<Value, InternalRuntimeError> {
-        self.cactus
+        self.branch
             .pop()
             .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))?
             .into_set()
             .ok_or(InternalRuntimeError::ExpectedValue("empty cell"))
+    }
+
+    #[inline(always)]
+    pub(super) fn peek(&mut self) -> Result<Value, InternalRuntimeError> {
+        self.peek_raw()?
+            .into_set()
+            .ok_or(InternalRuntimeError::ExpectedValue("empty cell"))
+    }
+
+    #[inline(always)]
+    pub(super) fn peek_raw(&mut self) -> Result<StackCell, InternalRuntimeError> {
+        self.branch
+            .peek()
+            .ok_or(InternalRuntimeError::ExpectedValue("empty stack"))
     }
 
     #[inline(always)]
@@ -114,12 +143,12 @@ impl<'a> Stack<'a> {
 
     #[inline(always)]
     fn reserve(&mut self, additional: usize) {
-        self.cactus.reserve(additional);
+        self.branch.reserve(additional);
     }
 
     #[inline(always)]
     pub(super) fn slide(&mut self, count: usize) -> Result<(), InternalRuntimeError> {
-        // self.cactus.consume_exact(count + 1);
+        self.branch.consume_to_length(count + 1);
         let top = self.pop()?;
         let slide = self.pop_n(count)?;
         self.reserve(count);
@@ -130,21 +159,21 @@ impl<'a> Stack<'a> {
 
     #[inline(always)]
     pub(super) fn get(&self, index: usize) -> Result<Value, InternalRuntimeError> {
-        self.get_raw(index)?
+        self.get_raw(self.fp + index)?
             .into_set()
             .ok_or(InternalRuntimeError::ExpectedValue("empty cell"))
     }
 
     #[inline(always)]
     pub(super) fn get_raw(&self, index: usize) -> Result<StackCell, InternalRuntimeError> {
-        self.cactus
-            .get(index)
+        self.branch
+            .get(self.fp + index)
             .ok_or(InternalRuntimeError::ExpectedValue("out of bounds"))
     }
 
     #[inline(always)]
     pub(super) fn is_set(&self, index: usize) -> Result<bool, InternalRuntimeError> {
-        Ok(self.get_raw(index)?.is_set())
+        Ok(self.get_raw(self.fp + index)?.is_set())
     }
 
     #[inline(always)]
@@ -154,7 +183,7 @@ impl<'a> Stack<'a> {
             .pop()
             .ok_or(InternalRuntimeError::ExpectedReturn)?;
         if let Some(cactus) = frame.cactus {
-            self.cactus = Branch::from(cactus);
+            self.branch = Branch::from(cactus);
         }
         Ok(frame.cont)
     }
@@ -166,28 +195,34 @@ impl<'a> Stack<'a> {
         arguments: Vec<StackCell>,
         stack: Option<Slice<'a, StackCell>>,
     ) {
+        let fp = self.fp;
         let return_stack = match stack {
-            None => None,
+            None => {
+                self.fp = self.branch.len();
+                None
+            }
             Some(stack) => {
-                let mut branch = std::mem::replace(&mut self.cactus, Branch::from(stack));
+                self.fp = 0;
+                let mut branch = std::mem::replace(&mut self.branch, Branch::from(stack));
                 Some(branch.commit())
             }
         };
         self.frames.push(StackFrame {
             cactus: return_stack,
             cont: c.into(),
+            fp,
         });
         self.push_many(arguments);
     }
 
     #[inline(always)]
     pub(super) fn set(&mut self, index: usize, value: Value) {
-        self.cactus.set(index, StackCell::Set(value));
+        self.branch.set(self.fp + index, StackCell::Set(value));
     }
 
     #[inline(always)]
     pub(super) fn unset(&mut self, index: usize) {
-        self.cactus.set(index, StackCell::Unset);
+        self.branch.set(self.fp + index, StackCell::Unset);
     }
 
     #[inline(always)]
@@ -207,10 +242,6 @@ impl<'a> Stack<'a> {
     /// the way they would be if they were popped individually one after the other.
     #[inline(always)]
     pub(super) fn pop_n(&mut self, arity: usize) -> Result<Vec<StackCell>, InternalRuntimeError> {
-        Ok(self.cactus.pop_n(arity))
-    }
-
-    pub(super) fn len(&self) -> usize {
-        self.cactus.len()
+        Ok(self.branch.pop_n(arity))
     }
 }
