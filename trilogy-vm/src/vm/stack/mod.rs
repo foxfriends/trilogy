@@ -2,7 +2,7 @@ use super::error::InternalRuntimeError;
 use crate::cactus::{Branch, Cactus, Slice};
 use crate::callable::Closure;
 use crate::vm::stack::stack_dump::DumpCell;
-use crate::Value;
+use crate::{Offset, Value};
 use std::collections::HashSet;
 use std::fmt::{self, Display};
 
@@ -104,7 +104,7 @@ impl<'a> Stack<'a> {
     }
 
     #[inline]
-    pub(super) fn closure(&mut self, ip: usize) -> Closure {
+    pub(super) fn closure(&mut self, ip: Offset) -> Closure {
         self.commit();
         let slice = self.branch.slice(self.fp..self.branch.len());
         Closure::new(ip, slice)
