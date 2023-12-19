@@ -106,7 +106,7 @@ impl<'a> Stack<'a> {
     #[inline]
     pub(super) fn closure(&mut self, ip: Offset) -> Closure {
         self.commit();
-        let slice = self.branch.slice(self.fp..self.branch.len());
+        let slice = self.branch.slice().slice(self.fp..self.branch.len());
         Closure::new(ip, slice)
     }
 
@@ -251,7 +251,8 @@ impl<'a> Stack<'a> {
             Some(stack) => {
                 self.fp = 0;
                 let mut branch = std::mem::replace(&mut self.branch, Branch::from(stack));
-                Some(branch.commit())
+                branch.commit();
+                Some(branch.slice().clone())
             }
         };
         self.frames.push(StackFrame {

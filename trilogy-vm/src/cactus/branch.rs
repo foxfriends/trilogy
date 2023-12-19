@@ -1,5 +1,4 @@
 use super::{Cactus, Slice};
-use std::ops::Range;
 
 /// A branch of a Cactus stack.
 ///
@@ -45,14 +44,11 @@ impl<'a, T> Branch<'a, T> {
         self.stack.last()
     }
 
-    /// Takes a slice of the shared portion of this branch.
-    ///
-    /// NOTE: this does __not__ have the ability to slice the local portion of the
-    /// branch. If you need to slice those, it is required to explicitly [`commit`][Self::commit]
-    /// this branch first.
+    /// A reference to the shared slice that backs this Branch. The slice does not
+    /// include any of the local elements in this branch.
     #[inline]
-    pub fn slice(&self, range: Range<usize>) -> Slice<'a, T> {
-        self.slice.slice(range)
+    pub fn slice(&self) -> &Slice<'a, T> {
+        &self.slice
     }
 
     /// Pops a value off this stack. If there are values in the local stack, those will
@@ -201,9 +197,8 @@ impl<'a, T> Branch<'a, T> {
     /// Future clones of this branch will share those elements. Previously existing
     /// clones will remain distinct.
     #[inline]
-    pub fn commit(&mut self) -> Slice<'a, T> {
+    pub fn commit(&mut self) {
         self.slice.append(&mut self.stack);
-        self.slice.clone()
     }
 
     /// Branches the current branch into two, being self as one, and returning the other.
@@ -211,9 +206,9 @@ impl<'a, T> Branch<'a, T> {
     /// All elements in the current branch are moved to the shared base, and both branches
     /// will have the same shared parents.
     pub fn branch(&mut self) -> Self {
-        let slice = self.commit();
+        self.commit();
         Self {
-            slice,
+            slice: self.slice.clone(),
             stack: vec![],
             len: self.len,
         }
