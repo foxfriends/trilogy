@@ -3,7 +3,7 @@ use super::{Cactus, Slice};
 /// A branch of a Cactus stack.
 ///
 /// A branch is a regular stack which may be "attached" to a shared portion of a root Cactus.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Branch<'a, T> {
     cactus: Slice<'a, T>,
     stack: Vec<T>,

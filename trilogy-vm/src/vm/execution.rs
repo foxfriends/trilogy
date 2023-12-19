@@ -368,6 +368,8 @@ impl<'a> Execution<'a> {
 
     #[inline(always)]
     fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
+        println!("{:?}", instruction);
+        println!("{:#?}", self.stack);
         match instruction {
             Instruction::Unit => {
                 self.stack.push(());

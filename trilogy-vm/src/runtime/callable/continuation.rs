@@ -18,7 +18,8 @@ impl Debug for Continuation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Continuation")
             .field("ip", &self.0.ip)
-            .field("stack", &"<stack>") //&self.0.stack)
+            .field("frames", &self.0.frames)
+            .field("branch", &self.0.branch)
             .finish()
     }
 }
@@ -29,7 +30,7 @@ struct FramePointer {
     cont: Cont,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct InnerContinuation {
     ip: Offset,
     frames: Vec<FramePointer>,

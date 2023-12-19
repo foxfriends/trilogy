@@ -6,6 +6,7 @@ use std::ops::Range;
 /// A slice contains a reference to some shared portion of the Cactus, but does not
 /// hold elements of its own. Values cannot be pushed to or popped from a slice, but
 /// it is possible to get or set specific indices.
+#[derive(Debug)]
 pub struct Slice<'a, T> {
     cactus: &'a Cactus<T>,
     parents: Vec<Range<usize>>,

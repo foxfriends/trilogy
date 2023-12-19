@@ -23,7 +23,7 @@ impl Debug for Closure {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct InnerClosure {
     ip: Offset,
     stack: Pointer<StackCell>,

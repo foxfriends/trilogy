@@ -1,4 +1,5 @@
 use rangemap::RangeMap;
+use std::fmt::Debug;
 use std::mem::MaybeUninit;
 use std::ops::Range;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -16,6 +17,22 @@ pub struct Cactus<T> {
     /// its elements should be uninitialized. It is only safe to access values where
     /// the reference count for its index is non-zero.
     ranges: Arc<Mutex<RangeMap<usize, usize>>>,
+}
+
+impl<T: Debug> Debug for Cactus<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ranges = self.ranges.lock().unwrap();
+        let stack = self.stack.lock().unwrap();
+        let elements = ranges
+            .iter()
+            .flat_map(|(rng, _)| rng.clone())
+            .map(|i| unsafe { stack[i].assume_init_ref() })
+            .collect::<Vec<_>>();
+        f.debug_struct("Cactus")
+            .field("ranges", &*ranges)
+            .field("stack", &elements)
+            .finish()
+    }
 }
 
 impl<T> Default for Cactus<T> {
@@ -192,6 +209,7 @@ impl<T> Cactus<T> {
                     usize::max(subrange.start, range.start)..usize::min(subrange.end, range.end);
                 (subrange, value + 1)
             })
+            .chain(ranges.gaps(&range).map(|gap| (gap, 1)))
             .collect::<Vec<_>>();
         for (range, value) in ranges_acquired {
             ranges.insert(range, value);

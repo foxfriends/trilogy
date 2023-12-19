@@ -17,7 +17,7 @@ pub use trace::{StackTrace, StackTraceEntry};
 /// The Trilogy VM is backed by a cactus stack, the core of which is implemented as [`Cactus`][].
 /// This wrapper around that base cactus implements the operations used in the execution of
 /// Trilogy VM bytecode.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Stack<'a> {
     frames: Vec<StackFrame<'a>>,
     cactus: Branch<'a, StackCell>,
@@ -33,19 +33,6 @@ pub(crate) struct Stack<'a> {
 //             write!(f, "{}: {}", i, item)?;
 //         }
 //         Ok(())
-//     }
-// }
-
-// impl Debug for Stack<'_> {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         let mut tuple = f.debug_tuple("Stack");
-//         self.cactus
-//             .iter()
-//             .collect::<Vec<_>>()
-//             .into_iter()
-//             .rev()
-//             .fold(&mut tuple, |f, v| f.field(&v))
-//             .finish()
 //     }
 // }
 
