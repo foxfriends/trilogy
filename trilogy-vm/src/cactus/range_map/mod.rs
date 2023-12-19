@@ -289,4 +289,17 @@ mod test {
         map.insert(0..2, 3);
         assert_eq!(map.0.into_iter().collect::<Vec<_>>(), vec![(0, 3), (4, 0)]);
     }
+
+    #[test]
+    fn never_remove_zero() {
+        let mut map = RangeMap::new();
+        map.insert(0..4, 3);
+        map.remove(0..1);
+        assert_eq!(
+            map.0.iter().map(|(k, v)| (*k, *v)).collect::<Vec<_>>(),
+            vec![(0, 0), (1, 3), (4, 0)]
+        );
+        map.remove(0..4);
+        assert_eq!(map.0.into_iter().collect::<Vec<_>>(), vec![(0, 0)]);
+    }
 }
