@@ -327,6 +327,21 @@ mod test {
     }
 
     #[test]
+    fn range_empty() {
+        let mut map = RangeMap::default();
+        map.insert(2..4, 1);
+        let ranges = map.range(2..2).collect::<Vec<_>>();
+        assert_eq!(ranges, vec![]);
+    }
+
+    #[test]
+    fn ranges_empty() {
+        let map = RangeMap::default();
+        let ranges = map.ranges().collect::<Vec<_>>();
+        assert_eq!(ranges, vec![]);
+    }
+
+    #[test]
     fn never_remove_zero() {
         let mut map = RangeMap::new();
         map.insert(0..4, 3);
