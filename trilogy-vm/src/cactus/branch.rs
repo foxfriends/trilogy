@@ -51,9 +51,17 @@ impl<'a, T> Branch<'a, T> {
         &self.slice
     }
 
+    /// Consumes this branch, discarding its local segment, and returning the backing shared
+    /// slice.
+    #[inline]
+    pub fn into_slice(self) -> Slice<'a, T> {
+        self.slice
+    }
+
     /// Pops a value off this stack. If there are values in the local stack, those will
     /// be popped first, otherwise a cloned value from the shared stack is "popped" from
     /// this branch's view of its parents.
+    #[inline]
     pub fn pop(&mut self) -> Option<T>
     where
         T: Clone,
@@ -70,6 +78,7 @@ impl<'a, T> Branch<'a, T> {
     }
 
     /// Peeks at the last value on this stack without popping it.
+    #[inline]
     pub fn peek(&mut self) -> Option<T>
     where
         T: Clone,
@@ -87,6 +96,7 @@ impl<'a, T> Branch<'a, T> {
     /// after popping n times separately and pushing into a new vec.
     ///
     /// If there are not enough values, returns None without attempting to pop any.
+    #[inline]
     pub fn pop_n(&mut self, n: usize) -> Option<Vec<T>>
     where
         T: Clone,
@@ -105,6 +115,7 @@ impl<'a, T> Branch<'a, T> {
     ///
     /// If there are not enough elements, the branch's local length may still be less
     /// than desired.
+    #[inline]
     pub fn consume_to_length(&mut self, length: usize)
     where
         T: Clone,

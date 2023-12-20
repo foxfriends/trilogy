@@ -227,7 +227,8 @@ impl<'a> Stack<'a> {
             .pop()
             .ok_or(InternalRuntimeError::ExpectedReturn)?;
         if let Some(slice) = frame.slice {
-            self.branch = Branch::from(slice);
+            let new_branch = Branch::from(slice);
+            self.branch = new_branch;
         } else {
             self.branch.truncate(self.fp);
         }
@@ -252,7 +253,7 @@ impl<'a> Stack<'a> {
                 self.fp = 0;
                 let mut branch = std::mem::replace(&mut self.branch, Branch::from(stack));
                 branch.commit();
-                Some(branch.slice().clone())
+                Some(branch.into_slice())
             }
         };
         self.frames.push(StackFrame {

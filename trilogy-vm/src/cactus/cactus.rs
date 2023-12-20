@@ -50,6 +50,7 @@ impl<T> Drop for Cactus<T> {
         let mut stack = self.stack.lock().unwrap();
         for (range, value) in ranges.iter() {
             if value != 0 {
+                log::trace!("freeing range {:?}", range);
                 for val in &mut stack[range] {
                     unsafe {
                         val.assume_init_drop();
@@ -183,6 +184,7 @@ impl<T> Cactus<T> {
         ranges: &mut MutexGuard<RangeMap>,
         range: Range<usize>,
     ) {
+        log::trace!("acquiring range {:?}", range);
         ranges.update(range, |val| {
             *val += 1;
         });
@@ -195,15 +197,17 @@ impl<T> Cactus<T> {
         stack: &mut MutexGuard<Vec<MaybeUninit<T>>>,
         range: Range<usize>,
     ) {
+        log::trace!("releasing range {:?}", range);
+        let ranges_to_remove: Vec<_> = ranges
+            .range(range.clone())
+            .filter(|(_, v)| *v == 1)
+            .map(|(k, _)| k)
+            .collect();
         ranges.update(range.clone(), |val| {
             *val = val.saturating_sub(1);
         });
-        let ranges_to_remove = ranges
-            .range(range)
-            .filter(|(_, value)| *value == 0)
-            .map(|(range, _)| range)
-            .collect::<Vec<_>>();
         for range in ranges_to_remove {
+            log::trace!("freeing range {:?}", range);
             for val in &mut stack[range] {
                 unsafe {
                     val.assume_init_drop();

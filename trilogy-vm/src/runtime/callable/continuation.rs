@@ -42,12 +42,14 @@ struct InnerContinuation {
 impl InnerContinuation {
     #[inline(always)]
     fn new(ip: Offset, stack: Stack<'_>) -> Self {
+        log::debug!("allocating continuation");
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
             .continuations_allocated
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let (frames, mut branch, fp) = stack.into_parts();
         branch.commit();
+        let branch = branch.slice().clone().into_pointer();
         Self {
             ip,
             frames: frames
@@ -58,7 +60,7 @@ impl InnerContinuation {
                     fp: frame.fp,
                 })
                 .collect(),
-            branch: branch.slice().clone().into_pointer(),
+            branch,
             fp,
         }
     }
