@@ -111,7 +111,7 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn range(&self, range: Range<usize>) -> impl Iterator<Item = (Range<usize>, usize)> + '_ {
-        if range.len() == 0 {
+        if range.is_empty() {
             return Box::new(std::iter::empty()) as Box<dyn Iterator<Item = (Range<usize>, usize)>>;
         }
         let start_val = self.get(range.start);
@@ -201,7 +201,7 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn insert(&mut self, range: Range<usize>, value: usize) {
-        if range.len() == 0 {
+        if range.is_empty() {
             return;
         }
         let before = self.before(range.start);
@@ -246,7 +246,7 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn remove(&mut self, range: Range<usize>) {
-        if range.len() == 0 {
+        if range.is_empty() {
             return;
         }
         self.insert(range, 0);
@@ -277,7 +277,7 @@ impl RangeMap {
     /// ```
     #[inline]
     pub fn update<F: Fn(&mut usize)>(&mut self, range: Range<usize>, f: F) {
-        if range.len() == 0 {
+        if range.is_empty() {
             return;
         }
         let mut start_val = self.get(range.start);
