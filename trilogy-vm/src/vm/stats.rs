@@ -113,10 +113,13 @@ impl Display for Stats {
         let max_duration = self
             .instruction_timing
             .iter()
-            .fold(Duration::default(), |a, b| {
+            .enumerate()
+            .filter(|(op, _)| *op != OpCode::Chunk as usize)
+            .fold(Duration::default(), |a, (_, b)| {
                 Duration::max(a, b.load(Ordering::Relaxed))
             });
-        for (opcode, duration) in self.instruction_timing.iter().enumerate() {
+        for (opindex, duration) in self.instruction_timing.iter().enumerate() {
+            let opcode = OpCode::try_from(opindex as Offset).unwrap();
             let duration = duration.load(Ordering::Relaxed);
             if duration.is_zero() {
                 continue;
@@ -124,9 +127,14 @@ impl Display for Stats {
             writeln!(
                 f,
                 "{:>10} {:>16?} {}",
-                OpCode::try_from(opcode as Offset).unwrap(),
+                opcode,
                 duration,
-                "#".repeat((duration.as_nanos() * 50 / max_duration.as_nanos()) as usize)
+                if opcode == OpCode::Chunk {
+                    "[unmeasured]".to_owned()
+                } else {
+                    let duration = (duration.as_nanos() * 50 / max_duration.as_nanos()) as usize;
+                    "#".repeat(duration)
+                }
             )?;
         }
         writeln!(f, "Total: {:?}", total_duration,)?;
