@@ -48,10 +48,13 @@ impl<T> Drop for Cactus<T> {
     fn drop(&mut self) {
         let ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
-        for range in ranges.ranges() {
-            for val in &mut stack[range] {
-                unsafe {
-                    val.assume_init_drop();
+        for (range, value) in ranges.iter() {
+            // println!("{:?} => {value}", range);
+            if value != 0 {
+                for val in &mut stack[range] {
+                    // unsafe {
+                    //     val.assume_init_drop();
+                    // }
                 }
             }
         }
@@ -202,7 +205,6 @@ impl<T> Cactus<T> {
             .map(|(range, _)| range)
             .collect::<Vec<_>>();
         for range in ranges_to_remove {
-            ranges.remove(range.clone());
             for val in &mut stack[range] {
                 unsafe {
                     val.assume_init_drop();

@@ -60,6 +60,29 @@ impl RangeMap {
             .map(|((s, _), (e, _))| (*s..*e))
     }
 
+    /// An iterator over all ranges in this RangeMap.
+    ///
+    /// This includes ranges with a value of 0.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::default();
+    /// map.insert(2..4, 1);
+    /// map.insert(6..8, 2);
+    /// let ranges = map.ranges().collect::<Vec<_>>();
+    /// assert_eq!(ranges, vec![(2..4), (6..8)]);
+    /// ```
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = (Range<usize>, usize)> + '_ {
+        self.0
+            .iter()
+            .peekable()
+            .pairwise()
+            .map(|((s, v), (e, _))| (*s..*e, *v))
+    }
+
     /// An iterator over the overlapping ranges and values of the given range. The
     /// ranges emitted in this iterator will span the entire origin range.
     ///
