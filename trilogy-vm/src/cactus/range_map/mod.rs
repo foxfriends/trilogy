@@ -288,14 +288,22 @@ impl RangeMap {
             self.0.insert(range.start, start_val);
         }
         let original_end_val = self.get(range.end);
-        for (.., val) in self
+        let mut prev = start_val;
+        let mut remove = vec![];
+        for (key, val) in self
             .0
             .range_mut((Bound::Excluded(range.start), Bound::Excluded(range.end)))
         {
             f(val);
+            if *val == prev {
+                remove.push(*key);
+            }
+            prev = *val;
         }
-        let final_end_val = self.get(range.end);
-        if original_end_val == final_end_val {
+        for key in remove {
+            self.0.remove(&key);
+        }
+        if prev == original_end_val {
             self.0.remove(&range.end);
         } else {
             self.0.insert(range.end, original_end_val);
@@ -331,6 +339,38 @@ mod test {
         assert_eq!(
             map.0.into_iter().collect::<Vec<_>>(),
             vec![(0, 0), (1, 3), (10, 0)]
+        );
+    }
+
+    #[test]
+    fn update_merge_inside() {
+        let mut map = RangeMap::new();
+        map.insert(1..2, 1);
+        map.insert(2..3, 2);
+        map.insert(3..4, 3);
+        map.insert(4..5, 1);
+        map.update(2..4, |x| {
+            *x = 1;
+        });
+        assert_eq!(
+            map.0.into_iter().collect::<Vec<_>>(),
+            vec![(0, 0), (1, 1), (5, 0)]
+        );
+    }
+
+    #[test]
+    fn update_dont_merge_ends_but_merge_inside() {
+        let mut map = RangeMap::new();
+        map.insert(1..2, 2);
+        map.insert(2..3, 2);
+        map.insert(3..4, 3);
+        map.insert(4..5, 2);
+        map.update(2..4, |x| {
+            *x = 1;
+        });
+        assert_eq!(
+            map.0.into_iter().collect::<Vec<_>>(),
+            vec![(0, 0), (1, 2), (2, 1), (4, 2), (5, 0)]
         );
     }
 
