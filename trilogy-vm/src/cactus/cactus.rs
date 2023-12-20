@@ -49,12 +49,11 @@ impl<T> Drop for Cactus<T> {
         let ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
         for (range, value) in ranges.iter() {
-            // println!("{:?} => {value}", range);
             if value != 0 {
                 for val in &mut stack[range] {
-                    // unsafe {
-                    //     val.assume_init_drop();
-                    // }
+                    unsafe {
+                        val.assume_init_drop();
+                    }
                 }
             }
         }
@@ -197,7 +196,7 @@ impl<T> Cactus<T> {
         range: Range<usize>,
     ) {
         ranges.update(range.clone(), |val| {
-            *val -= 1;
+            *val = val.saturating_sub(1);
         });
         let ranges_to_remove = ranges
             .range(range)
@@ -219,8 +218,8 @@ impl<T> Cactus<T> {
         let mut stack = self.stack.lock().unwrap();
         let len = values.len();
         let range = stack.len()..stack.len() + len;
-        stack.extend(values.drain(..).map(MaybeUninit::new));
         self.acquire_range_from(&mut ranges, range.clone());
+        stack.extend(values.drain(..).map(MaybeUninit::new));
         range
     }
 }
