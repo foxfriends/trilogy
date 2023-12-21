@@ -157,5 +157,5 @@ export enumerate
 func sum xs = reduce (+) xs
 export sum
 
-func count xs = reduce (fn x _. x + 1) xs
+func count xs = fold (fn x _. x + 1) 0 xs
 export count
