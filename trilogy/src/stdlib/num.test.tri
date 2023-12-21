@@ -1,4 +1,4 @@
-module num at "trilogy:num" use min, max, abs, parts, parse_int
+module num at "trilogy:num" use min, max, abs, parts, parse_int, is_odd, is_even
 
 test "parse_int" {
     assert parse_int 16 "ff6600" == 0xff6600
@@ -36,4 +36,25 @@ test "min" {
     with { min 3 "A" }
         when 'NAN cancel unit
         else invert { assert false }
+}
+
+test "is_odd" {
+    assert is_odd 3
+    assert is_odd 1
+    assert "neg" as is_odd (-1)
+    assert !(is_odd 2)
+    assert !(is_odd 1.5)
+    assert !(is_odd 1i1)
+    assert "imev" as !(is_odd 2i2)
+}
+
+test "is_even" {
+    assert is_even 2
+    assert is_even 4
+    assert is_even 0
+    assert "neg" as is_even (-2)
+    assert "odd" as !(is_even 3)
+    assert "dec" as !(is_even 1.5)
+    assert "imodd" as !(is_even 1i1)
+    assert "imev" as !(is_even 2i2)
 }

@@ -6,7 +6,7 @@ func parts n = (native::re n) : (native::im n)
 export parts
 
 ## Returns the absolute value of a number
-func abs n = if n < 0 then -n else n
+func abs n and typeof 'number = if n < 0 == true then -n else n
 export abs
 
 ## Returns the larger of two numbers. If the numbers cannot be compared,
@@ -24,3 +24,10 @@ func min a b = match a > b
     case true then b
     else yield 'NAN
 export min
+
+## Returns true if the number is odd, and false otherwise.
+func is_odd a = im a == 0 && (abs a % 2) == 1
+
+## Returns true if the number is even, and false otherwise.
+func is_even a = im a == 0 && (abs a % 2) == 0
+export is_odd, is_even
