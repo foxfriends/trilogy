@@ -24,6 +24,16 @@ where
     }
 }
 
+impl<T> ExactSizeIterator for Pairwise<T>
+where
+    T: Iterator + ExactSizeIterator,
+    T::Item: Copy,
+{
+    fn len(&self) -> usize {
+        self.0.len().saturating_sub(1)
+    }
+}
+
 impl<T> Iterator for Pairwise<T>
 where
     T: Iterator,
