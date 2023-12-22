@@ -165,7 +165,7 @@ impl<'a, T> Slice<'a, T> {
             } else {
                 let to_pop = self.len - len;
                 to_release.push(parent.end - to_pop..parent.end);
-                self.parents.insert(parent.start..parent.end - to_pop, true);
+                self.parents.remove(parent.end - to_pop..parent.end);
                 self.len -= to_pop;
             }
         }
@@ -204,12 +204,9 @@ impl<'a, T> Slice<'a, T> {
     where
         T: Clone,
     {
-        let (parent, _) = self.parents.iter().filter(|(_, v)| *v).last().unwrap();
-        let index = parent.end - 1;
+        let index = self.parents.len() - 1;
         let value = unsafe { self.cactus.get_release(index) };
-        if parent.end == parent.start {
-            self.parents.remove(parent.end - 1..parent.end);
-        }
+        self.parents.remove(index..index + 1);
         self.len -= 1;
         Some(value)
     }
@@ -218,8 +215,7 @@ impl<'a, T> Slice<'a, T> {
     where
         T: Clone,
     {
-        let (parent, _) = self.parents.iter().filter(|(_, v)| *v).last().unwrap();
-        let index = parent.end - 1;
+        let index = self.parents.len() - 1;
         unsafe { self.cactus.get_unchecked(index) }
     }
 

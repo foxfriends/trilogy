@@ -35,6 +35,12 @@ impl<T> RangeMap<T> {
         RangeMap(map)
     }
 
+    /// Returns the "length" of this RangeMap. The length is the last key for which a value
+    /// is set.
+    pub fn len(&self) -> usize {
+        *self.0.last_key_value().unwrap().0
+    }
+
     /// Returns true if this RangeMap is "empty".
     ///
     /// Since a RangeMap always contains at least one range (of the entire domain) , the
