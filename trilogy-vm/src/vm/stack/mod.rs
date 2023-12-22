@@ -1,5 +1,5 @@
 use super::error::InternalRuntimeError;
-use crate::cactus::{Branch, Cactus, Slice};
+use crate::cactus::{Branch, Slice};
 use crate::callable::Closure;
 use crate::vm::stack::stack_dump::DumpCell;
 use crate::{Offset, Value};
@@ -96,11 +96,6 @@ impl<'a> Stack<'a> {
                 }
             })
             .collect()
-    }
-
-    #[inline]
-    pub(super) fn cactus(&self) -> &'a Cactus<StackCell> {
-        self.branch.cactus()
     }
 
     #[inline]

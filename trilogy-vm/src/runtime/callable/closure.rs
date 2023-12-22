@@ -1,6 +1,6 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
-use crate::cactus::{Cactus, Pointer, Slice};
+use crate::cactus::{Pointer, Slice};
 use crate::vm::stack::StackCell;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
@@ -78,8 +78,8 @@ impl Closure {
     }
 
     #[inline(always)]
-    pub(crate) unsafe fn stack<'a>(&self, cactus: &'a Cactus<StackCell>) -> Slice<'a, StackCell> {
-        Slice::from_pointer(cactus, self.0.stack.clone())
+    pub(crate) unsafe fn stack<'a>(&self) -> Slice<'a, StackCell> {
+        Slice::from_pointer(self.0.stack.clone())
     }
 }
 

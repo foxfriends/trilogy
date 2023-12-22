@@ -122,7 +122,7 @@ impl<'a> Execution<'a> {
     ) -> Result<(), Error> {
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = unsafe { continuation.stack(self.stack.cactus()) };
+                self.stack = unsafe { continuation.stack() };
                 self.stack
                     .push_many(arguments.into_iter().map(StackCell::Set).collect());
                 self.ip = continuation.ip();
@@ -137,7 +137,7 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ghost = unsafe {
-                    let ghost = closure.stack(self.stack.cactus());
+                    let ghost = closure.stack();
                     ghost.reacquire();
                     ghost
                 };
@@ -237,7 +237,7 @@ impl<'a> Execution<'a> {
     fn call_internal(&mut self, callable: Value, arguments: Vec<StackCell>) -> Result<(), Error> {
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = unsafe { continuation.stack(self.stack.cactus()) };
+                self.stack = unsafe { continuation.stack() };
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
@@ -247,7 +247,7 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ghost = unsafe {
-                    let ghost = closure.stack(self.stack.cactus());
+                    let ghost = closure.stack();
                     ghost.reacquire();
                     ghost
                 };
@@ -280,7 +280,7 @@ impl<'a> Execution<'a> {
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = unsafe { continuation.stack(self.stack.cactus()) };
+                self.stack = unsafe { continuation.stack() };
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
@@ -292,7 +292,7 @@ impl<'a> Execution<'a> {
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 let ghost = unsafe {
-                    let ghost = closure.stack(self.stack.cactus());
+                    let ghost = closure.stack();
                     ghost.reacquire();
                     ghost
                 };

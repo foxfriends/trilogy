@@ -59,9 +59,9 @@ impl<'a, T> Slice<'a, T> {
     ///
     /// The invariants required here are very similar to those of [`Arc::from_raw`][std::sync::Arc::from_raw]
     #[inline]
-    pub unsafe fn from_pointer(cactus: &'a Cactus<T>, pointer: Pointer<T>) -> Self {
+    pub unsafe fn from_pointer(pointer: Pointer<T>) -> Self {
         Slice {
-            cactus,
+            cactus: unsafe { &*pointer.cactus },
             parents: pointer.parents,
             len: pointer.len,
         }
@@ -108,7 +108,7 @@ impl<'a, T> Slice<'a, T> {
     #[inline]
     pub fn into_pointer(mut self) -> Pointer<T> {
         let parents = std::mem::take(&mut self.parents);
-        Pointer::new(parents, self.len)
+        Pointer::new(self.cactus, parents, self.len)
     }
 
     /// Takes a sub-slice of the `Slice`.

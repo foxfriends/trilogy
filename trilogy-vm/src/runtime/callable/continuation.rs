@@ -1,6 +1,6 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
-use crate::cactus::{Branch, Cactus, Pointer, Slice};
+use crate::cactus::{Branch, Pointer, Slice};
 use crate::vm::stack::{Cont, Stack, StackCell, StackFrame};
 use std::fmt::{self, Debug};
 use std::hash::Hash;
@@ -101,14 +101,14 @@ impl Continuation {
     }
 
     #[inline(always)]
-    pub(crate) unsafe fn stack<'a>(&self, cactus: &'a Cactus<StackCell>) -> Stack<'a> {
+    pub(crate) unsafe fn stack<'a>(&self) -> Stack<'a> {
         let frames = self
             .0
             .frames
             .iter()
             .map(|frame| {
                 let stack = frame.stack.as_ref().map(|frame| unsafe {
-                    let slice = Slice::from_pointer(cactus, frame.clone());
+                    let slice = Slice::from_pointer(frame.clone());
                     slice.reacquire();
                     slice
                 });
@@ -120,7 +120,7 @@ impl Continuation {
             })
             .collect();
         let branch = unsafe {
-            let slice = Slice::from_pointer(cactus, self.0.branch.clone());
+            let slice = Slice::from_pointer(self.0.branch.clone());
             slice.reacquire();
             Branch::from(slice)
         };
