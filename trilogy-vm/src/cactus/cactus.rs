@@ -15,7 +15,7 @@ pub struct Cactus<T> {
     /// Reference counts for each range in the stack. When a range reaches 0 references,
     /// its elements should be uninitialized. It is only safe to access values where
     /// the reference count for its index is non-zero.
-    ranges: Arc<Mutex<RangeMap>>,
+    ranges: Arc<Mutex<RangeMap<usize>>>,
 }
 
 impl<T: Debug> Debug for Cactus<T> {
@@ -23,8 +23,9 @@ impl<T: Debug> Debug for Cactus<T> {
         let ranges = self.ranges.lock().unwrap();
         let stack = self.stack.lock().unwrap();
         let elements = ranges
-            .ranges()
-            .flat_map(|range| range.into_iter())
+            .iter()
+            .filter(|(_, v)| *v != 0)
+            .flat_map(|(range, _)| range.into_iter())
             .map(|i| unsafe { stack[i].assume_init_ref() })
             .collect::<Vec<_>>();
         f.debug_struct("Cactus")
@@ -181,7 +182,7 @@ impl<T> Cactus<T> {
     #[inline]
     pub(super) fn acquire_range_from(
         &self,
-        ranges: &mut MutexGuard<RangeMap>,
+        ranges: &mut MutexGuard<RangeMap<usize>>,
         range: Range<usize>,
     ) {
         log::trace!("acquiring range {:?}", range);
@@ -193,7 +194,7 @@ impl<T> Cactus<T> {
     #[inline]
     fn release_range_from(
         &self,
-        ranges: &mut MutexGuard<RangeMap>,
+        ranges: &mut MutexGuard<RangeMap<usize>>,
         stack: &mut MutexGuard<Vec<MaybeUninit<T>>>,
         range: Range<usize>,
     ) {

@@ -10,35 +10,35 @@ use pairwise::*;
 
 /// A map of ranges to values.
 ///
-/// This map is specialized for `usize` ranges to `usize` values. It could
-/// be expanded to any `Ord` key and any `copy` (or `Clone`) value if desired.
+/// This map is specialized for `usize` ranges to `Copy` values.
 #[derive(Clone, Debug)]
-pub struct RangeMap(BTreeMap<usize, usize>);
+pub struct RangeMap<T>(BTreeMap<usize, T>);
 
-impl Default for RangeMap {
+impl<T: Default> Default for RangeMap<T> {
     fn default() -> Self {
-        let mut map = BTreeMap::new();
-        map.insert(0, 0);
-        RangeMap(map)
+        Self::new(Default::default())
     }
 }
 
-impl RangeMap {
-    /// Creates a new empty `RangeMap`.
+impl<T> RangeMap<T> {
+    /// Creates a new empty `RangeMap` with a given initial value for all elements.
     ///
     /// # Examples
     ///
     /// ```
     /// # use trilogy_vm::cactus::RangeMap;
-    /// let map = RangeMap::new();
+    /// let map = RangeMap::new(0);
     /// ```
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(init: T) -> Self {
+        let mut map = BTreeMap::new();
+        map.insert(0, init);
+        RangeMap(map)
     }
 
-    /// An iterator over all ranges that are contained in this RangeMap.
+    /// An iterator over all contiguous ranges to the same value in this RangeMap.
     ///
-    /// A range is "contained" if its value is not zero.
+    /// This includes ranges with a value of 0, but does not include the final infinite range to
+    /// the end of the map, which is also considered to have a value of 0.
     ///
     /// # Examples
     ///
@@ -47,35 +47,14 @@ impl RangeMap {
     /// let mut map = RangeMap::default();
     /// map.insert(2..4, 1);
     /// map.insert(6..8, 2);
-    /// let ranges = map.ranges().collect::<Vec<_>>();
-    /// assert_eq!(ranges, vec![(2..4), (6..8)]);
+    /// let ranges = map.iter().collect::<Vec<_>>();
+    /// assert_eq!(ranges, vec![(0..2, 0), (2..4, 1), (4..6, 0), (6..8, 2)]);
     /// ```
     #[inline]
-    pub fn ranges(&self) -> impl Iterator<Item = Range<usize>> + '_ {
-        self.0
-            .iter()
-            .peekable()
-            .pairwise()
-            .filter(|((_, v), _)| **v > 0)
-            .map(|((s, _), (e, _))| (*s..*e))
-    }
-
-    /// An iterator over all ranges in this RangeMap.
-    ///
-    /// This includes ranges with a value of 0.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use trilogy_vm::cactus::RangeMap;
-    /// let mut map = RangeMap::default();
-    /// map.insert(2..4, 1);
-    /// map.insert(6..8, 2);
-    /// let ranges = map.ranges().collect::<Vec<_>>();
-    /// assert_eq!(ranges, vec![(2..4), (6..8)]);
-    /// ```
-    #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = (Range<usize>, usize)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (Range<usize>, T)> + '_
+    where
+        T: Copy,
+    {
         self.0
             .iter()
             .peekable()
@@ -110,19 +89,22 @@ impl RangeMap {
     /// ]);
     /// ```
     #[inline]
-    pub fn range(&self, range: Range<usize>) -> impl Iterator<Item = (Range<usize>, usize)> + '_ {
+    pub fn range(&self, range: Range<usize>) -> impl Iterator<Item = (Range<usize>, T)> + '_
+    where
+        T: Copy + Default,
+    {
         if range.is_empty() {
-            return Box::new(std::iter::empty()) as Box<dyn Iterator<Item = (Range<usize>, usize)>>;
+            return Box::new(std::iter::empty()) as Box<dyn Iterator<Item = (Range<usize>, T)>>;
         }
         let start_val = self.get(range.start);
         Box::new(
-            std::iter::once((range.start, start_val))
+            std::iter::once((range.start, *start_val))
                 .chain(
                     self.0
                         .range((Bound::Excluded(range.start), Bound::Excluded(range.end)))
                         .map(|(s, v)| (*s, *v)),
                 )
-                .chain(std::iter::once((range.end, 0)))
+                .chain(std::iter::once((range.end, T::default())))
                 .peekable()
                 .pairwise()
                 .map(|((s, v), (e, _))| (s..e, v)),
@@ -139,15 +121,14 @@ impl RangeMap {
     /// let mut map = RangeMap::default();
     /// map.insert(2..4, 1);
     /// map.insert(6..8, 2);
-    /// assert_eq!(map.get(0), 0);
-    /// assert_eq!(map.get(2), 1);
-    /// assert_eq!(map.get(7), 2);
-    /// assert_eq!(map.get(8), 0);
+    /// assert_eq!(map.get(0), &0);
+    /// assert_eq!(map.get(2), &1);
+    /// assert_eq!(map.get(7), &2);
+    /// assert_eq!(map.get(8), &0);
     /// ```
     #[inline]
-    pub fn get(&self, key: usize) -> usize {
-        *self
-            .0
+    pub fn get(&self, key: usize) -> &T {
+        self.0
             .range((Bound::Unbounded, Bound::Included(key)))
             .last()
             .unwrap()
@@ -165,17 +146,17 @@ impl RangeMap {
     /// map.insert(2..4, 1);
     /// map.insert(6..8, 2);
     /// assert_eq!(map.before(0), None);
-    /// assert_eq!(map.before(2), Some(0));
-    /// assert_eq!(map.before(7), Some(2));
-    /// assert_eq!(map.before(8), Some(2));
-    /// assert_eq!(map.before(9), Some(0));
+    /// assert_eq!(map.before(2), Some(&0));
+    /// assert_eq!(map.before(7), Some(&2));
+    /// assert_eq!(map.before(8), Some(&2));
+    /// assert_eq!(map.before(9), Some(&0));
     /// ```
     #[inline]
-    pub fn before(&self, key: usize) -> Option<usize> {
+    pub fn before(&self, key: usize) -> Option<&T> {
         self.0
             .range((Bound::Unbounded, Bound::Excluded(key)))
             .last()
-            .map(|kv| *kv.1)
+            .map(|kv| kv.1)
     }
 
     /// Inserts a range into this map. If the range overlaps ranges already included
@@ -189,23 +170,26 @@ impl RangeMap {
     /// map.insert(2..8, 1);
     /// map.insert(6..7, 2);
     /// map.insert(1..4, 3);
-    /// assert_eq!(map.get(0), 0);
-    /// assert_eq!(map.get(1), 3);
-    /// assert_eq!(map.get(2), 3);
-    /// assert_eq!(map.get(3), 3);
-    /// assert_eq!(map.get(4), 1);
-    /// assert_eq!(map.get(5), 1);
-    /// assert_eq!(map.get(6), 2);
-    /// assert_eq!(map.get(7), 1);
-    /// assert_eq!(map.get(8), 0);
+    /// assert_eq!(map.get(0), &0);
+    /// assert_eq!(map.get(1), &3);
+    /// assert_eq!(map.get(2), &3);
+    /// assert_eq!(map.get(3), &3);
+    /// assert_eq!(map.get(4), &1);
+    /// assert_eq!(map.get(5), &1);
+    /// assert_eq!(map.get(6), &2);
+    /// assert_eq!(map.get(7), &1);
+    /// assert_eq!(map.get(8), &0);
     /// ```
     #[inline]
-    pub fn insert(&mut self, range: Range<usize>, value: usize) {
+    pub fn insert(&mut self, range: Range<usize>, value: T)
+    where
+        T: Eq + Copy,
+    {
         if range.is_empty() {
             return;
         }
-        let before = self.before(range.start);
-        let after = self.get(range.end);
+        let before = self.before(range.start).copied();
+        let after = *self.get(range.end);
         let keys_to_remove = self
             .0
             .range((Bound::Excluded(range.start), Bound::Excluded(range.end)))
@@ -214,15 +198,15 @@ impl RangeMap {
         for key in keys_to_remove {
             self.0.remove(&key);
         }
-        if before == Some(value) {
-            self.0.remove(&range.start);
-        } else {
-            self.0.insert(range.start, value);
-        }
         if after == value {
             self.0.remove(&range.end);
         } else {
             self.0.insert(range.end, after);
+        }
+        if before == Some(value) {
+            self.0.remove(&range.start);
+        } else {
+            self.0.insert(range.start, value);
         }
     }
 
@@ -236,20 +220,23 @@ impl RangeMap {
     /// let mut map = RangeMap::default();
     /// map.insert(2..6, 1);
     /// map.remove(1..4);
-    /// assert_eq!(map.get(0), 0);
-    /// assert_eq!(map.get(1), 0);
-    /// assert_eq!(map.get(2), 0);
-    /// assert_eq!(map.get(3), 0);
-    /// assert_eq!(map.get(4), 1);
-    /// assert_eq!(map.get(5), 1);
-    /// assert_eq!(map.get(6), 0);
+    /// assert_eq!(map.get(0), &0);
+    /// assert_eq!(map.get(1), &0);
+    /// assert_eq!(map.get(2), &0);
+    /// assert_eq!(map.get(3), &0);
+    /// assert_eq!(map.get(4), &1);
+    /// assert_eq!(map.get(5), &1);
+    /// assert_eq!(map.get(6), &0);
     /// ```
     #[inline]
-    pub fn remove(&mut self, range: Range<usize>) {
+    pub fn remove(&mut self, range: Range<usize>)
+    where
+        T: Default + Eq + Copy,
+    {
         if range.is_empty() {
             return;
         }
-        self.insert(range, 0);
+        self.insert(range, T::default());
     }
 
     /// Updates existing ranges in this map in-place by calling the transformation
@@ -266,28 +253,31 @@ impl RangeMap {
     /// map.insert(2..4, 1);
     /// map.insert(4..6, 2);
     /// map.update(0..7, |x| { *x = (*x + 1) * 2; });
-    /// assert_eq!(map.get(0), 2);
-    /// assert_eq!(map.get(1), 2);
-    /// assert_eq!(map.get(2), 4);
-    /// assert_eq!(map.get(3), 4);
-    /// assert_eq!(map.get(4), 6);
-    /// assert_eq!(map.get(5), 6);
-    /// assert_eq!(map.get(6), 2);
-    /// assert_eq!(map.get(7), 0);
+    /// assert_eq!(map.get(0), &2);
+    /// assert_eq!(map.get(1), &2);
+    /// assert_eq!(map.get(2), &4);
+    /// assert_eq!(map.get(3), &4);
+    /// assert_eq!(map.get(4), &6);
+    /// assert_eq!(map.get(5), &6);
+    /// assert_eq!(map.get(6), &2);
+    /// assert_eq!(map.get(7), &0);
     /// ```
     #[inline]
-    pub fn update<F: Fn(&mut usize)>(&mut self, range: Range<usize>, f: F) {
+    pub fn update<F: Fn(&mut T)>(&mut self, range: Range<usize>, f: F)
+    where
+        T: Copy + Eq,
+    {
         if range.is_empty() {
             return;
         }
-        let mut start_val = self.get(range.start);
+        let mut start_val = *self.get(range.start);
         f(&mut start_val);
-        if Some(start_val) == self.before(range.start) {
+        if Some(&start_val) == self.before(range.start) {
             self.0.remove(&range.start);
         } else {
             self.0.insert(range.start, start_val);
         }
-        let original_end_val = self.get(range.end);
+        let original_end_val = *self.get(range.end);
         let mut prev = start_val;
         let mut remove = vec![];
         for (key, val) in self
@@ -317,7 +307,7 @@ mod test {
 
     #[test]
     fn insert_merging_ends() {
-        let mut map = RangeMap::new();
+        let mut map = RangeMap::default();
         map.insert(1..4, 3);
         map.insert(7..10, 3);
         map.insert(2..8, 3);
@@ -329,7 +319,7 @@ mod test {
 
     #[test]
     fn update_merging_ends() {
-        let mut map = RangeMap::new();
+        let mut map = RangeMap::default();
         map.insert(1..4, 3);
         map.insert(4..7, 2);
         map.insert(7..10, 3);
@@ -344,7 +334,7 @@ mod test {
 
     #[test]
     fn update_merge_inside() {
-        let mut map = RangeMap::new();
+        let mut map = RangeMap::default();
         map.insert(1..2, 1);
         map.insert(2..3, 2);
         map.insert(3..4, 3);
@@ -360,7 +350,7 @@ mod test {
 
     #[test]
     fn update_dont_merge_ends_but_merge_inside() {
-        let mut map = RangeMap::new();
+        let mut map = RangeMap::default();
         map.insert(1..2, 2);
         map.insert(2..3, 2);
         map.insert(3..4, 3);
@@ -376,7 +366,7 @@ mod test {
 
     #[test]
     fn insert_overlap_noop() {
-        let mut map = RangeMap::new();
+        let mut map = RangeMap::default();
         map.insert(0..4, 3);
         map.insert(0..2, 3);
         assert_eq!(map.0.into_iter().collect::<Vec<_>>(), vec![(0, 3), (4, 0)]);
@@ -384,7 +374,7 @@ mod test {
 
     #[test]
     fn insert_empty_noop() {
-        let mut map = RangeMap::new();
+        let mut map = RangeMap::default();
         map.insert(3..3, 3);
         assert_eq!(map.0.into_iter().collect::<Vec<_>>(), vec![(0, 0)]);
     }
@@ -398,15 +388,8 @@ mod test {
     }
 
     #[test]
-    fn ranges_empty() {
-        let map = RangeMap::default();
-        let ranges = map.ranges().collect::<Vec<_>>();
-        assert_eq!(ranges, vec![]);
-    }
-
-    #[test]
     fn never_remove_zero() {
-        let mut map = RangeMap::new();
+        let mut map = RangeMap::default();
         map.insert(0..4, 3);
         map.remove(0..1);
         assert_eq!(
