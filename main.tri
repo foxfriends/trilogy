@@ -1,0 +1,15 @@
+module tuple at "trilogy:tuple" use mapfst
+
+module here n {
+    proc get!() {
+        return mapfst ((*) 2) (n:3)
+    }
+
+    export get
+}
+
+proc main!() {
+    let pair = 1:2
+    let mod:_ = mapfst here pair
+    exit mod::get!()
+}

@@ -16,4 +16,11 @@ pub mod array {
         let array = rt.typecheck::<Array>(array)?;
         rt.r#return(array.into_iter().skip(start).take(len).collect::<Array>())
     }
+
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn reverse(rt: Runtime, array: Value) -> Result<()> {
+        let mut array = rt.typecheck::<Vec<Value>>(array)?;
+        array.reverse();
+        rt.r#return(array)
+    }
 }
