@@ -157,7 +157,7 @@ impl<'a, T> Slice<'a, T> {
     pub fn truncate(&mut self, len: usize) {
         let mut to_release = vec![];
         while self.len > len {
-            let (parent, _) = self.parents.iter().filter(|(_, v)| *v).last().unwrap();
+            let (parent, _) = self.parents.last_range().unwrap();
             if parent.len() <= self.len - len {
                 self.len -= parent.len();
                 self.parents.remove(parent.clone());
@@ -226,7 +226,7 @@ impl<'a, T> Slice<'a, T> {
         let mut ranges = vec![];
         let mut popped = 0;
         while popped < n {
-            let parent = match self.parents.iter().filter(|(_, v)| *v).last() {
+            let parent = match self.parents.last_range() {
                 Some((parent, _)) => parent,
                 None => {
                     self.len = 0;

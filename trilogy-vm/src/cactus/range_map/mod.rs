@@ -313,6 +313,12 @@ impl<T> RangeMap<T> {
             self.0.insert(range.end, original_end_val);
         }
     }
+
+    pub fn last_range(&self) -> Option<(Range<usize>, &T)> {
+        let (start, val) = self.0.range(..self.len()).last()?;
+        let end = self.len();
+        Some((*start..end, val))
+    }
 }
 
 #[cfg(test)]
