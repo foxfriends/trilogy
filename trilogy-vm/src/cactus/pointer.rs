@@ -1,6 +1,5 @@
 use super::{Cactus, RangeMap};
 use std::fmt::Debug;
-use std::marker::PhantomData;
 
 /// A "raw pointer" to part of a Cactus stack.
 ///
@@ -11,15 +10,15 @@ pub struct Pointer<T> {
     pub(super) cactus: *const Cactus<T>,
     pub(super) parents: RangeMap<bool>,
     pub(super) len: usize,
-    _pd: PhantomData<T>,
 }
 
 impl<T> Debug for Pointer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Pointer")
+            .field("cactus", &self.cactus)
             .field("parents", &self.parents)
             .field("len", &self.len)
-            .finish_non_exhaustive()
+            .finish()
     }
 }
 
@@ -29,7 +28,6 @@ impl<T> Clone for Pointer<T> {
             cactus: self.cactus,
             parents: self.parents.clone(),
             len: self.len,
-            _pd: PhantomData,
         }
     }
 }
@@ -40,7 +38,6 @@ impl<T> Pointer<T> {
             cactus,
             parents,
             len,
-            _pd: PhantomData,
         }
     }
 }
