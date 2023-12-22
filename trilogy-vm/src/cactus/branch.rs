@@ -121,10 +121,10 @@ impl<'a, T> Branch<'a, T> {
         T: Clone,
     {
         if self.stack.len() < length {
-            let mut popped = match self.slice.pop_n(length - self.stack.len()) {
-                Ok(vals) => vals,
-                Err(vals) => vals,
-            };
+            let mut popped = self
+                .slice
+                .pop_n(usize::min(self.slice.len(), length - self.stack.len()))
+                .unwrap();
             popped.append(&mut self.stack);
             self.stack = popped;
         }

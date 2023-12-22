@@ -200,6 +200,7 @@ impl<'a, T> Slice<'a, T> {
         }
     }
 
+    #[inline]
     pub fn pop(&mut self) -> Option<T>
     where
         T: Clone,
@@ -211,6 +212,7 @@ impl<'a, T> Slice<'a, T> {
         Some(value)
     }
 
+    #[inline]
     pub fn peek(&mut self) -> Option<T>
     where
         T: Clone,
@@ -219,20 +221,18 @@ impl<'a, T> Slice<'a, T> {
         unsafe { self.cactus.get_unchecked(index) }
     }
 
-    pub fn pop_n(&mut self, n: usize) -> Result<Vec<T>, Vec<T>>
+    #[inline]
+    pub fn pop_n(&mut self, n: usize) -> Option<Vec<T>>
     where
         T: Clone,
     {
+        if self.len < n {
+            return None;
+        }
         let mut ranges = vec![];
         let mut popped = 0;
         while popped < n {
-            let parent = match self.parents.last_range() {
-                Some((parent, _)) => parent,
-                None => {
-                    self.len = 0;
-                    return Err(unsafe { self.cactus.get_release_ranges(&ranges) });
-                }
-            };
+            let (parent, _) = self.parents.last_range().unwrap();
             if popped + parent.len() > n {
                 let from_range = n - popped;
                 self.parents.remove(parent.end - from_range..parent.end);
@@ -246,7 +246,7 @@ impl<'a, T> Slice<'a, T> {
         }
         ranges.reverse();
         self.len -= n;
-        Ok(unsafe { self.cactus.get_release_ranges(&ranges) })
+        Some(unsafe { self.cactus.get_release_ranges(&ranges) })
     }
 
     #[inline]
