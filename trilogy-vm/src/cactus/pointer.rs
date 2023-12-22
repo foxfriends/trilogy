@@ -1,6 +1,6 @@
+use super::RangeMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use std::ops::Range;
 
 /// A "raw pointer" to part of a Cactus stack.
 ///
@@ -8,7 +8,7 @@ use std::ops::Range;
 /// any reference to it. It is up to the user of this value to ensure that the intended
 /// Cactus does not drop any of the values this pointer points to.
 pub struct Pointer<T> {
-    pub(super) parents: Vec<Range<usize>>,
+    pub(super) parents: RangeMap<bool>,
     pub(super) len: usize,
     _pd: PhantomData<T>,
 }
@@ -33,7 +33,7 @@ impl<T> Clone for Pointer<T> {
 }
 
 impl<T> Pointer<T> {
-    pub(super) fn new(parents: Vec<Range<usize>>, len: usize) -> Self {
+    pub(super) fn new(parents: RangeMap<bool>, len: usize) -> Self {
         Self {
             parents,
             len,

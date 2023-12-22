@@ -35,6 +35,14 @@ impl<T> RangeMap<T> {
         RangeMap(map)
     }
 
+    /// Returns true if this RangeMap is "empty".
+    ///
+    /// Since a RangeMap always contains at least one range (of the entire domain) , the
+    /// RangeMap is considered empty if it contains only that range.
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 1
+    }
+
     /// An iterator over all contiguous ranges to the same value in this RangeMap.
     ///
     /// This includes ranges with a value of 0, but does not include the final infinite range to
