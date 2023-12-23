@@ -23,7 +23,7 @@ impl<'a, T> Drop for Slice<'a, T> {
 
 impl<T> Clone for Slice<'_, T> {
     fn clone(&self) -> Self {
-        self.reacquire();
+        self.acquire();
         Self {
             cactus: self.cactus,
             parents: self.parents.clone(),
@@ -68,14 +68,8 @@ impl<'a, T> Slice<'a, T> {
     }
 
     /// Increases the reference counts for all values pointed to by this slice.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that this does not reacquire elements already freed.
-    /// It is also recommended to ensure that the re-acquired elements are correctly
-    /// released.
     #[inline]
-    pub fn reacquire(&self) {
+    fn acquire(&self) {
         self.cactus.acquire_ranges(
             &self
                 .parents
@@ -86,15 +80,9 @@ impl<'a, T> Slice<'a, T> {
         );
     }
 
-    /// Increases the reference counts for all values pointed to by this slice.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that this does not reacquire elements already freed.
-    /// It is also recommended to ensure that the re-acquired elements are correctly
-    /// released.
+    /// Decreases the reference counts for all values pointed to by this slice.
     #[inline]
-    pub fn release(&self) {
+    fn release(&self) {
         self.cactus.release_ranges(
             &self
                 .parents
@@ -139,7 +127,7 @@ impl<'a, T> Slice<'a, T> {
             parents: sliced_parents,
             len,
         };
-        new.reacquire();
+        new.acquire();
         new
     }
 

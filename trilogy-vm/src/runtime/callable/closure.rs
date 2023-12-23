@@ -78,8 +78,20 @@ impl Closure {
     }
 
     #[inline(always)]
-    pub(crate) unsafe fn stack<'a>(&self) -> Slice<'a, StackCell> {
-        Slice::from_pointer(self.0.stack.clone())
+    pub(crate) unsafe fn into_stack<'a>(self) -> Slice<'a, StackCell> {
+        let pointer = self.0.stack.clone();
+        if RefCount::into_inner(self.0).is_none() {
+            pointer.reacquire();
+        }
+        Slice::from_pointer(pointer)
+    }
+
+    #[inline(always)]
+    pub(crate) unsafe fn explicit_drop(self) {
+        match RefCount::into_inner(self.0) {
+            Some(inner) => inner.stack.release(),
+            None => {}
+        }
     }
 }
 

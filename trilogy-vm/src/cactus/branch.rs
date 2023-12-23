@@ -11,6 +11,7 @@ pub struct Branch<'a, T> {
 }
 
 impl<'a, T> Branch<'a, T> {
+    #[inline]
     pub(super) fn new(cactus: &'a Cactus<T>) -> Self {
         Self {
             slice: Slice::new(cactus),
@@ -216,6 +217,7 @@ impl<'a, T> Branch<'a, T> {
     ///
     /// All elements in the current branch are moved to the shared base, and both branches
     /// will have the same shared parents.
+    #[inline]
     pub fn branch(&mut self) -> Self {
         self.commit();
         Self {
@@ -225,6 +227,7 @@ impl<'a, T> Branch<'a, T> {
         }
     }
 
+    #[inline]
     pub fn iter<'b>(&'b self) -> BranchIter<'a, 'b, T> {
         BranchIter {
             branch: self,
@@ -234,6 +237,7 @@ impl<'a, T> Branch<'a, T> {
 }
 
 impl<'a, T> From<Slice<'a, T>> for Branch<'a, T> {
+    #[inline]
     fn from(slice: Slice<'a, T>) -> Self {
         Self {
             len: slice.len(),

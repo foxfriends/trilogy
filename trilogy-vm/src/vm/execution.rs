@@ -136,17 +136,14 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
-                let ghost = unsafe {
-                    let ghost = closure.stack();
-                    ghost.reacquire();
-                    ghost
-                };
+                let ip = closure.ip();
+                let ghost = unsafe { closure.into_stack() };
                 self.stack.push_frame(
                     callback,
                     arguments.into_iter().map(StackCell::Set).collect(),
                     Some(ghost),
                 );
-                self.ip = closure.ip();
+                self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack.push_frame(callback, vec![], None);
@@ -246,13 +243,10 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
-                let ghost = unsafe {
-                    let ghost = closure.stack();
-                    ghost.reacquire();
-                    ghost
-                };
+                let ip = closure.ip();
+                let ghost = unsafe { closure.into_stack() };
                 self.stack.push_frame(self.ip, arguments, Some(ghost));
-                self.ip = closure.ip();
+                self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack.push_frame(self.ip, vec![], None);
@@ -290,14 +284,11 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
-                let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-                let ghost = unsafe {
-                    let ghost = closure.stack();
-                    ghost.reacquire();
-                    ghost
-                };
-                self.stack.push_frame(ip, arguments, Some(ghost));
-                self.ip = closure.ip();
+                let next_ip = closure.ip();
+                let frame_ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
+                let ghost = unsafe { closure.into_stack() };
+                self.stack.push_frame(frame_ip, arguments, Some(ghost));
+                self.ip = next_ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
