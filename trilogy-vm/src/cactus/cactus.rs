@@ -120,7 +120,7 @@ impl<T> Cactus<T> {
         let mut ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
         let value = stack[index].assume_init_ref().clone();
-        self.release_range_from(&mut ranges, &mut stack, index..index + 1);
+        self.release_range_from(&mut ranges, &mut stack, index..index + 1, 1);
         value
     }
 
@@ -140,7 +140,7 @@ impl<T> Cactus<T> {
                     .iter()
                     .map(|val| val.assume_init_ref().clone()),
             );
-            self.release_range_from(&mut ranges, &mut stack, range.clone())
+            self.release_range_from(&mut ranges, &mut stack, range.clone(), 1)
         }
         buf
     }
@@ -175,7 +175,16 @@ impl<T> Cactus<T> {
         let mut ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
         for range in ranges_to_release {
-            self.release_range_from(&mut ranges, &mut stack, range.clone())
+            self.release_range_from(&mut ranges, &mut stack, range.clone(), 1)
+        }
+    }
+
+    #[inline]
+    pub(crate) fn release_all(&self, all_ranges: RangeMap<usize>) {
+        let mut ranges = self.ranges.lock().unwrap();
+        let mut stack = self.stack.lock().unwrap();
+        for (range, n) in all_ranges.iter() {
+            self.release_range_from(&mut ranges, &mut stack, range.clone(), n);
         }
     }
 
@@ -197,6 +206,7 @@ impl<T> Cactus<T> {
         ranges: &mut MutexGuard<RangeMap<usize>>,
         stack: &mut MutexGuard<Vec<MaybeUninit<T>>>,
         range: Range<usize>,
+        count: usize,
     ) {
         log::trace!("releasing range {:?}", range);
         let ranges_to_remove: Vec<_> = ranges
@@ -205,7 +215,7 @@ impl<T> Cactus<T> {
             .map(|(k, _)| k)
             .collect();
         ranges.update(range.clone(), |val| {
-            *val = val.saturating_sub(1);
+            *val = val.saturating_sub(count);
         });
         for range in ranges_to_remove {
             log::trace!("freeing range {:?}", range);

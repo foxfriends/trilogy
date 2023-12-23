@@ -43,6 +43,11 @@ impl<T> Pointer<T> {
         }
     }
 
+    /// Gets the ranges that this pointer points to.
+    pub fn ranges(&self) -> &RangeMap<bool> {
+        &self.parents
+    }
+
     /// Increases the reference counts for all values pointed to by this pointer.
     ///
     /// # Safety

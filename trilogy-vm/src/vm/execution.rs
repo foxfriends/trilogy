@@ -8,7 +8,7 @@ use super::Error;
 use super::Stats;
 use crate::atom::AtomInterner;
 use crate::cactus::Branch;
-use crate::callable::Continuation;
+use crate::gc::Dumpster;
 use crate::runtime::callable::{Callable, CallableKind};
 #[cfg(feature = "stats")]
 use crate::RefCount;
@@ -20,6 +20,7 @@ use num::ToPrimitive;
 use std::cmp::Ordering;
 #[cfg(feature = "stats")]
 use std::sync::atomic;
+use std::sync::Weak;
 #[cfg(feature = "stats")]
 use std::time::{Duration, Instant};
 
@@ -68,6 +69,7 @@ impl<'a> Execution<'a> {
     pub(super) fn new(
         atom_interner: AtomInterner,
         program: ProgramReader<'a>,
+        dumpster: Weak<Dumpster>,
         branch: Branch<'a, StackCell>,
         registers: Vec<Value>,
         #[cfg(feature = "stats")] stats: RefCount<Stats>,
@@ -77,7 +79,7 @@ impl<'a> Execution<'a> {
             error_ip: 0,
             ip: program.entrypoint(),
             program,
-            stack: Stack::new(branch),
+            stack: Stack::new(branch, dumpster),
             registers,
             #[cfg(feature = "stats")]
             stats,
@@ -137,7 +139,7 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ip = closure.ip();
-                let ghost = unsafe { closure.into_stack() };
+                let ghost = unsafe { closure.stack() };
                 self.stack.push_frame(
                     callback,
                     arguments.into_iter().map(StackCell::Set).collect(),
@@ -244,7 +246,7 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ip = closure.ip();
-                let ghost = unsafe { closure.into_stack() };
+                let ghost = unsafe { closure.stack() };
                 self.stack.push_frame(self.ip, arguments, Some(ghost));
                 self.ip = ip;
             }
@@ -286,7 +288,7 @@ impl<'a> Execution<'a> {
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let next_ip = closure.ip();
                 let frame_ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-                let ghost = unsafe { closure.into_stack() };
+                let ghost = unsafe { closure.stack() };
                 self.stack.push_frame(frame_ip, arguments, Some(ghost));
                 self.ip = next_ip;
             }
@@ -969,8 +971,7 @@ impl<'a> Execution<'a> {
                 self.ip = offset;
             }
             Instruction::Shift(offset) => {
-                let stack = self.stack.branch();
-                let continuation = Continuation::new(self.ip, stack);
+                let continuation = self.stack.continuation(self.ip);
                 self.stack.push(Value::from(continuation));
                 self.ip = offset;
             }

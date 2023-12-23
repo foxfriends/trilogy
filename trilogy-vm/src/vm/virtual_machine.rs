@@ -6,8 +6,10 @@ use super::{Error, Execution};
 use crate::atom::AtomInterner;
 use crate::bytecode::ChunkError;
 use crate::cactus::Cactus;
+use crate::gc::GarbageCollector;
 use crate::{Atom, Chunk, ChunkBuilder, Instruction, Program, Value};
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[cfg(feature = "stats")]
 use super::Stats;
@@ -116,6 +118,8 @@ impl VirtualMachine {
         registers: Vec<Value>,
     ) -> Result<Value, Error> {
         let stack = Cactus::<StackCell>::new();
+        let gc = GarbageCollector::new(&stack);
+
         let program =
             ProgramReader::new(self.atom_interner.clone(), program).map_err(|err| Error {
                 ip: 0,
@@ -126,6 +130,7 @@ impl VirtualMachine {
         let mut executions = vec![Execution::new(
             self.atom_interner.clone(),
             program,
+            Arc::downgrade(&gc.dumpster()),
             stack.branch(),
             registers,
             #[cfg(feature = "stats")]
@@ -162,6 +167,7 @@ impl VirtualMachine {
                 }
                 Step::Exit(value) => return Ok(value),
             }
+            gc.collect_garbage();
         };
         Err(last_ex.error(ErrorKind::ExecutionFizzledError))
     }

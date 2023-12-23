@@ -6,6 +6,7 @@
 
 mod bytecode;
 pub mod cactus;
+mod gc;
 pub mod runtime;
 mod vm;
 
