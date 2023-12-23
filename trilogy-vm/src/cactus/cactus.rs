@@ -184,7 +184,9 @@ impl<T> Cactus<T> {
         let mut ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
         for (range, n) in all_ranges.iter() {
-            self.release_range_from(&mut ranges, &mut stack, range.clone(), n);
+            if n != 0 {
+                self.release_range_from(&mut ranges, &mut stack, range.clone(), n);
+            }
         }
     }
 
@@ -196,6 +198,7 @@ impl<T> Cactus<T> {
     ) {
         log::trace!("acquiring range {:?}", range);
         ranges.update(range, |val| {
+            assert_ne!(*val, 0, "reacquiring released range");
             *val += 1;
         });
     }
@@ -218,7 +221,7 @@ impl<T> Cactus<T> {
             *val = val.saturating_sub(count);
         });
         for range in ranges_to_remove {
-            log::trace!("freeing range {:?}", range);
+            log::trace!("freeing range {:?}", range,);
             for val in &mut stack[range] {
                 unsafe {
                     val.assume_init_drop();
@@ -233,7 +236,8 @@ impl<T> Cactus<T> {
         let mut stack = self.stack.lock().unwrap();
         let len = values.len();
         let range = stack.len()..stack.len() + len;
-        self.acquire_range_from(&mut ranges, range.clone());
+        ranges.insert(range.clone(), 1);
+        log::trace!("creating range {:?}", range);
         stack.extend(values.drain(..).map(MaybeUninit::new));
         range
     }

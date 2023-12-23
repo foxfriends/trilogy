@@ -44,6 +44,7 @@ impl<T> Pointer<T> {
     }
 
     /// Gets the ranges that this pointer points to.
+    #[inline]
     pub fn ranges(&self) -> &RangeMap<bool> {
         &self.parents
     }

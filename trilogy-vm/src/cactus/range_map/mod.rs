@@ -284,6 +284,7 @@ impl<T> RangeMap<T> {
         if range.is_empty() {
             return;
         }
+        let original_end_val = *self.get(range.end);
         let mut start_val = *self.get(range.start);
         f(&mut start_val);
         if Some(&start_val) == self.before(range.start) {
@@ -291,7 +292,6 @@ impl<T> RangeMap<T> {
         } else {
             self.0.insert(range.start, start_val);
         }
-        let original_end_val = *self.get(range.end);
         let mut prev = start_val;
         let mut remove = vec![];
         for (key, val) in self
@@ -349,6 +349,19 @@ mod test {
         assert_eq!(
             map.0.into_iter().collect::<Vec<_>>(),
             vec![(0, 0), (1, 3), (10, 0)]
+        );
+    }
+
+    #[test]
+    fn update_middle_of_segment() {
+        let mut map = RangeMap::default();
+        map.insert(1..4, 3);
+        map.update(2..3, |x| {
+            *x += 1;
+        });
+        assert_eq!(
+            map.0.into_iter().collect::<Vec<_>>(),
+            vec![(0, 0), (1, 3), (2, 4), (3, 3), (4, 0)]
         );
     }
 
