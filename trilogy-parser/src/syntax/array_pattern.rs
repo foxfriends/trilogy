@@ -217,9 +217,9 @@ mod test {
     test_parse!(arraypat_one_tc: "[1, ]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [_] () [] _))");
     test_parse!(arraypat_many: "[1, 2, 3]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [_ _ _] () [] _))");
     test_parse!(arraypat_many_tc: "[1, 2, 3, ]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [_ _ _] () [] _))");
-    test_parse!(arraypat_spread_middle: "[1, 2, ..a, 4, 5]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [_ _] (Pattern::Binding _) [_ _] _))");
-    test_parse!(arraypat_spread_end: "[1, 2, ..a]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [_ _] (Pattern::Binding _) [] _))");
-    test_parse!(arraypat_spread_start: "[..a, 1, 2]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [] (Pattern::Binding _) [_ _] _))");
+    test_parse!(arraypat_spread_middle: "[1, 2, ..a, 4, 5]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [_ _] (RestPattern _ _) [_ _] _))");
+    test_parse!(arraypat_spread_end: "[1, 2, ..a]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [_ _] (RestPattern _ _) [] _))");
+    test_parse!(arraypat_spread_start: "[..a, 1, 2]" => Pattern::parse => "(Pattern::Array (ArrayPattern _ [] (RestPattern _ _) [_ _] _))");
 
     test_parse_error!(arraypat_spread_multi: "[..a, 1, ..b]" => Pattern::parse => "array patterns may contain at most one rest (`..`) segment");
     test_parse_error!(arraypat_expression: "[f 2]" => Pattern::parse);
