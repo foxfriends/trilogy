@@ -1,7 +1,10 @@
 use super::*;
 use crate::{Converter, Error};
 use source_span::Span;
-use trilogy_parser::{syntax, Spanned};
+use trilogy_parser::{
+    syntax::{self, RestPattern},
+    Spanned,
+};
 
 #[derive(Clone, Debug)]
 pub struct Expression {
@@ -372,7 +375,7 @@ impl Expression {
                 elements.extend(
                     ast.rest
                         .into_iter()
-                        .map(|element| Self::convert_pattern(converter, element))
+                        .map(|element| Self::convert_rest_pattern(converter, element))
                         .map(Element::spread),
                 );
                 elements.extend(
@@ -395,7 +398,7 @@ impl Expression {
                 elements.extend(
                     ast.rest
                         .into_iter()
-                        .map(|element| Self::convert_pattern(converter, element))
+                        .map(|element| Self::convert_rest_pattern(converter, element))
                         .map(Element::spread),
                 );
                 Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
@@ -418,7 +421,7 @@ impl Expression {
                 elements.extend(
                     ast.rest
                         .into_iter()
-                        .map(|element| Self::convert_pattern(converter, element))
+                        .map(|element| Self::convert_rest_pattern(converter, element))
                         .map(Element::spread),
                 );
                 Self::builtin(start_span, Builtin::Record)
@@ -538,6 +541,13 @@ impl Expression {
                             .apply_to(span, suffix)
                     })
             }
+        }
+    }
+
+    fn convert_rest_pattern(converter: &mut Converter, ast: RestPattern) -> Self {
+        match ast.pattern {
+            None => Self::wildcard(ast.span()),
+            Some(pattern) => Self::convert_pattern(converter, pattern),
         }
     }
 

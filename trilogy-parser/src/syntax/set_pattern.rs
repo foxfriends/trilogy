@@ -7,7 +7,7 @@ use trilogy_scanner::{Token, TokenType::*};
 pub struct SetPattern {
     start: Token,
     pub elements: Vec<Pattern>,
-    pub rest: Option<Pattern>,
+    pub rest: Option<RestPattern>,
     end: Token,
 }
 
@@ -32,7 +32,7 @@ impl SetPattern {
                 if let Ok(dot) = parser.expect(OpDot) {
                     parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
                 }
-                break Some(Pattern::parse(parser)?);
+                break Some(RestPattern::parse(parser, spread)?);
             }
             elements.push(Pattern::parse(parser)?);
             if parser.check(CBrackPipe).is_ok() {
@@ -62,7 +62,7 @@ impl SetPattern {
         parser: &mut Parser,
         start: Token,
         elements: Vec<Pattern>,
-        rest: Pattern,
+        rest: RestPattern,
     ) -> SyntaxResult<Self> {
         // We'll consume this trailing comma anyway as if it was going to work,
         // and report an appropriate error. One of few attempts at smart error
@@ -138,7 +138,7 @@ impl SetPattern {
                 elements.push(next);
                 Self::parse_elements(parser, start, elements)
             }
-            None => Self::parse_rest(parser, start, elements, next),
+            None => Self::parse_rest(parser, start, elements, RestPattern::new(spread.unwrap(), next)),
             Some(..) if spread.is_none() => {
                 Err(SyntaxError::new(
                     next.span().union(spread.unwrap().span()),
@@ -179,7 +179,9 @@ impl TryFrom<SetLiteral> for SetPattern {
         for element in value.elements {
             match element {
                 SetElement::Element(val) if rest.is_none() => head.push(val.try_into()?),
-                SetElement::Spread(_, val) if rest.is_none() => rest = Some(val.try_into()?),
+                SetElement::Spread(token, val) if rest.is_none() => {
+                    rest = Some(RestPattern::try_from((token, val))?)
+                }
                 SetElement::Element(val) | SetElement::Spread(_, val) => {
                     return Err(SyntaxError::new(
                         val.span(),

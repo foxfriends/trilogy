@@ -7,7 +7,7 @@ use trilogy_scanner::{Token, TokenType::*};
 pub struct ArrayPattern {
     pub start: Token,
     pub head: Vec<Pattern>,
-    pub rest: Option<Pattern>,
+    pub rest: Option<RestPattern>,
     pub tail: Vec<Pattern>,
     pub end: Token,
 }
@@ -26,7 +26,7 @@ impl ArrayPattern {
                 if let Ok(dot) = parser.expect(OpDot) {
                     parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
                 }
-                break Some(Pattern::parse(parser)?);
+                break Some(RestPattern::parse(parser, spread)?);
             }
             head.push(Pattern::parse(parser)?);
             if parser.check(CBrack).is_ok() {
@@ -61,7 +61,7 @@ impl ArrayPattern {
         parser: &mut Parser,
         start: Token,
         head: Vec<Pattern>,
-        rest: Pattern,
+        rest: RestPattern,
         mut tail: Vec<Pattern>,
     ) -> SyntaxResult<Self> {
         // at this point, either we:
@@ -128,8 +128,8 @@ impl ArrayPattern {
                         head.push(expr.try_into()?);
                     }
                     ArrayElement::Element(expr) => tail.push(expr.try_into()?),
-                    ArrayElement::Spread(_, expr) if spread.is_none() => {
-                        spread = Some(expr.try_into()?)
+                    ArrayElement::Spread(sp, expr) if spread.is_none() => {
+                        spread = Some(RestPattern::try_from((sp, expr))?);
                     }
                     ArrayElement::Spread(token, element) => return Err(SyntaxError::new(
                         token.span.union(element.span()),
@@ -145,7 +145,9 @@ impl ArrayPattern {
         match (spread, rest) {
             (None, None) => Self::parse_elements(parser, start, head),
             (None, Some(rest)) => Self::parse_rest(parser, start, head, rest, tail),
-            (Some(..), None) => Self::parse_rest(parser, start, head, next, tail),
+            (Some(token), None) => {
+                Self::parse_rest(parser, start, head, RestPattern::new(token, next), tail)
+            }
             (Some(token), Some(..)) => {
                 let error = SyntaxError::new(
                     token.span.union(next.span()),
@@ -178,7 +180,9 @@ impl TryFrom<ArrayLiteral> for ArrayPattern {
             match element {
                 ArrayElement::Element(val) if rest.is_none() => head.push(val.try_into()?),
                 ArrayElement::Element(val) => tail.push(val.try_into()?),
-                ArrayElement::Spread(.., val) if rest.is_none() => rest = Some(val.try_into()?),
+                ArrayElement::Spread(spread, val) if rest.is_none() => {
+                    rest = Some(RestPattern::try_from((spread, val))?)
+                }
                 ArrayElement::Spread(.., val) => {
                     return Err(SyntaxError::new(
                         val.span(),

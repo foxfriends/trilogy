@@ -1,4 +1,4 @@
-use super::*;
+use super::{record_literal::RecordPatternElement, *};
 use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
@@ -7,7 +7,7 @@ use trilogy_scanner::{Token, TokenType::*};
 pub struct RecordPattern {
     start: Token,
     pub elements: Vec<(Pattern, Pattern)>,
-    pub rest: Option<Pattern>,
+    pub rest: Option<RestPattern>,
     end: Token,
 }
 
@@ -32,7 +32,7 @@ impl RecordPattern {
                 if let Ok(dot) = parser.expect(OpDot) {
                     parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
                 }
-                break Some(Pattern::parse(parser)?);
+                break Some(RestPattern::parse(parser, spread)?);
             }
             let key = Pattern::parse(parser)?;
             parser.expect(OpFatArrow).map_err(|token| {
@@ -71,7 +71,7 @@ impl RecordPattern {
         parser: &mut Parser,
         start: Token,
         elements: Vec<(Pattern, Pattern)>,
-        rest: Pattern,
+        rest: RestPattern,
     ) -> SyntaxResult<Self> {
         // We'll consume this trailing comma anyway as if it was going to work,
         // and report an appropriate error. One of few attempts at smart error
@@ -113,7 +113,7 @@ impl RecordPattern {
         parser: &mut Parser,
         start: Token,
         elements: Vec<RecordElement>,
-        (key, value): (Option<Pattern>, Pattern),
+        head_element: RecordPatternElement,
     ) -> SyntaxResult<Self> {
         let (mut elements, rest) = elements
             .into_iter()
@@ -144,23 +144,23 @@ impl RecordPattern {
                 parser.error(error.clone());
                 error
             })?;
-        match (rest, key) {
-            (None, Some(key)) => {
+        match (rest, head_element) {
+            (None, RecordPatternElement::Element(key, value)) => {
                 elements.push((key, value));
                 Self::parse_elements(parser, start, elements)
             }
-            (None, None) => {
-                Self::parse_rest(parser, start, elements, value)
+            (None, RecordPatternElement::Spread(spread, value)) => {
+                Self::parse_rest(parser, start, elements, RestPattern::new(spread, value))
             }
-            (Some(..), Some(key)) => {
+            (Some(..), element @ RecordPatternElement::Element(..)) => {
                 Err(SyntaxError::new(
-                    key.span().union(value.span()),
-                    "no elements may follow the rest element record a set pattern, you might have meant this to be an expression",
+                    element.span(),
+                    "no elements may follow the rest element in a record pattern, you might have meant this to be an expression",
                 ))
             }
-            (Some(..), None) => {
+            (Some(..), element @ RecordPatternElement::Spread(..)) => {
                 Err(SyntaxError::new(
-                    value.span(),
+                    element.span(),
                     "a record pattern may contain only one rest element, you might have meant this to be an expression",
                 ))
             }
@@ -194,7 +194,9 @@ impl TryFrom<RecordLiteral> for RecordPattern {
                 RecordElement::Element(key, val) if rest.is_none() => {
                     head.push((key.try_into()?, val.try_into()?))
                 }
-                RecordElement::Spread(_, val) if rest.is_none() => rest = Some(val.try_into()?),
+                RecordElement::Spread(spread, val) if rest.is_none() => {
+                    rest = Some(RestPattern::try_from((spread, val))?)
+                }
                 RecordElement::Element(..) | RecordElement::Spread(..) => {
                     return Err(SyntaxError::new(
                         element.span(),
