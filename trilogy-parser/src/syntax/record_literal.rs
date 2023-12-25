@@ -91,10 +91,14 @@ pub enum RecordElement {
     Spread(Token, Expression),
 }
 
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+pub enum RecordPatternElement {
+    Element(Pattern, Pattern),
+    Spread(Token, Pattern),
+}
+
 impl RecordElement {
-    pub(crate) fn parse(
-        parser: &mut Parser,
-    ) -> SyntaxResult<Result<Self, (Option<Pattern>, Pattern)>> {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Result<Self, RecordPatternElement>> {
         if let Ok(spread) = parser.expect(OpDotDot) {
             if let Ok(dot) = parser.expect(OpDot) {
                 parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
@@ -103,7 +107,7 @@ impl RecordElement {
             let expression = Expression::parse_parameter_list(parser)?;
             match expression {
                 Ok(expression) => Ok(Ok(Self::Spread(spread, expression))),
-                Err(pattern) => Ok(Err((None, pattern))),
+                Err(pattern) => Ok(Err(RecordPatternElement::Spread(spread, pattern))),
             }
         } else {
             let key = Expression::parse_parameter_list(parser)?;
@@ -113,9 +117,13 @@ impl RecordElement {
             let value = Expression::parse_parameter_list(parser)?;
             match (key, value) {
                 (Ok(key), Ok(value)) => Ok(Ok(Self::Element(key, value))),
-                (Ok(key), Err(value)) => Ok(Err((Some(key.try_into()?), value))),
-                (Err(key), Ok(value)) => Ok(Err((Some(key), value.try_into()?))),
-                (Err(key), Err(value)) => Ok(Err((Some(key), value))),
+                (Ok(key), Err(value)) => {
+                    Ok(Err(RecordPatternElement::Element(key.try_into()?, value)))
+                }
+                (Err(key), Ok(value)) => {
+                    Ok(Err(RecordPatternElement::Element(key, value.try_into()?)))
+                }
+                (Err(key), Err(value)) => Ok(Err(RecordPatternElement::Element(key, value))),
             }
         }
     }
