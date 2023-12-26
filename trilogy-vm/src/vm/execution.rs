@@ -197,6 +197,10 @@ impl<'a> Execution<'a> {
         }
     }
 
+    pub(super) fn stack(&self) -> &Stack {
+        &self.stack
+    }
+
     #[inline(always)]
     fn stack_pop(&mut self) -> Result<Value, Error> {
         self.stack.pop().map_err(|k| self.error(k))

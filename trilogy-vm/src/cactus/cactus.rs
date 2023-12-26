@@ -132,6 +132,12 @@ impl<T> Cactus<T> {
         self.stack.lock().unwrap().capacity()
     }
 
+    /// Returns the total number of cells, used or unused, in this cactus.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.stack.lock().unwrap().len()
+    }
+
     /// Reserves capacity for at least `additional` more elements to be added to this Cactus.
     #[inline]
     pub fn reserve(&self, additional: usize) {

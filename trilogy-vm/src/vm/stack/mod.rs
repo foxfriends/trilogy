@@ -121,6 +121,11 @@ impl<'a> Stack<'a> {
     }
 
     #[inline]
+    pub(crate) fn active(&self) -> &Branch<StackCell> {
+        &self.branch
+    }
+
+    #[inline]
     pub(super) fn commit(&mut self) {
         self.branch.commit();
     }

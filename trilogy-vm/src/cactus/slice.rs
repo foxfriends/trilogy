@@ -1,5 +1,5 @@
-use super::{Cactus, Pointer, RangeMap};
-use std::ops::Range;
+use super::{Cactus, Pointer};
+use std::{marker::PhantomData, ops::Range};
 
 /// A slice of a Cactus stack.
 ///
@@ -8,17 +8,15 @@ use std::ops::Range;
 /// it is possible to get or set specific indices.
 #[derive(Debug)]
 pub struct Slice<'a, T> {
-    cactus: &'a Cactus<T>,
-    parents: RangeMap<bool>,
-    len: usize,
+    pointer: Pointer<T>,
+    _pd: PhantomData<&'a Cactus<T>>,
 }
 
 impl<T> Clone for Slice<'_, T> {
     fn clone(&self) -> Self {
         Self {
-            cactus: self.cactus,
-            parents: self.parents.clone(),
-            len: self.len,
+            pointer: self.pointer.clone(),
+            _pd: PhantomData,
         }
     }
 }
@@ -26,16 +24,16 @@ impl<T> Clone for Slice<'_, T> {
 impl<'a, T> Slice<'a, T> {
     #[inline]
     pub(super) fn new(cactus: &'a Cactus<T>) -> Self {
+        let pointer = Pointer::new(cactus);
         Self {
-            cactus,
-            parents: RangeMap::default(),
-            len: 0,
+            pointer,
+            _pd: PhantomData,
         }
     }
 
     #[inline]
     pub fn cactus(&self) -> &'a Cactus<T> {
-        self.cactus
+        unsafe { &*self.pointer.cactus }
     }
 
     /// Constructs a slice from a pointer and the cactus it is pointing to.
@@ -52,16 +50,19 @@ impl<'a, T> Slice<'a, T> {
     #[inline]
     pub unsafe fn from_pointer(pointer: Pointer<T>) -> Self {
         Slice {
-            cactus: unsafe { &*pointer.cactus },
-            parents: pointer.parents,
-            len: pointer.len,
+            pointer,
+            _pd: PhantomData,
         }
     }
 
     #[inline]
-    pub fn into_pointer(mut self) -> Pointer<T> {
-        let parents = std::mem::take(&mut self.parents);
-        Pointer::new(self.cactus, parents, self.len)
+    pub fn into_pointer(self) -> Pointer<T> {
+        self.pointer
+    }
+
+    #[inline]
+    pub fn pointer(&self) -> &Pointer<T> {
+        &self.pointer
     }
 
     /// Takes a sub-slice of the `Slice`.
@@ -70,64 +71,24 @@ impl<'a, T> Slice<'a, T> {
     ///
     /// If the range extends beyond the bounds of this `Slice`.
     #[inline]
-    pub fn slice(&self, mut range: Range<usize>) -> Self {
-        let len = range.len();
-        let mut i = 0;
-        let mut sliced_parents = RangeMap::default();
-        for (parent, _) in self.parents.iter().filter(|(_, v)| *v) {
-            if i + parent.len() > range.start {
-                let overlap_start = parent.start + range.start - i;
-                let overlapping_range =
-                    overlap_start..usize::min(parent.end, overlap_start + range.len());
-                range.start += overlapping_range.len();
-                sliced_parents.insert(overlapping_range, true);
-            }
-            i += parent.len();
-            if i >= range.end {
-                break;
-            }
-        }
-        Self {
-            cactus: self.cactus,
-            parents: sliced_parents,
-            len,
-        }
+    pub fn slice(&self, range: Range<usize>) -> Self {
+        let pointer = self.pointer.slice(range);
+        unsafe { Self::from_pointer(pointer) }
     }
 
     #[inline]
     pub fn len(&self) -> usize {
-        self.len
+        self.pointer.len()
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.len == 0
+        self.pointer.is_empty()
     }
 
     #[inline]
     pub fn truncate(&mut self, len: usize) {
-        while self.len > len {
-            let (parent, _) = self.parents.last_range().unwrap();
-            if parent.len() <= self.len - len {
-                self.len -= parent.len();
-                self.parents.remove(parent.clone());
-            } else {
-                let to_pop = self.len - len;
-                self.parents.remove(parent.end - to_pop..parent.end);
-                self.len -= to_pop;
-            }
-        }
-    }
-
-    #[inline]
-    pub(super) fn resolve_index(&self, mut index: usize) -> Option<usize> {
-        for (range, _) in self.parents.iter().filter(|(_, v)| *v) {
-            if range.len() > index {
-                return Some(range.start + index);
-            }
-            index -= range.len();
-        }
-        None
+        self.pointer.truncate(len)
     }
 
     #[inline]
@@ -135,14 +96,14 @@ impl<'a, T> Slice<'a, T> {
     where
         T: Clone,
     {
-        let parent_index = self.resolve_index(index)?;
-        self.cactus.get(parent_index)
+        unsafe { self.pointer.get(index) }
     }
 
     #[inline]
     pub fn set(&mut self, index: usize, value: T) {
-        let parent_index = self.resolve_index(index).unwrap();
-        self.cactus.set(parent_index, value);
+        unsafe {
+            self.pointer.set(index, value);
+        }
     }
 
     #[inline]
@@ -150,11 +111,7 @@ impl<'a, T> Slice<'a, T> {
     where
         T: Clone,
     {
-        let index = self.parents.len() - 1;
-        let value = self.cactus.get(index)?;
-        self.parents.pop();
-        self.len -= 1;
-        Some(value)
+        unsafe { self.pointer.pop() }
     }
 
     #[inline]
@@ -162,8 +119,8 @@ impl<'a, T> Slice<'a, T> {
     where
         T: Clone,
     {
-        let index = self.parents.len() - 1;
-        self.cactus.get(index)
+        let index = self.len() - 1;
+        self.get(index)
     }
 
     #[inline]
@@ -171,36 +128,11 @@ impl<'a, T> Slice<'a, T> {
     where
         T: Clone,
     {
-        if self.len < n {
-            return None;
-        }
-        let mut ranges = vec![];
-        let mut popped = 0;
-        while popped < n {
-            let (parent, _) = self.parents.last_range().unwrap();
-            if popped + parent.len() > n {
-                let from_range = n - popped;
-                self.parents.remove(parent.end - from_range..parent.end);
-                ranges.push(parent.end - from_range..parent.end);
-                break;
-            } else {
-                popped += parent.len();
-                self.parents.remove(parent.clone());
-                ranges.push(parent);
-            }
-        }
-        ranges.reverse();
-        self.len -= n;
-        self.cactus.get_ranges(ranges)
+        unsafe { self.pointer.pop_n(n) }
     }
 
     #[inline]
     pub fn append(&mut self, elements: &mut Vec<T>) {
-        if elements.is_empty() {
-            return;
-        }
-        self.len += elements.len();
-        let range = self.cactus.append(elements);
-        self.parents.insert(range, true);
+        unsafe { self.pointer.append(elements) }
     }
 }
