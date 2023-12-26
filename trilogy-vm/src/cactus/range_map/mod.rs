@@ -314,6 +314,18 @@ impl<T> RangeMap<T> {
         }
     }
 
+    /// Returns the range and value of the last range in this RangeMap. not
+    /// including the tail range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::default();
+    /// map.insert(1..3, 1);
+    /// map.insert(3..4, 2);
+    /// assert_eq!(map.last_range(), Some((3..4, &2)));
+    /// ```
     pub fn last_range(&self) -> Option<(Range<usize>, &T)> {
         let (start, val) = self.0.range(..self.len()).last()?;
         let end = self.len();
