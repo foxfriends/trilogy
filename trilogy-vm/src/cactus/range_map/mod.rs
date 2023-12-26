@@ -328,8 +328,10 @@ impl<T> RangeMap<T> {
     /// ```
     /// # use trilogy_vm::cactus::RangeMap;
     /// let mut map = RangeMap::default();
-    /// map.insert(2..4, 1);
-    /// map.insert(5..6, 2);
+    /// map.insert(1..3, 1);
+    /// map.insert(3..4, 2);
+    /// map.insert(5..6, 3);
+    /// assert_eq!(map.pop(), Some(3));
     /// assert_eq!(map.pop(), Some(2));
     /// assert_eq!(map.pop(), Some(1));
     /// assert_eq!(map.pop(), Some(1));
