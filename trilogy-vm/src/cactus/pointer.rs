@@ -48,39 +48,4 @@ impl<T> Pointer<T> {
     pub fn ranges(&self) -> &RangeMap<bool> {
         &self.parents
     }
-
-    /// Increases the reference counts for all values pointed to by this pointer.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that this does not reacquire elements already freed.
-    /// Also ensure that the original Cactus is still alive.
-    #[inline]
-    pub unsafe fn reacquire(&self) {
-        (*self.cactus).acquire_ranges(
-            &self
-                .parents
-                .iter()
-                .filter(|(_, v)| *v)
-                .map(|(r, _)| r)
-                .collect::<Vec<_>>(),
-        );
-    }
-
-    /// Decreases the reference counts for all values pointed to by this pointer.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that the underlying cactus is still alive.
-    #[inline]
-    pub unsafe fn release(&self) {
-        (*self.cactus).release_ranges(
-            &self
-                .parents
-                .iter()
-                .filter(|(_, v)| *v)
-                .map(|(r, _)| r)
-                .collect::<Vec<_>>(),
-        );
-    }
 }

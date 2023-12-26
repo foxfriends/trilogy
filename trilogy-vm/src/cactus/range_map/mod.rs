@@ -319,6 +319,37 @@ impl<T> RangeMap<T> {
         let end = self.len();
         Some((*start..end, val))
     }
+
+    /// Pops the last value off the last range of this RangeMap, decreasing
+    /// the length of the map by one.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::default();
+    /// map.insert(2..4, 1);
+    /// map.insert(5..6, 2);
+    /// assert_eq!(map.pop(), Some(2));
+    /// assert_eq!(map.pop(), Some(1));
+    /// assert_eq!(map.pop(), Some(1));
+    /// assert_eq!(map.pop(), None);
+    /// ```
+    pub fn pop(&mut self) -> Option<T>
+    where
+        T: Copy + Eq,
+    {
+        let (&k, &tail) = self.0.last_key_value().unwrap();
+        let &value = self.before(k)?;
+        let before = self.before(k - 1).copied();
+        self.0.remove(&k);
+        if Some(tail) == before {
+            self.0.remove(&(k - 1));
+        } else {
+            self.0.insert(k - 1, tail);
+        }
+        Some(value)
+    }
 }
 
 #[cfg(test)]

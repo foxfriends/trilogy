@@ -13,17 +13,8 @@ pub struct Slice<'a, T> {
     len: usize,
 }
 
-impl<'a, T> Drop for Slice<'a, T> {
-    fn drop(&mut self) {
-        if !self.parents.is_empty() {
-            self.release();
-        }
-    }
-}
-
 impl<T> Clone for Slice<'_, T> {
     fn clone(&self) -> Self {
-        self.acquire();
         Self {
             cactus: self.cactus,
             parents: self.parents.clone(),
@@ -67,32 +58,6 @@ impl<'a, T> Slice<'a, T> {
         }
     }
 
-    /// Increases the reference counts for all values pointed to by this slice.
-    #[inline]
-    fn acquire(&self) {
-        self.cactus.acquire_ranges(
-            &self
-                .parents
-                .iter()
-                .filter(|(_, v)| *v)
-                .map(|(r, _)| r)
-                .collect::<Vec<_>>(),
-        );
-    }
-
-    /// Decreases the reference counts for all values pointed to by this slice.
-    #[inline]
-    fn release(&self) {
-        self.cactus.release_ranges(
-            &self
-                .parents
-                .iter()
-                .filter(|(_, v)| *v)
-                .map(|(r, _)| r)
-                .collect::<Vec<_>>(),
-        );
-    }
-
     #[inline]
     pub fn into_pointer(mut self) -> Pointer<T> {
         let parents = std::mem::take(&mut self.parents);
@@ -122,13 +87,11 @@ impl<'a, T> Slice<'a, T> {
                 break;
             }
         }
-        let new = Self {
+        Self {
             cactus: self.cactus,
             parents: sliced_parents,
             len,
-        };
-        new.acquire();
-        new
+        }
     }
 
     #[inline]
@@ -143,21 +106,17 @@ impl<'a, T> Slice<'a, T> {
 
     #[inline]
     pub fn truncate(&mut self, len: usize) {
-        let mut to_release = vec![];
         while self.len > len {
             let (parent, _) = self.parents.last_range().unwrap();
             if parent.len() <= self.len - len {
                 self.len -= parent.len();
                 self.parents.remove(parent.clone());
-                to_release.push(parent);
             } else {
                 let to_pop = self.len - len;
-                to_release.push(parent.end - to_pop..parent.end);
                 self.parents.remove(parent.end - to_pop..parent.end);
                 self.len -= to_pop;
             }
         }
-        self.cactus.release_ranges(&to_release);
     }
 
     #[inline]
@@ -177,15 +136,13 @@ impl<'a, T> Slice<'a, T> {
         T: Clone,
     {
         let parent_index = self.resolve_index(index)?;
-        unsafe { self.cactus.get_unchecked(parent_index) }
+        self.cactus.get(parent_index)
     }
 
     #[inline]
     pub fn set(&mut self, index: usize, value: T) {
         let parent_index = self.resolve_index(index).unwrap();
-        unsafe {
-            self.cactus.set_unchecked(parent_index, value);
-        }
+        self.cactus.set(parent_index, value);
     }
 
     #[inline]
@@ -194,10 +151,10 @@ impl<'a, T> Slice<'a, T> {
         T: Clone,
     {
         let index = self.parents.len() - 1;
-        let value = unsafe { self.cactus.get_release(index) };
-        self.parents.remove(index..index + 1);
+        let value = self.cactus.get(index);
+        self.parents.pop();
         self.len -= 1;
-        Some(value)
+        value
     }
 
     #[inline]
@@ -206,7 +163,7 @@ impl<'a, T> Slice<'a, T> {
         T: Clone,
     {
         let index = self.parents.len() - 1;
-        unsafe { self.cactus.get_unchecked(index) }
+        self.cactus.get(index)
     }
 
     #[inline]
@@ -234,7 +191,7 @@ impl<'a, T> Slice<'a, T> {
         }
         ranges.reverse();
         self.len -= n;
-        Some(unsafe { self.cactus.get_release_ranges(&ranges) })
+        self.cactus.get_ranges(ranges)
     }
 
     #[inline]

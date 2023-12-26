@@ -56,11 +56,10 @@ impl Continuation {
             .frames
             .iter()
             .map(|frame| {
-                let stack = frame.stack.as_ref().map(|frame| unsafe {
-                    let pointer = frame.clone();
-                    pointer.reacquire();
-                    Slice::from_pointer(pointer)
-                });
+                let stack = frame
+                    .stack
+                    .as_ref()
+                    .map(|frame| unsafe { Slice::from_pointer(frame.clone()) });
                 StackFrame {
                     slice: stack,
                     cont: frame.cont.clone(),
@@ -68,11 +67,7 @@ impl Continuation {
                 }
             })
             .collect();
-        let branch = unsafe {
-            let pointer = self.0.branch.clone();
-            pointer.reacquire();
-            Branch::from(Slice::from_pointer(pointer))
-        };
+        let branch = unsafe { Branch::from(Slice::from_pointer(self.0.branch.clone())) };
         Stack::from_parts(frames, branch, self.0.fp)
     }
 }

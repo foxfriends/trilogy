@@ -1,38 +1,13 @@
-use std::fmt::Debug;
-use std::mem::MaybeUninit;
-use std::ops::Range;
-use std::sync::{Arc, Mutex, MutexGuard};
-
-use super::{Branch, RangeMap};
+use super::Branch;
+use std::{ops::Range, sync::Mutex};
 
 /// The root of the Cactus Stack.
 ///
 /// The actual stack itself is accessed through `Branch`es.
+#[derive(Debug)]
 pub struct Cactus<T> {
-    /// The backing memory of this stack. This space is sparse, so accessing values directly
-    /// is unsafe, as not every cell of the Vec may be initialized.
-    stack: Mutex<Vec<MaybeUninit<T>>>,
-    /// Reference counts for each range in the stack. When a range reaches 0 references,
-    /// its elements should be uninitialized. It is only safe to access values where
-    /// the reference count for its index is non-zero.
-    ranges: Arc<Mutex<RangeMap<usize>>>,
-}
-
-impl<T: Debug> Debug for Cactus<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ranges = self.ranges.lock().unwrap();
-        let stack = self.stack.lock().unwrap();
-        let elements = ranges
-            .iter()
-            .filter(|(_, v)| *v != 0)
-            .flat_map(|(range, _)| range.into_iter())
-            .map(|i| unsafe { stack[i].assume_init_ref() })
-            .collect::<Vec<_>>();
-        f.debug_struct("Cactus")
-            .field("ranges", &*ranges)
-            .field("stack", &elements)
-            .finish()
-    }
+    /// The backing memory of this stack. This space is sparse.
+    stack: Mutex<Vec<Option<T>>>,
 }
 
 impl<T> Default for Cactus<T> {
@@ -40,24 +15,6 @@ impl<T> Default for Cactus<T> {
     fn default() -> Self {
         Self {
             stack: Default::default(),
-            ranges: Default::default(),
-        }
-    }
-}
-
-impl<T> Drop for Cactus<T> {
-    fn drop(&mut self) {
-        let ranges = self.ranges.lock().unwrap();
-        let mut stack = self.stack.lock().unwrap();
-        for (range, value) in ranges.iter() {
-            if value != 0 {
-                log::trace!("freeing range {:?}", range);
-                for val in &mut stack[range] {
-                    unsafe {
-                        val.assume_init_drop();
-                    }
-                }
-            }
         }
     }
 }
@@ -89,8 +46,41 @@ impl<T> Cactus<T> {
     pub fn with_capacity(cap: usize) -> Self {
         Self {
             stack: Mutex::new(Vec::with_capacity(cap)),
-            ranges: Default::default(),
         }
+    }
+
+    pub fn get(&self, index: usize) -> Option<T>
+    where
+        T: Clone,
+    {
+        self.stack
+            .lock()
+            .unwrap()
+            .get(index)
+            .and_then(|v| v.clone())
+    }
+
+    pub fn get_ranges(&self, ranges: Vec<Range<usize>>) -> Option<Vec<T>>
+    where
+        T: Clone,
+    {
+        let stack = self.stack.lock().unwrap();
+        let expected = ranges.iter().map(|rng| rng.len()).sum();
+        let vec = ranges
+            .into_iter()
+            .flat_map(|range| stack.get(range))
+            .flatten()
+            .cloned()
+            .collect::<Option<Vec<_>>>()?;
+        if vec.len() != expected {
+            None
+        } else {
+            Some(vec)
+        }
+    }
+
+    pub fn set(&self, index: usize, value: T) {
+        self.stack.lock().unwrap().insert(index, Some(value));
     }
 
     /// Returns the total number of elements this Cactus can hold without reallocating.
@@ -113,121 +103,10 @@ impl<T> Cactus<T> {
     }
 
     #[inline]
-    pub(super) unsafe fn get_release(&self, index: usize) -> T
-    where
-        T: Clone,
-    {
-        let mut ranges = self.ranges.lock().unwrap();
-        let mut stack = self.stack.lock().unwrap();
-        let value = stack[index].assume_init_ref().clone();
-        self.release_range_from(&mut ranges, &mut stack, index..index + 1, 1);
-        value
-    }
-
-    #[inline]
-    pub(super) unsafe fn get_release_ranges(&self, read_ranges: &[Range<usize>]) -> Vec<T>
-    where
-        T: Clone,
-    {
-        let len = read_ranges.iter().map(|rng| rng.len()).sum();
-        let mut buf = Vec::with_capacity(len);
-
-        let mut ranges = self.ranges.lock().unwrap();
-        let mut stack = self.stack.lock().unwrap();
-        for range in read_ranges {
-            buf.extend(
-                stack[range.clone()]
-                    .iter()
-                    .map(|val| val.assume_init_ref().clone()),
-            );
-            self.release_range_from(&mut ranges, &mut stack, range.clone(), 1)
-        }
-        buf
-    }
-
-    #[inline]
-    pub(super) unsafe fn get_unchecked(&self, index: usize) -> Option<T>
-    where
-        T: Clone,
-    {
-        self.stack
-            .lock()
-            .unwrap()
-            .get(index)
-            .map(|val| val.assume_init_ref().clone())
-    }
-
-    #[inline]
-    pub(super) unsafe fn set_unchecked(&self, index: usize, value: T) {
-        self.stack.lock().unwrap()[index].write(value);
-    }
-
-    #[inline]
-    pub(super) fn acquire_ranges(&self, ranges_to_acquire: &[Range<usize>]) {
-        let mut ranges = self.ranges.lock().unwrap();
-        for range in ranges_to_acquire {
-            self.acquire_range_from(&mut ranges, range.clone())
-        }
-    }
-
-    #[inline]
-    pub(super) fn release_ranges(&self, ranges_to_release: &[Range<usize>]) {
-        let mut ranges = self.ranges.lock().unwrap();
-        let mut stack = self.stack.lock().unwrap();
-        for range in ranges_to_release {
-            self.release_range_from(&mut ranges, &mut stack, range.clone(), 1)
-        }
-    }
-
-    #[inline]
-    pub(super) fn acquire_range_from(
-        &self,
-        ranges: &mut MutexGuard<RangeMap<usize>>,
-        range: Range<usize>,
-    ) {
-        log::trace!("acquiring range {:?}", range);
-        ranges.update(range, |val| {
-            assert_ne!(*val, 0, "reacquiring released range");
-            *val += 1;
-        });
-    }
-
-    #[inline]
-    fn release_range_from(
-        &self,
-        ranges: &mut MutexGuard<RangeMap<usize>>,
-        stack: &mut MutexGuard<Vec<MaybeUninit<T>>>,
-        range: Range<usize>,
-        count: usize,
-    ) {
-        log::trace!("releasing range {:?}", range);
-        let ranges_to_remove: Vec<_> = ranges
-            .range(range.clone())
-            .filter(|(_, v)| *v == 1)
-            .map(|(k, _)| k)
-            .collect();
-        ranges.update(range.clone(), |val| {
-            *val = val.saturating_sub(count);
-        });
-        for range in ranges_to_remove {
-            log::trace!("freeing range {:?}", range,);
-            for val in &mut stack[range] {
-                unsafe {
-                    val.assume_init_drop();
-                }
-            }
-        }
-    }
-
-    #[inline]
     pub(super) fn append(&self, values: &mut Vec<T>) -> Range<usize> {
-        let mut ranges = self.ranges.lock().unwrap();
         let mut stack = self.stack.lock().unwrap();
-        let len = values.len();
-        let range = stack.len()..stack.len() + len;
-        ranges.insert(range.clone(), 1);
-        log::trace!("creating range {:?}", range);
-        stack.extend(values.drain(..).map(MaybeUninit::new));
+        let range = stack.len()..stack.len() + values.len();
+        stack.extend(values.drain(..).map(Some));
         range
     }
 }
