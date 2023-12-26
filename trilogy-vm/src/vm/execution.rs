@@ -8,7 +8,6 @@ use super::Error;
 use super::Stats;
 use crate::atom::AtomInterner;
 use crate::cactus::Branch;
-use crate::gc::Dumpster;
 use crate::runtime::callable::{Callable, CallableKind};
 #[cfg(feature = "stats")]
 use crate::RefCount;
@@ -20,7 +19,6 @@ use num::ToPrimitive;
 use std::cmp::Ordering;
 #[cfg(feature = "stats")]
 use std::sync::atomic;
-use std::sync::Weak;
 #[cfg(feature = "stats")]
 use std::time::{Duration, Instant};
 
@@ -69,7 +67,6 @@ impl<'a> Execution<'a> {
     pub(super) fn new(
         atom_interner: AtomInterner,
         program: ProgramReader<'a>,
-        dumpster: Weak<Dumpster>,
         branch: Branch<'a, StackCell>,
         registers: Vec<Value>,
         #[cfg(feature = "stats")] stats: RefCount<Stats>,
@@ -79,7 +76,7 @@ impl<'a> Execution<'a> {
             error_ip: 0,
             ip: program.entrypoint(),
             program,
-            stack: Stack::new(branch, dumpster),
+            stack: Stack::new(branch),
             registers,
             #[cfg(feature = "stats")]
             stats,

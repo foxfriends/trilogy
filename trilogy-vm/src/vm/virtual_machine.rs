@@ -9,7 +9,6 @@ use crate::cactus::Cactus;
 use crate::gc::GarbageCollector;
 use crate::{Atom, Chunk, ChunkBuilder, Instruction, Program, Value};
 use std::collections::HashSet;
-use std::sync::Arc;
 
 #[cfg(feature = "stats")]
 use super::Stats;
@@ -130,7 +129,6 @@ impl VirtualMachine {
         let mut executions = vec![Execution::new(
             self.atom_interner.clone(),
             program,
-            Arc::downgrade(&gc.dumpster()),
             stack.branch(),
             registers,
             #[cfg(feature = "stats")]

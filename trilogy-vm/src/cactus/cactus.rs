@@ -180,17 +180,6 @@ impl<T> Cactus<T> {
     }
 
     #[inline]
-    pub(crate) fn release_all(&self, all_ranges: RangeMap<usize>) {
-        let mut ranges = self.ranges.lock().unwrap();
-        let mut stack = self.stack.lock().unwrap();
-        for (range, n) in all_ranges.iter() {
-            if n != 0 {
-                self.release_range_from(&mut ranges, &mut stack, range.clone(), n);
-            }
-        }
-    }
-
-    #[inline]
     pub(super) fn acquire_range_from(
         &self,
         ranges: &mut MutexGuard<RangeMap<usize>>,

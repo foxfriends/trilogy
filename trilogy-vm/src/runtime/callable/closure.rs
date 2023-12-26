@@ -1,11 +1,9 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
 use crate::cactus::{Pointer, Slice};
-use crate::gc::Dumpster;
 use crate::vm::stack::StackCell;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
-use std::sync::Weak;
 
 /// A closure from a Trilogy program.
 ///
@@ -28,31 +26,26 @@ impl Debug for Closure {
 #[derive(Clone)]
 struct InnerClosure {
     ip: Offset,
-    dumpster: Weak<Dumpster>,
     stack: Pointer<StackCell>,
 }
 
 impl InnerClosure {
     #[inline(always)]
-    fn new(ip: Offset, dumpster: Weak<Dumpster>, stack: Slice<'_, StackCell>) -> Self {
+    fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
             .closures_allocated
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         Self {
             ip,
-            dumpster,
             stack: stack.into_pointer(),
         }
     }
 }
 
+#[cfg(feature = "stats")]
 impl Drop for InnerClosure {
     fn drop(&mut self) {
-        if let Some(dumpster) = self.dumpster.upgrade() {
-            dumpster.throw_out(self.stack.ranges());
-        }
-        #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
             .closures_freed
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -75,8 +68,8 @@ impl Hash for Closure {
 
 impl Closure {
     #[inline(always)]
-    pub(crate) fn new(ip: Offset, dumpster: Weak<Dumpster>, stack: Slice<'_, StackCell>) -> Self {
-        Self(RefCount::new(InnerClosure::new(ip, dumpster, stack)))
+    pub(crate) fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
+        Self(RefCount::new(InnerClosure::new(ip, stack)))
     }
 
     #[inline(always)]

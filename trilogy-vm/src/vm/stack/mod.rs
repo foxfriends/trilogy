@@ -1,12 +1,10 @@
 use super::error::InternalRuntimeError;
 use crate::cactus::{Branch, Slice};
 use crate::callable::{Closure, Continuation};
-use crate::gc::Dumpster;
 use crate::vm::stack::stack_dump::DumpCell;
 use crate::{Offset, Value};
 use std::collections::HashSet;
 use std::fmt::{self, Display};
-use std::sync::Weak;
 
 mod cont;
 mod stack_cell;
@@ -28,7 +26,6 @@ pub use trace::{StackTrace, StackTraceEntry};
 #[derive(Clone, Debug)]
 pub(crate) struct Stack<'a> {
     frames: Vec<StackFrame<'a>>,
-    dumpster: Weak<Dumpster>,
     branch: Branch<'a, StackCell>,
     fp: usize,
 }
@@ -51,11 +48,10 @@ impl Display for Stack<'_> {
 
 impl<'a> Stack<'a> {
     #[inline]
-    pub(super) fn new(cactus: Branch<'a, StackCell>, dumpster: Weak<Dumpster>) -> Self {
+    pub(super) fn new(cactus: Branch<'a, StackCell>) -> Self {
         Self {
             frames: vec![],
             branch: cactus,
-            dumpster,
             fp: 0,
         }
     }
@@ -64,13 +60,11 @@ impl<'a> Stack<'a> {
     pub(crate) fn from_parts(
         frames: Vec<StackFrame<'a>>,
         cactus: Branch<'a, StackCell>,
-        dumpster: Weak<Dumpster>,
         fp: usize,
     ) -> Self {
         Self {
             frames,
             branch: cactus,
-            dumpster,
             fp,
         }
     }
@@ -108,19 +102,18 @@ impl<'a> Stack<'a> {
     pub(super) fn closure(&mut self, ip: Offset) -> Closure {
         self.commit();
         let slice = self.branch.slice().slice(self.fp..self.branch.len());
-        Closure::new(ip, self.dumpster.clone(), slice)
+        Closure::new(ip, slice)
     }
 
     #[inline]
     pub(super) fn continuation(&mut self, ip: Offset) -> Continuation {
         let stack = self.branch();
-        Continuation::new(ip, self.dumpster.clone(), stack)
+        Continuation::new(ip, stack)
     }
 
     #[inline]
     pub(super) fn branch(&mut self) -> Self {
         Self {
-            dumpster: self.dumpster.clone(),
             frames: self.frames.clone(),
             branch: self.branch.branch(),
             fp: self.fp,

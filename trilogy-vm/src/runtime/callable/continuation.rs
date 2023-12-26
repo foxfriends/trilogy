@@ -1,11 +1,9 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
 use crate::cactus::{Branch, Pointer, Slice};
-use crate::gc::Dumpster;
 use crate::vm::stack::{Cont, Stack, StackCell, StackFrame};
 use std::fmt::{self, Debug};
 use std::hash::Hash;
-use std::sync::Weak;
 
 /// A continuation from a Trilogy program.
 ///
@@ -36,7 +34,6 @@ struct FramePointer {
 #[derive(Clone)]
 struct InnerContinuation {
     ip: Offset,
-    dumpster: Weak<Dumpster>,
     frames: Vec<FramePointer>,
     branch: Pointer<StackCell>,
     fp: usize,
@@ -44,7 +41,7 @@ struct InnerContinuation {
 
 impl InnerContinuation {
     #[inline(always)]
-    fn new(ip: Offset, dumpster: Weak<Dumpster>, stack: Stack<'_>) -> Self {
+    fn new(ip: Offset, stack: Stack<'_>) -> Self {
         log::debug!("allocating continuation");
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
@@ -55,7 +52,6 @@ impl InnerContinuation {
         let branch = branch.slice().clone().into_pointer();
         Self {
             ip,
-            dumpster,
             frames: frames
                 .into_iter()
                 .map(|frame| FramePointer {
@@ -70,17 +66,9 @@ impl InnerContinuation {
     }
 }
 
+#[cfg(feature = "stats")]
 impl Drop for InnerContinuation {
     fn drop(&mut self) {
-        // if let Some(dumpster) = self.dumpster.upgrade() {
-        //     for frame in &self.frames {
-        //         if let Some(stack) = &frame.stack {
-        //             dumpster.throw_out(stack.ranges())
-        //         }
-        //     }
-        //     dumpster.throw_out(self.branch.ranges());
-        // }
-        #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
             .continuations_freed
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -103,8 +91,8 @@ impl Hash for Continuation {
 
 impl Continuation {
     #[inline(always)]
-    pub(crate) fn new(ip: Offset, dumpster: Weak<Dumpster>, stack: Stack<'_>) -> Self {
-        Self(RefCount::new(InnerContinuation::new(ip, dumpster, stack)))
+    pub(crate) fn new(ip: Offset, stack: Stack<'_>) -> Self {
+        Self(RefCount::new(InnerContinuation::new(ip, stack)))
     }
 
     #[inline(always)]
@@ -136,6 +124,6 @@ impl Continuation {
             pointer.reacquire();
             Branch::from(Slice::from_pointer(pointer))
         };
-        Stack::from_parts(frames, branch, self.0.dumpster.clone(), self.0.fp)
+        Stack::from_parts(frames, branch, self.0.fp)
     }
 }
