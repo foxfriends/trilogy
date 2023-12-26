@@ -24,57 +24,6 @@ impl Debug for Continuation {
     }
 }
 
-#[derive(Clone, Debug)]
-struct FramePointer {
-    stack: Option<Pointer<StackCell>>,
-    cont: Cont,
-    fp: usize,
-}
-
-#[derive(Clone)]
-struct InnerContinuation {
-    ip: Offset,
-    frames: Vec<FramePointer>,
-    branch: Pointer<StackCell>,
-    fp: usize,
-}
-
-impl InnerContinuation {
-    #[inline(always)]
-    fn new(ip: Offset, stack: Stack<'_>) -> Self {
-        log::debug!("allocating continuation");
-        #[cfg(feature = "stats")]
-        crate::GLOBAL_STATS
-            .continuations_allocated
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let (frames, mut branch, fp) = stack.into_parts();
-        branch.commit();
-        let branch = branch.slice().clone().into_pointer();
-        Self {
-            ip,
-            frames: frames
-                .into_iter()
-                .map(|frame| FramePointer {
-                    stack: frame.slice.map(|cactus| cactus.into_pointer()),
-                    cont: frame.cont.clone(),
-                    fp: frame.fp,
-                })
-                .collect(),
-            branch,
-            fp,
-        }
-    }
-}
-
-#[cfg(feature = "stats")]
-impl Drop for InnerContinuation {
-    fn drop(&mut self) {
-        crate::GLOBAL_STATS
-            .continuations_freed
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-}
-
 impl Eq for Continuation {}
 
 impl PartialEq for Continuation {
@@ -125,5 +74,55 @@ impl Continuation {
             Branch::from(Slice::from_pointer(pointer))
         };
         Stack::from_parts(frames, branch, self.0.fp)
+    }
+}
+
+#[derive(Debug)]
+struct FramePointer {
+    stack: Option<Pointer<StackCell>>,
+    cont: Cont,
+    fp: usize,
+}
+
+struct InnerContinuation {
+    ip: Offset,
+    frames: Vec<FramePointer>,
+    branch: Pointer<StackCell>,
+    fp: usize,
+}
+
+impl InnerContinuation {
+    #[inline(always)]
+    fn new(ip: Offset, stack: Stack<'_>) -> Self {
+        log::debug!("allocating continuation");
+        #[cfg(feature = "stats")]
+        crate::GLOBAL_STATS
+            .continuations_allocated
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let (frames, mut branch, fp) = stack.into_parts();
+        branch.commit();
+        let branch = branch.slice().clone().into_pointer();
+        Self {
+            ip,
+            frames: frames
+                .into_iter()
+                .map(|frame| FramePointer {
+                    stack: frame.slice.map(|cactus| cactus.into_pointer()),
+                    cont: frame.cont.clone(),
+                    fp: frame.fp,
+                })
+                .collect(),
+            branch,
+            fp,
+        }
+    }
+}
+
+#[cfg(feature = "stats")]
+impl Drop for InnerContinuation {
+    fn drop(&mut self) {
+        crate::GLOBAL_STATS
+            .continuations_freed
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 }

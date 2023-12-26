@@ -23,35 +23,6 @@ impl Debug for Closure {
     }
 }
 
-#[derive(Clone)]
-struct InnerClosure {
-    ip: Offset,
-    stack: Pointer<StackCell>,
-}
-
-impl InnerClosure {
-    #[inline(always)]
-    fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
-        #[cfg(feature = "stats")]
-        crate::GLOBAL_STATS
-            .closures_allocated
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        Self {
-            ip,
-            stack: stack.into_pointer(),
-        }
-    }
-}
-
-#[cfg(feature = "stats")]
-impl Drop for InnerClosure {
-    fn drop(&mut self) {
-        crate::GLOBAL_STATS
-            .closures_freed
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-}
-
 impl Eq for Closure {}
 
 impl PartialEq for Closure {
@@ -88,5 +59,34 @@ impl Closure {
 impl Display for Closure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "&({}) [closure]", self.0.ip)
+    }
+}
+
+#[derive(Clone)]
+struct InnerClosure {
+    ip: Offset,
+    stack: Pointer<StackCell>,
+}
+
+impl InnerClosure {
+    #[inline(always)]
+    fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
+        #[cfg(feature = "stats")]
+        crate::GLOBAL_STATS
+            .closures_allocated
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Self {
+            ip,
+            stack: stack.into_pointer(),
+        }
+    }
+}
+
+#[cfg(feature = "stats")]
+impl Drop for InnerClosure {
+    fn drop(&mut self) {
+        crate::GLOBAL_STATS
+            .closures_freed
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 }
