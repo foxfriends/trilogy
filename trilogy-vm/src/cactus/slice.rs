@@ -151,10 +151,10 @@ impl<'a, T> Slice<'a, T> {
         T: Clone,
     {
         let index = self.parents.len() - 1;
-        let value = self.cactus.get(index);
+        let value = self.cactus.get(index)?;
         self.parents.pop();
         self.len -= 1;
-        value
+        Some(value)
     }
 
     #[inline]
