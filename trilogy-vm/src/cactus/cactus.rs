@@ -49,6 +49,19 @@ impl<T> Cactus<T> {
         }
     }
 
+    /// Gets a single value from this cactus. Returns `None` if the index
+    /// is out of range or has already been deallocated.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3]);
+    /// assert_eq!(cactus.get(0), Some(1));
+    /// assert_eq!(cactus.get(2), Some(3));
+    /// assert_eq!(cactus.get(3), None);
+    /// ```
     pub fn get(&self, index: usize) -> Option<T>
     where
         T: Clone,
@@ -60,6 +73,18 @@ impl<T> Cactus<T> {
             .and_then(|v| v.clone())
     }
 
+    /// Gets multiple values from this cactus. Returns `None` if the ranges are not
+    /// all completely allocated.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3, 4, 5, 6]);
+    /// assert_eq!(cactus.get_ranges(vec![0..2, 4..6]), Some(vec![1, 2, 5, 6]));
+    /// assert_eq!(cactus.get_ranges(vec![0..2, 4..7]), None);
+    /// ```
     pub fn get_ranges(&self, ranges: Vec<Range<usize>>) -> Option<Vec<T>>
     where
         T: Clone,
@@ -79,8 +104,26 @@ impl<T> Cactus<T> {
         }
     }
 
+    /// Sets the value at a specific index in this cactus. Other elements
+    /// are unaffected.
+    ///
+    /// # Panics
+    ///
+    /// If the index is out of range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3]);
+    /// cactus.set(1, 5);
+    /// assert_eq!(cactus.get(0), Some(1));
+    /// assert_eq!(cactus.get(1), Some(5));
+    /// assert_eq!(cactus.get(2), Some(3));
+    /// ```
     pub fn set(&self, index: usize, value: T) {
-        self.stack.lock().unwrap().insert(index, Some(value));
+        self.stack.lock().unwrap()[index] = Some(value);
     }
 
     /// Returns the total number of elements this Cactus can hold without reallocating.
@@ -102,8 +145,10 @@ impl<T> Cactus<T> {
         Branch::new(self)
     }
 
+    /// Appends values to this Cactus. Returns the range into which the values
+    /// were placed.
     #[inline]
-    pub(super) fn append(&self, values: &mut Vec<T>) -> Range<usize> {
+    pub fn append(&self, values: &mut Vec<T>) -> Range<usize> {
         let mut stack = self.stack.lock().unwrap();
         let range = stack.len()..stack.len() + values.len();
         stack.extend(values.drain(..).map(Some));
