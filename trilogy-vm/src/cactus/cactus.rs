@@ -104,8 +104,7 @@ impl<T> Cactus<T> {
         }
     }
 
-    /// Gets multiple values from this cactus. Returns `None` if the ranges are not
-    /// all completely allocated.
+    /// Drop a range of values from this cactus.
     ///
     /// # Examples
     ///
@@ -113,8 +112,10 @@ impl<T> Cactus<T> {
     /// # use trilogy_vm::cactus::Cactus;
     /// let cactus = Cactus::new();
     /// cactus.append(&mut vec![1, 2, 3, 4, 5, 6]);
-    /// assert_eq!(cactus.get_ranges(vec![0..2, 4..6]), Some(vec![1, 2, 5, 6]));
-    /// assert_eq!(cactus.get_ranges(vec![0..2, 4..7]), None);
+    /// cactus.drop_ranges(vec![(2..4)].into_iter());
+    /// assert_eq!(cactus.get(1), Some(2));
+    /// assert_eq!(cactus.get(2), None);
+    /// assert_eq!(cactus.get(4), Some(5));
     /// ```
     pub fn drop_ranges(&self, ranges: impl Iterator<Item = Range<usize>>)
     where
@@ -151,24 +152,69 @@ impl<T> Cactus<T> {
     }
 
     /// Returns the total number of elements this Cactus can hold without reallocating.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::with_capacity(5);
+    /// cactus.append(&mut vec![1, 2, 3]);
+    /// assert!(cactus.capacity() >= 5);
+    /// ```
     #[inline]
     pub fn capacity(&self) -> usize {
         self.stack.lock().unwrap().capacity()
     }
 
-    /// Returns the total number of cells, used or unused, in this cactus.
+    /// Returns the total number of cells in this cactus. Since the cactus may sometimes
+    /// be sparse, the length is not the number of values, and some values within the
+    /// range of 0 to `len()` may be `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3]);
+    /// assert_eq!(cactus.len(), 3);
+    /// cactus.drop_ranges(vec![(0..3)].into_iter());
+    /// assert_eq!(cactus.len(), 3);
+    /// ```
     #[inline]
     pub fn len(&self) -> usize {
         self.stack.lock().unwrap().len()
     }
 
-    /// Returns true if the cactus holds no values.
+    /// Returns true if the cactus has no cells allocated. A non-empty cactus may
+    /// still hold no values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// assert!(cactus.is_empty());
+    /// cactus.append(&mut vec![1, 2, 3]);
+    /// assert!(!cactus.is_empty());
+    /// cactus.drop_ranges(vec![(0..3)].into_iter());
+    /// assert!(!cactus.is_empty());
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.stack.lock().unwrap().is_empty()
     }
 
     /// Reserves capacity for at least `additional` more elements to be added to this Cactus.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3]);
+    /// cactus.reserve(5);
+    /// assert!(cactus.capacity() >= 8);
+    /// ```
     #[inline]
     pub fn reserve(&self, additional: usize) {
         self.stack.lock().unwrap().reserve(additional);
@@ -181,13 +227,21 @@ impl<T> Cactus<T> {
         Branch::new(self)
     }
 
-    /// Appends values to this Cactus. Returns the range into which the values
-    /// were placed.
+    /// Appends values to this Cactus. The elements are added to the end of the cactus,
+    /// without reusing any of the internal spaces as a result of sparsity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2]);
+    /// cactus.append(&mut vec![3, 4]);
+    /// assert_eq!(cactus.get(3), Some(4));
+    /// ```
     #[inline]
-    pub fn append(&self, values: &mut Vec<T>) -> Range<usize> {
+    pub fn append(&self, values: &mut Vec<T>) {
         let mut stack = self.stack.lock().unwrap();
-        let range = stack.len()..stack.len() + values.len();
         stack.extend(values.drain(..).map(Some));
-        range
     }
 }

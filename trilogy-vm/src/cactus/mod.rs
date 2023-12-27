@@ -6,7 +6,8 @@
 //!
 //! It is not a general purpose cactus implementation, but one specialized to
 //! managing the stack in a garbage collected environment. Elements of the cactus
-//! will not be freed immediately.
+//! will not be freed immediately upon no longer being referenced, but will
+//! remain until explicitly dropped.
 
 mod branch;
 #[allow(clippy::module_inception)]

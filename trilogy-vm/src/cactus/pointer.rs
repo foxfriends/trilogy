@@ -207,7 +207,8 @@ impl<T> Pointer<T> {
             return;
         }
         self.len += elements.len();
-        let range = self.cactus_ref().append(elements);
+        let range = self.cactus_ref().len()..self.cactus_ref().len() + elements.len();
+        self.cactus_ref().append(elements);
         self.parents.insert(range, true);
     }
 }

@@ -10,7 +10,8 @@ use std::hash::Hash;
 /// From within the program this is seen as an opaque "callable" value.
 ///
 /// It is not possible to construct a value of this type except from within a
-/// Trilogy program.
+/// Trilogy program. If held beyond the end of the execution of the Trilogy
+/// program, it is no longer valid to be called.
 #[derive(Clone)]
 pub(crate) struct Closure(RefCount<InnerClosure>);
 
