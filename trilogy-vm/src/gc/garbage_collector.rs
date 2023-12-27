@@ -121,7 +121,16 @@ impl<'a> GarbageCollector<'a> {
             }
         }
 
-        self.cactus
-            .drop_ranges(visitor.reachable.iter().filter(|(_, v)| !v).map(|(r, _)| r));
+        let to_remove: usize = visitor
+            .reachable
+            .iter()
+            .filter(|(_, v)| !v)
+            .map(|(r, _)| r.len())
+            .sum();
+        if to_remove < self.cactus.len() / 4 {
+            self.cactus.retain_ranges(visitor.reachable);
+        } else {
+            self.cactus.remove_ranges(visitor.reachable);
+        }
     }
 }

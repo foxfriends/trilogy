@@ -1,4 +1,4 @@
-use super::Branch;
+use super::{Branch, RangeMap};
 use std::{ops::Range, sync::Mutex};
 
 /// The root of the Cactus Stack.
@@ -104,28 +104,61 @@ impl<T> Cactus<T> {
         }
     }
 
-    /// Drop a range of values from this cactus.
+    /// Retains only ranges of values from this cactus where the range map is `true`,
+    /// leaving the rest of the cells empty. The length and capacity of the
+    /// cactus are unaffected.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use trilogy_vm::cactus::Cactus;
+    /// # use trilogy_vm::cactus::{Cactus, RangeMap};
     /// let cactus = Cactus::new();
     /// cactus.append(&mut vec![1, 2, 3, 4, 5, 6]);
-    /// cactus.drop_ranges(vec![(2..4)].into_iter());
+    /// let mut keep = RangeMap::default();
+    /// keep.insert(0..2, true);
+    /// keep.insert(4..6, true);
+    /// cactus.retain_ranges(keep);
     /// assert_eq!(cactus.get(1), Some(2));
     /// assert_eq!(cactus.get(2), None);
     /// assert_eq!(cactus.get(4), Some(5));
     /// ```
-    pub fn drop_ranges(&self, ranges: impl Iterator<Item = Range<usize>>)
+    pub fn retain_ranges(&self, ranges: RangeMap<bool>)
     where
         T: Clone,
     {
         let mut stack = self.stack.lock().unwrap();
-        for range in ranges {
+        for (range, _) in ranges.iter().filter(|(_, v)| !v) {
             for i in range {
                 stack[i] = None;
             }
+        }
+    }
+
+    /// Remove ranges of values from this cactus where the range map is `false`.
+    /// Shifts all non-removed ranges towards the front, shortening the length
+    /// accordingly. Capacity is not affected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::{Cactus, RangeMap};
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3, 4, 5, 6]);
+    /// let mut keep = RangeMap::default();
+    /// keep.insert(0..2, true);
+    /// keep.insert(4..6, true);
+    /// cactus.remove_ranges(keep);
+    /// assert_eq!(cactus.get(1), Some(2));
+    /// assert_eq!(cactus.get(2), Some(5));
+    /// assert_eq!(cactus.get(4), None);
+    /// ```
+    pub fn remove_ranges(&self, ranges: RangeMap<bool>)
+    where
+        T: Clone,
+    {
+        let mut stack = self.stack.lock().unwrap();
+        for (range, _) in ranges.reverse_iter().filter(|(_, v)| !v) {
+            stack.drain(range);
         }
     }
 
@@ -173,11 +206,11 @@ impl<T> Cactus<T> {
     /// # Examples
     ///
     /// ```
-    /// # use trilogy_vm::cactus::Cactus;
+    /// # use trilogy_vm::cactus::{Cactus, RangeMap};
     /// let cactus = Cactus::new();
     /// cactus.append(&mut vec![1, 2, 3]);
     /// assert_eq!(cactus.len(), 3);
-    /// cactus.drop_ranges(vec![(0..3)].into_iter());
+    /// cactus.retain_ranges(RangeMap::default());
     /// assert_eq!(cactus.len(), 3);
     /// ```
     #[inline]
@@ -191,12 +224,12 @@ impl<T> Cactus<T> {
     /// # Examples
     ///
     /// ```
-    /// # use trilogy_vm::cactus::Cactus;
+    /// # use trilogy_vm::cactus::{Cactus, RangeMap};
     /// let cactus = Cactus::new();
     /// assert!(cactus.is_empty());
     /// cactus.append(&mut vec![1, 2, 3]);
     /// assert!(!cactus.is_empty());
-    /// cactus.drop_ranges(vec![(0..3)].into_iter());
+    /// cactus.retain_ranges(RangeMap::default());
     /// assert!(!cactus.is_empty());
     /// ```
     #[inline]

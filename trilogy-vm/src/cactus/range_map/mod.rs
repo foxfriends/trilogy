@@ -71,8 +71,7 @@ impl<T> RangeMap<T> {
 
     /// An iterator over all contiguous ranges to the same value in this RangeMap.
     ///
-    /// This includes ranges with a value of 0, but does not include the final infinite range to
-    /// the end of the map, which is also considered to have a value of 0.
+    /// This iterator does not include the infinite range at the end of the map.
     ///
     /// # Examples
     ///
@@ -94,6 +93,33 @@ impl<T> RangeMap<T> {
             .peekable()
             .pairwise()
             .map(|((s, v), (e, _))| (*s..*e, *v))
+    }
+
+    /// An iterator over all contiguous ranges to the same value in this RangeMap, starting from the end.
+    ///
+    /// This iterator does not include the infinite range at the end of the map.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::default();
+    /// map.insert(2..4, 1);
+    /// map.insert(6..8, 2);
+    /// let ranges = map.reverse_iter().collect::<Vec<_>>();
+    /// assert_eq!(ranges, vec![(6..8, 2), (4..6, 0), (2..4, 1), (0..2, 0)]);
+    /// ```
+    #[inline]
+    pub fn reverse_iter(&self) -> impl Iterator<Item = (Range<usize>, T)> + ExactSizeIterator + '_
+    where
+        T: Copy,
+    {
+        self.0
+            .iter()
+            .rev()
+            .peekable()
+            .pairwise()
+            .map(|((e, _), (s, v))| (*s..*e, *v))
     }
 
     /// An iterator over the overlapping ranges and values of the given range. The
