@@ -1,4 +1,4 @@
-use super::{Atom, RefCount, ReferentialEq, StructuralEq, Value};
+use super::{Atom, ReferentialEq, StructuralEq, Value};
 use std::fmt::{self, Display};
 
 /// A Trilogy Struct value.
@@ -8,7 +8,7 @@ use std::fmt::{self, Display};
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Struct {
     name: Atom,
-    value: RefCount<Value>,
+    value: Box<Value>,
 }
 
 impl StructuralEq for Struct {
@@ -44,7 +44,7 @@ impl Struct {
     {
         Self {
             name,
-            value: RefCount::new(value.into()),
+            value: Box::new(value.into()),
         }
     }
 

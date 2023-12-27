@@ -25,6 +25,16 @@ impl<'a, T> Branch<'a, T> {
         self.slice.cactus()
     }
 
+    #[inline]
+    pub fn shared(&self) -> &Slice<'a, T> {
+        &self.slice
+    }
+
+    #[inline]
+    pub fn locals(&self) -> &[T] {
+        &self.stack
+    }
+
     /// Pops a locally owned value off this branch.
     ///
     /// This will never pop a value off a shared parent.

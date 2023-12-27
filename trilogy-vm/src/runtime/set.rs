@@ -6,57 +6,7 @@ use std::sync::Mutex;
 
 /// A Trilogy Set value.
 #[derive(Clone, Default, Debug)]
-pub struct Set(RefCount<Mutex<SetInner>>);
-
-use inner::SetInner;
-mod inner {
-    use super::*;
-
-    #[derive(Debug)]
-    pub(super) struct SetInner(HashSet<Value>);
-
-    impl std::ops::Deref for SetInner {
-        type Target = HashSet<Value>;
-
-        #[inline(always)]
-        fn deref(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-    impl std::ops::DerefMut for SetInner {
-        #[inline(always)]
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.0
-        }
-    }
-
-    impl Default for SetInner {
-        #[inline(always)]
-        fn default() -> Self {
-            Self::new(Default::default())
-        }
-    }
-
-    impl SetInner {
-        #[inline(always)]
-        pub(super) fn new(value: HashSet<Value>) -> Self {
-            #[cfg(feature = "stats")]
-            crate::GLOBAL_STATS
-                .sets_allocated
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            Self(value)
-        }
-    }
-
-    #[cfg(feature = "stats")]
-    impl Drop for SetInner {
-        fn drop(&mut self) {
-            crate::GLOBAL_STATS
-                .sets_freed
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        }
-    }
-}
+pub struct Set(RefCount<Mutex<inner::SetInner>>);
 
 impl Set {
     /// Creates a new empty set instance.
@@ -70,6 +20,18 @@ impl Set {
     #[inline]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Returns the ID of the underlying set instance. This ID will remain
+    /// stable for the lifetime of each set instance, and is unique per
+    /// instance.
+    ///
+    /// Note that set instances may be reused, so if an instance is conceptually
+    /// discarded in the Trilogy program, that same instance may be reclaimed by
+    /// the runtime to reuse its allocation. The Trilogy program should therefore
+    /// never expect to use this ID internally.
+    pub fn id(&self) -> usize {
+        RefCount::as_ptr(&self.0) as usize
     }
 
     /// Performs a shallow clone of the set, returning a new set
@@ -213,7 +175,7 @@ impl Display for Set {
 
 impl From<HashSet<Value>> for Set {
     fn from(set: HashSet<Value>) -> Self {
-        Self(RefCount::new(Mutex::new(SetInner::new(set))))
+        Self(RefCount::new(Mutex::new(inner::SetInner::new(set))))
     }
 }
 
@@ -226,5 +188,54 @@ impl From<Set> for HashSet<Value> {
 impl FromIterator<Value> for Set {
     fn from_iter<T: IntoIterator<Item = Value>>(iter: T) -> Self {
         Self::from(HashSet::from_iter(iter))
+    }
+}
+
+mod inner {
+    use super::*;
+
+    #[derive(Debug)]
+    pub(super) struct SetInner(HashSet<Value>);
+
+    impl std::ops::Deref for SetInner {
+        type Target = HashSet<Value>;
+
+        #[inline(always)]
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+    impl std::ops::DerefMut for SetInner {
+        #[inline(always)]
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
+    }
+
+    impl Default for SetInner {
+        #[inline(always)]
+        fn default() -> Self {
+            Self::new(Default::default())
+        }
+    }
+
+    impl SetInner {
+        #[inline(always)]
+        pub(super) fn new(value: HashSet<Value>) -> Self {
+            #[cfg(feature = "stats")]
+            crate::GLOBAL_STATS
+                .sets_allocated
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            Self(value)
+        }
+    }
+
+    #[cfg(feature = "stats")]
+    impl Drop for SetInner {
+        fn drop(&mut self) {
+            crate::GLOBAL_STATS
+                .sets_freed
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
     }
 }

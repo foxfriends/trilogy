@@ -44,9 +44,29 @@ impl Continuation {
         Self(RefCount::new(InnerContinuation::new(ip, stack)))
     }
 
+    /// Returns the ID of the underlying continuation instance. This ID will remain
+    /// stable for the lifetime of each array instance, and is unique per
+    /// instance.
+    pub fn id(&self) -> usize {
+        RefCount::as_ptr(&self.0) as usize
+    }
+
     #[inline(always)]
-    pub(crate) fn ip(&self) -> Offset {
+    pub fn ip(&self) -> Offset {
         self.0.ip
+    }
+
+    #[inline(always)]
+    pub fn stack_pointer(&self) -> &Pointer<StackCell> {
+        &self.0.branch
+    }
+
+    #[inline(always)]
+    pub fn frames(&self) -> impl Iterator<Item = &Pointer<StackCell>> {
+        self.0
+            .frames
+            .iter()
+            .filter_map(|frame| frame.stack.as_ref())
     }
 
     #[inline(always)]

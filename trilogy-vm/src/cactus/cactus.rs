@@ -104,6 +104,30 @@ impl<T> Cactus<T> {
         }
     }
 
+    /// Gets multiple values from this cactus. Returns `None` if the ranges are not
+    /// all completely allocated.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::Cactus;
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3, 4, 5, 6]);
+    /// assert_eq!(cactus.get_ranges(vec![0..2, 4..6]), Some(vec![1, 2, 5, 6]));
+    /// assert_eq!(cactus.get_ranges(vec![0..2, 4..7]), None);
+    /// ```
+    pub fn drop_ranges(&self, ranges: impl Iterator<Item = Range<usize>>)
+    where
+        T: Clone,
+    {
+        let mut stack = self.stack.lock().unwrap();
+        for range in ranges {
+            for i in range {
+                stack[i] = None;
+            }
+        }
+    }
+
     /// Sets the value at a specific index in this cactus. Other elements
     /// are unaffected.
     ///

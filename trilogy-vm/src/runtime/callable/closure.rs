@@ -43,6 +43,17 @@ impl Closure {
         Self(RefCount::new(InnerClosure::new(ip, stack)))
     }
 
+    /// Returns the ID of the underlying closure instance. This ID will remain
+    /// stable for the lifetime of each array instance, and is unique per
+    /// instance.
+    pub fn id(&self) -> usize {
+        RefCount::as_ptr(&self.0) as usize
+    }
+
+    pub fn stack_pointer(&self) -> &Pointer<StackCell> {
+        &self.0.stack
+    }
+
     #[inline(always)]
     pub(crate) fn ip(&self) -> Offset {
         self.0.ip

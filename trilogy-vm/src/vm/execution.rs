@@ -197,8 +197,12 @@ impl<'a> Execution<'a> {
         }
     }
 
-    pub(super) fn stack(&self) -> &Stack {
+    pub(crate) fn stack(&self) -> &Stack {
         &self.stack
+    }
+
+    pub(crate) fn registers(&self) -> &[Value] {
+        &self.registers
     }
 
     #[inline(always)]

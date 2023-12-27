@@ -165,13 +165,7 @@ impl VirtualMachine {
                 }
                 Step::Exit(value) => return Ok(value),
             }
-            gc.collect_garbage(
-                executions
-                    .iter()
-                    .map(|ex| ex.stack())
-                    .collect::<Vec<_>>()
-                    .as_slice(),
-            );
+            gc.collect_garbage(&executions);
         };
         Err(last_ex.error(ErrorKind::ExecutionFizzledError))
     }

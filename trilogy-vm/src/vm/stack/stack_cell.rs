@@ -16,6 +16,13 @@ impl StackCell {
         }
     }
 
+    pub fn as_set(&self) -> Option<&Value> {
+        match self {
+            StackCell::Unset => None,
+            StackCell::Set(value) => Some(value),
+        }
+    }
+
     pub fn is_set(&self) -> bool {
         matches!(self, StackCell::Set(..))
     }
