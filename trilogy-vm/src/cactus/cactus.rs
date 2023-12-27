@@ -162,6 +162,12 @@ impl<T> Cactus<T> {
         self.stack.lock().unwrap().len()
     }
 
+    /// Returns true if the cactus holds no values.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.stack.lock().unwrap().is_empty()
+    }
+
     /// Reserves capacity for at least `additional` more elements to be added to this Cactus.
     #[inline]
     pub fn reserve(&self, additional: usize) {

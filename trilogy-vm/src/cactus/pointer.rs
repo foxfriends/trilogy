@@ -79,6 +79,11 @@ impl<T> Pointer<T> {
         unsafe { &*self.cactus }
     }
 
+    /// Gets the corresponding value in the underlying cactus of this pointer.
+    ///
+    /// # Safety
+    ///
+    /// The cactus that this pointer refers to must still exist.
     #[inline]
     pub unsafe fn get(&self, index: usize) -> Option<T>
     where
@@ -88,12 +93,22 @@ impl<T> Pointer<T> {
         self.cactus_ref().get(parent_index)
     }
 
+    /// Sets the corresponding value in the underlying cactus of this pointer.
+    ///
+    /// # Safety
+    ///
+    /// The cactus that this pointer refers to must still exist.
     #[inline]
     pub unsafe fn set(&mut self, index: usize, value: T) {
         let parent_index = self.resolve_index(index).unwrap();
         self.cactus_ref().set(parent_index, value);
     }
 
+    /// Pops a value from the range contained in this pointer.
+    ///
+    /// # Safety
+    ///
+    /// The cactus that this pointer refers to must still exist.
     #[inline]
     pub unsafe fn pop(&mut self) -> Option<T>
     where
@@ -147,6 +162,11 @@ impl<T> Pointer<T> {
         }
     }
 
+    /// Pops multiple values out of the ranges pointed to by this pointer.
+    ///
+    /// # Safety
+    ///
+    /// The cactus that this pointer refers to must still exist.
     #[inline]
     pub unsafe fn pop_n(&mut self, n: usize) -> Option<Vec<T>>
     where
@@ -175,6 +195,12 @@ impl<T> Pointer<T> {
         self.cactus_ref().get_ranges(ranges)
     }
 
+    /// Appends values to the cactus under this pointer. The pointer's range
+    /// is extended to include the new values.
+    ///
+    /// # Safety
+    ///
+    /// The cactus that this pointer refers to must still exist.
     #[inline]
     pub unsafe fn append(&mut self, elements: &mut Vec<T>) {
         if elements.is_empty() {
