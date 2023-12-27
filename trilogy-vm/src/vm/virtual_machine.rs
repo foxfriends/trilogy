@@ -116,8 +116,7 @@ impl VirtualMachine {
         program: &P,
         registers: Vec<Value>,
     ) -> Result<Value, Error> {
-        let stack = Cactus::<StackCell>::new();
-        let gc = GarbageCollector::new(&stack);
+        let stack = Cactus::<StackCell>::with_capacity(8192);
 
         let program =
             ProgramReader::new(self.atom_interner.clone(), program).map_err(|err| Error {
@@ -143,6 +142,7 @@ impl VirtualMachine {
         // simple situations, which is all that we will have to deal with while this
         // VM remains a (relative) toy.
         let mut ep = 0;
+        let mut gc_threshold = stack.capacity() * 3 / 4;
         let last_ex = loop {
             let ex = &mut executions[ep];
             match ex.step()? {
@@ -165,7 +165,11 @@ impl VirtualMachine {
                 }
                 Step::Exit(value) => return Ok(value),
             }
-            gc.collect_garbage(&executions);
+            if stack.len() > gc_threshold {
+                let gc = GarbageCollector::new(&stack);
+                gc.collect_garbage(&executions);
+                gc_threshold = (stack.capacity() - stack.len()) * 3 / 4 + stack.len();
+            }
         };
         Err(last_ex.error(ErrorKind::ExecutionFizzledError))
     }
