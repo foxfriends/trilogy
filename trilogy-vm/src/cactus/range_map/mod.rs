@@ -270,6 +270,40 @@ impl<T> RangeMap<T> {
         }
     }
 
+    /// Inserts the unbounded range `from..` to be the given value. All ranges
+    /// after the `from` index are removed, and replaced with the single tail range.
+    /// As usual, the tail range is not reflected in the iterator over ranges, but is
+    /// used when large keys are requested.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::default();
+    /// map.insert(2..8, 1);
+    /// map.insert_tail(6, 5);
+    /// assert_eq!(map.get(4), &1);
+    /// assert_eq!(map.get(6), &5);
+    /// assert_eq!(map.get(8), &5);
+    /// assert_eq!(map.get(6000), &5);
+    /// ```
+    pub fn insert_tail(&mut self, from: usize, value: T)
+    where
+        T: Eq,
+    {
+        let tail_keys = self
+            .0
+            .range((Bound::Excluded(from), Bound::Unbounded))
+            .map(|(k, _)| *k)
+            .collect::<Vec<_>>();
+        for key in tail_keys {
+            self.0.remove(&key);
+        }
+        if self.get(from) != &value {
+            self.0.insert(from, value);
+        }
+    }
+
     /// Removes a range into this map. If the range overlaps ranges already included
     /// in the map, the overlapping portions will be overwritten.
     ///
@@ -409,6 +443,33 @@ impl<T> RangeMap<T> {
             self.0.insert(k - 1, tail);
         }
         Some(value)
+    }
+
+    /// Shifts the ranges of this rangemap towards 0 by the offsets in the condensation
+    /// map.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::default();
+    /// map.insert(10..20, 1);
+    /// map.insert(30..40, 2);
+    /// map.insert(50..60, 3);
+    /// let mut condensation = RangeMap::default();
+    /// condensation.insert(10..30, 10);
+    /// condensation.insert(30..50, 20);
+    /// condensation.insert_tail(50, 30);
+    /// map.shift_ranges(&condensation);
+    /// assert_eq!(map.len(), 30);
+    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(0..10, 1), (10..20, 2), (20..30, 3)]);
+    /// ```
+    pub fn shift_ranges(&mut self, condensation: &RangeMap<usize>) {
+        let elements = std::mem::take(&mut self.0);
+        self.0 = elements
+            .into_iter()
+            .map(|(k, v)| (k - condensation.get(k), v))
+            .collect();
     }
 }
 

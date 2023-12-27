@@ -1,6 +1,7 @@
 use super::{Cactus, RangeMap};
 use std::fmt::Debug;
 use std::ops::Range;
+use std::sync::{Arc, Mutex};
 
 /// A "raw pointer" to part of a Cactus stack.
 ///
@@ -9,7 +10,12 @@ use std::ops::Range;
 /// Cactus does not drop any of the values this pointer points to.
 pub struct Pointer<T> {
     pub(super) cactus: *const Cactus<T>,
-    pub(super) parents: RangeMap<bool>,
+    /// The parents are arced and mutexed so that they can be modified by the garbage
+    /// collector. This seems to be more of a consequence of the environment than an
+    /// actual necessity of cactus design, so this potential is hidden from end user
+    /// code. Not that anything outside of the VM really wants to or should use this
+    /// cactus at all.
+    pub(super) parents: Arc<Mutex<RangeMap<bool>>>,
     pub(super) len: usize,
 }
 
@@ -46,8 +52,16 @@ impl<T> Pointer<T> {
 
     /// Gets the ranges that this pointer points to.
     #[inline]
-    pub fn ranges(&self) -> &RangeMap<bool> {
-        &self.parents
+    pub fn ranges(&self) -> RangeMap<bool> {
+        self.parents.lock().unwrap().clone()
+    }
+
+    /// Provides direct access the ranges that this pointer points to.
+    ///
+    /// Only intended for use by the garbage collector.
+    #[inline]
+    pub(crate) fn shared_ranges(&self) -> Arc<Mutex<RangeMap<bool>>> {
+        self.parents.clone()
     }
 
     #[inline]
@@ -62,14 +76,15 @@ impl<T> Pointer<T> {
 
     #[inline]
     pub fn truncate(&mut self, len: usize) {
+        let mut parents = self.parents.lock().unwrap();
         while self.len > len {
-            let (parent, _) = self.parents.last_range().unwrap();
+            let (parent, _) = parents.last_range().unwrap();
             if parent.len() <= self.len - len {
                 self.len -= parent.len();
-                self.parents.remove(parent.clone());
+                parents.remove(parent.clone());
             } else {
                 let to_pop = self.len - len;
-                self.parents.remove(parent.end - to_pop..parent.end);
+                parents.remove(parent.end - to_pop..parent.end);
                 self.len -= to_pop;
             }
         }
@@ -114,16 +129,18 @@ impl<T> Pointer<T> {
     where
         T: Clone,
     {
-        let index = self.parents.len() - 1;
+        let mut parents = self.parents.lock().unwrap();
+        let index = parents.len() - 1;
         let value = self.cactus_ref().get(index)?;
-        self.parents.pop();
+        parents.pop();
         self.len -= 1;
         Some(value)
     }
 
     #[inline]
     fn resolve_index(&self, mut index: usize) -> Option<usize> {
-        for (range, _) in self.parents.iter().filter(|(_, v)| *v) {
+        let parents = self.parents.lock().unwrap();
+        for (range, _) in parents.iter().filter(|(_, v)| *v) {
             if range.len() > index {
                 return Some(range.start + index);
             }
@@ -142,7 +159,8 @@ impl<T> Pointer<T> {
         let len = range.len();
         let mut i = 0;
         let mut sliced_parents = RangeMap::default();
-        for (parent, _) in self.parents.iter().filter(|(_, v)| *v) {
+        let parents = self.parents.lock().unwrap();
+        for (parent, _) in parents.iter().filter(|(_, v)| *v) {
             if i + parent.len() > range.start {
                 let overlap_start = parent.start + range.start - i;
                 let overlapping_range =
@@ -157,7 +175,7 @@ impl<T> Pointer<T> {
         }
         Self {
             cactus: self.cactus,
-            parents: sliced_parents,
+            parents: Arc::new(Mutex::new(sliced_parents)),
             len,
         }
     }
@@ -177,16 +195,17 @@ impl<T> Pointer<T> {
         }
         let mut ranges = vec![];
         let mut popped = 0;
+        let mut parents = self.parents.lock().unwrap();
         while popped < n {
-            let (parent, _) = self.parents.last_range().unwrap();
+            let (parent, _) = parents.last_range().unwrap();
             if popped + parent.len() > n {
                 let from_range = n - popped;
-                self.parents.remove(parent.end - from_range..parent.end);
+                parents.remove(parent.end - from_range..parent.end);
                 ranges.push(parent.end - from_range..parent.end);
                 break;
             } else {
                 popped += parent.len();
-                self.parents.remove(parent.clone());
+                parents.remove(parent.clone());
                 ranges.push(parent);
             }
         }
@@ -206,9 +225,10 @@ impl<T> Pointer<T> {
         if elements.is_empty() {
             return;
         }
+        let mut parents = self.parents.lock().unwrap();
         self.len += elements.len();
         let range = self.cactus_ref().len()..self.cactus_ref().len() + elements.len();
         self.cactus_ref().append(elements);
-        self.parents.insert(range, true);
+        parents.insert(range, true);
     }
 }

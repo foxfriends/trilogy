@@ -3,7 +3,9 @@ use crate::callable::CallableKind;
 use crate::vm::stack::StackCell;
 use crate::{Execution, Value};
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use std::ops::Range;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub(crate) struct GarbageCollector<'a> {
@@ -14,6 +16,23 @@ struct GarbageVisitor<'a> {
     cactus: &'a Cactus<StackCell>,
     reachable: RangeMap<bool>,
     visited: HashSet<usize>,
+    pointers: HashSet<PtrEq>,
+}
+
+struct PtrEq(Arc<Mutex<RangeMap<bool>>>);
+
+impl Eq for PtrEq {}
+
+impl PartialEq for PtrEq {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Hash for PtrEq {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Arc::as_ptr(&self.0).hash(state)
+    }
 }
 
 impl GarbageVisitor<'_> {
@@ -35,9 +54,12 @@ impl GarbageVisitor<'_> {
     }
 
     fn visit_pointer(&mut self, pointer: &Pointer<StackCell>) {
-        for (range, v) in pointer.ranges().iter() {
-            if v {
-                self.visit_range(range);
+        if !self.pointers.contains(&PtrEq(pointer.shared_ranges())) {
+            self.pointers.insert(PtrEq(pointer.shared_ranges()));
+            for (range, v) in pointer.ranges().iter() {
+                if v {
+                    self.visit_range(range);
+                }
             }
         }
     }
@@ -100,6 +122,7 @@ impl<'a> GarbageCollector<'a> {
             cactus: self.cactus,
             visited: HashSet::new(),
             reachable: RangeMap::default(),
+            pointers: HashSet::new(),
         };
 
         for ex in executions {
@@ -130,7 +153,25 @@ impl<'a> GarbageCollector<'a> {
         if to_remove < self.cactus.len() / 4 {
             self.cactus.retain_ranges(visitor.reachable);
         } else {
+            let mut condensation = RangeMap::default();
+            let mut offset = 0;
+            for (range, reachable) in visitor.reachable.iter() {
+                if reachable {
+                    condensation.insert(range, offset);
+                } else {
+                    condensation.insert(range.clone(), offset);
+                    offset += range.len();
+                }
+            }
+            condensation.insert_tail(condensation.len(), offset);
+            // TODO: There is a race here, should probably lock the cactus
+            // and then remove the ranges and shift the pointers all in one
+            // atomic action.
             self.cactus.remove_ranges(visitor.reachable);
+            for PtrEq(pointer) in visitor.pointers {
+                let mut rangemap = pointer.lock().unwrap();
+                rangemap.shift_ranges(&condensation);
+            }
         }
     }
 }
