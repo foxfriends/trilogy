@@ -117,7 +117,7 @@ impl InnerContinuation {
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let (frames, mut branch, fp) = stack.into_parts();
         branch.commit();
-        let branch = branch.slice().clone().into_pointer();
+        let branch = branch.into_slice().into_pointer();
         Self {
             ip,
             frames: frames
