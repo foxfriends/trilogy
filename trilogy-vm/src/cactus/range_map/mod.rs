@@ -35,16 +35,36 @@ impl<T> RangeMap<T> {
         RangeMap(map)
     }
 
-    /// Returns the "length" of this RangeMap. The length is the last key for which a value
-    /// is set.
+    /// Returns the "length" of this RangeMap. The length is the end of the last range for
+    /// which a value is set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::new(0);
+    /// assert_eq!(map.len(), 0);
+    /// map.insert(3..5, 3);
+    /// assert_eq!(map.len(), 5);
+    /// ```
     pub fn len(&self) -> usize {
         *self.0.last_key_value().unwrap().0
     }
 
     /// Returns true if this RangeMap is "empty".
     ///
-    /// Since a RangeMap always contains at least one range (of the entire domain) , the
+    /// Since a RangeMap always contains at least one range (of the entire domain), the
     /// RangeMap is considered empty if it contains only that range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::RangeMap;
+    /// let mut map = RangeMap::new(0);
+    /// assert!(map.is_empty());
+    /// map.insert(3..5, 3);
+    /// assert!(!map.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.0.len() == 1
     }
