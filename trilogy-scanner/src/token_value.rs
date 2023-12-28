@@ -29,6 +29,7 @@ pub enum TokenValue {
 
 impl TokenValue {
     /// The string value of this token, if any.
+    #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Self::String(string) => Some(string),

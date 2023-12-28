@@ -76,6 +76,7 @@ impl<'a> Scanner<'a> {
     /// Create a new scanner that scans the provided source string.
     ///
     /// Consume this scanner as an [`Iterator`][].
+    #[must_use]
     pub fn new(source: &'a str) -> Self {
         Self {
             chars: source.chars().peekmore(),
@@ -96,7 +97,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn context(&self, ch: char) -> bool {
-        self.nesting.last().map(|nest| *nest == ch).unwrap_or(false)
+        self.nesting.last().is_some_and(|nest| *nest == ch)
     }
 
     fn consume(&mut self) -> Option<char> {
@@ -121,18 +122,11 @@ impl<'a> Scanner<'a> {
         self.chars
             .peek_nth(1)
             .copied()
-            .map(|ch| pattern.check(ch))
-            .unwrap_or(false)
+            .is_some_and(|ch| pattern.check(ch))
     }
 
     fn identifier(&mut self, mut value: String) -> String {
-        while self
-            .chars
-            .peek()
-            .copied()
-            .map(is_identifier)
-            .unwrap_or(false)
-        {
+        while self.chars.peek().copied().is_some_and(is_identifier) {
             value.push(self.consume().unwrap());
         }
         value
@@ -286,7 +280,7 @@ impl<'a> Scanner<'a> {
                     Err(message) => return self.make_error(message),
                 };
             }
-            content.push(ch)
+            content.push(ch);
         }
         self.make_error("Unexpected end of file found before end of string literal.")
     }
@@ -475,11 +469,7 @@ impl<'a> Scanner<'a> {
             Ok(BitsOrNumber::Bits(bits)) => self.make_token(Bits).with_value(bits),
             Err(error) => return *error,
         };
-        if self
-            .peek()
-            .map(|ch| ch.is_ascii_alphanumeric())
-            .unwrap_or(false)
-        {
+        if self.peek().is_some_and(|ch| ch.is_ascii_alphanumeric()) {
             return self.make_error("numeric literal may not have trailing characters");
         }
         token

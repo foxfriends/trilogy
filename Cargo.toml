@@ -12,6 +12,9 @@ members = [
     "trilogy-vm-derive",
 ]
 
+[workspace.lints.clippy]
+map_unwrap_or = "warn"
+
 [profile.release]
 panic = "abort"
 
