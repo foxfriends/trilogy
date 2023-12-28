@@ -13,7 +13,7 @@ where
 {
     fn span(&self) -> Span {
         self.iter()
-            .map(|el| el.span())
+            .map(Spanned::span)
             .reduce(|lhs, rhs| lhs.union(rhs))
             .expect("Don't call Spanned::span() on an empty Vec<S>")
     }

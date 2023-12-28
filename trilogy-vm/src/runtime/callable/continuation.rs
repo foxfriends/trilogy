@@ -40,7 +40,7 @@ impl Hash for Continuation {
 }
 
 impl Continuation {
-    #[inline(always)]
+    #[inline]
     pub(crate) fn new(ip: Offset, stack: Stack<'_>) -> Result<Self, StackOverflow> {
         Ok(Self(RefCount::new(InnerContinuation::new(ip, stack)?)))
     }
@@ -48,21 +48,22 @@ impl Continuation {
     /// Returns the ID of the underlying continuation instance. This ID will remain
     /// stable for the lifetime of each array instance, and is unique per
     /// instance.
+    #[inline]
     pub fn id(&self) -> usize {
         RefCount::as_ptr(&self.0) as usize
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn ip(&self) -> Offset {
         self.0.ip
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn stack_pointer(&self) -> &Pointer<StackCell> {
         &self.0.branch
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn frames(&self) -> impl Iterator<Item = &Pointer<StackCell>> {
         self.0
             .frames
@@ -70,7 +71,7 @@ impl Continuation {
             .filter_map(|frame| frame.stack.as_ref())
     }
 
-    #[inline(always)]
+    #[inline]
     pub(crate) unsafe fn stack<'a>(&self) -> Stack<'a> {
         let frames = self
             .0
@@ -108,7 +109,7 @@ struct InnerContinuation {
 }
 
 impl InnerContinuation {
-    #[inline(always)]
+    #[inline]
     fn new(ip: Offset, stack: Stack<'_>) -> Result<Self, StackOverflow> {
         log::debug!("allocating continuation");
         #[cfg(feature = "stats")]

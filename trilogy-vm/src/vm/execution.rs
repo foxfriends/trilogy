@@ -88,7 +88,7 @@ impl<'a> Execution<'a> {
     /// Create an atom in the context of the VM that this Execution belongs to.
     ///
     /// See [`Atom`][] for more details.
-    #[inline(always)]
+    #[inline]
     pub fn atom(&self, atom: &str) -> Atom {
         self.atom_interner.intern(atom)
     }
@@ -96,7 +96,7 @@ impl<'a> Execution<'a> {
     /// Create an anonymous atom, that can never be recreated.
     ///
     /// See [`Atom`][] for more details.
-    #[inline(always)]
+    #[inline]
     pub fn atom_anon(&self, label: &str) -> Atom {
         Atom::new_unique(label.to_owned())
     }
@@ -174,7 +174,7 @@ impl<'a> Execution<'a> {
         self.program.procedure(label).map_err(|k| self.error(k))
     }
 
-    #[inline(always)]
+    #[inline]
     fn branch(&mut self) -> Result<Self, StackOverflow> {
         let branch = self.stack.branch()?;
         Ok(Self {
@@ -211,12 +211,12 @@ impl<'a> Execution<'a> {
         &self.registers
     }
 
-    #[inline(always)]
+    #[inline]
     fn stack_pop(&mut self) -> Result<Value, Error> {
         self.stack.pop().map_err(|k| self.error(k))
     }
 
-    #[inline(always)]
+    #[inline]
     fn stack_pop_2(&mut self) -> Result<(Value, Value), Error> {
         self.stack.prepare_to_pop(2);
         let rhs = self.stack_pop()?;
@@ -382,7 +382,7 @@ impl<'a> Execution<'a> {
         res
     }
 
-    #[inline(always)]
+    #[inline]
     fn eval(&mut self, instruction: Instruction) -> Result<Step<Self>, Error> {
         match instruction {
             Instruction::Unit => {

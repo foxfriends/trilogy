@@ -39,7 +39,7 @@ impl Hash for Closure {
 }
 
 impl Closure {
-    #[inline(always)]
+    #[inline]
     pub(crate) fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
         Self(RefCount::new(InnerClosure::new(ip, stack)))
     }
@@ -47,20 +47,22 @@ impl Closure {
     /// Returns the ID of the underlying closure instance. This ID will remain
     /// stable for the lifetime of each array instance, and is unique per
     /// instance.
+    #[inline]
     pub fn id(&self) -> usize {
         RefCount::as_ptr(&self.0) as usize
     }
 
+    #[inline]
     pub fn stack_pointer(&self) -> &Pointer<StackCell> {
         &self.0.stack
     }
 
-    #[inline(always)]
+    #[inline]
     pub(crate) fn ip(&self) -> Offset {
         self.0.ip
     }
 
-    #[inline(always)]
+    #[inline]
     pub(crate) unsafe fn stack<'a>(&self) -> Slice<'a, StackCell> {
         Slice::from_pointer(self.0.stack.clone())
     }

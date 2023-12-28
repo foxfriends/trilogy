@@ -7,27 +7,27 @@ pub(super) struct SetInner(HashSet<Value>);
 impl std::ops::Deref for SetInner {
     type Target = HashSet<Value>;
 
-    #[inline(always)]
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 impl std::ops::DerefMut for SetInner {
-    #[inline(always)]
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl Default for SetInner {
-    #[inline(always)]
+    #[inline]
     fn default() -> Self {
         Self::new(Default::default())
     }
 }
 
 impl SetInner {
-    #[inline(always)]
+    #[inline]
     pub(super) fn new(value: HashSet<Value>) -> Self {
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS

@@ -219,10 +219,7 @@ impl Parser<'_> {
     pub(crate) fn predict(&mut self, pattern: impl TokenPattern) -> bool {
         self.peek_next();
         let second = self.peek_next();
-        let result = second
-            .as_ref()
-            .map(|token| pattern.matches(token))
-            .unwrap_or(false);
+        let result = second.as_ref().is_some_and(|token| pattern.matches(token));
         self.source.reset_cursor();
         result
     }

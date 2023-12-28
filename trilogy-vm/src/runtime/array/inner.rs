@@ -10,7 +10,7 @@ impl Debug for ArrayInner {
 }
 
 impl Default for ArrayInner {
-    #[inline(always)]
+    #[inline]
     fn default() -> Self {
         Self::new(Default::default())
     }
@@ -19,21 +19,21 @@ impl Default for ArrayInner {
 impl std::ops::Deref for ArrayInner {
     type Target = Vec<Value>;
 
-    #[inline(always)]
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
 impl std::ops::DerefMut for ArrayInner {
-    #[inline(always)]
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 impl ArrayInner {
-    #[inline(always)]
+    #[inline]
     pub(super) fn new(array: Vec<Value>) -> Self {
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
