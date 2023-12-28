@@ -1,4 +1,4 @@
-use super::stack::{Stack, StackTrace};
+use super::stack::{StackDump, StackTrace};
 use crate::bytecode::{ChunkError, Offset};
 use crate::Value;
 use std::fmt::{self, Display};
@@ -15,7 +15,7 @@ pub struct Error {
     /// The stack trace.
     pub stack_trace: StackTrace,
     /// A copy of the entire stack of the program at the time of this error.
-    pub(crate) stack_dump: Stack,
+    pub(crate) stack_dump: StackDump,
 }
 
 impl std::error::Error for Error {
@@ -29,7 +29,7 @@ impl std::error::Error for Error {
 }
 
 impl Error {
-    pub fn dump(&self) -> impl Display + '_ {
+    pub fn dump(&self) -> &StackDump {
         &self.stack_dump
     }
 }

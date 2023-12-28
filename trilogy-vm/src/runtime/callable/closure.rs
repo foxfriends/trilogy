@@ -1,6 +1,7 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
-use crate::vm::stack::Stack;
+use crate::cactus::{Pointer, Slice};
+use crate::vm::stack::StackCell;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
 
@@ -9,7 +10,8 @@ use std::hash::Hash;
 /// From within the program this is seen as an opaque "callable" value.
 ///
 /// It is not possible to construct a value of this type except from within a
-/// Trilogy program.
+/// Trilogy program. If held beyond the end of the execution of the Trilogy
+/// program, it is no longer valid to be called.
 #[derive(Clone)]
 pub(crate) struct Closure(RefCount<InnerClosure>);
 
@@ -19,32 +21,6 @@ impl Debug for Closure {
             .field("ip", &self.0.ip)
             .field("stack", &self.0.stack)
             .finish()
-    }
-}
-
-#[derive(Clone, Debug)]
-struct InnerClosure {
-    ip: Offset,
-    stack: Stack,
-}
-
-impl InnerClosure {
-    #[inline(always)]
-    fn new(ip: Offset, stack: Stack) -> Self {
-        #[cfg(feature = "stats")]
-        crate::GLOBAL_STATS
-            .closures_allocated
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        Self { ip, stack }
-    }
-}
-
-#[cfg(feature = "stats")]
-impl Drop for InnerClosure {
-    fn drop(&mut self) {
-        crate::GLOBAL_STATS
-            .closures_freed
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -64,8 +40,19 @@ impl Hash for Closure {
 
 impl Closure {
     #[inline(always)]
-    pub(crate) fn new(ip: Offset, stack: Stack) -> Self {
+    pub(crate) fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
         Self(RefCount::new(InnerClosure::new(ip, stack)))
+    }
+
+    /// Returns the ID of the underlying closure instance. This ID will remain
+    /// stable for the lifetime of each array instance, and is unique per
+    /// instance.
+    pub fn id(&self) -> usize {
+        RefCount::as_ptr(&self.0) as usize
+    }
+
+    pub fn stack_pointer(&self) -> &Pointer<StackCell> {
+        &self.0.stack
     }
 
     #[inline(always)]
@@ -74,13 +61,42 @@ impl Closure {
     }
 
     #[inline(always)]
-    pub(crate) fn stack(&self) -> &Stack {
-        &self.0.stack
+    pub(crate) unsafe fn stack<'a>(&self) -> Slice<'a, StackCell> {
+        Slice::from_pointer(self.0.stack.clone())
     }
 }
 
 impl Display for Closure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "&({}) [closure]", self.0.ip)
+    }
+}
+
+#[derive(Clone)]
+struct InnerClosure {
+    ip: Offset,
+    stack: Pointer<StackCell>,
+}
+
+impl InnerClosure {
+    #[inline(always)]
+    fn new(ip: Offset, stack: Slice<'_, StackCell>) -> Self {
+        #[cfg(feature = "stats")]
+        crate::GLOBAL_STATS
+            .closures_allocated
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Self {
+            ip,
+            stack: stack.into_pointer(),
+        }
+    }
+}
+
+#[cfg(feature = "stats")]
+impl Drop for InnerClosure {
+    fn drop(&mut self) {
+        crate::GLOBAL_STATS
+            .closures_freed
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 }

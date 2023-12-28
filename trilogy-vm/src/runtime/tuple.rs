@@ -23,6 +23,13 @@ impl Tuple {
         Self(RefCount::new((lhs, rhs)))
     }
 
+    /// Returns the ID of the underlying tuple instance. This ID will remain
+    /// stable for the lifetime of each tuple instance, and is unique per
+    /// instance.
+    pub fn id(&self) -> usize {
+        RefCount::as_ptr(&self.0) as usize
+    }
+
     #[inline]
     pub fn uncons(self) -> (Value, Value) {
         (*self.0).clone()

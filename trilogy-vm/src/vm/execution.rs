@@ -2,12 +2,12 @@
 
 use super::error::{ErrorKind, InternalRuntimeError};
 use super::program_reader::ProgramReader;
-use super::stack::{InternalValue, Stack};
+use super::stack::{Cont, Stack, StackCell};
 use super::Error;
 #[cfg(feature = "stats")]
 use super::Stats;
 use crate::atom::AtomInterner;
-use crate::callable::{Closure, Continuation};
+use crate::cactus::Branch;
 use crate::runtime::callable::{Callable, CallableKind};
 #[cfg(feature = "stats")]
 use crate::RefCount;
@@ -17,10 +17,8 @@ use crate::{
 };
 use num::ToPrimitive;
 use std::cmp::Ordering;
-use std::fmt::{self, Debug};
 #[cfg(feature = "stats")]
 use std::sync::atomic;
-use std::sync::{Arc, Mutex};
 #[cfg(feature = "stats")]
 use std::time::{Duration, Instant};
 
@@ -31,42 +29,6 @@ pub(super) enum Step<E> {
     Suspend,
     Spawn(E),
     Exit(Value),
-}
-
-#[allow(clippy::type_complexity)]
-#[derive(Clone)]
-pub(crate) struct Callback(
-    Arc<Mutex<dyn FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static>>,
-);
-
-#[derive(Clone)]
-pub(crate) enum Cont {
-    Offset(Offset),
-    Callback(Callback),
-}
-
-impl Debug for Cont {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Offset(ip) => write!(f, "{ip}"),
-            Self::Callback(..) => write!(f, "rust"),
-        }
-    }
-}
-
-impl<F> From<F> for Cont
-where
-    F: FnMut(&mut Execution, Value) -> Result<(), Error> + Sync + Send + 'static,
-{
-    fn from(value: F) -> Self {
-        Cont::Callback(Callback(Arc::new(Mutex::new(value))))
-    }
-}
-
-impl From<Offset> for Cont {
-    fn from(value: Offset) -> Self {
-        Cont::Offset(value)
-    }
 }
 
 /// Represents a currently active execution of the Trilogy VM on a program.
@@ -85,7 +47,7 @@ pub struct Execution<'a> {
     program: ProgramReader<'a>,
     error_ip: Offset,
     ip: Offset,
-    stack: Stack,
+    stack: Stack<'a>,
     registers: Vec<Value>,
     #[cfg(feature = "stats")]
     stats: RefCount<Stats>,
@@ -105,6 +67,7 @@ impl<'a> Execution<'a> {
     pub(super) fn new(
         atom_interner: AtomInterner,
         program: ProgramReader<'a>,
+        branch: Branch<'a, StackCell>,
         registers: Vec<Value>,
         #[cfg(feature = "stats")] stats: RefCount<Stats>,
     ) -> Self {
@@ -113,7 +76,7 @@ impl<'a> Execution<'a> {
             error_ip: 0,
             ip: program.entrypoint(),
             program,
-            stack: Stack::new(),
+            stack: Stack::new(branch),
             registers,
             #[cfg(feature = "stats")]
             stats,
@@ -158,26 +121,28 @@ impl<'a> Execution<'a> {
     ) -> Result<(), Error> {
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = continuation.stack();
+                self.stack = unsafe { continuation.stack() };
                 self.stack
-                    .push_many(arguments.into_iter().map(InternalValue::Value).collect());
+                    .push_many(arguments.into_iter().map(StackCell::Set).collect());
                 self.ip = continuation.ip();
             }
             Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 self.stack.push_frame(
                     callback,
-                    arguments.into_iter().map(InternalValue::Value).collect(),
+                    arguments.into_iter().map(StackCell::Set).collect(),
                     None,
                 );
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
+                let ip = closure.ip();
+                let ghost = unsafe { closure.stack() };
                 self.stack.push_frame(
                     callback,
-                    arguments.into_iter().map(InternalValue::Value).collect(),
-                    Some(closure.stack().clone()),
+                    arguments.into_iter().map(StackCell::Set).collect(),
+                    Some(ghost),
                 );
-                self.ip = closure.ip();
+                self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack.push_frame(callback, vec![], None);
@@ -227,17 +192,22 @@ impl<'a> Execution<'a> {
         Error {
             ip: self.error_ip,
             stack_trace: self.stack.trace(&self.program, self.error_ip),
-            stack_dump: self.stack.clone(),
+            stack_dump: self.stack.dump(),
             kind: kind.into(),
         }
     }
 
+    pub(crate) fn stack(&self) -> &Stack {
+        &self.stack
+    }
+
+    pub(crate) fn registers(&self) -> &[Value] {
+        &self.registers
+    }
+
     #[inline(always)]
     fn stack_pop(&mut self) -> Result<Value, Error> {
-        self.stack
-            .pop()
-            .map_err(|k| self.error(k))?
-            .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty stack")))
+        self.stack.pop().map_err(|k| self.error(k))
     }
 
     #[inline(always)]
@@ -264,21 +234,14 @@ impl<'a> Execution<'a> {
                 self.stack.push(return_value);
                 Ok(())
             }
-            Cont::Callback(cb) => {
-                let mut callback = cb.0.lock().unwrap();
-                callback(self, return_value)
-            }
+            Cont::Callback(cb) => cb.call(self, return_value),
         }
     }
 
-    fn call_internal(
-        &mut self,
-        callable: Value,
-        arguments: Vec<InternalValue>,
-    ) -> Result<(), Error> {
+    fn call_internal(&mut self, callable: Value, arguments: Vec<StackCell>) -> Result<(), Error> {
         match callable {
             Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
-                self.stack = continuation.stack();
+                self.stack = unsafe { continuation.stack() };
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
@@ -287,17 +250,18 @@ impl<'a> Execution<'a> {
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
-                self.stack
-                    .push_frame(self.ip, arguments, Some(closure.stack().clone()));
-                self.ip = closure.ip();
+                let ip = closure.ip();
+                let ghost = unsafe { closure.stack() };
+                self.stack.push_frame(self.ip, arguments, Some(ghost));
+                self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack.push_frame(self.ip, vec![], None);
                 let arguments = arguments
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 #[cfg(feature = "stats")]
                 let time_native = Instant::now();
                 native.call(self, arguments)?;
@@ -316,30 +280,31 @@ impl<'a> Execution<'a> {
         let arguments = self.stack.pop_n(arity).map_err(|k| self.error(k))?;
         let callable = self.stack.pop().map_err(|k| self.error(k))?;
         match callable {
-            Some(Value::Callable(Callable(CallableKind::Continuation(continuation)))) => {
-                self.stack = continuation.stack();
+            Value::Callable(Callable(CallableKind::Continuation(continuation))) => {
+                self.stack = unsafe { continuation.stack() };
                 self.stack.push_many(arguments);
                 self.ip = continuation.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Procedure(procedure)))) => {
+            Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack.push_frame(ip, arguments, None);
                 self.ip = procedure.ip();
             }
-            Some(Value::Callable(Callable(CallableKind::Closure(closure)))) => {
-                let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-                self.stack
-                    .push_frame(ip, arguments, Some(closure.stack().clone()));
-                self.ip = closure.ip();
+            Value::Callable(Callable(CallableKind::Closure(closure))) => {
+                let next_ip = closure.ip();
+                let frame_ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
+                let ghost = unsafe { closure.stack() };
+                self.stack.push_frame(frame_ip, arguments, Some(ghost));
+                self.ip = next_ip;
             }
-            Some(Value::Callable(Callable(CallableKind::Native(native)))) => {
+            Value::Callable(Callable(CallableKind::Native(native))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack.push_frame(ip, vec![], None);
                 let arguments = arguments
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 #[cfg(feature = "stats")]
                 let time_native = Instant::now();
                 native.call(self, arguments)?;
@@ -432,9 +397,9 @@ impl<'a> Execution<'a> {
                     .pop_n(len)
                     .map_err(|k| self.error(k))?
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Array, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Array>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 self.stack.push(array);
             }
             Instruction::CollectSet => {
@@ -452,9 +417,9 @@ impl<'a> Execution<'a> {
                     .pop_n(len)
                     .map_err(|k| self.error(k))?
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .collect::<Result<Set, _>>()
-                    .map_err(|k| self.error(k))?;
+                    .map(|val| val.into_set())
+                    .collect::<Option<Set>>()
+                    .ok_or_else(|| self.error(InternalRuntimeError::ExpectedValue("empty cell")))?;
                 self.stack.push(set);
             }
             Instruction::CollectRecord => {
@@ -472,10 +437,12 @@ impl<'a> Execution<'a> {
                     .pop_n(len)
                     .map_err(|k| self.error(k))?
                     .into_iter()
-                    .map(|val| val.try_into_value())
-                    .map(|val| match val? {
-                        Value::Tuple(tuple) => Ok(tuple.uncons()),
-                        _ => Err(InternalRuntimeError::TypeError),
+                    .map(|val| val.into_set())
+                    .map(|val| {
+                        match val.ok_or(InternalRuntimeError::ExpectedValue("empty cell"))? {
+                            Value::Tuple(tuple) => Ok(tuple.uncons()),
+                            _ => Err(InternalRuntimeError::TypeError),
+                        }
                     })
                     .collect::<Result<Record, _>>()
                     .map_err(|k| self.error(k))?;
@@ -485,10 +452,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(value.structural_clone());
             }
             Instruction::LoadLocal(offset) => {
-                let value = self
-                    .stack
-                    .at_local(offset as usize)
-                    .map_err(|k| self.error(k))?;
+                let value = self.stack.get(offset as usize).map_err(|k| self.error(k))?;
                 self.stack.push(value);
             }
             Instruction::Variable => {
@@ -496,27 +460,23 @@ impl<'a> Execution<'a> {
             }
             Instruction::SetLocal(offset) => {
                 let value = self.stack_pop()?;
-                self.stack
-                    .set_local(offset as usize, value)
-                    .map_err(|k| self.error(k))?;
+                self.stack.set(offset as usize, value);
             }
             Instruction::UnsetLocal(offset) => {
-                self.stack
-                    .unset_local(offset as usize)
-                    .map_err(|k| self.error(k))?;
+                self.stack.unset(offset as usize);
             }
             Instruction::InitLocal(offset) => {
                 let value = self.stack_pop()?;
                 let did_set = self
                     .stack
-                    .init_local(offset as usize, value)
+                    .init(offset as usize, value)
                     .map_err(|k| self.error(k))?;
                 self.stack.push(did_set);
             }
             Instruction::IsSetLocal(offset) => {
                 let is_set = self
                     .stack
-                    .is_set_local(offset as usize)
+                    .is_set(offset as usize)
                     .map_err(|k| self.error(k))?;
                 self.stack.push(is_set);
             }
@@ -534,7 +494,7 @@ impl<'a> Execution<'a> {
                 self.registers[offset as usize] = value;
             }
             Instruction::Pop => {
-                self.stack.pop().map_err(|k| self.error(k))?;
+                self.stack.pop_discard().map_err(|k| self.error(k))?;
             }
             Instruction::Swap => {
                 self.stack.slide(1).map_err(|k| self.error(k))?;
@@ -545,7 +505,7 @@ impl<'a> Execution<'a> {
                     .map_err(|k| self.error(k))?;
             }
             Instruction::Copy => {
-                let value = self.stack.at(0).map_err(|k| self.error(k))?;
+                let value = self.stack.peek().map_err(|k| self.error(k))?;
                 self.stack.push(value);
             }
             Instruction::Clone => {
@@ -554,7 +514,7 @@ impl<'a> Execution<'a> {
             }
             Instruction::DeepClone => {
                 let value = self.stack_pop()?;
-                self.stack.push(value.shallow_clone());
+                self.stack.push(value.structural_clone());
             }
             Instruction::TypeOf => {
                 let value = self.stack_pop()?;
@@ -1011,12 +971,12 @@ impl<'a> Execution<'a> {
                 self.r#return(return_value)?;
             }
             Instruction::Close(offset) => {
-                let closure = Closure::new(self.ip, self.stack.branch());
+                let closure = self.stack.closure(self.ip);
                 self.stack.push(Value::from(closure));
                 self.ip = offset;
             }
             Instruction::Shift(offset) => {
-                let continuation = Continuation::new(self.ip, self.stack.branch());
+                let continuation = self.stack.continuation(self.ip);
                 self.stack.push(Value::from(continuation));
                 self.ip = offset;
             }
@@ -1068,7 +1028,7 @@ impl<'a> Execution<'a> {
                 self.stack.push(value);
             }
             Instruction::Debug => {
-                let val = self.stack.at_raw(0).map_err(|k| self.error(k))?;
+                let val = self.stack.peek().map_err(|k| self.error(k))?;
                 eprintln!("{}", val);
             }
         }

@@ -45,6 +45,7 @@ iterating on the design.
     - [x] Name resolution
     - [x] Bytecode generation
     - [x] Virtual machine
+    - [x] Garbage collector
     - [ ] Testing (In progress)
     - [ ] Standard library (In progress)
 - [ ] Implement the ecosystem
@@ -53,6 +54,6 @@ iterating on the design.
     - [ ] LSP
     - [ ] DAP
 - [ ] Future experimental features:
-    - [ ] Optimization
+    - [ ] Bytecode optimization
     - [ ] Try out IC based VM (HVM)
     - [ ] Add another level between current IR and code generation
