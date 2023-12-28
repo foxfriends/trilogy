@@ -116,7 +116,7 @@ impl VirtualMachine {
         program: &P,
         registers: Vec<Value>,
     ) -> Result<Value, Error> {
-        let stack = Cactus::<StackCell>::with_capacity(8192);
+        let stack = Cactus::<StackCell>::with_capacity(262144);
 
         let program =
             ProgramReader::new(self.atom_interner.clone(), program).map_err(|err| Error {
@@ -166,6 +166,7 @@ impl VirtualMachine {
                 Step::Exit(value) => return Ok(value),
             }
             if stack.len() > gc_threshold {
+                log::trace!("collecting garbage");
                 let gc = GarbageCollector::new(&stack);
                 gc.collect_garbage(&executions);
                 gc_threshold = (stack.capacity() - stack.len()) * 3 / 4 + stack.len();
