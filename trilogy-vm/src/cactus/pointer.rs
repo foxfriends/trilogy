@@ -34,7 +34,7 @@ impl<T> Clone for Pointer<T> {
     fn clone(&self) -> Self {
         Self {
             cactus: self.cactus,
-            parents: self.parents.clone(),
+            parents: Arc::new(Mutex::new(self.parents.lock().unwrap().clone())),
             len: self.len,
         }
     }

@@ -165,11 +165,11 @@ impl VirtualMachine {
                 }
                 Step::Exit(value) => return Ok(value),
             }
-            // if stack.len() > gc_threshold {
+            if stack.len() > gc_threshold {
                 let gc = GarbageCollector::new(&stack);
                 gc.collect_garbage(&executions);
                 gc_threshold = (stack.capacity() - stack.len()) * 3 / 4 + stack.len();
-            // }
+            }
         };
         Err(last_ex.error(ErrorKind::ExecutionFizzledError))
     }
