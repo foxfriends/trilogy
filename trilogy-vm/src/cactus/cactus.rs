@@ -8,6 +8,9 @@ use std::{ops::Range, sync::Mutex};
 pub struct Cactus<T> {
     /// The backing memory of this stack. This space is sparse.
     stack: Mutex<Vec<Option<T>>>,
+    /// Freezes the capacity of the backing vector. Any attempt to push or append
+    /// values beyond the capacity will fail.
+    capacity_frozen: bool,
 }
 
 impl<T> Default for Cactus<T> {
@@ -15,6 +18,7 @@ impl<T> Default for Cactus<T> {
     fn default() -> Self {
         Self {
             stack: Default::default(),
+            capacity_frozen: false,
         }
     }
 }
@@ -46,7 +50,16 @@ impl<T> Cactus<T> {
     pub fn with_capacity(cap: usize) -> Self {
         Self {
             stack: Mutex::new(Vec::with_capacity(cap)),
+            capacity_frozen: false,
         }
+    }
+
+    /// Freezes the capacity of this cactus. When the capacity is frozen, attempts
+    /// to append values will fail if the resulting number of elements would overflow
+    /// the stack.
+    #[inline]
+    pub fn freeze_capacity(&mut self) {
+        self.capacity_frozen = true;
     }
 
     /// Gets a single value from this cactus. Returns `None` if the index
@@ -62,6 +75,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.get(2), Some(3));
     /// assert_eq!(cactus.get(3), None);
     /// ```
+    #[inline]
     pub fn get(&self, index: usize) -> Option<T>
     where
         T: Clone,
@@ -85,6 +99,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.get_ranges(vec![0..2, 4..6]), Some(vec![1, 2, 5, 6]));
     /// assert_eq!(cactus.get_ranges(vec![0..2, 4..7]), None);
     /// ```
+    #[inline]
     pub fn get_ranges(&self, ranges: Vec<Range<usize>>) -> Option<Vec<T>>
     where
         T: Clone,
@@ -122,6 +137,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.get(2), None);
     /// assert_eq!(cactus.get(4), Some(5));
     /// ```
+    #[inline]
     pub fn retain_ranges(&self, ranges: RangeMap<bool>)
     where
         T: Clone,
@@ -152,6 +168,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.get(2), Some(5));
     /// assert_eq!(cactus.get(4), None);
     /// ```
+    #[inline]
     pub fn remove_ranges(&self, ranges: RangeMap<bool>)
     where
         T: Clone,
@@ -180,6 +197,7 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.get(1), Some(5));
     /// assert_eq!(cactus.get(2), Some(3));
     /// ```
+    #[inline]
     pub fn set(&self, index: usize, value: T) {
         self.stack.lock().unwrap()[index] = Some(value);
     }
@@ -263,6 +281,11 @@ impl<T> Cactus<T> {
     /// Appends values to this Cactus. The elements are added to the end of the cactus,
     /// without reusing any of the internal spaces as a result of sparsity.
     ///
+    /// If the capacity is frozen, may return a `StackOverflow` if the newly appended
+    /// elements would cause the underlying vector to reallocate. If capacity is not
+    /// frozen, this method will never return `Err`, but it may fail due to the system
+    /// allocator failing to allocate memory instead.
+    ///
     /// # Examples
     ///
     /// ```
@@ -273,8 +296,15 @@ impl<T> Cactus<T> {
     /// assert_eq!(cactus.get(3), Some(4));
     /// ```
     #[inline]
-    pub fn append(&self, values: &mut Vec<T>) {
+    pub fn append(&self, values: &mut Vec<T>) -> Result<(), StackOverflow> {
         let mut stack = self.stack.lock().unwrap();
+        if self.capacity_frozen && values.len() > stack.capacity() - stack.len() {
+            return Err(StackOverflow);
+        }
         stack.extend(values.drain(..).map(Some));
+        Ok(())
     }
 }
+
+/// An error that indicates the stack has overflown.
+pub struct StackOverflow;

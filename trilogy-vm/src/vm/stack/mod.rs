@@ -1,5 +1,5 @@
 use super::error::InternalRuntimeError;
-use crate::cactus::{Branch, Slice};
+use crate::cactus::{Branch, Slice, StackOverflow};
 use crate::callable::{Closure, Continuation};
 use crate::vm::stack::stack_dump::DumpCell;
 use crate::{Offset, Value};
@@ -99,25 +99,25 @@ impl<'a> Stack<'a> {
     }
 
     #[inline]
-    pub(super) fn closure(&mut self, ip: Offset) -> Closure {
-        self.commit();
+    pub(super) fn closure(&mut self, ip: Offset) -> Result<Closure, StackOverflow> {
+        self.commit()?;
         let slice = self.branch.slice().slice(self.fp..self.branch.len());
-        Closure::new(ip, slice)
+        Ok(Closure::new(ip, slice))
     }
 
     #[inline]
-    pub(super) fn continuation(&mut self, ip: Offset) -> Continuation {
-        let stack = self.branch();
+    pub(super) fn continuation(&mut self, ip: Offset) -> Result<Continuation, StackOverflow> {
+        let stack = self.branch()?;
         Continuation::new(ip, stack)
     }
 
     #[inline]
-    pub(super) fn branch(&mut self) -> Self {
-        Self {
+    pub(super) fn branch(&mut self) -> Result<Self, StackOverflow> {
+        Ok(Self {
             frames: self.frames.clone(),
-            branch: self.branch.branch(),
+            branch: self.branch.branch()?,
             fp: self.fp,
-        }
+        })
     }
 
     #[inline]
@@ -126,8 +126,8 @@ impl<'a> Stack<'a> {
     }
 
     #[inline]
-    pub(super) fn commit(&mut self) {
-        self.branch.commit();
+    pub(super) fn commit(&mut self) -> Result<(), StackOverflow> {
+        self.branch.commit()
     }
 
     #[inline]
@@ -248,7 +248,7 @@ impl<'a> Stack<'a> {
         c: C,
         arguments: Vec<StackCell>,
         stack: Option<Slice<'a, StackCell>>,
-    ) {
+    ) -> Result<(), StackOverflow> {
         let fp = self.fp;
         let return_stack = match stack {
             None => {
@@ -258,7 +258,7 @@ impl<'a> Stack<'a> {
             Some(stack) => {
                 self.fp = 0;
                 let mut branch = std::mem::replace(&mut self.branch, Branch::from(stack));
-                branch.commit();
+                branch.commit()?;
                 Some(branch.into_slice())
             }
         };
@@ -268,6 +268,7 @@ impl<'a> Stack<'a> {
             fp,
         });
         self.push_many(arguments);
+        Ok(())
     }
 
     #[inline]

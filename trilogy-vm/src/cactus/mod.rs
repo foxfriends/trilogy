@@ -17,7 +17,7 @@ mod range_map;
 mod slice;
 
 pub use branch::Branch;
-pub use cactus::Cactus;
+pub use cactus::{Cactus, StackOverflow};
 pub use pointer::Pointer;
 pub use range_map::RangeMap;
 pub use slice::Slice;

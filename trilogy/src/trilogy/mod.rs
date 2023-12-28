@@ -47,10 +47,17 @@ pub struct Trilogy {
 
 impl Trilogy {
     fn new(source: Source, libraries: HashMap<Location, Native>) -> Self {
+        let mut vm = VirtualMachine::new();
+        if let Some(limit) = std::env::var("TRILOGY_STACK_LIMIT")
+            .ok()
+            .and_then(|var| var.parse::<usize>().ok())
+        {
+            vm.set_stack_limit(limit);
+        }
         Self {
             source,
             libraries,
-            vm: VirtualMachine::new(),
+            vm,
         }
     }
 

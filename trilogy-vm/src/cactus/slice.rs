@@ -1,4 +1,4 @@
-use super::{Cactus, Pointer};
+use super::{cactus::StackOverflow, Cactus, Pointer};
 use std::{marker::PhantomData, ops::Range};
 
 /// A slice of a Cactus stack.
@@ -132,7 +132,7 @@ impl<'a, T> Slice<'a, T> {
     }
 
     #[inline]
-    pub fn append(&mut self, elements: &mut Vec<T>) {
+    pub fn append(&mut self, elements: &mut Vec<T>) -> Result<(), StackOverflow> {
         unsafe { self.pointer.append(elements) }
     }
 }

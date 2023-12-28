@@ -1,3 +1,4 @@
+use super::cactus::StackOverflow;
 use super::{Cactus, RangeMap};
 use std::fmt::Debug;
 use std::ops::Range;
@@ -90,6 +91,7 @@ impl<T> Pointer<T> {
         }
     }
 
+    #[inline]
     unsafe fn cactus_ref(&self) -> &Cactus<T> {
         unsafe { &*self.cactus }
     }
@@ -221,14 +223,15 @@ impl<T> Pointer<T> {
     ///
     /// The cactus that this pointer refers to must still exist.
     #[inline]
-    pub unsafe fn append(&mut self, elements: &mut Vec<T>) {
+    pub unsafe fn append(&mut self, elements: &mut Vec<T>) -> Result<(), StackOverflow> {
         if elements.is_empty() {
-            return;
+            return Ok(());
         }
         let mut parents = self.parents.lock().unwrap();
         self.len += elements.len();
         let range = self.cactus_ref().len()..self.cactus_ref().len() + elements.len();
-        self.cactus_ref().append(elements);
+        self.cactus_ref().append(elements)?;
         parents.insert(range, true);
+        Ok(())
     }
 }

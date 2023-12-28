@@ -17,11 +17,12 @@ use crate::RefCount;
 
 /// Interface to the Trilogy Virtual Machine.
 ///
-/// This is a stack-based VM, but also with registers and heap.
-/// Further documentation on the actual specifics will follow.
+/// This is a stack-based VM, but also with registers and most/all values actually
+/// allocated on the heap. Further documentation on the specifics will follow.
 #[derive(Clone, Debug)]
 pub struct VirtualMachine {
     atom_interner: AtomInterner,
+    stack_limit: usize,
     #[cfg(feature = "stats")]
     stats: RefCount<Stats>,
 }
@@ -37,6 +38,7 @@ impl VirtualMachine {
     pub fn new() -> Self {
         Self {
             atom_interner: AtomInterner::default(),
+            stack_limit: 262144,
             #[cfg(feature = "stats")]
             stats: Default::default(),
         }
@@ -49,6 +51,11 @@ impl VirtualMachine {
     #[cfg(feature = "stats")]
     pub fn stats(&self) -> RefCount<Stats> {
         self.stats.clone()
+    }
+
+    /// Sets the capacity limit for the runtime stack.
+    pub fn set_stack_limit(&mut self, limit: usize) {
+        self.stack_limit = limit;
     }
 
     /// Create an atom in the context of this VM.
@@ -116,7 +123,8 @@ impl VirtualMachine {
         program: &P,
         registers: Vec<Value>,
     ) -> Result<Value, Error> {
-        let stack = Cactus::<StackCell>::with_capacity(262144);
+        let mut stack = Cactus::<StackCell>::with_capacity(self.stack_limit);
+        stack.freeze_capacity();
 
         let program =
             ProgramReader::new(self.atom_interner.clone(), program).map_err(|err| Error {

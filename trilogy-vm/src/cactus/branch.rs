@@ -1,4 +1,4 @@
-use super::{Cactus, Slice};
+use super::{cactus::StackOverflow, Cactus, Slice};
 
 /// A branch of a Cactus stack.
 ///
@@ -219,8 +219,8 @@ impl<'a, T> Branch<'a, T> {
     /// Future clones of this branch will share those elements. Previously existing
     /// clones will remain distinct.
     #[inline]
-    pub fn commit(&mut self) {
-        self.slice.append(&mut self.stack);
+    pub fn commit(&mut self) -> Result<(), StackOverflow> {
+        self.slice.append(&mut self.stack)
     }
 
     /// Branches the current branch into two, being self as one, and returning the other.
@@ -228,13 +228,13 @@ impl<'a, T> Branch<'a, T> {
     /// All elements in the current branch are moved to the shared base, and both branches
     /// will have the same shared parents.
     #[inline]
-    pub fn branch(&mut self) -> Self {
-        self.commit();
-        Self {
+    pub fn branch(&mut self) -> Result<Self, StackOverflow> {
+        self.commit()?;
+        Ok(Self {
             slice: self.slice.clone(),
             stack: vec![],
             len: self.len,
-        }
+        })
     }
 
     #[inline]

@@ -7,7 +7,7 @@ use super::Error;
 #[cfg(feature = "stats")]
 use super::Stats;
 use crate::atom::AtomInterner;
-use crate::cactus::Branch;
+use crate::cactus::{Branch, StackOverflow};
 use crate::runtime::callable::{Callable, CallableKind};
 #[cfg(feature = "stats")]
 use crate::RefCount;
@@ -127,25 +127,31 @@ impl<'a> Execution<'a> {
                 self.ip = continuation.ip();
             }
             Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
-                self.stack.push_frame(
-                    callback,
-                    arguments.into_iter().map(StackCell::Set).collect(),
-                    None,
-                );
+                self.stack
+                    .push_frame(
+                        callback,
+                        arguments.into_iter().map(StackCell::Set).collect(),
+                        None,
+                    )
+                    .map_err(|k| self.error(k))?;
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ip = closure.ip();
                 let ghost = unsafe { closure.stack() };
-                self.stack.push_frame(
-                    callback,
-                    arguments.into_iter().map(StackCell::Set).collect(),
-                    Some(ghost),
-                );
+                self.stack
+                    .push_frame(
+                        callback,
+                        arguments.into_iter().map(StackCell::Set).collect(),
+                        Some(ghost),
+                    )
+                    .map_err(|k| self.error(k))?;
                 self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
-                self.stack.push_frame(callback, vec![], None);
+                self.stack
+                    .push_frame(callback, vec![], None)
+                    .map_err(|k| self.error(k))?;
                 #[cfg(feature = "stats")]
                 let time_native = Instant::now();
                 native.call(self, arguments)?;
@@ -169,9 +175,9 @@ impl<'a> Execution<'a> {
     }
 
     #[inline(always)]
-    fn branch(&mut self) -> Self {
-        let branch = self.stack.branch();
-        Self {
+    fn branch(&mut self) -> Result<Self, StackOverflow> {
+        let branch = self.stack.branch()?;
+        Ok(Self {
             atom_interner: self.atom_interner.clone(),
             program: self.program.clone(),
             error_ip: self.error_ip,
@@ -182,7 +188,7 @@ impl<'a> Execution<'a> {
             stats: self.stats.clone(),
             #[cfg(feature = "stats")]
             step_stats: StepStats::default(),
-        }
+        })
     }
 
     pub fn error<K>(&self, kind: K) -> Error
@@ -246,17 +252,23 @@ impl<'a> Execution<'a> {
                 self.ip = continuation.ip();
             }
             Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
-                self.stack.push_frame(self.ip, arguments, None);
+                self.stack
+                    .push_frame(self.ip, arguments, None)
+                    .map_err(|k| self.error(k))?;
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let ip = closure.ip();
                 let ghost = unsafe { closure.stack() };
-                self.stack.push_frame(self.ip, arguments, Some(ghost));
+                self.stack
+                    .push_frame(self.ip, arguments, Some(ghost))
+                    .map_err(|k| self.error(k))?;
                 self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
-                self.stack.push_frame(self.ip, vec![], None);
+                self.stack
+                    .push_frame(self.ip, vec![], None)
+                    .map_err(|k| self.error(k))?;
                 let arguments = arguments
                     .into_iter()
                     .map(|val| val.into_set())
@@ -287,19 +299,25 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-                self.stack.push_frame(ip, arguments, None);
+                self.stack
+                    .push_frame(ip, arguments, None)
+                    .map_err(|k| self.error(k))?;
                 self.ip = procedure.ip();
             }
             Value::Callable(Callable(CallableKind::Closure(closure))) => {
                 let next_ip = closure.ip();
                 let frame_ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 let ghost = unsafe { closure.stack() };
-                self.stack.push_frame(frame_ip, arguments, Some(ghost));
+                self.stack
+                    .push_frame(frame_ip, arguments, Some(ghost))
+                    .map_err(|k| self.error(k))?;
                 self.ip = next_ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
-                self.stack.push_frame(ip, vec![], None);
+                self.stack
+                    .push_frame(ip, vec![], None)
+                    .map_err(|k| self.error(k))?;
                 let arguments = arguments
                     .into_iter()
                     .map(|val| val.into_set())
@@ -971,12 +989,15 @@ impl<'a> Execution<'a> {
                 self.r#return(return_value)?;
             }
             Instruction::Close(offset) => {
-                let closure = self.stack.closure(self.ip);
+                let closure = self.stack.closure(self.ip).map_err(|k| self.error(k))?;
                 self.stack.push(Value::from(closure));
                 self.ip = offset;
             }
             Instruction::Shift(offset) => {
-                let continuation = self.stack.continuation(self.ip);
+                let continuation = self
+                    .stack
+                    .continuation(self.ip)
+                    .map_err(|k| self.error(k))?;
                 self.stack.push(Value::from(continuation));
                 self.ip = offset;
             }
@@ -1006,7 +1027,7 @@ impl<'a> Execution<'a> {
                 // A branch requires two values on the stack; the two branches get the
                 // different values, respectively.
                 let (rhs, lhs) = self.stack_pop_2()?;
-                let mut branch = self.branch();
+                let mut branch = self.branch().map_err(|k| self.error(k))?;
                 self.stack.push(lhs);
                 branch.stack.push(rhs);
                 return Ok(Step::Spawn(branch));

@@ -1,6 +1,6 @@
 use super::super::RefCount;
 use crate::bytecode::Offset;
-use crate::cactus::{Branch, Pointer, Slice};
+use crate::cactus::{Branch, Pointer, Slice, StackOverflow};
 use crate::vm::stack::{Cont, Stack, StackCell, StackFrame};
 use std::fmt::{self, Debug};
 use std::hash::Hash;
@@ -41,8 +41,8 @@ impl Hash for Continuation {
 
 impl Continuation {
     #[inline(always)]
-    pub(crate) fn new(ip: Offset, stack: Stack<'_>) -> Self {
-        Self(RefCount::new(InnerContinuation::new(ip, stack)))
+    pub(crate) fn new(ip: Offset, stack: Stack<'_>) -> Result<Self, StackOverflow> {
+        Ok(Self(RefCount::new(InnerContinuation::new(ip, stack)?)))
     }
 
     /// Returns the ID of the underlying continuation instance. This ID will remain
@@ -109,16 +109,16 @@ struct InnerContinuation {
 
 impl InnerContinuation {
     #[inline(always)]
-    fn new(ip: Offset, stack: Stack<'_>) -> Self {
+    fn new(ip: Offset, stack: Stack<'_>) -> Result<Self, StackOverflow> {
         log::debug!("allocating continuation");
         #[cfg(feature = "stats")]
         crate::GLOBAL_STATS
             .continuations_allocated
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let (frames, mut branch, fp) = stack.into_parts();
-        branch.commit();
+        branch.commit()?;
         let branch = branch.into_slice().into_pointer();
-        Self {
+        Ok(Self {
             ip,
             frames: frames
                 .into_iter()
@@ -130,7 +130,7 @@ impl InnerContinuation {
                 .collect(),
             branch,
             fp,
-        }
+        })
     }
 }
 
