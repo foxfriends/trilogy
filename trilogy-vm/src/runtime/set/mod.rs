@@ -112,6 +112,18 @@ impl Set {
     }
 
     #[inline]
+    pub fn union_from(&self, other: Set) {
+        let mut other = match RefCount::try_unwrap(other.0) {
+            Ok(other) => other,
+            Err(other) => return self.union(&Set(other)),
+        };
+        self.0
+            .lock()
+            .unwrap()
+            .extend(other.get_mut().unwrap().drain());
+    }
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.lock().unwrap().len()
     }

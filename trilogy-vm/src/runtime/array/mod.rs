@@ -270,7 +270,7 @@ impl Array {
         self.0.lock().unwrap().push(value.into());
     }
 
-    /// Copies each element from other onto the end of self. The other array
+    /// Copies each element from `other` onto the end of `self`. The other array
     /// and its values are unmodified.
     ///
     /// # Examples
@@ -288,6 +288,30 @@ impl Array {
     pub fn append(&self, other: &Array) {
         let mut other = other.0.lock().unwrap().clone();
         self.0.lock().unwrap().append(&mut other);
+    }
+
+    /// Copies each element from `other` onto the end of `self`. In the case
+    /// that this is the only reference to `other`, avoids cloning the contained
+    /// elements. The other array and its values are unmodified.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Array, Value};
+    /// let first = Array::from(vec![Value::from(1)]);
+    /// let second = Array::from(vec![Value::from(2)]);
+    /// first.append_from(second);
+    /// assert_eq!(first.len(), 2);
+    /// assert_eq!(first.get(1), Some(Value::from(2)));
+    /// assert_eq!(second.len(), 1);
+    /// ```
+    #[inline]
+    pub fn append_from(&self, other: Array) {
+        let mut other = match RefCount::try_unwrap(other.0) {
+            Ok(other) => other,
+            Err(other) => return self.append(&Array(other)),
+        };
+        self.0.lock().unwrap().append(other.get_mut().unwrap());
     }
 
     /// Returns the number of elements in the Array.

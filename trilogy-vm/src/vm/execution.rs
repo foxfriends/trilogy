@@ -617,15 +617,15 @@ impl<'a> Execution<'a> {
                 match (lhs, rhs) {
                     (Value::String(lhs), Value::String(rhs)) => self.stack.push(lhs + &rhs),
                     (Value::Array(lhs), Value::Array(rhs)) => {
-                        lhs.append(&rhs);
+                        lhs.append_from(rhs);
                         self.stack.push(Value::Array(lhs));
                     }
                     (Value::Set(lhs), Value::Set(rhs)) => {
-                        lhs.union(&rhs);
+                        lhs.union_from(rhs);
                         self.stack.push(Value::Set(lhs));
                     }
                     (Value::Record(lhs), Value::Record(rhs)) => {
-                        lhs.union(&rhs);
+                        lhs.union_from(rhs);
                         self.stack.push(Value::Record(lhs));
                     }
                     _ => return Err(self.error(InternalRuntimeError::TypeError)),

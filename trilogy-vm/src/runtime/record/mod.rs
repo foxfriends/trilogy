@@ -231,6 +231,41 @@ impl Record {
         self.0.lock().unwrap().extend(other.drain());
     }
 
+    /// Merges other and self by adding the key-value pairs of other to self.
+    /// In the case that this is the only reference to `other`, avoids cloning
+    /// the contained elements.
+    ///
+    /// Values associated with found in both records will be taken from `other`.
+    /// The other record and its values are unmodified.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Record, Value};
+    /// let first = Record::new();
+    /// first.insert(0, 0);
+    /// first.insert(1, 0);
+    /// let second = Record::new();
+    /// second.insert(1, 1);
+    /// second.insert(2, 2);
+    /// first.union_from(second);
+    /// assert_eq!(first.get(&Value::from(0)), Some(Value::from(0)));
+    /// assert_eq!(first.get(&Value::from(1)), Some(Value::from(1)));
+    /// assert_eq!(first.get(&Value::from(2)), Some(Value::from(2)));
+    /// assert_eq!(second.len(), 2);
+    /// ```
+    #[inline]
+    pub fn union_from(&self, other: Record) {
+        let mut other = match RefCount::try_unwrap(other.0) {
+            Ok(other) => other,
+            Err(other) => return self.union(&Record(other)),
+        };
+        self.0
+            .lock()
+            .unwrap()
+            .extend(other.get_mut().unwrap().drain());
+    }
+
     /// Removes the key-value pair associated with a key of this Record. Returns the removed
     /// value, or None if the key is not in the Record.
     ///
