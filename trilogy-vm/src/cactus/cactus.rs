@@ -313,6 +313,7 @@ impl<T> Cactus<T> {
     /// is locked will require the lock to be released, as the cactus is locked
     /// internally to those methods.
     #[inline]
+    #[allow(clippy::type_complexity)]
     pub fn lock(&self) -> Result<CactusGuard<T>, PoisonError<MutexGuard<Vec<Option<T>>>>> {
         self.stack.lock().map(CactusGuard)
     }
