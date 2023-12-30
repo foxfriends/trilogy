@@ -82,16 +82,40 @@ impl Set {
             .collect()
     }
 
-    #[inline]
-    pub fn get(&self, value: &Value) -> Option<Value> {
-        self.0.lock().unwrap().get(value).cloned()
-    }
-
+    /// Returns true of this Set contains a given value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let set = Set::new();
+    /// set.insert("hello");
+    /// assert!(set.has(&Value::from("hello")));
+    /// assert!(!set.has(&Value::from("world")));
+    /// ```
     #[inline]
     pub fn has(&self, value: &Value) -> bool {
         self.0.lock().unwrap().contains(value)
     }
 
+    /// Adds a value to the set.
+    ///
+    /// Returns whether the value was newly inserted. That is:
+    ///
+    /// * If the set did not previously contain this value, `true` is returned.
+    /// * If the set already contained this value, `false` is returned,
+    ///   and the set is not modified: original value is not replaced,
+    ///   and the value passed as argument is dropped.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let set = Set::new();
+    /// assert_eq!(set.insert(2), true);
+    /// assert_eq!(set.insert(2), false);
+    /// assert_eq!(set.len(), 1);
+    /// ```
     #[inline]
     pub fn insert<V>(&self, value: V) -> bool
     where
@@ -100,17 +124,69 @@ impl Set {
         self.0.lock().unwrap().insert(value.into())
     }
 
+    /// Removes a value from the set. Returns whether the value was
+    /// present in the set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let set = Set::new();
+    /// set.insert(2);
+    /// assert_eq!(set.remove(&Value::from(2)), true);
+    /// assert_eq!(set.remove(&Value::from(2)), false);
+    /// ```
     #[inline]
     pub fn remove(&self, value: &Value) -> bool {
         self.0.lock().unwrap().remove(value)
     }
 
+    /// Merges other and self by adding the values pairs of `other` to `self`.
+    ///
+    /// Values associated with found in both sets will be taken from `other`.
+    /// The other set and its values are unmodified.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let first = Set::new();
+    /// first.insert(2);
+    /// first.insert(3);
+    /// let second = Set::new();
+    /// second.insert(3);
+    /// second.insert(4);
+    /// first.union(&second);
+    /// assert_eq!(first.len(), 3);
+    /// assert_eq!(first.has(&Value::from(3)), true);
+    /// ```
     #[inline]
     pub fn union(&self, other: &Set) {
         let mut other = other.0.lock().unwrap().clone();
         self.0.lock().unwrap().extend(other.drain());
     }
 
+    /// Merges other and self by adding the values pairs of `other` to `self`.
+    /// In the case that this is the only reference to `other`, avoids cloning
+    /// the contained elements.
+    ///
+    /// Values associated with found in both sets will be taken from `other`.
+    /// The other set and its values are unmodified.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let first = Set::new();
+    /// first.insert(2);
+    /// first.insert(3);
+    /// let second = Set::new();
+    /// second.insert(3);
+    /// second.insert(4);
+    /// first.union_from(second);
+    /// assert_eq!(first.len(), 3);
+    /// assert_eq!(first.has(&Value::from(3)), true);
+    /// ```
     #[inline]
     pub fn union_from(&self, other: Set) {
         let mut other = match RefCount::try_unwrap(other.0) {
@@ -123,11 +199,34 @@ impl Set {
             .extend(other.get_mut().unwrap().drain());
     }
 
+    /// Returns the number of elements in this set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let set = Set::new();
+    /// set.insert(3);
+    /// set.insert(4);
+    /// assert_eq!(set.len(), 2);
+    /// ```
     #[inline]
     pub fn len(&self) -> usize {
         self.0.lock().unwrap().len()
     }
 
+    /// Returns true if the set contains no elements, or false otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::runtime::{Set, Value};
+    /// let set = Set::new();
+    /// assert_eq!(set.is_empty(), true);
+    /// set.insert(3);
+    /// set.insert(4);
+    /// assert_eq!(set.is_empty(), false);
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.lock().unwrap().is_empty()
