@@ -1,6 +1,6 @@
 use super::{Branch, RangeMap};
 use std::ops::Range;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
 /// The root of the Cactus Stack.
 ///
@@ -313,8 +313,8 @@ impl<T> Cactus<T> {
     /// is locked will require the lock to be released, as the cactus is locked
     /// internally to those methods.
     #[inline]
-    pub fn lock(&self) -> Result<CactusGuard<T>, ()> {
-        self.stack.lock().map(CactusGuard).map_err(|_| ())
+    pub fn lock(&self) -> Result<CactusGuard<T>, PoisonError<MutexGuard<Vec<Option<T>>>>> {
+        self.stack.lock().map(CactusGuard)
     }
 }
 
