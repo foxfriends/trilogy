@@ -1,6 +1,6 @@
 use crate::{Offset, OpCode};
 use std::fmt::{self, Display};
-use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::time::Duration;
 
 /// Similar to `std::time::Duration`, but now atomic.
@@ -35,6 +35,11 @@ pub struct Stats {
     pub native_duration: AtomicDuration,
     pub branch_hits: AtomicU64,
     pub branch_misses: AtomicU64,
+    pub max_stack_size: AtomicUsize,
+    pub garbage_collection_duration: AtomicDuration,
+    pub garbage_cells_reclaimed: AtomicUsize,
+    pub garbage_collections: AtomicU64,
+    pub garbage_compactions: AtomicU64,
 }
 
 impl Default for Stats {
@@ -46,6 +51,11 @@ impl Default for Stats {
             native_duration: AtomicDuration::default(),
             branch_hits: AtomicU64::default(),
             branch_misses: AtomicU64::default(),
+            max_stack_size: AtomicUsize::default(),
+            garbage_collection_duration: AtomicDuration::default(),
+            garbage_cells_reclaimed: AtomicUsize::default(),
+            garbage_collections: AtomicU64::default(),
+            garbage_compactions: AtomicU64::default(),
         }
     }
 }
@@ -63,19 +73,50 @@ impl Display for Stats {
         writeln!(f, "--- Basic Statistics ---")?;
         writeln!(
             f,
-            "Read instruction duration: {:?} (avg: {:?})",
+            "  Read instruction duration: {:?} (avg: {:?})",
             self.instruction_read_duration.load(Ordering::Relaxed),
             self.instruction_read_duration.load(Ordering::Relaxed) / total_instructions as u32,
         )?;
         writeln!(
             f,
-            "     Native call duration: {:?}",
+            "       Native call duration: {:?}",
             self.native_duration.load(Ordering::Relaxed)
         )?;
         writeln!(
             f,
-            "           Total duration: {:?}",
-            self.instruction_read_duration.load(Ordering::Relaxed) + total_duration,
+            "Garbage collection duration: {:?}",
+            self.garbage_collection_duration.load(Ordering::Relaxed),
+        )?;
+        writeln!(f, "         Execution duration: {:?}", total_duration,)?;
+        writeln!(
+            f,
+            "             Total duration: {:?}",
+            self.garbage_collection_duration.load(Ordering::Relaxed)
+                + self.instruction_read_duration.load(Ordering::Relaxed)
+                + total_duration,
+        )?;
+
+        writeln!(
+            f,
+            "Garbage collections: {}",
+            self.garbage_collections.load(Ordering::Relaxed),
+        )?;
+        writeln!(
+            f,
+            "Garbage compactions: {} ({}%)",
+            self.garbage_compactions.load(Ordering::Relaxed),
+            self.garbage_compactions.load(Ordering::Relaxed) * 100
+                / self.garbage_collections.load(Ordering::Relaxed)
+        )?;
+        writeln!(
+            f,
+            "  Garbage reclaimed: {}",
+            self.garbage_cells_reclaimed.load(Ordering::Relaxed),
+        )?;
+        writeln!(
+            f,
+            "     Max stack size: {}",
+            self.max_stack_size.load(Ordering::Relaxed),
         )?;
 
         writeln!(

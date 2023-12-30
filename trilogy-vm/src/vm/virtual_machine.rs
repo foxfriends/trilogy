@@ -173,11 +173,37 @@ impl VirtualMachine {
                 }
                 Step::Exit(value) => return Ok(value),
             }
+            #[cfg(feature = "stats")]
+            self.stats
+                .max_stack_size
+                .fetch_max(stack.len(), std::sync::atomic::Ordering::Relaxed);
             if stack.len() > gc_threshold {
                 log::trace!("collecting garbage");
+                #[cfg(feature = "stats")]
+                self.stats
+                    .garbage_collections
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                #[cfg(feature = "stats")]
+                let begin = std::time::Instant::now();
+                #[cfg(feature = "stats")]
+                let before = stack.len();
                 let gc = GarbageCollector::new(&stack);
                 gc.collect_garbage(&executions);
                 gc_threshold = (stack.capacity() - stack.len()) * 3 / 4 + stack.len();
+                #[cfg(feature = "stats")]
+                {
+                    self.stats
+                        .garbage_collection_duration
+                        .fetch_add(begin.elapsed(), std::sync::atomic::Ordering::Relaxed);
+                    if stack.len() < before {
+                        self.stats
+                            .garbage_compactions
+                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        self.stats
+                            .garbage_cells_reclaimed
+                            .fetch_add(before - stack.len(), std::sync::atomic::Ordering::Relaxed);
+                    }
+                }
             }
         };
         Err(last_ex.error(ErrorKind::ExecutionFizzledError))
