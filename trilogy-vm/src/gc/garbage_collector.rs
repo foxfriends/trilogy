@@ -164,14 +164,13 @@ impl<'a> GarbageCollector<'a> {
                 }
             }
             condensation.insert_tail(condensation.len(), offset);
-            // TODO: There is a race here, should probably lock the cactus
-            // and then remove the ranges and shift the pointers all in one
-            // atomic action.
-            self.cactus.remove_ranges(visitor.reachable);
+            let mut cactus = self.cactus.lock().unwrap();
+            cactus.remove_ranges(visitor.reachable);
             for PtrEq(pointer) in visitor.pointers {
                 let mut rangemap = pointer.lock().unwrap();
                 rangemap.shift_ranges(&condensation);
             }
+            std::mem::drop(cactus);
         }
     }
 }

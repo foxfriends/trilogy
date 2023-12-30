@@ -1,5 +1,6 @@
 use super::{Branch, RangeMap};
-use std::{ops::Range, sync::Mutex};
+use std::ops::Range;
+use std::sync::{Mutex, MutexGuard};
 
 /// The root of the Cactus Stack.
 ///
@@ -303,6 +304,49 @@ impl<T> Cactus<T> {
         }
         stack.extend(values.drain(..).map(Some));
         Ok(())
+    }
+
+    /// Locks this cactus, returning a handle which can be used to mutate the cactus
+    /// atomically.
+    ///
+    /// Note that attempting to use the regular cactus methods while the cactus
+    /// is locked will require the lock to be released, as the cactus is locked
+    /// internally to those methods.
+    #[inline]
+    pub fn lock(&self) -> Result<CactusGuard<T>, ()> {
+        self.stack.lock().map(CactusGuard).map_err(|_| ())
+    }
+}
+
+pub struct CactusGuard<'a, T>(MutexGuard<'a, Vec<Option<T>>>);
+
+impl<'a, T> CactusGuard<'a, T> {
+    /// Remove ranges of values from this cactus where the range map is `false`.
+    /// Shifts all non-removed ranges towards the front, shortening the length
+    /// accordingly. Capacity is not affected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use trilogy_vm::cactus::{Cactus, RangeMap};
+    /// let cactus = Cactus::new();
+    /// cactus.append(&mut vec![1, 2, 3, 4, 5, 6]);
+    /// let mut keep = RangeMap::default();
+    /// keep.insert(0..2, true);
+    /// keep.insert(4..6, true);
+    /// cactus.remove_ranges(keep);
+    /// assert_eq!(cactus.get(1), Some(2));
+    /// assert_eq!(cactus.get(2), Some(5));
+    /// assert_eq!(cactus.get(4), None);
+    /// ```
+    #[inline]
+    pub fn remove_ranges(&mut self, ranges: RangeMap<bool>)
+    where
+        T: Clone,
+    {
+        for (range, _) in ranges.reverse_iter().filter(|(_, v)| !v) {
+            self.0.drain(range);
+        }
     }
 }
 
