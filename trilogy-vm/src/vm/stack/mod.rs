@@ -16,7 +16,7 @@ pub(crate) use cont::Cont;
 pub use stack_cell::StackCell;
 pub use stack_dump::StackDump;
 pub(crate) use stack_frame::StackFrame;
-pub use trace::{StackTrace, StackTraceEntry};
+pub use trace::StackTrace;
 
 /// The stack implementation for the Trilogy VM.
 ///

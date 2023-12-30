@@ -15,7 +15,6 @@ mod writer;
 pub use annotation::{Annotation, Location, Note};
 pub use builder::ChunkBuilder;
 pub use error::ChunkError;
-pub use iter::ChunkIter;
 pub(crate) use line::{Line, Parameter};
 pub use writer::ChunkWriter;
 
