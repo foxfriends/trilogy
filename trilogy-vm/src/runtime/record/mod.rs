@@ -252,7 +252,6 @@ impl Record {
     /// assert_eq!(first.get(&Value::from(0)), Some(Value::from(0)));
     /// assert_eq!(first.get(&Value::from(1)), Some(Value::from(1)));
     /// assert_eq!(first.get(&Value::from(2)), Some(Value::from(2)));
-    /// assert_eq!(second.len(), 2);
     /// ```
     #[inline]
     pub fn union_from(&self, other: Record) {

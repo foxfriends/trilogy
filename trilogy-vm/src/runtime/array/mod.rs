@@ -303,7 +303,6 @@ impl Array {
     /// first.append_from(second);
     /// assert_eq!(first.len(), 2);
     /// assert_eq!(first.get(1), Some(Value::from(2)));
-    /// assert_eq!(second.len(), 1);
     /// ```
     #[inline]
     pub fn append_from(&self, other: Array) {
