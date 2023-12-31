@@ -723,7 +723,9 @@ mod test {
                   (Expression::Reference _)
                   (BinaryOperator::Access _)
                   (Expression::Number _)))
-              []))
+              _ _
+              []
+              _))
           (BinaryOperator::Add _)
           (Expression::Application
             (Application

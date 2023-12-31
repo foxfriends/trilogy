@@ -3,6 +3,14 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
+/// A block, containing some number of statements.
+///
+/// ```trilogy
+/// {
+///     let x = 5
+///     return x * 2
+/// }
+/// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Block {
     pub open_brace: Token,

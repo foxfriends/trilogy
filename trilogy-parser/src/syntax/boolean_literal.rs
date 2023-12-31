@@ -2,9 +2,14 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType};
 
+/// A boolean literal expression.
+///
+/// ```trilogy
+/// true
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct BooleanLiteral {
-    token: Token,
+    pub token: Token,
 }
 
 impl BooleanLiteral {
@@ -28,7 +33,7 @@ impl BooleanLiteral {
 mod test {
     use super::*;
 
-    test_parse!(bool_true: "true" => BooleanLiteral::parse => "(BooleanLiteral)");
-    test_parse!(bool_false: "false" => BooleanLiteral::parse => "(BooleanLiteral)");
+    test_parse!(bool_true: "true" => BooleanLiteral::parse => "(BooleanLiteral _)");
+    test_parse!(bool_false: "false" => BooleanLiteral::parse => "(BooleanLiteral _)");
     test_parse_error!(not_bool: "unit" => BooleanLiteral::parse => "expected boolean literal");
 }

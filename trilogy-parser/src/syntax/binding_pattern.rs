@@ -2,6 +2,11 @@ use super::*;
 use crate::{Parser, Spanned};
 use source_span::Span;
 
+/// A binding pattern.
+///
+/// ```trilogy
+/// mut x
+/// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct BindingPattern {
     pub mutable: MutModifier,
@@ -18,10 +23,12 @@ impl BindingPattern {
         })
     }
 
+    #[inline]
     pub fn is_immutable(&self) -> bool {
         matches!(self.mutable, MutModifier::Not)
     }
 
+    #[inline]
     pub fn is_mutable(&self) -> bool {
         matches!(self.mutable, MutModifier::Mut(..))
     }

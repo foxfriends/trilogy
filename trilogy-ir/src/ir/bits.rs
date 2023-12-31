@@ -6,7 +6,7 @@ pub struct Bits(BitVec<usize, Msb0>);
 
 impl Bits {
     pub(super) fn convert(ast: syntax::BitsLiteral) -> Self {
-        Self(ast.value())
+        Self(ast.into_value())
     }
 
     pub fn value(&self) -> &BitVec<usize, Msb0> {

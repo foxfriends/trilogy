@@ -36,6 +36,25 @@ impl TokenValue {
             _ => None,
         }
     }
+
+    /// The bits value of this token, if any.
+    #[must_use]
+    pub fn as_bits(&self) -> Option<&BitVec<usize, Msb0>> {
+        match self {
+            Self::Bits(bits) => Some(bits),
+            _ => None,
+        }
+    }
+
+    /// Consumes this token value, returning the underlying bits value. If the
+    /// token does not have a bits value, it is discarded.
+    #[must_use]
+    pub fn into_bits(self) -> Option<BitVec<usize, Msb0>> {
+        match self {
+            Self::Bits(bits) => Some(bits),
+            _ => None,
+        }
+    }
 }
 
 impl From<String> for TokenValue {

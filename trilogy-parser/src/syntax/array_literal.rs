@@ -50,7 +50,7 @@ impl ArrayLiteral {
                 break end;
             };
             match ArrayElement::parse(parser)? {
-                Ok(element) => elements.push(comma, element),
+                Ok(element) => elements.follow(comma, element),
                 Err(next) => {
                     return Ok(Err(ArrayPattern::parse_from_expression(
                         parser, obrack, elements, next,

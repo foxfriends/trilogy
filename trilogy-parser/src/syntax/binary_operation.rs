@@ -2,6 +2,11 @@ use super::{expression::Precedence, *};
 use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
+/// A binary operation expression.
+///
+/// ```trilogy
+/// lhs + rhs
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct BinaryOperation {
     pub lhs: Expression,
@@ -46,6 +51,7 @@ impl BinaryOperation {
     }
 }
 
+/// A binary operator, represented by a single token.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum BinaryOperator {
     Access(Token),

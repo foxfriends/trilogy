@@ -112,7 +112,7 @@ impl Expression {
             ),
             Call(ast) => {
                 let span = ast.span();
-                let argument_span = ast.start_token().span.union(ast.end_token().span);
+                let argument_span = ast.oparen.span.union(ast.cparen.span);
                 let proc = Self::convert(converter, ast.procedure);
                 let arguments = ast
                     .arguments
@@ -165,7 +165,7 @@ impl Expression {
             ),
             Break(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.break_token().span, Builtin::Break),
+                Self::builtin(ast.r#break.span, Builtin::Break),
                 Self::convert(converter, ast.expression),
             ),
             Continue(ast) => Self::application(
@@ -575,8 +575,8 @@ impl Expression {
         Self::new(span, Value::Bits(value))
     }
 
-    pub(super) fn atom(span: Span, value: String) -> Self {
-        Self::new(span, Value::Atom(value))
+    pub(super) fn atom(span: Span, value: impl Into<String>) -> Self {
+        Self::new(span, Value::Atom(value.into()))
     }
 
     pub(super) fn unit(span: Span) -> Self {

@@ -1,11 +1,16 @@
 use super::*;
 use crate::Parser;
 use bitvec::prelude::*;
-use trilogy_scanner::{Token, TokenType, TokenValue};
+use trilogy_scanner::{Token, TokenType};
 
+/// A bits literal expression
+///
+/// ```trilogy
+/// 0bb1010
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct BitsLiteral {
-    token: Token,
+    pub token: Token,
 }
 
 impl BitsLiteral {
@@ -16,11 +21,14 @@ impl BitsLiteral {
         Ok(Self { token })
     }
 
-    pub fn value(&self) -> BitVec<usize, Msb0> {
-        let TokenValue::Bits(bits) = self.token.value.as_ref().unwrap() else {
-            unreachable!()
-        };
-        bits.clone()
+    /// The bits value of this expression.
+    pub fn value(&self) -> &BitVec<usize, Msb0> {
+        self.token.value.as_ref().unwrap().as_bits().unwrap()
+    }
+
+    /// The bits value of this expression.
+    pub fn into_value(self) -> BitVec<usize, Msb0> {
+        self.token.value.unwrap().into_bits().unwrap()
     }
 }
 
@@ -28,8 +36,8 @@ impl BitsLiteral {
 mod test {
     use super::*;
 
-    test_parse!(bits_bin: "0bb0101" => BitsLiteral::parse => "(BitsLiteral)");
-    test_parse!(bits_hex: "0xb10af" => BitsLiteral::parse => "(BitsLiteral)");
-    test_parse!(bits_oct: "0ob107" => BitsLiteral::parse => "(BitsLiteral)");
+    test_parse!(bits_bin: "0bb0101" => BitsLiteral::parse => "(BitsLiteral _)");
+    test_parse!(bits_hex: "0xb10af" => BitsLiteral::parse => "(BitsLiteral _)");
+    test_parse!(bits_oct: "0ob107" => BitsLiteral::parse => "(BitsLiteral _)");
     test_parse_error!(not_bits: "0b101" => BitsLiteral::parse => "expected bits literal");
 }

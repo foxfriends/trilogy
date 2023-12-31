@@ -44,9 +44,17 @@ impl<T> Punctuated<T> {
         }
     }
 
-    pub(crate) fn push(&mut self, punctuation: Token, item: T) {
+    pub(crate) fn follow(&mut self, punctuation: Token, item: T) {
         self.elements
             .push((self.last.replace(item).unwrap(), punctuation));
+    }
+
+    pub(crate) fn push(&mut self, item: T, punctuation: Token) {
+        self.elements.push((item, punctuation));
+    }
+
+    pub(crate) fn push_last(&mut self, last: T) {
+        self.last = Some(last);
     }
 
     pub(crate) fn finish(&mut self, last: Token) {

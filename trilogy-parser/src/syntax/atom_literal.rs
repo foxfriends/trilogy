@@ -1,7 +1,12 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::{Token, TokenType, TokenValue};
+use trilogy_scanner::{Token, TokenType};
 
+/// An atom literal expression.
+///
+/// ```trilogy
+/// 'atom
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct AtomLiteral {
     pub token: Token,
@@ -15,11 +20,9 @@ impl AtomLiteral {
         Ok(Self { token })
     }
 
-    pub fn value(&self) -> String {
-        let TokenValue::String(value) = self.token.value.as_ref().unwrap() else {
-            unreachable!()
-        };
-        value.clone()
+    /// The string value of this atom literal. Does not include the leading `'` character.
+    pub fn value(&self) -> &str {
+        self.token.value.as_ref().unwrap().as_str().unwrap()
     }
 }
 
@@ -27,6 +30,6 @@ impl AtomLiteral {
 mod test {
     use super::*;
 
-    test_parse!(atom: "'hello" => AtomLiteral::parse => "(AtomLiteral)");
+    test_parse!(atom: "'hello" => AtomLiteral::parse => "(AtomLiteral _)");
     test_parse_error!(not_atom: "hello" => AtomLiteral::parse => "expected atom literal");
 }
