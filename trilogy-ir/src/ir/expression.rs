@@ -364,7 +364,7 @@ impl Expression {
                     .apply_to(span, Self::convert_pattern(converter, ast.rhs))
             }
             Array(ast) => {
-                let start_span = ast.start_token().span;
+                let start_span = ast.obrack.span;
                 let span = ast.span();
                 let mut elements: Pack = ast
                     .head

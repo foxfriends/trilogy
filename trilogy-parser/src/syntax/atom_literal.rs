@@ -4,7 +4,7 @@ use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct AtomLiteral {
-    token: Token,
+    pub token: Token,
 }
 
 impl AtomLiteral {

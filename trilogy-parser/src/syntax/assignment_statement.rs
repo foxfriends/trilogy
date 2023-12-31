@@ -5,6 +5,13 @@ use trilogy_scanner::{
     TokenType::{self, *},
 };
 
+/// An assignment statement. An assignment may have one of many "strategies".
+///
+/// [`FunctionAssignment`][] is parsed separately.
+///
+/// ```trilogy
+/// lhs = rhs
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct AssignmentStatement {
     pub lhs: Expression,
@@ -43,6 +50,7 @@ impl AssignmentStatement {
     }
 }
 
+/// The strategy of an assignment statement.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum AssignmentStrategy {
     Direct(Token),

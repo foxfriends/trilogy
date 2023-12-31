@@ -3,19 +3,27 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
+/// An array pattern.
+///
+/// ```trilogy
+/// [1, 2, 3, ..rest, 5, 6, 7]
+/// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayPattern {
-    pub start: Token,
+    pub obrack: Token,
+    /// The head elements, which come before the optional `rest` element. Will be all elements if `rest` is `None`.
     pub head: Vec<Pattern>,
+    /// A single optional spread elements, containing the rest of the elements.
     pub rest: Option<RestPattern>,
+    /// The tail elements, which follow the spread. Will be empty if `rest` is `None`.
     pub tail: Vec<Pattern>,
-    pub end: Token,
+    pub cbrack: Token,
 }
 
 impl ArrayPattern {
     pub(crate) fn parse_elements(
         parser: &mut Parser,
-        start: Token,
+        obrack: Token,
         mut head: Vec<Pattern>,
     ) -> SyntaxResult<Self> {
         let rest = loop {
@@ -41,19 +49,19 @@ impl ArrayPattern {
         };
 
         if let Some(rest) = rest {
-            return Self::parse_rest(parser, start, head, rest, vec![]);
+            return Self::parse_rest(parser, obrack, head, rest, vec![]);
         }
 
-        let end = parser
+        let cbrack = parser
             .expect(CBrack)
             .map_err(|token| parser.expected(token, "expected `]` to end array pattern"))?;
 
         Ok(Self {
-            start,
+            obrack,
             head,
             rest: None,
             tail: vec![],
-            end,
+            cbrack,
         })
     }
 
@@ -99,11 +107,11 @@ impl ArrayPattern {
             .map_err(|token| parser.expected(token, "expected `]` to end array pattern"))?;
 
         Ok(Self {
-            start,
+            obrack: start,
             head,
             rest: Some(rest),
             tail,
-            end,
+            cbrack: end,
         })
     }
 
@@ -117,7 +125,7 @@ impl ArrayPattern {
     pub(crate) fn parse_from_expression(
         parser: &mut Parser,
         start: Token,
-        elements: Vec<ArrayElement>,
+        elements: Punctuated<ArrayElement>,
         (spread, next): (Option<Token>, Pattern),
     ) -> SyntaxResult<Self> {
         let (head, rest, tail) = elements.into_iter().try_fold(
@@ -158,14 +166,6 @@ impl ArrayPattern {
             }
         }
     }
-
-    pub fn start_token(&self) -> &Token {
-        &self.start
-    }
-
-    pub fn end_token(&self) -> &Token {
-        &self.end
-    }
 }
 
 impl TryFrom<ArrayLiteral> for ArrayPattern {
@@ -193,18 +193,18 @@ impl TryFrom<ArrayLiteral> for ArrayPattern {
         }
 
         Ok(Self {
-            start: value.obrack,
+            obrack: value.obrack,
             head,
             rest,
             tail,
-            end: value.cbrack,
+            cbrack: value.cbrack,
         })
     }
 }
 
 impl Spanned for ArrayPattern {
     fn span(&self) -> Span {
-        self.start.span.union(self.end.span)
+        self.obrack.span.union(self.cbrack.span)
     }
 }
 

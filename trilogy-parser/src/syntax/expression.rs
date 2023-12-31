@@ -276,7 +276,12 @@ impl Expression {
                         Err(patt) => Ok(Err(Pattern::Array(Box::new(patt)))),
                     },
                     Err(next) => Ok(Err(Pattern::Array(Box::new(
-                        ArrayPattern::parse_from_expression(parser, start, vec![], next)?,
+                        ArrayPattern::parse_from_expression(
+                            parser,
+                            start,
+                            Punctuated::new(),
+                            next,
+                        )?,
                     )))),
                 }
             }

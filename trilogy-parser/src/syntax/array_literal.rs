@@ -6,12 +6,12 @@ use trilogy_scanner::{Token, TokenType::*};
 /// An array literal expression.
 ///
 /// ```trilogy
-/// [1, 2, 3]
+/// [..prefix, 1, 2, 3, ..suffix]
 /// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayLiteral {
     pub obrack: Token,
-    pub elements: Vec<ArrayElement>,
+    pub elements: Punctuated<ArrayElement>,
     pub cbrack: Token,
 }
 
@@ -19,7 +19,7 @@ impl ArrayLiteral {
     pub(crate) fn new_empty(obrack: Token, cbrack: Token) -> Self {
         Self {
             obrack,
-            elements: vec![],
+            elements: Punctuated::default(),
             cbrack,
         }
     }
@@ -29,7 +29,7 @@ impl ArrayLiteral {
         obrack: Token,
         first: ArrayElement,
     ) -> SyntaxResult<Result<Self, ArrayPattern>> {
-        let mut elements = vec![first];
+        let mut elements = Punctuated::init(first);
         if let Ok(cbrack) = parser.expect(CBrack) {
             return Ok(Ok(Self {
                 obrack,
@@ -39,17 +39,18 @@ impl ArrayLiteral {
         }
 
         let cbrack = loop {
-            parser.expect(OpComma).map_err(|token| {
+            let comma = parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,
                     "expected `]` to end or `,` to continue array literal",
                 )
             })?;
             if let Ok(end) = parser.expect(CBrack) {
+                elements.finish(comma);
                 break end;
             };
             match ArrayElement::parse(parser)? {
-                Ok(element) => elements.push(element),
+                Ok(element) => elements.push(comma, element),
                 Err(next) => {
                     return Ok(Err(ArrayPattern::parse_from_expression(
                         parser, obrack, elements, next,

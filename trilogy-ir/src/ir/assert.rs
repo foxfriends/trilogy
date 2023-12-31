@@ -12,7 +12,7 @@ impl Assert {
     pub(super) fn convert(converter: &mut Converter, ast: syntax::AssertStatement) -> Self {
         let message = ast
             .message
-            .map(|ast| Expression::convert(converter, ast))
+            .map(|ast| Expression::convert(converter, ast.message))
             .unwrap_or_else(|| {
                 Expression::string(ast.assertion.span(), "assertion failed".to_owned())
             });
