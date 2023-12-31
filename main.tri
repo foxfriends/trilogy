@@ -1,9 +1,0 @@
-proc uses!() {
-    let closure = do() 3
-    let x = closure!()
-    return x
-}
-
-proc main!() {
-    exit uses!() + uses!()
-}
