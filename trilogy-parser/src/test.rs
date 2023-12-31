@@ -1,3 +1,5 @@
+//! Unit test helpers for the Trilogy AST and parser.
+
 use std::cmp::PartialEq;
 use std::fmt::{self, Debug};
 

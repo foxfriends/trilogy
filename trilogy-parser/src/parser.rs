@@ -34,7 +34,7 @@ impl<'src> Parser<'src> {
     /// Consume the tokens provided, attempting to build a [`Document`][] from them.
     ///
     /// Where possible, errors are recovered from and collected for later. The returned
-    /// `Document` may not be used if the [`Parse`][] contains errors
+    /// `Document` must not be used if the [`Parse`][] contains errors.
     pub fn parse(mut self) -> Parse<Document> {
         let ast = Amble::<Document>::parse(&mut self);
         Parse {

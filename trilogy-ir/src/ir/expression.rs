@@ -30,7 +30,7 @@ impl Expression {
                     Self::atom(ast.atom.span(), ast.atom.value()),
                 ),
             Array(ast) => {
-                let start_span = ast.start_token().span;
+                let start_span = ast.obrack.span;
                 let span = ast.span();
                 let elements = ast
                     .elements
@@ -61,7 +61,7 @@ impl Expression {
                     .apply_to(span, Self::pack(span, elements))
             }
             ArrayComprehension(ast) => {
-                let start_span = ast.start_token().span;
+                let start_span = ast.obrack.span;
                 let span = ast.span();
                 let iterator = Self::convert_iterator(converter, ast.query, ast.expression);
                 Self::builtin(start_span, Builtin::Array).apply_to(span, iterator)

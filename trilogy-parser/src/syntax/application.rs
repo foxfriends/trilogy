@@ -1,9 +1,16 @@
 use super::{expression::Precedence, *};
 use crate::Parser;
 
+/// A function application expression.
+///
+/// ```trilogy
+/// f x
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct Application {
+    /// An expression that evaluates to the function being applied.
     pub function: Expression,
+    /// An expression that evalutes to the argument to the function.
     pub argument: Expression,
 }
 

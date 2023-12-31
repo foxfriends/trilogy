@@ -41,7 +41,7 @@ impl<T> Parse<T> {
     ///
     /// Warnings do not affect the validity of the parsed contents, but may
     /// be presented to the writer of the source code to inform them of potential
-    /// errors.
+    /// mistakes.
     pub fn has_warnings(&self) -> bool {
         !self.warnings.is_empty()
     }

@@ -266,7 +266,7 @@ impl Expression {
                     )))));
                 }
                 match ArrayElement::parse(parser)? {
-                    Ok(ArrayElement::Element(expression)) if parser.expect(KwFor).is_ok() => {
+                    Ok(ArrayElement::Element(expression)) if parser.check(KwFor).is_ok() => {
                         Ok(Ok(Self::ArrayComprehension(Box::new(
                             ArrayComprehension::parse_rest(parser, start, expression)?,
                         ))))

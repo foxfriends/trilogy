@@ -3,37 +3,42 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
+/// An array literal expression.
+///
+/// ```trilogy
+/// [1, 2, 3]
+/// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayLiteral {
-    pub start: Token,
+    pub obrack: Token,
     pub elements: Vec<ArrayElement>,
-    pub end: Token,
+    pub cbrack: Token,
 }
 
 impl ArrayLiteral {
-    pub(crate) fn new_empty(start: Token, end: Token) -> Self {
+    pub(crate) fn new_empty(obrack: Token, cbrack: Token) -> Self {
         Self {
-            start,
+            obrack,
             elements: vec![],
-            end,
+            cbrack,
         }
     }
 
     pub(crate) fn parse_rest(
         parser: &mut Parser,
-        start: Token,
+        obrack: Token,
         first: ArrayElement,
     ) -> SyntaxResult<Result<Self, ArrayPattern>> {
         let mut elements = vec![first];
-        if let Ok(end) = parser.expect(CBrack) {
+        if let Ok(cbrack) = parser.expect(CBrack) {
             return Ok(Ok(Self {
-                start,
+                obrack,
                 elements,
-                end,
+                cbrack,
             }));
         }
 
-        let end = loop {
+        let cbrack = loop {
             parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,
@@ -47,7 +52,7 @@ impl ArrayLiteral {
                 Ok(element) => elements.push(element),
                 Err(next) => {
                     return Ok(Err(ArrayPattern::parse_from_expression(
-                        parser, start, elements, next,
+                        parser, obrack, elements, next,
                     )?))
                 }
             }
@@ -59,29 +64,21 @@ impl ArrayLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            if let Ok(end) = parser.expect(CBrack) {
-                break end;
+            if let Ok(cbrack) = parser.expect(CBrack) {
+                break cbrack;
             };
         };
         Ok(Ok(Self {
-            start,
+            obrack,
             elements,
-            end,
+            cbrack,
         }))
-    }
-
-    pub fn start_token(&self) -> &Token {
-        &self.start
-    }
-
-    pub fn end_token(&self) -> &Token {
-        &self.end
     }
 }
 
 impl Spanned for ArrayLiteral {
     fn span(&self) -> Span {
-        self.start.span.union(self.end.span)
+        self.obrack.span.union(self.cbrack.span)
     }
 }
 

@@ -1,5 +1,7 @@
 use trilogy_scanner::{Token, TokenType};
 
+/// Trait that describes a pattern that can be used to match certain
+/// tokens, similar to [std::str::Pattern][].
 pub(crate) trait TokenPattern {
     fn matches(&self, token: &Token) -> bool;
 }

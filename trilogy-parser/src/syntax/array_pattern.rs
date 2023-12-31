@@ -193,11 +193,11 @@ impl TryFrom<ArrayLiteral> for ArrayPattern {
         }
 
         Ok(Self {
-            start: value.start,
+            start: value.obrack,
             head,
             rest,
             tail,
-            end: value.end,
+            end: value.cbrack,
         })
     }
 }
