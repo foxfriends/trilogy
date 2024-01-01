@@ -3,9 +3,14 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::TokenType::*;
 
+/// A complete Trilogy document.
+///
+/// Similar to a module, but without a module declaration.
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Document {
+    /// The inner documentation of this document, intended to document the whole file.
     pub documentation: Option<Documentation>,
+    /// The definitions contained within this file.
     pub definitions: Vec<Definition>,
 }
 
@@ -76,8 +81,8 @@ mod test {
     test_parse!(document_empty: "" |parser| Document::parse(&mut parser) => "(Document () [])");
     test_parse!(document_empty_newline: "\n" |parser| Document::parse(&mut parser) => "(Document () [])");
 
-    test_parse!(document_documented: "#! hello\n#! world" |parser| Document::parse(&mut parser) => "(Document (Documentation) [])");
-    test_parse!(document_documented_with_def: "#! hello\n#! world\n\n## Hello\nfunc f x = x\n" |parser| Document::parse(&mut parser) => "(Document (Documentation) [(Definition (Documentation) _)])");
+    test_parse!(document_documented: "#! hello\n#! world" |parser| Document::parse(&mut parser) => "(Document (Documentation _) [])");
+    test_parse!(document_documented_with_def: "#! hello\n#! world\n\n## Hello\nfunc f x = x\n" |parser| Document::parse(&mut parser) => "(Document (Documentation _) [(Definition (Documentation _) _)])");
 
     test_parse_error!(document_no_final_newline: "func f x = x" |parser| Document::parse(&mut parser) => "no new line found at end of file");
 

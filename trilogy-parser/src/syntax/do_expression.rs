@@ -3,6 +3,11 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
+/// A procedure closure `do` expression.
+///
+/// ```trilogy
+/// do() {}
+/// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct DoExpression {
     pub do_token: Token,
@@ -56,9 +61,14 @@ impl DoExpression {
     }
 }
 
+/// The body of a procedure closure.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum DoBody {
+    /// A block used as the body of a `do` closure.
+    ///
+    /// Returns unit if no explicit `return` statement is reached.
     Block(Box<Block>),
+    /// A single expression used as the body and return value of a `do` closure.
     Expression(Box<Expression>),
 }
 

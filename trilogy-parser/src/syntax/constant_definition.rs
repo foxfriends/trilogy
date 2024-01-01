@@ -2,6 +2,11 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType};
 
+/// A constant definition item.
+///
+/// ```trilogy
+/// const name = value
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ConstantDefinition {
     pub r#const: Token,

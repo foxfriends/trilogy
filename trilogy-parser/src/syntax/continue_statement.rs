@@ -2,17 +2,22 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType};
 
+/// A continue statement.
+///
+/// ```trilogy
+/// continue
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ContinueStatement {
-    token: Token,
+    pub r#continue: Token,
 }
 
 impl ContinueStatement {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let token = parser
+        let r#continue = parser
             .expect(TokenType::KwContinue)
             .expect("Caller should have found this");
-        Ok(Self { token })
+        Ok(Self { r#continue })
     }
 }
 
@@ -20,6 +25,6 @@ impl ContinueStatement {
 mod test {
     use super::*;
 
-    test_parse!(continuestmt_empty: "continue" => ContinueStatement::parse => "(ContinueStatement)");
+    test_parse!(continuestmt_empty: "continue" => ContinueStatement::parse => "(ContinueStatement _)");
     test_parse_error!(continuestmt_value: "continue unit" => ContinueStatement::parse);
 }

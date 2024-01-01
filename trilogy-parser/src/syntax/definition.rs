@@ -3,18 +3,33 @@ use crate::{Parser, Spanned, TokenPattern};
 use source_span::Span;
 use trilogy_scanner::TokenType::*;
 
+/// The various items that can be defined in a Trilogy module.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum DefinitionItem {
+    /// An inline module definition.
     Module(Box<ModuleDefinition>),
+    /// An external (imported) module definition.
     ExternalModule(Box<ExternalModuleDefinition>),
+    /// A procedure definition.
     Procedure(Box<ProcedureDefinition>),
+    /// A constant definition.
     Constant(Box<ConstantDefinition>),
+    /// A function definition.
     Function(Box<FunctionDefinition>),
+    /// A rule definition.
     Rule(Box<RuleDefinition>),
+    /// An export declaration.
     Export(Box<ExportDefinition>),
+    /// A test definition.
     Test(Box<TestDefinition>),
 }
 
+/// A definition in a Trilogy program.
+///
+/// ```trilogy
+/// ## Documentation
+/// proc definition!() {}
+/// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Definition {
     pub documentation: Option<Documentation>,
@@ -139,8 +154,8 @@ mod test {
     test_parse!(def_export_in_module: "export a, b, c" => Definition::parse_in_module => "(Definition () (DefinitionItem::Export _))");
     test_parse!(def_test: "test \"hello\" {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Test _))");
     test_parse!(def_test_in_module: "test \"hello\" {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Test _))");
-    test_parse!(def_documented: "## Hello this is a module\nmodule A {}" => Definition::parse_in_document => "(Definition (Documentation) (DefinitionItem::Module _))");
-    test_parse!(def_documented_in_module: "## Hello this is a module\nmodule A {}" => Definition::parse_in_module => "(Definition (Documentation) (DefinitionItem::Module _))");
+    test_parse!(def_documented: "## Hello this is a module\nmodule A {}" => Definition::parse_in_document => "(Definition (Documentation _) (DefinitionItem::Module _))");
+    test_parse!(def_documented_in_module: "## Hello this is a module\nmodule A {}" => Definition::parse_in_module => "(Definition (Documentation _) (DefinitionItem::Module _))");
     test_parse!(def_nothing: "" => Definition::parse_in_document => "()");
     test_parse!(def_nothing_in_module: "" => Definition::parse_in_module => "()");
     test_parse_error!(def_documented_nothing: "## Hello this is a doc for nothing" => Definition::parse_in_document => "outer documentation comment must precede the item it documents");

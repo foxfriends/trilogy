@@ -3,6 +3,11 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
+/// A function closure `fn` expression.
+///
+/// ```trilogy
+/// fn x y. x + y
+/// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct FnExpression {
     pub r#fn: Token,

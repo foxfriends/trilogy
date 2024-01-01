@@ -1,4 +1,4 @@
-use crate::PrettyPrintSExpr;
+use crate::{PrettyPrintSExpr, Spanned};
 use pretty::DocAllocator;
 use trilogy_scanner::Token;
 
@@ -26,6 +26,22 @@ impl<'a, T: PrettyPrintSExpr<'a>> PrettyPrintSExpr<'a> for Punctuated<T> {
 impl<T> Default for Punctuated<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T: Spanned> Spanned for Punctuated<T> {
+    fn span(&self) -> source_span::Span {
+        self.elements
+            .first()
+            .map(|(item, _)| item.span())
+            .map(|first| {
+                self.last
+                    .as_ref()
+                    .map(Spanned::span)
+                    .unwrap_or_else(|| self.elements.last().unwrap().1.span())
+                    .union(first)
+            })
+            .unwrap_or_default()
     }
 }
 

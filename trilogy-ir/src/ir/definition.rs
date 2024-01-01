@@ -104,7 +104,7 @@ impl Definition {
                             return;
                         };
                         constant.value =
-                            Expression::builtin(module_use.kw_use.span, Builtin::ModuleAccess)
+                            Expression::builtin(module_use.r#use.span, Builtin::ModuleAccess)
                                 .apply_to(
                                     module_symbol.declaration_span,
                                     Expression::reference(
@@ -133,7 +133,7 @@ impl Definition {
                             return;
                         };
                         constant.value =
-                            Expression::builtin(module_use.kw_use.span, Builtin::ModuleAccess)
+                            Expression::builtin(module_use.r#use.span, Builtin::ModuleAccess)
                                 .apply_to(
                                     module_symbol.declaration_span,
                                     Expression::reference(

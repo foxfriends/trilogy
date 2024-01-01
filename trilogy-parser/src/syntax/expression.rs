@@ -2,6 +2,7 @@ use super::*;
 use crate::{token_pattern::TokenPattern, Parser, Spanned};
 use trilogy_scanner::TokenType::{self, *};
 
+/// The many kinds of expressions in a Trilogy program.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Expression {
     Number(Box<NumberLiteral>),

@@ -145,7 +145,7 @@ impl Expression {
             End(ast) => Self::end(ast.span()),
             Exit(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.exit_token().span, Builtin::Exit),
+                Self::builtin(ast.exit.span, Builtin::Exit),
                 Self::convert(converter, ast.expression),
             ),
             Resume(ast) => Self::application(
@@ -155,7 +155,7 @@ impl Expression {
             ),
             Cancel(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.cancel_token().span, Builtin::Cancel),
+                Self::builtin(ast.cancel.span, Builtin::Cancel),
                 Self::convert(converter, ast.expression),
             ),
             Return(ast) => Self::application(
@@ -170,7 +170,7 @@ impl Expression {
             ),
             Continue(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.continue_token().span, Builtin::Continue),
+                Self::builtin(ast.r#continue.span, Builtin::Continue),
                 Self::convert(converter, ast.expression),
             ),
             Fn(ast) => Self::function(ast.span(), Function::convert_fn(converter, *ast)),
@@ -257,7 +257,7 @@ impl Expression {
                 let span = ast.span();
                 Self::application(
                     span,
-                    Self::builtin(ast.cancel_token().span, Builtin::Cancel),
+                    Self::builtin(ast.cancel.span, Builtin::Cancel),
                     ast.expression
                         .map(|ast| Self::convert(converter, ast))
                         .unwrap_or_else(|| Self::unit(span)),
@@ -276,7 +276,7 @@ impl Expression {
             End(ast) => Self::end(ast.span()),
             Exit(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.exit_token().span, Builtin::Exit),
+                Self::builtin(ast.exit.span, Builtin::Exit),
                 Self::convert(converter, ast.expression),
             ),
             Yield(ast) => Self::application(

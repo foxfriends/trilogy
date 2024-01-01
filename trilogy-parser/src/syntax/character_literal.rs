@@ -1,10 +1,15 @@
 use super::*;
 use crate::Parser;
-use trilogy_scanner::{Token, TokenType, TokenValue};
+use trilogy_scanner::{Token, TokenType};
 
+/// A character literal expression.
+///
+/// ```trilogy
+/// 'a'
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct CharacterLiteral {
-    token: Token,
+    pub token: Token,
 }
 
 impl CharacterLiteral {
@@ -16,10 +21,7 @@ impl CharacterLiteral {
     }
 
     pub fn value(&self) -> char {
-        let TokenValue::Char(character) = self.token.value.as_ref().unwrap() else {
-            unreachable!()
-        };
-        *character
+        *self.token.value.as_ref().unwrap().as_char().unwrap()
     }
 }
 
@@ -27,6 +29,6 @@ impl CharacterLiteral {
 mod test {
     use super::*;
 
-    test_parse!(char_lit: "'h'" => CharacterLiteral::parse => "(CharacterLiteral)");
+    test_parse!(char_lit: "'h'" => CharacterLiteral::parse => "(CharacterLiteral _)");
     test_parse_error!(not_char_lit: "\"h\"" => CharacterLiteral::parse => "expected character literal");
 }

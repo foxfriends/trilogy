@@ -1,10 +1,18 @@
 use super::*;
 use crate::{Parser, Spanned};
-use trilogy_scanner::TokenType;
+use trilogy_scanner::{Token, TokenType};
 
+/// An external module definition item.
+///
+/// ```trilogy
+/// module external_module at "./some/path.tri" use imported_ident
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ExternalModuleDefinition {
+    /// The module declaration.
     pub head: ModuleHead,
+    /// The `at` token
+    pub at: Token,
+    /// The string representing the path at which to find the module.
     pub locator: StringLiteral,
     pub module_use: Option<ModuleUse>,
 }
@@ -20,7 +28,7 @@ impl Spanned for ExternalModuleDefinition {
 
 impl ExternalModuleDefinition {
     pub(crate) fn parse(parser: &mut Parser, head: ModuleHead) -> SyntaxResult<Self> {
-        parser
+        let at = parser
             .expect(TokenType::KwAt)
             .expect("Caller should find `at` keyword.");
         let locator = StringLiteral::parse(parser)?;
@@ -31,6 +39,7 @@ impl ExternalModuleDefinition {
         };
         let module = Self {
             head,
+            at,
             locator,
             module_use,
         };
@@ -54,6 +63,7 @@ mod test {
         (DefinitionItem::ExternalModule
           (ExternalModuleDefinition
             (ModuleHead _ [])
+            _
             (StringLiteral)
             _)))");
 
@@ -63,6 +73,7 @@ mod test {
         (DefinitionItem::ExternalModule
           (ExternalModuleDefinition
             (ModuleHead _ [])
+            _
             (StringLiteral)
             (ModuleUse _ _))))");
 

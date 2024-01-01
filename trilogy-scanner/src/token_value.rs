@@ -37,6 +37,15 @@ impl TokenValue {
         }
     }
 
+    /// The char value of this token, if any.
+    #[must_use]
+    pub fn as_char(&self) -> Option<&char> {
+        match self {
+            Self::Char(char) => Some(char),
+            _ => None,
+        }
+    }
+
     /// The bits value of this token, if any.
     #[must_use]
     pub fn as_bits(&self) -> Option<&BitVec<usize, Msb0>> {

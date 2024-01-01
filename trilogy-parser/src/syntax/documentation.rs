@@ -2,9 +2,15 @@ use crate::Parser;
 use trilogy_scanner::Token;
 use trilogy_scanner::TokenType::{self, DocInner, DocOuter};
 
+/// A documentation comment, either inner or outer.
+///
+/// ```trilogy
+/// ## Hello this is a doc comment.
+/// ## It may be multiple lines long.
+/// ```
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct Documentation {
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
 }
 
 impl Documentation {
@@ -34,11 +40,11 @@ impl Documentation {
 mod test {
     use super::*;
 
-    test_parse!(documentation_inner: "#! hello\n" => Documentation::parse_inner => "(Documentation)");
-    test_parse!(documentation_inner_multiline: "#! hello\n#! world\n" => Documentation::parse_inner => "(Documentation)");
-    test_parse!(documentation_inner_gaps: "#! hello\n\n#! world\n" => Documentation::parse_inner => "(Documentation)");
+    test_parse!(documentation_inner: "#! hello\n" => Documentation::parse_inner => "(Documentation _)");
+    test_parse!(documentation_inner_multiline: "#! hello\n#! world\n" => Documentation::parse_inner => "(Documentation _)");
+    test_parse!(documentation_inner_gaps: "#! hello\n\n#! world\n" => Documentation::parse_inner => "(Documentation _)");
 
-    test_parse!(documentation_outer: "## hello\n" => Documentation::parse_outer => "(Documentation)");
-    test_parse!(documentation_outer_multiline: "## hello\n## world\n" => Documentation::parse_outer => "(Documentation)");
-    test_parse!(documentation_outer_gaps: "## hello\n\n## world\n" => Documentation::parse_outer => "(Documentation)");
+    test_parse!(documentation_outer: "## hello\n" => Documentation::parse_outer => "(Documentation _)");
+    test_parse!(documentation_outer_multiline: "## hello\n## world\n" => Documentation::parse_outer => "(Documentation _)");
+    test_parse!(documentation_outer_gaps: "## hello\n\n## world\n" => Documentation::parse_outer => "(Documentation _)");
 }

@@ -6,6 +6,7 @@ use trilogy_scanner::{
     TokenType::{self, *},
 };
 
+/// A fallback `else` handler for a handled `when` statement or expression.
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ElseHandler {
     pub r#else: Token,
