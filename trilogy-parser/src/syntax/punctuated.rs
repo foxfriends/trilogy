@@ -37,8 +37,7 @@ impl<T: Spanned> Spanned for Punctuated<T> {
             .map(|first| {
                 self.last
                     .as_ref()
-                    .map(Spanned::span)
-                    .unwrap_or_else(|| self.elements.last().unwrap().1.span())
+                    .map_or_else(|| self.elements.last().unwrap().1.span(), Spanned::span)
                     .union(first)
             })
             .unwrap_or_default()
