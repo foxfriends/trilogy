@@ -2,7 +2,7 @@ use super::RefCount;
 use num::complex::ParseComplexError;
 use num::rational::ParseRatioError;
 use num::traits::Pow;
-use num::{BigInt, BigRational, BigUint, Complex, One, ToPrimitive, Zero};
+use num::{BigInt, BigRational, BigUint, Complex, FromPrimitive, One, ToPrimitive, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
@@ -18,11 +18,30 @@ impl serde::Serialize for Number {
         S: serde::Serializer,
     {
         if let Ok(int) = self.try_into() {
-            serializer.serialize_u64(int)
+            serializer.serialize_i64(int)
         } else if let Ok(float) = self.try_into() {
             serializer.serialize_f64(float)
         } else {
             serializer.serialize_str(&self.to_string())
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Number {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        #[serde(untagged)]
+        enum IntOrFloat {
+            Int(i64),
+            Float(f64),
+        }
+        match IntOrFloat::deserialize(deserializer)? {
+            IntOrFloat::Int(int) => Ok(Self::from(int)),
+            IntOrFloat::Float(float) => Ok(Self::from(float)),
         }
     }
 }
@@ -195,6 +214,15 @@ from_integer!(i16);
 from_integer!(i32);
 from_integer!(i64);
 from_integer!(i128);
+
+impl From<f64> for Number {
+    fn from(value: f64) -> Self {
+        Self(RefCount::new(Complex::new(
+            BigRational::from_f64(value).unwrap(),
+            Zero::zero(),
+        )))
+    }
+}
 
 impl From<Complex<BigRational>> for Number {
     fn from(value: Complex<BigRational>) -> Self {

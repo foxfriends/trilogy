@@ -25,4 +25,14 @@ pub mod json {
         })?;
         rt.r#return(string)
     }
+
+    /// Parses a JSON string into a value.
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn parse(rt: Runtime, value: Value) -> Result<()> {
+        let string = rt.typecheck::<String>(value)?;
+        let value: Value = serde_json::from_str(&string).map_err(|error| {
+            rt.runtime_error(rt.r#struct("JsonError", format!("string is not valid JSON: {error}")))
+        })?;
+        rt.r#return(value)
+    }
 }

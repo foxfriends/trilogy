@@ -48,6 +48,17 @@ impl serde::Serialize for Array {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Array {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let vec = Vec::<Value>::deserialize(deserializer)?;
+        Ok(Self::from(vec))
+    }
+}
+
 impl Debug for Array {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let inner = self.0.lock().unwrap();

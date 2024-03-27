@@ -1,4 +1,4 @@
-module json at "trilogy:json" use stringify
+module json at "trilogy:json" use stringify, parse
 
 test "stringify" {
     assert stringify "hello" == "\"hello\""
@@ -18,4 +18,10 @@ test "stringify" {
     assert stringify [||] == "[]"
     assert stringify [|1|] == "[1]"
     assert stringify 'hello("world") == "{\"name\":\"hello\",\"value\":\"world\"}"
+}
+
+test "parse" {
+    assert parse "{\"hello\":\"world\"}" == {|"hello" => "world"|}
+    assert parse "123" == 123
+    assert parse "\"3i5\"" == "3i5"
 }

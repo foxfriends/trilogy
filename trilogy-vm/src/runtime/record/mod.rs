@@ -51,6 +51,17 @@ impl serde::Serialize for Record {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Record {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let map = HashMap::<Value, Value>::deserialize(deserializer)?;
+        Ok(Self::from(map))
+    }
+}
+
 impl Eq for Record {}
 impl PartialEq for Record {
     fn eq(&self, other: &Self) -> bool {
