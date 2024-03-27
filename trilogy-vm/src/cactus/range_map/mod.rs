@@ -84,7 +84,7 @@ impl<T> RangeMap<T> {
     /// assert_eq!(ranges, vec![(0..2, 0), (2..4, 1), (4..6, 0), (6..8, 2)]);
     /// ```
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = (Range<usize>, T)> + ExactSizeIterator + '_
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = (Range<usize>, T)> + '_
     where
         T: Copy,
     {
@@ -110,7 +110,7 @@ impl<T> RangeMap<T> {
     /// assert_eq!(ranges, vec![(6..8, 2), (4..6, 0), (2..4, 1), (0..2, 0)]);
     /// ```
     #[inline]
-    pub fn reverse_iter(&self) -> impl Iterator<Item = (Range<usize>, T)> + ExactSizeIterator + '_
+    pub fn reverse_iter(&self) -> impl ExactSizeIterator<Item = (Range<usize>, T)> + '_
     where
         T: Copy,
     {
