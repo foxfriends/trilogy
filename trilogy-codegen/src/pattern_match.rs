@@ -180,7 +180,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                         c.label(double_cleanup)
                             .instruction(Instruction::Pop)
                             .label(cleanup)
-                            .instruction(Instruction::Pop)
+                            .instruction(Instruction::Pop) // Extra length value
                             .jump(self.on_fail);
                     });
             }
@@ -200,7 +200,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Zero)
                     .instruction(Instruction::Geq)
-                    .cond_jump(&cleanup)
+                    .cond_jump(&double_cleanup)
                     .instruction(Instruction::LoadLocal(original))
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Skip)

@@ -9,5 +9,10 @@ proc main!() {
         case "hello " <> world { out <>= world; }
         case world <> " hello" { out <>= world; }
 
+    match "world hello"
+        case "hello " <> world { out <>= world; }
+        case "goodbye " <> world { out <>= world; }
+        case world <> " hello" { out <>= world; }
+
     exit out;
 }

@@ -121,7 +121,7 @@ fn sample_match() {
 #[test]
 fn sample_glue() {
     let program = include_tri!("glue.tri");
-    assert_eq!(program.run().unwrap(), Value::from("worldworld"));
+    assert_eq!(program.run().unwrap(), Value::from("worldworldworld"));
 }
 
 #[test]

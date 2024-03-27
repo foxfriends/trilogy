@@ -106,3 +106,16 @@ test "wildcards in rules work correctly" {
     assert is only(3)
     assert is only(_)
 }
+
+
+rule valid_a("a")
+
+rule glue_in_rule(a <> "a") <- valid_a(a)
+rule glue_in_rule(a <> "b") <- valid_a(a)
+rule glue_in_rule(a <> "c") <- valid_a(a)
+
+test "rule with glue" {
+    assert is a = "a" and glue_in_rule(a <> "a")
+    assert is a = "a" and glue_in_rule(a <> "b")
+    assert is a = "a" and glue_in_rule(a <> "c")
+}
