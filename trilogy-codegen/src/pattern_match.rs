@@ -180,7 +180,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                         c.label(double_cleanup)
                             .instruction(Instruction::Pop)
                             .label(cleanup)
-                            .instruction(Instruction::Pop) // Extra length value
+                            .instruction(Instruction::Pop)
                             .jump(self.on_fail);
                     });
             }
