@@ -13,6 +13,8 @@ use std::ops::{Add, BitAnd, BitOr, BitXor, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 /// Generic value type, encapsulating every type of value that can be handled by
 /// the Trilogy Virtual Machine.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Value {
     Unit,
     Bool(bool),
@@ -20,12 +22,14 @@ pub enum Value {
     String(String),
     Number(Number),
     Bits(Bits),
+    #[serde(skip_deserializing)]
     Atom(Atom),
     Struct(Struct),
     Tuple(Tuple),
     Array(Array),
     Set(Set),
     Record(Record),
+    #[serde(skip)]
     Callable(Callable),
 }
 

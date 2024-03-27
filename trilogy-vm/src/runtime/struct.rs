@@ -6,6 +6,7 @@ use std::fmt::{self, Display};
 /// In Trilogy, a "struct" is a single other `Value` tagged with an Atom, not quite
 /// the same as a struct you might see in languages such as Rust.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Struct {
     name: Atom,
     value: Box<Value>,

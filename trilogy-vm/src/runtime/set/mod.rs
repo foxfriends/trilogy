@@ -10,6 +10,22 @@ mod inner;
 #[derive(Clone, Default, Debug)]
 pub struct Set(RefCount<Mutex<inner::SetInner>>);
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Set {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeSeq;
+        let inner = self.0.lock().unwrap();
+        let mut seq = serializer.serialize_seq(Some(inner.len()))?;
+        for e in &**inner {
+            seq.serialize_element(e)?;
+        }
+        seq.end()
+    }
+}
+
 impl Set {
     /// Creates a new empty set instance.
     ///

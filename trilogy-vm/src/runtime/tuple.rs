@@ -3,6 +3,8 @@ use std::fmt::{self, Display};
 
 /// A Trilogy Tuple.
 #[derive(Clone, Eq, PartialEq, PartialOrd, Debug, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Tuple(RefCount<(Value, Value)>);
 
 impl StructuralEq for Tuple {

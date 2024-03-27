@@ -12,6 +12,9 @@ mod time;
 #[cfg(feature = "regex")]
 mod regex;
 
+#[cfg(feature = "json")]
+mod json;
+
 use crate::{Builder, Cache, Location};
 
 pub(crate) fn apply<C>(builder: Builder<C>) -> Builder<C>
@@ -95,6 +98,16 @@ where
             .source_module(
                 Location::library("regex").unwrap(),
                 include_str!("./regex.tri").to_owned(),
+            );
+    }
+
+    #[cfg(feature = "json")]
+    {
+        builder = builder
+            .native_module(Location::library("json/native").unwrap(), json::json())
+            .source_module(
+                Location::library("json").unwrap(),
+                include_str!("./json.tri").to_owned(),
             );
     }
 

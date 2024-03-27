@@ -1,0 +1,2 @@
+module native at "trilogy:json/native" use stringify, stringify_pretty
+export stringify, stringify_pretty

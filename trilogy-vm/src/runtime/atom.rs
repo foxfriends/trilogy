@@ -40,6 +40,8 @@ use std::sync::{Arc, Mutex};
 /// assert_ne!(hello_2, hello_3);
 /// ```
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Atom(Arc<String>);
 
 impl Debug for Atom {

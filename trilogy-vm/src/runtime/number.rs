@@ -11,6 +11,22 @@ use std::str::FromStr;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Number(RefCount<Complex<BigRational>>);
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Number {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        if let Ok(int) = self.try_into() {
+            serializer.serialize_u64(int)
+        } else if let Ok(float) = self.try_into() {
+            serializer.serialize_f64(float)
+        } else {
+            serializer.serialize_str(&self.to_string())
+        }
+    }
+}
+
 macro_rules! proxy_op_int_opt {
     ($t:ty, $f:ident) => {
         impl $t for Number {
@@ -314,3 +330,14 @@ into_integer!(<i16> via to_i16);
 into_integer!(<i32> via to_i32);
 into_integer!(<i64> via to_i64);
 into_integer!(<i128> via to_i128);
+
+impl<'a> TryFrom<&'a Number> for f64 {
+    type Error = &'a Number;
+
+    fn try_from(value: &'a Number) -> Result<Self, Self::Error> {
+        let Some(rational) = value.as_real() else {
+            return Err(value);
+        };
+        rational.to_f64().ok_or(value)
+    }
+}

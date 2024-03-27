@@ -3,6 +3,8 @@ use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Deref};
 
 #[derive(Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct String(RefCount<std::string::String>);
 
 impl Display for String {

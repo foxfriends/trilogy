@@ -35,6 +35,22 @@ mod inner;
 #[derive(Clone, Default, Debug)]
 pub struct Record(RefCount<Mutex<inner::RecordInner>>);
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Record {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let inner = self.0.lock().unwrap();
+        let mut map = serializer.serialize_map(Some(inner.len()))?;
+        for (k, v) in &**inner {
+            map.serialize_entry(k, v)?;
+        }
+        map.end()
+    }
+}
+
 impl Eq for Record {}
 impl PartialEq for Record {
     fn eq(&self, other: &Self) -> bool {

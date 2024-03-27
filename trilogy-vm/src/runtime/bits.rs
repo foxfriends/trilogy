@@ -10,6 +10,8 @@ use std::sync::Arc;
 ///
 /// Bits values are represented internally using types from the [`bitvec`][mod@bitvec] crate.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Bits(Arc<BitVec<usize, Msb0>>);
 
 impl Bits {
