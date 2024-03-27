@@ -6,7 +6,7 @@ use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, HasReferences};
 use trilogy_vm::{Instruction, Offset};
 
 pub(crate) fn write_rule(context: &mut Context, rule: &ir::Rule, on_fail: &str) {
-    let setup = context.make_label("setup");
+    let setup = context.make_label("setup_rule");
     let end = context.make_label("end");
     let precall = context.make_label("precall");
     let call = context.make_label("call");

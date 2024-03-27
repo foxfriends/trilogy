@@ -942,7 +942,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
     }
 
     fn visit_lookup(&mut self, lookup: &ir::Lookup) {
-        let setup = self.make_label("setup");
+        let setup = self.make_label("setup_lookup");
         let enter = self.make_label("enter_lookup");
         let reenter = self.make_label("reenter_lookup");
         let cleanup = self.make_label("cleanup");
