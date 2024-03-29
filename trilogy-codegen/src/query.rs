@@ -968,8 +968,8 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 .collect(),
         );
         // Then we do the actual iteration of the lookup.
-        self.instruction(Instruction::Copy)
-            .raw_call(0)
+        self.instruction(Instruction::Copy).intermediate(); // lookup closure copy
+        self.raw_call(0)
             .instruction(Instruction::Copy)
             .atom("done")
             .instruction(Instruction::ValNeq)
@@ -983,7 +983,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             .atom("next")
             .instruction(Instruction::ValEq)
             .cond_jump(RUNTIME_TYPE_ERROR)
-            .intermediate(); // return value
+            .intermediate(); // return value chain
 
         // If the iterator has yielded something, we have to destructure it into all the variables
         // of the unbound parameters.
@@ -993,12 +993,13 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // If the pattern doesn't match, the next call of the rule might, so try again still.
             self.context.pattern_match(pattern, &try_again);
         }
-        self.end_intermediate() // return value
-            .end_intermediate() // bindset
+        self.end_intermediate() // return value chain
             // Discard the now empty yielded return value
             .instruction(Instruction::Pop)
             // Reconstruct the bindset:state
             .instruction(Instruction::Cons)
+            .end_intermediate() // lookup closure copy
+            .end_intermediate() // bindset
             // Put the marker back in too
             .instruction(Instruction::True)
             .instruction(Instruction::Cons)
