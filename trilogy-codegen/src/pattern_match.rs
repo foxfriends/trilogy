@@ -173,8 +173,8 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                     .cond_jump(&double_cleanup)
                     .instruction(Instruction::Length)
                     .instruction(Instruction::Skip)
-                    .end_intermediate()
-                    .end_intermediate()
+                    .end_intermediate() // original
+                    .end_intermediate() // lhs_val
                     .pattern_match(rhs, self.on_fail)
                     .bubble(|c| {
                         c.label(double_cleanup)
@@ -187,6 +187,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
             (Some(ir::Value::Builtin(Builtin::Glue)), lhs, rhs @ ir::Value::String(..)) => {
                 let cleanup = self.context.make_label("glue_cleanup");
                 let double_cleanup = self.context.make_label("glue_cleanup2");
+                let triple_cleanup = self.context.make_label("glue_cleanup3");
                 self.context.try_type("string", Err(&cleanup));
                 let original = self.context.intermediate();
                 let rhs_val = self.context.evaluate(rhs).intermediate();
@@ -200,7 +201,7 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                     .instruction(Instruction::Copy)
                     .instruction(Instruction::Zero)
                     .instruction(Instruction::Geq)
-                    .cond_jump(&double_cleanup)
+                    .cond_jump(&triple_cleanup)
                     .instruction(Instruction::LoadLocal(original))
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Skip)
@@ -213,11 +214,13 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                     .instruction(Instruction::Swap)
                     .instruction(Instruction::Subtract)
                     .instruction(Instruction::Take)
-                    .end_intermediate()
-                    .end_intermediate()
+                    .end_intermediate() // original
+                    .end_intermediate() // lhs_val
                     .pattern_match(lhs, self.on_fail)
                     .bubble(|c| {
-                        c.label(double_cleanup)
+                        c.label(triple_cleanup)
+                            .instruction(Instruction::Pop)
+                            .label(double_cleanup)
                             .instruction(Instruction::Pop)
                             .label(cleanup)
                             .instruction(Instruction::Pop)
