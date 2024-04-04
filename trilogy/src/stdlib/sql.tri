@@ -1,0 +1,3 @@
+module native at "trilogy:sql/native" use pgpool
+
+export pgpool
