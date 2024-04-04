@@ -40,11 +40,15 @@ impl<'a> Converter<'a> {
         self.scope.push();
     }
 
+    pub(crate) fn push_pseudo_scope(&mut self) {
+        self.scope.push_pseudo();
+    }
+
     pub(crate) fn pop_scope(&mut self) {
         self.scope.pop();
     }
 
-    pub(crate) fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> &Symbol {
+    pub(crate) fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> Symbol {
         self.scope.declare(name, is_mutable, span)
     }
 

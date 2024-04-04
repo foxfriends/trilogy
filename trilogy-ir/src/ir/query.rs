@@ -52,7 +52,7 @@ impl Query {
             End(token) => Self::end(token.span()),
             Is(ast) => Self::is(ast.span(), Expression::convert(converter, ast.expression)),
             Not(ast) => {
-                converter.push_scope();
+                converter.push_pseudo_scope();
                 let result = Self::not(ast.span(), Self::convert(converter, ast.query));
                 converter.pop_scope();
                 result

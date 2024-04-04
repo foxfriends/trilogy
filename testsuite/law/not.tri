@@ -39,3 +39,11 @@ test "does not allow access to any bindings that occurred before failing" {
     let x = 5
     assert [n for not (x in [1, 2] and end) and n = x] == [5]
 }
+
+rule isValid(1)
+test "variables bound before not are available after" {
+    assert !is (i = 1 and not isValid(i))
+    assert !is (i = 1 and not isValid(^i))
+    assert is (i = 2 and not isValid(^i))
+    assert is (i = 2 and not isValid(i))
+}
