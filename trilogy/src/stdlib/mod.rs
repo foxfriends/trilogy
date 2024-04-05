@@ -119,6 +119,7 @@ where
             );
     }
 
+<<<<<<< Updated upstream
     #[cfg(feature = "sql")]
     {
         builder = builder
@@ -129,5 +130,18 @@ where
             );
     }
 
+||||||| Stash base
+=======
+    #[cfg(feature = "sql")]
+    {
+        builder = builder
+            .native_module(Location::library("sql/native").unwrap(), sql::sql())
+            .source_module(
+                Location::library("sql").unwrap(),
+                include_str!("./sql.tri").to_owned(),
+            );
+    }
+
+>>>>>>> Stashed changes
     builder
 }
