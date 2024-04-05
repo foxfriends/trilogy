@@ -1,5 +1,6 @@
 use super::super::RefCount;
 use crate::{Error, Execution, ReferentialEq, StructuralEq, Value};
+use std::any::{Any, TypeId};
 use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::Mutex;
@@ -18,7 +19,7 @@ impl<T: Send + Sync> Threading for T {}
 ///
 /// Implementing this trait manually is not recommended, see instead the macro
 /// `#[proc]` attribute macro from the `trilogy` crate.
-pub trait NativeFunction: Threading {
+pub trait NativeFunction: Threading + Any {
     #[doc(hidden)]
     fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), Error>;
 
@@ -68,6 +69,26 @@ impl Native {
     pub(crate) fn call(&self, ex: &mut Execution, args: Vec<Value>) -> Result<(), Error> {
         let mut native = self.0.lock().unwrap();
         native.call(ex, args)
+    }
+
+    /// Attempts to downcast this native value to its wrapped Rust type.
+    pub fn downcast<T>(&self) -> Option<RefCount<Mutex<T>>>
+    where
+        T: Any,
+    {
+        // See:
+        //     https://stackoverflow.com/questions/68173030/how-to-do-runtime-polymorphism-using-arcmutexdyn-sometrait-in-rust
+        if (*self.0.lock().unwrap()).type_id() == TypeId::of::<T>() {
+            let raw: *const Mutex<dyn NativeFunction> = RefCount::into_raw(self.0.clone());
+            let raw: *const Mutex<T> = raw.cast();
+
+            // SAFETY: This is safe because the pointer orignally came from a Rc/Arc
+            // with the same size and alignment since we've checked (via Any) that
+            // the object within is the type being casted to.
+            Some(unsafe { RefCount::from_raw(raw) })
+        } else {
+            None
+        }
     }
 }
 

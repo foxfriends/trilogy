@@ -1,5 +1,10 @@
 #![allow(clippy::module_inception, clippy::wrong_self_convention)]
 
+#[cfg(feature = "async")]
+lazy_static::lazy_static! {
+    static ref RUNTIME: tokio::runtime::Runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+}
+
 mod array;
 mod atom;
 mod bits;

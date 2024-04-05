@@ -9,15 +9,16 @@ keywords = ["programming-language", "language"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
-default = ["dev", "std", "regex", "json", "sql", "postgres"]
+default = ["dev", "std", "regex", "json", "sql", "postgres", "async"]
 dev = []
 lax = ["trilogy-parser/lax"]
 macros = ["trilogy-derive"]
 std = ["macros"]
+async = ["dep:tokio", "dep:lazy_static"]
 regex = ["dep:regex"]
 json = ["trilogy-vm/serde", "dep:serde_json"]
-sql = ["dep:sqlx"]
-postgres = ["sqlx/postgres"]
+sql = ["dep:sqlx", "async"]
+postgres = ["sqlx/postgres", "sql"]
 multithread = ["trilogy-vm/multithread"]
 64bit = ["trilogy-vm/64bit"]
 32bit = ["trilogy-vm/32bit"]
@@ -46,3 +47,5 @@ pretty_env_logger = "0.5.0"
 log = "0.4.20"
 serde_json = { version = "1.0.115", optional = true }
 sqlx = { version = "0.7.4", optional = true, features = ["runtime-tokio", "tls-rustls"] }
+tokio = { version = "1.37.0", features = ["rt"], optional = true }
+lazy_static = { version = "1.4.0", optional = true }

@@ -30,7 +30,9 @@ pub trait NativeMethodFn: Send + Sync {
     ) -> Result<(), Error>;
 }
 
-impl<T: Send + Sync, F: NativeMethodFn<SelfType = T>> NativeFunction for NativeMethod<T, F> {
+impl<T: Send + Sync + 'static, F: NativeMethodFn<SelfType = T> + 'static> NativeFunction
+    for NativeMethod<T, F>
+{
     fn arity(&self) -> usize {
         NativeMethodFn::arity(&self.func)
     }
