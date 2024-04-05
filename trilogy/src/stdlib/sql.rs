@@ -128,7 +128,7 @@ pub mod sql {
                                                         format!("Failed to retrieve value: {err}"),
                                                     ))
                                                 })?
-                                                .into_iter()
+                                                .iter()
                                                 .collect::<Bits>(),
                                         ),
                                     }
