@@ -112,9 +112,9 @@ impl Trilogy {
 
     /// Runs the loaded Trilogy program by evaluating `main!()`.
     ///
-    /// This is equivalent to `call("main")`.
+    /// This is equivalent to `self.call("main", vec![])`.
     pub fn run(&self) -> Result<Value, RuntimeError> {
-        self.call("main")
+        self.call("main", vec![])
     }
 
     /// Runs the loaded Trilogy, evaluating the exported 0-arity procedure pointed to by
@@ -131,7 +131,11 @@ impl Trilogy {
     /// is returned. Unfortunately at this time, those errors are hard to
     /// diagnose and could be anything from a bug in the compiler to an error
     /// in the Trilogy program.
-    pub fn call(&self, main: impl ModulePath) -> Result<Value, RuntimeError> {
+    pub fn call(
+        &self,
+        main: impl ModulePath,
+        parameters: Vec<Value>,
+    ) -> Result<Value, RuntimeError> {
         let result = match &self.source {
             Source::Asm { asm } => self.vm.run_with_registers(
                 &AsmProgram {
@@ -149,6 +153,7 @@ impl Trilogy {
                     modules,
                     entrypoint,
                     path: &main.path(),
+                    parameters,
                     to_asm: false,
                 },
                 Self::default_registers(),
@@ -277,6 +282,7 @@ impl Trilogy {
                 modules,
                 entrypoint,
                 path: &["main"],
+                parameters: vec![],
                 to_asm: true,
             }),
         }
@@ -297,6 +303,7 @@ impl Trilogy {
                 modules,
                 entrypoint,
                 path: &["main"],
+                parameters: vec![],
                 to_asm: false,
             }),
         }

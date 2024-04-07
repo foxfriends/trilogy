@@ -40,7 +40,7 @@ impl ProgramContext<'_> {
     }
 
     /// Writes the entrypoint of the program.
-    pub fn write_main(&mut self, path: &[&str], default_exit: Value) {
+    pub fn write_main(&mut self, path: &[&str], parameters: Vec<Value>, default_exit: Value) {
         let start = self.ip();
         self.entrypoint()
             .label("trilogy:__entrypoint__")
@@ -50,7 +50,11 @@ impl ProgramContext<'_> {
         for seg in path {
             self.atom(seg).call_module();
         }
-        self.call_procedure(0)
+        let len = parameters.len();
+        for param in parameters {
+            self.constant(param);
+        }
+        self.call_procedure(len)
             .instruction(Instruction::Copy)
             .instruction(Instruction::Unit)
             .instruction(Instruction::ValEq)

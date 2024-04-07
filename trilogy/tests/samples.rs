@@ -401,5 +401,19 @@ fn sample_not_main() {
         .is_library(true)
         .build_from_source(PathBuf::from(TEST_DIR).join("not_main.tri"))
         .unwrap();
-    assert_eq!(program.call("not_main").unwrap(), Value::from(6));
+    assert_eq!(program.call("not_main", vec![]).unwrap(), Value::from(6));
+}
+
+#[test]
+fn sample_not_main_params() {
+    let program = Builder::new()
+        .is_library(true)
+        .build_from_source(PathBuf::from(TEST_DIR).join("not_main_params.tri"))
+        .unwrap();
+    assert_eq!(
+        program
+            .call("not_main", vec![Value::from(1), Value::from(2)])
+            .unwrap(),
+        Value::from(3)
+    );
 }

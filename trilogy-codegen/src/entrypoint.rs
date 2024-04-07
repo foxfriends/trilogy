@@ -10,9 +10,10 @@ pub fn write_program(
     builder: &mut ChunkBuilder,
     module: &ir::Module,
     entry_path: &[&str],
+    parameters: Vec<Value>,
 ) {
     let mut context = ProgramContext::new(file, builder);
-    context.write_main(entry_path, 0.into());
+    context.write_main(entry_path, parameters, 0.into());
     write_preamble(&mut context);
 
     let mut statics = HashMap::default();
@@ -46,7 +47,7 @@ pub fn write_test(
     let mut context = ProgramContext::new(file, builder);
     let mut full_path = path.to_vec();
     full_path.push("trilogy:__testentry__");
-    context.write_main(&full_path, Value::Unit);
+    context.write_main(&full_path, vec![], Value::Unit);
     write_preamble(&mut context);
 
     let mut statics = HashMap::default();

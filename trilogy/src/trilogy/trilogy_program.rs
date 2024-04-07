@@ -8,6 +8,7 @@ pub(super) struct TrilogyProgram<'a> {
     pub libraries: &'a HashMap<Location, Native>,
     pub entrypoint: &'a Location,
     pub path: &'a [&'a str],
+    pub parameters: Vec<Value>,
     pub to_asm: bool,
 }
 
@@ -16,7 +17,7 @@ impl Program for TrilogyProgram<'_> {
         let time_generating = Instant::now();
         let module = self.modules.get(self.entrypoint).unwrap();
         let url = self.entrypoint.as_ref().as_str();
-        trilogy_codegen::write_program(url, chunk, module, self.path);
+        trilogy_codegen::write_program(url, chunk, module, self.path, self.parameters.clone());
         log::trace!("entrypoint written: {:?}", time_generating.elapsed());
     }
 
