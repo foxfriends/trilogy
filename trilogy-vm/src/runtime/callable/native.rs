@@ -1,5 +1,6 @@
 use super::super::RefCount;
 use crate::{Error, Execution, ReferentialEq, StructuralEq, Value};
+use std::any::Any;
 use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::Mutex;
@@ -19,6 +20,11 @@ impl<T: Send + Sync> Threading for T {}
 /// Implementing this trait manually is not recommended, see instead the macro
 /// `#[proc]` attribute macro from the `trilogy` crate.
 pub trait NativeFunction: Threading {
+    #[doc(hidden)]
+    fn as_any(&self) -> Option<&dyn Any> {
+        None
+    }
+
     #[doc(hidden)]
     fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), Error>;
 
@@ -68,6 +74,20 @@ impl Native {
     pub(crate) fn call(&self, ex: &mut Execution, args: Vec<Value>) -> Result<(), Error> {
         let mut native = self.0.lock().unwrap();
         native.call(ex, args)
+    }
+
+    /// Attempts to downcast this native value to its wrapped Rust type.
+    ///
+    /// This only works for native values which have implemented the `as_any` method, namely
+    /// those that are created using the `NativeType` abstraction.
+    pub fn downcast<T>(&self) -> Option<T>
+    where
+        T: Any + Clone,
+    {
+        let lock = self.0.lock().unwrap();
+        let any = lock.as_any()?;
+        let concrete: &T = any.downcast_ref()?;
+        Some(concrete.clone())
     }
 }
 

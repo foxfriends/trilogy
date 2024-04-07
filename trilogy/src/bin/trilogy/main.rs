@@ -136,7 +136,18 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
     handle(result, print, debug)
 }
 
+#[cfg(feature = "async")]
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
+    tokio::task::spawn_blocking(main_sync).await.unwrap()
+}
+
+#[cfg(not(feature = "async"))]
 fn main() -> std::io::Result<()> {
+    main_sync()
+}
+
+fn main_sync() -> std::io::Result<()> {
     pretty_env_logger::init();
     let args = Cli::parse();
 

@@ -16,7 +16,7 @@ mod value;
 pub use array::Array;
 pub use atom::Atom;
 pub use bits::Bits;
-pub use callable::{Callable, Native, NativeFunction};
+pub use callable::{Callable, Native, NativeFunction, Threading};
 pub use eq::{ReferentialEq, StructuralEq};
 pub use number::Number;
 pub use r#struct::Struct;

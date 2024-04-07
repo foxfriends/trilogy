@@ -41,7 +41,8 @@ pub(crate) mod trilogy;
 pub use cache::{Cache, FileSystemCache, NoopCache};
 pub use location::Location;
 pub use runtime::{
-    NativeMethod, NativeMethodFn, NativeModule, NativeModuleBuilder, Runtime, RuntimeError,
+    NativeMethod, NativeMethodFn, NativeModule, NativeModuleBuilder, NativeType, NativeTypeBuilder,
+    Runtime, RuntimeError,
 };
 pub use trilogy::{Builder, Report, TestDescription, TestReporter, Trilogy};
 

@@ -17,7 +17,7 @@ impl<T, F> NativeMethod<T, F> {
     }
 }
 
-pub trait NativeMethodFn: Send + Sync {
+pub trait NativeMethodFn: trilogy_vm::Threading {
     type SelfType;
 
     fn arity(&self) -> usize;
@@ -30,7 +30,9 @@ pub trait NativeMethodFn: Send + Sync {
     ) -> Result<(), Error>;
 }
 
-impl<T: Send + Sync, F: NativeMethodFn<SelfType = T>> NativeFunction for NativeMethod<T, F> {
+impl<T: trilogy_vm::Threading + 'static, F: NativeMethodFn<SelfType = T> + 'static> NativeFunction
+    for NativeMethod<T, F>
+{
     fn arity(&self) -> usize {
         NativeMethodFn::arity(&self.func)
     }

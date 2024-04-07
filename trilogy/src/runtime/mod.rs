@@ -2,10 +2,12 @@ mod callback;
 mod curried_callback;
 mod native_method;
 mod native_module;
+mod native_type;
 mod runtime_error;
 
 pub use native_method::*;
 pub use native_module::*;
+pub use native_type::*;
 pub use runtime_error::*;
 
 use callback::Callback;

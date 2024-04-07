@@ -1,43 +1,42 @@
 use crate::Runtime;
+use std::any::Any;
 use std::collections::HashMap;
 use trilogy_vm::{Error, Execution, Native, NativeFunction, Value};
 
-/// A module of native functions.
+/// A module of native functions with access to some shared context.
 ///
-/// Native modules are provided to Trilogy at build time, allowing native Rust functions
-/// to be imported into Trilogy programs by referencing them through an imported module.
+/// Native types are provided to Trilogy at build time, allowing native Rust types
+/// to be imported into Trilogy programs by accessing them as if they were modules.
 ///
-/// Native modules themselves do not have names, but are installed into other modules
-/// with names, or into the Trilogy runtime at a module location.
+/// Native types themselves do not have names and cannot be created directly from Trilogy,
+/// but may be returned and used by native functions.
 ///
-/// It is unlikely (and not recommended) to create a native module manually.
+/// It is unlikely (and not recommended) to create a native type manually.
 /// More likely one will be created by using the [`#[module]`][trilogy_derive::module]
-/// proc macro to create a `NativeModule` from a Rust module.
+/// proc macro to create a `NativeType` from a Rust type's `impl` block.
 #[derive(Clone, Debug)]
-pub struct NativeModule {
+pub struct NativeType<T: Any> {
+    pub(crate) inner: T,
     pub(crate) items: HashMap<&'static str, Native>,
 }
 
 /// Builder for native modules.
 #[derive(Clone)]
-pub struct NativeModuleBuilder {
-    inner: NativeModule,
+pub struct NativeTypeBuilder<T: 'static> {
+    inner: NativeType<T>,
 }
 
-impl Default for NativeModuleBuilder {
-    fn default() -> Self {
-        Self {
-            inner: NativeModule {
-                items: Default::default(),
+impl<T> NativeTypeBuilder<T> {
+    /// Create a new empty module builder.
+    pub fn new(inner: T) -> Self {
+        NativeTypeBuilder {
+            inner: {
+                NativeType {
+                    inner,
+                    items: HashMap::default(),
+                }
             },
         }
-    }
-}
-
-impl NativeModuleBuilder {
-    /// Create a new empty module builder.
-    pub fn new() -> Self {
-        Self::default()
     }
 
     /// Add a native procedure or module to this module under a given name.
@@ -52,13 +51,15 @@ impl NativeModuleBuilder {
     /// # Examples
     ///
     /// ```
-    /// # use trilogy::{NativeModuleBuilder, proc, Runtime};
+    /// # use trilogy::{NativeTypeBuilder, proc, Runtime};
     /// #[proc]
     /// fn hello(rt: Runtime) -> trilogy::Result<()> {
     ///     rt.r#return("hello")
     /// }
     ///
-    /// let native_module = NativeModuleBuilder::new()
+    /// struct MyNativeType;
+    ///
+    /// let native_module = NativeTypeBuilder::new(MyNativeType)
     ///     .add_item("hello", hello)
     ///     .build();
     /// ```
@@ -78,12 +79,22 @@ impl NativeModuleBuilder {
     }
 
     /// Finish building this native module.
-    pub fn build(self) -> NativeModule {
+    pub fn build(self) -> NativeType<T>
+    where
+        T: Any,
+    {
         self.inner
     }
 }
 
-impl NativeFunction for NativeModule {
+impl<T> NativeFunction for NativeType<T>
+where
+    T: Any + 'static,
+{
+    fn as_any(&self) -> Option<&dyn Any> {
+        Some(&self.inner)
+    }
+
     fn arity(&self) -> usize {
         2 // the symbol + the module key
     }

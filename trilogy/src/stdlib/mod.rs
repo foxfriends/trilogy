@@ -15,6 +15,9 @@ mod regex;
 #[cfg(feature = "json")]
 mod json;
 
+#[cfg(feature = "sql")]
+mod sql;
+
 use crate::{Builder, Cache, Location};
 
 pub(crate) fn apply<C>(builder: Builder<C>) -> Builder<C>
@@ -108,6 +111,16 @@ where
             .source_module(
                 Location::library("json").unwrap(),
                 include_str!("./json.tri").to_owned(),
+            );
+    }
+
+    #[cfg(feature = "sql")]
+    {
+        builder = builder
+            .native_module(Location::library("sql/native").unwrap(), sql::sql())
+            .source_module(
+                Location::library("sql").unwrap(),
+                include_str!("./sql.tri").to_owned(),
             );
     }
 

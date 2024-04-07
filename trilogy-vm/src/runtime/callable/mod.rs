@@ -7,7 +7,7 @@ use std::fmt::Display;
 
 pub(crate) use closure::Closure;
 pub(crate) use continuation::Continuation;
-pub use native::{Native, NativeFunction};
+pub use native::{Native, NativeFunction, Threading};
 pub(crate) use procedure::Procedure;
 
 /// An opaque Trilogy "callable" value.
@@ -24,6 +24,17 @@ pub(crate) enum CallableKind {
     Closure(Closure),
     Continuation(Continuation),
     Native(Native),
+}
+
+impl Callable {
+    /// Retrieve the native Rust value contained within this callable. From here it may be
+    /// downcast into a custom Rust type that has been adapted for use in Trilogy.
+    pub fn as_native(&self) -> Option<&Native> {
+        match &self.0 {
+            CallableKind::Native(native) => Some(native),
+            _ => None,
+        }
+    }
 }
 
 impl Display for Callable {
