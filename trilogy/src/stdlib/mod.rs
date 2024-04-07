@@ -1,10 +1,5 @@
 #![allow(clippy::module_inception, clippy::wrong_self_convention)]
 
-#[cfg(feature = "async")]
-lazy_static::lazy_static! {
-    static ref RUNTIME: tokio::runtime::Runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
-}
-
 mod array;
 mod atom;
 mod bits;
@@ -119,19 +114,6 @@ where
             );
     }
 
-<<<<<<< Updated upstream
-    #[cfg(feature = "sql")]
-    {
-        builder = builder
-            .native_module(Location::library("sql/native").unwrap(), json::json())
-            .source_module(
-                Location::library("sql").unwrap(),
-                include_str!("./sql.tri").to_owned(),
-            );
-    }
-
-||||||| Stash base
-=======
     #[cfg(feature = "sql")]
     {
         builder = builder
@@ -142,6 +124,5 @@ where
             );
     }
 
->>>>>>> Stashed changes
     builder
 }

@@ -97,7 +97,7 @@ fn impl_impl(mut module: ItemImpl, options: Options) -> syn::Result<proc_macro2:
 
         impl From<#self_ty> for #trilogy_vm::Value {
             fn from(value: #self_ty) -> #trilogy_vm::Value {
-                let mut module = #trilogy::NativeModuleBuilder::new();
+                let mut module = #trilogy::NativeTypeBuilder::new(value.clone());
                 #(#add_items)*
                 let module = module.build();
                 #trilogy_vm::Value::from(#trilogy_vm::Native::from(module))

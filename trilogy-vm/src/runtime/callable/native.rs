@@ -1,6 +1,6 @@
 use super::super::RefCount;
 use crate::{Error, Execution, ReferentialEq, StructuralEq, Value};
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::Mutex;
@@ -19,7 +19,12 @@ impl<T: Send + Sync> Threading for T {}
 ///
 /// Implementing this trait manually is not recommended, see instead the macro
 /// `#[proc]` attribute macro from the `trilogy` crate.
-pub trait NativeFunction: Threading + Any {
+pub trait NativeFunction: Threading {
+    #[doc(hidden)]
+    fn as_any(&self) -> Option<&dyn Any> {
+        None
+    }
+
     #[doc(hidden)]
     fn call(&mut self, ex: &mut Execution, input: Vec<Value>) -> Result<(), Error>;
 
@@ -72,23 +77,17 @@ impl Native {
     }
 
     /// Attempts to downcast this native value to its wrapped Rust type.
-    pub fn downcast<T>(&self) -> Option<RefCount<Mutex<T>>>
+    ///
+    /// This only works for native values which have implemented the `as_any` method, namely
+    /// those that are created using the `NativeType` abstraction.
+    pub fn downcast<T>(&self) -> Option<T>
     where
-        T: Any,
+        T: Any + Clone,
     {
-        // See:
-        //     https://stackoverflow.com/questions/68173030/how-to-do-runtime-polymorphism-using-arcmutexdyn-sometrait-in-rust
-        if (*self.0.lock().unwrap()).type_id() == TypeId::of::<T>() {
-            let raw: *const Mutex<dyn NativeFunction> = RefCount::into_raw(self.0.clone());
-            let raw: *const Mutex<T> = raw.cast();
-
-            // SAFETY: This is safe because the pointer orignally came from a Rc/Arc
-            // with the same size and alignment since we've checked (via Any) that
-            // the object within is the type being casted to.
-            Some(unsafe { RefCount::from_raw(raw) })
-        } else {
-            None
-        }
+        let lock = self.0.lock().unwrap();
+        let any = lock.as_any()?;
+        let concrete: &T = any.downcast_ref()?;
+        Some(concrete.clone())
     }
 }
 

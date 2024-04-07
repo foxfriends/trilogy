@@ -7,7 +7,7 @@ use std::fmt::Display;
 
 pub(crate) use closure::Closure;
 pub(crate) use continuation::Continuation;
-pub use native::{Native, NativeFunction};
+pub use native::{Native, NativeFunction, Threading};
 pub(crate) use procedure::Procedure;
 
 /// An opaque Trilogy "callable" value.
