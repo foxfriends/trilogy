@@ -57,7 +57,9 @@ impl<T> NativeTypeBuilder<T> {
     ///     rt.r#return("hello")
     /// }
     ///
-    /// let native_module = NativeTypeBuilder::new()
+    /// struct MyNativeType;
+    ///
+    /// let native_module = NativeTypeBuilder::new(MyNativeType)
     ///     .add_item("hello", hello)
     ///     .build();
     /// ```
