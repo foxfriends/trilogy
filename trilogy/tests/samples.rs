@@ -1,8 +1,6 @@
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-};
-use trilogy::Trilogy;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+use trilogy::{Builder, Trilogy};
 use trilogy_vm::{Struct, StructuralEq, Value};
 
 const TEST_DIR: &str = "../samples";
@@ -395,4 +393,13 @@ fn sample_evaluate_unbound_iter() {
 fn sample_qy() {
     let program = include_tri!("qy.tri");
     assert_eq!(program.run().unwrap(), Value::from(6));
+}
+
+#[test]
+fn sample_not_main() {
+    let program = Builder::new()
+        .is_library(true)
+        .build_from_source(PathBuf::from(TEST_DIR).join("not_main.tri"))
+        .unwrap();
+    assert_eq!(program.call("not_main").unwrap(), Value::from(6));
 }

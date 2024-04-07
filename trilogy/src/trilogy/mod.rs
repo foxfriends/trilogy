@@ -45,6 +45,22 @@ pub struct Trilogy {
     vm: VirtualMachine,
 }
 
+pub trait ModulePath {
+    fn path(&self) -> Vec<&str>;
+}
+
+impl ModulePath for &str {
+    fn path(&self) -> Vec<&str> {
+        vec![self]
+    }
+}
+
+impl ModulePath for &[&str] {
+    fn path(&self) -> Vec<&str> {
+        self.to_vec()
+    }
+}
+
 impl Trilogy {
     fn new(source: Source, libraries: HashMap<Location, Native>) -> Self {
         let mut vm = VirtualMachine::new();
@@ -96,6 +112,14 @@ impl Trilogy {
 
     /// Runs the loaded Trilogy program by evaluating `main!()`.
     ///
+    /// This is equivalent to `call("main")`.
+    pub fn run(&self) -> Result<Value, RuntimeError> {
+        self.call("main")
+    }
+
+    /// Runs the loaded Trilogy, evaluating the exported 0-arity procedure pointed to by
+    /// the given path.
+    ///
     /// The returned value is the exit value of the program. This value is either:
     /// * the value provided to the first `exit` statement that gets executed.
     /// * the value returned from `main!()`, if it is not `unit`
@@ -107,7 +131,7 @@ impl Trilogy {
     /// is returned. Unfortunately at this time, those errors are hard to
     /// diagnose and could be anything from a bug in the compiler to an error
     /// in the Trilogy program.
-    pub fn run(&self) -> Result<Value, RuntimeError> {
+    pub fn call(&self, main: impl ModulePath) -> Result<Value, RuntimeError> {
         let result = match &self.source {
             Source::Asm { asm } => self.vm.run_with_registers(
                 &AsmProgram {
@@ -124,7 +148,7 @@ impl Trilogy {
                     libraries: &self.libraries,
                     modules,
                     entrypoint,
-                    path: &["main"],
+                    path: &main.path(),
                     to_asm: false,
                 },
                 Self::default_registers(),

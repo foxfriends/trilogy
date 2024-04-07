@@ -115,8 +115,11 @@ impl<C: Cache> Builder<C> {
     }
 
     /// Sets this builder to being in library mode, where having a `proc main!()` in the
-    /// entrypoint is __not__ required. Note that this means the resulting Trilogy instance
-    /// cannot be used as a program directly.
+    /// entrypoint is __not__ required.
+    ///
+    /// Note that this means the resulting Trilogy instance may not be able to be [`run`][Trilogy::run] as a
+    /// program directly, if there really is no `proc main!()` exported. Specific exported
+    /// functions may be called directly using [`call`][`Trilogy::call`].
     pub fn is_library(mut self, is_library: bool) -> Self {
         self.is_library = is_library;
         self

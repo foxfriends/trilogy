@@ -1,0 +1,5 @@
+proc not_main!() {
+    exit 6
+}
+
+export not_main
