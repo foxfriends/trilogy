@@ -1,6 +1,7 @@
 use crate::Runtime;
 use std::any::Any;
 use std::collections::HashMap;
+use trilogy_vm::runtime::Threading;
 use trilogy_vm::{Error, Execution, Native, NativeFunction, Value};
 
 /// A module of native functions with access to some shared context.
@@ -15,18 +16,18 @@ use trilogy_vm::{Error, Execution, Native, NativeFunction, Value};
 /// More likely one will be created by using the [`#[module]`][trilogy_derive::module]
 /// proc macro to create a `NativeType` from a Rust type's `impl` block.
 #[derive(Clone, Debug)]
-pub struct NativeType<T: Any> {
+pub struct NativeType<T: Any + Threading> {
     pub(crate) inner: T,
     pub(crate) items: HashMap<&'static str, Native>,
 }
 
 /// Builder for native modules.
 #[derive(Clone)]
-pub struct NativeTypeBuilder<T: 'static> {
+pub struct NativeTypeBuilder<T: Threading + 'static> {
     inner: NativeType<T>,
 }
 
-impl<T> NativeTypeBuilder<T> {
+impl<T: Threading> NativeTypeBuilder<T> {
     /// Create a new empty module builder.
     pub fn new(inner: T) -> Self {
         NativeTypeBuilder {
@@ -81,7 +82,7 @@ impl<T> NativeTypeBuilder<T> {
     /// Finish building this native module.
     pub fn build(self) -> NativeType<T>
     where
-        T: Any,
+        T: Any + Threading,
     {
         self.inner
     }
@@ -89,7 +90,7 @@ impl<T> NativeTypeBuilder<T> {
 
 impl<T> NativeFunction for NativeType<T>
 where
-    T: Any + 'static,
+    T: Any + Threading + 'static,
 {
     fn as_any(&self) -> Option<&dyn Any> {
         Some(&self.inner)

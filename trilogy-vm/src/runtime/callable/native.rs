@@ -1,19 +1,10 @@
 use super::super::RefCount;
+use super::Threading;
 use crate::{Error, Execution, ReferentialEq, StructuralEq, Value};
 use std::any::Any;
 use std::fmt::{self, Debug};
 use std::hash::{self, Hash};
 use std::sync::Mutex;
-
-#[cfg(not(feature = "multithread"))]
-pub trait Threading {}
-#[cfg(not(feature = "multithread"))]
-impl<T> Threading for T {}
-
-#[cfg(feature = "multithread")]
-pub trait Threading: Send + Sync {}
-#[cfg(feature = "multithread")]
-impl<T: Send + Sync> Threading for T {}
 
 /// Trait allowing Rust functions to be called by Trilogy programs.
 ///

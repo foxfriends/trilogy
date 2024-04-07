@@ -2,13 +2,15 @@ mod closure;
 mod continuation;
 mod native;
 mod procedure;
+mod threading;
 
 use std::fmt::Display;
 
 pub(crate) use closure::Closure;
 pub(crate) use continuation::Continuation;
-pub use native::{Native, NativeFunction, Threading};
+pub use native::{Native, NativeFunction};
 pub(crate) use procedure::Procedure;
+pub use threading::Threading;
 
 /// An opaque Trilogy "callable" value.
 ///

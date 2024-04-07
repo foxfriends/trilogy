@@ -20,6 +20,12 @@ pub struct Pointer<T> {
     pub(super) len: usize,
 }
 
+// TODO: I do not understand the safety of this
+// SAFETY: The pointer is not being used for anything weird... so I think it's safe
+unsafe impl<T: Sync> Sync for Pointer<T> {}
+// SAFETY: The pointer is not being used for anything weird... so I think it's safe
+unsafe impl<T: Send> Send for Pointer<T> {}
+
 impl<T> Debug for Pointer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Pointer")
