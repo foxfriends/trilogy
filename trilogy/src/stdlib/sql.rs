@@ -1,10 +1,9 @@
 #[trilogy_derive::module(crate_name=crate)]
 pub mod sql {
     use crate::{Result, Runtime};
-    use sqlx::postgres::PgValueFormat;
-    use sqlx::{Column, Executor, Postgres, Row};
+    use sqlx::{Column, Executor, Postgres, Row, TypeInfo};
     use tokio::runtime::Handle;
-    use trilogy_vm::{Array, Bits, Callable, Record, Value};
+    use trilogy_vm::{Array, Callable, Record, Value};
 
     #[cfg(feature = "postgres")]
     #[derive(Clone)]
@@ -48,7 +47,7 @@ pub mod sql {
                 variables,
             });
         };
-        let sql = iter.try_fold(init?, |acc, (i, part)| Ok(format!("{acc} ${i} {}", part?)))?;
+        let sql = iter.try_fold(init?, |acc, (i, part)| Ok(format!("{acc}${i}{}", part?)))?;
         rt.r#return(Query { sql, variables })
     }
 
@@ -120,30 +119,33 @@ pub mod sql {
                         row.columns()
                             .iter()
                             .map(|col| {
-                                Ok((Value::from(col.name()), {
-                                    let raw = row.try_get_raw(col.ordinal()).unwrap();
-                                    match raw.format() {
-                                        PgValueFormat::Text => {
-                                            Value::from(raw.as_str().map_err(|err| {
-                                                rt.runtime_error(rt.r#struct(
-                                                    "SqlError",
-                                                    format!("Failed to retrieve value: {err}"),
-                                                ))
-                                            })?)
-                                        }
-                                        PgValueFormat::Binary => Value::from(
-                                            raw.as_bytes()
-                                                .map_err(|err| {
-                                                    rt.runtime_error(rt.r#struct(
-                                                        "SqlError",
-                                                        format!("Failed to retrieve value: {err}"),
-                                                    ))
-                                                })?
-                                                .iter()
-                                                .collect::<Bits>(),
-                                        ),
+                                let value: Value = match col.type_info().name() {
+                                    "CITEXT" | "TEXT" | "VARCHAR" | "CHAR" => row
+                                        .try_get::<String, _>(col.ordinal())
+                                        .map_err(|err| {
+                                            rt.runtime_error(rt.r#struct(
+                                                "SqlError",
+                                                format!("Failed to retrieve value: {err}"),
+                                            ))
+                                        })?
+                                        .into(),
+                                    "INT4" => row
+                                        .try_get::<i32, _>(col.ordinal())
+                                        .map_err(|err| {
+                                            rt.runtime_error(rt.r#struct(
+                                                "SqlError",
+                                                format!("Failed to retrieve value: {err}"),
+                                            ))
+                                        })?
+                                        .into(),
+                                    name => {
+                                        return Err(rt.runtime_error(rt.r#struct(
+                                            "SqlError",
+                                            format!("Unsupported SQL type: {name}"),
+                                        )))
                                     }
-                                }))
+                                };
+                                Ok((Value::from(col.name()), value))
                             })
                             .collect::<Result<Record>>()?,
                     ))
