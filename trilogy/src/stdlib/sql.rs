@@ -48,9 +48,7 @@ pub mod sql {
                 variables,
             });
         };
-        let sql = iter.try_fold(init?, |acc, (i, part)| {
-            Ok(format!("{acc} ${i} {}", part?))
-        })?;
+        let sql = iter.try_fold(init?, |acc, (i, part)| Ok(format!("{acc} ${i} {}", part?)))?;
         rt.r#return(Query { sql, variables })
     }
 
