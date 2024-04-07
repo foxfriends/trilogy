@@ -1,13 +1,15 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use trilogy::{Builder, Trilogy};
+use trilogy::Builder;
 use trilogy_vm::{Struct, StructuralEq, Value};
 
 const TEST_DIR: &str = "../samples";
 
 macro_rules! include_tri {
     ($path:literal) => {{
-        Trilogy::from_file(PathBuf::from(TEST_DIR).join($path)).unwrap()
+        Builder::new()
+            .build_from_source(PathBuf::from(TEST_DIR).join($path))
+            .unwrap()
     }};
 }
 

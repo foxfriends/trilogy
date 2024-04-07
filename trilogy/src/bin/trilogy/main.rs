@@ -21,12 +21,12 @@ struct Cli {
 enum Command {
     /// Start up the interactive Trilogy REPL.
     Repl,
-    #[cfg(feature = "std")]
     /// Run a Trilogy program.
     Run {
         /// The path to the Trilogy source file containing the `main!()` procedure.
         file: PathBuf,
         /// Run without including the standard library.
+        #[cfg(feature = "std")]
         #[arg(short = 'S', long)]
         no_std: bool,
         /// Print the exit value instead of using it as the exit code.
@@ -62,12 +62,12 @@ enum Command {
         #[arg(long = "lib")]
         library: bool,
     },
-    #[cfg(feature = "std")]
     /// Check the syntax and warnings of a Trilogy program.
     Check {
         /// The path to the Trilogy source file containing the `main!()` procedure.
         file: PathBuf,
         /// Check without including the standard library.
+        #[cfg(feature = "std")]
         #[arg(short = 'S', long)]
         no_std: bool,
     },
@@ -158,12 +158,22 @@ fn main_sync() -> std::io::Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        #[cfg(feature = "std")]
         Command::Run {
             file,
             print,
-            no_std: _,
             debug,
+            #[cfg(feature = "std")]
+                no_std: true,
+        } => match Builder::new().build_from_source(file) {
+            Ok(trilogy) => run(trilogy, print, debug),
+            Err(report) => {
+                report.eprint();
+                std::process::exit(1);
+            }
+        },
+        #[cfg(feature = "std")]
+        Command::Run {
+            file, print, debug, ..
         } => match Trilogy::from_file(file) {
             Ok(trilogy) => run(trilogy, print, debug),
             Err(report) => {
@@ -208,8 +218,18 @@ fn main_sync() -> std::io::Result<()> {
                 }
             }
         }
+        Command::Check {
+            file,
+            #[cfg(feature = "std")]
+                no_std: true,
+        } => {
+            if let Err(report) = Builder::new().build_from_source(file) {
+                report.eprint();
+                std::process::exit(1);
+            }
+        }
         #[cfg(feature = "std")]
-        Command::Check { file, no_std: _ } => {
+        Command::Check { file, .. } => {
             if let Err(report) = Trilogy::from_file(file) {
                 report.eprint();
                 std::process::exit(1);
