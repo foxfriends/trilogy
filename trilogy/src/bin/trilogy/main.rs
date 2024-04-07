@@ -1,11 +1,13 @@
 use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
-use std::{io::stdin, path::PathBuf};
+use std::io::stdin;
+use std::path::PathBuf;
 use trilogy::{Builder, RuntimeError, Trilogy};
 use trilogy_vm::Value;
 
 #[cfg(feature = "dev")]
 mod dev;
+#[cfg(feature = "std")]
 mod test_reporter;
 
 /// Trilogy Programming Language
@@ -19,6 +21,7 @@ struct Cli {
 enum Command {
     /// Start up the interactive Trilogy REPL.
     Repl,
+    #[cfg(feature = "std")]
     /// Run a Trilogy program.
     Run {
         /// The path to the Trilogy source file containing the `main!()` procedure.
@@ -49,6 +52,7 @@ enum Command {
         #[arg(long)]
         debug: bool,
     },
+    #[cfg(feature = "std")]
     /// Compile a Trilogy program, printing the ASM it compiles to.
     /// Redirect to a file is recommended.
     ///
@@ -58,6 +62,7 @@ enum Command {
         #[arg(long = "lib")]
         library: bool,
     },
+    #[cfg(feature = "std")]
     /// Check the syntax and warnings of a Trilogy program.
     Check {
         /// The path to the Trilogy source file containing the `main!()` procedure.
@@ -66,6 +71,7 @@ enum Command {
         #[arg(short = 'S', long)]
         no_std: bool,
     },
+    #[cfg(feature = "std")]
     /// Runs all tests found in the given module and all its submodules.
     ///
     /// The provided path is not required to define a `main` function as
@@ -152,6 +158,7 @@ fn main_sync() -> std::io::Result<()> {
     let args = Cli::parse();
 
     match args.command {
+        #[cfg(feature = "std")]
         Command::Run {
             file,
             print,
@@ -188,6 +195,7 @@ fn main_sync() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
+        #[cfg(feature = "std")]
         Command::Compile { file, library } => {
             match Builder::std().is_library(library).build_from_source(file) {
                 Ok(trilogy) => match trilogy.compile() {
@@ -200,12 +208,14 @@ fn main_sync() -> std::io::Result<()> {
                 }
             }
         }
+        #[cfg(feature = "std")]
         Command::Check { file, no_std: _ } => {
             if let Err(report) = Trilogy::from_file(file) {
                 report.eprint();
                 std::process::exit(1);
             }
         }
+        #[cfg(feature = "std")]
         Command::Test { file } => match Builder::std().is_library(true).build_from_source(file) {
             Ok(trilogy) => {
                 let mut reporter = test_reporter::Stdout::default();

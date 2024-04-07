@@ -1,5 +1,6 @@
 use crate::{location::Location, RuntimeError};
 use std::collections::HashMap;
+#[cfg(feature = "std")]
 use std::path::Path;
 use trilogy_ir::ir::Module;
 use trilogy_vm::{Atom, Chunk, ChunkError, Native, Value, VirtualMachine};

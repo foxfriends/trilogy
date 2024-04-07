@@ -3,7 +3,10 @@ use crate::stdlib;
 
 use super::{Source, Trilogy};
 use crate::location::Location;
-use crate::{Cache, FileSystemCache, NoopCache};
+#[cfg(feature = "std")]
+use crate::FileSystemCache;
+use crate::{Cache, NoopCache};
+#[cfg(feature = "std")]
 use home::home_dir;
 use std::collections::HashMap;
 use std::io::Read;
@@ -53,6 +56,10 @@ impl Builder<FileSystemCache> {
             )
             .map(stdlib::apply)
     }
+
+    fn map(self, f: impl FnOnce(Self) -> Self) -> Self {
+        f(self)
+    }
 }
 
 impl Default for Builder<NoopCache> {
@@ -80,10 +87,6 @@ impl Builder<NoopCache> {
 }
 
 impl<C: Cache> Builder<C> {
-    fn map(self, f: impl FnOnce(Self) -> Self) -> Self {
-        f(self)
-    }
-
     /// Adds a native module to this builder as a library.
     ///
     /// The location describes how Trilogy code should reference this module.
