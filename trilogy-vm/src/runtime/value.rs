@@ -734,3 +734,21 @@ impl TryFrom<Value> for () {
         }
     }
 }
+
+#[cfg(feature = "json")]
+impl From<serde_json::Value> for Value {
+    fn from(value: serde_json::Value) -> Value {
+        match value {
+            serde_json::Value::Null => Value::Unit,
+            serde_json::Value::Bool(v) => Value::Bool(v),
+            serde_json::Value::Number(v) => Value::Number(v.into()),
+            serde_json::Value::String(v) => Value::String(v.into()),
+            serde_json::Value::Array(v) => Value::Array(v.into_iter().map(Value::from).collect()),
+            serde_json::Value::Object(v) => Value::Record(
+                v.into_iter()
+                    .map(|(k, v)| (Value::from(k), Value::from(v)))
+                    .collect(),
+            ),
+        }
+    }
+}

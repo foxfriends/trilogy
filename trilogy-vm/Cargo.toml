@@ -6,11 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["serde"]
+default = []
 multithread = []    # multithread disabled by default, reducing overhead
 64bit = []
 32bit = []          # 32bit has been determined to usually be most performant
 stats = []          # performance cost
+json = ["dep:serde_json", "serde"]
 serde = ["dep:serde", "num/serde", "bitvec/serde"]
 
 [dependencies]
@@ -20,3 +21,4 @@ trilogy-vm-derive = { path = "../trilogy-vm-derive/" }
 source-span = "2.7.0"
 log = "0.4.20"
 serde = { version = "1.0.197", optional = true, features = ["derive", "rc"] }
+serde_json = { version = "1.0.115", optional = true, features = ["arbitrary_precision"] }

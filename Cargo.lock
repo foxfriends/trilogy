@@ -2281,6 +2281,7 @@ dependencies = [
  "log",
  "num",
  "serde",
+ "serde_json",
  "source-span",
  "trilogy-vm-derive",
 ]

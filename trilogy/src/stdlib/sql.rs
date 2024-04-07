@@ -138,6 +138,15 @@ pub mod sql {
                                             ))
                                         })?
                                         .into(),
+                                    "JSON" | "JSONB" => row
+                                        .try_get::<serde_json::Value, _>(col.ordinal())
+                                        .map_err(|err| {
+                                            rt.runtime_error(rt.r#struct(
+                                                "SqlError",
+                                                format!("Failed to retrieve value: {err}"),
+                                            ))
+                                        })?
+                                        .into(),
                                     name => {
                                         return Err(rt.runtime_error(rt.r#struct(
                                             "SqlError",

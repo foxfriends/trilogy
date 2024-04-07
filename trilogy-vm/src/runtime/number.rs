@@ -19,6 +19,8 @@ impl serde::Serialize for Number {
     {
         if let Ok(int) = self.try_into() {
             serializer.serialize_i64(int)
+        } else if let Ok(int) = self.try_into() {
+            serializer.serialize_u64(int)
         } else if let Ok(float) = self.try_into() {
             serializer.serialize_f64(float)
         } else {
@@ -36,10 +38,12 @@ impl<'de> serde::Deserialize<'de> for Number {
         #[derive(serde::Deserialize)]
         #[serde(untagged)]
         enum IntOrFloat {
+            UInt(u64),
             Int(i64),
             Float(f64),
         }
         match IntOrFloat::deserialize(deserializer)? {
+            IntOrFloat::UInt(int) => Ok(Self::from(int)),
             IntOrFloat::Int(int) => Ok(Self::from(int)),
             IntOrFloat::Float(float) => Ok(Self::from(float)),
         }
@@ -281,6 +285,13 @@ impl From<Number> for Complex<BigRational> {
 impl From<&Number> for Number {
     fn from(value: &Number) -> Self {
         value.clone()
+    }
+}
+
+#[cfg(feature = "json")]
+impl From<serde_json::Number> for Number {
+    fn from(value: serde_json::Number) -> Self {
+        value.as_str().parse().unwrap()
     }
 }
 

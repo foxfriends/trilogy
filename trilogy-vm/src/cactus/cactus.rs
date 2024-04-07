@@ -106,7 +106,7 @@ impl<T> Cactus<T> {
         T: Clone,
     {
         let stack = self.stack.lock().unwrap();
-        let expected = ranges.iter().map(|rng| rng.len()).sum();
+        let expected: usize = ranges.iter().map(|rng| rng.len()).sum();
         let vec = ranges
             .into_iter()
             .flat_map(|range| stack.get(range))

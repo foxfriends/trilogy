@@ -1,0 +1,10 @@
+module stdsql at "trilogy:sql" use pgpool, sql
+module stdio at "trilogy:io" use println
+
+proc main!() {
+    let query = $"SELECT * FROM basic"sql
+    println!(query::to_string!())
+    let conn = pgpool!("postgresql://cam:cam@localhost:5432/cam")
+    let result = conn::query!(query)
+    println!(result)
+}
