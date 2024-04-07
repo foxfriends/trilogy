@@ -6,6 +6,12 @@ jobs:
   stdlib:
     name: stdlib
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - 32bit
+          - 64bit
+          - multithread
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v3
@@ -23,13 +29,19 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Build
-        run: cargo build --release
+        run: cargo build --features ${{ matrix.features }} --release
       - name: Run stdlib tests
         run: |
           ls ./trilogy/src/stdlib/*.tri | xargs -I _ ./target/release/trilogy test _
   test:
     name: test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - 32bit
+          - 64bit
+          - multithread
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v3
@@ -47,7 +59,7 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Build
-        run: cargo build --release
+        run: cargo build --features ${{ matrix.features }} --release
       - name: Run testsuite
         run: |
           ls ./testsuite/*/*.tri | xargs -I _ ./target/release/trilogy test _
