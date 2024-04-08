@@ -156,8 +156,6 @@ pub enum TokenType {
     KwUntil,
     /// `use`
     KwUse,
-    /// `var`
-    KwVar,
     /// `where`
     KwWhere,
 

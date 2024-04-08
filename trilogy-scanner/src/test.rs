@@ -427,7 +427,6 @@ test_tokenize!(kw_try => "try" = [KwTry]);
 test_tokenize!(kw_type => "type" = [KwType]);
 test_tokenize!(kw_unless => "unless" = [KwUnless]);
 test_tokenize!(kw_until => "until" = [KwUntil]);
-test_tokenize!(kw_var => "var" = [KwVar]);
 test_tokenize!(kw_where => "where" = [KwWhere]);
 
 test_tokenize!(invalid_nesting => "(]" = [OParen CBrack]);

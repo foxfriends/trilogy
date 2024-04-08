@@ -3,17 +3,25 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct MatchExpression {
-    start: Token,
+    pub r#match: Token,
     pub expression: Expression,
     pub cases: Vec<MatchExpressionCase>,
+    pub r#else: Token,
+    pub else_binding: Pattern,
     pub no_match: Expression,
+}
+
+impl Spanned for MatchExpression {
+    fn span(&self) -> Span {
+        self.r#match.span.union(self.no_match.span())
+    }
 }
 
 impl MatchExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<MatchExpression> {
-        let start = parser
+        let r#match = parser
             .expect(KwMatch)
             .expect("Caller should have found this");
 
@@ -34,15 +42,25 @@ impl MatchExpression {
                 break;
             }
         }
-        parser.expect(KwElse).map_err(|token| {
+        let r#else = parser.expect(KwElse).map_err(|token| {
             parser.expected(token, "expected `else` case to end a `match` expression")
+        })?;
+        let else_binding = if parser.check(Discard).is_ok() {
+            Pattern::parse(parser)?
+        } else {
+            Pattern::Binding(Box::new(BindingPattern::parse(parser)?))
+        };
+        parser.expect(KwThen).map_err(|token| {
+            parser.expected(token, "expected `then` keyword to follow else case")
         })?;
         let no_match = Expression::parse_precedence(parser, Precedence::Continuation)?;
 
         Ok(Self {
-            start,
+            r#match,
             expression,
             cases,
+            r#else,
+            else_binding,
             no_match,
         })
     }
@@ -50,7 +68,7 @@ impl MatchExpression {
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct MatchExpressionCase {
-    start: Token,
+    pub case: Token,
     pub pattern: Option<Pattern>,
     pub guard: Option<Expression>,
     pub body: Expression,
@@ -58,7 +76,7 @@ pub struct MatchExpressionCase {
 
 impl MatchExpressionCase {
     fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
+        let case = parser
             .expect(KwCase)
             .expect("Caller should have found this");
         let pattern = parser
@@ -77,20 +95,16 @@ impl MatchExpressionCase {
         })?;
         let body = Expression::parse(parser)?;
         Ok(Self {
-            start,
+            case,
             pattern,
             guard,
             body,
         })
     }
-
-    pub fn case_token(&self) -> &Token {
-        &self.start
-    }
 }
 
 impl Spanned for MatchExpressionCase {
     fn span(&self) -> Span {
-        self.start.span.union(self.body.span())
+        self.case.span.union(self.body.span())
     }
 }

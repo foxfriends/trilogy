@@ -32,6 +32,15 @@ an \kw{else} block).
         \bnfsp
         \bnfpn{Block}
         \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{BindingPattern}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+        \bnfor
         \bnfpn{SCase}
     } \\
     \bnfprod{SCase}{
@@ -114,5 +123,6 @@ as is the \kw{else} case:
 \begin{align*}
     \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %
     \texttt{\kw{case} \kw{if} \$c:expr} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \$c} \\ %
+    \texttt{\kw{else} \$p:id} &\Rightarrow \texttt{\kw{case} \$p} \\ %
     \texttt{\kw{else}} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \kw{true}} \\ %
 \end{align*}

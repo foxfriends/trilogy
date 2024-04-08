@@ -4,7 +4,7 @@ proc main!() {
     let y = match set
         case [| 0, 1, 2, ..rest |] then rest
         case [| 1, 2, 5, ..rest |] then rest
-        else unit
+        else _ then unit
 
     exit y
 }

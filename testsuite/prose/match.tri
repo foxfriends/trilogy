@@ -47,7 +47,7 @@ test "match can extract struct field" {
 }
 
 test "match expression can be nested in match value" {
-    match match 3 case 1 then 4 case 3 then 5 else 7
+    match match 3 case 1 then 4 case 3 then 5 else _ then 7
         case 1 { assert false }
         case 5 {}
         case 7 { assert false }

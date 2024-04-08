@@ -18,14 +18,27 @@ impl Match {
         let expression = Expression::convert(converter, ast.expression);
         let else_case = ast
             .else_case
-            .map(|ast| Expression::convert_block(converter, ast))
-            .unwrap_or_else(|| Expression::unit(span));
+            .map(|ast| Case {
+                span: ast.span(),
+                pattern: ast
+                    .pattern
+                    .map(|ast| Expression::convert_binding(converter, ast))
+                    .unwrap_or_else(|| Expression::wildcard(ast.r#else.span)),
+                guard: Expression::boolean(ast.r#else.span, true),
+                body: Expression::convert_block(converter, ast.body),
+            })
+            .unwrap_or_else(|| Case {
+                span,
+                pattern: Expression::wildcard(span),
+                guard: Expression::boolean(span, true),
+                body: Expression::unit(span),
+            });
         let mut cases: Vec<_> = ast
             .cases
             .into_iter()
             .map(|ast| Case::convert_statement(converter, ast))
             .collect();
-        cases.push(Case::new_fallback(else_case));
+        cases.push(else_case);
         Expression::r#match(span, Self { expression, cases })
     }
 
@@ -35,13 +48,17 @@ impl Match {
     ) -> Expression {
         let span = ast.span();
         let expression = Expression::convert(converter, ast.expression);
-        let else_case = Expression::convert(converter, ast.no_match);
         let mut cases: Vec<_> = ast
             .cases
             .into_iter()
             .map(|ast| Case::convert_expression(converter, ast))
             .collect();
-        cases.push(Case::new_fallback(else_case));
+        cases.push(Case {
+            span: ast.r#else.span().union(ast.no_match.span()),
+            pattern: Expression::convert_pattern(converter, ast.else_binding),
+            guard: Expression::boolean(ast.r#else.span, true),
+            body: Expression::convert(converter, ast.no_match),
+        });
         Expression::r#match(span, Self { expression, cases })
     }
 }
@@ -55,18 +72,8 @@ pub struct Case {
 }
 
 impl Case {
-    fn new_fallback(body: Expression) -> Self {
-        Self {
-            span: body.span,
-            // TODO: would be nice to have the `else` span here
-            pattern: Expression::wildcard(body.span),
-            guard: Expression::boolean(body.span, true),
-            body,
-        }
-    }
-
     fn convert_statement(converter: &mut Converter, ast: syntax::MatchStatementCase) -> Self {
-        let case_span = ast.case_token().span;
+        let case_span = ast.case.span;
         let span = ast.span();
         converter.push_scope();
         let pattern = ast
@@ -88,7 +95,7 @@ impl Case {
     }
 
     fn convert_expression(converter: &mut Converter, ast: syntax::MatchExpressionCase) -> Self {
-        let case_span = ast.case_token().span;
+        let case_span = ast.case.span;
         let span = ast.span();
         converter.push_scope();
         let pattern = ast

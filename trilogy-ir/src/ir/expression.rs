@@ -441,11 +441,13 @@ impl Expression {
                         Identifier::unresolved(converter, ast.identifier),
                     )
                 }),
-            Binding(ast) => {
-                Self::reference(ast.span(), Identifier::declare_binding(converter, *ast))
-            }
+            Binding(ast) => Self::convert_binding(converter, *ast),
             Parenthesized(ast) => Self::convert_pattern(converter, ast.pattern),
         }
+    }
+
+    pub(super) fn convert_binding(converter: &mut Converter, ast: syntax::BindingPattern) -> Self {
+        Self::reference(ast.span(), Identifier::declare_binding(converter, ast))
     }
 
     fn convert_for_statement(converter: &mut Converter, ast: syntax::ForStatement) -> Self {

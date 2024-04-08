@@ -8,7 +8,7 @@ proc main!() {
     let y = match rec
         case {| 1 => "b", 2 => _, ..c |} then c
         case {| 1 => "a", 3 => _, ..c |} then c
-        else unit
+        else _ then unit
 
     exit y;
 }

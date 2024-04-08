@@ -3,6 +3,7 @@
 mod array;
 mod atom;
 mod bits;
+mod env;
 mod fs;
 mod io;
 mod num;
@@ -71,6 +72,11 @@ where
         .source_module(
             Location::library("fs").unwrap(),
             include_str!("./fs.tri").to_owned(),
+        )
+        .native_module(Location::library("env/native").unwrap(), env::env())
+        .source_module(
+            Location::library("env").unwrap(),
+            include_str!("./env.tri").to_owned(),
         )
         .native_module(Location::library("time/native").unwrap(), time::time())
         .source_module(

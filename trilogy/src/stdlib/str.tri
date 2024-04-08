@@ -95,7 +95,7 @@ test "string split_n" {
 func lines str = match split '\n' str
     case [..arr, ""] then arr
     case arr then arr
-    else []
+    else _ then []
 export lines
 
 test "lines" {

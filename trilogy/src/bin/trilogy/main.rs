@@ -145,7 +145,7 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
 #[cfg(feature = "async")]
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    tokio::task::spawn_blocking(main_sync).await.unwrap()
+    tokio::task::spawn_blocking(main_sync).await?
 }
 
 #[cfg(not(feature = "async"))]

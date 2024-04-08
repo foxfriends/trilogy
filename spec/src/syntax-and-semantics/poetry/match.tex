@@ -19,7 +19,7 @@ that no \kw{case} was selected.
         \bnfsp
         \bnfts{\kw{else}}
         \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{ElseCase}
     } \\
     \bnfprod{Cases}{
         \bnfpn{Case}\bnfsp\bnfpn{Cases}\bnfor\bnfpn{Case}
@@ -58,7 +58,26 @@ that no \kw{case} was selected.
         \bnfts{\kw{then}}
         \bnfsp
         \bnfpn{Expression}
-    }
+    } \\
+    \bnfprod{ElseCase}{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Binding}
+        \bnfsp
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Wildcard}
+        \bnfsp
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
 \end{bnf*}
 
 The \kw{match} expression is evaluated in much the same way as the \kw{match} statement of
@@ -72,14 +91,6 @@ evaluation of the \kw{match} expression as a whole.
     \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash C = \kw{true}, B : \tau$}
     \LeftLabel{Match}
     \TrinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{case}\ P\ \kw{if}\ C\ \kw{then}\ B : \tau$}
-\end{prooftree}
-
-\vskip 0.5em
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash E$}
-    \AxiomC{$\Gamma\vdash B : \tau$}
-    \LeftLabel{No Match}
-    \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ \kw{else}\ B : \tau$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -112,4 +123,6 @@ transformation as before:
 \begin{align*}
     \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %
     \texttt{\kw{case} \kw{if} \$c:expr} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \$c} \\ %
+    \texttt{\kw{else} \_ \kw{then}} &\Rightarrow \texttt{\kw{case} \_ \kw{then}} \\ %
+    \texttt{\kw{else} \$i:id \kw{then}} &\Rightarrow \texttt{\kw{case} \$i \kw{then}} \\ %
 \end{align*}

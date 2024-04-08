@@ -14,7 +14,7 @@ export abs
 func max a b = match a > b
     case true then a
     case false then b
-    else yield 'NAN
+    else _ then yield 'NAN
 export max
 
 ## Returns the smaller of two numbers. If the numbers cannot be compared,
@@ -22,7 +22,7 @@ export max
 func min a b = match a > b
     case false then a
     case true then b
-    else yield 'NAN
+    else _ then yield 'NAN
 export min
 
 ## Returns true if the number is odd, and false otherwise.
