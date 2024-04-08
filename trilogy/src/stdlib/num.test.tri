@@ -1,4 +1,4 @@
-module num at "trilogy:num" use min, max, abs, parts, parse_int, is_odd, is_even
+module num at "trilogy:num" use min, max, abs, parts, parse_int, is_odd, is_even, to_fixed
 
 test "parse_int" {
     assert parse_int 16 "ff6600" == 0xff6600
@@ -57,4 +57,10 @@ test "is_even" {
     assert "dec" as !(is_even 1.5)
     assert "imodd" as !(is_even 1i1)
     assert "imev" as !(is_even 2i2)
+}
+
+test "to_fixed" {
+    assert to_fixed 3 1/3 == "0.333"
+    assert to_fixed 5 1/3 == "0.33333"
+    assert to_fixed 5 3 == "3"
 }

@@ -1,5 +1,5 @@
-module native at "trilogy:num/native" use cast, im, re, lcm, parse_int
-export re, im, cast, lcm, parse_int
+module native at "trilogy:num/native" use cast, im, re, lcm, parse_int, to_fixed
+export re, im, cast, lcm, parse_int, to_fixed
 
 ## Returns the real and imaginary parts of a number as a tuple of real numbers.
 func parts n = (native::re n) : (native::im n)
