@@ -221,7 +221,7 @@ pub mod sql {
                                                 format!("Failed to retrieve value: {err}"),
                                             ))
                                         })?
-                                        .map(|bits| Bits::from(bits))
+                                        .map(Bits::from)
                                         .into(),
                                     "BYTEA[]" => row
                                         .try_get::<Option<Vec<Vec<u8>>>, _>(col.ordinal())
