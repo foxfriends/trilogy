@@ -315,6 +315,19 @@ impl From<&BitSlice<usize, Msb0>> for Bits {
     }
 }
 
+impl From<Vec<u8>> for Bits {
+    fn from(vec: Vec<u8>) -> Self {
+        Self::from_iter(vec)
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl From<sqlx::types::BitVec> for Bits {
+    fn from(value: sqlx::types::BitVec) -> Self {
+        Self::from_iter(value.to_bytes())
+    }
+}
+
 impl BitAnd for Bits {
     type Output = Bits;
 

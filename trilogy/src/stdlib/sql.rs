@@ -3,7 +3,7 @@ pub mod sql {
     use crate::{Result, Runtime};
     use sqlx::{Column, Executor, Postgres, Row, TypeInfo};
     use tokio::runtime::Handle;
-    use trilogy_vm::{Array, Callable, Record, Value};
+    use trilogy_vm::{Array, Bits, Callable, Record, Value};
 
     #[cfg(feature = "postgres")]
     #[derive(Clone)]
@@ -112,6 +112,45 @@ pub mod sql {
                 .map_err(|err| {
                     rt.runtime_error(rt.r#struct("SqlError", format!("Error in query: {err}")))
                 })?;
+
+            fn from<'a, T: sqlx::Type<Postgres> + sqlx::Decode<'a, Postgres>>(
+                rt: &Runtime,
+                row: &'a sqlx::postgres::PgRow,
+                col: &sqlx::postgres::PgColumn,
+            ) -> Result<Value>
+            where
+                Value: From<Option<T>>,
+            {
+                Ok(row
+                    .try_get::<Option<T>, _>(col.ordinal())
+                    .map_err(|err| {
+                        rt.runtime_error(
+                            rt.r#struct("SqlError", format!("Failed to retrieve value: {err}")),
+                        )
+                    })?
+                    .into())
+            }
+
+            fn from_array<'a, T: sqlx::Type<Postgres> + sqlx::postgres::PgHasArrayType>(
+                rt: &Runtime,
+                row: &'a sqlx::postgres::PgRow,
+                col: &sqlx::postgres::PgColumn,
+            ) -> Result<Value>
+            where
+                Value: From<T>,
+                Vec<T>: sqlx::Decode<'a, Postgres>,
+            {
+                Ok(row
+                    .try_get::<Option<Vec<T>>, _>(col.ordinal())
+                    .map_err(|err| {
+                        rt.runtime_error(
+                            rt.r#struct("SqlError", format!("Failed to retrieve value: {err}")),
+                        )
+                    })?
+                    .map(|arr| arr.into_iter().map(Into::into).collect::<Array>())
+                    .into())
+            }
+
             let result = result
                 .into_iter()
                 .map(|row| {
@@ -120,32 +159,118 @@ pub mod sql {
                             .iter()
                             .map(|col| {
                                 let value: Value = match col.type_info().name() {
-                                    "CITEXT" | "TEXT" | "VARCHAR" | "CHAR" => row
-                                        .try_get::<String, _>(col.ordinal())
+                                    "citext" | "CITEXT" | "TEXT" | "VARCHAR" | "CHAR" | "NAME" => {
+                                        from::<String>(&rt, &row, col)?
+                                    }
+                                    "TEXT[]" | "VARCHAR[]" | "CHAR[]" | "NAME[]" => {
+                                        from_array::<String>(&rt, &row, col)?
+                                    }
+                                    "BOOL" => from::<bool>(&rt, &row, col)?,
+                                    "BOOL[]" => from_array::<bool>(&rt, &row, col)?,
+                                    "\"CHAR\"" => row
+                                        .try_get::<Option<i8>, _>(col.ordinal())
                                         .map_err(|err| {
                                             rt.runtime_error(rt.r#struct(
                                                 "SqlError",
                                                 format!("Failed to retrieve value: {err}"),
                                             ))
                                         })?
+                                        .map(|i| i as u8 as char)
                                         .into(),
-                                    "INT4" => row
-                                        .try_get::<i32, _>(col.ordinal())
+                                    "\"CHAR\"[]" => row
+                                        .try_get::<Option<Vec<i8>>, _>(col.ordinal())
                                         .map_err(|err| {
                                             rt.runtime_error(rt.r#struct(
                                                 "SqlError",
                                                 format!("Failed to retrieve value: {err}"),
                                             ))
                                         })?
+                                        .map(|arr| {
+                                            arr.into_iter()
+                                                .map(|i| i as u8 as char)
+                                                .map(Into::into)
+                                                .collect::<Array>()
+                                        })
                                         .into(),
-                                    "JSON" | "JSONB" => row
-                                        .try_get::<serde_json::Value, _>(col.ordinal())
+                                    "SMALLINT" | "SMALLSERIAL" | "INT2" => {
+                                        from::<i16>(&rt, &row, col)?
+                                    }
+                                    "SMALLINT[]" | "SMALLSERIAL[]" | "INT2[]" => {
+                                        from_array::<i16>(&rt, &row, col)?
+                                    }
+                                    "INT" | "SERIAL" | "INT4" => from::<i32>(&rt, &row, col)?,
+                                    "INT[]" | "SERIAL[]" | "INT4[]" => {
+                                        from_array::<i32>(&rt, &row, col)?
+                                    }
+                                    "BIGINT" | "BIGSERIAL" | "INT8" => from::<i64>(&rt, &row, col)?,
+                                    "BIGINT[]" | "BIGSERIAL[]" | "INT8[]" => {
+                                        from_array::<i64>(&rt, &row, col)?
+                                    }
+                                    // TODO: support floats
+                                    "REAL" | "FLOAT4" => from::<f32>(&rt, &row, col)?,
+                                    "REAL[]" | "FLOAT4[]" => from_array::<f32>(&rt, &row, col)?,
+                                    "DOUBLE PRECISION" | "FLOAT8" => from::<f64>(&rt, &row, col)?,
+                                    "DOUBLE PRECISION[]" | "FLOAT8[]" => {
+                                        from_array::<f32>(&rt, &row, col)?
+                                    }
+                                    "BYTEA" => row
+                                        .try_get::<Option<Vec<u8>>, _>(col.ordinal())
                                         .map_err(|err| {
                                             rt.runtime_error(rt.r#struct(
                                                 "SqlError",
                                                 format!("Failed to retrieve value: {err}"),
                                             ))
                                         })?
+                                        .map(|bits| Bits::from(bits))
+                                        .into(),
+                                    "BYTEA[]" => row
+                                        .try_get::<Option<Vec<Vec<u8>>>, _>(col.ordinal())
+                                        .map_err(|err| {
+                                            rt.runtime_error(rt.r#struct(
+                                                "SqlError",
+                                                format!("Failed to retrieve value: {err}"),
+                                            ))
+                                        })?
+                                        .map(|arr| {
+                                            arr.into_iter()
+                                                .map(Bits::from)
+                                                .map(Into::into)
+                                                .collect::<Array>()
+                                        })
+                                        .into(),
+                                    "NUMERIC" => from::<sqlx::types::BigDecimal>(&rt, &row, col)?,
+                                    "NUMERIC[]" => {
+                                        from_array::<sqlx::types::BigDecimal>(&rt, &row, col)?
+                                    }
+                                    "JSON" | "JSONB" => from::<serde_json::Value>(&rt, &row, col)?,
+                                    "JSON[]" | "JSONB[]" => {
+                                        from_array::<serde_json::Value>(&rt, &row, col)?
+                                    }
+                                    "VOID" => from::<()>(&rt, &row, col)?,
+                                    "UUID" => row
+                                        .try_get::<Option<sqlx::types::Uuid>, _>(col.ordinal())
+                                        .map_err(|err| {
+                                            rt.runtime_error(rt.r#struct(
+                                                "SqlError",
+                                                format!("Failed to retrieve value: {err}"),
+                                            ))
+                                        })?
+                                        .map(|uuid| uuid.to_string())
+                                        .into(),
+                                    "UUID[]" => row
+                                        .try_get::<Option<Vec<sqlx::types::Uuid>>, _>(col.ordinal())
+                                        .map_err(|err| {
+                                            rt.runtime_error(rt.r#struct(
+                                                "SqlError",
+                                                format!("Failed to retrieve value: {err}"),
+                                            ))
+                                        })?
+                                        .map(|arr| {
+                                            arr.into_iter()
+                                                .map(|uuid| uuid.to_string())
+                                                .map(Into::into)
+                                                .collect::<Array>()
+                                        })
                                         .into(),
                                     name => {
                                         return Err(rt.runtime_error(rt.r#struct(

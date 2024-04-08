@@ -228,6 +228,15 @@ impl From<f64> for Number {
     }
 }
 
+impl From<f32> for Number {
+    fn from(value: f32) -> Self {
+        Self(RefCount::new(Complex::new(
+            BigRational::from_f32(value).unwrap(),
+            Zero::zero(),
+        )))
+    }
+}
+
 impl From<Complex<BigRational>> for Number {
     fn from(value: Complex<BigRational>) -> Self {
         Self(RefCount::new(value))
@@ -292,6 +301,21 @@ impl From<&Number> for Number {
 impl From<serde_json::Number> for Number {
     fn from(value: serde_json::Number) -> Self {
         value.as_str().parse().unwrap()
+    }
+}
+
+#[cfg(feature = "sqlx")]
+impl From<sqlx::types::BigDecimal> for Number {
+    fn from(value: sqlx::types::BigDecimal) -> Self {
+        let (bigint, exponent) = value.into_bigint_and_exponent();
+        if exponent >= 0 {
+            Self::from(
+                BigRational::from(bigint)
+                    * BigRational::new(BigInt::from(1), BigInt::from(10.pow(exponent as u32))),
+            )
+        } else {
+            Self::from(bigint * 10.pow((-exponent) as u32))
+        }
     }
 }
 

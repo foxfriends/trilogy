@@ -562,7 +562,7 @@ impl PartialOrd for Value {
             (Self::Number(lhs), Self::Number(rhs)) => lhs.partial_cmp(rhs),
             (Self::Bool(lhs), Self::Bool(rhs)) => lhs.partial_cmp(rhs),
             (Self::Char(lhs), Self::Char(rhs)) => lhs.partial_cmp(rhs),
-            (Self::String(lhs), Self::String(rhs)) => lhs.partial_cmp(rhs),
+            (Self::String(lhs), Self::String(rhs)) => lhs.as_ref().partial_cmp(rhs.as_ref()),
             (Self::Struct(lhs), Self::Struct(rhs)) => lhs.partial_cmp(rhs),
             (Self::Bits(lhs), Self::Bits(rhs)) => lhs.partial_cmp(rhs),
             (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.partial_cmp(rhs),
@@ -642,6 +642,8 @@ impl_from!(<i16> for Number via Number);
 impl_from!(<i32> for Number via Number);
 impl_from!(<i64> for Number via Number);
 impl_from!(<i128> for Number via Number);
+impl_from!(<f32> for Number via Number);
+impl_from!(<f64> for Number via Number);
 impl_from!(<num::BigRational> for Number via Number);
 impl_from!(<num::BigInt> for Number via Number);
 impl_from!(<num::BigUint> for Number via Number);
@@ -651,6 +653,12 @@ impl_from!(<Procedure> for Callable via Callable);
 impl_from!(<Closure> for Callable via Callable);
 impl_from!(<Continuation> for Callable via Callable);
 impl_from!(<Native> for Callable via Callable);
+
+#[cfg(feature = "sqlx")]
+impl_from!(<sqlx::types::BigDecimal> for Number via Number);
+
+#[cfg(feature = "sqlx")]
+impl_from!(<sqlx::types::BitVec> for Bits via Bits);
 
 impl From<()> for Value {
     fn from(_: ()) -> Self {
@@ -731,6 +739,18 @@ impl TryFrom<Value> for () {
         match value {
             Value::Unit => Ok(()),
             value => Err(value),
+        }
+    }
+}
+
+impl<T> From<Option<T>> for Value
+where
+    Value: From<T>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            None => Self::Unit,
+            Some(value) => Self::from(value),
         }
     }
 }

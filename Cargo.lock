@@ -164,6 +164,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bit-vec"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1763,6 +1769,7 @@ dependencies = [
  "ahash",
  "atoi",
  "bigdecimal",
+ "bit-vec",
  "byteorder",
  "bytes",
  "crc",
@@ -1794,6 +1801,7 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
+ "uuid",
  "webpki-roots",
 ]
 
@@ -1876,6 +1884,7 @@ dependencies = [
  "stringprep",
  "thiserror",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -1888,6 +1897,7 @@ dependencies = [
  "atoi",
  "base64",
  "bigdecimal",
+ "bit-vec",
  "bitflags 2.4.1",
  "byteorder",
  "crc",
@@ -1916,6 +1926,7 @@ dependencies = [
  "stringprep",
  "thiserror",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -1940,6 +1951,7 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "uuid",
 ]
 
 [[package]]
@@ -2283,7 +2295,9 @@ dependencies = [
  "serde",
  "serde_json",
  "source-span",
+ "sqlx",
  "trilogy-vm-derive",
+ "uuid",
 ]
 
 [[package]]
@@ -2380,6 +2394,12 @@ name = "utf8parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
+
+[[package]]
+name = "uuid"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a183cf7feeba97b4dd1c0d46788634f6221d87fa961b305bed08c851829efcc0"
 
 [[package]]
 name = "vcpkg"
