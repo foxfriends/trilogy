@@ -320,7 +320,7 @@ impl FromStr for Number {
             let float = float.parse::<BigInt>().map_err(ParseNumberError::Decimal)?;
             return Ok(Self(RefCount::new(Complex::new(
                 sign * (BigRational::from_integer(whole)
-                    + BigRational::new(float, BigInt::from(10).pow(digits as u32).into())),
+                    + BigRational::new(float, BigInt::from(10).pow(digits as u32))),
                 Zero::zero(),
             ))));
         }
