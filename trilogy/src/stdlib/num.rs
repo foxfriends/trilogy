@@ -60,6 +60,18 @@ pub mod num {
         }
     }
 
+    #[trilogy_derive::func(crate_name=crate)]
+    pub fn to_fixed_auto(rt: Runtime, number: Value) -> Result<()> {
+        let number = rt.typecheck::<Number>(number)?;
+        if let Some(int) = number.as_integer() {
+            rt.r#return(format!("{int}"))
+        } else if let Ok(float) = f64::try_from(&number) {
+            rt.r#return(format!("{float}"))
+        } else {
+            Err(rt.runtime_error(rt.atom("Unimplemented")))
+        }
+    }
+
     /// Returns the magnitude of the imaginary portion of a number, discarding the real part.
     #[trilogy_derive::func(crate_name=crate)]
     pub fn im(rt: Runtime, value: Value) -> Result<()> {

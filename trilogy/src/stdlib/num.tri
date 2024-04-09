@@ -1,5 +1,5 @@
-module native at "trilogy:num/native" use cast, im, re, lcm, parse_int, to_fixed
-export re, im, cast, lcm, parse_int, to_fixed
+module native at "trilogy:num/native" use cast, im, re, lcm, parse_int
+export re, im, cast, lcm, parse_int
 
 ## Returns the real and imaginary parts of a number as a tuple of real numbers.
 func parts n = (native::re n) : (native::im n)
@@ -31,3 +31,9 @@ func is_odd a = im a == 0 && (abs a % 2) == 1
 ## Returns true if the number is even, and false otherwise.
 func is_even a = im a == 0 && (abs a % 2) == 0
 export is_odd, is_even
+
+## Converts a number to a floating point string with fixed decimal places, rather
+## than a fraction (as a regular string cast would)
+func to_fixed 'auto n = native::to_fixed_auto n
+func to_fixed digits n = native::to_fixed digits n
+export to_fixed
