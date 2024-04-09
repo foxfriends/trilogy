@@ -1,4 +1,5 @@
 use super::RefCount;
+use num::bigint::ParseBigIntError;
 use num::complex::ParseComplexError;
 use num::rational::{ParseRatioError, Ratio};
 use num::traits::Pow;
@@ -279,11 +280,47 @@ impl Display for Number {
     }
 }
 
+#[derive(Debug)]
+pub enum ParseNumberError {
+    Complex(ParseComplexError<ParseRatioError>),
+    Decimal(ParseBigIntError),
+}
+
+impl std::error::Error for ParseNumberError {}
+
+impl Display for ParseNumberError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Complex(error) => error.fmt(f),
+            Self::Decimal(error) => error.fmt(f),
+        }
+    }
+}
+
 impl FromStr for Number {
-    type Err = ParseComplexError<ParseRatioError>;
+    type Err = ParseNumberError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(RefCount::new(s.parse()?)))
+        if s.contains('.') {
+            let (whole, float) = s.split_once('.').unwrap();
+            let whole = whole.parse::<BigInt>().map_err(ParseNumberError::Decimal)?;
+            let digits = float.len();
+            if digits == 0 {
+                return Ok(Self(RefCount::new(Complex::new(
+                    BigRational::from_integer(whole),
+                    Zero::zero(),
+                ))));
+            }
+            let float = float.parse::<BigInt>().map_err(ParseNumberError::Decimal)?;
+            return Ok(Self(RefCount::new(Complex::new(
+                BigRational::from_integer(whole)
+                    + BigRational::new(float, BigInt::from(10).pow(digits as u32).into()),
+                Zero::zero(),
+            ))));
+        }
+        Ok(Self(RefCount::new(
+            s.parse().map_err(ParseNumberError::Complex)?,
+        )))
     }
 }
 
