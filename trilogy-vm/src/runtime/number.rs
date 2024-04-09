@@ -1,8 +1,8 @@
 use super::RefCount;
 use num::complex::ParseComplexError;
-use num::rational::ParseRatioError;
+use num::rational::{ParseRatioError, Ratio};
 use num::traits::Pow;
-use num::{BigInt, BigRational, BigUint, Complex, FromPrimitive, One, ToPrimitive, Zero};
+use num::{BigInt, BigRational, BigUint, Complex, One, ToPrimitive, Zero};
 use std::fmt::{self, Display};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
@@ -221,8 +221,9 @@ from_integer!(i128);
 
 impl From<f64> for Number {
     fn from(value: f64) -> Self {
+        let (n, d) = Ratio::<i64>::approximate_float(value).unwrap().into();
         Self(RefCount::new(Complex::new(
-            BigRational::from_f64(value).unwrap(),
+            BigRational::new(BigInt::from(n), BigInt::from(d)),
             Zero::zero(),
         )))
     }
@@ -230,8 +231,9 @@ impl From<f64> for Number {
 
 impl From<f32> for Number {
     fn from(value: f32) -> Self {
+        let (n, d) = Ratio::<i64>::approximate_float(value).unwrap().into();
         Self(RefCount::new(Complex::new(
-            BigRational::from_f32(value).unwrap(),
+            BigRational::new(BigInt::from(n), BigInt::from(d)),
             Zero::zero(),
         )))
     }
