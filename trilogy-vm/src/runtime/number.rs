@@ -302,19 +302,25 @@ impl FromStr for Number {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.contains('.') {
-            let (whole, float) = s.split_once('.').unwrap();
+            let (sign, whole, float) = if let Some(s) = s.strip_prefix('-') {
+                let (whole, float) = s.split_once('.').unwrap();
+                (-BigRational::one(), whole, float)
+            } else {
+                let (whole, float) = s.split_once('.').unwrap();
+                (BigRational::one(), whole, float)
+            };
             let whole = whole.parse::<BigInt>().map_err(ParseNumberError::Decimal)?;
             let digits = float.len();
             if digits == 0 {
                 return Ok(Self(RefCount::new(Complex::new(
-                    BigRational::from_integer(whole),
+                    sign * BigRational::from_integer(whole),
                     Zero::zero(),
                 ))));
             }
             let float = float.parse::<BigInt>().map_err(ParseNumberError::Decimal)?;
             return Ok(Self(RefCount::new(Complex::new(
-                BigRational::from_integer(whole)
-                    + BigRational::new(float, BigInt::from(10).pow(digits as u32).into()),
+                sign * (BigRational::from_integer(whole)
+                    + BigRational::new(float, BigInt::from(10).pow(digits as u32).into())),
                 Zero::zero(),
             ))));
         }
