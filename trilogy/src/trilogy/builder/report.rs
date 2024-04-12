@@ -1,13 +1,12 @@
 use super::error::ErrorKind;
 use super::loader::Loader;
 use super::Error;
+use crate::ariadne::{CacheExt, LoaderCache};
 use crate::location::Location;
 use crate::Cache;
 use ariadne::{ColorGenerator, Config, Fmt, FnCache, Label, ReportKind};
-use source_span::Span;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
-use std::ops::Range;
 use std::path::{Path, PathBuf};
 use trilogy_ir::ir::DefinitionItem;
 use trilogy_parser::Spanned;
@@ -43,16 +42,13 @@ impl<E: std::error::Error + 'static> Report<E> {
     pub fn eprint(&self) {
         let empty = HashMap::default();
         let loader = Loader::new(self.cache.as_ref(), &empty);
-        let cache = FnCache::new(move |loc: &&Location| {
+        let cache = FnCache::new(move |loc: &Location| {
             loader
                 .load_source(loc)
                 .map(|s| s.unwrap())
                 .map_err(|e| Box::new(e) as Box<dyn Debug>)
         });
-        let mut cache = LoaderCache {
-            relative_base: &self.relative_base,
-            inner: cache,
-        };
+        let mut cache = LoaderCache::<_, String>::new(&self.relative_base, cache);
 
         for warning in &self.warnings {
             warning.eprint(&mut cache, ReportKind::Warning);
@@ -63,47 +59,8 @@ impl<E: std::error::Error + 'static> Report<E> {
     }
 }
 
-trait CacheExt<'a>: ariadne::Cache<&'a Location> {
-    fn span(&mut self, location: &'a Location, span: Span) -> (&'a Location, Range<usize>) {
-        match self.fetch(&location) {
-            Ok(source) => {
-                let start = source.line(span.start().line).unwrap().offset() + span.start().column;
-                let end = source.line(span.end().line).unwrap().offset() + span.end().column;
-                (location, start..end)
-            }
-            Err(..) => (location, 0..0),
-        }
-    }
-}
-
-impl<'a, C> CacheExt<'a> for C where C: ariadne::Cache<&'a Location> {}
-
-struct LoaderCache<'a, F> {
-    relative_base: &'a Path,
-    inner: FnCache<&'a Location, F>,
-}
-
-impl<'a, F> ariadne::Cache<&'a Location> for LoaderCache<'a, F>
-where
-    F: for<'b> FnMut(&'b &'a Location) -> Result<String, Box<dyn Debug>>,
-{
-    fn fetch(&mut self, id: &&'a Location) -> Result<&ariadne::Source, Box<dyn fmt::Debug + '_>> {
-        self.inner.fetch(id)
-    }
-
-    fn display<'b>(&self, id: &'b &'a Location) -> Option<Box<dyn fmt::Display + 'a>> {
-        if id.as_ref().scheme() != "file" {
-            return Some(Box::new(id.to_owned()));
-        }
-        match Path::new(id.as_ref().path()).strip_prefix(self.relative_base) {
-            Ok(path) => Some(Box::new(path.display().to_string())),
-            Err(..) => Some(Box::new(id.to_owned())),
-        }
-    }
-}
-
 impl<E: std::error::Error> Error<E> {
-    fn eprint<'a, C: ariadne::Cache<&'a Location>>(&'a self, mut cache: C, kind: ReportKind) {
+    fn eprint<'a, C: ariadne::Cache<Location>>(&'a self, mut cache: C, kind: ReportKind) {
         let mut colors = ColorGenerator::new();
         let primary = colors.next();
         let secondary = colors.next();

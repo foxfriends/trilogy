@@ -52,6 +52,7 @@ pub use trilogy_derive::*;
 
 pub use trilogy_vm::runtime::*;
 
+mod ariadne;
 mod cache;
 mod location;
 mod runtime;

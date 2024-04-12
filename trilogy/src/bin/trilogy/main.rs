@@ -2,7 +2,7 @@ use clap::Parser as _;
 use num::{bigint::Sign, BigInt};
 use std::io::stdin;
 use std::path::PathBuf;
-use trilogy::{Builder, RuntimeError, Trilogy};
+use trilogy::{Builder, Trilogy};
 use trilogy_vm::Value;
 
 #[cfg(feature = "dev")]
@@ -99,7 +99,14 @@ enum Command {
     Dev(dev::Command),
 }
 
-fn handle(result: Result<Value, RuntimeError>, print: bool, debug: bool) {
+fn run(trilogy: Trilogy, print: bool, debug: bool) {
+    let result = trilogy.run();
+    #[cfg(feature = "stats")]
+    {
+        log::info!("stats\n{}", trilogy.stats());
+        log::info!("stats\n{}", trilogy_vm::GLOBAL_STATS);
+    }
+
     match result {
         Ok(value) if print => {
             println!("{}", value);
@@ -126,20 +133,10 @@ fn handle(result: Result<Value, RuntimeError>, print: bool, debug: bool) {
             std::process::exit(255);
         }
         Err(error) => {
-            eprintln!("{error}");
+            error.eprint();
             std::process::exit(255);
         }
     }
-}
-
-fn run(trilogy: Trilogy, print: bool, debug: bool) {
-    let result = trilogy.run();
-    #[cfg(feature = "stats")]
-    {
-        log::info!("stats\n{}", trilogy.stats());
-        log::info!("stats\n{}", trilogy_vm::GLOBAL_STATS);
-    }
-    handle(result, print, debug)
 }
 
 #[cfg(feature = "async")]
