@@ -221,6 +221,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         "core::rcompose".to_owned(),
     ));
 
+    let start = builder.ip();
     builder
         .label(ASSIGN)
         .protect()
@@ -228,6 +229,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::LoadLocal(0))
         .try_type("record", Ok(ASSIGN_ANY))
         .try_type("array", Ok(ASSIGN_INT));
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        ASSIGN.to_owned()
+    ));
 
     let start = builder.ip();
     builder
@@ -264,9 +271,10 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder.annotate(Annotation::note(
         start,
         end,
-        "member assignment".to_owned(),
+        ASSIGN.to_owned(),
     ));
 
+    let start = builder.ip();
     builder
         .label(ACCESS)
         .protect()
@@ -275,6 +283,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .try_type("array", Ok(ACCESS_INT))
         .try_type("string", Ok(ACCESS_INT))
         .try_type("bits", Ok(ACCESS_INT));
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        ACCESS.to_owned(),
+    ));
 
     let start = builder.ip();
     builder
@@ -329,7 +343,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder.annotate(Annotation::note(
         start,
         end,
-        "member access".to_owned(),
+        ACCESS.to_owned(),
     ));
 
     let start = builder.ip();
@@ -346,6 +360,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         "yielding 'MIA".to_owned(),
     ));
 
+    let start = builder.ip();
     builder
         .label(ITERATE_COLLECTION)
         .protect()
@@ -354,6 +369,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .try_type("record", Ok(ITERATE_RECORD))
         .try_type("tuple", Ok(ITERATE_LIST))
         .try_type("unit", Ok(ITERATE_LIST));
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        ITERATE_COLLECTION.to_owned()
+    ));
 
     let start = builder.ip();
     builder
@@ -399,7 +420,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder.annotate(Annotation::note(
         start,
         end,
-        "iterating collection".to_owned(),
+        ITERATE_COLLECTION.to_owned(),
     ));
 
     let start = builder.ip();
@@ -499,7 +520,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
     builder.annotate(Annotation::note(
         start,
         end,
-        "yielding".to_owned(),
+        YIELD.to_owned(),
     ));
 
     let start = builder.ip();
