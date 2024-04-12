@@ -248,6 +248,7 @@ impl<'a> Stack<'a> {
         c: C,
         arguments: Vec<StackCell>,
         stack: Option<Slice<'a, StackCell>>,
+        here: Option<Offset>,
     ) -> Result<(), StackOverflow> {
         let fp = self.fp;
         let return_stack = match stack {
@@ -266,6 +267,7 @@ impl<'a> Stack<'a> {
             slice: return_stack,
             cont: c.into(),
             fp,
+            here,
         });
         self.push_many(arguments);
         Ok(())

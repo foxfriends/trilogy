@@ -158,7 +158,7 @@ impl Display for StackFrameNote<'_> {
             space = "\n       ";
         }
         if let Some((note, loc)) = &self.expr {
-            write!(f, "{space}{note} ({})", loc.span.to_string().cyan())?;
+            write!(f, "{space}{note} ({})", loc.span.start().to_string().cyan())?;
             space = "\n       ";
         }
         if let Some(note) = &self.note {

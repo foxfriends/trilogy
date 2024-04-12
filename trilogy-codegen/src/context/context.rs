@@ -2,12 +2,16 @@ use super::{Labeler, Scope};
 use crate::evaluation::CodegenEvaluate;
 use crate::needs::BreakContinue;
 use crate::pattern_match::CodegenPatternMatch;
+use crate::prelude::*;
 use crate::query::CodegenQuery;
-use crate::{delegate_label_maker, delegate_stack_tracker, prelude::*};
+use crate::{delegate_label_maker, delegate_stack_tracker};
+use source_span::Span;
 use trilogy_ir::ir::{self, Iterator};
 use trilogy_ir::visitor::HasBindings;
 use trilogy_ir::Id;
-use trilogy_vm::{delegate_chunk_writer, ChunkBuilder, ChunkWriter, Instruction, Offset};
+use trilogy_vm::{
+    delegate_chunk_writer, Annotation, ChunkBuilder, ChunkWriter, Instruction, Location, Offset,
+};
 
 pub(crate) struct Context<'a> {
     labeler: &'a mut Labeler,
@@ -118,6 +122,24 @@ impl<'a> Context<'a> {
 
     pub fn evaluate<E: CodegenEvaluate>(&mut self, value: &E) -> &mut Self {
         value.evaluate(self);
+        self
+    }
+
+    pub fn evaluate_annotated<E: CodegenEvaluate>(
+        &mut self,
+        value: &E,
+        note: impl Into<String>,
+        span: Span,
+    ) -> &mut Self {
+        let start = self.ip();
+        value.evaluate(self);
+        let end = self.ip();
+        self.annotate(Annotation::source(
+            start,
+            end,
+            note.into(),
+            Location::new(self.location(), span),
+        ));
         self
     }
 

@@ -23,11 +23,25 @@ impl Stack<'_> {
             source_annotations: annotations
                 .iter()
                 .cloned()
+                .chain(
+                    self.frames
+                        .last()
+                        .and_then(|frame| frame.here)
+                        .into_iter()
+                        .flat_map(|ip| program.annotations(ip)),
+                )
                 .filter_map(|annotation| annotation.note.into_source())
                 .collect(),
             notes: annotations
                 .iter()
                 .cloned()
+                .chain(
+                    self.frames
+                        .last()
+                        .and_then(|frame| frame.here)
+                        .into_iter()
+                        .flat_map(|ip| program.annotations(ip)),
+                )
                 .filter_map(|annotation| annotation.note.into_note())
                 .collect(),
         });

@@ -132,6 +132,7 @@ impl<'a> Execution<'a> {
                         callback,
                         arguments.into_iter().map(StackCell::Set).collect(),
                         None,
+                        Some(procedure.ip()),
                     )
                     .map_err(|k| self.error(k))?;
                 self.ip = procedure.ip();
@@ -144,13 +145,14 @@ impl<'a> Execution<'a> {
                         callback,
                         arguments.into_iter().map(StackCell::Set).collect(),
                         Some(ghost),
+                        Some(ip),
                     )
                     .map_err(|k| self.error(k))?;
                 self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack
-                    .push_frame(callback, vec![], None)
+                    .push_frame(callback, vec![], None, None)
                     .map_err(|k| self.error(k))?;
                 #[cfg(feature = "stats")]
                 let time_native = Instant::now();
@@ -253,7 +255,7 @@ impl<'a> Execution<'a> {
             }
             Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 self.stack
-                    .push_frame(self.ip, arguments, None)
+                    .push_frame(self.ip, arguments, None, Some(procedure.ip()))
                     .map_err(|k| self.error(k))?;
                 self.ip = procedure.ip();
             }
@@ -261,13 +263,13 @@ impl<'a> Execution<'a> {
                 let ip = closure.ip();
                 let ghost = unsafe { closure.stack() };
                 self.stack
-                    .push_frame(self.ip, arguments, Some(ghost))
+                    .push_frame(self.ip, arguments, Some(ghost), Some(ip))
                     .map_err(|k| self.error(k))?;
                 self.ip = ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 self.stack
-                    .push_frame(self.ip, vec![], None)
+                    .push_frame(self.ip, vec![], None, None)
                     .map_err(|k| self.error(k))?;
                 let arguments = arguments
                     .into_iter()
@@ -300,7 +302,7 @@ impl<'a> Execution<'a> {
             Value::Callable(Callable(CallableKind::Procedure(procedure))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack
-                    .push_frame(ip, arguments, None)
+                    .push_frame(ip, arguments, None, Some(procedure.ip()))
                     .map_err(|k| self.error(k))?;
                 self.ip = procedure.ip();
             }
@@ -309,14 +311,14 @@ impl<'a> Execution<'a> {
                 let frame_ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 let ghost = unsafe { closure.stack() };
                 self.stack
-                    .push_frame(frame_ip, arguments, Some(ghost))
+                    .push_frame(frame_ip, arguments, Some(ghost), Some(next_ip))
                     .map_err(|k| self.error(k))?;
                 self.ip = next_ip;
             }
             Value::Callable(Callable(CallableKind::Native(native))) => {
                 let ip = self.stack.pop_frame().map_err(|k| self.error(k))?;
                 self.stack
-                    .push_frame(ip, vec![], None)
+                    .push_frame(ip, vec![], None, None)
                     .map_err(|k| self.error(k))?;
                 let arguments = arguments
                     .into_iter()

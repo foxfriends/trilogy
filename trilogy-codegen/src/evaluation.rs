@@ -428,18 +428,43 @@ impl IrVisitor for Evaluator<'_, '_> {
                 ir::Value::Dynamic(ident),
             ) => {
                 self.context
-                    .evaluate(module_ref)
+                    .evaluate_annotated(
+                        module_ref,
+                        "<intermediate>",
+                        application
+                            .function
+                            .value
+                            .as_application()
+                            .unwrap()
+                            .argument
+                            .span,
+                    )
                     .typecheck("callable")
                     .atom(&**ident)
                     .call_module();
             }
             (None, ir::Value::Builtin(builtin), arg) if is_unary_operator(*builtin) => {
-                self.context.evaluate(arg);
+                self.context
+                    .evaluate_annotated(arg, "<intermediate>", application.argument.span);
                 write_operator(self.context, *builtin);
             }
             (Some(ir::Value::Builtin(builtin)), lhs, rhs) if is_operator(*builtin) => {
-                self.context.evaluate(lhs).intermediate();
-                self.context.evaluate(rhs).end_intermediate();
+                self.context
+                    .evaluate_annotated(
+                        lhs,
+                        "<intermediate>",
+                        application
+                            .function
+                            .value
+                            .as_application()
+                            .unwrap()
+                            .argument
+                            .span,
+                    )
+                    .intermediate();
+                self.context
+                    .evaluate_annotated(rhs, "<intermediate>", application.argument.span)
+                    .end_intermediate();
                 write_operator(self.context, *builtin);
             }
             (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Pack(pack)) => {

@@ -86,6 +86,7 @@ impl Continuation {
                     slice: stack,
                     cont: frame.cont.clone(),
                     fp: frame.fp,
+                    here: frame.here,
                 }
             })
             .collect();
@@ -99,6 +100,7 @@ struct FramePointer {
     stack: Option<Pointer<StackCell>>,
     cont: Cont,
     fp: usize,
+    here: Option<Offset>,
 }
 
 struct InnerContinuation {
@@ -127,6 +129,7 @@ impl InnerContinuation {
                     stack: frame.slice.map(|cactus| cactus.into_pointer()),
                     cont: frame.cont.clone(),
                     fp: frame.fp,
+                    here: frame.here,
                 })
                 .collect(),
             branch,

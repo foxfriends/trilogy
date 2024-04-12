@@ -731,3 +731,12 @@ pub enum Value {
     Assert(Box<Assert>),
     End,
 }
+
+impl Value {
+    pub fn as_application(&self) -> Option<&Application> {
+        match self {
+            Self::Application(val) => Some(val),
+            _ => None,
+        }
+    }
+}
