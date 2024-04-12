@@ -15,9 +15,9 @@ use url::Url;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Location(Url);
 
-impl<'a> Into<Location> for &'a Location {
-    fn into(self) -> Location {
-        self.clone()
+impl<'a> From<&'a Location> for Location {
+    fn from(loc: &'a Location) -> Self {
+        loc.clone()
     }
 }
 

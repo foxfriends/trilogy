@@ -48,7 +48,7 @@ where
         self.inner.fetch(id)
     }
 
-    fn display<'b>(&self, id: &'b Location) -> Option<Box<dyn fmt::Display>> {
+    fn display(&self, id: &Location) -> Option<Box<dyn fmt::Display>> {
         if id.as_ref().scheme() != "file" {
             return Some(Box::new(id.to_owned()));
         }

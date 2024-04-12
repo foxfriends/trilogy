@@ -60,7 +60,7 @@ impl<E: std::error::Error + 'static> Report<E> {
 }
 
 impl<E: std::error::Error> Error<E> {
-    fn eprint<'a, C: ariadne::Cache<Location>>(&'a self, mut cache: C, kind: ReportKind) {
+    fn eprint<C: ariadne::Cache<Location>>(&self, mut cache: C, kind: ReportKind) {
         let mut colors = ColorGenerator::new();
         let primary = colors.next();
         let secondary = colors.next();

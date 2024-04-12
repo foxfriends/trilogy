@@ -63,7 +63,11 @@ impl ProgramContext<'_> {
             .label("trilogy:__exit_runoff__")
             .instruction(Instruction::Exit);
         let end = self.ip();
-        self.annotate(Annotation::note(start, end, "program entrypoint".to_owned()));
+        self.annotate(Annotation::note(
+            start,
+            end,
+            "program entrypoint".to_owned(),
+        ));
     }
 
     /// Writes a procedure.

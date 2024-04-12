@@ -34,15 +34,17 @@ impl RuntimeError {
     ///
     /// It is recommended to print these frames to the user, while also adding any
     /// additional contex that is known by your environment, if possible.
-    fn frames<'a>(&'a self) -> impl Iterator<Item = StackFrameNote<'a>> + 'a {
+    fn frames(&self) -> impl Iterator<Item = StackFrameNote<'_>> {
         self.error
             .stack_trace
             .frames
             .iter()
             .enumerate()
             .map(|(i, frame)| {
-                let mut note = StackFrameNote::default();
-                note.index = i;
+                let mut note = StackFrameNote {
+                    index: i,
+                    ..Default::default()
+                };
 
                 for (label, location) in &frame.source_annotations {
                     if label.starts_with("proc")
