@@ -17,7 +17,7 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
     where
         T: TypePattern + ?Sized,
     {
-        types.write(self, Err(RUNTIME_TYPE_ERROR));
+        types.write_panic(self, Err(RUNTIME_TYPE_ERROR));
         self
     }
 
@@ -34,12 +34,12 @@ pub(crate) trait ChunkWriterExt: ChunkWriter + LabelMaker + Sized {
             .instruction(Instruction::Copy)
             .atom(atom)
             .instruction(Instruction::ValEq)
-            .cond_jump(INVALID_CALL)
+            .panic_cond_jump(INVALID_CALL)
             .instruction(Instruction::Pop)
             .instruction(Instruction::Copy)
             .constant(arity)
             .instruction(Instruction::ValEq)
-            .cond_jump(INCORRECT_ARITY)
+            .panic_cond_jump(INCORRECT_ARITY)
             .instruction(Instruction::Pop)
     }
 

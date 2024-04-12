@@ -23,34 +23,11 @@ impl Stack<'_> {
             source_annotations: annotations
                 .iter()
                 .cloned()
-                .chain(
-                    // TODO: this last frame is something... but it's not really what we want
-                    //       currently the issue is when the program dies in some native code
-                    //       (typically a panic or fizzling) it has no context of how it got
-                    //       there due to the global jump.
-                    //
-                    //       Seems like the solution is to make the global panic a function
-                    //       call instead of a bare jump, but sometimes that's not available
-                    //       I think... maybe just needs a special case for "last jumped from"
-                    //       for this spot.
-                    self.frames
-                        .last()
-                        .and_then(|frame| frame.here)
-                        .into_iter()
-                        .flat_map(|ip| program.annotations(ip)),
-                )
                 .filter_map(|annotation| annotation.note.into_source())
                 .collect(),
             notes: annotations
                 .iter()
                 .cloned()
-                .chain(
-                    self.frames
-                        .last()
-                        .and_then(|frame| frame.here)
-                        .into_iter()
-                        .flat_map(|ip| program.annotations(ip)),
-                )
                 .filter_map(|annotation| annotation.note.into_note())
                 .collect(),
         });

@@ -57,6 +57,20 @@ pub trait ChunkWriter {
     /// ```
     fn cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self;
 
+    /// Insert a PJUMP instruction to a given label.
+    ///
+    /// ```asm
+    /// PJUMP &label
+    /// ```
+    fn panic_jump<S: Into<String>>(&mut self, label: S) -> &mut Self;
+
+    /// Insert a PJUMPF instruction to a given label.
+    ///
+    /// ```asm
+    /// PJUMPF &label
+    /// ```
+    fn panic_cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self;
+
     /// Insert a CLOSE instruction to a given label.
     ///
     /// ```asm
@@ -117,6 +131,11 @@ macro_rules! delegate_chunk_writer {
                 self
             }
 
+            fn panic_cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.panic_cond_jump(label);
+                self
+            }
+
             fn protect(&mut self) -> &mut Self {
                 self.$f.protect();
                 self
@@ -124,6 +143,11 @@ macro_rules! delegate_chunk_writer {
 
             fn jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
                 self.$f.jump(label);
+                self
+            }
+
+            fn panic_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+                self.$f.panic_jump(label);
                 self
             }
 

@@ -46,6 +46,7 @@ pub struct Execution<'a> {
     atom_interner: AtomInterner,
     program: ProgramReader<'a>,
     error_ip: Offset,
+    is_panicking: bool,
     ip: Offset,
     stack: Stack<'a>,
     registers: Vec<Value>,
@@ -74,6 +75,7 @@ impl<'a> Execution<'a> {
         Self {
             atom_interner: atom_interner.clone(),
             error_ip: 0,
+            is_panicking: false,
             ip: program.entrypoint(),
             program,
             stack: Stack::new(branch),
@@ -183,6 +185,7 @@ impl<'a> Execution<'a> {
             atom_interner: self.atom_interner.clone(),
             program: self.program.clone(),
             error_ip: self.error_ip,
+            is_panicking: self.is_panicking,
             ip: self.ip,
             stack: branch,
             registers: self.registers.clone(),
@@ -350,7 +353,9 @@ impl<'a> Execution<'a> {
                 .fetch_add(duration, atomic::Ordering::Relaxed);
             self.step_stats = StepStats::default();
         }
-        self.error_ip = self.ip;
+        if !self.is_panicking {
+            self.error_ip = self.ip;
+        }
         self.ip += instruction.byte_len() as Offset;
         #[cfg(feature = "stats")]
         let opcode = instruction.op_code();
@@ -1006,6 +1011,10 @@ impl<'a> Execution<'a> {
             Instruction::Jump(offset) => {
                 self.ip = offset;
             }
+            Instruction::PanicJump(offset) => {
+                self.is_panicking = true;
+                self.ip = offset;
+            }
             Instruction::CondJump(offset) => {
                 let cond = self.stack_pop()?;
                 match cond {
@@ -1014,6 +1023,26 @@ impl<'a> Execution<'a> {
                         {
                             self.step_stats.branch_miss = true;
                         }
+                        self.ip = offset;
+                    }
+                    Value::Bool(true) => {
+                        #[cfg(feature = "stats")]
+                        {
+                            self.step_stats.branch_hit = true;
+                        }
+                    }
+                    _ => return Err(self.error(InternalRuntimeError::TypeError)),
+                }
+            }
+            Instruction::PanicCondJump(offset) => {
+                let cond = self.stack_pop()?;
+                match cond {
+                    Value::Bool(false) => {
+                        #[cfg(feature = "stats")]
+                        {
+                            self.step_stats.branch_miss = true;
+                        }
+                        self.is_panicking = true;
                         self.ip = offset;
                     }
                     Value::Bool(true) => {

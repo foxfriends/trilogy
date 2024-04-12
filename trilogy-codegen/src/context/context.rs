@@ -98,8 +98,8 @@ impl<'a> Context<'a> {
                             .end_intermediate()
                             .instruction(Instruction::Cons);
                     }
-                    other => {
-                        context.evaluate(other);
+                    _ => {
+                        context.evaluate(&iterator.value);
                     }
                 }
 
@@ -172,7 +172,7 @@ impl Context<'_> {
             return self.instruction(Instruction::Unit);
         };
         loop {
-            self.evaluate(&expr.value);
+            self.evaluate(expr);
             let Some(next_expr) = seq.next() else {
                 break self;
             };
@@ -203,7 +203,7 @@ impl Context<'_> {
         )
     }
 
-    pub fn r#while(&mut self, condition: &ir::Value, body: &ir::Value) -> &mut Self {
+    pub fn r#while(&mut self, condition: &ir::Expression, body: &ir::Expression) -> &mut Self {
         let needs = BreakContinue::check(body);
         self.r#loop(
             |_| {},
@@ -224,7 +224,7 @@ impl Context<'_> {
         .instruction(Instruction::Unit)
     }
 
-    pub fn r#for(&mut self, query: &ir::Query, body: &ir::Value) -> &mut Self {
+    pub fn r#for(&mut self, query: &ir::Query, body: &ir::Expression) -> &mut Self {
         let did_match = self.constant(false).intermediate();
         let needs = BreakContinue::check(body);
         self.r#loop(

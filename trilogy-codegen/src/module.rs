@@ -194,7 +194,7 @@ pub(crate) fn write_module_prelude(context: &mut Context, module: &ir::Module, m
                 // TODO: there's no real reason why constant doesn't allow pattern
                 // matching + multiple names except that I am lazy. It will be added
                 // eventually... probably.
-                context.evaluate(&constant.value.value);
+                context.evaluate(&constant.value);
                 Some(&constant.name.id)
             }
             ir::DefinitionItem::Module(definition) => {

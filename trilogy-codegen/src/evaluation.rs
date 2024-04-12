@@ -45,8 +45,7 @@ impl IrVisitor for Evaluator<'_, '_> {
     }
 
     fn visit_while(&mut self, node: &ir::While) {
-        self.context
-            .r#while(&node.condition.value, &node.body.value);
+        self.context.r#while(&node.condition, &node.body);
     }
 
     fn visit_assignment(&mut self, assignment: &ir::Assignment) {
@@ -417,7 +416,7 @@ impl IrVisitor for Evaluator<'_, '_> {
     }
 
     fn visit_for(&mut self, iter: &ir::Iterator) {
-        self.context.r#for(&iter.query, &iter.value.value);
+        self.context.r#for(&iter.query, &iter.value);
     }
 
     fn visit_application(&mut self, application: &ir::Application) {

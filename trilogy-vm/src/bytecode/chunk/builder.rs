@@ -262,6 +262,14 @@ impl ChunkWriter for ChunkBuilder {
         self.write_line(OpCode::CondJump, Some(Parameter::Label(label.into())))
     }
 
+    fn panic_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.write_line(OpCode::PanicJump, Some(Parameter::Label(label.into())))
+    }
+
+    fn panic_cond_jump<S: Into<String>>(&mut self, label: S) -> &mut Self {
+        self.write_line(OpCode::PanicCondJump, Some(Parameter::Label(label.into())))
+    }
+
     fn close<S: Into<String>>(&mut self, label: S) -> &mut Self {
         self.write_line(OpCode::Close, Some(Parameter::Label(label.into())))
     }
@@ -289,6 +297,8 @@ impl ChunkWriter for ChunkBuilder {
             Instruction::Shift(offset) => Some(Parameter::Offset(offset)),
             Instruction::Jump(offset) => Some(Parameter::Offset(offset)),
             Instruction::CondJump(offset) => Some(Parameter::Offset(offset)),
+            Instruction::PanicJump(offset) => Some(Parameter::Offset(offset)),
+            Instruction::PanicCondJump(offset) => Some(Parameter::Offset(offset)),
             _ => None,
         };
         self.write_line(opcode, value)

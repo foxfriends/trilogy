@@ -56,6 +56,8 @@ impl Display for Chunk {
                 }
                 Instruction::Jump(offset)
                 | Instruction::CondJump(offset)
+                | Instruction::PanicJump(offset)
+                | Instruction::PanicCondJump(offset)
                 | Instruction::Shift(offset)
                 | Instruction::Close(offset) => {
                     match self.labels.iter().find(|(.., pos)| *pos == offset) {
@@ -100,6 +102,8 @@ impl Debug for Chunk {
                 }
                 Instruction::Jump(offset)
                 | Instruction::CondJump(offset)
+                | Instruction::PanicJump(offset)
+                | Instruction::PanicCondJump(offset)
                 | Instruction::Shift(offset)
                 | Instruction::Close(offset) => {
                     match self.labels.iter().find(|(.., pos)| *pos == offset) {

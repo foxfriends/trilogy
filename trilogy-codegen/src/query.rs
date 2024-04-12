@@ -81,8 +81,6 @@ impl CodegenQuery for ir::Query {
     }
 }
 
-impl CodegenQuery for ir::QueryValue {}
-
 impl QueryState<'_, '_> {
     fn add_bindings(&mut self, vars: impl IntoIterator<Item = Id>) {
         for var in vars {
@@ -622,7 +620,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             .instruction(Instruction::Clone);
         self.context.extend_query_state(query);
         // Then just immediately attempt the subquery.
-        self.execute_subquery(&query.value, &on_pass, self.bindings)
+        self.execute_subquery(query, &on_pass, self.bindings)
             // If the subquery passes, it's actually supposed to be a fail.
             .instruction(Instruction::Pop) // Discard the subquery state
             .label(&cleanup) // Then we leave via failure, fixing the `not` state back up
@@ -668,7 +666,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
 
         // There's nothing to reset to at this point, the inner query will do that
         // internally already, if needed.
-        self.execute_subquery(&conj.1.value, &reset, &rhs_bound)
+        self.execute_subquery(&conj.1, &reset, &rhs_bound)
             // On success, reconstruct the state
             .end_intermediate()
             // Reattach the outer state
@@ -697,7 +695,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                     .unbind(conj.0.value.bindings());
                 // Then run the outer query as normal.
                 context
-                    .execute_subquery(&conj.0.value, &cleanup, context.bindings)
+                    .execute_subquery(&conj.0, &cleanup, context.bindings)
                     // When it succeeds, proceed to running the inner query.
                     //
                     // First, set up the inner query's state. This must continue from the current
@@ -750,7 +748,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
 
         // If the condition was previously successful, just run the inner query like normal.
         self.label(inner.clone());
-        self.execute_subquery(&imp.1.value, &cleanup_second, &rhs_bound)
+        self.execute_subquery(&imp.1, &cleanup_second, &rhs_bound)
             // Only thing is to maintain the marker in the state.
             .instruction(Instruction::True)
             .instruction(Instruction::Cons);
@@ -767,7 +765,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // Don't need to unbind anything because we'll never backtrack if it succeeds.
             // Pretty simple after that, just run it.
             context
-                .execute_subquery(&imp.0.value, &cleanup_first, context.bindings)
+                .execute_subquery(&imp.0, &cleanup_first, context.bindings)
                 // If it succeeds, discard the outer query's state, we don't need it
                 // anymore because we'll never come back to it.
                 .instruction(Instruction::Pop)
@@ -814,7 +812,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             // If the first query is exhausted, we're just running the second one until it
             // is also exhausted.
             .label(second.clone());
-        self.execute_subquery(&disj.1.value, &cleanup, self.bindings)
+        self.execute_subquery(&disj.1, &cleanup, self.bindings)
             // Only concern is to maintain the state
             .instruction(Instruction::True)
             .instruction(Instruction::Cons);
@@ -827,7 +825,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                 .instruction(Instruction::Uncons)
                 .intermediate();
             context
-                .execute_subquery(&disj.0.value, &next, context.bindings)
+                .execute_subquery(&disj.0, &next, context.bindings)
                 // If it succeeds, just reconstruct the state before succeeding.
                 .instruction(Instruction::Cons)
                 .instruction(Instruction::False)
@@ -884,7 +882,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
 
         // If doing the left side, break out the bindset, we won't be needing it.
         self.instruction(Instruction::Uncons).intermediate();
-        self.execute_subquery(&alt.0.value, &maybe, self.bindings)
+        self.execute_subquery(&alt.0, &maybe, self.bindings)
             // If it succeeds, fix the state and set the marker `true` so we come back here next time.
             .instruction(Instruction::Cons)
             .instruction(Instruction::True)
@@ -896,7 +894,7 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
                     .end_intermediate() // bindset // TODO: is this in the right spot?
                     .label(second.clone());
                 context
-                    .execute_subquery(&alt.1.value, &cleanup_second, context.bindings)
+                    .execute_subquery(&alt.1, &cleanup_second, context.bindings)
                     .instruction(Instruction::False)
                     .instruction(Instruction::Cons)
                     .bubble(|context| {
@@ -978,11 +976,11 @@ impl IrVisitor for QueryEvaluation<'_, '_> {
             .instruction(Instruction::TypeOf)
             .atom("struct")
             .instruction(Instruction::ValEq)
-            .cond_jump(RUNTIME_TYPE_ERROR)
+            .panic_cond_jump(RUNTIME_TYPE_ERROR)
             .instruction(Instruction::Destruct)
             .atom("next")
             .instruction(Instruction::ValEq)
-            .cond_jump(RUNTIME_TYPE_ERROR)
+            .panic_cond_jump(RUNTIME_TYPE_ERROR)
             .intermediate(); // return value chain
 
         // If the iterator has yielded something, we have to destructure it into all the variables

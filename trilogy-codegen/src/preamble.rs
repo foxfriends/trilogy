@@ -264,7 +264,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::One)
         .instruction(Instruction::IntDivide)
         .instruction(Instruction::ValEq)
-        .cond_jump(INVALID_ACCESSOR)
+        .panic_cond_jump(INVALID_ACCESSOR)
         .instruction(Instruction::Assign)
         .instruction(Instruction::Return);
     let end = builder.ip();
@@ -334,7 +334,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::One)
         .instruction(Instruction::IntDivide)
         .instruction(Instruction::ValEq)
-        .cond_jump(INVALID_ACCESSOR)
+        .panic_cond_jump(INVALID_ACCESSOR)
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Swap)
         .instruction(Instruction::Access)

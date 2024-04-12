@@ -304,6 +304,11 @@ pub enum Instruction {
     Jump(Offset),
     /// Pop the top value from the stack. If it is `false`, jump to the offset specified.
     #[asm(name = "JUMPF")] CondJump(Offset),
+    /// Jump to the offset specified, setting the panic flag while doing so.
+    #[asm(name = "PJUMP")] PanicJump(Offset),
+    /// Pop the top value from the stack. If it is `false`, jump to the offset specified, setting
+    /// the panic flag while doing so.
+    #[asm(name = "PJUMPF")] PanicCondJump(Offset),
     /// Pop the top two values from the top of the stack, then split the current execution into two.
     /// The value from the top of the stack is pushed onto the new execution, and the second value
     /// from the top of the stack is pushed onto the previously existing execution. Both executions
