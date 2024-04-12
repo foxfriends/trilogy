@@ -86,7 +86,6 @@ impl RuntimeError {
     /// Printing via method includes more information than printing directly using
     /// [`Display`][] would, at the expense of it doing much more work.
     pub fn eprint(&self) {
-        eprintln!("{}", self.error);
         eprintln!("Stack trace:");
 
         let mut colors = ColorGenerator::new();
@@ -97,32 +96,40 @@ impl RuntimeError {
             },
         );
 
+        let mut report = None;
         for frame in self.frames() {
             eprintln!("{frame}");
 
-            if let Some((_, loc)) = &frame.expr {
-                if let Some(local) = loc
-                    .file
-                    .parse::<Url>()
-                    .ok()
-                    .and_then(|url| url.to_file_path().ok())
-                    .map(|path| path.display().to_string())
-                // Ariadne hates us
-                {
-                    let span = cache.span(&local, loc.span);
-                    let report = ariadne::Report::build(
-                        ReportKind::Custom("Source", primary),
-                        &loc.file,
-                        span.1.start,
-                    )
-                    .with_label(
-                        Label::new(span)
-                            .with_color(primary)
-                            .with_message("in this expression"),
-                    );
-                    report.finish().eprint(&mut cache).unwrap();
+            if report.is_none() {
+                if let Some((_, loc)) = &frame.expr {
+                    if let Some(local) = loc
+                        .file
+                        .parse::<Url>()
+                        .ok()
+                        .and_then(|url| url.to_file_path().ok())
+                        .map(|path| path.display().to_string())
+                    // Ariadne hates us
+                    {
+                        let span = cache.span(&local, loc.span);
+                        report = Some(
+                            ariadne::Report::build(ReportKind::Error, &loc.file, span.1.start)
+                                .with_message(format!("{}", self.error))
+                                .with_label(
+                                    Label::new(span)
+                                        .with_color(primary)
+                                        .with_message("in this expression"),
+                                ),
+                        );
+                    }
                 }
             }
+        }
+
+        if let Some(report) = report {
+            println!();
+            report.finish().eprint(&mut cache).unwrap();
+        } else {
+            println!("{}", self.error);
         }
     }
 }
