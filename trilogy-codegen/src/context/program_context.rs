@@ -63,11 +63,10 @@ impl ProgramContext<'_> {
             .label("trilogy:__exit_runoff__")
             .instruction(Instruction::Exit);
         let end = self.ip();
-        self.annotate(Annotation::source(
+        self.annotate(Annotation::note(
             start,
             end,
-            "entrypoint".to_owned(),
-            self.location(Span::default()),
+            "program entrypoint".to_owned(),
         ));
     }
 
@@ -93,7 +92,11 @@ impl ProgramContext<'_> {
         self.annotate(Annotation::source(
             start,
             end,
-            self.path.join("::") + procedure.name.id.name().unwrap(),
+            format!(
+                "proc {}{}!",
+                self.path.join("::"),
+                procedure.name.id.name().unwrap()
+            ),
             self.location(procedure.span()),
         ));
     }
@@ -182,7 +185,7 @@ impl ProgramContext<'_> {
             context.annotate(Annotation::source(
                 start,
                 end,
-                path.clone() + rule.name.id.name().unwrap(),
+                format!("rule {}{}", path, rule.name.id.name().unwrap()),
                 Location::new(location, rule.span()),
             ));
         }
@@ -195,7 +198,7 @@ impl ProgramContext<'_> {
         self.annotate(Annotation::source(
             start,
             end,
-            path + rule.name.id.name().unwrap(),
+            format!("rule {}{}", path, rule.name.id.name().unwrap()),
             Location::new(location, rule.span()),
         ));
     }
@@ -229,7 +232,7 @@ impl ProgramContext<'_> {
             context.annotate(Annotation::source(
                 start,
                 end,
-                path.clone() + function.name.id.name().unwrap(),
+                format!("func {}{}", path, function.name.id.name().unwrap()),
                 Location::new(location, overload.span),
             ));
         }
@@ -240,7 +243,7 @@ impl ProgramContext<'_> {
         self.annotate(Annotation::source(
             start,
             end,
-            path + function.name.id.name().unwrap(),
+            format!("func {}{}", path, function.name.id.name().unwrap()),
             Location::new(location, function.span()),
         ));
     }

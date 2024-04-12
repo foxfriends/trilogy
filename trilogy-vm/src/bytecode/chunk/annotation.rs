@@ -1,5 +1,6 @@
 use crate::Offset;
 use source_span::Span;
+use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 /// The fully specified location of a fragment of the source program.
@@ -9,6 +10,24 @@ pub struct Location {
     pub file: String,
     /// The position within the source file.
     pub span: Span,
+}
+
+impl PartialOrd for Location {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.file != other.file {
+            return None;
+        }
+        if self.span == other.span {
+            return Some(Ordering::Equal);
+        }
+        if self.span.includes(&other.span) {
+            return Some(Ordering::Greater);
+        }
+        if other.span.includes(&self.span) {
+            return Some(Ordering::Less);
+        }
+        None
+    }
 }
 
 impl Location {
@@ -47,6 +66,8 @@ pub enum Note {
         /// The offset on the stack that is being named.
         offset: Offset,
     },
+    /// A generic note
+    Note { note: String },
 }
 
 impl Note {
@@ -57,6 +78,13 @@ impl Note {
     pub(crate) fn into_source(self) -> Option<(String, Location)> {
         match self {
             Self::Source { name, location } => Some((name, location)),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn into_note(self) -> Option<String> {
+        match self {
+            Self::Note { note } => Some(note),
             _ => None,
         }
     }
@@ -78,6 +106,14 @@ impl Annotation {
             start,
             end,
             note: Note::Source { name, location },
+        }
+    }
+
+    pub fn note(start: Offset, end: Offset, note: String) -> Self {
+        Self {
+            start,
+            end,
+            note: Note::Note { note },
         }
     }
 

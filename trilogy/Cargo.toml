@@ -38,7 +38,7 @@ trilogy-derive = { path = "../trilogy-derive/", optional = true }
 reqwest = { version = "0.11.20", features = ["blocking"] }
 url = "2.4.1"
 home = "0.5.5"
-ariadne = { version = "0.3.0", features = ["auto-color"] }
+ariadne = { version = "0.4.0", features = ["auto-color"] }
 source-span = "2.7.0"
 bitvec = "1.0.1"
 daggy = "0.8.0"

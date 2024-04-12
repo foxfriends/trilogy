@@ -78,6 +78,13 @@ impl Trilogy {
         }
     }
 
+    pub fn source_entrypoint(&self) -> Option<&Location> {
+        match &self.source {
+            Source::Trilogy { entrypoint, .. } => Some(entrypoint),
+            _ => None,
+        }
+    }
+
     fn default_registers() -> Vec<Value> {
         vec![
             // Global effect handler resume continuation

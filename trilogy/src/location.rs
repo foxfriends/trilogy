@@ -15,6 +15,12 @@ use url::Url;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Location(Url);
 
+impl<'a> From<&'a Location> for Location {
+    fn from(loc: &'a Location) -> Self {
+        loc.clone()
+    }
+}
+
 impl Location {
     /// Creates a Location that corresponds to an externally provided library.
     ///
@@ -64,8 +70,15 @@ impl Location {
         Self::from(url)
     }
 
+    /// Returns `true` if this `Location` represents a file on the local file system.
     pub fn is_local(&self) -> bool {
         self.0.scheme() == "file"
+    }
+
+    /// If this `Location` represents a file on the local file system, returns the path to that file.
+    /// Returns `None` otherwise.
+    pub fn to_local_path(&self) -> Option<PathBuf> {
+        self.0.to_file_path().ok()
     }
 }
 
