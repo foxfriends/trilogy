@@ -131,7 +131,7 @@ impl<'a> Stack<'a> {
     }
 
     #[inline]
-    pub(crate) fn frames(&self) -> impl Iterator<Item = &StackFrame<'a>> {
+    pub(crate) fn frames(&self) -> impl DoubleEndedIterator<Item = &StackFrame<'a>> {
         self.frames.iter()
     }
 

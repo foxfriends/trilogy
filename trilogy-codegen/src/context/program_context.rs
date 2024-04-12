@@ -66,7 +66,7 @@ impl ProgramContext<'_> {
         self.annotate(Annotation::source(
             start,
             end,
-            "entrypoint".to_owned(),
+            "<entrypoint>".to_owned(),
             self.location(Span::default()),
         ));
     }
@@ -93,7 +93,11 @@ impl ProgramContext<'_> {
         self.annotate(Annotation::source(
             start,
             end,
-            self.path.join("::") + procedure.name.id.name().unwrap(),
+            format!(
+                "proc {}{}!",
+                self.path.join("::"),
+                procedure.name.id.name().unwrap()
+            ),
             self.location(procedure.span()),
         ));
     }
@@ -182,7 +186,7 @@ impl ProgramContext<'_> {
             context.annotate(Annotation::source(
                 start,
                 end,
-                path.clone() + rule.name.id.name().unwrap(),
+                format!("rule {}{}", path, rule.name.id.name().unwrap()),
                 Location::new(location, rule.span()),
             ));
         }
@@ -195,7 +199,7 @@ impl ProgramContext<'_> {
         self.annotate(Annotation::source(
             start,
             end,
-            path + rule.name.id.name().unwrap(),
+            format!("rule {}{}", path, rule.name.id.name().unwrap()),
             Location::new(location, rule.span()),
         ));
     }
@@ -229,7 +233,7 @@ impl ProgramContext<'_> {
             context.annotate(Annotation::source(
                 start,
                 end,
-                path.clone() + function.name.id.name().unwrap(),
+                format!("func {}{}", path, function.name.id.name().unwrap()),
                 Location::new(location, overload.span),
             ));
         }
@@ -240,7 +244,7 @@ impl ProgramContext<'_> {
         self.annotate(Annotation::source(
             start,
             end,
-            path + function.name.id.name().unwrap(),
+            format!("func {}{}", path, function.name.id.name().unwrap()),
             Location::new(location, function.span()),
         ));
     }

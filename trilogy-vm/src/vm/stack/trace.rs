@@ -4,7 +4,9 @@ use crate::{Location, Offset};
 
 #[derive(Clone, Debug)]
 pub struct StackTraceEntry {
-    pub annotations: Vec<(String, Location)>,
+    pub ip: Option<Offset>,
+    pub source_annotations: Vec<(String, Location)>,
+    pub notes: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -17,28 +19,41 @@ impl Stack<'_> {
         let mut trace = StackTrace::default();
         let annotations = program.annotations(ip);
         trace.frames.push(StackTraceEntry {
-            annotations: annotations
-                .into_iter()
+            ip: Some(ip),
+            source_annotations: annotations
+                .iter()
+                .cloned()
                 .filter_map(|annotation| annotation.note.into_source())
                 .collect(),
+            notes: annotations
+                .iter()
+                .cloned()
+                .filter_map(|annotation| annotation.note.into_note())
+                .collect(),
         });
-
-        trace.frames.extend(self.frames().map(|entry| {
-            match entry.cont {
-                Cont::Callback(..) => StackTraceEntry {
-                    annotations: vec![],
-                },
-                Cont::Offset(ip) => StackTraceEntry {
-                    annotations: program
-                        .annotations(ip)
-                        .into_iter()
-                        .filter_map(|annotation| annotation.note.into_source())
-                        .collect(),
-                },
-            }
-        }));
-
-        trace.frames.reverse();
+        let stack_frames = self.frames().rev().map(|entry| match entry.cont {
+            Cont::Callback(..) => StackTraceEntry {
+                ip: None,
+                source_annotations: vec![],
+                notes: vec![],
+            },
+            Cont::Offset(ip) => StackTraceEntry {
+                ip: Some(ip),
+                source_annotations: program
+                    .annotations(ip)
+                    .iter()
+                    .cloned()
+                    .filter_map(|annotation| annotation.note.into_source())
+                    .collect(),
+                notes: program
+                    .annotations(ip)
+                    .iter()
+                    .cloned()
+                    .filter_map(|annotation| annotation.note.into_note())
+                    .collect(),
+            },
+        });
+        trace.frames.extend(stack_frames);
         trace
     }
 }

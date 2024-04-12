@@ -1,6 +1,6 @@
 use super::prelude::*;
 use crate::context::ProgramContext;
-use trilogy_vm::Instruction;
+use trilogy_vm::{Annotation, Instruction};
 
 pub const ADD: &str = "core::add";
 pub const SUB: &str = "core::sub";
@@ -69,6 +69,7 @@ pub const MIA: &str = "yield::MIA";
 
 macro_rules! binop {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
+        let start = $builder.ip();
         $builder
             .label($label)
             .protect()
@@ -80,12 +81,19 @@ macro_rules! binop {
             .instruction(Instruction::Swap)
             .typecheck($rty)
             $(.instruction($op))+
-            .instruction(Instruction::Return)
+            .instruction(Instruction::Return);
+        let end = $builder.ip();
+        $builder.annotate(Annotation::note(
+            start,
+            end,
+            $label.to_owned(),
+        ));
     }};
 }
 
 macro_rules! binop_ {
     ($builder:expr, $label:expr, $lty:expr, $rty:expr, $($op:expr),+) => {{
+        let start = $builder.ip();
         $builder
             .label($label)
             .protect()
@@ -94,19 +102,32 @@ macro_rules! binop_ {
             .unlock_function()
             .instruction(Instruction::LoadLocal(0))
             $(.instruction($op))+
-            .instruction(Instruction::Return)
+            .instruction(Instruction::Return);
+        let end = $builder.ip();
+        $builder.annotate(Annotation::note(
+            start,
+            end,
+            $label.to_owned(),
+        ));
     }};
 }
 
 macro_rules! unop {
     ($builder:expr, $label:expr, $ty:expr, $($op:expr),+) => {{
+        let start = $builder.ip();
         $builder
             .label($label)
             .protect()
             .unlock_function()
             .typecheck($ty)
             $(.instruction($op))+
-            .instruction(Instruction::Return)
+            .instruction(Instruction::Return);
+        let end = $builder.ip();
+        $builder.annotate(Annotation::note(
+            start,
+            end,
+            $label.to_owned(),
+        ));
     }};
 }
 
@@ -150,6 +171,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
 
     unop!(builder, TYPEOF, &(), Instruction::TypeOf);
 
+    let start = builder.ip();
     builder
         .label(COMPOSE)
         .protect()
@@ -167,7 +189,14 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Swap)
         .call_function()
         .instruction(Instruction::Return);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "core::compose".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(RCOMPOSE)
         .protect()
@@ -185,6 +214,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Swap)
         .call_function()
         .instruction(Instruction::Return);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "core::rcompose".to_owned(),
+    ));
 
     builder
         .label(ASSIGN)
@@ -192,17 +227,27 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .unlock_procedure(3)
         .instruction(Instruction::LoadLocal(0))
         .try_type("record", Ok(ASSIGN_ANY))
-        .try_type("array", Ok(ASSIGN_INT))
+        .try_type("array", Ok(ASSIGN_INT));
+
+    let start = builder.ip();
+    builder
         .atom("NotAccessible")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (Member assignment on non-collection value)".to_owned(),
+    ));
+
+    let start = builder.ip();
     builder
         .label(ASSIGN_ANY)
         .protect()
         .instruction(Instruction::Pop)
         .instruction(Instruction::Assign)
-        .instruction(Instruction::Return);
-    builder
+        .instruction(Instruction::Return)
         .label(ASSIGN_INT)
         .protect()
         .instruction(Instruction::Pop)
@@ -215,6 +260,12 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .cond_jump(INVALID_ACCESSOR)
         .instruction(Instruction::Assign)
         .instruction(Instruction::Return);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "member assignment".to_owned(),
+    ));
 
     builder
         .label(ACCESS)
@@ -223,10 +274,20 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .try_type("record", Ok(ACCESS_ANY))
         .try_type("array", Ok(ACCESS_INT))
         .try_type("string", Ok(ACCESS_INT))
-        .try_type("bits", Ok(ACCESS_INT))
+        .try_type("bits", Ok(ACCESS_INT));
+
+    let start = builder.ip();
+    builder
         .atom("NotAccessible")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (Member access on non-collection value)".to_owned(),
+    ));
+    let start = builder.ip();
     builder
         .label(ACCESS_ANY)
         .protect()
@@ -239,8 +300,7 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::LoadLocal(0))
         .instruction(Instruction::Swap)
         .instruction(Instruction::Access)
-        .instruction(Instruction::Return);
-    builder
+        .instruction(Instruction::Return)
         .label(ACCESS_INT)
         .protect()
         .close(RETURN)
@@ -265,13 +325,26 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Swap)
         .instruction(Instruction::Access)
         .instruction(Instruction::Return);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "member access".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(MIA)
         .protect()
         .reference(YIELD)
         .atom("MIA")
         .become_function();
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "yielding 'MIA".to_owned(),
+    ));
 
     builder
         .label(ITERATE_COLLECTION)
@@ -280,11 +353,21 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .try_type("set", Ok(ITERATE_SET))
         .try_type("record", Ok(ITERATE_RECORD))
         .try_type("tuple", Ok(ITERATE_LIST))
-        .try_type("unit", Ok(ITERATE_LIST))
+        .try_type("unit", Ok(ITERATE_LIST));
+
+    let start = builder.ip();
+    builder
         .atom("NotIterable")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (Value is not iterable)".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(ITERATE_SET)
         .label(ITERATE_RECORD)
@@ -312,7 +395,14 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         })
         .constant(())
         .instruction(Instruction::Return);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "iterating collection".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(ITERATE_LIST)
         .protect()
@@ -331,21 +421,53 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
                 .instruction(Instruction::Pop);
         })
         .instruction(Instruction::Return);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "iterating tuple list".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(END)
         .protect()
-        .instruction(Instruction::Fizzle)
+        .instruction(Instruction::Fizzle);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "end".to_owned(),
+    ));
+
+    let start = builder.ip();
+    builder
         .label(RETURN)
         .protect()
-        .instruction(Instruction::Return)
+        .instruction(Instruction::Return);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "return".to_owned(),
+    ));
+
+    let start = builder.ip();
+    builder
         .label(EXIT)
         .protect()
         .instruction(Instruction::Exit);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "exit".to_owned(),
+    ));
 
     let yielding = builder.make_label("yielding");
     let no_handler = builder.make_label("no_handler");
 
+    let start = builder.ip();
     builder
         .label(YIELD)
         .protect()
@@ -372,37 +494,80 @@ pub(crate) fn write_preamble(builder: &mut ProgramContext) {
         .instruction(Instruction::Return)
         .label(yielding)
         // Call the handler with the effect, then the "resume" continuation
-        .instruction(Instruction::Become(2))
+        .instruction(Instruction::Become(2));
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "yielding".to_owned(),
+    ));
+
+    let start = builder.ip();
+    builder
         .label(no_handler)
         .atom("UnhandledEffect")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (Unhandled effect)".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(INVALID_ACCESSOR)
         .protect()
         .atom("InvalidAccessor")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (Incorrect accessor for container type)".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(INCORRECT_ARITY)
         .protect()
         .atom("IncorrectArity")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (Mismatched procedure or rule call arity)".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(INVALID_CALL)
         .protect()
         .atom("InvalidCall")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (Incorrect type of call for declaration)".to_owned(),
+    ));
 
+    let start = builder.ip();
     builder
         .label(RUNTIME_TYPE_ERROR)
         .protect()
         .atom("RuntimeTypeError")
         .instruction(Instruction::Construct)
         .instruction(Instruction::Panic);
+    let end = builder.ip();
+    builder.annotate(Annotation::note(
+        start,
+        end,
+        "runtime panicked (runtime type error)".to_owned(),
+    ));
 }
