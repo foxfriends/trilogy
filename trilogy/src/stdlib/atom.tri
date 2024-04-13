@@ -4,20 +4,7 @@ module native at "trilogy:atom/native"
 ## the same string.
 const make = native::make
 
-test "make works" {
-    assert make!("hello") != make!("hello")
-    assert make!("hello") != 'hello
-    assert make!("hello") != of "hello"
-    make!("new atom with spaces") # does not fail
-}
-
 ## Creates a regular atom from a string.
 const of = native::of
-
-test "of works" {
-    assert of "hello" == of "hello"
-    assert of "hello" == 'hello
-    assert of "new atom with spaces" == of "new atom with spaces"
-}
 
 export make, of

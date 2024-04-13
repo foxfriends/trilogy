@@ -8,6 +8,7 @@ mod fs;
 mod io;
 mod num;
 mod str;
+mod r#struct;
 mod time;
 
 #[cfg(feature = "regex")]
@@ -67,6 +68,14 @@ where
         .source_module(
             Location::library("atom").unwrap(),
             include_str!("./atom.tri").to_owned(),
+        )
+        .native_module(
+            Location::library("struct/native").unwrap(),
+            r#struct::r#struct(),
+        )
+        .source_module(
+            Location::library("struct").unwrap(),
+            include_str!("./struct.tri").to_owned(),
         )
         .native_module(Location::library("fs/native").unwrap(), fs::fs())
         .source_module(

@@ -1,0 +1,14 @@
+module atom at "trilogy:atom" use make, of
+
+test "make works" {
+    assert make!("hello") != make!("hello")
+    assert make!("hello") != 'hello
+    assert make!("hello") != of "hello"
+    make!("new atom with spaces") # does not fail
+}
+
+test "of works" {
+    assert of "hello" == of "hello"
+    assert of "hello" == 'hello
+    assert of "new atom with spaces" == of "new atom with spaces"
+}

@@ -1,0 +1,7 @@
+module native at "trilogy:struct/native" use construct, destruct
+module tuple at "trilogy:tuple" use fst, snd
+
+export construct, destruct
+
+func name val = fst <| destruct val
+func value val = snd <| destruct val
