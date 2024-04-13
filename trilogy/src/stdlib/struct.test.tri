@@ -1,7 +1,7 @@
 module _struct at "trilogy:struct" use construct, destruct
 
 test "construct" {
-  assert construct 'hello "world" == 'hello("world")
+  assert construct "world" 'hello == 'hello("world")
 }
 
 test "destruct" {

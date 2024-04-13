@@ -5,6 +5,7 @@ use trilogy_vm::{ChunkBuilder, ChunkWriter, Native, Program, Value};
 
 pub(super) struct TrilogyTest<'a> {
     pub modules: &'a HashMap<Location, Module>,
+    pub asm_modules: &'a HashMap<Location, String>,
     pub libraries: &'a HashMap<Location, Native>,
     pub entrypoint: &'a Location,
     pub path: &'a [&'a str],
@@ -27,12 +28,14 @@ impl Program for TrilogyTest<'_> {
         enum Either<'a> {
             Source(&'a Module),
             Native(&'a Native),
+            Asm(&'a str),
         }
         let module = self
             .modules
             .get(&location)
             .map(Either::Source)
             .or_else(|| self.libraries.get(&location).map(Either::Native))
+            .or_else(|| self.asm_modules.get(&location).map(|s| Either::Asm(s)))
             .unwrap_or_else(|| panic!("unknown module location `{location}`"));
         let url = location.as_ref().as_str();
         match module {
@@ -48,6 +51,9 @@ impl Program for TrilogyTest<'_> {
                     .label(format!("location:{location}"))
                     .constant(module.clone())
                     .instruction(trilogy_vm::Instruction::Return);
+            }
+            Either::Asm(raw) => {
+                chunk.label(format!("location:{location}")).parse(raw);
             }
         }
     }

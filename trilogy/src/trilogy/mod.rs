@@ -22,6 +22,7 @@ use trilogy_test::TrilogyTest;
 enum Source {
     Trilogy {
         modules: HashMap<Location, Module>,
+        asm_modules: HashMap<Location, String>,
         entrypoint: Location,
     },
     Asm {
@@ -154,10 +155,12 @@ impl Trilogy {
             ),
             Source::Trilogy {
                 modules,
+                asm_modules,
                 entrypoint,
             } => self.vm.run_with_registers(
                 &TrilogyProgram {
                     libraries: &self.libraries,
+                    asm_modules,
                     modules,
                     entrypoint,
                     path: &main.path(),
@@ -208,7 +211,12 @@ impl Trilogy {
 
         reporter.begin();
 
-        if let Source::Trilogy { modules, .. } = &self.source {
+        if let Source::Trilogy {
+            modules,
+            asm_modules,
+            ..
+        } = &self.source
+        {
             let tests = modules
                 .iter()
                 .filter(|(location, _)| location.is_local())
@@ -246,6 +254,7 @@ impl Trilogy {
                 let result = self.vm.run_with_registers(
                     &TrilogyTest {
                         libraries: &self.libraries,
+                        asm_modules,
                         modules,
                         entrypoint: &location,
                         path: &path,
@@ -284,9 +293,11 @@ impl Trilogy {
             }),
             Source::Trilogy {
                 modules,
+                asm_modules,
                 entrypoint,
             } => self.vm.compile(&TrilogyProgram {
                 libraries: &self.libraries,
+                asm_modules,
                 modules,
                 entrypoint,
                 path: &["main"],
@@ -305,9 +316,11 @@ impl Trilogy {
             }),
             Source::Trilogy {
                 modules,
+                asm_modules,
                 entrypoint,
             } => self.vm.compile(&TrilogyProgram {
                 libraries: &self.libraries,
+                asm_modules,
                 modules,
                 entrypoint,
                 path: &["main"],

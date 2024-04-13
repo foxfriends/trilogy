@@ -30,6 +30,7 @@ use report::ReportBuilder;
 /// you will be using this Builder to provide those.
 pub struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
+    asm_modules: HashMap<Location, String>,
     native_modules: HashMap<Location, Native>,
     source_modules: HashMap<Location, String>,
     is_library: bool,
@@ -78,6 +79,7 @@ impl Builder<NoopCache> {
     pub fn new() -> Self {
         Self {
             root_dir: None,
+            asm_modules: HashMap::new(),
             native_modules: HashMap::new(),
             source_modules: HashMap::new(),
             is_library: false,
@@ -95,12 +97,21 @@ impl<C: Cache> Builder<C> {
         self
     }
 
+    /// Adds an ASM module to this builder as a library.
+    ///
+    /// This module is parsed as ASM directly, and must correctly implement the Trilogy interfaces,
+    /// otherwise it is undefined behaviour as to what happens when it is executed.
+    pub fn asm_module(mut self, location: Location, source: String) -> Self {
+        self.asm_modules.insert(location, source);
+        self
+    }
+
     /// Adds a Trilogy source module to this builder as a library.
     ///
     /// Any other dependencies of this native module must also be added manually, otherwise
     /// module resolution will later fail.
     pub fn source_module(mut self, location: Location, source: String) -> Self {
-        self.source_modules.insert(location, source.to_owned());
+        self.source_modules.insert(location, source);
         self
     }
 
@@ -110,6 +121,7 @@ impl<C: Cache> Builder<C> {
     pub fn with_cache<C2: Cache>(self, cache: C2) -> Builder<C2> {
         Builder {
             root_dir: self.root_dir,
+            asm_modules: self.asm_modules,
             native_modules: self.native_modules,
             source_modules: self.source_modules,
             is_library: false,
@@ -143,6 +155,7 @@ impl<C: Cache> Builder<C> {
         let Self {
             mut cache,
             root_dir,
+            asm_modules,
             native_modules,
             source_modules,
             is_library,
@@ -173,6 +186,7 @@ impl<C: Cache> Builder<C> {
         Ok(Trilogy::new(
             Source::Trilogy {
                 modules,
+                asm_modules,
                 entrypoint,
             },
             native_modules,
