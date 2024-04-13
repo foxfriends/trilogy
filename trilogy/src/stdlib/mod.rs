@@ -59,6 +59,10 @@ where
             Location::library("set").unwrap(),
             include_str!("./set.tri").to_owned(),
         )
+        .asm_module(
+            Location::library("record/asm").unwrap(),
+            include_str!("./record.asm").to_owned(),
+        )
         .source_module(
             Location::library("record").unwrap(),
             include_str!("./record.tri").to_owned(),

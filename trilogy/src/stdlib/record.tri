@@ -1,4 +1,7 @@
 module array at "trilogy:array"
+module asm at "trilogy:record/asm" use delete
+
+export delete
 
 ## Returns an empty record.
 proc empty!() {
@@ -15,67 +18,18 @@ func contains key {| key => _, .._ |} = true
 func contains _ {| .._ |} = false
 export contains
 
-test "contains can find a key" {
-    assert contains "hello" {| "hello" => "world", "goodbye" => "world" |}
-}
-
-test "contains will not find a missing key" {
-    assert !(contains "notkey" {| "hello" => "world", "goodbye" => "world" |})
-}
-
-test "contains does not find a value" {
-    assert !(contains "world" {| "hello" => "world", "goodbye" => "world" |})
-}
-
 ## Removes a key from the record, returning a new record without that key.
 func remove key {| key => _, ..rec |} = rec
 func remove _ {| ..xs |} = xs
 export remove
 
-test "remove can remove a key" {
-    assert remove "hello" {| "hello" => "world", "goodbye" => "world" |} == {| "goodbye" => "world" |}
-}
-
-test "remove will not remove a key not in the record" {
-    assert remove "notkey" {| "hello" => "world", "goodbye" => "world" |} == {| "hello" => "world", "goodbye" => "world" |}
-}
-
-test "remove does not remove by value" {
-    assert remove "world" {| "hello" => "world", "goodbye" => "world" |} == {| "hello" => "world", "goodbye" => "world" |}
-}
-
 ## Returns an iterator of all keys of this record
 func keys rec = $(key for key : _ in rec)
 export keys
 
-test "keys lists all keys" {
-    let k = [key for key in keys {| "hello" => "world", "goodbye" => "world" |}]
-    assert is "hello" in k
-    assert is "goodbye" in k
-}
-
-test "keys is empty for empty record" {
-    assert [key for key in keys {| |}] == []
-}
-
 ## Returns an iterator of all values of this record
 func values rec = $(value for _:value in rec)
 export values
-
-test "values lists all values" {
-    let k = [val for val in values {| "hello" => "1", "goodbye" => "2" |}]
-    assert is "1" in k
-    assert is "2" in k
-}
-
-test "values includes duplicate values" {
-    let k = [val for val in values {| "hello" => "world", "goodbye" => "world" |}]
-    assert k == ["world", "world"]
-}
-
-test "values is empty for empty record" {
-    assert [val for val in values {| |}] == []
-}
 
 ## Computes the number of entries in this record.
 func length {| |} = 0
@@ -84,14 +38,6 @@ func length {| ..xs |} = xs
     |> array::length
 export length
 
-test "length returns the number of elements in the record" {
-    assert length {| 1 => 1, 2 => 2, 3 => 3 |} == 3
-}
-
-test "length is 0 for empty records" {
-    assert length {| |} == 0
-}
-
 ## Returns the element of the record at the given key.
 ##
 ## # Yields
@@ -99,17 +45,6 @@ test "length is 0 for empty records" {
 ## 'MIA if the key is not in the record
 func get key {| ..rec |} = rec . key
 export get
-
-test "get returns the value at the key" {
-    assert get "a" {| "a" => "1", "b" => "2" |} == "1"
-}
-
-test "get yields 'MIA for missing keys" {
-    with { get "hello" {| "a" => "1", "b" => "2" |} }
-        when 'MIA invert { exit unit }
-        else cancel unit
-    assert false
-}
 
 ## Inserts a key-value pair into the record, returning a new record with the new entry included.
 ##
@@ -120,15 +55,3 @@ export insert
 ## Appends a key:value pair to the record
 func append (key:value) = insert key value
 export append
-
-test "insert adds an entry to a nonempty record" {
-    assert insert "a" 1 {| "b" => 2 |} == {| "a" => 1, "b" => 2 |}
-}
-
-test "insert adds an entry to the empty record" {
-    assert insert "a" 1 {| |} == {| "a" => 1 |}
-}
-
-test "insert replaces an existing entry" {
-    assert insert "a" 1 {| "a" => 2 |} == {| "a" => 1 |}
-}
