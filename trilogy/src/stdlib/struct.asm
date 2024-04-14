@@ -46,13 +46,14 @@
 	VALEQ
 	PJUMPF &"panic::incorrect_arity"
 	POP
-	COPY
+	LOADL 0
 	TYPEOF
 	COPY
 	CONST 'atom
 	VALEQ
 	PJUMPF &"panic::runtime_type_error"
 	POP
+	SWAP
 	CONSTRUCT
 	RETURN
 
