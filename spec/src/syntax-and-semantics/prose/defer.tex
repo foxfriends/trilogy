@@ -1,0 +1,31 @@
+\subsubsection{Defer}
+\label{sec:prose-defer}
+
+The \kw{defer} statement defers the execution of some piece of code until the
+end of the current scope in the current continuation. The resulting value of
+that deferred code, if any, is lost.
+
+The \kw{defer} statement provides the means to safely and consistently do cleanup
+of resources that require explicit destruction, such as closing open files.
+
+While this is very similar to the \kw{defer} statement of Go, in Trilogy we must
+also consider the existence of multiple continuations and executions: the \kw{defer}
+statement's deferred code will run only on the same continuation and execution that
+caused initially encountered the \kw{defer} statement.
+
+\begin{bnf*}
+    \bnfprod{SDefer}{
+        \bnfts{\kw{defer}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+\end{bnf*}
+
+Semantically, the \kw{defer} statement itself doesn't evaluate anything, only annotates
+the current continuation with the code to be run later.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma \vdash D \Rightarrow \Phi$}
+    \LeftLabel{Defer}
+    \UnaryInfC{$\Gamma \vdash \kw{defer}\ D \Rightarrow \Gamma^\prime$}
+\end{prooftree}

@@ -8,15 +8,15 @@ proc allowOne!(word, body) {
 
 proc allowAlso!(word, body) {
     return with body!()
-        when 'getAllowed invert {
-            cancel resume word || resume yield 'getAllowed
+        when 'getAllowed then {
+            become word || resume yield 'getAllowed
         }
         else yield
 }
 
 proc allowMany!(words, body) {
     return with body!()
-        when 'getAllowed invert (any (resume) words)
+        when 'getAllowed then (any (resume) words)
         else yield
 }
 

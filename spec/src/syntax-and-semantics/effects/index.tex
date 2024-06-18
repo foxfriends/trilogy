@@ -71,9 +71,9 @@ handlers.
         \bnfor
     } \\
     \bnfmore{
-        \bnfts{\kw{invert}}
+        \bnfts{\kw{yield}}
         \bnfsp
-        \bnfpn{Block}
+        \bnfpn{Expression}
         \bnfor
         \bnfts{\kw{yield}}
     }
@@ -85,13 +85,13 @@ included to describe what to do in the case of no handler matching; the default
 choice should be \kw{else yield}, but in some situations there may be reason to
 do otherwise.
 
-Handlersinstall a contextual handler around a piece of code. When an effect is
+Handlers install a contextual handler around a piece of code. When an effect is
 yielded, the ``nearest'' handler with a matching pattern and guard will be used
 to handle that effect. The nearest handler in a chain of them on one expression
 is the first handler in the chain, meanwhile the nearest handler when nested is
 the one least scopes away from the point of the \kw{yield}.
 
-The three keywords \kw{resume}, \kw{cancel}, and \kw{invert} describe how the
+The three keywords \kw{resume}, \kw{cancel}, and \kw{then} describe how the
 handler responds to the effect. The \kw{yield} keyword may also be used on a
 handler to denote that no handling is done, and the effect is simply re-yielded
 to a handler in the parent scope (a re-yielded effect never gets handled by another
@@ -99,19 +99,20 @@ handler on the same chain).
 
 A \kw{cancel} handler will not respond to the yielder, instead completing the entire expression
 or statement on which the handler was attached, as if the \kw{with} keyword evaluated
-to the value that \kw{cancel} was supplied. In the case of a handled block, the value
-is lost.
+to the value that \kw{cancel} was supplied.
 
 A \kw{resume} handler will respond with the evaluation of the expression following
 the keyword. The \kw{yield} that performed the effect will evaluate to that value.
+Once the resumed continuation complets, the \kw{resume} handler will evaluate to
+that final value, as if it were written \kw{then cancel resume}.
 
-The \kw{invert} handler simply inverts control flow, not cancelling or resuming, expecting
-that the programmer will use imperative constructs to manually craft the exactly control
-flow as desired. When evaluation reaches the end of the block of the \kw{invert} handler,
-execution simply fizzles.
+The \kw{then} handler neither cancels nor resumes, but allows the programmer to fully
+describe exactly the control flow that is desired. When evaluation reaches the end of
+the block of the \kw{then} handler, execution simply fizzles, the \kw{cancel}
+or \kw{become} must be written explicitly.
 
-In each case, the first-class keywords \kw{resume} and \kw{cancel} are bound to the
-current effect handler, and may be used as part of the handler body.
+In each case, the first-class keywords \kw{resume}, \kw{cancel} and \kw{become} are
+bound to the current effect handler, and may be used as part of the handler body.
 
 The \kw{resume} in this situation is a bounded continuation that ranges from the
 \kw{yield} expression that is performing the effect until the \kw{with} keyword
@@ -119,24 +120,24 @@ of the expression onto which the handler is attached. When applied, this continu
 runs until it reaches its bound and then the value that the last expression evaluates
 to is used as the value of the \kw{resume} application.
 
-Only when the effect handler's body is finished executing does the original
-expression finally evaluate. In the case that the body is an expression, the
-final value of that expression is used. In the case of a block, the \kw{cancel}
-keyword is used to denote the value of that evaluation. As mentioned,i f the block runs off
-the end without \kw{cancel}, execution fizzles instead. Of course, \kw{cancel} itself
-is also a first class keyword that can be captured to get the unbounded continuation
-following the end of the original expression to be passed along to other code, if
-so desired.
+Only when the effect handler's body is encounters the \kw{cancel} keyword does the original
+expression finally evaluate, specifically to the value that was passed to \kw{cancel}.
+If a handler runs off its scope without using \kw{cancel} (or \kw{become}), execution
+fizzles instead. \kw{cancel} itself is also a first class keyword that can be captured
+to get the unbounded continuation following the end of the original expression to be
+passed along to other code, if so desired.
 
-As you can see, the \kw{invert} form is the most controlled, while the \kw{yield}, \kw{resume}
-and \kw{cancel} forms are just special cases, the following syntax transformation
-formalizes them so that we only need to specify the semantics of \kw{invert}.
-Included as well is the transformation for the \kw{else} clause.
+\kw{become} is just syntax sugar for a combined \kw{cancel resume}.
+
+As you can see, the bare \kw{then} form is the most controlled, while the \kw{yield},
+\kw{resume} and \kw{cancel} forms are just special cases, the following syntax
+transformation formalizes them so that we only need to specify the semantics of
+\kw{then}. Included as well is the transformation for the \kw{else} clause.
 
 \begin{align*}
-    & \texttt{\kw{when} \$p:pat \kw{resume} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \kw{resume} \$e \}} \\ %
-    & \texttt{\kw{when} \$p:pat \kw{cancel} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \$e \}} \\ %
-    & \texttt{\kw{when} \$p:pat \kw{yield}} \Rightarrow \texttt{\kw{when} \$p \kw{invert} \{ \kw{cancel} \kw{resume} \kw{yield} \$p \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{resume} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{then} \{ \kw{cancel} \kw{resume} \$e \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{cancel} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{then} \{ \kw{cancel} \$e \}} \\ %
+    & \texttt{\kw{when} \$p:pat \kw{yield}} \Rightarrow \texttt{\kw{when} \$p \kw{then} \{ \kw{cancel} \kw{resume} \kw{yield} \$p \}} \\ %
     & \texttt{\kw{else} \$n:ident \$h:handler} \Rightarrow \texttt{\kw{when} \$n \$h} \\ %
     & \texttt{\kw{else} \$h:handler} \Rightarrow \texttt{\kw{else} \_ \$h} \\ %
 \end{align*}
@@ -150,7 +151,7 @@ matches a yielded effect.
     \AxiomC{$\Gamma,P \triangleleft B \vdash E : \tau$}
     \AxiomC{$\Gamma,\setof{a\given a \defby P} \vdash B \triangleright \tau$}
     \LeftLabel{When}
-    \BinaryInfC{$\Gamma\vdash E\ \kw{when}\ P\ \kw{invert}\ B : \tau$}
+    \BinaryInfC{$\Gamma\vdash E\ \kw{when}\ P\ \kw{then}\ B : \tau$}
 \end{prooftree}
 
 The \kw{cancel} keyword provides that cancellation value.
@@ -188,3 +189,10 @@ Though all of these keywords can be used in both expression and statement
 position, the semantics are the same, so won't be repeated; the only difference
 is that in statement position, all the values are lost and the effect system
 acts as pure control flow.
+
+Finally, \kw{become} is just the composition of \kw{cancel} and \kw{resume},
+and is defined as:
+
+\begin{align*}
+    \texttt{\kw{become}} & \Rightarrow \texttt{(\kw{cancel} << \kw{resume})}
+\end{align*}
