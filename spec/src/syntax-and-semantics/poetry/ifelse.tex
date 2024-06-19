@@ -1,12 +1,11 @@
-\subsubsection{Conditionals}
+\subsubsection{If-Else}
+\label{sec:if-else}
 
-\Poetry{}'s take on the conditional uses slightly modified syntax when
-compared to that of \Prose{}. Rather than using blocks as the bodies of
-the branches, the bodies are expressions. To separate the condition from
-the body, the \kw{then} is used.
-
-Also worth noting is that there must always be an \kw{else} clause, as
-the expression must always evaluate to some value.
+The primary conditional statement in \Trilogy{} is the \kw{if}-\kw{else} expression,
+which appears as you might expect coming from nearly any other language.
+Different than the \kw{if} statement of \Prose{}, which may not have a bare
+\kw{else} clause, the \kw{if}-\kw{else} expression must always have an \kw{else}
+clause, as the expression must always evaluate to some value.
 
 \begin{bnf*}
     \bnfprod{IfElse}{
@@ -18,6 +17,19 @@ the expression must always evaluate to some value.
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
+        \bnfpn{Else}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfsp
+        \bnfpn{Else}
+    } \\
+    \bnfprod{Else}{
         \bnfts{\kw{else}}
         \bnfsp
         \bnfpn{Expression}
@@ -26,9 +38,9 @@ the expression must always evaluate to some value.
 
 This rigid form makes for a relatively simple semantics. Similar to in the
 conditional statement, the condition is an expression that must evaluate
-to a Boolean value. When \kw{true}, the \kw{then} block is evaluated.
-Whe \kw{false}, the \kw{else} block is evaluated. When not a Boolean value,
-then it is considered a runtime type error.
+to a Boolean value. When \kw{true}, the \kw{then} expression or body block
+is evaluated. Whe \kw{false}, the \kw{else} body is evaluated. When not a
+Boolean value, then it is considered a runtime type error.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash E = \kw{true}$}
@@ -43,3 +55,10 @@ then it is considered a runtime type error.
     \LeftLabel{Else}
     \BinaryInfC{$\Gamma\vdash \kw{if}\ E\ \kw{then}\ T\ \kw{else}\ F : \tau$}
 \end{prooftree}
+
+When the body of the \kw{if} clause is a block, the \kw{then} keyword may be
+omitted. This is handled by the following syntax transformation:
+
+\begin{align*}
+    \texttt{\kw{if} \$b:block} & \Rightarrow \texttt{\kw{if} \kw{then} \$b}
+\end{align*}

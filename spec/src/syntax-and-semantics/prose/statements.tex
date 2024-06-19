@@ -1,91 +1,32 @@
 \subsubsection{Statements}
 
-A statement is a single ``step'' of a procedure in \Prose{}. Statements do not
-evaluate to any value, but they perform effects on the state of the program and
-its environment.
+A statement is a single ``step'' of a procedure in \Prose{}. Statements typically do not
+evaluate to any value, but they perform effects on the state of the program and its
+environment.
 
-To differentiate with similar constructs in \Poetry{}, while also saving space,
-the names of the statement productions are prefixed with S, short for statement.
-Meanwhile, expressions are actually all \Poetry{}, so such specification is left
-until later.
+Notably, there aren't all that many types of statements in \Prose{}, as \Prose{}
+only implements the imperative portions of \Trilogy{}. Most other common structures
+are expressions, and so technically part of \Poetry{}. Expressions however can be
+used as statements, so you'll hardly notice this distinction.
 
 \begin{bnf*}
     \bnfprod{Statement}{
-        \bnfpn{SLet}
+        \bnfpn{Let}
         \bnfor
-        \bnfpn{SAssignment}
+        \bnfpn{Assignment}
         \bnfor
-        \bnfpn{SIf}
+        \bnfpn{If}
         \bnfor
-        \bnfpn{SMatch}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{SWhile}
-        \bnfor
-        \bnfpn{SFor}
-        \bnfor
-        \bnfpn{SBreak}
-        \bnfor
-        \bnfpn{SContinue}
+        \bnfpn{Defer}
         \bnfor
     } \\
     \bnfmore{
-        \bnfpn{SReturn}
+        \bnfpn{While}
         \bnfor
-        \bnfpn{SEnd}
+        \bnfpn{For}
         \bnfor
-        \bnfpn{SExit}
-        \bnfor
-        \bnfpn{SYield}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{SResume}
-        \bnfor
-        \bnfpn{SCancel}
-        \bnfor
-        \bnfpn{SDefer}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{SAssert}
-        \bnfor
-        \bnfpn{Block}
+        \bnfpn{Assert}
         \bnfor
         \bnfpn{Expression}
     } \\
-    \bnfprod{Block}{
-        \bnfts{\{}
-        \bnfsp
-        \bnfpn{Sequence}
-        \bnfsp
-        \bnfts{\}}
-    }
 \end{bnf*}
-
-While expressions may be written in statement position, do note that a statement
-beginning with a keyword that may also start a statement is always parsed as a
-statement. For example, a \kw{match} written in \Prose{} is always a \kw{match}
-statement, and never a \kw{match} expression. The purpose of the expression
-statement is to permit procedure calls and other such side-effecting expressions.
-Used in this way, an expression's value is lost. Additionally, since an expression
-cannot affect scope outside of itself, no changes to the evaluation context are
-possible.
-
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash E : \tau$}
-    \LeftLabel{Expression}
-    \UnaryInfC{$\Gamma\vdash E : \top$}
-\end{prooftree}
-
-Blocks may be used in any situation statements are allowed, and act as
-a scope barrier. Bindings declared within a block go out of scope at
-the end of the block.
-
-\begin{prooftree}
-    \AxiomC{$\Gamma :> \Phi$}
-    \AxiomC{$\Phi \vdash M : \top$}
-    \LeftLabel{Unnest}
-    \BinaryInfC{$\Gamma \vdash \block{M} : \top$}
-\end{prooftree}

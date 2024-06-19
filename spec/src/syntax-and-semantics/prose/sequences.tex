@@ -10,19 +10,42 @@ an explicit separator (\op{;}).
     \bnfmore{\bnfpn{Statement}\bnfor\bnfes}
 \end{bnf*}
 
-A sequence of statements has no value, but rather each step of the sequence
-performs some effect on the context in which it is being run, eventually
-producing the result of the program.
+A sequence of statements executes each statement in order, performing some effect on the context in which
+it is being run. The value of the sequence is the value of the final statement in that sequence. Note, however,
+that only expression statements have values; if the final statement of a sequence is a non-expression statement,
+then the value of the whole sequence is just \kw{unit}.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash M \Rightarrow \Phi$}
-    \AxiomC{$\Phi \vdash N \Rightarrow \Sigma$}
+    \AxiomC{$\Phi \vdash N: \tau \Rightarrow \Sigma$}
     \LeftLabel{Sequence}
-    \BinaryInfC{$\Gamma \vdash M \op{;}\ N \Rightarrow \Sigma$}
+    \BinaryInfC{$\Gamma \vdash M \op{;}\ N: \tau \Rightarrow \Sigma$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash M \Rightarrow \bot$}
     \LeftLabel{Sequence\textsuperscript{$\bot$}}
     \UnaryInfC{$\Gamma \vdash M \op{;}\ N: \bot$}
+\end{prooftree}
+
+Other than directly as a procedure body, sequences can be placed in any block.
+Blocks may be used in any situation expressions are allowed, and act as a
+scope barrier. Bindings declared within a block go out of scope at the end
+of the block.
+
+\begin{bnf*}
+    \bnfprod{Block}{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{Sequence}
+        \bnfsp
+        \bnfts{\}}
+    }
+\end{bnf*}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma :> \Phi$}
+    \AxiomC{$\Phi \vdash M : \tau$}
+    \LeftLabel{Unnest}
+    \BinaryInfC{$\Gamma \vdash \block{M} : \tau$}
 \end{prooftree}

@@ -1,16 +1,16 @@
 \subsubsection{First Class Keywords}
 \label{sec:first-class-keyword}
 
-The five keywords \kw{resume}, \kw{cancel}, \kw{return}, \kw{break}, and \kw{continue} are
-considered ``first class keywords'', meaning they may be used in expressions,
-stored in variables, and passed to functions to be called later.
+The six keywords \kw{resume}, \kw{cancel}, \kw{become}, \kw{return}, \kw{break},
+and \kw{continue} are considered ``first class keywords'', meaning they may be
+used in expressions, stored in variables, and passed to functions to be called later.
 
 These four keywords are bound syntactically to their respective structures:
-\kw{resume} and \kw{cancel} to the nearest enclosing effect handler, \kw{break} and \kw{continue}
-to the nearest enclosing loop, and \kw{return} to the nearest enclosing procedure.
-When used in an expression, no matter how deeply nested in other structures or even
-closures, they continue to refer to these scopes (though do note that a new \kw{return}
-is introduced for nested procedure closures).
+\kw{resume}, \kw{cancel}, and \kw{become} to the nearest enclosing effect handler,
+\kw{break} and \kw{continue} to the nearest enclosing loop, and \kw{return} to the
+nearest enclosing procedure or function. When used in an expression, no matter how
+deeply nested in other structures or even closures, they continue to refer to these
+scopes (though do note that a new \kw{return} is introduced for nested closures).
 
 The syntactic binding becomes more important when the keyword is assigned to variables:
 even when passed as a value to another function or stored in a variable, the keyword
@@ -22,6 +22,10 @@ continues to refer to the structure that syntactically enclosed it.
         \bnfor
         \bnfts{\kw{cancel}}
         \bnfor
+        \bnfts{\kw{become}}
+        \bnfor
+    } \\
+    \bnfmore{
         \bnfts{\kw{return}}
         \bnfor
         \bnfts{\kw{break}}
@@ -35,6 +39,11 @@ continues to refer to the structure that syntactically enclosed it.
     } \\
     \bnfprod{Cancel}{
         \bnfts{\kw{cancel}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+    \bnfprod{Become}{
+        \bnfts{\kw{become}}
         \bnfsp
         \bnfpn{Expression}
     } \\
@@ -57,9 +66,8 @@ continues to refer to the structure that syntactically enclosed it.
 
 In each case, these keywords represent a \emph{continuation}---a point in the
 construction of the program to jump to---and accept a value that the continuation is
-resumed with. Note that for \kw{break} and \kw{return}, the value is simply lost as
-there is no way to receive that value at this time. It is convention to use \kw{unit}
-in this situation to acknowledge that the value will not be received.
+resumed with. It is convention to use \kw{unit} when the value does not matter, or will
+not be retrievable.
 
 The value supplied to the \kw{return} keyword is used as the value that the function
 it is bound to returns when called, as it would be when used regularly as a statement.
