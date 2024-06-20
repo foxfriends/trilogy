@@ -217,10 +217,9 @@ spelled out formally in figure \ref{fig:typeof}.
     \caption{\label{fig:typeof}Typeof}
 \end{figure}
 
-The \kw{yield} keyword used in \Poetry{} is actually also an operator. This operator
-works similarly to how the \kw{yield} statement of \Prose{} works, but the returned
-value is accessible. It may return more or less than once if the effect handler resumes
-more or less that once. Though it would be nice to explain it now, once again leave
-the detailed explanation to \S\ref{sec:effects}.
+The \kw{yield} keyword, which triggers an enclosing effect handler, can actually also be
+considered an operator. It may return more or less than once if the effect handler resumes
+more or less that once. Though it would be nice to explain it now, the detailed explanation
+is left to \S\ref{sec:effects}.
 
 \FloatBarrier

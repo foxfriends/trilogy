@@ -1,16 +1,15 @@
-\subsubsection{Match}
+\subsubsection{Match-Else}
 
-The \kw{match} expression unifies a value with its cases, and evaluates the
+The \kw{match}-\kw{else} expression unifies a value with its cases, and evaluates the
 branch associated with the first unification that succeeds. This is much
-like the \kw{match} statement of \Prose{} but the branches hold expressions
-instead of blocks.
+like the \kw{match} statement of \Prose{}, but as all expressions are required
+to evaluate to some value, the \kw{match}-\kw{else} expression requires a specific
+\kw{else} clause to be run in the situation that no \kw{case} was selected.
 
-As all expressions are required to evaluate to some value, the \kw{match}
-expression requires a specific \kw{else} clause to be run in the situation
-that no \kw{case} was selected.
+Repeated here are the same grammar for Cases as seen in \S\ref{sec:prose-match}.
 
 \begin{bnf*}
-    \bnfprod{Match}{
+    \bnfprod{MatchElse}{
         \bnfts{\kw{match}}
         \bnfsp
         \bnfpn{Expression}
@@ -22,51 +21,41 @@ that no \kw{case} was selected.
         \bnfpn{ElseCase}
     } \\
     \bnfprod{Cases}{
-        \bnfpn{Case}\bnfsp\bnfpn{Cases}\bnfor\bnfpn{Case}
+        \bnfpn{Case}
+        \bnfsp
+        \bnfpn{Cases}
+        \bnfor
+        \bnfpn{Case}
     } \\
     \bnfprod{Case}{
         \bnfts{\kw{case}}
         \bnfsp
         \bnfpn{Pattern}
         \bnfsp
+        \bnfpn{CaseGuard}
+        \bnfsp
+        \bnfpn{CaseBody}
+    } \\
+    \bnfprod{CaseGuard}{
+        \bnfts{\kw{if}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{CaseBody}{
         \bnfts{\kw{then}}
         \bnfsp
         \bnfpn{Expression}
         \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{case}}
-        \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
-        \bnfts{\kw{if}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{case}}
-        \bnfsp
-        \bnfts{\kw{if}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{Block}
     } \\
     \bnfprod{ElseCase}{
         \bnfts{\kw{else}}
         \bnfsp
         \bnfpn{Binding}
         \bnfsp
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{CaseBody}
         \bnfor
     } \\
     \bnfmore{
@@ -74,16 +63,14 @@ that no \kw{case} was selected.
         \bnfsp
         \bnfpn{Wildcard}
         \bnfsp
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{CaseBody}
     } \\
 \end{bnf*}
 
-The \kw{match} expression is evaluated in much the same way as the \kw{match} statement of
-\Prose{} (\S\ref{sec:prose-match}). The only difference is that instead of executing the
-matched block, the matched expression is evaluated and that expression's final result is the
-evaluation of the \kw{match} expression as a whole.
+The \kw{match}-\kw{else} expression is evaluated in much the same way as the \kw{match}
+statement of \Prose{} (\S\ref{sec:prose-match}). The only addition is the inclusion of
+the \kw{else} case, and the fact that the result of evaluating the matched case is used
+as the resulting value of the whole \kw{match}-\kw{else} expression.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash E$}
@@ -118,7 +105,7 @@ evaluation of the \kw{match} expression as a whole.
 \end{prooftree}
 
 The omitted clauses of the \kw{case} statement are formalized by the same syntax
-transformation as before:
+transformation as before, as well as the additional \kw{else} case:
 
 \begin{align*}
     \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %

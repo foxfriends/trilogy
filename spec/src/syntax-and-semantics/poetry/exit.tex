@@ -1,8 +1,10 @@
 \subsubsection{Exit}
 
-The \kw{exit} keyword can be also used in \Poetry{}, again with the same
-semantics as in \Prose{}. Upon execution, the program is ended with the
-result of the provided expression used as the exit code.
+Another execution ending keyword is the \kw{exit} keyword, which not only ends
+an execution but the also the entire program. Following execution of \kw{exit}, the
+program is treated to have been completed and with the evaluation of the expression
+being the exit code, as if that value were returned from \kw{main}. See the section
+on Exit Codes (\S\ref{sec:exitcode}) for more details.
 
 \begin{bnf*}
     \bnfprod{Exit}{
