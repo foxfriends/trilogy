@@ -338,7 +338,7 @@ impl TryFrom<Offset> for OpCode {
 
     fn try_from(value: Offset) -> Result<Self, Self::Error> {
         if value <= Self::Debug as Offset {
-            Ok(unsafe { std::mem::transmute(value) })
+            Ok(unsafe { std::mem::transmute::<Offset, Self>(value) })
         } else {
             Err(value)
         }

@@ -130,7 +130,11 @@ impl Chunk {
         bytes.copy_from_slice(
             &self.bytes[index as usize..index as usize + std::mem::size_of::<RawInstruction>()],
         );
-        unsafe { std::mem::transmute(bytes) }
+        unsafe {
+            std::mem::transmute::<[u8; std::mem::size_of::<RawInstruction>()], RawInstruction>(
+                bytes,
+            )
+        }
     }
 
     #[inline(always)]
