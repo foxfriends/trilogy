@@ -30,7 +30,7 @@ handlers.
     \bnfmore{
         \bnfts{\kw{else}}
         \bnfsp
-        \bnfpn{Identifier}
+        \bnfpn{Binding}
         \bnfsp
         \bnfpn{Handler}
         \bnfor
@@ -38,27 +38,24 @@ handlers.
     \bnfmore{
         \bnfts{\kw{else}}
         \bnfsp
-        \bnfpn{Handler}
+        \bnfpn{Expression}
     } \\
     \bnfprod{EffectHandler}{
         \bnfts{\kw{when}}
         \bnfsp
         \bnfpn{Pattern}
         \bnfsp
+        \bnfpn{WhenGuard}
+        \bnfsp
         \bnfpn{Handler}
         \bnfor
     } \\
-    \bnfmore{
-        \bnfts{\kw{when}}
-        \bnfsp
-        \bnfpn{Pattern}
-        \bnfsp
+    \bnfprod{WhenGuard}{
         \bnfts{\kw{if}}
         \bnfsp
         \bnfpn{Expression}
-        \bnfsp
-        \bnfpn{Handler}
         \bnfor
+        \bnfes
     } \\
     \bnfprod{Handler}{
         \bnfts{\kw{resume}}
@@ -68,6 +65,14 @@ handlers.
         \bnfts{\kw{cancel}}
         \bnfsp
         \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfpn{Block}
         \bnfor
     } \\
     \bnfmore{
@@ -139,7 +144,7 @@ transformation formalizes them so that we only need to specify the semantics of
     & \texttt{\kw{when} \$p:pat \kw{cancel} \$e:expr} \Rightarrow \texttt{\kw{when} \$p \kw{then} \{ \kw{cancel} \$e \}} \\ %
     & \texttt{\kw{when} \$p:pat \kw{yield}} \Rightarrow \texttt{\kw{when} \$p \kw{then} \{ \kw{cancel} \kw{resume} \kw{yield} \$p \}} \\ %
     & \texttt{\kw{else} \$n:ident \$h:handler} \Rightarrow \texttt{\kw{when} \$n \$h} \\ %
-    & \texttt{\kw{else} \$h:handler} \Rightarrow \texttt{\kw{else} \_ \$h} \\ %
+    & \texttt{\kw{else} \$h:handler} \Rightarrow \texttt{\kw{when} \_ \$h} \\ %
 \end{align*}
 
 Beginning with the \kw{when} itself, this keyword adds an effect handler to the scope
