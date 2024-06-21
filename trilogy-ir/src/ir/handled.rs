@@ -9,26 +9,6 @@ pub struct Handled {
 }
 
 impl Handled {
-    pub(super) fn convert_block(
-        converter: &mut Converter,
-        ast: syntax::HandledBlock,
-    ) -> Expression {
-        let span = ast.span();
-        let expression = Expression::convert_block(converter, ast.block);
-        let handlers = ast
-            .handlers
-            .into_iter()
-            .map(|ast| Handler::convert_blocks(converter, ast))
-            .collect();
-        Expression::handled(
-            span,
-            Self {
-                expression,
-                handlers,
-            },
-        )
-    }
-
     pub(super) fn convert_expression(
         converter: &mut Converter,
         ast: syntax::HandledExpression,

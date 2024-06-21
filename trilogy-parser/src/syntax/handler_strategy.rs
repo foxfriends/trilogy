@@ -6,18 +6,18 @@ use trilogy_scanner::{Token, TokenType::*};
 pub enum HandlerStrategy {
     Cancel { cancel: Token, body: Expression },
     Resume { resume: Token, body: Expression },
-    Invert { invert: Token, body: Block },
+    Then { invert: Token, body: Block },
     Yield(Token),
 }
 
 impl HandlerStrategy {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let token = parser
-            .expect([KwCancel, KwResume, KwInvert, KwYield])
+            .expect([KwCancel, KwResume, KwThen, KwYield])
             .map_err(|token| {
                 parser.expected(
                     token,
-                    "expected `cancel`, `resume`, `invert`, or `yield` to determine handler type",
+                    "expected `cancel`, `resume`, `then`, or `yield` to determine handler type",
                 )
             })?;
 
@@ -30,7 +30,7 @@ impl HandlerStrategy {
                 resume: token,
                 body: Expression::parse(parser)?,
             }),
-            KwInvert => Ok(Self::Invert {
+            KwThen => Ok(Self::Then {
                 invert: token,
                 body: Block::parse(parser)?,
             }),
@@ -46,6 +46,6 @@ mod test {
 
     test_parse!(handler_strategy_yield: "yield" => HandlerStrategy::parse => "(HandlerStrategy::Yield _)");
     test_parse!(handler_strategy_cancel: "cancel 3" => HandlerStrategy::parse => "(HandlerStrategy::Cancel _ _)");
-    test_parse!(handler_strategy_invert: "invert {}" => HandlerStrategy::parse => "(HandlerStrategy::Invert _ _)");
+    test_parse!(handler_strategy_invert: "then {}" => HandlerStrategy::parse => "(HandlerStrategy::Then _ _)");
     test_parse!(handler_strategy_resume: "resume 4" => HandlerStrategy::parse => "(HandlerStrategy::Resume _ _)");
 }

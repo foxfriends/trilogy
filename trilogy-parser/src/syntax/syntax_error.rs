@@ -6,10 +6,11 @@ use std::fmt::{self, Display};
 pub enum ErrorKind {
     Unknown(String),
     KwNotInExpression,
-    KwThenInStatement,
     RuleRightArrow,
     MatchStatementExpressionCase,
     TripleDot { dot: Span },
+    IfStatementRestriction,
+    IfExpressionRestriction,
 }
 
 impl ErrorKind {
@@ -60,9 +61,6 @@ impl Display for SyntaxError {
             ErrorKind::KwNotInExpression => {
                 write!(f, "keyword `not` cannot be used in an expression")?
             }
-            ErrorKind::KwThenInStatement => {
-                write!(f, "keyword `then` cannot be used in a statement")?
-            }
             ErrorKind::RuleRightArrow => {
                 write!(f, "right arrow following rule should be a left arrow")?
             }
@@ -70,6 +68,13 @@ impl Display for SyntaxError {
                 write!(f, "case in match statement should be a block")?
             }
             ErrorKind::TripleDot { .. } => write!(f, "triple `...` should be `..`")?,
+            ErrorKind::IfStatementRestriction => write!(
+                f,
+                "an `if` statement must be in strict statement form, or be a valid `if` expression"
+            )?,
+            ErrorKind::IfExpressionRestriction => {
+                write!(f, "an `if` expression must have else clause")?
+            }
         }
 
         Ok(())

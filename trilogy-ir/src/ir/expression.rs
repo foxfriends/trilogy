@@ -229,64 +229,12 @@ impl Expression {
             Let(ast) => crate::ir::Let::convert_statement(converter, *ast, rest),
             Assignment(ast) => crate::ir::Assignment::convert(converter, *ast),
             FunctionAssignment(ast) => crate::ir::Assignment::convert_function(converter, *ast),
-            If(ast) => IfElse::convert_statement(converter, *ast),
-            Match(ast) => crate::ir::Match::convert_statement(converter, *ast),
+            If(ast) => IfElse::convert_expression(converter, *ast),
+            Match(ast) => crate::ir::Match::convert_expression(converter, *ast),
             While(ast) => crate::ir::While::convert(converter, *ast),
             For(ast) => Self::convert_for_statement(converter, *ast),
-            Break(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.span(), Builtin::Break),
-                Self::unit(ast.span()),
-            ),
-            Continue(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.span(), Builtin::Continue),
-                Self::unit(ast.span()),
-            ),
-            Resume(ast) => {
-                let span = ast.span();
-                Self::application(
-                    span,
-                    Self::builtin(ast.resume_token().span, Builtin::Resume),
-                    ast.expression
-                        .map(|ast| Self::convert(converter, ast))
-                        .unwrap_or_else(|| Self::unit(span)),
-                )
-            }
-            Cancel(ast) => {
-                let span = ast.span();
-                Self::application(
-                    span,
-                    Self::builtin(ast.cancel.span, Builtin::Cancel),
-                    ast.expression
-                        .map(|ast| Self::convert(converter, ast))
-                        .unwrap_or_else(|| Self::unit(span)),
-                )
-            }
-            Return(ast) => {
-                let span = ast.span();
-                Self::application(
-                    span,
-                    Self::builtin(ast.return_token().span, Builtin::Return),
-                    ast.expression
-                        .map(|ast| Self::convert(converter, ast))
-                        .unwrap_or_else(|| Self::unit(span)),
-                )
-            }
-            End(ast) => Self::end(ast.span()),
-            Exit(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.exit.span, Builtin::Exit),
-                Self::convert(converter, ast.expression),
-            ),
-            Yield(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.yield_token().span, Builtin::Yield),
-                Self::convert(converter, ast.expression),
-            ),
             Expression(ast) => Self::convert(converter, *ast),
             Assert(ast) => Self::assert(ast.span(), crate::ir::Assert::convert(converter, *ast)),
-            Handled(ast) => crate::ir::Handled::convert_block(converter, *ast),
             Block(ast) => Self::convert_block(converter, *ast),
         }
     }
