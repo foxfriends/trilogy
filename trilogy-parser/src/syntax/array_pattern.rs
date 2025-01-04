@@ -146,9 +146,8 @@ impl ArrayPattern {
                 }
                 Ok((head, spread, tail))
             },
-        ).map_err(|error| {
+        ).inspect_err(|error| {
             parser.error(error.clone());
-            error
         })?;
         match (spread, rest) {
             (None, None) => Self::parse_elements(parser, start, head),

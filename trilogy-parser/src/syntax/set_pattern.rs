@@ -129,9 +129,8 @@ impl SetPattern {
                 }
                 Ok((elements, spread))
             })
-            .map_err(|error| {
+            .inspect_err(|error| {
                 parser.error(error.clone());
-                error
             })?;
         match rest {
             None if spread.is_none() => {
