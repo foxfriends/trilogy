@@ -643,9 +643,10 @@ mod test {
     test_parse!(expr_prec_if_else: "if true then 5 + 6 else 7 + 8" => Expression::parse => "
       (Expression::IfElse
         (IfElseExpression
+          _
           (Expression::Boolean _)
-          (Expression::Binary _)
-          (Expression::Binary _)))");
+          (IfBody::Then _ _)
+          (ElseClause _ _)))");
 
     test_parse_error!(expr_eq_without_parens: "x == y == z" => Expression::parse => "equality operators cannot be chained, use parentheses to disambiguate");
     test_parse_error!(expr_cmp_without_parens: "x <= y <= z" => Expression::parse => "comparison operators cannot be chained, use parentheses to disambiguate");

@@ -36,14 +36,6 @@ impl Document {
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> Self {
-        // Special case for the empty file rule
-        if parser.check(EndOfFile).is_ok() {
-            return Self {
-                documentation: None,
-                definitions: vec![],
-            };
-        }
-
         let documentation = Documentation::parse_inner(parser);
 
         let mut definitions = vec![];
@@ -102,7 +94,7 @@ mod test {
         use trilogy_scanner::Scanner;
         let scanner = Scanner::new("func f = y\nfunc f x = x\n");
         let mut parser = Parser::new(scanner);
-        let Amble { content, .. } = Amble::<Document>::parse(&mut parser);
+        let Amble { content, .. } = Amble::parse(&mut parser);
         assert_eq!(content.definitions.len(), 1, "expected one definition to succeed");
         assert_eq!(parser.errors.len(), 1, "expected one definition to fail");
     }

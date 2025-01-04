@@ -67,17 +67,17 @@ mod test {
     test_parse!(block_single_lines: "{
         let x = 5;
     }" => Block::parse => "(Block _ [(Statement::Let _)] _)");
-    test_parse!(block_semis: "{ let x = 5; return x * 2; }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Return _)] _)");
-    test_parse!(block_end_no_semi: "{ let x = 5; return x * 2 }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Return _)] _)");
+    test_parse!(block_semis: "{ let x = 5; return x * 2; }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Expression _)] _)");
+    test_parse!(block_end_no_semi: "{ let x = 5; return x * 2 }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Expression _)] _)");
     test_parse!(block_lines: "{
         let x = 5
         return x * 2
-    }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Return _)] _)");
+    }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Expression _)] _)");
     test_parse!(block_lines_and_semis: "{
         let x = 5;
         return x * 2;
-    }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Return _)] _)");
-    test_parse_error!(block_no_breaks: "{ end end }" => Block::parse => "expected end of block, or `;` or line break to separate statements");
+    }" => Block::parse => "(Block _ [(Statement::Let _) (Statement::Expression _)] _)");
+    test_parse_error!(block_no_breaks: "{ for a() {} for b() {} }" => Block::parse => "expected end of block, or `;` or line break to separate statements");
     test_parse_error!(block_no_close: "{ end " => Block::parse => "expected end of block, or `;` or line break to separate statements");
     test_parse_error!(block_no_braces: "end; end" => Block::parse => "expected `{`");
 }

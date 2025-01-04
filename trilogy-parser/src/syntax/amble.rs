@@ -18,20 +18,16 @@ impl Amble {
 
         if let Ok(token) = parser.expect(ByteOrderMark) {
             #[cfg(feature = "lax")]
-            {
-                parser.warn(SyntaxError::new(
-                    token.span,
-                    "the file contains a byte-order mark",
-                ));
-            }
+            parser.warn(SyntaxError::new(
+                token.span,
+                "the file contains a byte-order mark",
+            ));
 
             #[cfg(not(feature = "lax"))]
-            {
-                parser.error(SyntaxError::new(
-                    token.span,
-                    "the file contains a byte-order mark",
-                ));
-            }
+            parser.error(SyntaxError::new(
+                token.span,
+                "the file contains a byte-order mark",
+            ));
         }
 
         let content = Document::parse(parser);

@@ -57,17 +57,13 @@ mod test {
     use super::*;
 
     test_parse!(handled_expr_else_yield: "with 3 else yield" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::Else _)])");
-    test_parse_error!(handled_expr_else_invert: "with 3 else invert 3" => HandledExpression::parse);
     test_parse!(handled_expr_else_resume: "with 3 else resume 3" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::Else _)])");
     test_parse!(handled_expr_else_cancel: "with 3 else cancel 3" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::Else _)])");
     test_parse!(handled_expr_yield: "with 3 when 'x yield else yield" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::When _) (Handler::Else _)])");
-    test_parse!(handled_expr_invert_block: "with 3 when 'x invert {} else yield" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::When _) (Handler::Else _)])");
     test_parse_error!(handled_expr_resume_block: "with 3 when 'x resume {} else yield" => HandledExpression::parse);
     test_parse_error!(handled_expr_cancel_block: "with 3 when 'x cancel {} else yield" => HandledExpression::parse);
-    test_parse_error!(handled_expr_invert_expr: "with 3 when 'x invert 3 else yield" => HandledExpression::parse);
     test_parse!(handled_expr_resume_expr: "with 3 when 'x resume 3 else yield" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::When _) (Handler::Else _)])");
     test_parse!(handled_expr_cancel_expr: "with 3 when 'x cancel 3 else yield" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::When _) (Handler::Else _)])");
     test_parse!(handled_expr_multiple_yield: "with 3 when 'x yield when 'y yield else yield" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::When _) (Handler::When _) (Handler::Else _)])");
-    test_parse!(handled_expr_multiple_invert: "with 3 when 'x invert { 3 } when 'y invert { 3 } else yield" => HandledExpression::parse => "(HandledExpression _ _ [(Handler::When _) (Handler::When _) (Handler::Else _)])");
     test_parse_error!(handled_expr_block: "with {} else yield" => HandledExpression::parse);
 }
