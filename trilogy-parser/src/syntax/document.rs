@@ -16,15 +16,12 @@ pub struct Document {
 
 impl Spanned for Document {
     fn span(&self) -> Span {
-        self.documentation
-            .as_ref()
-            .map(Spanned::span)
-            .unwrap_or_default()
-            .union(if self.definitions.is_empty() {
-                Span::default()
-            } else {
-                self.definitions.span()
-            })
+        match (&self.documentation, self.definitions.last()) {
+            (Some(doc), Some(def)) => doc.span().union(def.span()),
+            (Some(doc), None) => doc.span(),
+            (None, Some(def)) => self.definitions.first().unwrap().span().union(def.span()),
+            (None, None) => Span::default(),
+        }
     }
 }
 

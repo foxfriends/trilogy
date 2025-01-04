@@ -1,13 +1,20 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// The pre- and post-amble of the Trilogy file.
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub(crate) struct Amble {
     pub start_of_file: Token,
     pub content: Document,
     pub end_of_file: Token,
+}
+
+impl Spanned for Amble {
+    fn span(&self) -> Span {
+        self.start_of_file.span.union(self.end_of_file.span)
+    }
 }
 
 impl Amble {
