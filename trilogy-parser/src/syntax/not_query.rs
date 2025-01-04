@@ -1,17 +1,29 @@
 use super::{query::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct NotQuery {
-    start: Token,
+    pub not: Token,
     pub query: Query,
+    span: Span,
+}
+
+impl Spanned for NotQuery {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl NotQuery {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser.expect(KwNot).expect("Caller should have found this");
+        let not = parser.expect(KwNot).unwrap();
         let query = Query::parse_precedence(parser, Precedence::Not)?;
-        Ok(Self { start, query })
+        Ok(Self {
+            span: not.span.union(query.span()),
+            not,
+            query,
+        })
     }
 }

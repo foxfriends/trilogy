@@ -9,14 +9,12 @@ pub struct IfElseExpression {
     pub condition: Expression,
     pub when_true: IfBody,
     pub when_false: Option<ElseClause>,
+    span: Span,
 }
 
 impl Spanned for IfElseExpression {
     fn span(&self) -> Span {
-        match &self.when_false {
-            Some(case) => case.span().union(self.r#if.span),
-            None => self.when_true.span().union(self.r#if.span),
-        }
+        self.span
     }
 }
 
@@ -32,11 +30,17 @@ impl IfElseExpression {
             None
         };
 
+        let span = match &when_false {
+            Some(case) => case.span().union(r#if.span),
+            None => when_true.span().union(r#if.span),
+        };
+
         Ok(Self {
             r#if,
             condition,
             when_true,
             when_false,
+            span,
         })
     }
 

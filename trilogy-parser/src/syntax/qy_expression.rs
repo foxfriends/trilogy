@@ -5,31 +5,29 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct QyExpression {
-    pub qy_token: Token,
-    pub oparen: Token,
+    pub qy: Token,
+    pub open_paren: Token,
     pub parameters: Vec<Pattern>,
-    pub cparen: Token,
+    pub close_paren: Token,
     pub arrow: Token,
     pub body: Query,
+    span: Span,
 }
 
 impl Spanned for QyExpression {
     fn span(&self) -> Span {
-        self.qy_token.span.union(self.body.span())
+        self.span
     }
 }
 
 impl QyExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let qy_token = parser.expect(KwQy).expect("Caller should have found this");
+        let qy = parser.expect(KwQy).unwrap();
         let mut parameters = vec![];
-        let oparen = parser.expect(OParen).map_err(|token| {
-            parser.expected(
-                token,
-                "expected `(` to qy_token parameter list following `qy`",
-            )
+        let open_paren = parser.expect(OParen).map_err(|token| {
+            parser.expected(token, "expected `(` to qy parameter list following `qy`")
         })?;
-        let cparen = loop {
+        let close_paren = loop {
             if let Ok(paren) = parser.expect(CParen) {
                 break paren;
             }
@@ -37,27 +35,28 @@ impl QyExpression {
             if parser.expect(OpComma).is_ok() {
                 continue;
             }
-            let cparen = parser
+            let close_paren = parser
                 .expect(CParen)
                 .map_err(|token| parser.expected(token, "expected `)` to end parameter list"))?;
-            break cparen;
+            break close_paren;
         };
         let arrow = parser
             .expect(OpLeftArrow)
             .map_err(|token| parser.expected(token, "expected `<-` to begin `qy` body"))?;
         let body = Query::parse(parser)?;
         Ok(Self {
-            qy_token,
-            oparen,
+            span: qy.span.union(body.span()),
+            qy,
+            open_paren,
             parameters,
-            cparen,
+            close_paren,
             arrow,
             body,
         })
     }
 
-    pub fn qy_token(&self) -> &Token {
-        &self.qy_token
+    pub fn qy(&self) -> &Token {
+        &self.qy
     }
 }
 

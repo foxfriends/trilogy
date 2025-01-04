@@ -1,29 +1,35 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct StructPattern {
     pub atom: AtomLiteral,
-    pub start: Token,
+    pub open_paren: Token,
     pub pattern: Pattern,
-    pub end: Token,
+    pub close_paren: Token,
+}
+
+impl Spanned for StructPattern {
+    fn span(&self) -> source_span::Span {
+        self.atom.span().union(self.close_paren.span)
+    }
 }
 
 impl StructPattern {
     pub(crate) fn parse(parser: &mut Parser, atom: AtomLiteral) -> SyntaxResult<Self> {
-        let start = parser
+        let open_paren = parser
             .expect(OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;
         let pattern = Pattern::parse(parser)?;
-        let end = parser
+        let close_paren = parser
             .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `)`"))?;
         Ok(Self {
             atom,
-            start,
+            open_paren,
             pattern,
-            end,
+            close_paren,
         })
     }
 }
@@ -34,9 +40,9 @@ impl TryFrom<StructLiteral> for StructPattern {
     fn try_from(value: StructLiteral) -> Result<Self, Self::Error> {
         Ok(Self {
             atom: value.atom,
-            start: value.start,
+            open_paren: value.open_paren,
             pattern: value.value.try_into()?,
-            end: value.end,
+            close_paren: value.close_paren,
         })
     }
 }

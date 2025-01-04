@@ -7,15 +7,12 @@ pub struct FunctionAssignment {
     pub lhs: Expression,
     pub function: Identifier,
     pub arguments: Vec<Expression>,
+    span: Span,
 }
 
 impl Spanned for FunctionAssignment {
     fn span(&self) -> Span {
-        self.lhs.span().union(if self.arguments.is_empty() {
-            self.function.span()
-        } else {
-            self.arguments.span()
-        })
+        self.span
     }
 }
 
@@ -35,10 +32,14 @@ impl FunctionAssignment {
                 break;
             }
         }
+
+        let span = lhs.span().union(arguments.last().unwrap().span());
+
         Ok(Self {
             lhs,
             function,
             arguments,
+            span,
         })
     }
 }

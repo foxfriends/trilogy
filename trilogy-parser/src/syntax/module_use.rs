@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// The `use` portion of a module definition.
@@ -9,11 +10,12 @@ pub struct ModuleUse {
     pub r#use: Token,
     /// The imported names
     pub names: Punctuated<Identifier>,
+    span: Span,
 }
 
 impl Spanned for ModuleUse {
-    fn span(&self) -> source_span::Span {
-        self.r#use.span.union(self.names.span())
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -33,7 +35,10 @@ impl ModuleUse {
             names.push_last(name);
             break;
         }
-
-        Ok(Self { r#use, names })
+        Ok(Self {
+            span: r#use.span.union(names.span()),
+            r#use,
+            names,
+        })
     }
 }

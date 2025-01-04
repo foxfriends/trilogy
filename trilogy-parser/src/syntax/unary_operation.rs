@@ -1,11 +1,19 @@
 use super::{expression::Precedence, *};
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct UnaryOperation {
     pub operator: UnaryOperator,
     pub operand: Expression,
+    span: Span,
+}
+
+impl Spanned for UnaryOperation {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl UnaryOperation {
@@ -13,14 +21,15 @@ impl UnaryOperation {
         let operator = UnaryOperator::parse(parser);
         let operand = Expression::parse_or_pattern_precedence(parser, operator.precedence())?;
         match operand {
-            Ok(operand) => Ok(Ok(Self { operator, operand })),
+            Ok(operand) => Ok(Ok(Self {
+                span: operator.span().union(operand.span()),
+                operator,
+                operand,
+            })),
             Err(pattern) => match operator {
-                UnaryOperator::Negate(token) => {
-                    Ok(Err(Pattern::Negative(Box::new(NegativePattern {
-                        minus: token,
-                        pattern,
-                    }))))
-                }
+                UnaryOperator::Negate(token) => Ok(Err(Pattern::Negative(Box::new(
+                    NegativePattern::new(token, pattern),
+                )))),
                 _ => Err(SyntaxError::new(
                     pattern.span(),
                     "expected an expression for the unary operation, but found a pattern",

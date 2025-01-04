@@ -5,28 +5,36 @@ use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Template {
-    start: Token,
+    pub template_start: Token,
     pub segments: Vec<TemplateSegment>,
     pub tag: Option<Identifier>,
+    span: Span,
 }
 
 impl Template {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        if let Ok(start) = parser.expect(TokenType::DollarString) {
+        if let Ok(template_start) = parser.expect(TokenType::DollarString) {
+            let mut span = template_start.span;
+
             let tag = parser
                 .check(TokenType::Identifier)
                 .ok()
                 .map(|_| ())
                 .map(|_| Identifier::parse(parser))
                 .transpose()?;
+            if let Some(tag) = &tag {
+                span = span.union(tag.span());
+            }
+
             return Ok(Self {
-                start,
+                span,
+                template_start,
                 segments: vec![],
                 tag,
             });
         }
 
-        let start = parser
+        let template_start = parser
             .expect(TokenType::TemplateStart)
             .expect("Caller should have found this");
         let mut segments = vec![];
@@ -48,35 +56,34 @@ impl Template {
             .map(|_| ())
             .map(|_| Identifier::parse(parser))
             .transpose()?;
+
+        let mut span = template_start.span;
+        if !segments.is_empty() {
+            span = span.union(segments.span());
+        }
+        if let Some(tag) = &tag {
+            span = span.union(tag.span());
+        }
+
         Ok(Self {
-            start,
+            span,
+            template_start,
             segments,
             tag,
         })
     }
 
     pub fn prefix(&self) -> String {
-        let TokenValue::String(value) = self.start.value.as_ref().unwrap() else {
+        let TokenValue::String(value) = self.template_start.value.as_ref().unwrap() else {
             unreachable!()
         };
         value.to_owned()
-    }
-
-    pub fn prefix_token(&self) -> &Token {
-        &self.start
     }
 }
 
 impl Spanned for Template {
     fn span(&self) -> Span {
-        let mut span = self.start.span;
-        if !self.segments.is_empty() {
-            span = span.union(self.segments.span());
-        }
-        if let Some(tag) = &self.tag {
-            span = span.union(tag.span());
-        }
-        span
+        self.span
     }
 }
 

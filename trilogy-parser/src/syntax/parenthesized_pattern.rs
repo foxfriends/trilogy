@@ -1,36 +1,43 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ParenthesizedPattern {
-    pub start: Token,
+    pub open_paren: Token,
     pub pattern: Pattern,
-    pub end: Token,
+    pub close_paren: Token,
+}
+
+impl Spanned for ParenthesizedPattern {
+    fn span(&self) -> Span {
+        self.open_paren.span.union(self.close_paren.span())
+    }
 }
 
 impl ParenthesizedPattern {
     pub(crate) fn finish(
         parser: &mut Parser,
-        start: Token,
+        open_paren: Token,
         pattern: Pattern,
     ) -> SyntaxResult<Self> {
-        let end = parser
+        let close_paren = parser
             .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `)`"))?;
         Ok(Self {
-            start,
+            open_paren,
             pattern,
-            end,
+            close_paren,
         })
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
+        let open_paren = parser
             .expect(OParen)
             .map_err(|token| parser.expected(token, "expected `(`"))?;
         let pattern = Pattern::parse(parser)?;
-        Self::finish(parser, start, pattern)
+        Self::finish(parser, open_paren, pattern)
     }
 }
 
@@ -39,9 +46,9 @@ impl TryFrom<ParenthesizedExpression> for ParenthesizedPattern {
 
     fn try_from(value: ParenthesizedExpression) -> Result<Self, Self::Error> {
         Ok(Self {
-            start: value.start,
+            open_paren: value.open_paren,
             pattern: value.expression.try_into()?,
-            end: value.end,
+            close_paren: value.close_paren,
         })
     }
 }

@@ -1,22 +1,21 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ModuleDefinition {
     pub head: ModuleHead,
-    pub obrace: Token,
+    pub open_brace: Token,
     pub definitions: Vec<Definition>,
-    pub cbrace: Token,
+    pub close_brace: Token,
     pub module_use: Option<ModuleUse>,
+    span: Span,
 }
 
 impl Spanned for ModuleDefinition {
-    fn span(&self) -> source_span::Span {
-        match &self.module_use {
-            Some(uses) => self.head.span().union(uses.span()),
-            None => self.head.span().union(self.cbrace.span),
-        }
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -28,15 +27,18 @@ impl ModuleDefinition {
     }
 
     pub(crate) fn parse(parser: &mut Parser, head: ModuleHead) -> SyntaxResult<Self> {
-        let obrace = parser.expect(OBrace).expect("Caller should find `{`.");
+        let open_brace = parser.expect(OBrace).unwrap();
 
-        if let Ok(cbrace) = parser.expect(CBrace) {
+        let mut span = head.span();
+
+        if let Ok(close_brace) = parser.expect(CBrace) {
             // empty module may be single line
             return Ok(Self {
+                span: span.union(close_brace.span),
                 head,
-                obrace,
+                open_brace,
                 definitions: vec![],
-                cbrace,
+                close_brace,
                 // Empty module does not export anything, so cannot have anything used
                 module_use: None,
             });
@@ -59,21 +61,25 @@ impl ModuleDefinition {
             parser.error(error);
         }
 
-        let cbrace = parser.expect(CBrace).map_err(|token| {
-            parser.expected(token, "expected } to cbrace a local module definition")
+        let close_brace = parser.expect(CBrace).map_err(|token| {
+            parser.expected(token, "expected } to close_brace a local module definition")
         })?;
 
         let module_use = if parser.check(KwUse).is_ok() {
-            Some(ModuleUse::parse(parser)?)
+            let usage = ModuleUse::parse(parser)?;
+            span = span.union(usage.span());
+            Some(usage)
         } else {
+            span = span.union(close_brace.span);
             None
         };
 
         Ok(Self {
+            span,
             head,
-            obrace,
+            open_brace,
             definitions,
-            cbrace,
+            close_brace,
             module_use,
         })
     }

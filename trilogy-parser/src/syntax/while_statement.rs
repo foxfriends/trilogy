@@ -1,22 +1,29 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct WhileStatement {
     pub r#while: Token,
     pub condition: Expression,
     pub body: Block,
+    span: Span,
+}
+
+impl Spanned for WhileStatement {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl WhileStatement {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let r#while = parser
-            .expect(TokenType::KwWhile)
-            .expect("Caller should have found this");
+        let r#while = parser.expect(TokenType::KwWhile).unwrap();
         let condition = Expression::parse(parser)?;
         let body = Block::parse(parser)?;
         Ok(Self {
+            span: r#while.span.union(body.span()),
             r#while,
             condition,
             body,

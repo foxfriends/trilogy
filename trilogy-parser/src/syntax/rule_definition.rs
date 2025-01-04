@@ -5,16 +5,15 @@ use trilogy_scanner::{Token, TokenType};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct RuleDefinition {
-    start: Token,
+    pub rule: Token,
     pub head: RuleHead,
     pub body: Option<Query>,
+    span: Span,
 }
 
 impl RuleDefinition {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
-            .expect(TokenType::KwRule)
-            .expect("Caller should find `rule` keyword.");
+        let rule = parser.expect(TokenType::KwRule).unwrap();
         let head = RuleHead::parse(parser)?;
         let body = parser
             .expect([TokenType::OpLeftArrow, TokenType::OpRightArrow])
@@ -27,15 +26,21 @@ impl RuleDefinition {
             .ok()
             .map(|_| Query::parse(parser))
             .transpose()?;
-        Ok(Self { start, head, body })
+        let span = match &body {
+            None => rule.span.union(head.span()),
+            Some(body) => rule.span.union(body.span()),
+        };
+        Ok(Self {
+            span,
+            rule,
+            head,
+            body,
+        })
     }
 }
 
 impl Spanned for RuleDefinition {
     fn span(&self) -> Span {
-        match &self.body {
-            None => self.start.span.union(self.head.span()),
-            Some(body) => self.start.span.union(body.span()),
-        }
+        self.span
     }
 }

@@ -1,23 +1,29 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ResumeExpression {
-    start: Token,
+    pub resume: Token,
     pub expression: Expression,
+    span: Span,
+}
+
+impl Spanned for ResumeExpression {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl ResumeExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
-            .expect(KwResume)
-            .expect("Caller should have found this");
+        let resume = parser.expect(KwResume).unwrap();
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
-        Ok(Self { start, expression })
-    }
-
-    pub fn resume_token(&self) -> &Token {
-        &self.start
+        Ok(Self {
+            span: resume.span.union(expression.span()),
+            resume,
+            expression,
+        })
     }
 }

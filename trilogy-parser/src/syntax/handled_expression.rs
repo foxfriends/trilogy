@@ -8,15 +8,12 @@ pub struct HandledExpression {
     pub with: Token,
     pub expression: Expression,
     pub handlers: Vec<Handler>,
+    span: Span,
 }
 
 impl Spanned for HandledExpression {
     fn span(&self) -> Span {
-        self.with.span.union(if self.handlers.is_empty() {
-            self.expression.span()
-        } else {
-            self.handlers.span()
-        })
+        self.span
     }
 }
 
@@ -43,6 +40,7 @@ impl HandledExpression {
             handlers.push(handler);
             if end {
                 return Ok(Self {
+                    span: with.span.union(handlers.last().unwrap().span()),
                     with,
                     expression,
                     handlers,

@@ -12,29 +12,34 @@ use trilogy_scanner::{Token, TokenType};
 pub struct ExportDefinition {
     pub export: Token,
     pub names: Vec<Identifier>,
+    span: Span,
 }
 
 impl Spanned for ExportDefinition {
     fn span(&self) -> Span {
-        if self.names.is_empty() {
-            self.export.span
-        } else {
-            self.export.span.union(self.names.span())
-        }
+        self.span
     }
 }
 
 impl ExportDefinition {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let export = parser
-            .expect(TokenType::KwExport)
-            .expect("Caller should find `export` keyword.");
+        let export = parser.expect(TokenType::KwExport).unwrap();
         let mut names = vec![];
         while {
             names.push(Identifier::parse(parser)?);
             parser.expect(TokenType::OpComma).is_ok()
         } {}
-        Ok(Self { export, names })
+
+        let span = match names.last() {
+            None => export.span,
+            Some(name) => export.span.union(name.span()),
+        };
+
+        Ok(Self {
+            export,
+            names,
+            span,
+        })
     }
 }
 

@@ -5,55 +5,58 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct RecordLiteral {
-    pub start: Token,
+    pub open_brace_pipe: Token,
     pub elements: Vec<RecordElement>,
-    pub end: Token,
+    pub close_brace_pipe: Token,
 }
 
 impl Spanned for RecordLiteral {
     fn span(&self) -> Span {
-        self.start.span.union(self.end.span)
+        self.open_brace_pipe.span.union(self.close_brace_pipe.span)
     }
 }
 
 impl RecordLiteral {
-    pub(crate) fn new_empty(start: Token, end: Token) -> Self {
+    pub(crate) fn new_empty(open_brace_pipe: Token, close_brace_pipe: Token) -> Self {
         Self {
-            start,
+            open_brace_pipe,
             elements: vec![],
-            end,
+            close_brace_pipe,
         }
     }
 
     pub(crate) fn parse_rest(
         parser: &mut Parser,
-        start: Token,
+        open_brace_pipe: Token,
         first: RecordElement,
     ) -> SyntaxResult<Result<Self, RecordPattern>> {
         let mut elements = vec![first];
-        if let Ok(end) = parser.expect(CBracePipe) {
+        if let Ok(close_brace_pipe) = parser.expect(CBracePipe) {
             return Ok(Ok(Self {
-                start,
+                open_brace_pipe,
                 elements,
-                end,
+                close_brace_pipe,
             }));
         };
-        let end = loop {
+        let close_brace_pipe = loop {
             parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,
                     "expected `|}` to end or `,` to continue record literal",
                 )
             })?;
-            if let Ok(end) = parser.expect(CBracePipe) {
-                break end;
+            if let Ok(close_brace_pipe) = parser.expect(CBracePipe) {
+                break close_brace_pipe;
             };
             let element = RecordElement::parse(parser)?;
             match element {
                 Ok(element) => elements.push(element),
                 Err(next) => {
                     return Ok(Err(RecordPattern::parse_from_expression(
-                        parser, start, elements, next,
+                        parser,
+                        open_brace_pipe,
+                        elements,
+                        next,
                     )?));
                 }
             }
@@ -65,23 +68,15 @@ impl RecordLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            if let Ok(end) = parser.expect(CBracePipe) {
-                break end;
+            if let Ok(close_brace_pipe) = parser.expect(CBracePipe) {
+                break close_brace_pipe;
             };
         };
         Ok(Ok(Self {
-            start,
+            open_brace_pipe,
             elements,
-            end,
+            close_brace_pipe,
         }))
-    }
-
-    pub fn start_token(&self) -> &Token {
-        &self.start
-    }
-
-    pub fn end_token(&self) -> &Token {
-        &self.end
     }
 }
 

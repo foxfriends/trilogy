@@ -7,20 +7,19 @@ use trilogy_scanner::{Token, TokenType};
 pub struct RestPattern {
     pub rest: Token,
     pub pattern: Option<Pattern>,
+    span: Span,
 }
 
 impl Spanned for RestPattern {
     fn span(&self) -> Span {
-        match &self.pattern {
-            Some(pat) => self.rest.span.union(pat.span()),
-            None => self.rest.span,
-        }
+        self.span
     }
 }
 
 impl RestPattern {
     pub(crate) fn new(rest: Token, pattern: Pattern) -> Self {
         Self {
+            span: rest.span.union(pattern.span()),
             rest,
             pattern: Some(pattern),
         }
@@ -37,12 +36,14 @@ impl RestPattern {
             .is_ok()
         {
             return Ok(Self {
+                span: rest.span,
                 rest,
                 pattern: None,
             });
         }
         let pattern = Pattern::parse(parser)?;
         Ok(Self {
+            span: rest.span.union(pattern.span()),
             rest,
             pattern: Some(pattern),
         })
@@ -53,9 +54,6 @@ impl TryFrom<(Token, Expression)> for RestPattern {
     type Error = SyntaxError;
 
     fn try_from((rest, val): (Token, Expression)) -> Result<Self, Self::Error> {
-        Ok(Self {
-            rest,
-            pattern: Some(val.try_into()?),
-        })
+        Ok(Self::new(rest, val.try_into()?))
     }
 }

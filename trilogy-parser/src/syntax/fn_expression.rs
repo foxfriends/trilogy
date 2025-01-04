@@ -14,11 +14,12 @@ pub struct FnExpression {
     pub parameters: Vec<Pattern>,
     pub dot: Token,
     pub body: Expression,
+    span: Span,
 }
 
 impl Spanned for FnExpression {
     fn span(&self) -> Span {
-        self.r#fn.span.union(self.body.span())
+        self.span
     }
 }
 
@@ -34,6 +35,7 @@ impl FnExpression {
         };
         let body = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
+            span: r#fn.span.union(body.span()),
             r#fn,
             parameters,
             dot,

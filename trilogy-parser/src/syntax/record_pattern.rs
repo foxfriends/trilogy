@@ -5,23 +5,21 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct RecordPattern {
-    start: Token,
+    pub open_brace_pipe: Token,
     pub elements: Vec<(Pattern, Pattern)>,
     pub rest: Option<RestPattern>,
-    end: Token,
+    pub close_brace_pipe: Token,
 }
 
 impl RecordPattern {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
-            .expect(OBracePipe)
-            .expect("Caller should have found this");
-        Self::parse_elements(parser, start, vec![])
+        let open_brace_pipe = parser.expect(OBracePipe).unwrap();
+        Self::parse_elements(parser, open_brace_pipe, vec![])
     }
 
     pub(crate) fn parse_elements(
         parser: &mut Parser,
-        start: Token,
+        open_brace_pipe: Token,
         mut elements: Vec<(Pattern, Pattern)>,
     ) -> SyntaxResult<Self> {
         let rest = loop {
@@ -52,24 +50,24 @@ impl RecordPattern {
         };
 
         if let Some(rest) = rest {
-            return Self::parse_rest(parser, start, elements, rest);
+            return Self::parse_rest(parser, open_brace_pipe, elements, rest);
         }
 
-        let end = parser
+        let close_brace_pipe = parser
             .expect(CBracePipe)
             .map_err(|token| parser.expected(token, "expected `|}` to end record pattern"))?;
 
         Ok(Self {
-            start,
+            open_brace_pipe,
             elements,
             rest,
-            end,
+            close_brace_pipe,
         })
     }
 
     pub(crate) fn parse_rest(
         parser: &mut Parser,
-        start: Token,
+        open_brace_pipe: Token,
         elements: Vec<(Pattern, Pattern)>,
         rest: RestPattern,
     ) -> SyntaxResult<Self> {
@@ -90,10 +88,10 @@ impl RecordPattern {
                 "no trailing comma is permitted after the rest (`..`) element in a record pattern",
             ));
             return Ok(Self {
-                start,
+                open_brace_pipe,
                 elements,
                 rest: Some(rest),
-                end,
+                close_brace_pipe: end,
             });
         }
 
@@ -102,16 +100,16 @@ impl RecordPattern {
             .map_err(|token| parser.expected(token, "expected `|}` to end record pattern"))?;
 
         Ok(Self {
-            start,
+            open_brace_pipe,
             elements,
             rest: Some(rest),
-            end,
+            close_brace_pipe: end,
         })
     }
 
     pub(super) fn parse_from_expression(
         parser: &mut Parser,
-        start: Token,
+        open_brace_pipe: Token,
         elements: Vec<RecordElement>,
         head_element: RecordPatternElement,
     ) -> SyntaxResult<Self> {
@@ -146,10 +144,10 @@ impl RecordPattern {
         match (rest, head_element) {
             (None, RecordPatternElement::Element(key, value)) => {
                 elements.push((key, value));
-                Self::parse_elements(parser, start, elements)
+                Self::parse_elements(parser, open_brace_pipe, elements)
             }
             (None, RecordPatternElement::Spread(spread, value)) => {
-                Self::parse_rest(parser, start, elements, RestPattern::new(spread, value))
+                Self::parse_rest(parser, open_brace_pipe, elements, RestPattern::new(spread, value))
             }
             (Some(..), element @ RecordPatternElement::Element(..)) => {
                 Err(SyntaxError::new(
@@ -167,17 +165,17 @@ impl RecordPattern {
     }
 
     pub fn start_token(&self) -> &Token {
-        &self.start
+        &self.open_brace_pipe
     }
 
     pub fn end_token(&self) -> &Token {
-        &self.end
+        &self.close_brace_pipe
     }
 }
 
 impl Spanned for RecordPattern {
     fn span(&self) -> Span {
-        self.start.span.union(self.end.span)
+        self.open_brace_pipe.span.union(self.close_brace_pipe.span)
     }
 }
 
@@ -206,10 +204,10 @@ impl TryFrom<RecordLiteral> for RecordPattern {
         }
 
         Ok(Self {
-            start: value.start,
+            open_brace_pipe: value.open_brace_pipe,
             elements: head,
             rest,
-            end: value.end,
+            close_brace_pipe: value.close_brace_pipe,
         })
     }
 }

@@ -9,18 +9,12 @@ pub struct MatchExpression {
     pub expression: Expression,
     pub cases: Vec<MatchExpressionCase>,
     pub else_case: Option<MatchExpressionElseCase>,
+    span: Span,
 }
 
 impl Spanned for MatchExpression {
     fn span(&self) -> Span {
-        match &self.else_case {
-            Some(case) => self.r#match.span.union(case.span()),
-            None => self.r#match.span.union(
-                self.cases
-                    .last()
-                    .map_or_else(|| self.expression.span(), Spanned::span),
-            ),
-        }
+        self.span
     }
 }
 
@@ -54,7 +48,17 @@ impl MatchExpression {
             None
         };
 
+        let span = match &else_case {
+            Some(case) => r#match.span.union(case.span()),
+            None => r#match.span.union(
+                cases
+                    .last()
+                    .map_or_else(|| expression.span(), Spanned::span),
+            ),
+        };
+
         Ok(Self {
+            span,
             r#match,
             expression,
             cases,
@@ -74,8 +78,9 @@ impl MatchExpression {
 pub struct MatchExpressionCase {
     pub case: Token,
     pub pattern: Option<Pattern>,
-    pub guard: Option<Expression>,
+    pub guard: Option<Guard>,
     pub body: Expression,
+    span: Span,
 }
 
 impl MatchExpressionCase {
@@ -88,17 +93,13 @@ impl MatchExpressionCase {
             .err()
             .map(|_| Pattern::parse(parser))
             .transpose()?;
-        let guard = parser
-            .expect(KwIf)
-            .ok()
-            .map(|_| Expression::parse(parser))
-            .transpose()?
-            .map(Into::into);
+        let guard = Guard::parse_optional(parser)?;
         parser.expect(KwThen).map_err(|token| {
             parser.expected(token, "expected `then` to mark the body of a `case`")
         })?;
         let body = Expression::parse(parser)?;
         Ok(Self {
+            span: case.span.union(body.span()),
             case,
             pattern,
             guard,
@@ -109,22 +110,53 @@ impl MatchExpressionCase {
 
 impl Spanned for MatchExpressionCase {
     fn span(&self) -> Span {
-        self.case.span.union(self.body.span())
+        self.span
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
+pub struct Guard {
+    pub r#if: Token,
+    pub expression: Expression,
+    span: Span,
+}
+
+impl Spanned for Guard {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+impl Guard {
+    fn parse_optional(parser: &mut Parser) -> SyntaxResult<Option<Self>> {
+        let Ok(r#if) = parser.expect(KwIf) else {
+            return Ok(None);
+        };
+        let expression = Expression::parse(parser)?;
+        Ok(Some(Self {
+            span: r#if.span.union(expression.span()),
+            r#if,
+            expression,
+        }))
+    }
+}
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct MatchExpressionElseCase {
     pub r#else: Token,
     pub else_binding: Pattern,
     pub no_match: Expression,
+    span: Span,
+}
+
+impl Spanned for MatchExpressionElseCase {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl MatchExpressionElseCase {
     fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let r#else = parser
-            .expect(KwElse)
-            .expect("caller should have found this");
+        let r#else = parser.expect(KwElse).unwrap();
         let else_binding = if parser.check(Discard).is_ok() {
             Pattern::parse(parser)?
         } else {
@@ -135,6 +167,7 @@ impl MatchExpressionElseCase {
         })?;
         let no_match = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
+            span: r#else.span.union(no_match.span()),
             r#else,
             else_binding,
             no_match,

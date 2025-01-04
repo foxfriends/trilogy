@@ -1,19 +1,25 @@
 use super::*;
-use crate::{token_pattern::TokenPattern, Parser};
+use crate::{token_pattern::TokenPattern, Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct FunctionHead {
-    start: Token,
+    pub func: Token,
     pub name: Identifier,
     pub parameters: Vec<Pattern>,
+    span: Span,
+}
+
+impl Spanned for FunctionHead {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl FunctionHead {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
-            .expect(TokenType::KwFunc)
-            .expect("Caller should find `func` keyword.");
+        let func = parser.expect(TokenType::KwFunc).unwrap();
         let name = Identifier::parse(parser)?;
         let mut parameters = vec![];
         loop {
@@ -22,7 +28,8 @@ impl FunctionHead {
                 continue;
             }
             return Ok(Self {
-                start,
+                span: func.span.union(parameters.last().unwrap().span()),
+                func,
                 name,
                 parameters,
             });

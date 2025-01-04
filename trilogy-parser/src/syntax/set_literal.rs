@@ -5,51 +5,56 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SetLiteral {
-    pub start: Token,
+    pub open_bracket_pipe: Token,
     pub elements: Vec<SetElement>,
-    pub end: Token,
+    pub close_bracket_pipe: Token,
 }
 
 impl Spanned for SetLiteral {
     fn span(&self) -> Span {
-        self.start.span.union(self.end.span)
+        self.open_bracket_pipe
+            .span
+            .union(self.close_bracket_pipe.span)
     }
 }
 
 impl SetLiteral {
-    pub(crate) fn new_empty(start: Token, end: Token) -> Self {
+    pub(crate) fn new_empty(open_bracket_pipe: Token, close_bracket_pipe: Token) -> Self {
         Self {
-            start,
+            open_bracket_pipe,
             elements: vec![],
-            end,
+            close_bracket_pipe,
         }
     }
 
     pub(crate) fn parse_rest(
         parser: &mut Parser,
-        start: Token,
+        open_bracket_pipe: Token,
         first: SetElement,
     ) -> SyntaxResult<Result<Self, SetPattern>> {
         let mut elements = vec![first];
-        if let Ok(end) = parser.expect(CBrackPipe) {
+        if let Ok(close_bracket_pipe) = parser.expect(CBrackPipe) {
             return Ok(Ok(Self {
-                start,
+                open_bracket_pipe,
                 elements,
-                end,
+                close_bracket_pipe,
             }));
         };
-        let end = loop {
+        let close_bracket_pipe = loop {
             parser.expect(OpComma).map_err(|token| {
                 parser.expected(token, "expected `|]` to end or `,` to continue set literal")
             })?;
-            if let Ok(end) = parser.expect(CBrackPipe) {
-                break end;
+            if let Ok(close_bracket_pipe) = parser.expect(CBrackPipe) {
+                break close_bracket_pipe;
             };
             match SetElement::parse(parser)? {
                 Ok(element) => elements.push(element),
                 Err(next) => {
                     return Ok(Err(SetPattern::parse_from_expression(
-                        parser, start, elements, next,
+                        parser,
+                        open_bracket_pipe,
+                        elements,
+                        next,
                     )?));
                 }
             }
@@ -61,23 +66,23 @@ impl SetLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            if let Ok(end) = parser.expect(CBrackPipe) {
-                break end;
+            if let Ok(close_bracket_pipe) = parser.expect(CBrackPipe) {
+                break close_bracket_pipe;
             };
         };
         Ok(Ok(Self {
-            start,
+            open_bracket_pipe,
             elements,
-            end,
+            close_bracket_pipe,
         }))
     }
 
     pub fn start_token(&self) -> &Token {
-        &self.start
+        &self.open_bracket_pipe
     }
 
     pub fn end_token(&self) -> &Token {
-        &self.end
+        &self.close_bracket_pipe
     }
 }
 

@@ -9,6 +9,7 @@ pub struct WhenHandler {
     pub pattern: Pattern,
     pub guard: Option<Expression>,
     pub strategy: HandlerStrategy,
+    span: Span,
 }
 
 impl WhenHandler {
@@ -25,6 +26,7 @@ impl WhenHandler {
         let strategy = HandlerStrategy::parse(parser)?;
 
         Ok(Self {
+            span: when.span.union(strategy.span()),
             when,
             guard,
             pattern,
@@ -35,6 +37,6 @@ impl WhenHandler {
 
 impl Spanned for WhenHandler {
     fn span(&self) -> Span {
-        self.when.span.union(self.strategy.span())
+        self.span
     }
 }

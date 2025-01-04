@@ -1,21 +1,29 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct IsExpression {
-    start: Token,
+    pub is: Token,
     pub query: Query,
+    span: Span,
+}
+
+impl Spanned for IsExpression {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl IsExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser.expect(KwIs).expect("Caller should have found this");
+        let is = parser.expect(KwIs).expect("Caller should have found this");
         let query = Query::parse(parser)?;
-        Ok(Self { start, query })
-    }
-
-    pub fn is_token(&self) -> &Token {
-        &self.start
+        Ok(Self {
+            span: is.span.union(query.span()),
+            is,
+            query,
+        })
     }
 }

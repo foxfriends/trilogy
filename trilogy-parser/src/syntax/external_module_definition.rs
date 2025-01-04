@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// An external module definition item.
@@ -15,14 +16,12 @@ pub struct ExternalModuleDefinition {
     /// The string representing the path at which to find the module.
     pub locator: StringLiteral,
     pub module_use: Option<ModuleUse>,
+    span: Span,
 }
 
 impl Spanned for ExternalModuleDefinition {
-    fn span(&self) -> source_span::Span {
-        match &self.module_use {
-            Some(uses) => self.head.span().union(uses.span()),
-            None => self.head.span().union(self.locator.span()),
-        }
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -37,7 +36,14 @@ impl ExternalModuleDefinition {
         } else {
             None
         };
+
+        let span = match &module_use {
+            Some(uses) => head.span().union(uses.span()),
+            None => head.span().union(locator.span()),
+        };
+
         let module = Self {
+            span,
             head,
             at,
             locator,

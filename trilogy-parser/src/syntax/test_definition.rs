@@ -9,11 +9,12 @@ pub struct TestDefinition {
     pub not: Option<Token>,
     pub name: StringLiteral,
     pub body: Block,
+    span: Span,
 }
 
 impl Spanned for TestDefinition {
     fn span(&self) -> Span {
-        self.test.span.union(self.body.span())
+        self.span
     }
 }
 
@@ -26,6 +27,7 @@ impl TestDefinition {
         let name = StringLiteral::parse(parser)?;
         let body = Block::parse(parser)?;
         Ok(Self {
+            span: test.span.union(body.span()),
             test,
             not,
             name,

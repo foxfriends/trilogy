@@ -38,7 +38,7 @@ impl Rule {
     pub(super) fn convert_qy(converter: &mut Converter, ast: syntax::QyExpression) -> Self {
         converter.push_scope();
         let span = ast.span();
-        let head_span = ast.qy_token.span.union(ast.cparen.span);
+        let head_span = ast.qy.span.union(ast.close_paren.span);
         let parameters = ast
             .parameters
             .into_iter()

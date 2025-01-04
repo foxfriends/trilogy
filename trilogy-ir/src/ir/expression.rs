@@ -50,7 +50,7 @@ impl Expression {
                 Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
             }
             Record(ast) => {
-                let start_span = ast.start_token().span;
+                let start_span = ast.open_brace_pipe.span;
                 let span = ast.span();
                 let elements = ast
                     .elements
@@ -67,14 +67,14 @@ impl Expression {
                 Self::builtin(start_span, Builtin::Array).apply_to(span, iterator)
             }
             SetComprehension(ast) => {
-                let start_span = ast.start_token().span;
+                let start_span = ast.open_bracket_pipe.span;
                 let span = ast.span();
                 let iterator = Self::convert_iterator(converter, ast.query, ast.expression);
                 Self::builtin(start_span, Builtin::Set).apply_to(span, iterator)
             }
             RecordComprehension(ast) => {
                 let span = ast.span();
-                let start_span = ast.start_token().span;
+                let start_span = ast.open_brace_pipe.span;
                 let iter_span = ast
                     .query
                     .span()
@@ -139,7 +139,7 @@ impl Expression {
             Match(ast) => crate::ir::Match::convert_expression(converter, *ast),
             Is(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.is_token().span, Builtin::Is),
+                Self::builtin(ast.is.span, Builtin::Is),
                 Self::convert_query(converter, ast.query),
             ),
             End(ast) => Self::end(ast.span()),
@@ -150,7 +150,7 @@ impl Expression {
             ),
             Resume(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.resume_token().span, Builtin::Resume),
+                Self::builtin(ast.resume.span, Builtin::Resume),
                 Self::convert(converter, ast.expression),
             ),
             Cancel(ast) => Self::application(
@@ -160,7 +160,7 @@ impl Expression {
             ),
             Return(ast) => Self::application(
                 ast.span(),
-                Self::builtin(ast.return_token().span, Builtin::Return),
+                Self::builtin(ast.r#return.span, Builtin::Return),
                 Self::convert(converter, ast.expression),
             ),
             Break(ast) => Self::application(
@@ -336,7 +336,7 @@ impl Expression {
                 Self::builtin(start_span, Builtin::Array).apply_to(span, Self::pack(span, elements))
             }
             Set(ast) => {
-                let start_span = ast.start_token().span;
+                let start_span = ast.open_bracket_pipe.span;
                 let span = ast.span();
                 let mut elements: Pack = ast
                     .elements
@@ -439,7 +439,7 @@ impl Expression {
 
     fn convert_template(converter: &mut Converter, ast: syntax::Template) -> Self {
         let span = ast.span();
-        let prefix = Self::string(ast.prefix_token().span, ast.prefix());
+        let prefix = Self::string(ast.template_start.span, ast.prefix());
         match ast.tag {
             Some(tag) => {
                 let (strings, interpolations) = ast
@@ -473,7 +473,7 @@ impl Expression {
             }
             None => {
                 let span = ast.span();
-                let prefix = Self::string(ast.prefix_token().span, ast.prefix());
+                let prefix = Self::string(ast.template_start.span, ast.prefix());
                 ast.segments
                     .into_iter()
                     .map(|seg| {

@@ -5,23 +5,21 @@ use trilogy_scanner::{Token, TokenType::*};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct SetPattern {
-    start: Token,
+    pub open_bracket_pipe: Token,
     pub elements: Vec<Pattern>,
     pub rest: Option<RestPattern>,
-    end: Token,
+    pub close_bracket_pipe: Token,
 }
 
 impl SetPattern {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let start = parser
-            .expect(OBrackPipe)
-            .expect("Caller should have found this");
-        Self::parse_elements(parser, start, vec![])
+        let open_bracket_pipe = parser.expect(OBrackPipe).unwrap();
+        Self::parse_elements(parser, open_bracket_pipe, vec![])
     }
 
     pub(crate) fn parse_elements(
         parser: &mut Parser,
-        start: Token,
+        open_bracket_pipe: Token,
         mut elements: Vec<Pattern>,
     ) -> SyntaxResult<Self> {
         let rest = loop {
@@ -44,23 +42,23 @@ impl SetPattern {
         };
 
         if let Some(rest) = rest {
-            return Self::parse_rest(parser, start, elements, rest);
+            return Self::parse_rest(parser, open_bracket_pipe, elements, rest);
         }
-        let end = parser
+        let close_bracket_pipe = parser
             .expect(CBrackPipe)
             .map_err(|token| parser.expected(token, "expected `|]` to end set pattern"))?;
 
         Ok(Self {
-            start,
+            open_bracket_pipe,
             elements,
             rest,
-            end,
+            close_bracket_pipe,
         })
     }
 
     pub(crate) fn parse_rest(
         parser: &mut Parser,
-        start: Token,
+        open_bracket_pipe: Token,
         elements: Vec<Pattern>,
         rest: RestPattern,
     ) -> SyntaxResult<Self> {
@@ -68,9 +66,11 @@ impl SetPattern {
         // and report an appropriate error. One of few attempts at smart error
         // handling in this parser so far!
         if let Ok(comma) = parser.expect(OpComma) {
-            let Ok(end) = parser.expect(CBrackPipe) else {
-                let error =
-                    SyntaxError::new(comma.span, "a rest (`..`) element must end a set pattern");
+            let Ok(close_bracket_pipe) = parser.expect(CBrackPipe) else {
+                let error = SyntaxError::new(
+                    comma.span,
+                    "a rest (`..`) element must close_bracket_pipe a set pattern",
+                );
                 parser.error(error.clone());
                 return Err(error);
             };
@@ -79,26 +79,26 @@ impl SetPattern {
                 "no trailing comma is permitted after the rest (`..`) element in a set pattern",
             ));
             return Ok(Self {
-                start,
+                open_bracket_pipe,
                 elements,
                 rest: Some(rest),
-                end,
+                close_bracket_pipe,
             });
         }
-        let end = parser
-            .expect(CBrackPipe)
-            .map_err(|token| parser.expected(token, "expected `|]` to end set pattern"))?;
+        let close_bracket_pipe = parser.expect(CBrackPipe).map_err(|token| {
+            parser.expected(token, "expected `|]` to close_bracket_pipe set pattern")
+        })?;
         Ok(Self {
-            start,
+            open_bracket_pipe,
             elements,
             rest: Some(rest),
-            end,
+            close_bracket_pipe,
         })
     }
 
     pub(crate) fn parse_from_expression(
         parser: &mut Parser,
-        start: Token,
+        open_bracket_pipe: Token,
         elements: Vec<SetElement>,
         (spread, next): (Option<Token>, Pattern),
     ) -> SyntaxResult<Self> {
@@ -135,9 +135,9 @@ impl SetPattern {
         match rest {
             None if spread.is_none() => {
                 elements.push(next);
-                Self::parse_elements(parser, start, elements)
+                Self::parse_elements(parser, open_bracket_pipe, elements)
             }
-            None => Self::parse_rest(parser, start, elements, RestPattern::new(spread.unwrap(), next)),
+            None => Self::parse_rest(parser, open_bracket_pipe, elements, RestPattern::new(spread.unwrap(), next)),
             Some(..) if spread.is_none() => {
                 Err(SyntaxError::new(
                     next.span().union(spread.unwrap().span()),
@@ -152,19 +152,13 @@ impl SetPattern {
             }
         }
     }
-
-    pub fn start_token(&self) -> &Token {
-        &self.start
-    }
-
-    pub fn end_token(&self) -> &Token {
-        &self.end
-    }
 }
 
 impl Spanned for SetPattern {
     fn span(&self) -> Span {
-        self.start.span.union(self.end.span)
+        self.open_bracket_pipe
+            .span
+            .union(self.close_bracket_pipe.span)
     }
 }
 
@@ -191,10 +185,10 @@ impl TryFrom<SetLiteral> for SetPattern {
         }
 
         Ok(Self {
-            start: value.start,
+            open_bracket_pipe: value.open_bracket_pipe,
             elements: head,
             rest,
-            end: value.end,
+            close_bracket_pipe: value.close_bracket_pipe,
         })
     }
 }

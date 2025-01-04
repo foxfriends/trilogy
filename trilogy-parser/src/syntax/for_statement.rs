@@ -7,6 +7,7 @@ use trilogy_scanner::{Token, TokenType};
 pub struct ForStatement {
     pub branches: Vec<ForStatementBranch>,
     pub else_block: Option<Block>,
+    span: Span,
 }
 
 impl ForStatement {
@@ -25,7 +26,17 @@ impl ForStatement {
             .ok()
             .map(|_| Block::parse(parser))
             .transpose()?;
+        let span = match &else_block {
+            None => branches
+                .first()
+                .unwrap()
+                .span()
+                .union(branches.last().unwrap().span()),
+            Some(block) => branches.span().union(block.span()),
+        };
+
         Ok(Self {
+            span,
             branches,
             else_block,
         })
@@ -34,28 +45,35 @@ impl ForStatement {
 
 impl Spanned for ForStatement {
     fn span(&self) -> Span {
-        match &self.else_block {
-            None => self.branches.span(),
-            Some(block) => self.branches.span().union(block.span()),
-        }
+        self.span
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ForStatementBranch {
     pub r#for: Token,
     pub query: Query,
     pub body: Block,
+    span: Span,
+}
+
+impl Spanned for ForStatementBranch {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl ForStatementBranch {
     fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let r#for = parser
-            .expect(TokenType::KwFor)
-            .expect("Caller should have found this");
+        let r#for = parser.expect(TokenType::KwFor).unwrap();
         let query = Query::parse(parser)?;
         let body = Block::parse(parser)?;
-        Ok(Self { r#for, query, body })
+        Ok(Self {
+            span: r#for.span.union(body.span()),
+            r#for,
+            query,
+            body,
+        })
     }
 }
 

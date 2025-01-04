@@ -62,7 +62,7 @@ impl Case {
             .unwrap_or_else(|| Expression::wildcard(case_span));
         let guard = ast
             .guard
-            .map(|ast| Expression::convert(converter, ast))
+            .map(|ast| Expression::convert(converter, ast.expression))
             .unwrap_or_else(|| Expression::boolean(case_span, true));
         let body = Expression::convert(converter, ast.body);
         converter.pop_scope();

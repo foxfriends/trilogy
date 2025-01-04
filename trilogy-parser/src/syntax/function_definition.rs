@@ -1,11 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::TokenType;
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct FunctionDefinition {
     pub head: FunctionHead,
     pub body: Expression,
+    span: Span,
+}
+
+impl Spanned for FunctionDefinition {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl FunctionDefinition {
@@ -15,7 +23,11 @@ impl FunctionDefinition {
             .expect(TokenType::OpEq)
             .map_err(|token| parser.expected(token, "expected `=` in function definition"))?;
         let body = Expression::parse(parser)?;
-        Ok(FunctionDefinition { head, body })
+        Ok(FunctionDefinition {
+            span: head.span().union(body.span()),
+            head,
+            body,
+        })
     }
 }
 
