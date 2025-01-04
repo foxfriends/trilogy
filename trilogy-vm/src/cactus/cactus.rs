@@ -321,7 +321,7 @@ impl<T> Cactus<T> {
 
 pub struct CactusGuard<'a, T>(MutexGuard<'a, Vec<Option<T>>>);
 
-impl<'a, T> CactusGuard<'a, T> {
+impl<T> CactusGuard<'_, T> {
     /// Remove ranges of values from this cactus where the range map is `false`.
     /// Shifts all non-removed ranges towards the front, shortening the length
     /// accordingly. Capacity is not affected.

@@ -44,7 +44,7 @@ delegate_chunk_writer!(Context<'_>, builder);
 delegate_stack_tracker!(Context<'_>, scope);
 delegate_label_maker!(Context<'_>, labeler);
 
-impl<'a> Context<'a> {
+impl Context<'_> {
     pub fn declare_variables(&mut self, variables: impl IntoIterator<Item = Id>) -> usize {
         let mut n = 0;
         for id in variables {

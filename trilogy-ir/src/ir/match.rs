@@ -21,12 +21,24 @@ impl Match {
             .into_iter()
             .map(|ast| Case::convert_expression(converter, ast))
             .collect();
-        cases.push(Case {
-            span: ast.r#else.span().union(ast.no_match.span()),
-            pattern: Expression::convert_pattern(converter, ast.else_binding),
-            guard: Expression::boolean(ast.r#else.span, true),
-            body: Expression::convert(converter, ast.no_match),
-        });
+        match ast.else_case {
+            Some(ast) => {
+                cases.push(Case {
+                    span: ast.r#else.span().union(ast.no_match.span()),
+                    pattern: Expression::convert_pattern(converter, ast.else_binding),
+                    guard: Expression::boolean(ast.r#else.span, true),
+                    body: Expression::convert(converter, ast.no_match),
+                });
+            }
+            None => {
+                cases.push(Case {
+                    span,
+                    pattern: Expression::wildcard(span),
+                    guard: Expression::boolean(span, true),
+                    body: Expression::unit(span),
+                });
+            }
+        }
         Expression::r#match(span, Self { expression, cases })
     }
 }

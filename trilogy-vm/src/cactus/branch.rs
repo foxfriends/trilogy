@@ -262,7 +262,7 @@ pub struct BranchIter<'a, 'b, T> {
     index: usize,
 }
 
-impl<'a, 'b, T> Iterator for BranchIter<'a, 'b, T>
+impl<T> Iterator for BranchIter<'_, '_, T>
 where
     T: Clone,
 {

@@ -320,9 +320,9 @@ impl<E: std::error::Error> Error<E> {
                             .with_help("the spread operator uses only two (`..`)")
                     }
                     IfStatementRestriction => ariadne::Report::build(kind, location, span.1.start)
-                        .with_message(format!("an `if` statement must be in strict statement form, or be a valid `if` expression")),
+                        .with_message("an `if` statement must be in strict statement form, or be a valid `if` expression"),
                     IfExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
-                        .with_message(format!("an `if` expression must have an else clause")),
+                        .with_message("an `if` expression must have an else clause"),
                 }
             }
             ErrorKind::Resolver(location, error) => {
