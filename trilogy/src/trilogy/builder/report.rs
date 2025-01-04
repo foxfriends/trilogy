@@ -319,7 +319,10 @@ impl<E: std::error::Error> Error<E> {
                             .with_label(Label::new(dot).with_color(primary).with_message("try removing this `.`"))
                             .with_help("the spread operator uses only two (`..`)")
                     }
-                    _ => todo!("Misisng a few from today"),
+                    IfStatementRestriction => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message(format!("an `if` statement must be in strict statement form, or be a valid `if` expression")),
+                    IfExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message(format!("an `if` expression must have an else clause")),
                 }
             }
             ErrorKind::Resolver(location, error) => {
