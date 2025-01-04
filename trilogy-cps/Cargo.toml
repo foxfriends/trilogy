@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-trilogy-parser = { path = "../trilogy-parser/" }
+trilogy-ir = { path = "../trilogy-ir/" }
 trilogy-scanner = { path = "../trilogy-scanner/" }
 source-span = "2.7.0"
 bitvec = "1.0.1"

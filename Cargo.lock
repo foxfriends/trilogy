@@ -2248,7 +2248,7 @@ dependencies = [
  "bitvec",
  "num",
  "source-span",
- "trilogy-parser",
+ "trilogy-ir",
  "trilogy-scanner",
 ]
 
