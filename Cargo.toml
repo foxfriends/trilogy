@@ -9,7 +9,7 @@ members = [
     "trilogy-ir",
     "trilogy-codegen",
     "trilogy-vm",
-    "trilogy-vm-derive",
+    "trilogy-vm-derive", "trilogy-cps",
 ]
 
 [workspace.lints.clippy]
