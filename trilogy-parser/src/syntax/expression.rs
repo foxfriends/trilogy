@@ -345,7 +345,9 @@ impl Expression {
             KwIf => Ok(Ok(Self::IfElse(Box::new(
                 IfElseExpression::parse(parser)?.strict_expression()?,
             )))),
-            KwMatch => Ok(Ok(Self::Match(Box::new(MatchExpression::parse(parser)?)))),
+            KwMatch => Ok(Ok(Self::Match(Box::new(
+                MatchExpression::parse(parser)?.strict_expression()?,
+            )))),
             KwEnd => Ok(Ok(Self::End(Box::new(EndExpression::parse(parser)?)))),
             KwExit => Ok(Ok(Self::Exit(Box::new(ExitExpression::parse(parser)?)))),
             KwReturn => Ok(Ok(Self::Return(Box::new(ReturnExpression::parse(parser)?)))),

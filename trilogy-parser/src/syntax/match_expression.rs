@@ -61,6 +61,13 @@ impl MatchExpression {
             else_case,
         })
     }
+
+    pub(crate) fn strict_expression(self) -> SyntaxResult<Self> {
+        if self.else_case.is_some() {
+            return Ok(self);
+        }
+        Err(ErrorKind::MatchExpressionRestriction.at(self.span()))
+    }
 }
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]

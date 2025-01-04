@@ -11,6 +11,7 @@ pub enum ErrorKind {
     TripleDot { dot: Span },
     IfStatementRestriction,
     IfExpressionRestriction,
+    MatchExpressionRestriction,
 }
 
 impl ErrorKind {
@@ -73,7 +74,10 @@ impl Display for SyntaxError {
                 "an `if` statement must be in strict statement form, or be a valid `if` expression"
             )?,
             ErrorKind::IfExpressionRestriction => {
-                write!(f, "an `if` expression must have else clause")?
+                write!(f, "an `if` expression must have an `else` clause")?
+            }
+            ErrorKind::MatchExpressionRestriction => {
+                write!(f, "a `match` expression must have an `else` case")?
             }
         }
 

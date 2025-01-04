@@ -322,7 +322,9 @@ impl<E: std::error::Error> Error<E> {
                     IfStatementRestriction => ariadne::Report::build(kind, location, span.1.start)
                         .with_message("an `if` statement must be in strict statement form, or be a valid `if` expression"),
                     IfExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
-                        .with_message("an `if` expression must have an else clause"),
+                        .with_message("an `if` expression must have an `else` clause"),
+                    MatchExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message("a `match` expression must have an `else` case"),
                 }
             }
             ErrorKind::Resolver(location, error) => {
