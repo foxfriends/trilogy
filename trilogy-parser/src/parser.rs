@@ -36,9 +36,9 @@ impl<'src> Parser<'src> {
     /// Where possible, errors are recovered from and collected for later. The returned
     /// `Document` must not be used if the [`Parse`][] contains errors.
     pub fn parse(mut self) -> Parse<Document> {
-        let ast = Amble::<Document>::parse(&mut self);
+        let ast = Amble::parse(&mut self);
         Parse {
-            ast,
+            ast: ast.content,
             warnings: self.warnings,
             errors: self.errors,
         }
@@ -147,9 +147,6 @@ impl Parser<'_> {
     }
 
     fn peek_next(&mut self) -> Option<Token> {
-        // Technically probably shouldn't unwrap here but if we consume the EndOfFile
-        // it has to be at the end, at which point we consume no more, so this should
-        // be safe.
         self.peek_chomp();
         let peeked = self.source.peek().cloned();
         self.source.advance_cursor();
@@ -158,8 +155,8 @@ impl Parser<'_> {
 
     pub(crate) fn expect_bang_oparen(&mut self) -> Result<(Token, Token), Token> {
         use TokenType::*;
-        // Though tokenized as two tokens, this is kind of treated as one token in some cases,
-        // requiring `!(` to be unspaced in procedure calls. Since whitespace is a token, this
+        // Though tokenized as two tokens, this is kind of treated as one token as we
+        // require `!(` to be unspaced in procedure calls. Since whitespace is a token,
         // a low-level peekmore after the high-level peek will sufficiently detect this.
         let next = self.peek().clone();
         let after = self.source.peek_nth(1);

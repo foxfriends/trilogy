@@ -25,7 +25,7 @@ compile_error!("Exactly one of the features `32bit` or `64bit` may be specified 
 #[rustfmt::skip]
 #[derive(Debug, Asm)]
 #[cfg_attr(not(any(feature = "64bit", feature = "32bit")), asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(usize)))]
-#[cfg_attr(all(feature = "64bit", not(feature = "#2bit")), asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u64)))]
+#[cfg_attr(all(feature = "64bit", not(feature = "32bit")), asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u64)))]
 #[cfg_attr(feature = "32bit", asm(derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug), repr(u32)))]
 pub enum Instruction {
     // Stack

@@ -1,4 +1,4 @@
-use crate::syntax::{Amble, SyntaxError};
+use crate::syntax::SyntaxError;
 
 /// Encapsulates the result of attempting to parse a Trilogy file.
 ///
@@ -10,7 +10,7 @@ use crate::syntax::{Amble, SyntaxError};
 /// is not defined to be well formed.
 #[derive(Clone, Debug)]
 pub struct Parse<T> {
-    pub(crate) ast: Amble<T>,
+    pub(crate) ast: T,
     pub(crate) warnings: Vec<SyntaxError>,
     pub(crate) errors: Vec<SyntaxError>,
 }
@@ -21,7 +21,7 @@ impl<T> Parse<T> {
     /// If this `Parse` contains errors, the exact structure of these contents
     /// are not defined to be well formed.
     pub fn ast(&self) -> &T {
-        &self.ast.content
+        &self.ast
     }
 
     /// Consume the parse, turning it into its contents.
@@ -29,7 +29,7 @@ impl<T> Parse<T> {
     /// If this `Parse` contains errors, the exact structure of these contents
     /// are not defined to be well formed.
     pub fn into_ast(self) -> T {
-        self.ast.content
+        self.ast
     }
 
     /// Whether this `Parse` contains errors.
