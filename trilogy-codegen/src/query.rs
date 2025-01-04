@@ -269,7 +269,7 @@ impl Bindings<'_> {
     }
 }
 
-impl<'a> AsRef<HashSet<Id>> for Bindings<'a> {
+impl AsRef<HashSet<Id>> for Bindings<'_> {
     fn as_ref(&self) -> &HashSet<Id> {
         &self.0
     }
@@ -285,7 +285,7 @@ delegate_chunk_writer!(QueryEvaluation<'_, '_>, context);
 delegate_stack_tracker!(QueryEvaluation<'_, '_>, context);
 delegate_label_maker!(QueryEvaluation<'_, '_>, context);
 
-impl<'b, 'a> QueryEvaluation<'b, 'a> {
+impl<'a> QueryEvaluation<'_, 'a> {
     fn fail(&mut self) -> &mut Self {
         self.jump(self.on_fail)
     }

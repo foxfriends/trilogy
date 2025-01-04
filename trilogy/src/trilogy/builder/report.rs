@@ -302,10 +302,6 @@ impl<E: std::error::Error> Error<E> {
                     Unknown(message) => ariadne::Report::build(kind, location, span.1.start)
                         .with_message(message)
                         .with_label(Label::new(span).with_color(primary)),
-                    KwThenInStatement =>ariadne::Report::build(kind, location, span.1.start)
-                        .with_message(format!("the `{}` keyword may not be used in an if statement", "then".fg(primary)))
-                        .with_help("`then` is valid in expression context, did you mean to use this as a subexpression")
-                        .with_label(Label::new(span).with_color(primary).with_message("you could enclose the following expression in a block")),
                     RuleRightArrow => ariadne::Report::build(kind, location, span.1.start)
                         .with_message(format!("a `{}` may not be used in a rule definition", "->".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing it with a `<-`")),
@@ -323,6 +319,12 @@ impl<E: std::error::Error> Error<E> {
                             .with_label(Label::new(dot).with_color(primary).with_message("try removing this `.`"))
                             .with_help("the spread operator uses only two (`..`)")
                     }
+                    IfStatementRestriction => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message("an `if` statement must be in strict statement form, or be a valid `if` expression"),
+                    IfExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message("an `if` expression must have an `else` clause"),
+                    MatchExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
+                        .with_message("a `match` expression must have an `else` case"),
                 }
             }
             ErrorKind::Resolver(location, error) => {

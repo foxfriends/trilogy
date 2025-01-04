@@ -140,9 +140,8 @@ impl RecordPattern {
                 }
                 Ok((elements, rest))
             })
-            .map_err(|error| {
+            .inspect_err(|error| {
                 parser.error(error.clone());
-                error
             })?;
         match (rest, head_element) {
             (None, RecordPatternElement::Element(key, value)) => {

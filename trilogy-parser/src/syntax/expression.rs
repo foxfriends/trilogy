@@ -342,8 +342,12 @@ impl Expression {
                 Ok(expr) => Ok(Ok(Self::Unary(Box::new(expr)))),
                 Err(patt) => Ok(Err(patt)),
             },
-            KwIf => Ok(Ok(Self::IfElse(Box::new(IfElseExpression::parse(parser)?)))),
-            KwMatch => Ok(Ok(Self::Match(Box::new(MatchExpression::parse(parser)?)))),
+            KwIf => Ok(Ok(Self::IfElse(Box::new(
+                IfElseExpression::parse(parser)?.strict_expression()?,
+            )))),
+            KwMatch => Ok(Ok(Self::Match(Box::new(
+                MatchExpression::parse(parser)?.strict_expression()?,
+            )))),
             KwEnd => Ok(Ok(Self::End(Box::new(EndExpression::parse(parser)?)))),
             KwExit => Ok(Ok(Self::Exit(Box::new(ExitExpression::parse(parser)?)))),
             KwReturn => Ok(Ok(Self::Return(Box::new(ReturnExpression::parse(parser)?)))),
@@ -641,9 +645,10 @@ mod test {
     test_parse!(expr_prec_if_else: "if true then 5 + 6 else 7 + 8" => Expression::parse => "
       (Expression::IfElse
         (IfElseExpression
+          _
           (Expression::Boolean _)
-          (Expression::Binary _)
-          (Expression::Binary _)))");
+          (IfBody::Then _ _)
+          (ElseClause _ _)))");
 
     test_parse_error!(expr_eq_without_parens: "x == y == z" => Expression::parse => "equality operators cannot be chained, use parentheses to disambiguate");
     test_parse_error!(expr_cmp_without_parens: "x <= y <= z" => Expression::parse => "comparison operators cannot be chained, use parentheses to disambiguate");

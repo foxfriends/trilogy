@@ -18,9 +18,7 @@ pub fn escape_sequence(s: &str) -> Option<(char, &str)> {
     match s.strip_prefix('\\')? {
         s if s.starts_with('u') => unicode_escape_sequence(&s[1..]),
         s if s.starts_with('x') => ascii_escape_sequence(&s[1..]),
-        s if s.starts_with(|ch| matches!(ch, '"' | '\'' | '$' | '\\')) => {
-            Some((s.chars().next()?, &s[1..]))
-        }
+        s if s.starts_with(['"', '\'', '$', '\\']) => Some((s.chars().next()?, &s[1..])),
         s if s.starts_with('n') => Some(('\n', &s[1..])),
         s if s.starts_with('t') => Some(('\t', &s[1..])),
         s if s.starts_with('r') => Some(('\r', &s[1..])),

@@ -4,13 +4,13 @@ use trilogy_scanner::{Token, TokenType::*};
 
 /// The pre- and post-amble of the Trilogy file.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
-pub(crate) struct Amble<T> {
+pub(crate) struct Amble {
     pub start_of_file: Token,
-    pub content: T,
+    pub content: Document,
     pub end_of_file: Token,
 }
 
-impl Amble<Document> {
+impl Amble {
     pub(crate) fn parse(parser: &mut Parser) -> Self {
         let start_of_file = parser
             .expect(StartOfFile)
@@ -18,20 +18,16 @@ impl Amble<Document> {
 
         if let Ok(token) = parser.expect(ByteOrderMark) {
             #[cfg(feature = "lax")]
-            {
-                parser.warn(SyntaxError::new(
-                    token.span,
-                    "the file contains a byte-order mark",
-                ));
-            }
+            parser.warn(SyntaxError::new(
+                token.span,
+                "the file contains a byte-order mark",
+            ));
 
             #[cfg(not(feature = "lax"))]
-            {
-                parser.error(SyntaxError::new(
-                    token.span,
-                    "the file contains a byte-order mark",
-                ));
-            }
+            parser.error(SyntaxError::new(
+                token.span,
+                "the file contains a byte-order mark",
+            ));
         }
 
         let content = Document::parse(parser);

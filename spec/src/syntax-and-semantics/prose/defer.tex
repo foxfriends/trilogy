@@ -11,7 +11,7 @@ of resources that require explicit destruction, such as closing open files.
 While this is very similar to the \kw{defer} statement of Go, in Trilogy we must
 also consider the existence of multiple continuations and executions: the \kw{defer}
 statement's deferred code will run only on the same continuation and execution that
-caused initially encountered the \kw{defer} statement.
+initially encountered the \kw{defer} statement and caused it to run.
 
 \begin{bnf*}
     \bnfprod{Defer}{

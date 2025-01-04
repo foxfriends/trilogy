@@ -10,6 +10,8 @@ pub enum TokenType {
     KwAs,
     /// `at`
     KwAt,
+    /// `become`
+    KwBecome,
     /// `break`
     KwBreak,
     /// `cancel`
@@ -40,8 +42,6 @@ pub enum TokenType {
     KwFunc,
     /// `if`
     KwIf,
-    /// `invert`
-    KwInvert,
     /// `in`
     KwIn,
     /// `is`

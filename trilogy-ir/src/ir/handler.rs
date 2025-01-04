@@ -31,7 +31,7 @@ impl Handler {
                     ),
                 )
             }
-            syntax::HandlerStrategy::Invert { body, .. } => {
+            syntax::HandlerStrategy::Then { body, .. } => {
                 Expression::convert_block(converter, body)
             }
             syntax::HandlerStrategy::Yield(token) => {
@@ -89,10 +89,6 @@ impl Handler {
         };
         converter.pop_scope();
         result
-    }
-
-    pub(super) fn convert_blocks(converter: &mut Converter, ast: syntax::Handler) -> Self {
-        Self::convert(converter, ast)
     }
 
     pub(super) fn convert_expressions(converter: &mut Converter, ast: syntax::Handler) -> Self {

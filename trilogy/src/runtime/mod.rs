@@ -31,7 +31,7 @@ impl<'prog, 'ex> Runtime<'prog, 'ex> {
     }
 }
 
-impl<'prog, 'ex> Runtime<'prog, 'ex> {
+impl Runtime<'_, '_> {
     pub fn atom(&self, tag: &str) -> Atom {
         self.0.atom(tag)
     }

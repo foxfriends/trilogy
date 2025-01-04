@@ -37,7 +37,7 @@ impl<'a, F, I: AsRef<str>> LoaderCache<'a, F, I> {
     }
 }
 
-impl<'a, F, I> ariadne::Cache<Location> for LoaderCache<'a, F, I>
+impl<F, I> ariadne::Cache<Location> for LoaderCache<'_, F, I>
 where
     F: for<'b> FnMut(&'b Location) -> Result<I, Box<dyn Debug>>,
     I: AsRef<str>,

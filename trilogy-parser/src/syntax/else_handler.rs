@@ -55,8 +55,4 @@ mod test {
     test_parse!(elsehandler_resume_with_id: "else x resume x" => ElseHandler::parse => "(ElseHandler _ (Identifier) _)");
     test_parse!(elsehandler_cancel_without_id: "else cancel 3" => ElseHandler::parse => "(ElseHandler _ () _)");
     test_parse!(elsehandler_cancel_with_id: "else x cancel x" => ElseHandler::parse => "(ElseHandler _ (Identifier) _)");
-    test_parse!(elsehandler_invert_without_id: "else invert { 3 }" => ElseHandler::parse => "(ElseHandler _ () _)");
-    test_parse!(elsehandler_invert_with_id: "else x invert { x }" => ElseHandler::parse => "(ElseHandler _ (Identifier) _)");
-    test_parse_error!(elsehandler_invalid_body: "else invert { exit }" => ElseHandler::parse);
-    test_parse_error!(elsehandler_not_identifier: "else (x) invert { exit }" => ElseHandler::parse);
 }
