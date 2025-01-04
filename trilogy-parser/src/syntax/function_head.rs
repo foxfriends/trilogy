@@ -41,8 +41,8 @@ impl FunctionHead {
 mod test {
     use super::*;
 
-    test_parse!(funchead_one_param: "func hello x" => FunctionHead::parse => "(FunctionHead _ [_])");
-    test_parse!(funchead_multi_param: "func hello x y z" => FunctionHead::parse => "(FunctionHead _ [_ _ _])");
-    test_parse!(funchead_pattern_param: "func find f x:xs" => FunctionHead::parse => "(FunctionHead _ [_ _])");
+    test_parse!(funchead_one_param: "func hello x" => FunctionHead::parse => "(FunctionHead _ _ [_])");
+    test_parse!(funchead_multi_param: "func hello x y z" => FunctionHead::parse => "(FunctionHead _ _ [_ _ _])");
+    test_parse!(funchead_pattern_param: "func find f x:xs" => FunctionHead::parse => "(FunctionHead _ _ [_ _])");
     test_parse_error!(funchead_invalid_param: "func unadd (x + y)" => FunctionHead::parse);
 }

@@ -748,6 +748,7 @@ mod test {
           (BinaryOperator::Sequence _)
           (Expression::Let
             (LetExpression
+              _
               (Query::Direct _)
               (Expression::Binary
                 (BinaryOperation
@@ -760,7 +761,9 @@ mod test {
           (Expression::ModuleAccess
             (ModuleAccess
               (Expression::Reference _)
+              _
               (Identifier)))
+          _
           (Identifier)))");
     test_parse!(expr_prec_paths: "a b::c d::e f" => Expression::parse => "
       (Expression::Application
@@ -771,6 +774,7 @@ mod test {
                 (Application
                   (Expression::ModuleAccess _)
                   (Expression::Reference _)))
+              _
               (Identifier)))
           (Expression::Reference _)))
     ");

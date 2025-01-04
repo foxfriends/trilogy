@@ -27,9 +27,7 @@ impl Spanned for ExternalModuleDefinition {
 
 impl ExternalModuleDefinition {
     pub(crate) fn parse(parser: &mut Parser, head: ModuleHead) -> SyntaxResult<Self> {
-        let at = parser
-            .expect(TokenType::KwAt)
-            .expect("Caller should find `at` keyword.");
+        let at = parser.expect(TokenType::KwAt).unwrap();
         let locator = StringLiteral::parse(parser)?;
         let module_use = if parser.check(TokenType::KwUse).is_ok() {
             Some(ModuleUse::parse(parser)?)
@@ -68,7 +66,7 @@ mod test {
         _
         (DefinitionItem::ExternalModule
           (ExternalModuleDefinition
-            (ModuleHead _ [])
+            (ModuleHead _ _ [])
             _
             (StringLiteral)
             _)))");
@@ -78,7 +76,7 @@ mod test {
         _
         (DefinitionItem::ExternalModule
           (ExternalModuleDefinition
-            (ModuleHead _ [])
+            (ModuleHead _ _ [])
             _
             (StringLiteral)
             (ModuleUse _ _))))");
