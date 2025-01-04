@@ -19,7 +19,6 @@ pub enum Expression {
     ArrayComprehension(Box<ArrayComprehension>),
     SetComprehension(Box<SetComprehension>),
     RecordComprehension(Box<RecordComprehension>),
-    IteratorComprehension(Box<IteratorComprehension>),
     Reference(Box<super::Identifier>),
     Keyword(Box<KeywordReference>),
     Application(Box<Application>),
@@ -88,7 +87,7 @@ enum ExpressionResult {
 }
 
 impl Expression {
-    pub(crate) const PREFIX: [TokenType; 34] = [
+    pub(crate) const PREFIX: [TokenType; 33] = [
         Numeric,
         String,
         Bits,
@@ -100,7 +99,6 @@ impl Expression {
         OBrack,
         OBrackPipe,
         OBracePipe,
-        DollarOParen,
         OpBang,
         OpTilde,
         KwYield,
@@ -334,9 +332,6 @@ impl Expression {
                     )))),
                 }
             }
-            DollarOParen => Ok(Ok(Self::IteratorComprehension(Box::new(
-                IteratorComprehension::parse(parser)?,
-            )))),
             OpBang | OpMinus | OpTilde | KwYield | KwTypeof => match UnaryOperation::parse(parser)?
             {
                 Ok(expr) => Ok(Ok(Self::Unary(Box::new(expr)))),

@@ -17,10 +17,6 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
     } \\
     \bnfmore{
         \bnfpn{RecordComprehension}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{IteratorComprehension}
     } \\
     \bnfprod{ArrayComprehension}{
         \bnfts{[}
@@ -59,18 +55,6 @@ The syntax of comprehension is a bit like a \kw{for} loop in a compound literal:
         \bnfsp
         \bnfts{|\}}
     } \\
-    \bnfprod{IteratorComprehension}{
-        \bnfts{\$(} %
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfsp
-        \bnfts{\kw{for}}
-        \bnfsp
-        \bnfpn{Query}
-        \bnfsp
-        \bnfts{)}
-    }
 \end{bnf*}
 
 The expression and the bindings introduced to that expression are in reverse in
@@ -104,12 +88,4 @@ filtering, iterating, and generating all with a familiar syntax.
     \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash K : \kappa, V : \nu$}
     \LeftLabel{Record Comprehension}
     \TrinaryInfC{$\Gamma\vdash \texttt{\{|}\ K\ \texttt{=>}\ V\ \kw{for}\ Q\ \texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
-\end{prooftree}
-
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash U$}
-    \AxiomC{$U = Q$}
-    \AxiomC{$\Gamma,\setof{a\given a \defby Q}\vdash E : \tau$}
-    \LeftLabel{Iterator Comprehension}
-    \TrinaryInfC{$\Gamma\vdash \texttt{\$(}\ E\ \kw{for}\ Q\ \texttt{)} : \ty{Iter}\ \tau$}
 \end{prooftree}

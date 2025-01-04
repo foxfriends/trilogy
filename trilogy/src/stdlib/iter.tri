@@ -20,7 +20,11 @@ proc empty!() { return do() {} }
 export empty
 
 ## Create an iterator from the elements of a collection.
-func of xs = do() $(x for x in xs)
+func of xs = do() {
+    for x in xs {
+        yield 'next(x)
+    }
+}
 export of
 
 ## Consumes an iterator by folding each value along with an accumulator. The first

@@ -364,7 +364,6 @@ test_tokenize!(string_incomplete => r#""hello"# = [Error]);
 test_tokenize!(dollar_string => r#"$"hello""# = [DollarString]);
 test_tokenize!(template => r#"$"hello${3}world${4}end""# = [TemplateStart Numeric TemplateContinue Numeric TemplateEnd]);
 
-test_tokenize!(dollar_oparen => "$(" = [DollarOParen]);
 test_tokenize!(bang_oparen => "!(" = [OpBang OParen]);
 test_tokenize!(spaced_bang_oparen => "! (" = [OpBang Space OParen]); // a specifically used fact
 test_tokenize!(oparen => "(" = [OParen]);

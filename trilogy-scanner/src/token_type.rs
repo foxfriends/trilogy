@@ -354,8 +354,6 @@ pub enum TokenType {
     OParen,
     /// `)`
     CParen,
-    /// `$(`
-    DollarOParen,
 
     // Special markers
     /// The beginning of the file (inserted automatically, not a visible token)

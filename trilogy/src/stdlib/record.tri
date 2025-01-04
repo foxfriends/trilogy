@@ -24,11 +24,19 @@ func remove _ {| ..xs |} = xs
 export remove
 
 ## Returns an iterator of all keys of this record
-func keys rec = $(key for key : _ in rec)
+func keys rec = do() {
+  for key:_ in rec {
+    yield 'next(key)
+  }
+}
 export keys
 
 ## Returns an iterator of all values of this record
-func values rec = $(value for _:value in rec)
+func values rec = do()
+  for _:value in rec {
+    yield 'next(value)
+  }
+}
 export values
 
 ## Computes the number of entries in this record.

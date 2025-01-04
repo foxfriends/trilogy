@@ -92,9 +92,6 @@ impl Expression {
                 );
                 Self::builtin(start_span, Builtin::Record).apply_to(span, iterator)
             }
-            IteratorComprehension(ast) => {
-                Self::convert_iterator(converter, ast.query, ast.expression)
-            }
             Reference(ast) => Self::reference(
                 ast.span(),
                 Identifier::declared(converter, &ast).unwrap_or_else(|| {

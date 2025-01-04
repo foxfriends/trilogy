@@ -523,10 +523,6 @@ impl Iterator for Scanner<'_> {
             '$' if self.expect('"').is_some() => {
                 self.string_or_template(Some(TemplateStart), DollarString)
             }
-            '$' if self.expect('(').is_some() => {
-                self.nesting.push('(');
-                self.make_token(DollarOParen)
-            }
             '!' if self.expect('=').is_some() => {
                 if self.expect('=').is_some() {
                     self.make_token(OpBangEqEq)
