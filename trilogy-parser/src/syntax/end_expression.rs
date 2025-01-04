@@ -14,7 +14,7 @@ pub struct EndExpression {
 
 impl EndExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let end = parser.expect(KwEnd).expect("Caller should have found this");
+        let end = parser.expect(KwEnd).unwrap();
         Ok(Self { end })
     }
 }

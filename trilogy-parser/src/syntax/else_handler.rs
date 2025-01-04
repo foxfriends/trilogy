@@ -17,9 +17,7 @@ pub struct ElseHandler {
 
 impl ElseHandler {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let r#else = parser
-            .expect(KwElse)
-            .expect("Caller should have found this");
+        let r#else = parser.expect(KwElse).unwrap();
 
         let identifier = if parser.check(TokenType::Identifier).is_ok() {
             Some(Identifier::parse(parser).unwrap())

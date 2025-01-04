@@ -23,9 +23,7 @@ impl Spanned for ExitExpression {
 
 impl ExitExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let exit = parser
-            .expect(KwExit)
-            .expect("Caller should have found this");
+        let exit = parser.expect(KwExit).unwrap();
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
             span: exit.span.union(expression.span()),

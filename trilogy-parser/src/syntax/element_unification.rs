@@ -24,7 +24,7 @@ impl Spanned for ElementUnification {
 
 impl ElementUnification {
     pub(crate) fn parse(parser: &mut Parser, pattern: Pattern) -> SyntaxResult<Self> {
-        let r#in = parser.expect(KwIn).expect("Caller should have found this");
+        let r#in = parser.expect(KwIn).unwrap();
         let expression = Expression::parse_parameter_list(parser)?.map_err(|patt| {
             let error = SyntaxError::new(
                 patt.span(),
