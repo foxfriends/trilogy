@@ -1,5 +1,6 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// A constant definition item.
@@ -7,12 +8,19 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// const name = value
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ConstantDefinition {
     pub r#const: Token,
     pub name: Identifier,
     pub eq: Token,
     pub body: Expression,
+    span: Span,
+}
+
+impl Spanned for ConstantDefinition {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl ConstantDefinition {
@@ -26,6 +34,7 @@ impl ConstantDefinition {
             .map_err(|token| parser.expected(token, "expected `=` in constant definition"))?;
         let body = Expression::parse(parser)?;
         Ok(ConstantDefinition {
+            span: r#const.span.union(body.span()),
             r#const,
             name,
             eq,

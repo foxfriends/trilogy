@@ -10,35 +10,35 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayLiteral {
-    pub obrack: Token,
+    pub open_bracket: Token,
     pub elements: Punctuated<ArrayElement>,
-    pub cbrack: Token,
+    pub close_bracket: Token,
 }
 
 impl ArrayLiteral {
-    pub(crate) fn new_empty(obrack: Token, cbrack: Token) -> Self {
+    pub(crate) fn new_empty(open_bracket: Token, close_bracket: Token) -> Self {
         Self {
-            obrack,
+            open_bracket,
             elements: Punctuated::default(),
-            cbrack,
+            close_bracket,
         }
     }
 
     pub(crate) fn parse_rest(
         parser: &mut Parser,
-        obrack: Token,
+        open_bracket: Token,
         first: ArrayElement,
     ) -> SyntaxResult<Result<Self, ArrayPattern>> {
         let mut elements = Punctuated::init(first);
-        if let Ok(cbrack) = parser.expect(CBrack) {
+        if let Ok(close_bracket) = parser.expect(CBrack) {
             return Ok(Ok(Self {
-                obrack,
+                open_bracket,
                 elements,
-                cbrack,
+                close_bracket,
             }));
         }
 
-        let cbrack = loop {
+        let close_bracket = loop {
             let comma = parser.expect(OpComma).map_err(|token| {
                 parser.expected(
                     token,
@@ -53,7 +53,10 @@ impl ArrayLiteral {
                 Ok(element) => elements.follow(comma, element),
                 Err(next) => {
                     return Ok(Err(ArrayPattern::parse_from_expression(
-                        parser, obrack, elements, next,
+                        parser,
+                        open_bracket,
+                        elements,
+                        next,
                     )?))
                 }
             }
@@ -65,21 +68,21 @@ impl ArrayLiteral {
                 parser.error(error.clone());
                 return Err(error);
             }
-            if let Ok(cbrack) = parser.expect(CBrack) {
-                break cbrack;
+            if let Ok(close_bracket) = parser.expect(CBrack) {
+                break close_bracket;
             };
         };
         Ok(Ok(Self {
-            obrack,
+            open_bracket,
             elements,
-            cbrack,
+            close_bracket,
         }))
     }
 }
 
 impl Spanned for ArrayLiteral {
     fn span(&self) -> Span {
-        self.obrack.span.union(self.cbrack.span)
+        self.open_bracket.span.union(self.close_bracket.span)
     }
 }
 

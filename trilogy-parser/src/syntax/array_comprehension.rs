@@ -1,5 +1,6 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// An array comprehension expression.
@@ -7,19 +8,25 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// [x for query(x)]
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayComprehension {
-    pub obrack: Token,
+    pub open_bracket: Token,
     pub expression: Expression,
     pub r#for: Token,
     pub query: Query,
-    pub cbrack: Token,
+    pub close_bracket: Token,
+}
+
+impl Spanned for ArrayComprehension {
+    fn span(&self) -> Span {
+        self.open_bracket.span.union(self.close_bracket.span)
+    }
 }
 
 impl ArrayComprehension {
     pub(crate) fn parse_rest(
         parser: &mut Parser,
-        obrack: Token,
+        open_bracket: Token,
         expression: Expression,
     ) -> SyntaxResult<Self> {
         let r#for = parser
@@ -30,11 +37,11 @@ impl ArrayComprehension {
             .expect(CBrack)
             .map_err(|token| parser.expected(token, "expected `]` to end array comprehension"))?;
         Ok(Self {
-            obrack,
+            open_bracket,
             expression,
             r#for,
             query,
-            cbrack: end,
+            close_bracket: end,
         })
     }
 }

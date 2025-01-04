@@ -30,7 +30,7 @@ impl Expression {
                     Self::atom(ast.atom.span(), ast.atom.value()),
                 ),
             Array(ast) => {
-                let start_span = ast.obrack.span;
+                let start_span = ast.open_bracket.span;
                 let span = ast.span();
                 let elements = ast
                     .elements
@@ -61,7 +61,7 @@ impl Expression {
                     .apply_to(span, Self::pack(span, elements))
             }
             ArrayComprehension(ast) => {
-                let start_span = ast.obrack.span;
+                let start_span = ast.open_bracket.span;
                 let span = ast.span();
                 let iterator = Self::convert_iterator(converter, ast.query, ast.expression);
                 Self::builtin(start_span, Builtin::Array).apply_to(span, iterator)
@@ -112,7 +112,7 @@ impl Expression {
             ),
             Call(ast) => {
                 let span = ast.span();
-                let argument_span = ast.oparen.span.union(ast.cparen.span);
+                let argument_span = ast.open_paren.span.union(ast.close_paren.span);
                 let proc = Self::convert(converter, ast.procedure);
                 let arguments = ast
                     .arguments
@@ -302,7 +302,7 @@ impl Expression {
                     Self::atom(ast.atom.span(), ast.atom.value()),
                 ),
             Tuple(ast) => {
-                let cons_span = ast.cons_token().span;
+                let cons_span = ast.cons.span;
                 let lhs_span = ast.lhs.span();
                 let span = ast.span();
                 Self::builtin(cons_span, Builtin::Cons)
@@ -313,7 +313,7 @@ impl Expression {
                     .apply_to(span, Self::convert_pattern(converter, ast.rhs))
             }
             Array(ast) => {
-                let start_span = ast.obrack.span;
+                let start_span = ast.open_bracket.span;
                 let span = ast.span();
                 let mut elements: Pack = ast
                     .head

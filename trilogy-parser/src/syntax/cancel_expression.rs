@@ -1,5 +1,6 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// A cancel expression.
@@ -7,19 +8,28 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// cancel unit
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct CancelExpression {
     pub cancel: Token,
     pub expression: Expression,
+    span: Span,
 }
 
 impl CancelExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let cancel = parser
-            .expect(KwCancel)
-            .expect("Caller should have found this");
+        let cancel = parser.expect(KwCancel).unwrap();
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
-        Ok(Self { cancel, expression })
+        Ok(Self {
+            span: cancel.span.union(expression.span()),
+            cancel,
+            expression,
+        })
+    }
+}
+
+impl Spanned for CancelExpression {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 

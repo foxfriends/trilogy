@@ -1,5 +1,6 @@
 use super::{expression::Precedence, *};
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// A binary operation expression.
@@ -7,11 +8,18 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// lhs + rhs
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct BinaryOperation {
     pub lhs: Expression,
     pub operator: BinaryOperator,
     pub rhs: Expression,
+    span: Span,
+}
+
+impl Spanned for BinaryOperation {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl BinaryOperation {
@@ -22,22 +30,29 @@ impl BinaryOperation {
         let operator = BinaryOperator::parse(parser);
         let rhs = Expression::parse_or_pattern_precedence(parser, operator.precedence())?;
         match rhs {
-            Ok(rhs) => Ok(Ok(BinaryOperation { lhs, operator, rhs })),
+            Ok(rhs) => Ok(Ok(BinaryOperation {
+                span: lhs.span().union(rhs.span()),
+                lhs,
+                operator,
+                rhs,
+            })),
             Err(rhs) => match operator {
-                BinaryOperator::Glue(glue) => Ok(Err(Pattern::Glue(Box::new(GluePattern {
-                    lhs: lhs.try_into().inspect_err(|err: &SyntaxError| {
+                BinaryOperator::Glue(glue) => Ok(Err(Pattern::Glue(Box::new(GluePattern::new(
+                    lhs.try_into().inspect_err(|err: &SyntaxError| {
                         parser.error(err.clone());
                     })?,
                     glue,
                     rhs,
-                })))),
-                BinaryOperator::Cons(token) => Ok(Err(Pattern::Tuple(Box::new(TuplePattern {
-                    lhs: lhs.try_into().inspect_err(|err: &SyntaxError| {
-                        parser.error(err.clone());
-                    })?,
-                    cons_token: token,
-                    rhs,
-                })))),
+                ))))),
+                BinaryOperator::Cons(token) => {
+                    Ok(Err(Pattern::Tuple(Box::new(TuplePattern::new(
+                        lhs.try_into().inspect_err(|err: &SyntaxError| {
+                            parser.error(err.clone());
+                        })?,
+                        token,
+                        rhs,
+                    )))))
+                }
                 _ => {
                     let err =
                         SyntaxError::new(rhs.span(), "expected an expression, but found a pattern");

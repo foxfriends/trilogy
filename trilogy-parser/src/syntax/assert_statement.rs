@@ -28,9 +28,7 @@ pub struct AssertStatement {
 
 impl AssertStatement {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let assert = parser
-            .expect(TokenType::KwAssert)
-            .expect("Caller should have found this");
+        let assert = parser.expect(TokenType::KwAssert).unwrap();
         let message_or_assertion = Expression::parse(parser)?;
         if let Ok(r#as) = parser.expect(TokenType::KwAs) {
             let assertion = Expression::parse(parser)?;

@@ -10,20 +10,20 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ArrayPattern {
-    pub obrack: Token,
+    pub open_bracket: Token,
     /// The head elements, which come before the optional `rest` element. Will be all elements if `rest` is `None`.
     pub head: Vec<Pattern>,
     /// A single optional spread elements, containing the rest of the elements.
     pub rest: Option<RestPattern>,
     /// The tail elements, which follow the spread. Will be empty if `rest` is `None`.
     pub tail: Vec<Pattern>,
-    pub cbrack: Token,
+    pub close_bracket: Token,
 }
 
 impl ArrayPattern {
     pub(crate) fn parse_elements(
         parser: &mut Parser,
-        obrack: Token,
+        open_bracket: Token,
         mut head: Vec<Pattern>,
     ) -> SyntaxResult<Self> {
         let rest = loop {
@@ -49,19 +49,19 @@ impl ArrayPattern {
         };
 
         if let Some(rest) = rest {
-            return Self::parse_rest(parser, obrack, head, rest, vec![]);
+            return Self::parse_rest(parser, open_bracket, head, rest, vec![]);
         }
 
-        let cbrack = parser
+        let close_bracket = parser
             .expect(CBrack)
             .map_err(|token| parser.expected(token, "expected `]` to end array pattern"))?;
 
         Ok(Self {
-            obrack,
+            open_bracket,
             head,
             rest: None,
             tail: vec![],
-            cbrack,
+            close_bracket,
         })
     }
 
@@ -107,11 +107,11 @@ impl ArrayPattern {
             .map_err(|token| parser.expected(token, "expected `]` to end array pattern"))?;
 
         Ok(Self {
-            obrack: start,
+            open_bracket: start,
             head,
             rest: Some(rest),
             tail,
-            cbrack: end,
+            close_bracket: end,
         })
     }
 
@@ -192,18 +192,18 @@ impl TryFrom<ArrayLiteral> for ArrayPattern {
         }
 
         Ok(Self {
-            obrack: value.obrack,
+            open_bracket: value.open_bracket,
             head,
             rest,
             tail,
-            cbrack: value.cbrack,
+            close_bracket: value.close_bracket,
         })
     }
 }
 
 impl Spanned for ArrayPattern {
     fn span(&self) -> Span {
-        self.obrack.span.union(self.cbrack.span)
+        self.open_bracket.span.union(self.close_bracket.span)
     }
 }
 

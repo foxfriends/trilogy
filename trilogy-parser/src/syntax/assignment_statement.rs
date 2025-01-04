@@ -1,5 +1,6 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{
     Token,
     TokenType::{self, *},
@@ -12,11 +13,18 @@ use trilogy_scanner::{
 /// ```trilogy
 /// lhs = rhs
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct AssignmentStatement {
     pub lhs: Expression,
     pub strategy: AssignmentStrategy,
     pub rhs: Expression,
+    span: Span,
+}
+
+impl Spanned for AssignmentStatement {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl AssignmentStatement {
@@ -46,7 +54,12 @@ impl AssignmentStatement {
     pub(crate) fn parse(parser: &mut Parser, lhs: Expression) -> SyntaxResult<Self> {
         let strategy = AssignmentStrategy::parse(parser)?;
         let rhs = Expression::parse(parser)?;
-        Ok(Self { lhs, strategy, rhs })
+        Ok(Self {
+            span: lhs.span().union(rhs.span()),
+            lhs,
+            strategy,
+            rhs,
+        })
     }
 }
 

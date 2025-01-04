@@ -49,7 +49,7 @@ impl Procedure {
         converter.pop_scope();
         Self {
             span,
-            head_span: do_span.union(ast.cparen.span),
+            head_span: do_span.union(ast.close_paren.span),
             parameters,
             body,
         }

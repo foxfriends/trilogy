@@ -11,29 +11,30 @@ use trilogy_scanner::{Token, TokenType::*};
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct DoExpression {
     pub do_token: Token,
-    pub oparen: Token,
+    pub open_paren: Token,
     pub parameters: Vec<Pattern>,
-    pub cparen: Token,
+    pub close_paren: Token,
     pub body: DoBody,
+    span: Span,
 }
 
 impl Spanned for DoExpression {
     fn span(&self) -> Span {
-        self.do_token.span.union(self.body.span())
+        self.span
     }
 }
 
 impl DoExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let do_token = parser.expect(KwDo).expect("Caller should have found this");
+        let do_token = parser.expect(KwDo).unwrap();
         let mut parameters = vec![];
-        let oparen = parser.expect(OParen).map_err(|token| {
+        let open_paren = parser.expect(OParen).map_err(|token| {
             parser.expected(
                 token,
                 "expected `(` to do_token parameter list following `do`",
             )
         })?;
-        let cparen = loop {
+        let close_paren = loop {
             if let Ok(paren) = parser.expect(CParen) {
                 break paren;
             }
@@ -41,17 +42,18 @@ impl DoExpression {
             if parser.expect(OpComma).is_ok() {
                 continue;
             }
-            let cparen = parser
+            let close_paren = parser
                 .expect(CParen)
                 .map_err(|token| parser.expected(token, "expected `)` to end parameter list"))?;
-            break cparen;
+            break close_paren;
         };
         let body = DoBody::parse(parser)?;
         Ok(Self {
+            span: do_token.span.union(body.span()),
             do_token,
-            oparen,
+            open_paren,
             parameters,
-            cparen,
+            close_paren,
             body,
         })
     }

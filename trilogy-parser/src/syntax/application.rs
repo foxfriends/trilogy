@@ -1,23 +1,36 @@
+use source_span::Span;
+
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
 
 /// A function application expression.
 ///
 /// ```trilogy
 /// f x
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Application {
     /// An expression that evaluates to the function being applied.
     pub function: Expression,
     /// An expression that evalutes to the argument to the function.
     pub argument: Expression,
+    span: Span,
+}
+
+impl Spanned for Application {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl Application {
     pub(crate) fn parse(parser: &mut Parser, function: Expression) -> SyntaxResult<Self> {
         let argument = Expression::parse_precedence(parser, Precedence::Application)?;
-        Ok(Self { function, argument })
+        Ok(Self {
+            span: function.span().union(argument.span()),
+            function,
+            argument,
+        })
     }
 }
 

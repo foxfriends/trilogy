@@ -34,6 +34,7 @@ pub enum DefinitionItem {
 pub struct Definition {
     pub documentation: Option<Documentation>,
     pub item: DefinitionItem,
+    span: Span,
 }
 
 impl Definition {
@@ -108,9 +109,16 @@ impl Definition {
                 return Err(error);
             }
         };
+
+        let span = match &documentation {
+            Some(documentation) => documentation.span().union(item.span()),
+            None => item.span(),
+        };
+
         Ok(Some(Self {
             documentation,
             item,
+            span,
         }))
     }
 
@@ -125,10 +133,7 @@ impl Definition {
 
 impl Spanned for Definition {
     fn span(&self) -> Span {
-        match &self.documentation {
-            Some(documentation) => documentation.span().union(self.item.span()),
-            None => self.item.span(),
-        }
+        self.span
     }
 }
 

@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// An element unification (`in`) query.
@@ -7,11 +8,18 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// pattern in expression
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ElementUnification {
     pub pattern: Pattern,
     pub r#in: Token,
     pub expression: Expression,
+    span: Span,
+}
+
+impl Spanned for ElementUnification {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl ElementUnification {
@@ -26,6 +34,7 @@ impl ElementUnification {
             error
         })?;
         Ok(Self {
+            span: pattern.span().union(expression.span()),
             pattern,
             r#in,
             expression,

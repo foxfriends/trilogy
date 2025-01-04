@@ -12,27 +12,23 @@ use trilogy_scanner::{Token, TokenType::*};
 pub struct CallExpression {
     pub procedure: Expression,
     pub bang: Token,
-    pub oparen: Token,
+    pub open_paren: Token,
     pub arguments: Punctuated<Expression>,
-    pub cparen: Token,
+    pub close_paren: Token,
+    span: Span,
 }
 
 impl Spanned for CallExpression {
     fn span(&self) -> Span {
-        self.procedure.span().union(self.cparen.span)
+        self.span
     }
 }
 
 impl CallExpression {
     pub(crate) fn parse(parser: &mut Parser, procedure: Expression) -> SyntaxResult<Self> {
-        let (bang, oparen) = parser.expect_bang_oparen().map_err(|token| {
-            parser.expected(
-                token,
-                "expected `!(` in procedure call, there may not be a space",
-            )
-        })?;
+        let (bang, open_paren) = parser.expect_bang_oparen().unwrap();
         let mut arguments = Punctuated::new();
-        let cparen = loop {
+        let close_paren = loop {
             if let Ok(end) = parser.expect(CParen) {
                 break end;
             }
@@ -54,11 +50,12 @@ impl CallExpression {
                 .map_err(|token| parser.expected(token, "expected `,` or `)` in argument list"))?;
         };
         Ok(Self {
+            span: procedure.span().union(close_paren.span),
             procedure,
             bang,
-            oparen,
+            open_paren,
             arguments,
-            cparen,
+            close_paren,
         })
     }
 }

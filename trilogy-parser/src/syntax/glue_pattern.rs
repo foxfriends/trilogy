@@ -1,21 +1,43 @@
 use super::{pattern::Precedence, *};
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct GluePattern {
     pub lhs: Pattern,
     pub glue: Token,
     pub rhs: Pattern,
+    span: Span,
+}
+
+impl Spanned for GluePattern {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl GluePattern {
+    pub(crate) fn new(lhs: Pattern, glue: Token, rhs: Pattern) -> Self {
+        Self {
+            span: lhs.span().union(rhs.span()),
+            lhs,
+            glue,
+            rhs,
+        }
+    }
+
     pub(crate) fn parse(parser: &mut Parser, lhs: Pattern) -> SyntaxResult<Self> {
         let glue = parser
             .expect(OpGlue)
             .expect("Caller should have found this");
         let rhs = Pattern::parse_precedence(parser, Precedence::Glue)?;
-        Ok(Self { lhs, glue, rhs })
+        Ok(Self {
+            span: lhs.span().union(rhs.span()),
+            lhs,
+            glue,
+            rhs,
+        })
     }
 }
 
@@ -23,8 +45,10 @@ impl TryFrom<BinaryOperation> for GluePattern {
     type Error = SyntaxError;
 
     fn try_from(value: BinaryOperation) -> Result<Self, Self::Error> {
+        let span = value.span();
         match value.operator {
             BinaryOperator::Glue(token) => Ok(Self {
+                span,
                 lhs: value.lhs.try_into()?,
                 glue: token,
                 rhs: value.rhs.try_into()?,

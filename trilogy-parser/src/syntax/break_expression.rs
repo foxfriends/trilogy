@@ -1,5 +1,6 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// A break expression.
@@ -7,22 +8,28 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// break unit
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct BreakExpression {
     pub r#break: Token,
     pub expression: Expression,
+    span: Span,
 }
 
 impl BreakExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let r#break = parser
-            .expect(KwBreak)
-            .expect("Caller should have found this");
+        let r#break = parser.expect(KwBreak).unwrap();
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
+            span: r#break.span.union(expression.span()),
             r#break,
             expression,
         })
+    }
+}
+
+impl Spanned for BreakExpression {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 

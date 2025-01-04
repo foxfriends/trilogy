@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// A direct unification query.
@@ -7,11 +8,12 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// pattern = expression
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct DirectUnification {
     pub pattern: Pattern,
     pub eq: Token,
     pub expression: Expression,
+    span: Span,
 }
 
 impl DirectUnification {
@@ -26,10 +28,17 @@ impl DirectUnification {
             error
         })?;
         Ok(Self {
+            span: pattern.span().union(expression.span()),
             pattern,
             eq,
             expression,
         })
+    }
+}
+
+impl Spanned for DirectUnification {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 

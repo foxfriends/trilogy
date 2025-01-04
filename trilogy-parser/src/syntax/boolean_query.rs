@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// A boolean query.
@@ -7,17 +8,16 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// is expression
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct BooleanQuery {
     pub is: Token,
     pub expression: Expression,
+    span: Span,
 }
 
 impl BooleanQuery {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let is = parser
-            .expect(KwIs)
-            .map_err(|token| parser.expected(token, "expected `is`"))?;
+        let is = parser.expect(KwIs).unwrap();
         let expression = Expression::parse_parameter_list(parser)?.map_err(|patt| {
             let error = SyntaxError::new(
                 patt.span(),
@@ -26,7 +26,17 @@ impl BooleanQuery {
             parser.error(error.clone());
             error
         })?; // this isn't a parameter list, but we don't allow commas
-        Ok(Self { is, expression })
+        Ok(Self {
+            span: is.span.union(expression.span()),
+            is,
+            expression,
+        })
+    }
+}
+
+impl Spanned for BooleanQuery {
+    fn span(&self) -> Span {
+        self.span
     }
 }
 

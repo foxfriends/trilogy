@@ -1,5 +1,6 @@
 use super::{expression::Precedence, *};
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// An exit expression.
@@ -7,10 +8,17 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// exit 123
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ExitExpression {
     pub exit: Token,
     pub expression: Expression,
+    span: Span,
+}
+
+impl Spanned for ExitExpression {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl ExitExpression {
@@ -19,7 +27,11 @@ impl ExitExpression {
             .expect(KwExit)
             .expect("Caller should have found this");
         let expression = Expression::parse_precedence(parser, Precedence::Continuation)?;
-        Ok(Self { exit, expression })
+        Ok(Self {
+            span: exit.span.union(expression.span()),
+            exit,
+            expression,
+        })
     }
 }
 

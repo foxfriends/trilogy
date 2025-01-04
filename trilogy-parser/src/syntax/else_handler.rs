@@ -12,6 +12,7 @@ pub struct ElseHandler {
     pub r#else: Token,
     pub identifier: Option<Identifier>,
     pub strategy: HandlerStrategy,
+    span: Span,
 }
 
 impl ElseHandler {
@@ -29,6 +30,7 @@ impl ElseHandler {
         let strategy = HandlerStrategy::parse(parser)?;
 
         Ok(Self {
+            span: r#else.span.union(strategy.span()),
             r#else,
             identifier,
             strategy,
@@ -42,7 +44,7 @@ impl ElseHandler {
 
 impl Spanned for ElseHandler {
     fn span(&self) -> Span {
-        self.r#else.span.union(self.strategy.span())
+        self.span
     }
 }
 
