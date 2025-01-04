@@ -11,6 +11,7 @@ pub enum Statement {
     Match(Box<MatchExpression>),
     While(Box<WhileStatement>),
     For(Box<ForStatement>),
+    Defer(Box<DeferStatement>),
     Expression(Box<Expression>),
     Assert(Box<AssertStatement>),
     Block(Box<Block>),
@@ -28,6 +29,7 @@ impl Statement {
             KwMatch => Ok(Self::Match(Box::new(MatchExpression::parse(parser)?))),
             KwWhile => Ok(Self::While(Box::new(WhileStatement::parse(parser)?))),
             KwFor => Ok(Self::For(Box::new(ForStatement::parse(parser)?))),
+            KwDefer => Ok(Self::Defer(Box::new(DeferStatement::parse(parser)?))),
             KwAssert => Ok(Self::Assert(Box::new(AssertStatement::parse(parser)?))),
             OBrace => Ok(Self::Block(Box::new(Block::parse(parser)?))),
             _ => {
