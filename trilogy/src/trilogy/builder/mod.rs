@@ -9,9 +9,11 @@ use crate::{Cache, NoopCache};
 #[cfg(feature = "std")]
 use home::home_dir;
 use std::collections::HashMap;
+#[cfg(feature = "tvm")]
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
+#[cfg(feature = "tvm")]
 use trilogy_vm::Native;
 
 mod analyzer;
@@ -30,7 +32,9 @@ use report::ReportBuilder;
 /// you will be using this Builder to provide those.
 pub struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
+    #[cfg(feature = "tvm")]
     asm_modules: HashMap<Location, String>,
+    #[cfg(feature = "tvm")]
     native_modules: HashMap<Location, Native>,
     source_modules: HashMap<Location, String>,
     is_library: bool,
@@ -79,7 +83,9 @@ impl Builder<NoopCache> {
     pub fn new() -> Self {
         Self {
             root_dir: None,
+            #[cfg(feature = "tvm")]
             asm_modules: HashMap::new(),
+            #[cfg(feature = "tvm")]
             native_modules: HashMap::new(),
             source_modules: HashMap::new(),
             is_library: false,
@@ -92,6 +98,7 @@ impl<C: Cache> Builder<C> {
     /// Adds a native module to this builder as a library.
     ///
     /// The location describes how Trilogy code should reference this module.
+    #[cfg(feature = "tvm")]
     pub fn native_module<N: Into<Native>>(mut self, location: Location, library: N) -> Self {
         self.native_modules.insert(location, library.into());
         self
@@ -101,6 +108,7 @@ impl<C: Cache> Builder<C> {
     ///
     /// This module is parsed as ASM directly, and must correctly implement the Trilogy interfaces,
     /// otherwise it is undefined behaviour as to what happens when it is executed.
+    #[cfg(feature = "tvm")]
     pub fn asm_module(mut self, location: Location, source: String) -> Self {
         self.asm_modules.insert(location, source);
         self
@@ -118,6 +126,7 @@ impl<C: Cache> Builder<C> {
     /// Sets the module cache for this Builder. The module cache is used when building
     /// the Trilogy instance to load modules previously loaded from the Internet from
     /// somewhere hopefully faster to reach.
+    #[cfg(feature = "tvm")]
     pub fn with_cache<C2: Cache>(self, cache: C2) -> Builder<C2> {
         Builder {
             root_dir: self.root_dir,
@@ -150,12 +159,15 @@ impl<C: Cache> Builder<C> {
     /// Note that while a successful result does indicate that the source contained a
     /// valid piece of Trilogy code, it is not necessarily a valid program that can be
     /// run. In particular, libraries are valid code but cannot be run.
+    #[allow(unreachable_code)]
     pub fn build_from_source(self, file: impl AsRef<Path>) -> Result<Trilogy, Report<C::Error>> {
         log::trace!("begin constructing Trilogy program");
         let Self {
             mut cache,
             root_dir,
+            #[cfg(feature = "tvm")]
             asm_modules,
+            #[cfg(feature = "tvm")]
             native_modules,
             source_modules,
             is_library,
@@ -183,14 +195,23 @@ impl<C: Cache> Builder<C> {
         report.checkpoint(&root_path, cache)?;
         log::trace!("program analyzed: {:?}", time_analyzing.elapsed());
 
-        Ok(Trilogy::new(
+        #[cfg(feature = "tvm")]
+        return Ok(Trilogy::new(
             Source::Trilogy {
                 modules,
                 asm_modules,
                 entrypoint,
             },
             native_modules,
-        ))
+        ));
+
+        #[cfg(feature = "llvm")]
+        return Ok(Trilogy::new(Source::Trilogy {
+            modules,
+            entrypoint,
+        }));
+
+        unreachable!()
     }
 
     /// Build a Trilogy instance from a pre-compiled Trilogy ASM file.
@@ -199,6 +220,7 @@ impl<C: Cache> Builder<C> {
     ///
     /// This method will only error if the ASM file cannot be read. Actual errors in the
     /// file's contents will only be detected when it comes time to run the contained program.
+    #[cfg(feature = "tvm")]
     pub fn build_from_asm(self, file: &mut dyn Read) -> Result<Trilogy, std::io::Error> {
         let mut asm = String::new();
         file.read_to_string(&mut asm)?;

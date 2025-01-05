@@ -22,17 +22,17 @@ pub enum Value {
     String(String),
     Number(Number),
     Bits(Bits),
-    #[serde(skip_deserializing)]
+    #[cfg_attr(feature = "serde", serde(skip_deserializing))]
     Atom(Atom),
-    #[serde(skip_deserializing)]
+    #[cfg_attr(feature = "serde", serde(skip_deserializing))]
     Struct(Struct),
-    #[serde(skip_deserializing)]
+    #[cfg_attr(feature = "serde", serde(skip_deserializing))]
     Tuple(Tuple),
     Array(Array),
-    #[serde(skip_deserializing)]
+    #[cfg_attr(feature = "serde", serde(skip_deserializing))]
     Set(Set),
     Record(Record),
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     Callable(Callable),
 }
 

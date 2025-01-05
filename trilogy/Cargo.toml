@@ -9,20 +9,26 @@ keywords = ["programming-language", "language"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
-default = ["dev", "std", "regex", "json", "sql", "postgres", "async"]
+default = ["dev", "llvm"]
 dev = []
 lax = ["trilogy-parser/lax"]
+
 macros = ["trilogy-derive"]
 std = ["macros"]
+
 async = ["dep:tokio"]
 regex = ["dep:regex"]
 json = ["trilogy-vm/json", "dep:serde_json"]
 sql = ["dep:sqlx", "trilogy-vm/sqlx", "async", "json"]
 postgres = ["sqlx/postgres", "sql"]
 multithread = ["trilogy-vm/multithread"]
+
 64bit = ["trilogy-vm/64bit"]
 32bit = ["trilogy-vm/32bit"]
 stats = ["trilogy-vm/stats"]
+
+tvm = ["dep:trilogy-vm", "dep:trilogy-codegen", "dev", "std", "regex", "json", "sql", "postgres", "async"]
+llvm = ["dep:trilogy-llvm"]
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }
@@ -32,8 +38,9 @@ pretty = { version = "0.11.3" }
 trilogy-scanner = { path = "../trilogy-scanner/" }
 trilogy-parser = { path = "../trilogy-parser/" }
 trilogy-ir = { path = "../trilogy-ir/" }
-trilogy-codegen = { path = "../trilogy-codegen/" }
-trilogy-vm = { path = "../trilogy-vm/" }
+trilogy-codegen = { path = "../trilogy-codegen/", optional = true }
+trilogy-vm = { path = "../trilogy-vm/", optional = true }
+trilogy-llvm = { path = "../trilogy-llvm/", optional = true }
 trilogy-derive = { path = "../trilogy-derive/", optional = true }
 reqwest = { version = "0.11.20", features = ["blocking"] }
 url = "2.4.1"

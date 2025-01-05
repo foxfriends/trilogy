@@ -2,6 +2,7 @@ use clap::Subcommand;
 use colored::*;
 use pretty::{DocAllocator, RcAllocator};
 use std::path::PathBuf;
+#[cfg(feature = "tvm")]
 use trilogy::Trilogy;
 use trilogy_parser::{Parser, PrettyPrintSExpr};
 use trilogy_scanner::{Scanner, TokenType, TokenValue};
@@ -25,6 +26,7 @@ pub enum Command {
     /// Parse a file, printing out the IR.
     Ir { file: PathBuf },
     /// Parse a file, printing out the ASM.
+    #[cfg(feature = "tvm")]
     Asm { file: PathBuf },
 }
 
@@ -100,6 +102,7 @@ pub fn run(command: Command) -> std::io::Result<()> {
             }
         }
         Command::Ir { .. } => todo!(),
+        #[cfg(feature = "tvm")]
         Command::Asm { file } => match Trilogy::from_file(file) {
             Ok(trilogy) => match trilogy.compile_debug() {
                 Ok(chunk) => println!("{:?}", chunk),

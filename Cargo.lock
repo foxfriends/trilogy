@@ -2283,6 +2283,7 @@ dependencies = [
  "trilogy-codegen",
  "trilogy-derive",
  "trilogy-ir",
+ "trilogy-llvm",
  "trilogy-parser",
  "trilogy-scanner",
  "trilogy-vm",

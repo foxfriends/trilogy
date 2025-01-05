@@ -1,12 +1,17 @@
 use clap::Parser as _;
+#[cfg(feature = "tvm")]
 use num::{bigint::Sign, BigInt};
+#[cfg(feature = "tvm")]
 use std::io::stdin;
 use std::path::PathBuf;
 use trilogy::{Builder, Trilogy};
+
+#[cfg(feature = "tvm")]
 use trilogy_vm::Value;
 
 #[cfg(feature = "dev")]
 mod dev;
+
 #[cfg(feature = "std")]
 mod test_reporter;
 
@@ -19,8 +24,6 @@ struct Cli {
 
 #[derive(clap::Subcommand, Clone, Debug)]
 enum Command {
-    /// Start up the interactive Trilogy REPL.
-    Repl,
     /// Run a Trilogy program.
     Run {
         /// The path to the Trilogy source file containing the `main!()` procedure.
@@ -37,6 +40,7 @@ enum Command {
         debug: bool,
     },
     /// Runs a pre-compiled Trilogy program by interfacing with the VM directly.
+    #[cfg(feature = "tvm")]
     Vm {
         /// A path to a pre-compiled Trilogy ASM file.
         ///
@@ -52,7 +56,7 @@ enum Command {
         #[arg(long)]
         debug: bool,
     },
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "tvm"))]
     /// Compile a Trilogy program, printing the ASM it compiles to.
     /// Redirect to a file is recommended.
     ///
@@ -63,6 +67,7 @@ enum Command {
         library: bool,
     },
     /// Check the syntax and warnings of a Trilogy program.
+    #[cfg(feature = "tvm")]
     Check {
         /// The path to the Trilogy source file containing the `main!()` procedure.
         file: PathBuf,
@@ -111,6 +116,7 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
         Ok(value) if print => {
             println!("{}", value);
         }
+        #[cfg(feature = "tvm")]
         Ok(Value::Number(number)) if number.is_integer() => {
             let output = number.as_integer().unwrap();
             // Truly awful
@@ -132,8 +138,14 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
             eprintln!("{error:?}");
             std::process::exit(255);
         }
+        #[cfg(feature = "tvm")]
         Err(error) => {
             error.eprint();
+            std::process::exit(255);
+        }
+        #[cfg(feature = "llvm")]
+        Err(error) => {
+            eprintln!("{error:?}");
             std::process::exit(255);
         }
     }
@@ -168,7 +180,7 @@ fn main_sync() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        #[cfg(feature = "std")]
+        #[cfg(all(feature = "std", feature = "tvm"))]
         Command::Run {
             file, print, debug, ..
         } => match Trilogy::from_file(file) {
@@ -178,6 +190,7 @@ fn main_sync() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
+        #[cfg(feature = "tvm")]
         Command::Vm {
             file: Some(path),
             print,
@@ -190,6 +203,7 @@ fn main_sync() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
+        #[cfg(feature = "tvm")]
         Command::Vm {
             file: None,
             print,
@@ -203,6 +217,7 @@ fn main_sync() -> std::io::Result<()> {
             }
         },
         #[cfg(feature = "std")]
+        #[cfg(feature = "tvm")]
         Command::Compile { file, library } => {
             match Builder::std().is_library(library).build_from_source(file) {
                 Ok(trilogy) => match trilogy.compile() {
@@ -215,6 +230,7 @@ fn main_sync() -> std::io::Result<()> {
                 }
             }
         }
+        #[cfg(feature = "tvm")]
         Command::Check {
             file,
             #[cfg(feature = "std")]

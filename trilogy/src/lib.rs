@@ -50,16 +50,19 @@ mod stdlib;
 #[cfg(feature = "macros")]
 pub use trilogy_derive::*;
 
+#[cfg(feature = "tvm")]
 pub use trilogy_vm::runtime::*;
 
 mod ariadne;
 mod cache;
 mod location;
+#[cfg(feature = "tvm")]
 mod runtime;
 pub(crate) mod trilogy;
 
 pub use cache::{Cache, FileSystemCache, NoopCache};
 pub use location::Location;
+#[cfg(feature = "tvm")]
 pub use runtime::{
     NativeMethod, NativeMethodFn, NativeModule, NativeModuleBuilder, NativeType, NativeTypeBuilder,
     Runtime, RuntimeError,
@@ -67,4 +70,5 @@ pub use runtime::{
 pub use trilogy::{Builder, Report, TestDescription, TestReporter, Trilogy};
 
 /// The result type to use for native functions.
+#[cfg(feature = "tvm")]
 pub type Result<T> = std::result::Result<T, trilogy_vm::Error>;

@@ -1,4 +1,5 @@
 use crate::Location;
+#[cfg(feature = "tvm")]
 use trilogy_vm::Value;
 
 /// Describes the expected interpretation of the test in question.
@@ -28,6 +29,7 @@ pub trait TestReporter {
     fn enter_module(&mut self, name: &str) {}
 
     /// Called with the result of each test that is run.
+    #[cfg(feature = "tvm")]
     fn test_result(
         &mut self,
         test_name: &str,

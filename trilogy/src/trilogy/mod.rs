@@ -1,33 +1,42 @@
-use crate::{location::Location, RuntimeError};
+use crate::location::Location;
+#[cfg(feature = "tvm")]
+use crate::RuntimeError;
 use std::collections::HashMap;
 #[cfg(feature = "std")]
 use std::path::Path;
 use trilogy_ir::ir::Module;
+#[cfg(feature = "tvm")]
 use trilogy_vm::{Atom, Chunk, ChunkError, Native, Value, VirtualMachine};
 
+#[cfg(feature = "tvm")]
 mod asm_program;
 mod builder;
 mod test_reporter;
+#[cfg(feature = "tvm")]
 mod trilogy_program;
+#[cfg(feature = "tvm")]
 mod trilogy_test;
 
 pub use builder::{Builder, Report};
 pub use test_reporter::{TestDescription, TestReporter};
 
+#[cfg(feature = "tvm")]
 use asm_program::AsmProgram;
+#[cfg(feature = "tvm")]
 use trilogy_program::TrilogyProgram;
+#[cfg(feature = "tvm")]
 use trilogy_test::TrilogyTest;
 
 #[derive(Clone, Debug)]
 enum Source {
     Trilogy {
         modules: HashMap<Location, Module>,
+        #[cfg(feature = "tvm")]
         asm_modules: HashMap<Location, String>,
         entrypoint: Location,
     },
-    Asm {
-        asm: String,
-    },
+    #[cfg(feature = "tvm")]
+    Asm { asm: String },
 }
 
 /// An instance of the Trilogy runtime and virtual machine.
@@ -43,7 +52,9 @@ enum Source {
 #[derive(Clone, Debug)]
 pub struct Trilogy {
     source: Source,
+    #[cfg(feature = "tvm")]
     libraries: HashMap<Location, Native>,
+    #[cfg(feature = "tvm")]
     vm: VirtualMachine,
 }
 
@@ -64,6 +75,7 @@ impl ModulePath for &[&str] {
 }
 
 impl Trilogy {
+    #[cfg(feature = "tvm")]
     fn new(source: Source, libraries: HashMap<Location, Native>) -> Self {
         let mut vm = VirtualMachine::new();
         if let Some(limit) = std::env::var("TRILOGY_STACK_LIMIT")
@@ -79,13 +91,20 @@ impl Trilogy {
         }
     }
 
+    #[cfg(feature = "llvm")]
+    fn new(source: Source) -> Self {
+        Self { source }
+    }
+
     pub fn source_entrypoint(&self) -> Option<&Location> {
+        #[allow(unreachable_patterns)]
         match &self.source {
             Source::Trilogy { entrypoint, .. } => Some(entrypoint),
             _ => None,
         }
     }
 
+    #[cfg(feature = "tvm")]
     fn default_registers() -> Vec<Value> {
         vec![
             // Global effect handler resume continuation
@@ -122,8 +141,17 @@ impl Trilogy {
     /// Runs the loaded Trilogy program by evaluating `main!()`.
     ///
     /// This is equivalent to `self.call("main", vec![])`.
+    #[cfg(feature = "tvm")]
     pub fn run(&self) -> Result<Value, RuntimeError> {
         self.call("main", vec![])
+    }
+
+    /// Runs the loaded Trilogy program by evaluating `main!()`.
+    ///
+    /// This is equivalent to `self.call("main", vec![])`.
+    #[cfg(feature = "llvm")]
+    pub fn run(&self) -> Result<String, ()> {
+        Ok(self.call("main", vec![]))
     }
 
     /// Runs the loaded Trilogy, evaluating the exported 0-arity procedure pointed to by
@@ -140,6 +168,7 @@ impl Trilogy {
     /// is returned. Unfortunately at this time, those errors are hard to
     /// diagnose and could be anything from a bug in the compiler to an error
     /// in the Trilogy program.
+    #[cfg(feature = "tvm")]
     pub fn call(
         &self,
         main: impl ModulePath,
@@ -173,6 +202,39 @@ impl Trilogy {
         result.map_err(|er| er.into())
     }
 
+    /// Runs the loaded Trilogy, evaluating the exported 0-arity procedure pointed to by
+    /// the given path.
+    ///
+    /// The returned value is the exit value of the program. This value is either:
+    /// * the value provided to the first `exit` statement that gets executed.
+    /// * the value returned from `main!()`, if it is not `unit`
+    /// * `0` if `main!()` returns `unit`
+    ///
+    /// # Errors
+    ///
+    /// If a runtime error occurs while executing this program, that error
+    /// is returned. Unfortunately at this time, those errors are hard to
+    /// diagnose and could be anything from a bug in the compiler to an error
+    /// in the Trilogy program.
+    #[cfg(feature = "llvm")]
+    pub fn call(&self, main: impl ModulePath, parameters: Vec<String>) -> String {
+        match &self.source {
+            Source::Trilogy {
+                modules,
+                entrypoint,
+            } => {
+                let modules = modules
+                    .iter()
+                    .map(|(location, module)| (location.to_string(), module))
+                    .collect();
+                let entry = entrypoint.to_string();
+                let mut path = vec![entry.as_str()];
+                path.append(&mut main.path());
+                trilogy_llvm::evaluate(modules, path, parameters)
+            }
+        }
+    }
+
     /// Runs all tests found within the program.
     ///
     /// This only includes tests that are found within the user's program and not any tests
@@ -182,6 +244,7 @@ impl Trilogy {
     /// For each test, the program is compiled as if that test were `main`, and then
     /// called. If a test function runs to completion, it is considered a success, otherwise
     /// it is a failure which is added to the test report. The test report is not yet implemented.
+    #[cfg(feature = "tvm")]
     pub fn run_tests(&self, reporter: &mut dyn TestReporter) {
         use trilogy_ir::ir::{DefinitionItem, TestDefinition};
 
@@ -285,6 +348,7 @@ impl Trilogy {
     /// Returns an error if the program bytecode generation fails for any reason. That reason is
     /// likely a bug in the compiler, as a program that has been successfully parsed and checked
     /// up to this point should be able to be compiled.
+    #[cfg(feature = "tvm")]
     pub fn compile(&self) -> Result<Chunk, ChunkError> {
         match &self.source {
             Source::Asm { asm } => self.vm.compile(&AsmProgram {
@@ -308,6 +372,7 @@ impl Trilogy {
     }
 
     #[doc(hidden)]
+    #[cfg(feature = "tvm")]
     pub fn compile_debug(&self) -> Result<Chunk, ChunkError> {
         match &self.source {
             Source::Asm { asm } => self.vm.compile(&AsmProgram {
@@ -334,6 +399,7 @@ impl Trilogy {
     /// literals are created within the Trilogy program.
     ///
     /// See [`Atom`][] for more details.
+    #[cfg(feature = "tvm")]
     pub fn atom(&self, atom: &str) -> Atom {
         self.vm.atom(atom)
     }
@@ -342,6 +408,7 @@ impl Trilogy {
     /// never be created again, even other atoms with the same tag will not be equivalent.
     ///
     /// See [`Atom`][] for more details.
+    #[cfg(feature = "tvm")]
     pub fn atom_anon(&self, atom: &str) -> Atom {
         self.vm.atom_anon(atom)
     }
