@@ -95,6 +95,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.95"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
+
+[[package]]
 name = "ariadne"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -846,6 +852,7 @@ dependencies = [
  "either",
  "inkwell_internals",
  "libc",
+ "llvm-sys",
  "once_cell",
  "thiserror",
 ]
@@ -945,6 +952,20 @@ name = "linux-raw-sys"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4cd1a83af159aa67994778be9070f0ae1bd732942279cabb14f86f986a21456"
+
+[[package]]
+name = "llvm-sys"
+version = "180.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "778fa5fa02e32728e718f11eec147e6f134137399ab02fd2c13d32476337affa"
+dependencies = [
+ "anyhow",
+ "cc",
+ "lazy_static",
+ "libc",
+ "regex-lite",
+ "semver",
+]
 
 [[package]]
 name = "lock_api"
@@ -1442,6 +1463,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "regex-lite"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53a49587ad06b26609c52e423de037e7f57f20d53535d66e08c695f347df952a"
+
+[[package]]
 name = "regex-syntax"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1622,6 +1649,12 @@ dependencies = [
  "core-foundation-sys",
  "libc",
 ]
+
+[[package]]
+name = "semver"
+version = "1.0.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cb6eb87a131f756572d7fb904f6e7b68633f09cca868c5df1c4b8d1a694bbba"
 
 [[package]]
 name = "serde"
@@ -2266,17 +2299,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "trilogy-cps"
-version = "0.1.0"
-dependencies = [
- "bitvec",
- "num",
- "source-span",
- "trilogy-ir",
- "trilogy-scanner",
-]
-
-[[package]]
 name = "trilogy-derive"
 version = "0.1.0"
 dependencies = [
@@ -2301,7 +2323,7 @@ name = "trilogy-llvm"
 version = "0.1.0"
 dependencies = [
  "inkwell",
- "trilogy-cps",
+ "trilogy-ir",
 ]
 
 [[package]]

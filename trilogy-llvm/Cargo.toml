@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-inkwell = "0.5.0"
-trilogy-cps = { path = "../trilogy-cps/" }
+inkwell = { version = "0.5.0", features = ["llvm18-0", "llvm18-0-force-static"] }
+trilogy-ir = { path = "../trilogy-ir/" }
 
 [lints]
 workspace = true
