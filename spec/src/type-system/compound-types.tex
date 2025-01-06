@@ -173,38 +173,3 @@ pairs in curly braces. The pipes are omitted in the string representation.
         \hline
     \end{tabular}
 \end{table}
-
-\subsubsection{Iterator}
-\label{sec:iterators}
-
-Iterators are the result of certain functions; it cannot be specified literally.
-Iterators act as ordered sequences that can be ``iterated'' over, yielding its
-elements one by one into a pattern. Iteration is performed lazily, therefore
-infinite iterators are possible. The Iterator type is a non-structural and
-reference type. In type annotation, the Iterator type is written \ty{Iter T}.
-
-Iterators in \Trilogy{} are \emph{immutable}, and are typically interacted
-with via an iterative context (e.g.\ a \kw{for} loop or comprehension), but
-may also be manually stepped through by unifying as if it were a List. Their
-being immutable means that if a previous state of an iterator is stored and then
-re-iterated over, that iterator will produce the same values. Internally, they
-are simply cached.
-
-Important to note, however, is that an iterators internal cache is \emph{not}
-shared between parallel executions. Of particular relevance for iterators which
-are non-deterministic or perform side effects (such as an iterator that reads
-its values via I/O) will potentially have different results in different executions,
-and may cause more side effects than expected to occur. Using iterators to
-represent side effects can be convenient, but to use such iterators in multiple
-executions is not recommended as it is most likely just confusing.
-
-Also important to note is that an iterator's cache will grow in size unless
-references to its past states are dropped. For finite or deterministic iterators
-this is not such a big deal (likely the elements are already stored in a backing
-collection) but for infinite iterators this can lead to an infinitely large
-storage. Do be careful when retaining references to particular states of iterators.
-
-As there is currently no way to specify a literal Iterator directly, there is no
-source representation of the Iterator type. Additionally, since an Iterator
-may be infinite and may cause side effects, its string representation is simply
-defined to be the literal string \texttt{<iterator>}.
