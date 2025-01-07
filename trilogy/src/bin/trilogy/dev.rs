@@ -2,6 +2,8 @@ use clap::Subcommand;
 use colored::*;
 use pretty::{DocAllocator, RcAllocator};
 use std::path::PathBuf;
+#[cfg(feature = "llvm")]
+use trilogy::Builder;
 #[cfg(feature = "tvm")]
 use trilogy::Trilogy;
 use trilogy_parser::{Parser, PrettyPrintSExpr};
@@ -26,8 +28,11 @@ pub enum Command {
     /// Parse a file, printing out the IR.
     Ir { file: PathBuf },
     /// Parse a file, printing out the ASM.
-    #[cfg(feature = "tvm")]
-    Asm { file: PathBuf },
+    Asm {
+        file: PathBuf,
+        #[arg(short, long)]
+        link: bool,
+    },
 }
 
 pub fn run(command: Command) -> std::io::Result<()> {
@@ -103,11 +108,26 @@ pub fn run(command: Command) -> std::io::Result<()> {
         }
         Command::Ir { .. } => todo!(),
         #[cfg(feature = "tvm")]
-        Command::Asm { file } => match Trilogy::from_file(file) {
+        Command::Asm { file, .. } => match Trilogy::from_file(file) {
             Ok(trilogy) => match trilogy.compile_debug() {
                 Ok(chunk) => println!("{:?}", chunk),
                 Err(error) => eprintln!("{error}"),
             },
+            Err(report) => {
+                report.eprint();
+                std::process::exit(1);
+            }
+        },
+        #[cfg(feature = "llvm")]
+        Command::Asm { file, link } => match Builder::default().build_from_source(file) {
+            Ok(trilogy) if link => {
+                print!("{}", trilogy.compile());
+            }
+            Ok(trilogy) => {
+                for (_, module) in trilogy.compile_modules() {
+                    print!("{}", module);
+                }
+            }
             Err(report) => {
                 report.eprint();
                 std::process::exit(1);

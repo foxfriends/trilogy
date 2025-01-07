@@ -371,9 +371,26 @@ impl Trilogy {
         }
     }
 
-    /// Compiles a Trilogy program to LLVM assembly code, returning the compiled modules as strings.
+    /// Compiles a Trilogy program to LLVM assembly code, returning a single linked module as a string.
     #[cfg(feature = "llvm")]
-    pub fn compile(&self) -> HashMap<String, String> {
+    pub fn compile(&self) -> String {
+        match &self.source {
+            Source::Trilogy {
+                modules,
+                entrypoint,
+            } => {
+                let modules = modules
+                    .iter()
+                    .map(|(location, module)| (location.to_string(), module))
+                    .collect();
+                trilogy_llvm::compile_and_link(modules, &entrypoint.to_string(), "main")
+            }
+        }
+    }
+
+    /// Compiles a Trilogy program to LLVM assembly code, returning a single linked module as a string.
+    #[cfg(feature = "llvm")]
+    pub fn compile_modules(&self) -> HashMap<String, String> {
         match &self.source {
             Source::Trilogy {
                 modules,

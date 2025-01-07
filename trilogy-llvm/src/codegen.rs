@@ -45,15 +45,16 @@ impl<'ctx> Codegen<'ctx> {
         codegen
     }
 
-    pub(crate) fn compile_entrypoint(&self, entrypoint: &str) {
-        let main_wrapper = self.module.add_function(
-            "__#trilogy_main",
-            self.context.i64_type().fn_type(&[], false),
-            None,
-        );
+    pub(crate) fn compile_entrypoint(&self, entrymodule: &str, entrypoint: &str) {
+        let main_wrapper =
+            self.module
+                .add_function("main", self.context.i8_type().fn_type(&[], false), None);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
         self.builder.position_at_end(basic_block);
-        let main = self.module.get_function(entrypoint).unwrap();
+        let main = self
+            .module
+            .get_function(&format!("{entrymodule}::{entrypoint}"))
+            .unwrap();
         let output = self
             .builder
             .build_alloca(self.value_type(), "output")
@@ -61,9 +62,15 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_direct_call(main, &[output.into()], "main")
             .unwrap();
-        self.builder
-            .build_return(Some(&self.context.i64_type().const_int(0, false)))
+        let exitcode = self
+            .builder
+            .build_struct_gep(self.value_type(), output, 0, "exitcode")
             .unwrap();
+        let exitcode = self
+            .builder
+            .build_load(self.tag_type(), exitcode, "exitcode")
+            .unwrap();
+        self.builder.build_return(Some(&exitcode)).unwrap();
     }
 
     pub(crate) fn allocate_const<V: BasicValue<'ctx>>(&self, value: V) -> PointerValue<'ctx> {
@@ -388,7 +395,7 @@ impl<'ctx> Codegen<'ctx> {
             };
             match &definition.item {
                 DefinitionItem::Procedure(procedure) => {
-                    subcontext.compile_procedure(procedure, linkage);
+                    subcontext.compile_procedure(file, procedure, linkage);
                 }
                 _ => todo!(),
             }

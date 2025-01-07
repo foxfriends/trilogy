@@ -90,7 +90,12 @@ impl<'ctx> Codegen<'ctx> {
         match builtin {
             Builtin::Return => {
                 let argument = self.compile_expression(scope, expression);
-                self.builder.build_store(scope.sret(), argument).unwrap();
+                let val = self
+                    .builder
+                    .build_load(self.value_type(), argument, "retval")
+                    .unwrap()
+                    .into_struct_value();
+                self.builder.build_store(scope.sret(), val).unwrap();
                 self.builder.build_return(None).unwrap();
                 self.context.ptr_type(AddressSpace::default()).const_null()
             }
@@ -123,7 +128,8 @@ impl<'ctx> Codegen<'ctx> {
         if let Some(variable) = scope.variables.get(&identifier.id) {
             return *variable;
         } else if let Some(name) = identifier.id.name() {
-            if let Some(function) = self.module.get_function(name) {
+            let global_name = format!("{}::{name}", self.module.get_name().to_str().unwrap());
+            if let Some(function) = self.module.get_function(&global_name) {
                 let pointer = function.as_global_value().as_pointer_value();
                 let stack = self.builder.build_alloca(self.value_type(), name).unwrap();
                 self.builder

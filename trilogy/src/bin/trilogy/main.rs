@@ -132,6 +132,9 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
             }
             std::process::exit(255)
         }
+        #[cfg(feature = "llvm")]
+        Ok(..) => std::process::exit(0),
+        #[cfg(feature = "tvm")]
         Ok(..) => std::process::exit(255),
         Err(error) if debug => {
             eprintln!("{error:?}");
@@ -216,7 +219,7 @@ fn main_sync() -> std::io::Result<()> {
             }
         },
         #[cfg(all(feature = "tvm", feature = "std"))]
-        Command::Compile { file, library } => {
+        Command::Compile { file, library, .. } => {
             match Builder::std().is_library(library).build_from_source(file) {
                 Ok(trilogy) => match trilogy.compile() {
                     Ok(chunk) => println!("{}", chunk),
@@ -234,9 +237,7 @@ fn main_sync() -> std::io::Result<()> {
             .build_from_source(file)
         {
             Ok(trilogy) => {
-                for (_, module) in trilogy.compile() {
-                    print!("{}", module);
-                }
+                print!("{}", trilogy.compile());
             }
             Err(report) => {
                 report.eprint();

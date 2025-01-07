@@ -6,13 +6,20 @@ use inkwell::{
 use trilogy_ir::ir;
 
 impl Codegen<'_> {
-    pub(crate) fn compile_procedure(&self, definition: &ir::ProcedureDefinition, linkage: Linkage) {
+    pub(crate) fn compile_procedure(
+        &self,
+        location: &str,
+        definition: &ir::ProcedureDefinition,
+        linkage: Linkage,
+    ) {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
         let fn_type = self.procedure_type(procedure.parameters.len());
-        let function =
-            self.module
-                .add_function(&definition.name.to_string(), fn_type, Some(linkage));
+        let function = self.module.add_function(
+            &format!("{location}::{}", definition.name.to_string()),
+            fn_type,
+            Some(linkage),
+        );
         function.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
@@ -20,6 +27,7 @@ impl Codegen<'_> {
                 self.value_type().into(),
             ),
         );
+        function.get_nth_param(0).unwrap().set_name("sretptr");
 
         let mut scope = Scope::begin(function);
         let basic_block = self.context.append_basic_block(function, "entry");
