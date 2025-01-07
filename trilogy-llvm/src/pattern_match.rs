@@ -5,9 +5,9 @@ use trilogy_ir::ir;
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_pattern_match(
         &self,
-        scope: &mut Scope<'ctx>,
-        pattern: &ir::Expression,
-        value: StructValue<'ctx>,
+        _scope: &mut Scope<'ctx>,
+        _pattern: &ir::Expression,
+        _value: StructValue<'ctx>,
     ) {
         todo!()
     }

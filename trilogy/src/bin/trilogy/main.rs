@@ -56,7 +56,6 @@ enum Command {
         #[arg(long)]
         debug: bool,
     },
-    #[cfg(all(feature = "std", feature = "tvm"))]
     /// Compile a Trilogy program, printing the ASM it compiles to.
     /// Redirect to a file is recommended.
     ///
@@ -216,8 +215,7 @@ fn main_sync() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        #[cfg(feature = "std")]
-        #[cfg(feature = "tvm")]
+        #[cfg(all(feature = "tvm", feature = "std"))]
         Command::Compile { file, library } => {
             match Builder::std().is_library(library).build_from_source(file) {
                 Ok(trilogy) => match trilogy.compile() {
@@ -230,6 +228,21 @@ fn main_sync() -> std::io::Result<()> {
                 }
             }
         }
+        #[cfg(feature = "llvm")]
+        Command::Compile { file, library } => match Builder::default()
+            .is_library(library)
+            .build_from_source(file)
+        {
+            Ok(trilogy) => {
+                for (_, module) in trilogy.compile() {
+                    print!("{}", module);
+                }
+            }
+            Err(report) => {
+                report.eprint();
+                std::process::exit(1);
+            }
+        },
         #[cfg(feature = "tvm")]
         Command::Check {
             file,

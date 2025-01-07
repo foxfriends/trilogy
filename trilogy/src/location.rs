@@ -45,6 +45,7 @@ impl Location {
         Ok(Self(url))
     }
 
+    #[cfg(feature = "tvm")]
     pub(crate) fn absolute(url: Url) -> Self {
         Self::from(url)
     }

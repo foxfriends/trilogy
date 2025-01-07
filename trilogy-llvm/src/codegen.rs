@@ -1,12 +1,12 @@
-use std::ops::Add;
+#![expect(dead_code, reason = "WIP")]
 
 use crate::scope::Scope;
 use inkwell::{
     builder::Builder,
     context::Context,
     module::{Linkage, Module},
-    types::{FunctionType, StructType, VectorType},
-    values::{BasicValueEnum, PointerValue, StructValue},
+    types::{FunctionType, IntType, StructType, VectorType},
+    values::{BasicValue, IntValue, PointerValue, StructValue},
     AddressSpace, IntPredicate,
 };
 use trilogy_ir::{
@@ -32,7 +32,7 @@ const TAG_TUPLE: u64 = 8;
 const TAG_ARRAY: u64 = 9;
 const TAG_SET: u64 = 10;
 const TAG_RECORD: u64 = 11;
-const TAG_FUNCTION: u64 = 12;
+const TAG_CALLABLE: u64 = 12;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn new(context: &'ctx Context) -> Self {
@@ -43,6 +43,36 @@ impl<'ctx> Codegen<'ctx> {
         };
 
         codegen
+    }
+
+    pub(crate) fn compile_entrypoint(&self, entrypoint: &str) {
+        let main_wrapper = self.module.add_function(
+            "__#trilogy_main",
+            self.context.i64_type().fn_type(&[], false),
+            None,
+        );
+        let basic_block = self.context.append_basic_block(main_wrapper, "entry");
+        self.builder.position_at_end(basic_block);
+        let main = self.module.get_function(entrypoint).unwrap();
+        let output = self
+            .builder
+            .build_alloca(self.value_type(), "output")
+            .unwrap();
+        self.builder
+            .build_direct_call(main, &[output.into()], "main")
+            .unwrap();
+        self.builder
+            .build_return(Some(&self.context.i64_type().const_int(0, false)))
+            .unwrap();
+    }
+
+    pub(crate) fn allocate_const<V: BasicValue<'ctx>>(&self, value: V) -> PointerValue<'ctx> {
+        let pointer = self
+            .builder
+            .build_alloca(self.value_type(), "const")
+            .unwrap();
+        self.builder.build_store(pointer, value).unwrap();
+        pointer
     }
 
     /// Every value in a Trilogy program is represented as an instance of this "union" struct.
@@ -67,11 +97,15 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn value_type(&self) -> StructType<'ctx> {
         self.context.struct_type(
             &[
-                self.context.i8_type().into(),
+                self.tag_type().into(),
                 self.context.i8_type().vec_type(8).into(),
             ],
             false,
         )
+    }
+
+    pub(crate) fn tag_type(&self) -> IntType<'ctx> {
+        self.context.i8_type()
     }
 
     pub(crate) fn string_value_type(&self) -> StructType<'ctx> {
@@ -84,7 +118,7 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
-    pub(crate) fn unit_value(&self) -> StructValue<'ctx> {
+    pub(crate) fn unit_const(&self) -> StructValue<'ctx> {
         self.value_type().const_named_struct(&[
             self.context.i8_type().const_int(TAG_UNIT, false).into(),
             VectorType::const_vector(&[
@@ -101,7 +135,7 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn bool_value(&self, value: bool) -> StructValue<'ctx> {
+    pub(crate) fn bool_const(&self, value: bool) -> StructValue<'ctx> {
         self.value_type().const_named_struct(&[
             self.context.i8_type().const_int(TAG_BOOL, false).into(),
             VectorType::const_vector(&[
@@ -120,7 +154,7 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn atom_value(&self, id: u64) -> StructValue<'ctx> {
+    pub(crate) fn atom_const(&self, id: u64) -> StructValue<'ctx> {
         let bytes = id.to_be_bytes();
         self.value_type().const_named_struct(&[
             self.context.i8_type().const_int(TAG_ATOM, false).into(),
@@ -138,7 +172,7 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn char_value(&self, value: char) -> StructValue<'ctx> {
+    pub(crate) fn char_const(&self, value: char) -> StructValue<'ctx> {
         let value = value as u32;
         let bytes = value.to_be_bytes();
         self.value_type().const_named_struct(&[
@@ -157,7 +191,35 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn string_value(&self, value: &str) -> StructValue<'ctx> {
+    pub(crate) fn char_value(&self, value: IntValue<'ctx>) -> PointerValue<'ctx> {
+        let pointer = self
+            .builder
+            .build_alloca(self.value_type(), "char")
+            .unwrap();
+        let tag = self
+            .builder
+            .build_struct_gep(self.value_type(), pointer, 0, "")
+            .unwrap();
+        self.builder
+            .build_store(tag, self.tag_type().const_int(TAG_CHAR, false))
+            .unwrap();
+        let body = self
+            .builder
+            .build_struct_gep(self.value_type(), pointer, 1, "")
+            .unwrap();
+        let int = self
+            .builder
+            .build_int_z_extend(value, self.context.i64_type(), "")
+            .unwrap();
+        let vec = self
+            .builder
+            .build_bit_cast(int, self.context.i8_type().vec_type(8), "")
+            .unwrap();
+        self.builder.build_store(body, vec).unwrap();
+        pointer
+    }
+
+    pub(crate) fn string_const(&self, value: &str) -> StructValue<'ctx> {
         // SAFETY: it seems the only restriction is that this must not be called outside of a
         // function, which is not checked but we will never do it.
         let string = unsafe { self.builder.build_global_string(value, "").unwrap() };
@@ -180,13 +242,29 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.value_type().const_named_struct(&[
             self.context.i8_type().const_int(TAG_STRING, false).into(),
-            vec.into(),
+            vec,
+        ])
+    }
+
+    pub(crate) fn callable_value(&self, pointer: PointerValue<'ctx>) -> StructValue<'ctx> {
+        let int = self
+            .builder
+            .build_ptr_to_int(pointer, self.context.i64_type(), "")
+            .unwrap();
+        let vec = self
+            .builder
+            .build_bit_cast(int, self.context.i8_type().vec_type(8), "")
+            .unwrap();
+        self.value_type().const_named_struct(&[
+            self.context.i8_type().const_int(TAG_CALLABLE, false).into(),
+            vec,
         ])
     }
 
     pub(crate) fn procedure_type(&self, arity: usize) -> FunctionType<'ctx> {
-        self.value_type()
-            .fn_type(&vec![self.value_type().into(); arity], false)
+        let mut param_types = vec![self.value_type().into(); arity + 1];
+        param_types[0] = self.context.ptr_type(AddressSpace::default()).into();
+        self.context.void_type().fn_type(&param_types, false)
     }
 
     pub(crate) fn function_type(&self) -> FunctionType<'ctx> {
@@ -212,20 +290,26 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn untag_function(
         &self,
         scope: &Scope<'ctx>,
-        value: StructValue,
+        value: PointerValue<'ctx>,
     ) -> PointerValue<'ctx> {
-        assert_eq!(value.get_type(), self.value_type());
         let then_block = self.context.append_basic_block(scope.function, "then");
         let else_block = self.context.append_basic_block(scope.function, "else");
         let cont_block = self.context.append_basic_block(scope.function, "untagged");
 
-        let tag_field = value.get_field_at_index(0).unwrap().into_int_value();
+        let tag = self
+            .builder
+            .build_struct_gep(self.value_type(), value, 0, "tag")
+            .unwrap();
+        let tag = self
+            .builder
+            .build_load(self.tag_type(), tag, "tag")
+            .unwrap();
         let cmp = self
             .builder
             .build_int_compare(
                 IntPredicate::EQ,
-                tag_field,
-                self.context.i8_type().const_int(TAG_FUNCTION, false),
+                tag.into_int_value(),
+                self.context.i8_type().const_int(TAG_CALLABLE, false),
                 "untag",
             )
             .unwrap();
@@ -234,7 +318,15 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(then_block);
-        let then_val = value.get_field_at_index(1).unwrap().into_vector_value();
+        let then_val = self
+            .builder
+            .build_struct_gep(self.value_type(), value, 1, "content")
+            .unwrap();
+        let then_val = self
+            .builder
+            .build_load(self.context.i8_type().vec_type(8), then_val, "")
+            .unwrap()
+            .into_vector_value();
         let then_val = self
             .builder
             .build_bit_cast(then_val, self.context.i64_type(), "")
@@ -244,11 +336,20 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_int_to_ptr(then_val, self.context.ptr_type(AddressSpace::default()), "")
             .unwrap();
+        self.builder.build_unconditional_branch(cont_block).unwrap();
 
         self.builder.position_at_end(else_block);
         // TODO: handle mismatches... we're just ignoring them for now
         // which leads to some pretty NASTY UB
-        let else_val = value.get_field_at_index(1).unwrap().into_vector_value();
+        let else_val = self
+            .builder
+            .build_struct_gep(self.value_type(), value, 1, "content")
+            .unwrap();
+        let else_val = self
+            .builder
+            .build_load(self.context.i8_type().vec_type(8), else_val, "")
+            .unwrap()
+            .into_vector_value();
         let else_val = self
             .builder
             .build_bit_cast(else_val, self.context.i64_type(), "")
@@ -258,6 +359,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_int_to_ptr(else_val, self.context.ptr_type(AddressSpace::default()), "")
             .unwrap();
+        self.builder.build_unconditional_branch(cont_block).unwrap();
 
         self.builder.position_at_end(cont_block);
         let phi = self
@@ -276,8 +378,8 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) {
-        let subcontext = self.sub(&format!("file:{}", file));
+    pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
+        let subcontext = self.sub(file);
         for definition in module.definitions() {
             let linkage = if definition.is_exported {
                 Linkage::External
@@ -291,6 +393,6 @@ impl<'ctx> Codegen<'ctx> {
                 _ => todo!(),
             }
         }
-        self.module.link_in_module(subcontext.module).unwrap();
+        subcontext
     }
 }

@@ -14,4 +14,8 @@ impl<'ctx> Scope<'ctx> {
             variables: HashMap::default(),
         }
     }
+
+    pub(crate) fn sret(&self) -> PointerValue<'ctx> {
+        self.function.get_nth_param(0).unwrap().into_pointer_value()
+    }
 }

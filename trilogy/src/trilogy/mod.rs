@@ -150,6 +150,7 @@ impl Trilogy {
     ///
     /// This is equivalent to `self.call("main", vec![])`.
     #[cfg(feature = "llvm")]
+    #[expect(clippy::result_unit_err, reason = "This is placeholder")]
     pub fn run(&self) -> Result<String, ()> {
         Ok(self.call("main", vec![]))
     }
@@ -227,10 +228,9 @@ impl Trilogy {
                     .iter()
                     .map(|(location, module)| (location.to_string(), module))
                     .collect();
-                let entry = entrypoint.to_string();
-                let mut path = vec![entry.as_str()];
-                path.append(&mut main.path());
-                trilogy_llvm::evaluate(modules, path, parameters)
+                let path = main.path();
+                let main_name = path.last().unwrap();
+                trilogy_llvm::evaluate(modules, &entrypoint.to_string(), main_name, parameters)
             }
         }
     }
@@ -368,6 +368,23 @@ impl Trilogy {
                 parameters: vec![],
                 to_asm: true,
             }),
+        }
+    }
+
+    /// Compiles a Trilogy program to LLVM assembly code, returning the compiled modules as strings.
+    #[cfg(feature = "llvm")]
+    pub fn compile(&self) -> HashMap<String, String> {
+        match &self.source {
+            Source::Trilogy {
+                modules,
+                entrypoint,
+            } => {
+                let modules = modules
+                    .iter()
+                    .map(|(location, module)| (location.to_string(), module))
+                    .collect();
+                trilogy_llvm::compile(modules, &entrypoint.to_string(), "main")
+            }
         }
     }
 
