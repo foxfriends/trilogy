@@ -269,16 +269,17 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn procedure_type(&self, arity: usize) -> FunctionType<'ctx> {
-        let mut param_types = vec![self.value_type().into(); arity + 1];
-        param_types[0] = self.context.ptr_type(AddressSpace::default()).into();
-        self.context.void_type().fn_type(&param_types, false)
+        self.context.void_type().fn_type(
+            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + 1],
+            false,
+        )
     }
 
     pub(crate) fn function_type(&self) -> FunctionType<'ctx> {
         self.procedure_type(1)
     }
 
-    pub(crate) fn variable(&self, scope: Scope<'ctx>, id: Id) -> PointerValue<'ctx> {
+    pub(crate) fn variable(&self, scope: &mut Scope<'ctx>, id: Id) -> PointerValue<'ctx> {
         if scope.variables.contains_key(&id) {
             return *scope.variables.get(&id).unwrap();
         }
@@ -289,9 +290,11 @@ impl<'ctx> Codegen<'ctx> {
             Some(instruction) => builder.position_before(&instruction),
             None => builder.position_at_end(entry),
         }
-        builder
+        let variable = builder
             .build_alloca(self.value_type(), &id.to_string())
-            .unwrap()
+            .unwrap();
+        scope.variables.insert(id, variable);
+        variable
     }
 
     pub(crate) fn untag_function(

@@ -37,7 +37,7 @@ impl Codegen<'_> {
             let value = function
                 .get_nth_param(n as u32 + 1)
                 .unwrap()
-                .into_struct_value();
+                .into_pointer_value();
             self.compile_pattern_match(&mut scope, param, value);
         }
 

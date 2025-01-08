@@ -1,0 +1,7 @@
+proc call!(val) {
+  return val
+}
+
+proc main!() {
+  return call!(true)
+}
