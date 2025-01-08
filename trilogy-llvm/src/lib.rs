@@ -7,6 +7,7 @@ mod codegen;
 mod expression;
 mod pattern_match;
 mod procedure;
+mod runtime;
 mod scope;
 
 #[repr(C)]

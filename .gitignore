@@ -1,3 +1,5 @@
 .DS_Store
 /spec/build
 /target
+a.out
+*.ll

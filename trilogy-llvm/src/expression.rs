@@ -99,17 +99,28 @@ impl<'ctx> Codegen<'ctx> {
                 self.builder.build_return(None).unwrap();
                 self.context.ptr_type(AddressSpace::default()).const_null()
             }
-            Builtin::Typeof => {
+            Builtin::Exit => {
+                let exit = self.exit();
                 let argument = self.compile_expression(scope, expression);
-                let tag = self
+                let payload = self.get_payload(argument);
+                let value = self
                     .builder
-                    .build_struct_gep(self.value_type(), argument, 0, "tag")
-                    .unwrap();
-                let tag = self
-                    .builder
-                    .build_load(self.tag_type(), tag, "tag")
+                    .build_bit_cast(payload, self.context.i64_type(), "")
                     .unwrap()
                     .into_int_value();
+                let value = self
+                    .builder
+                    .build_int_truncate(value, self.context.i32_type(), "")
+                    .unwrap();
+                self.builder
+                    .build_call(exit, &[value.into()], "exit")
+                    .unwrap();
+                self.builder.build_unreachable().unwrap();
+                argument
+            }
+            Builtin::Typeof => {
+                let argument = self.compile_expression(scope, expression);
+                let tag = self.get_tag(argument);
                 let tag_char = self
                     .builder
                     .build_int_add(self.context.i8_type().const_int(65, false), tag, "typeof")
