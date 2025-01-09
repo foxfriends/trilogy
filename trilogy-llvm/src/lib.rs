@@ -7,8 +7,8 @@ mod codegen;
 mod expression;
 mod pattern_match;
 mod procedure;
-mod runtime;
 mod scope;
+mod stdlib;
 
 #[repr(C)]
 #[derive(Debug, Default)]

@@ -1,8 +1,4 @@
 use crate::{scope::Scope, Codegen};
-use inkwell::{
-    attributes::{Attribute, AttributeLoc},
-    module::Linkage,
-};
 use trilogy_ir::ir;
 
 impl Codegen<'_> {
@@ -10,24 +6,15 @@ impl Codegen<'_> {
         &self,
         location: &str,
         definition: &ir::ProcedureDefinition,
-        linkage: Linkage,
+        exported: bool,
     ) {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
-        let fn_type = self.procedure_type(procedure.parameters.len());
-        let function = self.module.add_function(
-            &format!("{location}::{}", definition.name.to_string()),
-            fn_type,
-            Some(linkage),
+        let function = self.add_procedure(
+            &format!("{location}::{}", definition.name),
+            procedure.parameters.len(),
+            exported,
         );
-        function.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        function.get_nth_param(0).unwrap().set_name("sretptr");
 
         let mut scope = Scope::begin(function);
         let basic_block = self.context.append_basic_block(function, "entry");

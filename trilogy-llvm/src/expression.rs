@@ -47,38 +47,29 @@ impl<'ctx> Codegen<'ctx> {
             return self.compile_apply_builtin(scope, *builtin, &application.argument);
         }
 
-        let output = self
-            .builder
-            .build_alloca(self.value_type(), "retval")
-            .unwrap();
         let function = self.compile_expression(scope, &application.function);
         let function = self.untag_function(scope, function);
         match &application.argument.value {
             // Procedure application
             Value::Pack(pack) => {
-                let mut arguments = vec![output.into()];
-                arguments.extend(pack.values.iter().map(|val| {
-                    assert!(!val.is_spread);
-                    BasicMetadataValueEnum::from(self.compile_expression(scope, &val.expression))
-                }));
-                self.builder
-                    .build_indirect_call(self.function_type(), function, &arguments, "")
-                    .unwrap();
+                let arguments: Vec<_> = pack
+                    .values
+                    .iter()
+                    .map(|val| {
+                        assert!(!val.is_spread);
+                        BasicMetadataValueEnum::from(
+                            self.compile_expression(scope, &val.expression),
+                        )
+                    })
+                    .collect();
+                self.call_procedure(function, &arguments, "")
             }
             // Function application
             _ => {
                 let argument = self.compile_expression(scope, &application.argument);
-                self.builder
-                    .build_indirect_call(
-                        self.function_type(),
-                        function,
-                        &[output.into(), argument.into()],
-                        "",
-                    )
-                    .unwrap();
+                self.apply_function(function, argument.into(), "")
             }
         }
-        output
     }
 
     pub(crate) fn compile_apply_builtin(
@@ -102,21 +93,9 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Exit => {
                 let exit = self.exit();
                 let argument = self.compile_expression(scope, expression);
-                let payload = self.get_payload(argument);
-                let value = self
-                    .builder
-                    .build_bit_cast(payload, self.context.i64_type(), "")
-                    .unwrap()
-                    .into_int_value();
-                let value = self
-                    .builder
-                    .build_int_truncate(value, self.context.i32_type(), "")
-                    .unwrap();
-                self.builder
-                    .build_call(exit, &[value.into()], "exit")
-                    .unwrap();
+                let output = self.call_procedure(exit, &[argument.into()], "exit");
                 self.builder.build_unreachable().unwrap();
-                argument
+                output
             }
             Builtin::Typeof => {
                 let argument = self.compile_expression(scope, expression);

@@ -2,11 +2,14 @@
 
 use crate::scope::Scope;
 use inkwell::{
+    attributes::{Attribute, AttributeLoc},
     builder::Builder,
     context::Context,
     module::{Linkage, Module},
     types::{FunctionType, IntType, StructType},
-    values::{BasicValue, IntValue, PointerValue, StructValue},
+    values::{
+        BasicMetadataValueEnum, BasicValue, FunctionValue, IntValue, PointerValue, StructValue,
+    },
     AddressSpace, IntPredicate,
 };
 use trilogy_ir::{
@@ -34,6 +37,68 @@ const TAG_SET: u64 = 10;
 const TAG_RECORD: u64 = 11;
 const TAG_CALLABLE: u64 = 12;
 
+pub(crate) trait TrilogyCallable<'ctx> {
+    fn build_procedure_call(
+        self,
+        codegen: &Codegen<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    );
+
+    fn build_function_call(
+        self,
+        codegen: &Codegen<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    );
+}
+
+impl<'ctx> TrilogyCallable<'ctx> for PointerValue<'ctx> {
+    fn build_procedure_call(
+        self,
+        codegen: &Codegen<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    ) {
+        codegen
+            .builder
+            .build_indirect_call(codegen.procedure_type(args.len() - 1), self, args, name)
+            .unwrap();
+    }
+
+    fn build_function_call(
+        self,
+        codegen: &Codegen<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    ) {
+        codegen
+            .builder
+            .build_indirect_call(codegen.procedure_type(1), self, args, name)
+            .unwrap();
+    }
+}
+
+impl<'ctx> TrilogyCallable<'ctx> for FunctionValue<'ctx> {
+    fn build_procedure_call(
+        self,
+        codegen: &Codegen<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    ) {
+        codegen.builder.build_call(self, args, name).unwrap();
+    }
+
+    fn build_function_call(
+        self,
+        codegen: &Codegen<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    ) {
+        codegen.builder.build_call(self, args, name).unwrap();
+    }
+}
+
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn new(context: &'ctx Context) -> Self {
         let codegen = Codegen {
@@ -42,6 +107,10 @@ impl<'ctx> Codegen<'ctx> {
             context,
         };
 
+        let submodule = codegen.sub("trilogy:c");
+        submodule.std_libc();
+
+        codegen.module.link_in_module(submodule.module).unwrap();
         codegen
     }
 
@@ -257,6 +326,62 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn add_procedure(
+        &self,
+        name: &str,
+        arity: usize,
+        exported: bool,
+    ) -> FunctionValue<'ctx> {
+        let procedure = self.module.add_function(
+            name,
+            self.procedure_type(arity),
+            if exported {
+                Some(Linkage::External)
+            } else {
+                Some(Linkage::Private)
+            },
+        );
+        procedure.add_attribute(
+            AttributeLoc::Param(0),
+            self.context.create_type_attribute(
+                Attribute::get_named_enum_kind_id("sret"),
+                self.value_type().into(),
+            ),
+        );
+        procedure.get_nth_param(0).unwrap().set_name("sretptr");
+        procedure
+    }
+
+    pub(crate) fn call_procedure(
+        &self,
+        procedure: impl TrilogyCallable<'ctx>,
+        arguments: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let output = self
+            .builder
+            .build_alloca(self.value_type(), "retval")
+            .unwrap();
+        let mut args = vec![output.into()];
+        args.extend_from_slice(arguments);
+        procedure.build_procedure_call(self, &args, name);
+        output
+    }
+
+    pub(crate) fn apply_function(
+        &self,
+        function: impl TrilogyCallable<'ctx>,
+        argument: BasicMetadataValueEnum<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let output = self
+            .builder
+            .build_alloca(self.value_type(), "retval")
+            .unwrap();
+        function.build_procedure_call(self, &[output.into(), argument], name);
+        output
+    }
+
     pub(crate) fn function_type(&self) -> FunctionType<'ctx> {
         self.procedure_type(1)
     }
@@ -349,14 +474,9 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
         let subcontext = self.sub(file);
         for definition in module.definitions() {
-            let linkage = if definition.is_exported {
-                Linkage::External
-            } else {
-                Linkage::Private
-            };
             match &definition.item {
                 DefinitionItem::Procedure(procedure) => {
-                    subcontext.compile_procedure(file, procedure, linkage);
+                    subcontext.compile_procedure(file, procedure, definition.is_exported);
                 }
                 _ => todo!(),
             }
