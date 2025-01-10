@@ -1,7 +1,7 @@
 use crate::{scope::Scope, Codegen};
 use trilogy_ir::ir;
 
-impl<'ctx> Codegen<'ctx> {
+impl Codegen<'_> {
     pub(crate) fn import_procedure(&self, location: &str, definition: &ir::ProcedureDefinition) {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];

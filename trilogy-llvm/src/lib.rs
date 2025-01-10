@@ -76,7 +76,7 @@ pub fn compile_and_link(
     let context = Context::create();
     let codegen = Codegen::new(&context, &modules);
     for (file, module) in &modules {
-        let submodule = codegen.compile_module(&file, module);
+        let submodule = codegen.compile_module(file, module);
         codegen.module.link_in_module(submodule.module).unwrap();
     }
     codegen.compile_entrypoint(entrymodule, entrypoint);

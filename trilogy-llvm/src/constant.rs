@@ -2,7 +2,7 @@ use crate::{scope::Scope, Codegen};
 use inkwell::module::Linkage;
 use trilogy_ir::ir;
 
-impl<'ctx> Codegen<'ctx> {
+impl Codegen<'_> {
     pub(crate) fn import_constant(&self, location: &str, constant: &ir::ConstantDefinition) {
         self.add_procedure(&format!("{}::{}", location, constant.name), 0, true);
     }

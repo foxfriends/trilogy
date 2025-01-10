@@ -426,7 +426,7 @@ impl IrVisitor for Evaluator<'_, '_> {
         self.context
             .evaluate_annotated(module_ref, "<intermediate>", module_ref.span)
             .typecheck("callable")
-            .atom(&*ident)
+            .atom(ident)
             .call_module();
     }
 
