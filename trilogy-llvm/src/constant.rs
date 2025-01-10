@@ -2,19 +2,22 @@ use crate::{scope::Scope, Codegen};
 use inkwell::module::Linkage;
 use trilogy_ir::ir;
 
-impl Codegen<'_> {
-    pub(crate) fn compile_constant(
-        &self,
-        location: &str,
-        definition: &ir::ConstantDefinition,
-        exported: bool,
-    ) {
+impl<'ctx> Codegen<'ctx> {
+    pub(crate) fn import_constant(&self, location: &str, constant: &ir::ConstantDefinition) {
+        self.add_procedure(&format!("{}::{}", location, constant.name), 0, true);
+    }
+
+    pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition, exported: bool) {
         let global = self
             .module
             .add_global(self.value_type(), None, &definition.name.to_string());
         global.set_linkage(Linkage::Private);
         global.set_initializer(&self.value_type().const_zero());
-        let function = self.add_procedure(&format!("{location}::{}", definition.name), 0, exported);
+        let function = self.add_procedure(
+            &format!("{}::{}", self.location, definition.name),
+            0,
+            exported,
+        );
 
         let mut scope = Scope::begin(function);
         let basic_block = self.context.append_basic_block(function, "entry");

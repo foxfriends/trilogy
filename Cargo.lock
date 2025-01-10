@@ -2293,6 +2293,7 @@ version = "0.1.0"
 dependencies = [
  "source-span",
  "trilogy-ir",
+ "trilogy-parser",
  "trilogy-vm",
 ]
 
@@ -2322,6 +2323,7 @@ version = "0.1.0"
 dependencies = [
  "inkwell",
  "trilogy-ir",
+ "trilogy-parser",
 ]
 
 [[package]]

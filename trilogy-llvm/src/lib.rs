@@ -1,5 +1,5 @@
 use codegen::Codegen;
-use inkwell::{context::Context, OptimizationLevel};
+use inkwell::context::Context;
 use std::collections::HashMap;
 use trilogy_ir::ir;
 
@@ -30,20 +30,19 @@ pub fn evaluate(
     _parameters: Vec<String>,
 ) -> String {
     let context = Context::create();
-    let codegen = Codegen::new(&context);
-    for (file, module) in modules {
-        let submodule = codegen.compile_module(&file, module);
+    let codegen = Codegen::new(&context, &modules);
+    for (file, module) in &modules {
+        let submodule = codegen.compile_module(file, module);
         codegen.module.link_in_module(submodule.module).unwrap();
     }
 
     codegen.compile_entrypoint(entrymodule, entrypoint);
 
-    let ee = codegen
-        .module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .unwrap();
     let result = unsafe {
-        let tri_main = ee.get_function::<Entrypoint>("main").unwrap();
+        let tri_main = codegen
+            .execution_engine
+            .get_function::<Entrypoint>("main")
+            .unwrap();
         tri_main.call()
     };
     println!("{result}");
@@ -56,15 +55,15 @@ pub fn compile(
     entrypoint: &str,
 ) -> HashMap<String, String> {
     let context = Context::create();
-    let codegen = Codegen::new(&context);
+    let codegen = Codegen::new(&context, &modules);
     let mut compiled = HashMap::with_capacity(modules.len() + 1);
     compiled.insert("trilogy:runtime".to_owned(), codegen.module.to_string());
-    for (file, module) in modules {
-        let submodule = codegen.compile_module(&file, module);
+    for (file, module) in &modules {
+        let submodule = codegen.compile_module(file, module);
         if file == entrymodule {
             submodule.compile_entrypoint(entrymodule, entrypoint);
         }
-        compiled.insert(file, submodule.module.to_string());
+        compiled.insert(file.to_owned(), submodule.module.to_string());
     }
     compiled
 }
@@ -75,8 +74,8 @@ pub fn compile_and_link(
     entrypoint: &str,
 ) -> String {
     let context = Context::create();
-    let codegen = Codegen::new(&context);
-    for (file, module) in modules {
+    let codegen = Codegen::new(&context, &modules);
+    for (file, module) in &modules {
         let submodule = codegen.compile_module(&file, module);
         codegen.module.link_in_module(submodule.module).unwrap();
     }

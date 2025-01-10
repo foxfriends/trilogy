@@ -104,7 +104,6 @@ pub trait IrVisitor: Sized {
     visit_via!(visit_module_reference, Identifier, visit_identifier);
     visit_via!(visit_reference, Identifier, visit_identifier);
     visit_value!(visit_identifier, Identifier);
-    visit_value!(visit_dynamic, trilogy_parser::syntax::Identifier);
     visit_node!(visit_assert, Assert);
     visit_unit!(visit_end);
     visit_node!(visit_query_value, QueryValue);
@@ -120,6 +119,10 @@ pub trait IrVisitor: Sized {
     visit_unit!(visit_query_pass);
     visit_unit!(visit_query_fail);
     visit_node!(visit_handler, Handler);
+
+    fn visit_module_access(&mut self, node: &(Expression, trilogy_parser::syntax::Identifier)) {
+        node.0.visit(self);
+    }
 }
 
 pub trait IrVisitable {
@@ -165,7 +168,7 @@ impl IrVisitable for Value {
             Qy(val) => visitor.visit_qy(val),
             Handled(val) => visitor.visit_handled(val),
             Reference(val) => visitor.visit_reference(val),
-            Dynamic(val) => visitor.visit_dynamic(val),
+            ModuleAccess(val) => visitor.visit_module_access(val),
             Assert(val) => visitor.visit_assert(val),
             End => visitor.visit_end(),
         }

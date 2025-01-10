@@ -230,8 +230,8 @@ fn main_sync() -> std::io::Result<()> {
                 }
             }
         }
-        #[cfg(feature = "llvm")]
-        Command::Compile { file, library } => match Builder::default()
+        #[cfg(all(feature = "llvm", feature = "std"))]
+        Command::Compile { file, library } => match Builder::std()
             .is_library(library)
             .build_from_source(file)
         {

@@ -419,29 +419,19 @@ impl IrVisitor for Evaluator<'_, '_> {
         self.context.r#for(&iter.query, &iter.value);
     }
 
+    fn visit_module_access(
+        &mut self,
+        (module_ref, ident): &(ir::Expression, trilogy_parser::syntax::Identifier),
+    ) {
+        self.context
+            .evaluate_annotated(module_ref, "<intermediate>", module_ref.span)
+            .typecheck("callable")
+            .atom(&*ident)
+            .call_module();
+    }
+
     fn visit_application(&mut self, application: &ir::Application) {
         match unapply_2(application) {
-            (
-                Some(ir::Value::Builtin(ir::Builtin::ModuleAccess)),
-                module_ref,
-                ir::Value::Dynamic(ident),
-            ) => {
-                self.context
-                    .evaluate_annotated(
-                        module_ref,
-                        "<intermediate>",
-                        application
-                            .function
-                            .value
-                            .as_application()
-                            .unwrap()
-                            .argument
-                            .span,
-                    )
-                    .typecheck("callable")
-                    .atom(&**ident)
-                    .call_module();
-            }
             (None, ir::Value::Builtin(builtin), arg) if is_unary_operator(*builtin) => {
                 self.context
                     .evaluate_annotated(arg, "<intermediate>", application.argument.span);

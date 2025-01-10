@@ -1,17 +1,22 @@
 use crate::{scope::Scope, Codegen};
 use trilogy_ir::ir;
 
-impl Codegen<'_> {
-    pub(crate) fn compile_procedure(
-        &self,
-        location: &str,
-        definition: &ir::ProcedureDefinition,
-        exported: bool,
-    ) {
+impl<'ctx> Codegen<'ctx> {
+    pub(crate) fn import_procedure(&self, location: &str, definition: &ir::ProcedureDefinition) {
+        assert_eq!(definition.overloads.len(), 1);
+        let procedure = &definition.overloads[0];
+        self.add_procedure(
+            &format!("{}::{}", location, definition.name),
+            procedure.parameters.len(),
+            true,
+        );
+    }
+
+    pub(crate) fn compile_procedure(&self, definition: &ir::ProcedureDefinition, exported: bool) {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
         let function = self.add_procedure(
-            &format!("{location}::{}", definition.name),
+            &format!("{}::{}", self.location, definition.name),
             procedure.parameters.len(),
             exported,
         );

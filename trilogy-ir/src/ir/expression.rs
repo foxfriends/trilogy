@@ -176,13 +176,11 @@ impl Expression {
             Template(ast) => Self::convert_template(converter, *ast),
             Handled(ast) => crate::ir::Handled::convert_expression(converter, *ast),
             Parenthesized(ast) => Self::convert(converter, ast.expression),
-            ModuleAccess(ast) => {
-                let span = ast.span();
-                let lhs_span = ast.lhs.span().union(ast.access_token().span());
-                Self::builtin(ast.access_token().span, Builtin::ModuleAccess)
-                    .apply_to(lhs_span, Self::convert(converter, ast.lhs))
-                    .apply_to(span, Self::dynamic(ast.rhs))
-            }
+            ModuleAccess(ast) => Self::module_access(
+                ast.access_token().span,
+                Self::convert(converter, ast.lhs),
+                ast.rhs,
+            ),
         }
     }
 
@@ -579,8 +577,11 @@ impl Expression {
         Self::new(span, Value::End)
     }
 
-    pub(super) fn dynamic(identifier: syntax::Identifier) -> Self {
-        Self::new(identifier.span(), Value::Dynamic(Box::new(identifier)))
+    pub(super) fn module_access(span: Span, lhs: Expression, rhs: syntax::Identifier) -> Self {
+        Self {
+            span,
+            value: Value::ModuleAccess(Box::new((lhs, rhs))),
+        }
     }
 
     pub(super) fn sequence(span: Span, sequence: Vec<Expression>) -> Self {
@@ -673,7 +674,7 @@ pub enum Value {
     Qy(Box<Rule>),
     Handled(Box<Handled>),
     Reference(Box<Identifier>),
-    Dynamic(Box<syntax::Identifier>),
+    ModuleAccess(Box<(Expression, syntax::Identifier)>),
     Assert(Box<Assert>),
     End,
 }

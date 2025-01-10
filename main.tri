@@ -1,5 +1,6 @@
 # module io at "trilogy:io" use print
 
 proc main!() {
+  # print!("Hello")
   exit 'c';
 }

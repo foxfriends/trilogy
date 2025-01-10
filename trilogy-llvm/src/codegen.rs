@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::scope::Scope;
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
@@ -8,17 +10,23 @@ use inkwell::{
     values::{FunctionValue, PointerValue},
     OptimizationLevel,
 };
-use trilogy_ir::Id;
+use trilogy_ir::{ir, Id};
 
 pub(crate) struct Codegen<'ctx> {
     pub(crate) context: &'ctx Context,
     pub(crate) module: Module<'ctx>,
     pub(crate) builder: Builder<'ctx>,
     pub(crate) execution_engine: ExecutionEngine<'ctx>,
+    pub(crate) modules: &'ctx HashMap<String, &'ctx ir::Module>,
+    pub(crate) external_modules: HashMap<Id, String>,
+    pub(crate) location: String,
 }
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn new(context: &'ctx Context) -> Self {
+    pub(crate) fn new(
+        context: &'ctx Context,
+        modules: &'ctx HashMap<String, &'ctx ir::Module>,
+    ) -> Self {
         let module = context.create_module("trilogy:runtime");
         let codegen = Codegen {
             builder: context.create_builder(),
@@ -27,6 +35,9 @@ impl<'ctx> Codegen<'ctx> {
                 .create_jit_execution_engine(OptimizationLevel::None)
                 .unwrap(),
             module,
+            modules,
+            external_modules: HashMap::default(),
+            location: "trilogy:runtime".to_owned(),
         };
 
         let submodule = codegen.sub("trilogy:c");

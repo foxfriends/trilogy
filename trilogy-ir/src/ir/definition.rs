@@ -103,16 +103,14 @@ impl Definition {
                             converter.error(error);
                             return;
                         };
-                        constant.value =
-                            Expression::builtin(module_use.r#use.span, Builtin::ModuleAccess)
-                                .apply_to(
-                                    module_symbol.declaration_span,
-                                    Expression::reference(
-                                        module_symbol.declaration_span,
-                                        module_ident.clone(),
-                                    ),
-                                )
-                                .apply_to(module_symbol.declaration_span, Expression::dynamic(name))
+                        constant.value = Expression::module_access(
+                            module_use.r#use.span,
+                            Expression::reference(
+                                module_symbol.declaration_span,
+                                module_ident.clone(),
+                            ),
+                            name,
+                        )
                     }
                 }
             }
@@ -132,19 +130,14 @@ impl Definition {
                             converter.error(error);
                             return;
                         };
-                        constant.value =
-                            Expression::builtin(module_use.r#use.span, Builtin::ModuleAccess)
-                                .apply_to(
-                                    module_symbol.declaration_span,
-                                    Expression::reference(
-                                        module_symbol.declaration_span,
-                                        module_ident.clone(),
-                                    ),
-                                )
-                                .apply_to(
-                                    module_symbol.declaration_span,
-                                    Expression::dynamic(name.clone()),
-                                )
+                        constant.value = Expression::module_access(
+                            module_use.r#use.span,
+                            Expression::reference(
+                                module_symbol.declaration_span,
+                                module_ident.clone(),
+                            ),
+                            name.clone(),
+                        )
                     }
                 }
 

@@ -27,8 +27,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn free(&self) -> FunctionValue<'ctx> {
-        if let Some(malloc) = self.module.get_function("malloc") {
-            return malloc;
+        if let Some(free) = self.module.get_function("free") {
+            return free;
         }
         self.module.add_function(
             "free",

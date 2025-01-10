@@ -4,6 +4,7 @@ use inkwell::{
     AddressSpace,
 };
 use trilogy_ir::ir::{self, Builtin, Value};
+use trilogy_parser::syntax;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_expression(
@@ -26,6 +27,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Application(app) => self.compile_application(scope, app),
             Value::Builtin(val) => self.builtin_value(scope, *val),
             Value::Reference(val) => self.compile_reference(scope, val),
+            Value::ModuleAccess(access) => self.compile_module_access(scope, &access.0, &access.1),
             _ => todo!(),
         }
     }
@@ -72,6 +74,26 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
+    pub(crate) fn compile_module_access(
+        &self,
+        _scope: &mut Scope<'ctx>,
+        module_ref: &ir::Expression,
+        ident: &syntax::Identifier,
+    ) -> PointerValue<'ctx> {
+        // Possibly a static module reference, which we can support very easily and efficiently
+        if let Value::Reference(name) = &module_ref.value {
+            if let Some(name) = self.external_modules.get(&name.id) {
+                let declared = self
+                    .module
+                    .get_function(&format!("{}::{}", name, ident.as_ref()))
+                    .unwrap();
+                return self.callable_value(declared.as_global_value().as_pointer_value());
+            }
+        }
+
+        todo!()
+    }
+
     pub(crate) fn compile_apply_builtin(
         &self,
         scope: &mut Scope<'ctx>,
@@ -105,9 +127,6 @@ impl<'ctx> Codegen<'ctx> {
                     .build_int_add(self.context.i8_type().const_int(65, false), tag, "typeof")
                     .unwrap();
                 self.char_value(tag_char)
-            }
-            Builtin::ModuleAccess => {
-                todo!("this in particular is next")
             }
             _ => todo!(),
         }
