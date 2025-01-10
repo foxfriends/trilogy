@@ -126,11 +126,12 @@ impl<C: Cache> Builder<C> {
     /// Sets the module cache for this Builder. The module cache is used when building
     /// the Trilogy instance to load modules previously loaded from the Internet from
     /// somewhere hopefully faster to reach.
-    #[cfg(feature = "tvm")]
     pub fn with_cache<C2: Cache>(self, cache: C2) -> Builder<C2> {
         Builder {
             root_dir: self.root_dir,
+            #[cfg(feature = "tvm")]
             asm_modules: self.asm_modules,
+            #[cfg(feature = "tvm")]
             native_modules: self.native_modules,
             source_modules: self.source_modules,
             is_library: false,

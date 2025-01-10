@@ -46,7 +46,9 @@ let exit_value = trilogy.run().unwrap();
 )]
 
 #[cfg(feature = "std")]
+#[cfg_attr(all(feature = "llvm"), path = "stdlib-llvm/mod.rs")]
 mod stdlib;
+
 #[cfg(feature = "macros")]
 pub use trilogy_derive::*;
 

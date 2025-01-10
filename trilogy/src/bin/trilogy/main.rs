@@ -12,7 +12,7 @@ use trilogy_vm::Value;
 #[cfg(feature = "dev")]
 mod dev;
 
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "tvm"))]
 mod test_reporter;
 
 /// Trilogy Programming Language
@@ -66,7 +66,6 @@ enum Command {
         library: bool,
     },
     /// Check the syntax and warnings of a Trilogy program.
-    #[cfg(feature = "tvm")]
     Check {
         /// The path to the Trilogy source file containing the `main!()` procedure.
         file: PathBuf,
@@ -75,7 +74,7 @@ enum Command {
         #[arg(short = 'S', long)]
         no_std: bool,
     },
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "tvm", feature = "std"))]
     /// Runs all tests found in the given module and all its submodules.
     ///
     /// The provided path is not required to define a `main` function as
@@ -262,7 +261,7 @@ fn main_sync() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         }
-        #[cfg(feature = "std")]
+        #[cfg(all(feature = "std", feature = "tvm"))]
         Command::Test { file } => match Builder::std().is_library(true).build_from_source(file) {
             Ok(trilogy) => {
                 let mut reporter = test_reporter::Stdout::default();

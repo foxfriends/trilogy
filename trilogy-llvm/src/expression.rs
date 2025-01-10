@@ -106,6 +106,9 @@ impl<'ctx> Codegen<'ctx> {
                     .unwrap();
                 self.char_value(tag_char)
             }
+            Builtin::ModuleAccess => {
+                todo!("this in particular is next")
+            }
             _ => todo!(),
         }
     }

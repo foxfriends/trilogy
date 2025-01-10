@@ -4,11 +4,14 @@ use std::collections::HashMap;
 use trilogy_ir::ir;
 
 mod codegen;
+mod constant;
 mod expression;
+mod module;
 mod pattern_match;
 mod procedure;
 mod scope;
 mod stdlib;
+mod types;
 
 #[repr(C)]
 #[derive(Debug, Default)]

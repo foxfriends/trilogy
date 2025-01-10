@@ -1,0 +1,16 @@
+module libc at "trilogy:libc"
+module str at "trilogy:str"
+
+export print
+proc print!(value) {
+  let value_string = str::cast value
+  let err = libc::printf(value_string);
+  if err < 0 { yield 'ioerror }
+}
+
+export print
+proc println!(value) {
+  let value_string = str::cast value
+  let err = libc::printf(value_string);
+  if err < 0 { yield 'ioerror }
+}
