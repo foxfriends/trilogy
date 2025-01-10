@@ -53,5 +53,5 @@ regex = { version = "1.10.2", optional = true }
 pretty_env_logger = "0.5.0"
 log = "0.4.20"
 serde_json = { version = "1.0.115", optional = true }
-sqlx = { version = "0.7.4", optional = true, features = ["runtime-tokio", "tls-rustls", "bigdecimal", "json", "uuid"] }
+sqlx = { version = "0.8.1", optional = true, features = ["runtime-tokio", "tls-rustls", "bigdecimal", "json", "uuid"] }
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"], optional = true }
