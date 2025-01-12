@@ -46,9 +46,18 @@ impl Codegen<'_> {
         // and unit is returned instead. It is most likely that there is a return in the body,
         // and this final return will be dead code.
         let _value = self.compile_expression(&mut scope, &procedure.body);
-        self.builder
-            .build_store(scope.sret(), self.unit_const())
-            .unwrap();
-        self.builder.build_return(None).unwrap();
+        if !self
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_last_instruction()
+            .unwrap()
+            .is_terminator()
+        {
+            self.builder
+                .build_store(scope.sret(), self.unit_const())
+                .unwrap();
+            self.builder.build_return(None).unwrap();
+        }
     }
 }

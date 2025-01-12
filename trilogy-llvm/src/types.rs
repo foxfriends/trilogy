@@ -254,6 +254,20 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
+    pub(crate) fn bool_value(&self, value: IntValue<'ctx>) -> PointerValue<'ctx> {
+        let pointer = self
+            .builder
+            .build_alloca(self.value_type(), "bool")
+            .unwrap();
+        let value = self
+            .builder
+            .build_int_z_extend(value, self.payload_type(), "")
+            .unwrap();
+        self.set_tag(pointer, TAG_BOOL);
+        self.set_payload(pointer, value);
+        pointer
+    }
+
     pub(crate) fn atom_const(&self, atom: String) -> StructValue<'ctx> {
         let mut atoms = self.atoms.borrow_mut();
         let next = atoms.len() as u64;
@@ -409,8 +423,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn untag(&self, expected: u64, scope: &Scope, value: PointerValue<'ctx>) -> IntValue<'ctx> {
-        let then_block = self.context.append_basic_block(scope.function, "then");
-        let else_block = self.context.append_basic_block(scope.function, "else");
+        let then_block = self.context.append_basic_block(scope.function, "untag_ok");
+        let else_block = self.context.append_basic_block(scope.function, "untag_err");
         let tag = self.get_tag(value);
         let cmp = self
             .builder
@@ -426,12 +440,13 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(else_block);
+        // TODO: upgrade this to print an error message to stderr
         let exit = self.c_exit();
         self.builder
             .build_call(
                 exit,
                 &[self.context.i32_type().const_int(255, false).into()],
-                "exit_type_error",
+                "",
             )
             .unwrap();
         self.builder.build_unreachable().unwrap();
@@ -464,6 +479,18 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
     ) -> IntValue<'ctx> {
         self.untag(TAG_INTEGER, scope, value)
+    }
+
+    /// Untags an integer value.
+    pub(crate) fn untag_boolean(
+        &self,
+        scope: &Scope<'ctx>,
+        value: PointerValue<'ctx>,
+    ) -> IntValue<'ctx> {
+        let int = self.untag(TAG_BOOL, scope, value);
+        self.builder
+            .build_int_truncate(int, self.context.bool_type(), "")
+            .unwrap()
     }
 
     /// Untags a string value. The returrned PointerValue points to a value of `string_value_type`.

@@ -17,6 +17,4 @@ where
             Location::library("atom").unwrap(),
             include_str!("./atom.tri").to_owned(),
         )
-        .native_module(Location::library("c").unwrap())
-        .native_module(Location::library("atom/rt").unwrap())
 }

@@ -3,3 +3,4 @@
 /target
 a.out
 *.ll
+/main.tri

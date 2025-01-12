@@ -58,7 +58,7 @@ impl Builder<FileSystemCache> {
         let home = home_dir()
             .expect("home dir should exist")
             .join(".trilogy/cache");
-        Builder::new()
+        Builder::default()
             .with_cache(
                 FileSystemCache::new(home)
                     .expect("canonical cache dir ~/.trilogy/cache is occupied"),
@@ -71,9 +71,20 @@ impl Builder<FileSystemCache> {
     }
 }
 
+#[cfg(feature = "tvm")]
 impl Default for Builder<NoopCache> {
     fn default() -> Self {
-        Self::new()
+        Self::empty()
+    }
+}
+
+#[cfg(feature = "llvm")]
+impl Default for Builder<NoopCache> {
+    fn default() -> Self {
+        Self::empty()
+            .native_module(Location::library("core").unwrap())
+            .native_module(Location::library("atom/rt").unwrap())
+            .native_module(Location::library("c").unwrap())
     }
 }
 
@@ -85,6 +96,10 @@ impl Builder<NoopCache> {
     ///
     /// This builder also does not come with a cache for some reason.
     pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn empty() -> Self {
         Self {
             root_dir: None,
             #[cfg(feature = "tvm")]

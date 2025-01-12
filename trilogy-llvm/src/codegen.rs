@@ -83,6 +83,12 @@ impl<'ctx> Codegen<'ctx> {
             self.module.link_in_module(subcontext.module).unwrap();
         }
 
+        {
+            let subcontext = self.sub("trilogy:core");
+            subcontext.core();
+            self.module.link_in_module(subcontext.module).unwrap();
+        }
+
         (self.module, self.execution_engine)
     }
 

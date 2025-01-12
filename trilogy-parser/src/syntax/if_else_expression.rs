@@ -66,8 +66,9 @@ impl IfElseExpression {
             return false;
         }
         match &self.when_false {
-            Some(case) => match &case.expression {
-                Expression::IfElse(else_if) => else_if.is_strict_statement(),
+            Some(case) => match &case.body {
+                ElseBody::Expression(Expression::IfElse(else_if)) => else_if.is_strict_statement(),
+                ElseBody::Block(..) => true,
                 _ => false,
             },
             _ => true,
@@ -100,7 +101,13 @@ impl IfBody {
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub struct ElseClause {
     pub r#else: Token,
-    pub expression: Expression,
+    pub body: ElseBody,
+}
+
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+pub enum ElseBody {
+    Expression(Expression),
+    Block(Block),
 }
 
 impl ElseClause {
@@ -108,7 +115,11 @@ impl ElseClause {
         let r#else = parser
             .expect(KwElse)
             .expect("Caller should have found this");
-        let expression = Expression::parse(parser)?;
-        Ok(Self { r#else, expression })
+        let body = if parser.check(OBrace).is_ok() {
+            ElseBody::Block(Block::parse(parser)?)
+        } else {
+            ElseBody::Expression(Expression::parse(parser)?)
+        };
+        Ok(Self { r#else, body })
     }
 }

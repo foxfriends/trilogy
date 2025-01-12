@@ -142,7 +142,7 @@ pub use handled_expression::HandledExpression;
 pub use handler::Handler;
 pub use handler_strategy::HandlerStrategy;
 pub use identifier::Identifier;
-pub use if_else_expression::{ElseClause, IfBody, IfElseExpression};
+pub use if_else_expression::{ElseBody, ElseClause, IfBody, IfElseExpression};
 pub use is_expression::IsExpression;
 pub use keyword_reference::{Keyword, KeywordReference};
 pub use let_expression::LetExpression;

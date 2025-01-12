@@ -37,6 +37,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Builtin(val) => self.builtin_value(scope, *val),
             Value::Reference(val) => self.compile_reference(scope, val),
             Value::ModuleAccess(access) => self.compile_module_access(scope, &access.0, &access.1),
+            Value::IfElse(if_else) => self.compile_if_else(scope, if_else),
             _ => todo!(),
         }
     }
@@ -57,6 +58,12 @@ impl<'ctx> Codegen<'ctx> {
         match &application.function.value {
             Value::Builtin(builtin) => {
                 self.compile_apply_builtin(scope, *builtin, &application.argument)
+            }
+            Value::Application(app) if matches!(app.function.value, Value::Builtin(..)) => {
+                let Value::Builtin(builtin) = &app.function.value else {
+                    unreachable!();
+                };
+                self.compile_apply_binary(scope, *builtin, &app.argument, &application.argument)
             }
             _ => {
                 let function = self.compile_expression(scope, &application.function);
@@ -128,7 +135,7 @@ impl<'ctx> Codegen<'ctx> {
                 let exit = self.exit();
                 let argument = self.compile_expression(scope, expression);
                 let output = self.call_procedure(exit, &[argument.into()], "exit");
-                self.builder.build_unreachable().unwrap();
+                // self.builder.build_unreachable().unwrap();
                 output
             }
             Builtin::Typeof => {
@@ -139,6 +146,23 @@ impl<'ctx> Codegen<'ctx> {
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
                 self.raw_atom_value(raw_atom)
+            }
+            _ => todo!(),
+        }
+    }
+
+    pub(crate) fn compile_apply_binary(
+        &self,
+        scope: &mut Scope<'ctx>,
+        builtin: Builtin,
+        lhs: &ir::Expression,
+        rhs: &ir::Expression,
+    ) -> PointerValue<'ctx> {
+        match builtin {
+            Builtin::StructuralEquality => {
+                let lhs = self.compile_expression(scope, lhs);
+                let rhs = self.compile_expression(scope, rhs);
+                self.call_procedure(self.structural_eq(), &[lhs.into(), rhs.into()], "eq")
             }
             _ => todo!(),
         }
@@ -182,5 +206,38 @@ impl<'ctx> Codegen<'ctx> {
                 _ => todo!(),
             }
         }
+    }
+
+    pub(crate) fn compile_if_else(
+        &self,
+        scope: &mut Scope<'ctx>,
+        if_else: &ir::IfElse,
+    ) -> PointerValue<'ctx> {
+        let condition = self.compile_expression(scope, &if_else.condition);
+        let if_true = self.context.append_basic_block(scope.function, "if_true");
+        let if_false = self.context.append_basic_block(scope.function, "if_false");
+        let if_cont = self.context.append_basic_block(scope.function, "if_cont");
+        let condition = self.untag_boolean(scope, condition);
+        self.builder
+            .build_conditional_branch(condition, if_true, if_false)
+            .unwrap();
+
+        self.builder.position_at_end(if_true);
+        let when_true = self.compile_expression(scope, &if_else.when_true);
+        let if_true = self.builder.get_insert_block().unwrap();
+        self.builder.build_unconditional_branch(if_cont).unwrap();
+
+        self.builder.position_at_end(if_false);
+        let when_false = self.compile_expression(scope, &if_else.when_false);
+        let if_false = self.builder.get_insert_block().unwrap();
+        self.builder.build_unconditional_branch(if_cont).unwrap();
+
+        self.builder.position_at_end(if_cont);
+        let phi = self
+            .builder
+            .build_phi(self.context.ptr_type(AddressSpace::default()), "if_eval")
+            .unwrap();
+        phi.add_incoming(&[(&when_true, if_true), (&when_false, if_false)]);
+        phi.as_basic_value().into_pointer_value()
     }
 }
