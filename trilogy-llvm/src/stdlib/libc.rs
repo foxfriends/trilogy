@@ -45,7 +45,7 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    fn free(&self) -> FunctionValue<'ctx> {
+    fn declare_free(&self) -> FunctionValue<'ctx> {
         if let Some(free) = self.module.get_function("free") {
             return free;
         }
@@ -57,6 +57,11 @@ impl<'ctx> Codegen<'ctx> {
             ),
             None,
         )
+    }
+
+    fn free(&self, ptr: PointerValue<'ctx>, name: &str) {
+        let free = self.declare_free();
+        self.builder.build_call(free, &[ptr.into()], name).unwrap();
     }
 
     pub(crate) fn c_exit(&self) -> FunctionValue<'ctx> {
@@ -145,7 +150,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap();
         let format_ptr = self.malloc(malloc_length, "format_str");
-        let string = self.get_string_value_pointer(string, "string");
+        let string = self.get_string_value_pointer(string, "string_content");
 
         let memcpy = Intrinsic::find("llvm.memcpy").unwrap();
         let memcpy = memcpy
@@ -166,7 +171,7 @@ impl<'ctx> Codegen<'ctx> {
                     format_ptr.into(),
                     string.into(),
                     length.into(),
-                    self.context.bool_type().const_zero().into(),
+                    self.context.bool_type().const_int(1, false).into(),
                 ],
                 "",
             )
@@ -176,7 +181,7 @@ impl<'ctx> Codegen<'ctx> {
                 .build_gep(
                     self.context.i8_type().array_type(0),
                     format_ptr,
-                    &[length],
+                    &[self.context.i32_type().const_zero(), length],
                     "",
                 )
                 .unwrap()
@@ -200,9 +205,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_int_s_extend(error_code, self.payload_type(), "")
             .unwrap();
-        self.builder
-            .build_call(self.free(), &[string.into()], "")
-            .unwrap();
+        self.free(format_ptr, "");
         let error_code = self.int_value(error_code);
         self.builder.build_store(scope.sret(), error_code).unwrap();
         self.builder.build_return(None).unwrap();

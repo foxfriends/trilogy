@@ -7,17 +7,25 @@ impl Codegen<'_> {
         self.add_procedure(&format!("{}::{}", location, constant.name), 0, true);
     }
 
-    pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition, exported: bool) {
+    pub(crate) fn declare_constant(&self, constant: &ir::ConstantDefinition, exported: bool) {
+        self.add_procedure(
+            &format!("{}::{}", self.location, constant.name),
+            0,
+            exported,
+        );
+    }
+
+    pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition) {
         let global = self
             .module
             .add_global(self.value_type(), None, &definition.name.to_string());
         global.set_linkage(Linkage::Private);
         global.set_initializer(&self.value_type().const_zero());
-        let function = self.add_procedure(
-            &format!("{}::{}", self.location, definition.name),
-            0,
-            exported,
-        );
+
+        let function = self
+            .module
+            .get_function(&format!("{}::{}", self.location, definition.name))
+            .unwrap();
 
         let mut scope = Scope::begin(function);
         let basic_block = self.context.append_basic_block(function, "entry");

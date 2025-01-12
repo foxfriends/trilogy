@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::codegen::Codegen;
+use crate::codegen::{Codegen, Head};
 use trilogy_ir::ir::{self, DefinitionItem};
 
 impl<'ctx> Codegen<'ctx> {
@@ -12,7 +12,7 @@ impl<'ctx> Codegen<'ctx> {
             execution_engine: self.execution_engine.clone(),
             module,
             modules: self.modules,
-            external_modules: HashMap::new(),
+            globals: HashMap::new(),
             location: name.to_owned(),
         }
     }
@@ -32,8 +32,21 @@ impl<'ctx> Codegen<'ctx> {
                         subcontext.import_libc();
                     }
                     subcontext
-                        .external_modules
-                        .insert(module.name.id.clone(), location);
+                        .globals
+                        .insert(module.name.id.clone(), Head::Module(location));
+                }
+                DefinitionItem::Constant(constant) => {
+                    subcontext.declare_constant(constant, definition.is_exported);
+                    subcontext
+                        .globals
+                        .insert(constant.name.id.clone(), Head::Constant);
+                }
+                DefinitionItem::Procedure(procedure) => {
+                    subcontext.declare_procedure(procedure, definition.is_exported);
+                    let arity = procedure.overloads[0].parameters.len();
+                    subcontext
+                        .globals
+                        .insert(procedure.name.id.clone(), Head::Procedure(arity));
                 }
                 _ => {}
             }
@@ -43,11 +56,11 @@ impl<'ctx> Codegen<'ctx> {
         for definition in module.definitions() {
             match &definition.item {
                 DefinitionItem::Procedure(procedure) => {
-                    subcontext.compile_procedure(procedure, definition.is_exported);
+                    subcontext.compile_procedure(procedure);
                 }
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {}
                 DefinitionItem::Constant(constant) => {
-                    subcontext.compile_constant(constant, definition.is_exported);
+                    subcontext.compile_constant(constant);
                 }
                 _ => todo!(),
             }

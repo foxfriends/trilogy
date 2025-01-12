@@ -12,13 +12,21 @@ use inkwell::{
 };
 use trilogy_ir::{ir, Id};
 
+pub(crate) enum Head {
+    Constant,
+    Function,
+    Procedure(usize),
+    Rule(usize),
+    Module(String),
+}
+
 pub(crate) struct Codegen<'ctx> {
     pub(crate) context: &'ctx Context,
     pub(crate) module: Module<'ctx>,
     pub(crate) builder: Builder<'ctx>,
     pub(crate) execution_engine: ExecutionEngine<'ctx>,
     pub(crate) modules: &'ctx HashMap<String, Option<&'ctx ir::Module>>,
-    pub(crate) external_modules: HashMap<Id, String>,
+    pub(crate) globals: HashMap<Id, Head>,
     pub(crate) location: String,
 }
 
@@ -36,7 +44,7 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap(),
             module,
             modules,
-            external_modules: HashMap::default(),
+            globals: HashMap::default(),
             location: "trilogy:runtime".to_owned(),
         };
 

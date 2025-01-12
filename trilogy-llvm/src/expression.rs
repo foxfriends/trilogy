@@ -1,4 +1,4 @@
-use crate::{scope::Scope, Codegen};
+use crate::{codegen::Head, scope::Scope, Codegen};
 use inkwell::{
     values::{BasicMetadataValueEnum, PointerValue},
     AddressSpace,
@@ -82,7 +82,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(name) = &module_ref.value {
-            if let Some(name) = self.external_modules.get(&name.id) {
+            if let Some(Head::Module(name)) = self.globals.get(&name.id) {
                 let declared = self
                     .module
                     .get_function(&format!("{}::{}", name, ident.as_ref()))
@@ -139,23 +139,36 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         if let Some(variable) = scope.variables.get(&identifier.id) {
             return *variable;
-        } else if let Some(name) = identifier.id.name() {
-            let global_name = format!("{}::{name}", self.module.get_name().to_str().unwrap());
-            if let Some(function) = self.module.get_function(&global_name) {
-                // TODO: this is ALL WRONG
-                // * when it's a constant: call it immediately to get its contained value
-                // * when it's a function: create a pointer to the function so it can be called next
-                //
-                // We could generalize this by mangling every function and referencing only constants
-                // (which are in turn the 0-arity functions) but that feels inefficient and dumb
-                let pointer = function.as_global_value().as_pointer_value();
-                let stack = self.builder.build_alloca(self.value_type(), name).unwrap();
-                self.builder
-                    .build_store(stack, self.callable_value(pointer))
-                    .unwrap();
-                return stack;
+        } else {
+            let name = identifier.id.name().unwrap();
+            match self
+                .globals
+                .get(&identifier.id)
+                .expect("Unresolved variable")
+            {
+                Head::Constant => {
+                    let global_name =
+                        format!("{}::{name}", self.module.get_name().to_str().unwrap());
+                    let function = self.module.get_function(&global_name).unwrap();
+                    let stack = self.builder.build_alloca(self.value_type(), name).unwrap();
+                    self.builder
+                        .build_call(function, &[stack.into()], "")
+                        .unwrap();
+                    stack
+                }
+                Head::Procedure(..) => {
+                    let global_name =
+                        format!("{}::{name}", self.module.get_name().to_str().unwrap());
+                    let function = self.module.get_function(&global_name).unwrap();
+                    let pointer = function.as_global_value().as_pointer_value();
+                    let stack = self.builder.build_alloca(self.value_type(), name).unwrap();
+                    self.builder
+                        .build_store(stack, self.callable_value(pointer))
+                        .unwrap();
+                    stack
+                }
+                _ => todo!(),
             }
         }
-        panic!("Unresolved variable");
     }
 }

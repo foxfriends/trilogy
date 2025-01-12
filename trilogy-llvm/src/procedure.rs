@@ -12,14 +12,23 @@ impl Codegen<'_> {
         );
     }
 
-    pub(crate) fn compile_procedure(&self, definition: &ir::ProcedureDefinition, exported: bool) {
+    pub(crate) fn declare_procedure(&self, definition: &ir::ProcedureDefinition, exported: bool) {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
-        let function = self.add_procedure(
+        self.add_procedure(
             &format!("{}::{}", self.location, definition.name),
             procedure.parameters.len(),
             exported,
         );
+    }
+
+    pub(crate) fn compile_procedure(&self, definition: &ir::ProcedureDefinition) {
+        assert_eq!(definition.overloads.len(), 1);
+        let procedure = &definition.overloads[0];
+        let function = self
+            .module
+            .get_function(&format!("{}::{}", self.location, definition.name))
+            .unwrap();
 
         let mut scope = Scope::begin(function);
         let basic_block = self.context.append_basic_block(function, "entry");
