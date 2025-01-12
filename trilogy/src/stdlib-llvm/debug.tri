@@ -1,0 +1,7 @@
+module libc at "trilogy:c"
+
+export dbg
+proc dbg!(value) {
+  libc::printf!(value)
+  return value
+}

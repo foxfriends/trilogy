@@ -24,7 +24,7 @@ struct TrilogyValue {
 type Entrypoint = unsafe extern "C" fn() -> u8;
 
 pub fn evaluate(
-    modules: HashMap<String, &ir::Module>,
+    modules: HashMap<String, Option<&ir::Module>>,
     entrymodule: &str,
     entrypoint: &str,
     _parameters: Vec<String>,
@@ -32,6 +32,9 @@ pub fn evaluate(
     let context = Context::create();
     let codegen = Codegen::new(&context, &modules);
     for (file, module) in &modules {
+        let Some(module) = module else {
+            continue;
+        };
         let submodule = codegen.compile_module(file, module);
         codegen.module.link_in_module(submodule.module).unwrap();
     }
@@ -50,7 +53,7 @@ pub fn evaluate(
 }
 
 pub fn compile(
-    modules: HashMap<String, &ir::Module>,
+    modules: HashMap<String, Option<&ir::Module>>,
     entrymodule: &str,
     entrypoint: &str,
 ) -> HashMap<String, String> {
@@ -59,6 +62,9 @@ pub fn compile(
     let mut compiled = HashMap::with_capacity(modules.len() + 1);
     compiled.insert("trilogy:runtime".to_owned(), codegen.module.to_string());
     for (file, module) in &modules {
+        let Some(module) = module else {
+            continue;
+        };
         let submodule = codegen.compile_module(file, module);
         if file == entrymodule {
             submodule.compile_entrypoint(entrymodule, entrypoint);
@@ -69,13 +75,16 @@ pub fn compile(
 }
 
 pub fn compile_and_link(
-    modules: HashMap<String, &ir::Module>,
+    modules: HashMap<String, Option<&ir::Module>>,
     entrymodule: &str,
     entrypoint: &str,
 ) -> String {
     let context = Context::create();
     let codegen = Codegen::new(&context, &modules);
     for (file, module) in &modules {
+        let Some(module) = module else {
+            continue;
+        };
         let submodule = codegen.compile_module(file, module);
         codegen.module.link_in_module(submodule.module).unwrap();
     }

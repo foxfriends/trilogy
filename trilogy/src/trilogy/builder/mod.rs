@@ -182,7 +182,7 @@ impl<C: Cache> Builder<C> {
             root_dir,
             #[cfg(feature = "tvm")]
             asm_modules,
-            native_modules: _,
+            native_modules,
             source_modules,
             is_library,
         } = self;
@@ -220,10 +220,13 @@ impl<C: Cache> Builder<C> {
         ));
 
         #[cfg(feature = "llvm")]
-        return Ok(Trilogy::new(Source::Trilogy {
-            modules,
-            entrypoint,
-        }));
+        return Ok(Trilogy::new(
+            Source::Trilogy {
+                modules,
+                entrypoint,
+            },
+            native_modules,
+        ));
 
         unreachable!()
     }

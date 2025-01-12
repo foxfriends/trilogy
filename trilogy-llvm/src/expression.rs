@@ -142,6 +142,12 @@ impl<'ctx> Codegen<'ctx> {
         } else if let Some(name) = identifier.id.name() {
             let global_name = format!("{}::{name}", self.module.get_name().to_str().unwrap());
             if let Some(function) = self.module.get_function(&global_name) {
+                // TODO: this is ALL WRONG
+                // * when it's a constant: call it immediately to get its contained value
+                // * when it's a function: create a pointer to the function so it can be called next
+                //
+                // We could generalize this by mangling every function and referencing only constants
+                // (which are in turn the 0-arity functions) but that feels inefficient and dumb
                 let pointer = function.as_global_value().as_pointer_value();
                 let stack = self.builder.build_alloca(self.value_type(), name).unwrap();
                 self.builder

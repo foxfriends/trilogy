@@ -1,5 +1,4 @@
 #![expect(dead_code, reason = "WIP")]
-
 use crate::{codegen::Codegen, scope::Scope};
 use inkwell::{
     basic_block::BasicBlock,
@@ -186,6 +185,40 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn get_string_value_length(
+        &self,
+        string_value: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let length_field = self
+            .builder
+            .build_struct_gep(self.string_value_type(), string_value, 0, "")
+            .unwrap();
+        self.builder
+            .build_load(self.context.i64_type(), length_field, name)
+            .unwrap()
+            .into_int_value()
+    }
+
+    pub(crate) fn get_string_value_pointer(
+        &self,
+        string_value: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let pointer_field = self
+            .builder
+            .build_struct_gep(self.string_value_type(), string_value, 1, "")
+            .unwrap();
+        self.builder
+            .build_load(
+                self.context.ptr_type(AddressSpace::default()),
+                pointer_field,
+                name,
+            )
+            .unwrap()
+            .into_pointer_value()
+    }
+
     pub(crate) fn bits_value_type(&self) -> StructType<'ctx> {
         self.context
             .struct_type(&[self.usize_type().into(), self.usize_type().into()], false)
@@ -274,6 +307,7 @@ impl<'ctx> Codegen<'ctx> {
             "",
         );
         string.set_initializer(&self.context.const_string(bytes, false));
+        string.set_constant(true);
         let string = self.string_value_type().const_named_struct(&[
             self.context
                 .i64_type()
@@ -283,6 +317,7 @@ impl<'ctx> Codegen<'ctx> {
         ]);
         let global = self.module.add_global(self.string_value_type(), None, "");
         global.set_initializer(&string);
+        global.set_constant(true);
         let int = self
             .builder
             .build_ptr_to_int(global.as_pointer_value(), self.payload_type(), "")
@@ -371,7 +406,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(else_block);
-        let exit = self.exit();
+        let exit = self.c_exit();
         self.builder
             .build_call(
                 exit,

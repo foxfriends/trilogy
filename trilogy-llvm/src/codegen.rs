@@ -17,7 +17,7 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) module: Module<'ctx>,
     pub(crate) builder: Builder<'ctx>,
     pub(crate) execution_engine: ExecutionEngine<'ctx>,
-    pub(crate) modules: &'ctx HashMap<String, &'ctx ir::Module>,
+    pub(crate) modules: &'ctx HashMap<String, Option<&'ctx ir::Module>>,
     pub(crate) external_modules: HashMap<Id, String>,
     pub(crate) location: String,
 }
@@ -25,7 +25,7 @@ pub(crate) struct Codegen<'ctx> {
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn new(
         context: &'ctx Context,
-        modules: &'ctx HashMap<String, &'ctx ir::Module>,
+        modules: &'ctx HashMap<String, Option<&'ctx ir::Module>>,
     ) -> Self {
         let module = context.create_module("trilogy:runtime");
         let codegen = Codegen {

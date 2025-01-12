@@ -40,12 +40,13 @@ impl<E: std::error::Error + 'static> Report<E> {
     ///
     /// This is the intended way of consuming a Report.
     pub fn eprint(&self) {
-        let empty = HashMap::default();
+        // NOTE: errors in libraries are unexpected, and cannot be reported accurately at this time
+        let empty = HashMap::new();
         let loader = Loader::new(self.cache.as_ref(), &empty);
         let cache = FnCache::new(move |loc: &Location| {
             loader
                 .load_source(loc)
-                .map(|s| s.unwrap())
+                .map(|s| s.unwrap_or_else(|| "".to_owned()))
                 .map_err(|e| Box::new(e) as Box<dyn Debug>)
         });
         let mut cache = LoaderCache::<_, String>::new(&self.relative_base, cache);

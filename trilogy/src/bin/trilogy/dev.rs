@@ -119,7 +119,7 @@ pub fn run(command: Command) -> std::io::Result<()> {
             }
         },
         #[cfg(feature = "llvm")]
-        Command::Asm { file, link } => match Builder::default().build_from_source(file) {
+        Command::Asm { file, link } => match Builder::std().build_from_source(file) {
             Ok(trilogy) if link => {
                 print!("{}", trilogy.compile());
             }

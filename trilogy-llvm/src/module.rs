@@ -26,7 +26,11 @@ impl<'ctx> Codegen<'ctx> {
             match &definition.item {
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {
                     let location = module.module.as_external().unwrap().to_owned();
-                    subcontext.import_module(&location, subcontext.modules.get(&location).unwrap());
+                    if let Some(submodule) = subcontext.modules.get(&location).unwrap() {
+                        subcontext.import_module(&location, submodule);
+                    } else {
+                        subcontext.import_libc();
+                    }
                     subcontext
                         .external_modules
                         .insert(module.name.id.clone(), location);

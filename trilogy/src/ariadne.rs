@@ -12,8 +12,14 @@ pub(crate) trait CacheExt<I>: ariadne::Cache<I> {
     {
         match self.fetch(location) {
             Ok(source) => {
-                let start = source.line(span.start().line).unwrap().offset() + span.start().column;
-                let end = source.line(span.end().line).unwrap().offset() + span.end().column;
+                let Some(start_line) = source.line(span.start().line) else {
+                    return (location.clone(), 0..0);
+                };
+                let Some(end_line) = source.line(span.end().line) else {
+                    return (location.clone(), 0..0);
+                };
+                let start = start_line.offset() + span.start().column;
+                let end = end_line.offset() + span.end().column;
                 (location.clone(), start..end)
             }
             Err(..) => (location.clone(), 0..0),

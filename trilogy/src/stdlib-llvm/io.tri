@@ -2,12 +2,16 @@ module libc at "trilogy:c"
 
 export print
 proc print!(value) {
-  let err = libc::printf(value_string);
-  if err < 0 { yield 'ioerror }
+  let err = libc::printf!(value)
+  if err < 0 {
+    yield 'ioerror
+  }
 }
 
-export print
+export println
 proc println!(value) {
-  let err = libc::printf(value_string);
-  if err < 0 { yield 'ioerror }
+  let err = libc::printf!(value)
+  if err < 0 {
+    yield 'ioerror
+  }
 }

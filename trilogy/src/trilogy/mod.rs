@@ -2,6 +2,8 @@ use crate::location::Location;
 #[cfg(feature = "tvm")]
 use crate::RuntimeError;
 use std::collections::HashMap;
+#[cfg(feature = "llvm")]
+use std::collections::HashSet;
 #[cfg(feature = "std")]
 use std::path::Path;
 use trilogy_ir::ir::Module;
@@ -54,6 +56,8 @@ pub struct Trilogy {
     source: Source,
     #[cfg(feature = "tvm")]
     libraries: HashMap<Location, Native>,
+    #[cfg(feature = "llvm")]
+    libraries: HashSet<Location>,
     #[cfg(feature = "tvm")]
     vm: VirtualMachine,
 }
@@ -92,8 +96,8 @@ impl Trilogy {
     }
 
     #[cfg(feature = "llvm")]
-    fn new(source: Source) -> Self {
-        Self { source }
+    fn new(source: Source, libraries: HashSet<Location>) -> Self {
+        Self { source, libraries }
     }
 
     pub fn source_entrypoint(&self) -> Option<&Location> {
@@ -226,7 +230,12 @@ impl Trilogy {
             } => {
                 let modules = modules
                     .iter()
-                    .map(|(location, module)| (location.to_string(), module))
+                    .map(|(location, module)| (location.to_string(), Some(module)))
+                    .chain(
+                        self.libraries
+                            .iter()
+                            .map(|location| (location.to_string(), None)),
+                    )
                     .collect();
                 let path = main.path();
                 let main_name = path.last().unwrap();
@@ -381,7 +390,12 @@ impl Trilogy {
             } => {
                 let modules = modules
                     .iter()
-                    .map(|(location, module)| (location.to_string(), module))
+                    .map(|(location, module)| (location.to_string(), Some(module)))
+                    .chain(
+                        self.libraries
+                            .iter()
+                            .map(|location| (location.to_string(), None)),
+                    )
                     .collect();
                 trilogy_llvm::compile_and_link(modules, &entrypoint.to_string(), "main")
             }
@@ -398,7 +412,12 @@ impl Trilogy {
             } => {
                 let modules = modules
                     .iter()
-                    .map(|(location, module)| (location.to_string(), module))
+                    .map(|(location, module)| (location.to_string(), Some(module)))
+                    .chain(
+                        self.libraries
+                            .iter()
+                            .map(|location| (location.to_string(), None)),
+                    )
                     .collect();
                 trilogy_llvm::compile(modules, &entrypoint.to_string(), "main")
             }
