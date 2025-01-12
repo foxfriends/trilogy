@@ -181,7 +181,7 @@ fn main_sync() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        #[cfg(all(feature = "std"))]
+        #[cfg(feature = "std")]
         Command::Run {
             file, print, debug, ..
         } => match Trilogy::from_file(file) {

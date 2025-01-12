@@ -150,7 +150,7 @@ impl<'ctx> Codegen<'ctx> {
         identifier: &ir::Identifier,
     ) -> PointerValue<'ctx> {
         if let Some(variable) = scope.variables.get(&identifier.id) {
-            return *variable;
+            *variable
         } else {
             let name = identifier.id.name().unwrap();
             match self

@@ -12,6 +12,7 @@ use inkwell::{
 };
 use trilogy_ir::{ir, Id};
 
+#[expect(dead_code, reason = "WIP")]
 pub(crate) enum Head {
     Constant,
     Function,
