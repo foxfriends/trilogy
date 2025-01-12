@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{scope::Scope, types::TAG_UNIT};
+use crate::{scope::Scope, types};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     builder::Builder,
@@ -21,6 +21,7 @@ pub(crate) enum Head {
 }
 
 pub(crate) struct Codegen<'ctx> {
+    pub(crate) atoms: Rc<RefCell<HashMap<String, u64>>>,
     pub(crate) context: &'ctx Context,
     pub(crate) module: Module<'ctx>,
     pub(crate) builder: Builder<'ctx>,
@@ -36,7 +37,23 @@ impl<'ctx> Codegen<'ctx> {
         modules: &'ctx HashMap<String, Option<&'ctx ir::Module>>,
     ) -> Self {
         let module = context.create_module("trilogy:runtime");
+        let mut atoms = HashMap::new();
+        atoms.insert("undefined".to_owned(), types::TAG_UNDEFINED);
+        atoms.insert("unit".to_owned(), types::TAG_UNIT);
+        atoms.insert("bool".to_owned(), types::TAG_BOOL);
+        atoms.insert("atom".to_owned(), types::TAG_ATOM);
+        atoms.insert("char".to_owned(), types::TAG_CHAR);
+        atoms.insert("string".to_owned(), types::TAG_STRING);
+        atoms.insert("integer".to_owned(), types::TAG_INTEGER);
+        atoms.insert("bits".to_owned(), types::TAG_BITS);
+        atoms.insert("struct".to_owned(), types::TAG_STRUCT);
+        atoms.insert("tuple".to_owned(), types::TAG_TUPLE);
+        atoms.insert("array".to_owned(), types::TAG_ARRAY);
+        atoms.insert("set".to_owned(), types::TAG_SET);
+        atoms.insert("record".to_owned(), types::TAG_RECORD);
+        atoms.insert("callable".to_owned(), types::TAG_CALLABLE);
         let codegen = Codegen {
+            atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
             context,
             execution_engine: module
@@ -82,7 +99,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_int_compare(
                 IntPredicate::EQ,
                 tag,
-                self.tag_type().const_int(TAG_UNIT, false),
+                self.tag_type().const_int(types::TAG_UNIT, false),
                 "",
             )
             .unwrap();

@@ -9,20 +9,20 @@ use inkwell::{
     AddressSpace, IntPredicate,
 };
 
-const TAG_UNDEFINED: u64 = 0;
+pub(crate) const TAG_UNDEFINED: u64 = 0;
 pub(crate) const TAG_UNIT: u64 = 1;
-const TAG_BOOL: u64 = 2;
-const TAG_ATOM: u64 = 3;
-const TAG_CHAR: u64 = 4;
-const TAG_STRING: u64 = 5;
-const TAG_INTEGER: u64 = 6;
-const TAG_BITS: u64 = 7;
-const TAG_STRUCT: u64 = 8;
-const TAG_TUPLE: u64 = 9;
-const TAG_ARRAY: u64 = 10;
-const TAG_SET: u64 = 11;
-const TAG_RECORD: u64 = 12;
-const TAG_CALLABLE: u64 = 13;
+pub(crate) const TAG_BOOL: u64 = 2;
+pub(crate) const TAG_ATOM: u64 = 3;
+pub(crate) const TAG_CHAR: u64 = 4;
+pub(crate) const TAG_STRING: u64 = 5;
+pub(crate) const TAG_INTEGER: u64 = 6;
+pub(crate) const TAG_BITS: u64 = 7;
+pub(crate) const TAG_STRUCT: u64 = 8;
+pub(crate) const TAG_TUPLE: u64 = 9;
+pub(crate) const TAG_ARRAY: u64 = 10;
+pub(crate) const TAG_SET: u64 = 11;
+pub(crate) const TAG_RECORD: u64 = 12;
+pub(crate) const TAG_CALLABLE: u64 = 13;
 
 pub(crate) trait TrilogyCallable<'ctx> {
     fn build_procedure_call(
@@ -254,11 +254,24 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn atom_const(&self, id: u64) -> StructValue<'ctx> {
+    pub(crate) fn atom_const(&self, atom: String) -> StructValue<'ctx> {
+        let mut atoms = self.atoms.borrow_mut();
+        let next = atoms.len() as u64;
+        let id = atoms.entry(atom.to_owned()).or_insert(next);
         self.value_type().const_named_struct(&[
             self.tag_type().const_int(TAG_ATOM, false).into(),
-            self.payload_type().const_int(id, false).into(),
+            self.payload_type().const_int(*id, false).into(),
         ])
+    }
+
+    pub(crate) fn raw_atom_value(&self, atom: IntValue<'ctx>) -> PointerValue<'ctx> {
+        let pointer = self
+            .builder
+            .build_alloca(self.value_type(), "atom")
+            .unwrap();
+        self.set_tag(pointer, TAG_ATOM);
+        self.set_payload(pointer, atom);
+        pointer
     }
 
     pub(crate) fn char_const(&self, value: char) -> StructValue<'ctx> {

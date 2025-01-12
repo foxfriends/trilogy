@@ -25,6 +25,7 @@ impl<'ctx> Codegen<'ctx> {
                     todo!("Support non-integers and large integers")
                 }
             }
+            Value::Atom(atom) => self.allocate_const(self.atom_const(atom.to_owned())),
             Value::Sequence(exprs) => {
                 let mut value = self.allocate_const(self.unit_const());
                 for expr in exprs {
@@ -53,31 +54,34 @@ impl<'ctx> Codegen<'ctx> {
         scope: &mut Scope<'ctx>,
         application: &ir::Application,
     ) -> PointerValue<'ctx> {
-        if let Value::Builtin(builtin) = &application.function.value {
-            return self.compile_apply_builtin(scope, *builtin, &application.argument);
-        }
-
-        let function = self.compile_expression(scope, &application.function);
-        let function = self.untag_function(scope, function);
-        match &application.argument.value {
-            // Procedure application
-            Value::Pack(pack) => {
-                let arguments: Vec<_> = pack
-                    .values
-                    .iter()
-                    .map(|val| {
-                        assert!(!val.is_spread);
-                        BasicMetadataValueEnum::from(
-                            self.compile_expression(scope, &val.expression),
-                        )
-                    })
-                    .collect();
-                self.call_procedure(function, &arguments, "")
+        match &application.function.value {
+            Value::Builtin(builtin) => {
+                self.compile_apply_builtin(scope, *builtin, &application.argument)
             }
-            // Function application
             _ => {
-                let argument = self.compile_expression(scope, &application.argument);
-                self.apply_function(function, argument.into(), "")
+                let function = self.compile_expression(scope, &application.function);
+                let function = self.untag_function(scope, function);
+                match &application.argument.value {
+                    // Procedure application
+                    Value::Pack(pack) => {
+                        let arguments: Vec<_> = pack
+                            .values
+                            .iter()
+                            .map(|val| {
+                                assert!(!val.is_spread);
+                                BasicMetadataValueEnum::from(
+                                    self.compile_expression(scope, &val.expression),
+                                )
+                            })
+                            .collect();
+                        self.call_procedure(function, &arguments, "")
+                    }
+                    // Function application
+                    _ => {
+                        let argument = self.compile_expression(scope, &application.argument);
+                        self.apply_function(function, argument.into(), "")
+                    }
+                }
             }
         }
     }
@@ -130,11 +134,11 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Typeof => {
                 let argument = self.compile_expression(scope, expression);
                 let tag = self.get_tag(argument);
-                let tag_char = self
+                let raw_atom = self
                     .builder
-                    .build_int_add(self.context.i8_type().const_int(65, false), tag, "typeof")
+                    .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
-                self.char_value(tag_char)
+                self.raw_atom_value(raw_atom)
             }
             _ => todo!(),
         }

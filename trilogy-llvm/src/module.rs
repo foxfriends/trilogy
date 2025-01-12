@@ -7,6 +7,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn sub(&self, name: &str) -> Codegen<'ctx> {
         let module = self.context.create_module(name);
         Codegen {
+            atoms: self.atoms.clone(),
             context: self.context,
             builder: self.context.create_builder(),
             execution_engine: self.execution_engine.clone(),
