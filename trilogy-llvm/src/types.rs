@@ -311,8 +311,6 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn string_const(&self, value: &str) -> StructValue<'ctx> {
-        // SAFETY: it seems the only restriction is that this must not be called outside of a
-        // function, which is not checked but we will never do it.
         let bytes = value.as_bytes();
         let string = self.module.add_global(
             self.context.i8_type().array_type(bytes.len() as u32),
@@ -339,6 +337,20 @@ impl<'ctx> Codegen<'ctx> {
             self.tag_type().const_int(TAG_STRING, false).into(),
             int.into(),
         ])
+    }
+
+    pub(crate) fn string_value(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        let pointer = self
+            .builder
+            .build_alloca(self.value_type(), "string")
+            .unwrap();
+        self.set_tag(pointer, TAG_STRING);
+        let value = self
+            .builder
+            .build_ptr_to_int(value, self.context.i64_type(), "")
+            .unwrap();
+        self.set_payload(pointer, value);
+        pointer
     }
 
     pub(crate) fn callable_value(&self, target: PointerValue<'ctx>) -> PointerValue<'ctx> {
@@ -464,6 +476,15 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_int_to_ptr(untagged, self.context.ptr_type(AddressSpace::default()), "")
             .unwrap()
+    }
+
+    /// Untags an atom value.
+    pub(crate) fn untag_atom(
+        &self,
+        scope: &Scope<'ctx>,
+        value: PointerValue<'ctx>,
+    ) -> IntValue<'ctx> {
+        self.untag(TAG_ATOM, scope, value)
     }
 
     pub(crate) fn branch_undefined(

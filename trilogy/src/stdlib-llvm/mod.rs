@@ -13,5 +13,10 @@ where
             Location::library("debug").unwrap(),
             include_str!("./debug.tri").to_owned(),
         )
+        .source_module(
+            Location::library("atom").unwrap(),
+            include_str!("./atom.tri").to_owned(),
+        )
         .native_module(Location::library("c").unwrap())
+        .native_module(Location::library("atom/rt").unwrap())
 }

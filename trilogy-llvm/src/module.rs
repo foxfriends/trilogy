@@ -30,7 +30,11 @@ impl<'ctx> Codegen<'ctx> {
                     if let Some(submodule) = subcontext.modules.get(&location).unwrap() {
                         subcontext.import_module(&location, submodule);
                     } else {
-                        subcontext.import_libc();
+                        match location.as_str() {
+                            "trilogy:c" => subcontext.import_libc(),
+                            "trilogy:atom/rt" => subcontext.import_atom_rt(),
+                            _ => panic!("unknown builtin module requested"),
+                        }
                     }
                     subcontext
                         .globals

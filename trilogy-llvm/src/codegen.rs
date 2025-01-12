@@ -37,7 +37,6 @@ impl<'ctx> Codegen<'ctx> {
         context: &'ctx Context,
         modules: &'ctx HashMap<String, Option<&'ctx ir::Module>>,
     ) -> Self {
-        let module = context.create_module("trilogy:runtime");
         let mut atoms = HashMap::new();
         atoms.insert("undefined".to_owned(), types::TAG_UNDEFINED);
         atoms.insert("unit".to_owned(), types::TAG_UNIT);
@@ -53,12 +52,14 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("set".to_owned(), types::TAG_SET);
         atoms.insert("record".to_owned(), types::TAG_RECORD);
         atoms.insert("callable".to_owned(), types::TAG_CALLABLE);
+
+        let module = context.create_module("trilogy:runtime");
         let codegen = Codegen {
             atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
             context,
             execution_engine: module
-                .create_jit_execution_engine(OptimizationLevel::None)
+                .create_jit_execution_engine(OptimizationLevel::Default)
                 .unwrap(),
             module,
             modules,
@@ -66,11 +67,23 @@ impl<'ctx> Codegen<'ctx> {
             location: "trilogy:runtime".to_owned(),
         };
 
-        let submodule = codegen.sub("trilogy:c");
-        submodule.std_libc();
-
-        codegen.module.link_in_module(submodule.module).unwrap();
         codegen
+    }
+
+    pub(crate) fn finish(self) -> (Module<'ctx>, ExecutionEngine<'ctx>) {
+        {
+            let subcontext = self.sub("trilogy:c");
+            subcontext.std_libc();
+            self.module.link_in_module(subcontext.module).unwrap();
+        }
+
+        {
+            let subcontext = self.sub("trilogy:atom/rt");
+            subcontext.atom_rt();
+            self.module.link_in_module(subcontext.module).unwrap();
+        }
+
+        (self.module, self.execution_engine)
     }
 
     pub(crate) fn compile_entrypoint(&self, entrymodule: &str, entrypoint: &str) {
@@ -131,6 +144,27 @@ impl<'ctx> Codegen<'ctx> {
         let procedure = self.module.add_function(
             name,
             self.procedure_type(arity),
+            if exported {
+                Some(Linkage::External)
+            } else {
+                Some(Linkage::Private)
+            },
+        );
+        procedure.add_attribute(
+            AttributeLoc::Param(0),
+            self.context.create_type_attribute(
+                Attribute::get_named_enum_kind_id("sret"),
+                self.value_type().into(),
+            ),
+        );
+        procedure.get_nth_param(0).unwrap().set_name("sretptr");
+        procedure
+    }
+
+    pub(crate) fn add_function(&self, name: &str, exported: bool) -> FunctionValue<'ctx> {
+        let procedure = self.module.add_function(
+            name,
+            self.procedure_type(1),
             if exported {
                 Some(Linkage::External)
             } else {

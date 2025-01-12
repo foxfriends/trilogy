@@ -40,14 +40,13 @@ pub fn evaluate(
     }
 
     codegen.compile_entrypoint(entrymodule, entrypoint);
+    let (_module, ee) = codegen.finish();
 
     let result = unsafe {
-        let tri_main = codegen
-            .execution_engine
-            .get_function::<Entrypoint>("main")
-            .unwrap();
+        let tri_main = ee.get_function::<Entrypoint>("main").unwrap();
         tri_main.call()
     };
+
     println!("{result}");
     "Ok".to_owned()
 }
@@ -71,6 +70,11 @@ pub fn compile(
         }
         compiled.insert(file.to_owned(), submodule.module.to_string());
     }
+
+    let libc = codegen.sub("trilogy:c");
+    libc.std_libc();
+    compiled.insert("trilogy:c".to_owned(), libc.module.to_string());
+
     compiled
 }
 
@@ -89,5 +93,6 @@ pub fn compile_and_link(
         codegen.module.link_in_module(submodule.module).unwrap();
     }
     codegen.compile_entrypoint(entrymodule, entrypoint);
-    codegen.module.to_string()
+    let (module, _) = codegen.finish();
+    module.to_string()
 }
