@@ -3,6 +3,7 @@ use inkwell::{
     values::{BasicMetadataValueEnum, PointerValue},
     AddressSpace,
 };
+use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, Value};
 use trilogy_parser::syntax;
 
@@ -17,6 +18,13 @@ impl<'ctx> Codegen<'ctx> {
             Value::Boolean(b) => self.allocate_const(self.bool_const(*b)),
             Value::Character(ch) => self.allocate_const(self.char_const(*ch)),
             Value::String(s) => self.allocate_const(self.string_const(s)),
+            Value::Number(num) if num.value().im.is_zero() && num.value().re.is_integer() => {
+                if let Some(int) = num.value().re.to_i64() {
+                    self.allocate_const(self.int_const(int))
+                } else {
+                    todo!("Support non-integers and large integers")
+                }
+            }
             Value::Sequence(exprs) => {
                 let mut value = self.allocate_const(self.unit_const());
                 for expr in exprs {

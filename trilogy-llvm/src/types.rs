@@ -10,7 +10,7 @@ use inkwell::{
 };
 
 const TAG_UNDEFINED: u64 = 0;
-const TAG_UNIT: u64 = 1;
+pub(crate) const TAG_UNIT: u64 = 1;
 const TAG_BOOL: u64 = 2;
 const TAG_ATOM: u64 = 3;
 const TAG_CHAR: u64 = 4;
@@ -383,12 +383,7 @@ impl<'ctx> Codegen<'ctx> {
         output
     }
 
-    /// Untags a function value. The PointerValue is a bare function pointer, NOT a Trilogy callable value.
-    pub(crate) fn untag_function(
-        &self,
-        scope: &Scope<'ctx>,
-        value: PointerValue<'ctx>,
-    ) -> PointerValue<'ctx> {
+    fn untag(&self, expected: u64, scope: &Scope, value: PointerValue<'ctx>) -> IntValue<'ctx> {
         let then_block = self.context.append_basic_block(scope.function, "then");
         let else_block = self.context.append_basic_block(scope.function, "else");
         let tag = self.get_tag(value);
@@ -397,7 +392,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_int_compare(
                 IntPredicate::EQ,
                 tag,
-                self.context.i8_type().const_int(TAG_CALLABLE, false),
+                self.context.i8_type().const_int(expected, false),
                 "untag",
             )
             .unwrap();
@@ -410,7 +405,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_call(
                 exit,
-                &[self.context.i32_type().const_int(121, false).into()],
+                &[self.context.i32_type().const_int(255, false).into()],
                 "exit_type_error",
             )
             .unwrap();
@@ -418,13 +413,43 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(then_block);
         let then_val = self.get_payload(value);
-        let then_val = self
-            .builder
+        self.builder
             .build_bit_cast(then_val, self.context.i64_type(), "")
             .unwrap()
-            .into_int_value();
+            .into_int_value()
+    }
+
+    /// Untags a function value. The returned PointerValue is a bare function pointer, NOT
+    /// a Trilogy callable value.
+    pub(crate) fn untag_function(
+        &self,
+        scope: &Scope<'ctx>,
+        value: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
+        let untagged = self.untag(TAG_CALLABLE, scope, value);
         self.builder
-            .build_int_to_ptr(then_val, self.context.ptr_type(AddressSpace::default()), "")
+            .build_int_to_ptr(untagged, self.context.ptr_type(AddressSpace::default()), "")
+            .unwrap()
+    }
+
+    /// Untags an integer value.
+    pub(crate) fn untag_integer(
+        &self,
+        scope: &Scope<'ctx>,
+        value: PointerValue<'ctx>,
+    ) -> IntValue<'ctx> {
+        self.untag(TAG_INTEGER, scope, value)
+    }
+
+    /// Untags a string value. The returrned PointerValue points to a value of `string_value_type`.
+    pub(crate) fn untag_string(
+        &self,
+        scope: &Scope<'ctx>,
+        value: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
+        let untagged = self.untag(TAG_STRING, scope, value);
+        self.builder
+            .build_int_to_ptr(untagged, self.context.ptr_type(AddressSpace::default()), "")
             .unwrap()
     }
 

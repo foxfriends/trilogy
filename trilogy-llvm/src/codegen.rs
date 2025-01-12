@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::scope::Scope;
+use crate::{scope::Scope, types::TAG_UNIT};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     builder::Builder,
@@ -8,7 +8,7 @@ use inkwell::{
     execution_engine::ExecutionEngine,
     module::{Linkage, Module},
     values::{FunctionValue, PointerValue},
-    OptimizationLevel,
+    IntPredicate, OptimizationLevel,
 };
 use trilogy_ir::{ir, Id};
 
@@ -58,8 +58,12 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_entrypoint(&self, entrymodule: &str, entrypoint: &str) {
         let main_wrapper =
             self.module
-                .add_function("main", self.context.i8_type().fn_type(&[], false), None);
+                .add_function("main", self.context.i32_type().fn_type(&[], false), None);
+        let scope = Scope::begin(main_wrapper);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
+        let exit_unit = self.context.append_basic_block(main_wrapper, "exit_unit");
+        let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
+
         self.builder.position_at_end(basic_block);
         let main = self
             .module
@@ -72,15 +76,32 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_direct_call(main, &[output.into()], "main")
             .unwrap();
-        let exitcode = self
+        let tag = self.get_tag(output);
+        let is_unit = self
             .builder
-            .build_struct_gep(self.value_type(), output, 0, "exitcode")
+            .build_int_compare(
+                IntPredicate::EQ,
+                tag,
+                self.tag_type().const_int(TAG_UNIT, false),
+                "",
+            )
             .unwrap();
-        let exitcode = self
+        self.builder
+            .build_conditional_branch(is_unit, exit_unit, exit_int)
+            .unwrap();
+
+        self.builder.position_at_end(exit_unit);
+        self.builder
+            .build_return(Some(&self.context.i32_type().const_int(0, false)))
+            .unwrap();
+
+        self.builder.position_at_end(exit_int);
+        let exit_code = self.untag_integer(&scope, output);
+        let exit_code = self
             .builder
-            .build_load(self.tag_type(), exitcode, "exitcode")
+            .build_int_truncate(exit_code, self.context.i32_type(), "")
             .unwrap();
-        self.builder.build_return(Some(&exitcode)).unwrap();
+        self.builder.build_return(Some(&exit_code)).unwrap();
     }
 
     pub(crate) fn add_procedure(

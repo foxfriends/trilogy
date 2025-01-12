@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 inkwell = { version = "0.5.0", features = ["llvm18-0", "llvm18-0-force-static"] }
+num = "0.4.3"
 trilogy-ir = { path = "../trilogy-ir/" }
 trilogy-parser = { path = "../trilogy-parser/" }
 

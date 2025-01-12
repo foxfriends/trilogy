@@ -26,7 +26,7 @@ that are as a result of code that likely does not do what the author intended.
 In fact, there are no built-in ``error handling'' mechanisms because indeed
 a well formed \Trilogy{} program code contains no error states, only exceptional
 circumstances. A true ``error'' is something that cannot be recovered from, and
-immediately ends the \Trilogy{} program, which exits with exit code \texttt{255}
+immediately ends the \Trilogy{} program, which exits with a non-zero exit code
 indicating an error.
 
 The most common of these errors is the \emph{runtime type error}, where an
@@ -73,10 +73,10 @@ of the \fn{main} procedure ends the program with the return value as the exit
 code. If the return value of \fn{main} is not a valid exit code value, this
 is a runtime type error and exit code is set to \texttt{255}.
 
-Alternatively, the program may be ended at any time by using the \kw{end} keyword.
-While the \kw{end} keyword with no argument ends the current execution (as a fizzle),
-an \kw{end} with a value exit code value ends the program with that value. Again, if
-the value is not a valid exit code value, it is a runtime type error.
+Alternatively, the program may be ended at any time by using the \kw{exit} keyword.
+The \kw{exit} keyword ends the program with the value it is provided. Again, if
+the value is not a valid exit code value, it is a runtime type error and the exit code
+is set to \texttt{255}.
 
 \subsection{Module Resolution}
 \label{sec:module-resolution}

@@ -80,17 +80,12 @@ impl<'ctx> Codegen<'ctx> {
     fn define_exit(&self) {
         let c_exit = self.c_exit();
         let tri_exit = self.add_procedure("trilogy:c::exit", 1, true);
+        let scope = Scope::begin(tri_exit);
         let basic_block = self.context.append_basic_block(tri_exit, "entry");
         self.builder.position_at_end(basic_block);
 
-        // TODO: convert to C_INT instead of ... this
         let argument = tri_exit.get_nth_param(1).unwrap().into_pointer_value();
-        let payload = self.get_payload(argument);
-        let value = self
-            .builder
-            .build_bit_cast(payload, self.context.i64_type(), "")
-            .unwrap()
-            .into_int_value();
+        let value = self.untag_integer(&scope, argument);
         let value = self
             .builder
             .build_int_truncate(value, self.context.i32_type(), "")
@@ -106,6 +101,69 @@ impl<'ctx> Codegen<'ctx> {
             return exit;
         }
         self.add_procedure("trilogy:c::exit", 1, true)
+    }
+
+    fn to_c_str(&self, scope: &Scope<'ctx>, tri_str: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        let string = self.untag_string(scope, tri_str);
+        let string = self
+            .builder
+            .build_int_to_ptr(
+                string,
+                self.context.ptr_type(AddressSpace::default()),
+                "t_str",
+            )
+            .unwrap();
+        // Allocate a space for the null terminated C string
+        let length = self.get_string_value_length(string, "len");
+        let malloc_length = self
+            .builder
+            .build_int_add(
+                length,
+                self.context.i64_type().const_int(1, false),
+                "nul_len",
+            )
+            .unwrap();
+        let c_str = self.malloc(malloc_length, "c_str");
+        let string = self.get_string_value_pointer(string, "t_str.content");
+
+        let memcpy = Intrinsic::find("llvm.memcpy").unwrap();
+        let memcpy = memcpy
+            .get_declaration(
+                &self.module,
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.bool_type().into(),
+                ],
+            )
+            .unwrap();
+        self.builder
+            .build_call(
+                memcpy,
+                &[
+                    c_str.into(),
+                    string.into(),
+                    length.into(),
+                    self.context.bool_type().const_int(1, false).into(),
+                ],
+                "",
+            )
+            .unwrap();
+        let nul_ptr = unsafe {
+            self.builder
+                .build_gep(
+                    self.context.i8_type().array_type(0),
+                    c_str,
+                    &[self.context.i32_type().const_zero(), length],
+                    "nul_ptr",
+                )
+                .unwrap()
+        };
+        self.builder
+            .build_store(nul_ptr, self.context.i8_type().const_zero())
+            .unwrap();
+        c_str
     }
 
     fn define_printf(&self) {
@@ -130,71 +188,12 @@ impl<'ctx> Codegen<'ctx> {
 
         // Extract the string payload from the parameter
         let string = tri_printf.get_nth_param(1).unwrap().into_pointer_value();
-        let string = self.get_payload(string);
-        let string = self
-            .builder
-            .build_int_to_ptr(
-                string,
-                self.context.ptr_type(AddressSpace::default()),
-                "string",
-            )
-            .unwrap();
-        // Allocate a space for the null terminated C string
-        let length = self.get_string_value_length(string, "length");
-        let malloc_length = self
-            .builder
-            .build_int_add(
-                length,
-                self.context.i64_type().const_int(1, false),
-                "byte_len",
-            )
-            .unwrap();
-        let format_ptr = self.malloc(malloc_length, "format_str");
-        let string = self.get_string_value_pointer(string, "string_content");
-
-        let memcpy = Intrinsic::find("llvm.memcpy").unwrap();
-        let memcpy = memcpy
-            .get_declaration(
-                &self.module,
-                &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.i64_type().into(),
-                    self.context.bool_type().into(),
-                ],
-            )
-            .unwrap();
-        self.builder
-            .build_call(
-                memcpy,
-                &[
-                    format_ptr.into(),
-                    string.into(),
-                    length.into(),
-                    self.context.bool_type().const_int(1, false).into(),
-                ],
-                "",
-            )
-            .unwrap();
-        let last_byte = unsafe {
-            self.builder
-                .build_gep(
-                    self.context.i8_type().array_type(0),
-                    format_ptr,
-                    &[self.context.i32_type().const_zero(), length],
-                    "",
-                )
-                .unwrap()
-        };
-        self.builder
-            .build_store(last_byte, self.context.i8_type().const_zero())
-            .unwrap();
-
+        let c_str = self.to_c_str(&scope, string);
         let error_code = self
             .builder
             .build_call(
                 c_printf,
-                &[safe_fmt.as_pointer_value().into(), format_ptr.into()],
+                &[safe_fmt.as_pointer_value().into(), c_str.into()],
                 "printf",
             )
             .unwrap()
@@ -205,7 +204,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_int_s_extend(error_code, self.payload_type(), "")
             .unwrap();
-        self.free(format_ptr, "");
+        self.free(c_str, "");
         let error_code = self.int_value(error_code);
         self.builder.build_store(scope.sret(), error_code).unwrap();
         self.builder.build_return(None).unwrap();

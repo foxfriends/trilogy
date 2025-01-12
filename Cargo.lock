@@ -2362,6 +2362,7 @@ name = "trilogy-llvm"
 version = "0.1.0"
 dependencies = [
  "inkwell",
+ "num",
  "trilogy-ir",
  "trilogy-parser",
 ]
