@@ -79,7 +79,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn define_exit(&self) {
         let c_exit = self.c_exit();
-        let tri_exit = self.add_procedure("trilogy:c::exit", 1, true);
+        let tri_exit = self.exit();
         let scope = Scope::begin(tri_exit);
         let basic_block = self.context.append_basic_block(tri_exit, "entry");
         self.builder.position_at_end(basic_block);
@@ -181,7 +181,7 @@ impl<'ctx> Codegen<'ctx> {
             None,
         );
 
-        let tri_printf = self.add_procedure("trilogy:c::printf", 1, true);
+        let tri_printf = self.printf();
         let scope = Scope::begin(tri_printf);
         let basic_block = self.context.append_basic_block(tri_printf, "entry");
         self.builder.position_at_end(basic_block);

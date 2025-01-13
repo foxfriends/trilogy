@@ -42,15 +42,11 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn builtin_value(
-        &self,
-        _scope: &mut Scope<'ctx>,
-        _builtin: Builtin,
-    ) -> PointerValue<'ctx> {
+    fn builtin_value(&self, _scope: &mut Scope<'ctx>, _builtin: Builtin) -> PointerValue<'ctx> {
         todo!()
     }
 
-    pub(crate) fn compile_application(
+    fn compile_application(
         &self,
         scope: &mut Scope<'ctx>,
         application: &ir::Application,
@@ -93,7 +89,7 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn compile_module_access(
+    fn compile_module_access(
         &self,
         _scope: &mut Scope<'ctx>,
         module_ref: &ir::Expression,
@@ -113,7 +109,7 @@ impl<'ctx> Codegen<'ctx> {
         todo!()
     }
 
-    pub(crate) fn compile_apply_builtin(
+    fn compile_apply_builtin(
         &self,
         scope: &mut Scope<'ctx>,
         builtin: Builtin,
@@ -151,7 +147,7 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn compile_apply_binary(
+    fn compile_apply_binary(
         &self,
         scope: &mut Scope<'ctx>,
         builtin: Builtin,
@@ -168,7 +164,7 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn compile_reference(
+    fn compile_reference(
         &self,
         scope: &Scope<'ctx>,
         identifier: &ir::Identifier,
@@ -197,22 +193,14 @@ impl<'ctx> Codegen<'ctx> {
                         format!("{}::{name}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();
                     let pointer = function.as_global_value().as_pointer_value();
-                    let stack = self.builder.build_alloca(self.value_type(), name).unwrap();
-                    self.builder
-                        .build_store(stack, self.callable_value(pointer))
-                        .unwrap();
-                    stack
+                    self.callable_value(pointer)
                 }
                 _ => todo!(),
             }
         }
     }
 
-    pub(crate) fn compile_if_else(
-        &self,
-        scope: &mut Scope<'ctx>,
-        if_else: &ir::IfElse,
-    ) -> PointerValue<'ctx> {
+    fn compile_if_else(&self, scope: &mut Scope<'ctx>, if_else: &ir::IfElse) -> PointerValue<'ctx> {
         let condition = self.compile_expression(scope, &if_else.condition);
         let if_true = self.context.append_basic_block(scope.function, "if_true");
         let if_false = self.context.append_basic_block(scope.function, "if_false");
@@ -225,12 +213,16 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(if_true);
         let when_true = self.compile_expression(scope, &if_else.when_true);
         let if_true = self.builder.get_insert_block().unwrap();
-        self.builder.build_unconditional_branch(if_cont).unwrap();
+        if !if_true.get_last_instruction().unwrap().is_terminator() {
+            self.builder.build_unconditional_branch(if_cont).unwrap();
+        }
 
         self.builder.position_at_end(if_false);
         let when_false = self.compile_expression(scope, &if_else.when_false);
         let if_false = self.builder.get_insert_block().unwrap();
-        self.builder.build_unconditional_branch(if_cont).unwrap();
+        if !if_false.get_last_instruction().unwrap().is_terminator() {
+            self.builder.build_unconditional_branch(if_cont).unwrap();
+        }
 
         self.builder.position_at_end(if_cont);
         let phi = self

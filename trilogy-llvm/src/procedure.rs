@@ -32,6 +32,7 @@ impl Codegen<'_> {
 
         let mut scope = Scope::begin(function);
         let basic_block = self.context.append_basic_block(function, "entry");
+        let no_match = self.context.append_basic_block(function, "no_match");
         self.builder.position_at_end(basic_block);
 
         for (n, param) in procedure.parameters.iter().enumerate() {
@@ -39,7 +40,7 @@ impl Codegen<'_> {
                 .get_nth_param(n as u32 + 1)
                 .unwrap()
                 .into_pointer_value();
-            self.compile_pattern_match(&mut scope, param, value);
+            self.compile_pattern_match(&mut scope, param, value, no_match);
         }
 
         // There is no implicit return of the final value of a procedure. That value is lost,
@@ -59,5 +60,8 @@ impl Codegen<'_> {
                 .unwrap();
             self.builder.build_return(None).unwrap();
         }
+
+        self.builder.position_at_end(no_match);
+        self.panic("procedure call no match");
     }
 }

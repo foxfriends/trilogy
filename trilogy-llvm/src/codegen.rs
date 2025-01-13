@@ -92,6 +92,23 @@ impl<'ctx> Codegen<'ctx> {
         (self.module, self.execution_engine)
     }
 
+    pub(crate) fn panic(&self, message: &str) {
+        // TODO: change this to print to stderr
+        // TODO: compute the message value at runtime
+        let exit = self.c_exit();
+        let printf = self.printf();
+        let message = self.allocate_const(self.string_const(&format!("{message}\n")));
+        self.call_procedure(printf, &[message.into()], "");
+        self.builder
+            .build_call(
+                exit,
+                &[self.context.i32_type().const_int(255, false).into()],
+                "",
+            )
+            .unwrap();
+        self.builder.build_unreachable().unwrap();
+    }
+
     pub(crate) fn compile_entrypoint(&self, entrymodule: &str, entrypoint: &str) {
         let main_wrapper =
             self.module

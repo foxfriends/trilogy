@@ -3,6 +3,7 @@ use inkwell::{values::FunctionValue, IntPredicate};
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn core(&self) {
+        self.import_libc();
         self.define_structural_eq();
     }
 

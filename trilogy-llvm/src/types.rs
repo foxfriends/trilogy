@@ -440,16 +440,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(else_block);
-        // TODO: upgrade this to print an error message to stderr
-        let exit = self.c_exit();
-        self.builder
-            .build_call(
-                exit,
-                &[self.context.i32_type().const_int(255, false).into()],
-                "",
-            )
-            .unwrap();
-        self.builder.build_unreachable().unwrap();
+        self.panic("runtime type exception");
 
         self.builder.position_at_end(then_block);
         let then_val = self.get_payload(value);

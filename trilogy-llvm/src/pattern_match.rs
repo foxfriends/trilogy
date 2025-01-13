@@ -1,6 +1,9 @@
 use crate::{scope::Scope, Codegen};
-use inkwell::values::PointerValue;
-use trilogy_ir::ir::{self, Value};
+use inkwell::{
+    basic_block::BasicBlock,
+    values::{IntValue, PointerValue},
+};
+use trilogy_ir::ir::{self, Builtin, Value};
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_pattern_match(
@@ -8,6 +11,7 @@ impl<'ctx> Codegen<'ctx> {
         scope: &mut Scope<'ctx>,
         pattern: &ir::Expression,
         value: PointerValue<'ctx>,
+        on_fail: BasicBlock<'ctx>,
     ) {
         match &pattern.value {
             Value::Reference(id) => {
@@ -19,8 +23,84 @@ impl<'ctx> Codegen<'ctx> {
                 self.builder.build_store(variable, value).unwrap();
             }
             Value::Conjunction(conj) => {
-                self.compile_pattern_match(scope, &conj.0, value);
-                self.compile_pattern_match(scope, &conj.1, value);
+                self.compile_pattern_match(scope, &conj.0, value, on_fail);
+                self.compile_pattern_match(scope, &conj.1, value, on_fail);
+            }
+            Value::Boolean(val) => {
+                let bool_const = self.allocate_const(self.bool_const(*val));
+                let seq = self.structural_eq();
+                let is_match = self.call_procedure(seq, &[value.into(), bool_const.into()], "");
+                let is_match = self.untag_boolean(scope, is_match);
+                self.pm_cont_if(scope, is_match, on_fail);
+            }
+            Value::Atom(val) => {
+                let atom_const = self.allocate_const(self.atom_const(val.to_owned()));
+                let seq = self.structural_eq();
+                let is_match = self.call_procedure(seq, &[value.into(), atom_const.into()], "");
+                let is_match = self.untag_boolean(scope, is_match);
+                self.pm_cont_if(scope, is_match, on_fail);
+            }
+            Value::Application(app) => self.compile_match_application(scope, value, app, on_fail),
+            _ => todo!(),
+        }
+    }
+
+    fn pm_cont_if(
+        &self,
+        scope: &Scope<'ctx>,
+        cond: IntValue<'ctx>,
+        on_fail: BasicBlock<'ctx>,
+    ) -> BasicBlock<'ctx> {
+        let cont = self.context.append_basic_block(scope.function, "pm_cont");
+        self.builder
+            .build_conditional_branch(cond, cont, on_fail)
+            .unwrap();
+        self.builder.position_at_end(cont);
+        cont
+    }
+
+    fn compile_match_application(
+        &self,
+        scope: &mut Scope<'ctx>,
+        value: PointerValue<'ctx>,
+        application: &ir::Application,
+        on_fail: BasicBlock<'ctx>,
+    ) {
+        match &application.function.value {
+            Value::Builtin(builtin) => self.compile_match_apply_builtin(
+                scope,
+                value,
+                *builtin,
+                &application.argument,
+                on_fail,
+            ),
+            _ => panic!("only builtins can be applied in pattern matching context"),
+        }
+    }
+
+    fn compile_match_apply_builtin(
+        &self,
+        scope: &mut Scope<'ctx>,
+        value: PointerValue<'ctx>,
+        builtin: Builtin,
+        expression: &ir::Expression,
+        on_fail: BasicBlock<'ctx>,
+    ) {
+        match builtin {
+            Builtin::Typeof => {
+                let expected_type = self.compile_expression(scope, expression);
+
+                let tag = self.get_tag(value);
+                let atom = self
+                    .builder
+                    .build_int_z_extend(tag, self.context.i64_type(), "")
+                    .unwrap();
+                let atom = self.raw_atom_value(atom);
+
+                let seq = self.structural_eq();
+                let cmp = self.call_procedure(seq, &[expected_type.into(), atom.into()], "");
+                let cmp = self.untag_boolean(scope, cmp);
+                self.pm_cont_if(scope, cmp, on_fail);
             }
             _ => todo!(),
         }
