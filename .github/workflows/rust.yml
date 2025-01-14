@@ -9,9 +9,7 @@ jobs:
     strategy:
       matrix:
         features:
-          - 32bit
-          - 64bit
-          - multithread
+          - llvm,std
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -59,10 +57,8 @@ jobs:
     strategy:
       matrix:
         features:
-          - 32bit
-          - 64bit
-          - multithread
-    steps:
+          - llvm,std
+        steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -79,17 +75,15 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Run cargo check
-        run: cargo check --features ${{ matrix.features }}
+        run: cargo check --no-default-features --features ${{ matrix.features }}
   test:
     name: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
         features:
-          - 32bit
-          - 64bit
-          - multithread
-    steps:
+          - llvm,std
+      steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -106,4 +100,4 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Run cargo test
-        run: cargo test --features ${{ matrix.features }}
+        run: cargo test --no-default-features --features ${{ matrix.features }}

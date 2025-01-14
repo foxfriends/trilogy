@@ -15,12 +15,13 @@ test "can exit a query early" {
 
 test "can resume multiple times into a query" {
     let mut out = 0
-    with {
+    let inner = do() {
         for x = yield 'X and is x > 6 {
             out += x
         }
         assert out == 0 || out == 7 || out == 15
-    } when 'X invert {
+    }
+    with inner!() when 'X then {
         resume 5
         resume 6
         resume 7

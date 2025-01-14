@@ -24,7 +24,7 @@ impl LetExpression {
         parser
             .expect(OpComma)
             .map_err(|token| parser.expected(token, "expected `,` to follow `let` expression"))?;
-        let body = Expression::parse_precedence(parser, Precedence::Sequence)?;
+        let body = Expression::parse_precedence(parser, Precedence::Continuation)?;
         Ok(Self {
             span: r#let.span.union(body.span()),
             r#let,

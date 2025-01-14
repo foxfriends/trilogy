@@ -4,7 +4,7 @@ test "match can match a literal and find the correct case" {
         case 2 { assert false }
         case 3 {}
         case 4 { assert false }
-        else { assert false }
+        else _ { assert false }
 }
 
 test "no matching case reaches the else case" {

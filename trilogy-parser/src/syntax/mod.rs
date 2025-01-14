@@ -148,7 +148,7 @@ pub use keyword_reference::{Keyword, KeywordReference};
 pub use let_expression::LetExpression;
 pub use let_statement::LetStatement;
 pub use lookup::Lookup;
-pub use match_expression::{MatchExpression, MatchExpressionCase};
+pub use match_expression::{MatchExpression, MatchExpressionCase, MatchExpressionCaseBody};
 pub use module_access::ModuleAccess;
 pub use module_definition::ModuleDefinition;
 pub use module_head::ModuleHead;

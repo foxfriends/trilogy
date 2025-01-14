@@ -143,6 +143,10 @@ impl Query {
         Self::parse_precedence(parser, Precedence::None)
     }
 
+    pub(crate) fn parse_no_seq(parser: &mut Parser) -> SyntaxResult<Self> {
+        Self::parse_precedence(parser, Precedence::None)
+    }
+
     pub(crate) fn parse_or_pattern_parenthesized(
         parser: &mut Parser,
     ) -> SyntaxResult<Result<Self, Pattern>> {

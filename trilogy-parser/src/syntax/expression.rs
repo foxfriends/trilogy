@@ -74,12 +74,6 @@ pub(crate) enum Precedence {
     Access,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
-enum Context {
-    ParameterList,
-    Default,
-}
-
 enum ExpressionResult {
     Continue(Expression),
     Done(Expression),
@@ -135,7 +129,7 @@ impl Expression {
         parser: &mut Parser,
         precedence: Precedence,
         lhs: Expression,
-        context: Context,
+        no_seq: bool,
     ) -> SyntaxResult<ExpressionResult> {
         // A bit of strangeness here because `peek()` takes a mutable reference,
         // so we can't use the fields afterwards... but we need their value after
@@ -199,9 +193,7 @@ impl Expression {
             OpBang if precedence < Precedence::Call && !is_spaced => Ok(Continue(Self::Call(
                 Box::new(CallExpression::parse(parser, lhs)?),
             ))),
-            OpComma if precedence <= Precedence::Sequence && context == Context::Default => {
-                Self::binary(parser, lhs)
-            }
+            OpSemi if precedence <= Precedence::Sequence && !no_seq => Self::binary(parser, lhs),
 
             // NOTE: despite and/or being allowed in patterns, we can't accept them here because
             // they are also allowed in queries, in which case an expression was never an option,
@@ -395,11 +387,11 @@ impl Expression {
     fn parse_suffix(
         parser: &mut Parser,
         precedence: Precedence,
-        context: Context,
+        no_seq: bool,
         mut expr: Expression,
     ) -> SyntaxResult<Result<Self, Pattern>> {
         loop {
-            match Self::parse_follow(parser, precedence, expr, context)? {
+            match Self::parse_follow(parser, precedence, expr, no_seq)? {
                 ExpressionResult::Continue(updated) => expr = updated,
                 ExpressionResult::Done(expr) => return Ok(Ok(expr)),
                 ExpressionResult::Pattern(patt) => return Ok(Err(patt)),
@@ -410,10 +402,10 @@ impl Expression {
     fn parse_precedence_inner(
         parser: &mut Parser,
         precedence: Precedence,
-        context: Context,
+        no_seq: bool,
     ) -> SyntaxResult<Result<Self, Pattern>> {
         match Self::parse_prefix(parser)? {
-            Ok(expr) => Self::parse_suffix(parser, precedence, context, expr),
+            Ok(expr) => Self::parse_suffix(parser, precedence, no_seq, expr),
             Err(patt) => Ok(Err(Pattern::parse_suffix(
                 parser,
                 pattern::Precedence::None,
@@ -426,7 +418,7 @@ impl Expression {
         parser: &mut Parser,
         precedence: Precedence,
     ) -> SyntaxResult<Result<Self, Pattern>> {
-        Self::parse_precedence_inner(parser, precedence, Context::Default)
+        Self::parse_precedence_inner(parser, precedence, false)
     }
 
     pub(crate) fn parse_precedence(
@@ -442,7 +434,7 @@ impl Expression {
     }
 
     pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
-        Self::parse_precedence_inner(parser, Precedence::None, Context::ParameterList)
+        Self::parse_precedence_inner(parser, Precedence::None, true)
     }
 
     pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
@@ -451,6 +443,12 @@ impl Expression {
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence(parser, Precedence::None)
+    }
+
+    pub(crate) fn parse_no_seq(parser: &mut Parser) -> SyntaxResult<Self> {
+        Self::parse_precedence_inner(parser, Precedence::None, true)?.map_err(|patt| {
+            SyntaxError::new(patt.span(), "expected an expression but found a pattern")
+        })
     }
 
     pub(crate) fn is_lvalue(&self) -> bool {
@@ -736,20 +734,16 @@ mod test {
                   (BinaryOperator::Access _)
                   (Expression::Atom _)))
               (Expression::Number _)))))");
-    test_parse!(expr_let_seq: "b * 2, let a = b, a * 2, b * 2" => Expression::parse => "
+    test_parse!(expr_let_seq: "b; let a = b, a; b" => Expression::parse => "
       (Expression::Binary
         (BinaryOperation
-          (Expression::Binary _)
+          _
           (BinaryOperator::Sequence _)
-          (Expression::Let
-            (LetExpression
-              _
-              (Query::Direct _)
-              (Expression::Binary
-                (BinaryOperation
-                  (Expression::Binary _)
-                  (BinaryOperator::Sequence _)
-                  (Expression::Binary _)))))))");
+          (Expression::Binary
+            (BinaryOperation
+              (Expression::Let _)
+              (BinaryOperator::Sequence _)
+              _))))");
     test_parse!(expr_mod_access: "mod1::mod2::member" => Expression::parse => "
       (Expression::ModuleAccess
         (ModuleAccess

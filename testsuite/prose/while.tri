@@ -10,7 +10,7 @@ test "while loops break" {
     let mut i = 0
     while i < 10 {
         i += 1
-        if i == 5 { break }
+        if i == 5 { break unit }
     }
     assert i == 5
 }
@@ -19,8 +19,8 @@ test "while loops continue" {
     let mut i = 0
     while i < 10 {
         i += 1
-        if i > 5 { continue }
-        if i > 6 { break }
+        if i > 5 { continue unit }
+        if i > 6 { break unit }
     }
     assert i == 10
 }
@@ -45,9 +45,9 @@ test "while loop nested break" {
     let mut i = 0
     while i < 10 {
         let mut j = 0
-        if i > 5 { break }
+        if i > 5 { break unit }
         while j < i {
-            if j >= 3 { break }
+            if j >= 3 { break unit }
             k += 1
             j += 1
         }
@@ -61,7 +61,7 @@ test "while loop nested break in condition" {
     let mut i = 0
     while i < 10 {
         while (if i > 5 then break 0 else true) {
-            break
+            break unit
         }
         i += 1
     }
@@ -75,7 +75,7 @@ test "while loop nested continue in condition" {
         i += 1
         while (if i > 5 then continue 0 else true) {
             k += 1
-            break
+            break unit
         }
     }
     assert k == 5
@@ -84,11 +84,12 @@ test "while loop nested continue in condition" {
 
 test "can yield from inside a while loop" {
     let mut i = 0
-    with {
+    let inner = do() {
         while i < 10 {
             i = yield 'next(i)
         }
-    } when 'next(i) resume i + 1
+    }
+    with inner!() when 'next(i) resume i + 1
       else cancel unit
     assert i == 10
 }

@@ -35,8 +35,8 @@ test "length" {
 
 test "get" {
     assert get "a" {| "a" => "1", "b" => "2" |} == "1"
-    with { get "hello" {| "a" => "1", "b" => "2" |} }
-        when 'MIA invert { exit unit }
+    with get "hello" {| "a" => "1", "b" => "2" |}
+        when 'MIA then { exit unit }
         else cancel unit
     assert false
 }

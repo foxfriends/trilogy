@@ -9,9 +9,9 @@ jobs:
     strategy:
       matrix:
         features:
-          - 32bit
-          - 64bit
-          - multithread
+          - tvm,std,32bit
+          - tvm,std,64bit
+          - tvm,std,multithread
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Build
-        run: cargo build --features ${{ matrix.features }} --release
+        run: cargo build --no-default-features --features ${{ matrix.features }} --release
       - name: Run stdlib tests
         run: |
           ls ./trilogy/src/stdlib/*.tri | xargs -I _ ./target/release/trilogy test _
@@ -39,9 +39,9 @@ jobs:
     strategy:
       matrix:
         features:
-          - 32bit
-          - 64bit
-          - multithread
+          - tvm,std,32bit
+          - tvm,std,64bit
+          - tvm,std,multithread
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Build
-        run: cargo build --features ${{ matrix.features }} --release
+        run: cargo build --no-default-features --features ${{ matrix.features }} --release
       - name: Run testsuite
         run: |
           ls ./testsuite/*/*.tri | xargs -I _ ./target/release/trilogy test _

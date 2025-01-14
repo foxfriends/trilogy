@@ -45,7 +45,7 @@ impl Location {
         Ok(Self(url))
     }
 
-    #[cfg(feature = "tvm")]
+    #[allow(dead_code, reason = "used under some features only")]
     pub(crate) fn absolute(url: Url) -> Self {
         Self::from(url)
     }

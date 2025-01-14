@@ -62,7 +62,6 @@ mod test {
     test_parse!(assert_true: "assert true" => AssertStatement::parse => "(AssertStatement _ () (Expression::Boolean _))");
     test_parse!(assert_expression: "assert if x then false else true" => AssertStatement::parse => "(AssertStatement _ () (Expression::IfElse _))");
     test_parse!(assert_with_message: "assert \"message\" as true" => AssertStatement::parse => "(AssertStatement _ (AssertMessage _ _) (Expression::Boolean _))");
-    test_parse!(assert_commas: "assert a, b, c" => AssertStatement::parse => "(AssertStatement _ () (Expression::Binary _))");
     test_parse_error!(assert_without_expr: "assert" => AssertStatement::parse);
     test_parse_error!(assert_invalid_expr: "assert + 5" => AssertStatement::parse);
 }

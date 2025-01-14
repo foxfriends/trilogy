@@ -34,7 +34,7 @@ test "can break in a for loop" {
     let mut total = 0
     for x in [1, 2, 3, 4, 5] {
         total += x
-        if x == 3 { break }
+        if x == 3 { break unit }
     }
     assert total == 6
 }
@@ -42,7 +42,7 @@ test "can break in a for loop" {
 test "can continue in a for loop" {
     let mut total = 0
     for x in [1, 2, 3, 4, 5] {
-        if x == 3 { continue }
+        if x == 3 { continue unit }
         total += x
     }
     assert total == 12
@@ -66,7 +66,7 @@ test "for else branch does not get triggered if the query happens" {
 
 test "for else branch does not get triggered if the query is broken on the first" {
     for pass {
-        break
+        break unit
     } else {
         assert "entered loop" as false
     }
@@ -74,7 +74,7 @@ test "for else branch does not get triggered if the query is broken on the first
 
 test "for else branch does not get triggered if the query is continued on the only" {
     for pass {
-        continue
+        continue unit
     } else {
         assert "entered loop" as false
     }
@@ -94,7 +94,7 @@ test "break can break from an inner loop" {
     let mut total = 0
     for x in [1, 2, 3] {
         for y in [10, 100] {
-            if x * y == 20 { break }
+            if x * y == 20 { break unit }
             total += x * y
         }
     }
@@ -117,7 +117,7 @@ test "continue can continue from an inner loop" {
     let mut total = 0
     for x in [1, 2, 3] {
         for y in [10, 100] {
-            if x * y == 20 { continue }
+            if x * y == 20 { continue unit }
             total += x * y
         }
     }

@@ -1,7 +1,10 @@
 use super::*;
 use crate::Converter;
 use source_span::Span;
-use trilogy_parser::{syntax, Spanned};
+use trilogy_parser::{
+    syntax::{self, MatchExpressionCaseBody},
+    Spanned,
+};
 
 #[derive(Clone, Debug)]
 pub struct Match {
@@ -23,11 +26,25 @@ impl Match {
             .collect();
         match ast.else_case {
             Some(ast) => {
+                let span = ast.r#else.span().union(ast.body.span());
+                converter.push_scope();
+                let pattern = match ast.else_binding {
+                    None => Expression::wildcard(ast.r#else.span),
+                    Some(binding) => Expression::convert_pattern(converter, binding),
+                };
+                let guard = Expression::boolean(ast.r#else.span, true);
+                let body = match ast.body {
+                    MatchExpressionCaseBody::Then(_, body) => Expression::convert(converter, body),
+                    MatchExpressionCaseBody::Block(body) => {
+                        Expression::convert_block(converter, body)
+                    }
+                };
+                converter.pop_scope();
                 cases.push(Case {
-                    span: ast.r#else.span().union(ast.no_match.span()),
-                    pattern: Expression::convert_pattern(converter, ast.else_binding),
-                    guard: Expression::boolean(ast.r#else.span, true),
-                    body: Expression::convert(converter, ast.no_match),
+                    span,
+                    pattern,
+                    guard,
+                    body,
                 });
             }
             None => {
@@ -64,7 +81,10 @@ impl Case {
             .guard
             .map(|ast| Expression::convert(converter, ast.expression))
             .unwrap_or_else(|| Expression::boolean(case_span, true));
-        let body = Expression::convert(converter, ast.body);
+        let body = match ast.body {
+            MatchExpressionCaseBody::Then(_, body) => Expression::convert(converter, body),
+            MatchExpressionCaseBody::Block(body) => Expression::convert_block(converter, body),
+        };
         converter.pop_scope();
         Self {
             span,

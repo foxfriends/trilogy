@@ -1,3 +1,5 @@
+#![cfg(feature = "tvm")]
+
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use trilogy::Builder;

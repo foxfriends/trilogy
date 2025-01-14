@@ -48,6 +48,5 @@ mod test {
     test_parse!(bool_query_expression: "is x < 5" => BooleanQuery::parse => "(BooleanQuery _ _)");
     test_parse!(bool_query_application: "is f x y" => BooleanQuery::parse => "(BooleanQuery _ _)");
     test_parse_error!(bool_query_commas: "is x, x" => BooleanQuery::parse);
-    test_parse!(bool_query_commas_parens: "is (x, x)" => BooleanQuery::parse => "(BooleanQuery _ _)");
     test_parse_error!(bool_query_invalid_expr: "is { let x = 5 }" => BooleanQuery::parse);
 }

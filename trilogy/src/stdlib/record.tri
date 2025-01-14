@@ -32,7 +32,7 @@ func keys rec = do() {
 export keys
 
 ## Returns an iterator of all values of this record
-func values rec = do()
+func values rec = do() {
   for _:value in rec {
     yield 'next(value)
   }

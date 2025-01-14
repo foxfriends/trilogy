@@ -15,8 +15,8 @@ test "does not pass if either branch fails" {
 }
 
 test "fully exhausts the first branch even if the second never passes" {
-    with { [x for x in [1, 2, yield 'DONE] and end] }
-        when 'DONE invert { exit unit }
+    with [x for x in [1, 2, yield 'DONE] and end]
+        when 'DONE then { exit unit }
         else cancel 3
     assert false
 }

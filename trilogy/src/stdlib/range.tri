@@ -102,6 +102,7 @@ func difference (a:b) (c:d) =
         then [new a c, new b d]
         else [a:b, c:d],
     filter (fn r. !(is_empty r)) arrs
+
 export difference
 
 test "difference" {

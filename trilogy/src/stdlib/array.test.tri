@@ -84,16 +84,16 @@ test "foldr" {
 
 test "first" {
     assert first [1, 2] == 1
-    with { first [] }
-        when 'MIA invert { exit unit }
+    with first []
+        when 'MIA then { exit unit }
         else cancel unit
     assert false
 }
 
 test "last" {
     assert last [1, 2] == 2
-    with { last [] }
-        when 'MIA invert { exit unit }
+    with last []
+        when 'MIA then { exit unit }
         else cancel unit
     assert false
 }
@@ -120,16 +120,16 @@ test "contains" {
 
 test "find" {
     assert find (fn x. x > 1) [1, 2, 3] == 2
-    with { find (fn x. x > 4) [1, 2, 3] [] }
-        when 'MIA invert { exit unit }
+    with find (fn x. x > 4) [1, 2, 3] []
+        when 'MIA then { exit unit }
         else cancel unit
     assert false
 }
 
 test "position" {
     assert position (fn x. x > 1) [1, 2, 3] == 1
-    with { position (fn x. x > 4) [1, 2, 3] [] }
-        when 'MIA invert { exit unit }
+    with position (fn x. x > 4) [1, 2, 3] []
+        when 'MIA then { exit unit }
         else cancel unit
     assert false
 }

@@ -9,11 +9,13 @@ export print, println, eprint, eprintln, readline
 
 ## An iterator over all lines of standard input.
 proc readlines!() {
-    with {
-        while true {
-            yield 'next(readline!())
-        }
-    } when 'EOF cancel unit else yield
+  while true {
+    yield 'next(
+      with readline!()
+        when 'EOF cancel unit
+        else yield
+    )
+  }
 }
 export readlines
 

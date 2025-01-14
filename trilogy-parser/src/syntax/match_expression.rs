@@ -79,8 +79,25 @@ pub struct MatchExpressionCase {
     pub case: Token,
     pub pattern: Option<Pattern>,
     pub guard: Option<Guard>,
-    pub body: Expression,
+    pub body: MatchExpressionCaseBody,
     span: Span,
+}
+
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+pub enum MatchExpressionCaseBody {
+    Then(Token, Expression),
+    Block(Block),
+}
+
+impl MatchExpressionCaseBody {
+    fn parse(parser: &mut Parser, precedence: expression::Precedence) -> SyntaxResult<Self> {
+        if let Ok(token) = parser.expect(KwThen) {
+            let body = Expression::parse_precedence(parser, precedence)?;
+            Ok(MatchExpressionCaseBody::Then(token, body))
+        } else {
+            Ok(MatchExpressionCaseBody::Block(Block::parse(parser)?))
+        }
+    }
 }
 
 impl MatchExpressionCase {
@@ -94,10 +111,7 @@ impl MatchExpressionCase {
             .map(|_| Pattern::parse(parser))
             .transpose()?;
         let guard = Guard::parse_optional(parser)?;
-        parser.expect(KwThen).map_err(|token| {
-            parser.expected(token, "expected `then` to mark the body of a `case`")
-        })?;
-        let body = Expression::parse(parser)?;
+        let body = MatchExpressionCaseBody::parse(parser, Precedence::None)?;
         Ok(Self {
             span: case.span.union(body.span()),
             case,
@@ -143,8 +157,8 @@ impl Guard {
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct MatchExpressionElseCase {
     pub r#else: Token,
-    pub else_binding: Pattern,
-    pub no_match: Expression,
+    pub else_binding: Option<Pattern>,
+    pub body: MatchExpressionCaseBody,
     span: Span,
 }
 
@@ -158,19 +172,18 @@ impl MatchExpressionElseCase {
     fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let r#else = parser.expect(KwElse).unwrap();
         let else_binding = if parser.check(Discard).is_ok() {
-            Pattern::parse(parser)?
+            Some(Pattern::parse(parser)?)
+        } else if parser.check(KwThen).is_ok() || parser.check(OBrace).is_ok() {
+            None
         } else {
-            Pattern::Binding(Box::new(BindingPattern::parse(parser)?))
+            Some(Pattern::Binding(Box::new(BindingPattern::parse(parser)?)))
         };
-        parser.expect(KwThen).map_err(|token| {
-            parser.expected(token, "expected `then` keyword to follow else case")
-        })?;
-        let no_match = Expression::parse_precedence(parser, Precedence::Continuation)?;
+        let body = MatchExpressionCaseBody::parse(parser, Precedence::Continuation)?;
         Ok(Self {
-            span: r#else.span.union(no_match.span()),
+            span: r#else.span.union(body.span()),
             r#else,
             else_binding,
-            no_match,
+            body,
         })
     }
 }

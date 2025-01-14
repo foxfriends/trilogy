@@ -34,7 +34,7 @@ func reduce_init f init xs =
     let mut ok = false,
     let mut acc = unit,
     with xs!()
-        when 'next(v) invert {
+        when 'next(v) then {
             if ok {
                 acc = f acc v
             } else {
@@ -59,7 +59,7 @@ export reduce
 func fold f i xs =
     let mut acc = i,
     with xs!()
-        when 'next(v) invert {
+        when 'next(v) then {
             acc = f acc v
             resume
             cancel acc
@@ -70,7 +70,7 @@ export fold
 ## Creates a new iterator whose values are the values of the original iterator,
 ## transformed by a provided function.
 func map f xs = do() {
-    with { xs!() }
+    with xs!()
         when 'next(v) resume yield 'next(f v)
         else yield
 }
@@ -79,7 +79,7 @@ export map
 ## Creates a new iterator-of-iterators by flattening each yielded iterator's
 ## yielded values into a single iterator.
 func flatten xs = do() {
-    with { xs!() }
+    with xs!()
         when 'next(ys) resume ys!()
         else yield
 }
@@ -102,7 +102,7 @@ export collect
 
 ## Discard values yielded by the iterator for which a predicate returns false.
 func filter f xs = do() {
-    with { xs!() }
+    with xs!()
         when 'next(v) if f v resume yield 'next(v)
         when 'next(_) resume unit
         else yield
@@ -112,7 +112,7 @@ export filter
 ## Evaluates an iterator that yields the integers in the range [lo..hi)
 func rangex lo hi =
     if lo < hi
-    then yield 'next(lo), rangex (lo + 1) hi
+    then yield 'next(lo); rangex (lo + 1) hi
     else unit
 export rangex
 
@@ -148,8 +148,8 @@ export ignore
 ## Tuples each element of an iterator with its index.
 func enumerate xs = do () {
     let mut i = 0
-    with { xs!() }
-        when 'next(v) invert {
+    with xs!()
+        when 'next(v) then {
             yield 'next(i:v)
             i += 1
             cancel resume unit

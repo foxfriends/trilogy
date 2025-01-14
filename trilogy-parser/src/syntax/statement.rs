@@ -33,7 +33,7 @@ impl Statement {
             KwAssert => Ok(Self::Assert(Box::new(AssertStatement::parse(parser)?))),
             OBrace => Ok(Self::Block(Box::new(Block::parse(parser)?))),
             _ => {
-                let expression = Expression::parse(parser)?;
+                let expression = Expression::parse_no_seq(parser)?;
                 if parser.check(IdentifierEq).is_ok() {
                     if !expression.is_lvalue() {
                         parser.error(SyntaxError::new(
