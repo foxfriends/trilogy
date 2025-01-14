@@ -5,7 +5,7 @@ on: push
 jobs:
   clippy:
     name: clippy
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         features:
@@ -40,7 +40,7 @@ jobs:
         run: cargo clippy --no-default-features --features ${{ matrix.features }} -- -D warnings
   rustfmt:
     name: rustfmt
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
         run: cargo fmt -- --check
   build:
     name: build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         features:
@@ -96,7 +96,7 @@ jobs:
         run: cargo check --no-default-features --features ${{ matrix.features }}
   test:
     name: test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         features:
