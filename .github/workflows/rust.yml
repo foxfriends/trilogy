@@ -29,6 +29,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
+      - name: APT install
+        run: apt-get install libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -86,6 +88,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
+      - name: APT install
+        run: apt-get install libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -120,6 +124,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
+      - name: APT install
+        run: apt-get install libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
