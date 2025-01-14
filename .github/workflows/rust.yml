@@ -24,8 +24,12 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.0"
       - name: Install Rust
-        run: |
+          run: |
           rustup install stable
           rustup component add clippy
           rustup default stable
@@ -72,6 +76,10 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.0"
       - name: Install Rust
         run: |
           rustup install stable
@@ -99,6 +107,10 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18.0"
       - name: Install Rust
         run: |
           rustup install stable
