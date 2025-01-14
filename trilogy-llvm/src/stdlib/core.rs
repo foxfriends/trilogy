@@ -90,7 +90,18 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unconditional_branch(cont_block).unwrap();
 
         self.builder.position_at_end(string_block);
-        // TODO: implement this
+        let strcmp = self.strcmp();
+        let result = self.call_procedure(strcmp, &[lhs.into(), rhs.into()], "strcmp.result");
+        let result = self.get_payload(result);
+        let is_eq_string = self
+            .builder
+            .build_int_compare(
+                IntPredicate::EQ,
+                result,
+                self.context.i64_type().const_int(0, false),
+                "",
+            )
+            .unwrap();
         self.builder.build_unconditional_branch(cont_block).unwrap();
 
         self.builder.position_at_end(cont_block);
@@ -102,8 +113,7 @@ impl<'ctx> Codegen<'ctx> {
             (&self.context.bool_type().const_int(0, false), cmp_block),
             (&self.context.bool_type().const_int(0, false), from_block),
             (&is_eq_literal, literal_block),
-            (&self.context.bool_type().const_int(0, false), string_block),
-            // (&is_eq_string, string_block),
+            (&is_eq_string, string_block),
         ]);
         let retval = self.bool_value(phi.as_basic_value().into_int_value());
         let retval = self

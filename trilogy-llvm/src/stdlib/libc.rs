@@ -11,11 +11,14 @@ impl<'ctx> Codegen<'ctx> {
         self.define_exit();
         // <stdio.h>
         self.define_printf();
+        // <string.h>
+        self.define_strcmp();
     }
 
     pub(crate) fn import_libc(&self) {
         self.exit();
         self.printf();
+        self.strcmp();
     }
 
     fn declare_malloc(&self) -> FunctionValue<'ctx> {
@@ -215,5 +218,58 @@ impl<'ctx> Codegen<'ctx> {
             return printf;
         }
         self.add_procedure("trilogy:c::printf", 1, true)
+    }
+
+    fn define_strcmp(&self) {
+        let c_strcmp = self.module.add_function(
+            "strcmp",
+            self.context.i32_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                true,
+            ),
+            None,
+        );
+
+        let tri_strcmp = self.strcmp();
+        let scope = Scope::begin(tri_strcmp);
+        let basic_block = self.context.append_basic_block(tri_strcmp, "entry");
+        self.builder.position_at_end(basic_block);
+
+        // Extract the string payloads from the parameters
+        let lhs = tri_strcmp.get_nth_param(1).unwrap().into_pointer_value();
+        let rhs = tri_strcmp.get_nth_param(2).unwrap().into_pointer_value();
+        let c_lhs = self.to_c_str(&scope, lhs);
+        let c_rhs = self.to_c_str(&scope, rhs);
+        let cmp = self
+            .builder
+            .build_call(c_strcmp, &[c_lhs.into(), c_rhs.into()], "cmp")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value();
+        self.free(c_lhs, "");
+        self.free(c_rhs, "");
+        let cmp = self
+            .builder
+            .build_int_s_extend(cmp, self.payload_type(), "")
+            .unwrap();
+        let cmp = self.int_value(cmp);
+        self.builder
+            .build_store(
+                scope.sret(),
+                self.builder.build_load(self.value_type(), cmp, "").unwrap(),
+            )
+            .unwrap();
+        self.builder.build_return(None).unwrap();
+    }
+
+    pub(crate) fn strcmp(&self) -> FunctionValue<'ctx> {
+        if let Some(strcmp) = self.module.get_function("trilogy:c::strcmp") {
+            return strcmp;
+        }
+        self.add_procedure("trilogy:c::strcmp", 2, true)
     }
 }

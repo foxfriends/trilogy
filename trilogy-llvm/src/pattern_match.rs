@@ -3,6 +3,7 @@ use inkwell::{
     basic_block::BasicBlock,
     values::{IntValue, PointerValue},
 };
+use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, Value};
 
 impl<'ctx> Codegen<'ctx> {
@@ -26,17 +27,49 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_pattern_match(scope, &conj.0, value, on_fail);
                 self.compile_pattern_match(scope, &conj.1, value, on_fail);
             }
-            Value::Boolean(val) => {
-                let bool_const = self.allocate_const(self.bool_const(*val));
+            Value::Unit => {
+                let constant = self.allocate_const(self.unit_const());
                 let seq = self.structural_eq();
-                let is_match = self.call_procedure(seq, &[value.into(), bool_const.into()], "");
+                let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
+                let is_match = self.untag_boolean(scope, is_match);
+                self.pm_cont_if(scope, is_match, on_fail);
+            }
+            Value::Boolean(val) => {
+                let constant = self.allocate_const(self.bool_const(*val));
+                let seq = self.structural_eq();
+                let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                 let is_match = self.untag_boolean(scope, is_match);
                 self.pm_cont_if(scope, is_match, on_fail);
             }
             Value::Atom(val) => {
-                let atom_const = self.allocate_const(self.atom_const(val.to_owned()));
+                let constant = self.allocate_const(self.atom_const(val.to_owned()));
                 let seq = self.structural_eq();
-                let is_match = self.call_procedure(seq, &[value.into(), atom_const.into()], "");
+                let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
+                let is_match = self.untag_boolean(scope, is_match);
+                self.pm_cont_if(scope, is_match, on_fail);
+            }
+            Value::Character(val) => {
+                let constant = self.allocate_const(self.char_const(*val));
+                let seq = self.structural_eq();
+                let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
+                let is_match = self.untag_boolean(scope, is_match);
+                self.pm_cont_if(scope, is_match, on_fail);
+            }
+            Value::Number(num) if num.value().im.is_zero() && num.value().re.is_integer() => {
+                if let Some(int) = num.value().re.to_i64() {
+                    let constant = self.allocate_const(self.int_const(int));
+                    let seq = self.structural_eq();
+                    let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
+                    let is_match = self.untag_boolean(scope, is_match);
+                    self.pm_cont_if(scope, is_match, on_fail);
+                } else {
+                    todo!("Support non-integers and large integers")
+                }
+            }
+            Value::String(string) => {
+                let constant = self.allocate_const(self.string_const(string));
+                let seq = self.structural_eq();
+                let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                 let is_match = self.untag_boolean(scope, is_match);
                 self.pm_cont_if(scope, is_match, on_fail);
             }
