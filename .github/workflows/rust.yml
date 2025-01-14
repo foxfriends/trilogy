@@ -29,12 +29,6 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
-      - name: APT install
-        run: |
-          sudo apt-add-repository universe
-          sudo apt-get install -y libncurses5-dev
-      - name: llvm-config
-        run: llvm-config --version --bindir --libdir
       - name: Install Rust
         run: |
           rustup install stable
@@ -90,12 +84,6 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
-      - name: APT install
-        run: |
-          sudo apt-add-repository universe
-          sudo apt-get install -y libncurses5-dev
-      - name: llvm-config
-        run: llvm-config --version --bindir --libdir
       - name: Install Rust
         run: |
           rustup install stable
@@ -128,12 +116,6 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
-      - name: APT install
-        run: |
-          sudo apt-add-repository universe
-          sudo apt-get install -y libncurses5-dev
-      - name: llvm-config
-        run: llvm-config --version --bindir --libdir
       - name: Install Rust
         run: |
           rustup install stable
