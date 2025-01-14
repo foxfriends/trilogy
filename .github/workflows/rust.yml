@@ -1,4 +1,4 @@
-name: Rust CI
+# name: Rust CI
 
 on: push
 
@@ -32,7 +32,7 @@ jobs:
       - name: APT install
         run: |
           sudo apt-add-repository universe
-          sudo apt-get install -y libtinfo5
+          sudo apt-get install -y libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -93,7 +93,7 @@ jobs:
       - name: APT install
         run: |
           sudo apt-add-repository universe
-          sudo apt-get install -y libtinfo5
+          sudo apt-get install -y libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -131,7 +131,7 @@ jobs:
       - name: APT install
         run: |
           sudo apt-add-repository universe
-          sudo apt-get install -y libtinfo5
+          sudo apt-get install -y libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
