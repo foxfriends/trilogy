@@ -32,7 +32,7 @@ jobs:
       - name: APT install
         run: |
           sudo apt-add-repository universe
-          sudo apt-get install -y libncurses5
+          sudo apt-get install -y libncurses5-dev
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -93,7 +93,7 @@ jobs:
       - name: APT install
         run: |
           sudo apt-add-repository universe
-          sudo apt-get install -y libncurses5
+          sudo apt-get install -y libncurses5-dev
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -131,7 +131,7 @@ jobs:
       - name: APT install
         run: |
           sudo apt-add-repository universe
-          sudo apt-get install -y libncurses5
+          sudo apt-get install -y libncurses5-dev
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
