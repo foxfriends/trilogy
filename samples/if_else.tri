@@ -1,23 +1,23 @@
 proc main!() {
-    let mut value = 5;
+    let mut value = 5
     if value == 3 {
-        value = 6;
+        value = 6
     } else {
-        value = 7;
+        value = 7
     }
 
     if value == 7 {
-        value = 8;
+        value = 8
     } else {
-        value = 9;
+        value = 9
     }
 
     if value == 9 {
-        value = 10;
+        value = 10
     }
     if value == 8 {
-        value = 11;
+        value = 11
     }
 
-    exit value;
+    exit value
 }

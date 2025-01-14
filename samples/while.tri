@@ -1,9 +1,9 @@
 proc main!() {
-    let mut out = 1;
-    let mut x = 5;
+    let mut out = 1
+    let mut x = 5
     while x > 0 {
-        x -= 1;
-        out *= 2;
+        x -= 1
+        out *= 2
     }
-    exit out;
+    exit out
 }

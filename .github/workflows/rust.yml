@@ -10,6 +10,8 @@ jobs:
       matrix:
         features:
           - llvm,std
+          - tvm,std,32bit
+          - tvm,std,64bit
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -58,7 +60,7 @@ jobs:
       matrix:
         features:
           - llvm,std
-        steps:
+    steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -83,7 +85,9 @@ jobs:
       matrix:
         features:
           - llvm,std
-      steps:
+          - tvm,std,32bit
+          - tvm,std,64bit
+    steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
       - uses: actions/cache@v4

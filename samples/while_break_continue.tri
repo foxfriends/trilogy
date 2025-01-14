@@ -1,14 +1,14 @@
 proc main!() {
-    let mut out = 0;
-    let mut x = 10;
+    let mut out = 0
+    let mut x = 10
 
     while true {
         x -= 1
-        if (x == 0) { break }
-        if (x % 5 == 0) { continue }
-        if (x % 3 == 0) { continue }
-        out += x;
+        if (x == 0) { break unit }
+        if (x % 5 == 0) { continue unit }
+        if (x % 3 == 0) { continue unit }
+        out += x
     }
 
-    exit out;
+    exit out
 }

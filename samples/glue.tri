@@ -1,18 +1,18 @@
 proc main!() {
-    let mut out = "";
+    let mut out = ""
 
     match "hello world"
-        case "hello " <> world { out <>= world; }
-        case world <> " hello" { out <>= world; }
+        case "hello " <> world { out <>= world }
+        case world <> " hello" { out <>= world }
 
     match "world hello"
-        case "hello " <> world { out <>= world; }
-        case world <> " hello" { out <>= world; }
+        case "hello " <> world { out <>= world }
+        case world <> " hello" { out <>= world }
 
     match "world hello"
-        case "hello " <> world { out <>= world; }
-        case "goodbye " <> world { out <>= world; }
-        case world <> " hello" { out <>= world; }
+        case "hello " <> world { out <>= world }
+        case "goodbye " <> world { out <>= world }
+        case world <> " hello" { out <>= world }
 
-    exit out;
+    exit out
 }
