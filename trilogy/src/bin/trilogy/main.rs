@@ -231,18 +231,17 @@ fn main_sync() -> std::io::Result<()> {
             }
         }
         #[cfg(all(feature = "llvm", feature = "std"))]
-        Command::Compile { file, library } => match Builder::std()
-            .is_library(library)
-            .build_from_source(file)
-        {
-            Ok(trilogy) => {
-                print!("{}", trilogy.compile());
+        Command::Compile { file, library } => {
+            match Builder::std().is_library(library).build_from_source(file) {
+                Ok(trilogy) => {
+                    print!("{}", trilogy.compile());
+                }
+                Err(report) => {
+                    report.eprint();
+                    std::process::exit(1);
+                }
             }
-            Err(report) => {
-                report.eprint();
-                std::process::exit(1);
-            }
-        },
+        }
         #[cfg(feature = "tvm")]
         Command::Check {
             file,
