@@ -25,11 +25,9 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "18.1.8"
-      - name: Install Rust
+        - name: Install LLVM
+          run: sudo apt-get install llvm libpolly-18-dev
+        - name: Install Rust
         run: |
           rustup install stable
           rustup component add clippy
@@ -80,11 +78,9 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "18.1.8"
-      - name: Install Rust
+        - name: Install LLVM
+          run: sudo apt-get install llvm libpolly-18-dev
+        - name: Install Rust
         run: |
           rustup install stable
           rustup default stable
@@ -112,11 +108,9 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install LLVM
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "18.1.8"
-      - name: Install Rust
+        - name: Install LLVM
+          run: sudo apt-get install llvm libpolly-18-dev
+        - name: Install Rust
         run: |
           rustup install stable
           rustup default stable
