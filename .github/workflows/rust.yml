@@ -30,7 +30,7 @@ jobs:
         with:
           version: "18.1.8"
       - name: APT install
-        run: apt-get install libncurses5
+        run: sudo apt-get install -y libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -89,7 +89,7 @@ jobs:
         with:
           version: "18.1.8"
       - name: APT install
-        run: apt-get install libncurses5
+        run: sudo apt-get install -y libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
@@ -125,7 +125,7 @@ jobs:
         with:
           version: "18.1.8"
       - name: APT install
-        run: apt-get install libncurses5
+        run: sudo apt-get install -y libncurses5
       - name: llvm-config
         run: llvm-config --version --bindir --libdir
       - name: Install Rust
