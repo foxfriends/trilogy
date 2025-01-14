@@ -29,6 +29,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
+      - name: llvm-config
+        run: llvm-config --version --bindir --libdir
       - name: Install Rust
         run: |
           rustup install stable
@@ -84,6 +86,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
+      - name: llvm-config
+        run: llvm-config --version --bindir --libdir
       - name: Install Rust
         run: |
           rustup install stable
@@ -116,6 +120,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "18.1.8"
+      - name: llvm-config
+        run: llvm-config --version --bindir --libdir
       - name: Install Rust
         run: |
           rustup install stable
