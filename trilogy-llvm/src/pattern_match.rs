@@ -27,6 +27,24 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_pattern_match(scope, &conj.0, value, on_fail);
                 self.compile_pattern_match(scope, &conj.1, value, on_fail);
             }
+            Value::Disjunction(conj) => {
+                // TODO: this is supposed to be able to cause a branch... instead of just being `else`
+                // e.g. `let a:_ or _:a = 1:2`
+                let secondary = self
+                    .context
+                    .append_basic_block(scope.function, "pm_disj_second");
+                let on_success = self
+                    .context
+                    .append_basic_block(scope.function, "pm_disj_cont");
+                self.compile_pattern_match(scope, &conj.0, value, secondary);
+                self.builder.build_unconditional_branch(on_success).unwrap();
+
+                self.builder.position_at_end(secondary);
+                self.compile_pattern_match(scope, &conj.1, value, on_fail);
+                self.builder.build_unconditional_branch(on_success).unwrap();
+
+                self.builder.position_at_end(on_success);
+            }
             Value::Unit => {
                 let constant = self.allocate_const(self.unit_const());
                 let seq = self.structural_eq();
@@ -132,6 +150,13 @@ impl<'ctx> Codegen<'ctx> {
 
                 let seq = self.structural_eq();
                 let cmp = self.call_procedure(seq, &[expected_type.into(), atom.into()], "");
+                let cmp = self.untag_boolean(scope, cmp);
+                self.pm_cont_if(scope, cmp, on_fail);
+            }
+            Builtin::Pin => {
+                let expected_value = self.compile_expression(scope, expression);
+                let seq = self.structural_eq();
+                let cmp = self.call_procedure(seq, &[expected_value.into(), value.into()], "");
                 let cmp = self.untag_boolean(scope, cmp);
                 self.pm_cont_if(scope, cmp, on_fail);
             }
