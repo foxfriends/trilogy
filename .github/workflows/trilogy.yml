@@ -12,6 +12,7 @@ jobs:
           - tvm,std,32bit
           - tvm,std,64bit
           - tvm,std,multithread
+      fail-fast: false
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -42,6 +43,7 @@ jobs:
           - tvm,std,32bit
           - tvm,std,64bit
           - tvm,std,multithread
+      fail-fast: false
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
