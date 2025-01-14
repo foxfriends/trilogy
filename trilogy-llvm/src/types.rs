@@ -336,7 +336,7 @@ impl<'ctx> Codegen<'ctx> {
         let string = self.string_value_type().const_named_struct(&[
             self.context
                 .i64_type()
-                .const_int(value.as_bytes().len() as u64, false)
+                .const_int(value.len() as u64, false)
                 .into(),
             string.as_pointer_value().into(),
         ]);
