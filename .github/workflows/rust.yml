@@ -34,7 +34,7 @@ jobs:
           rustup component add clippy
           rustup default stable
       - name: Run cargo clippy
-        run: cargo clippy --features ${{ matrix.features }} -- -D warnings
+        run: cargo clippy --no-default-features --features ${{ matrix.features }} -- -D warnings
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
