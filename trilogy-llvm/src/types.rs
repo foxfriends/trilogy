@@ -1,5 +1,5 @@
 #![expect(dead_code, reason = "WIP")]
-use crate::{codegen::Codegen, scope::Scope};
+use crate::codegen::Codegen;
 use inkwell::{
     basic_block::BasicBlock,
     types::{ArrayType, FunctionType, IntType, StructType},
@@ -422,87 +422,60 @@ impl<'ctx> Codegen<'ctx> {
         output
     }
 
-    fn untag(&self, expected: u64, scope: &Scope, value: PointerValue<'ctx>) -> IntValue<'ctx> {
-        let then_block = self.context.append_basic_block(scope.function, "untag_ok");
-        let else_block = self.context.append_basic_block(scope.function, "untag_err");
-        let tag = self.get_tag(value);
-        let cmp = self
-            .builder
-            .build_int_compare(
-                IntPredicate::EQ,
-                tag,
-                self.context.i8_type().const_int(expected, false),
-                "untag",
-            )
-            .unwrap();
+    /// Untags a function value. The returned PointerValue is a bare function pointer, NOT
+    /// a Trilogy callable value.
+    pub(crate) fn untag_callable(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        let untag = self.module.get_function("untag_callable").unwrap();
         self.builder
-            .build_conditional_branch(cmp, then_block, else_block)
-            .unwrap();
-
-        self.builder.position_at_end(else_block);
-        self.panic("runtime type exception");
-
-        self.builder.position_at_end(then_block);
-        let then_val = self.get_payload(value);
-        self.builder
-            .build_bit_cast(then_val, self.context.i64_type(), "")
+            .build_call(untag, &[value.into()], "")
             .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    /// Untags an integer value.
+    pub(crate) fn untag_integer(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
+        let untag = self.module.get_function("untag_integer").unwrap();
+        self.builder
+            .build_call(untag, &[value.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
             .into_int_value()
     }
 
-    /// Untags a function value. The returned PointerValue is a bare function pointer, NOT
-    /// a Trilogy callable value.
-    pub(crate) fn untag_function(
-        &self,
-        scope: &Scope<'ctx>,
-        value: PointerValue<'ctx>,
-    ) -> PointerValue<'ctx> {
-        let untagged = self.untag(TAG_CALLABLE, scope, value);
-        self.builder
-            .build_int_to_ptr(untagged, self.context.ptr_type(AddressSpace::default()), "")
-            .unwrap()
-    }
-
     /// Untags an integer value.
-    pub(crate) fn untag_integer(
-        &self,
-        scope: &Scope<'ctx>,
-        value: PointerValue<'ctx>,
-    ) -> IntValue<'ctx> {
-        self.untag(TAG_INTEGER, scope, value)
-    }
-
-    /// Untags an integer value.
-    pub(crate) fn untag_boolean(
-        &self,
-        scope: &Scope<'ctx>,
-        value: PointerValue<'ctx>,
-    ) -> IntValue<'ctx> {
-        let int = self.untag(TAG_BOOL, scope, value);
+    pub(crate) fn untag_boolean(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
+        let untag = self.module.get_function("untag_bool").unwrap();
         self.builder
-            .build_int_truncate(int, self.context.bool_type(), "")
+            .build_call(untag, &[value.into()], "")
             .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
     }
 
     /// Untags a string value. The returrned PointerValue points to a value of `string_value_type`.
-    pub(crate) fn untag_string(
-        &self,
-        scope: &Scope<'ctx>,
-        value: PointerValue<'ctx>,
-    ) -> PointerValue<'ctx> {
-        let untagged = self.untag(TAG_STRING, scope, value);
+    pub(crate) fn untag_string(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        let untag = self.module.get_function("untag_string").unwrap();
         self.builder
-            .build_int_to_ptr(untagged, self.context.ptr_type(AddressSpace::default()), "")
+            .build_call(untag, &[value.into()], "")
             .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
     }
 
     /// Untags an atom value.
-    pub(crate) fn untag_atom(
-        &self,
-        scope: &Scope<'ctx>,
-        value: PointerValue<'ctx>,
-    ) -> IntValue<'ctx> {
-        self.untag(TAG_ATOM, scope, value)
+    pub(crate) fn untag_atom(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
+        let untag = self.module.get_function("untag_atom").unwrap();
+        self.builder
+            .build_call(untag, &[value.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
     }
 
     pub(crate) fn branch_undefined(

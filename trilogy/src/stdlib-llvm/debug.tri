@@ -1,17 +1,17 @@
-module libc at "trilogy:c"
+module core at "trilogy:core"
 
 export dbg
 proc dbg!(value) {
   if value == unit {
-    libc::printf!("unit")
+    core::trilogy_printf!("unit")
   } else if value == true {
-    libc::printf!("true")
+    core::trilogy_printf!("true")
   } else if value == false {
-    libc::printf!("false")
+    core::trilogy_printf!("false")
   } else if (typeof value) == 'string {
-    libc::printf!(value)
+    core::trilogy_printf!(value)
   } else {
-    libc::printf!("unsupported value")
+    core::trilogy_printf!("unsupported value")
   }
   return value
 }

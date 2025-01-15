@@ -84,7 +84,6 @@ impl Default for Builder<NoopCache> {
         Self::empty()
             .native_module(Location::library("core").unwrap())
             .native_module(Location::library("atom/rt").unwrap())
-            .native_module(Location::library("c").unwrap())
     }
 }
 

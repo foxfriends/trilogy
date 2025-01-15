@@ -24,7 +24,7 @@ impl<'ctx> Codegen<'ctx> {
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.
         subcontext.import_core();
-        subcontext.import_libc();
+
         for definition in module.definitions() {
             match &definition.item {
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {
@@ -35,8 +35,7 @@ impl<'ctx> Codegen<'ctx> {
                     } else {
                         match location.as_str() {
                             "trilogy:atom/rt" => subcontext.import_atom_rt(),
-                            "trilogy:c" => {}
-                            "trilogy:core" => {}
+                            "trilogy:core" => { /* core is always imported, secretly */ }
                             _ => panic!("unknown builtin module requested"),
                         }
                     }

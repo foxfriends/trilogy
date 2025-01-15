@@ -1,8 +1,8 @@
-module libc at "trilogy:c"
+module core at "trilogy:core"
 
 export print
 proc print!(value) {
-  let err = libc::printf!(value)
+  let err = core::printf!(value)
   if err < 0 {
     yield 'ioerror
   }
@@ -10,7 +10,7 @@ proc print!(value) {
 
 export println
 proc println!(value) {
-  let err = libc::printf!(value)
+  let err = core::printf!(value)
   if err < 0 {
     yield 'ioerror
   }

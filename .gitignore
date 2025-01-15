@@ -3,4 +3,5 @@
 /target
 a.out
 *.ll
+*.bc
 /main.tri

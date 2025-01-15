@@ -63,7 +63,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             _ => {
                 let function = self.compile_expression(scope, &application.function);
-                let function = self.untag_function(scope, function);
+                let function = self.untag_callable(function);
                 match &application.argument.value {
                     // Procedure application
                     Value::Pack(pack) => {
@@ -98,11 +98,16 @@ impl<'ctx> Codegen<'ctx> {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(name) = &module_ref.value {
             if let Some(Head::Module(name)) = self.globals.get(&name.id) {
-                let declared = self
-                    .module
-                    .get_function(&format!("{}::{}", name, ident.as_ref()))
-                    .unwrap();
-                return self.callable_value(declared.as_global_value().as_pointer_value());
+                if name == "trilogy:core" {
+                    let declared = self.module.get_function(ident.as_ref()).unwrap();
+                    return self.callable_value(declared.as_global_value().as_pointer_value());
+                } else {
+                    let declared = self
+                        .module
+                        .get_function(&format!("{}::{}", name, ident.as_ref()))
+                        .unwrap();
+                    return self.callable_value(declared.as_global_value().as_pointer_value());
+                }
             }
         }
 
@@ -205,7 +210,7 @@ impl<'ctx> Codegen<'ctx> {
         let if_true = self.context.append_basic_block(scope.function, "if_true");
         let if_false = self.context.append_basic_block(scope.function, "if_false");
         let if_cont = self.context.append_basic_block(scope.function, "if_cont");
-        let condition = self.untag_boolean(scope, condition);
+        let condition = self.untag_boolean(condition);
         self.builder
             .build_conditional_branch(condition, if_true, if_false)
             .unwrap();

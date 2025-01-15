@@ -6,6 +6,7 @@ use inkwell::{
     builder::Builder,
     context::Context,
     execution_engine::ExecutionEngine,
+    memory_buffer::MemoryBuffer,
     module::{Linkage, Module},
     values::{FunctionValue, PointerValue},
     IntPredicate, OptimizationLevel,
@@ -71,49 +72,18 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn finish(self) -> (Module<'ctx>, ExecutionEngine<'ctx>) {
-        {
-            let subcontext = self.sub("trilogy:c");
-            subcontext.std_libc();
-            self.module.link_in_module(subcontext.module).unwrap();
-        }
-
-        {
-            let subcontext = self.sub("trilogy:atom/rt");
-            subcontext.atom_rt();
-            self.module.link_in_module(subcontext.module).unwrap();
-        }
-
-        {
-            let subcontext = self.sub("trilogy:core");
-            subcontext.core();
-            self.module.link_in_module(subcontext.module).unwrap();
-        }
+        let core =
+            MemoryBuffer::create_from_memory_range(include_bytes!("../core/trilogy.bc"), "core");
+        let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
+        self.module.link_in_module(core).unwrap();
 
         (self.module, self.execution_engine)
-    }
-
-    pub(crate) fn panic(&self, message: &str) {
-        // TODO: change this to print to stderr
-        // TODO: compute the message value at runtime
-        let exit = self.c_exit();
-        let printf = self.printf();
-        let message = self.allocate_const(self.string_const(&format!("{message}\n")));
-        self.call_procedure(printf, &[message.into()], "");
-        self.builder
-            .build_call(
-                exit,
-                &[self.context.i32_type().const_int(255, false).into()],
-                "",
-            )
-            .unwrap();
-        self.builder.build_unreachable().unwrap();
     }
 
     pub(crate) fn compile_entrypoint(&self, entrymodule: &str, entrypoint: &str) {
         let main_wrapper =
             self.module
                 .add_function("main", self.context.i32_type().fn_type(&[], false), None);
-        let scope = Scope::begin(main_wrapper);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
         let exit_unit = self.context.append_basic_block(main_wrapper, "exit_unit");
         let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
@@ -150,7 +120,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(exit_int);
-        let exit_code = self.untag_integer(&scope, output);
+        let exit_code = self.untag_integer(output);
         let exit_code = self
             .builder
             .build_int_truncate(exit_code, self.context.i32_type(), "")

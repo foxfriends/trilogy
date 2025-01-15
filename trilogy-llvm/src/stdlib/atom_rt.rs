@@ -56,7 +56,7 @@ impl<'ctx> Codegen<'ctx> {
         let basic_block = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(basic_block);
         let atom = function.get_nth_param(1).unwrap().into_pointer_value();
-        let atom = self.untag_atom(&scope, atom);
+        let atom = self.untag_atom(atom);
         let is_const = self
             .builder
             .build_int_compare(
