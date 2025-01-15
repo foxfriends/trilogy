@@ -34,7 +34,6 @@ impl<'ctx> Codegen<'ctx> {
                         subcontext.import_module(&location, submodule);
                     } else {
                         match location.as_str() {
-                            "trilogy:atom/rt" => subcontext.import_atom_rt(),
                             "trilogy:core" => { /* core is always imported, secretly */ }
                             _ => panic!("unknown builtin module requested"),
                         }

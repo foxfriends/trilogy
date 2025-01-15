@@ -81,9 +81,7 @@ impl Default for Builder<NoopCache> {
 #[cfg(feature = "llvm")]
 impl Default for Builder<NoopCache> {
     fn default() -> Self {
-        Self::empty()
-            .native_module(Location::library("core").unwrap())
-            .native_module(Location::library("atom/rt").unwrap())
+        Self::empty().native_module(Location::library("core").unwrap())
     }
 }
 

@@ -5,12 +5,12 @@ use trilogy_ir::ir;
 
 mod codegen;
 mod constant;
+mod core;
 mod expression;
 mod module;
 mod pattern_match;
 mod procedure;
 mod scope;
-mod stdlib;
 mod types;
 
 #[repr(C)]

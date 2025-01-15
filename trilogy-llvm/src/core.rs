@@ -21,6 +21,7 @@ impl<'ctx> Codegen<'ctx> {
         self.panic();
         self.printf();
         self.exit();
+        self.lookup_atom();
 
         self.module.add_function(
             "untag_unit",
@@ -132,4 +133,5 @@ impl<'ctx> Codegen<'ctx> {
     declare!(exit, 1);
     declare!(structural_eq, 2);
     declare!(printf, 1);
+    declare!(lookup_atom, 1);
 }
