@@ -8,8 +8,10 @@ proc dbg!(value) {
     core::trilogy_printf!("true")
   } else if value == false {
     core::trilogy_printf!("false")
-  } else if (typeof value) == 'string {
+  } else if typeof value == 'string {
     core::trilogy_printf!(value)
+  } else if typeof value == 'atom {
+    core::trilogy_printf!(core::trilogy_lookup_atom!(value))
   } else {
     core::trilogy_printf!("unsupported value")
   }
