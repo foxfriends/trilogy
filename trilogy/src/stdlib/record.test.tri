@@ -13,19 +13,19 @@ test "remove" {
 }
 
 test "keys" {
-    let k = [key for key in keys {| "hello" => "world", "goodbye" => "world" |}]
+    let k = [key for key in (keys {| "hello" => "world", "goodbye" => "world" |})!()]
     assert is "hello" in k
     assert is "goodbye" in k
-    assert [key for key in keys {| |}] == []
+    assert [key for key in (keys {| |})!()] == []
 }
 
 test "values" {
-    let k = [val for val in values {| "hello" => "1", "goodbye" => "2" |}]
+    let k = [val for val in (values {| "hello" => "1", "goodbye" => "2" |})!()]
     assert is "1" in k
     assert is "2" in k
-    let k2 = [val for val in values {| "hello" => "world", "goodbye" => "world" |}]
+    let k2 = [val for val in (values {| "hello" => "world", "goodbye" => "world" |})!()]
     assert k2 == ["world", "world"]
-    assert [val for val in values {| |}] == []
+    assert [val for val in (values {| |})!()] == []
 }
 
 test "length" {

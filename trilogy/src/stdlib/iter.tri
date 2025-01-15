@@ -41,7 +41,7 @@ func reduce_init f init xs =
                 ok = true
                 acc = init v
             }
-            resume
+            resume unit
             cancel acc
         }
         else yield
@@ -61,7 +61,7 @@ func fold f i xs =
     with xs!()
         when 'next(v) then {
             acc = f acc v
-            resume
+            resume unit
             cancel acc
         }
         else yield
@@ -94,8 +94,8 @@ export flatmap
 ## Collect an iterator into a collection.
 ##
 ## A collection is a module exporting `proc empty!()` and `func append x xs`
-func collect collection =
-    with reduce_init (fp::flip (collection::append)) (collection::of)
+func collect collection iter =
+    with reduce_init (fp::flip (collection::append)) (collection::of) iter
         when 'EMPTY cancel (collection::empty!())
         else yield
 export collect
