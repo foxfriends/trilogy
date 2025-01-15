@@ -11,7 +11,7 @@ fn main() {
     fs::remove_file(core.join("trilogy.ll")).ok();
     fs::remove_file(core.join("trilogy.bc")).ok();
     let output = Command::new("clang")
-        .args(&["-S", "-emit-llvm", "trilogy.c"])
+        .args(["-S", "-emit-llvm", "trilogy.c"])
         .current_dir(&core)
         .spawn()
         .unwrap()
@@ -22,7 +22,7 @@ fn main() {
         std::process::exit(1);
     }
     let output = Command::new("llvm-as")
-        .args(&["trilogy.ll", "-o", "trilogy.bc"])
+        .args(["trilogy.ll", "-o", "trilogy.bc"])
         .current_dir(&core)
         .spawn()
         .unwrap()
