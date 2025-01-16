@@ -26,7 +26,7 @@ void trilogy_exit(
     }
 }
 
-void trilogy_printf(
+void trilogy_print(
     struct trilogy_value* rv,
     struct trilogy_value* val
 ) {

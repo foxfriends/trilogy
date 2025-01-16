@@ -24,6 +24,7 @@ impl<'ctx> Codegen<'ctx> {
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.
         subcontext.import_core();
+        subcontext.import_internal();
 
         for definition in module.definitions() {
             match &definition.item {

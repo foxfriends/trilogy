@@ -133,7 +133,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.context.ptr_type(AddressSpace::default()).const_null()
             }
             Builtin::Exit => {
-                let exit = self.exit();
+                let exit = self.trilogy_exit();
                 let argument = self.compile_expression(scope, expression);
                 let output = self.call_procedure(exit, &[argument.into()], "exit");
                 // self.builder.build_unreachable().unwrap();
@@ -163,7 +163,11 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::StructuralEquality => {
                 let lhs = self.compile_expression(scope, lhs);
                 let rhs = self.compile_expression(scope, rhs);
-                self.call_procedure(self.structural_eq(), &[lhs.into(), rhs.into()], "eq")
+                self.call_procedure(
+                    self.trilogy_structural_eq(),
+                    &[lhs.into(), rhs.into()],
+                    "eq",
+                )
             }
             _ => todo!(),
         }

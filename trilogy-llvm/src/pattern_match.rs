@@ -47,28 +47,28 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Unit => {
                 let constant = self.allocate_const(self.unit_const());
-                let seq = self.structural_eq();
+                let seq = self.trilogy_structural_eq();
                 let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                 let is_match = self.untag_boolean(is_match);
                 self.pm_cont_if(scope, is_match, on_fail);
             }
             Value::Boolean(val) => {
                 let constant = self.allocate_const(self.bool_const(*val));
-                let seq = self.structural_eq();
+                let seq = self.trilogy_structural_eq();
                 let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                 let is_match = self.untag_boolean(is_match);
                 self.pm_cont_if(scope, is_match, on_fail);
             }
             Value::Atom(val) => {
                 let constant = self.allocate_const(self.atom_const(val.to_owned()));
-                let seq = self.structural_eq();
+                let seq = self.trilogy_structural_eq();
                 let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                 let is_match = self.untag_boolean(is_match);
                 self.pm_cont_if(scope, is_match, on_fail);
             }
             Value::Character(val) => {
                 let constant = self.allocate_const(self.char_const(*val));
-                let seq = self.structural_eq();
+                let seq = self.trilogy_structural_eq();
                 let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                 let is_match = self.untag_boolean(is_match);
                 self.pm_cont_if(scope, is_match, on_fail);
@@ -76,7 +76,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Number(num) if num.value().im.is_zero() && num.value().re.is_integer() => {
                 if let Some(int) = num.value().re.to_i64() {
                     let constant = self.allocate_const(self.int_const(int));
-                    let seq = self.structural_eq();
+                    let seq = self.trilogy_structural_eq();
                     let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                     let is_match = self.untag_boolean(is_match);
                     self.pm_cont_if(scope, is_match, on_fail);
@@ -86,7 +86,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::String(string) => {
                 let constant = self.allocate_const(self.string_const(string));
-                let seq = self.structural_eq();
+                let seq = self.trilogy_structural_eq();
                 let is_match = self.call_procedure(seq, &[value.into(), constant.into()], "");
                 let is_match = self.untag_boolean(is_match);
                 self.pm_cont_if(scope, is_match, on_fail);
@@ -148,14 +148,14 @@ impl<'ctx> Codegen<'ctx> {
                     .unwrap();
                 let atom = self.raw_atom_value(atom);
 
-                let seq = self.structural_eq();
+                let seq = self.trilogy_structural_eq();
                 let cmp = self.call_procedure(seq, &[expected_type.into(), atom.into()], "");
                 let cmp = self.untag_boolean(cmp);
                 self.pm_cont_if(scope, cmp, on_fail);
             }
             Builtin::Pin => {
                 let expected_value = self.compile_expression(scope, expression);
-                let seq = self.structural_eq();
+                let seq = self.trilogy_structural_eq();
                 let cmp = self.call_procedure(seq, &[expected_value.into(), value.into()], "");
                 let cmp = self.untag_boolean(cmp);
                 self.pm_cont_if(scope, cmp, on_fail);

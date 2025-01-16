@@ -62,7 +62,7 @@ impl Codegen<'_> {
         }
 
         self.builder.position_at_end(no_match);
-        let panic = self.panic();
+        let panic = self.trilogy_panic();
         let error = self.allocate_const(self.string_const("procedure call no match\n"));
         self.call_procedure(panic, &[error.into()], "");
         self.builder.build_unreachable().unwrap();

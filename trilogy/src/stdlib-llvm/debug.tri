@@ -3,17 +3,17 @@ module core at "trilogy:core"
 export dbg
 proc dbg!(value) {
   if value == unit {
-    core::trilogy_printf!("unit")
+    core::trilogy_print!("unit")
   } else if value == true {
-    core::trilogy_printf!("true")
+    core::trilogy_print!("true")
   } else if value == false {
-    core::trilogy_printf!("false")
+    core::trilogy_print!("false")
   } else if typeof value == 'string {
-    core::trilogy_printf!(value)
+    core::trilogy_print!(value)
   } else if typeof value == 'atom {
-    core::trilogy_printf!(core::trilogy_lookup_atom!(value))
+    core::trilogy_print!(core::trilogy_lookup_atom!(value))
   } else {
-    core::trilogy_printf!("unsupported value")
+    core::trilogy_print!("unsupported value")
   }
   return value
 }

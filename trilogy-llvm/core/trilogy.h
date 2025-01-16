@@ -12,7 +12,7 @@ void trilogy_exit(
     struct trilogy_value* code
 );
 
-void trilogy_printf(
+void trilogy_print(
     struct trilogy_value* rv,
     struct trilogy_value* str
 );

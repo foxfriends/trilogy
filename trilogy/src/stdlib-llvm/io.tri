@@ -2,7 +2,7 @@ module core at "trilogy:core"
 
 export print
 proc print!(value) {
-  let err = core::printf!(value)
+  let err = core::trilogy_print!(value)
   if err < 0 {
     yield 'ioerror
   }
@@ -10,7 +10,7 @@ proc print!(value) {
 
 export println
 proc println!(value) {
-  let err = core::printf!(value)
+  let err = core::trilogy_print!(value)
   if err < 0 {
     yield 'ioerror
   }
