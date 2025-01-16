@@ -1,14 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "runtime.h"
+#include <stdbool.h>
 #include "trilogy.h"
+#include "trilogy_value.h"
+#include "trilogy_string.h"
+#include "trilogy_boolean.h"
 
 void trilogy_panic(
     struct trilogy_value* rv,
     struct trilogy_value* val
 ) {
-    panic(tocstr(val));
+    panic(trilogy_string_to_c(assume_string(val)));
 }
 
 void trilogy_exit(
@@ -27,7 +30,7 @@ void trilogy_printf(
     struct trilogy_value* rv,
     struct trilogy_value* val
 ) {
-    char* ptr = tocstr(val);
+    char* ptr = trilogy_string_to_c(untag_string(val));
     printf("%s", ptr);
     free(ptr);
     *rv = trilogy_unit;
@@ -93,17 +96,4 @@ void trilogy_structural_eq(
     struct trilogy_value* rhs
 ) {
     *rv = trilogy_bool(structural_eq(lhs, rhs));
-}
-
-void trilogy_lookup_atom(
-    struct trilogy_value* rv,
-    struct trilogy_value* atom
-) {
-    unsigned int atom_id = untag_atom(atom);
-    if (atom_id < atom_registry_sz) {
-        rv->tag = TAG_STRING;
-        rv->payload = (unsigned long)&atom_registry[atom_id];
-    } else {
-        *rv = trilogy_unit;
-    }
 }

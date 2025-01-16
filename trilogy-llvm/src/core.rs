@@ -48,7 +48,7 @@ impl<'ctx> Codegen<'ctx> {
             Some(Linkage::External),
         );
         self.module.add_function(
-            "untag_char",
+            "untag_character",
             self.context.i32_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
