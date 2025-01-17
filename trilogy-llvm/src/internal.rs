@@ -210,8 +210,7 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    /// Untags a function value. The returned PointerValue is a bare function pointer, NOT
-    /// a Trilogy callable value.
+    /// Untags a callable value. The returned PointerValue points to a `trilogy_callable_value`.
     pub(crate) fn untag_callable(
         &self,
         value: PointerValue<'ctx>,
@@ -219,6 +218,64 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
             "untag_callable",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    /// Untags a procedure. The value should be a `trilogy_callable_value` and the return pointer will be
+    /// a bare function pointer.
+    pub(crate) fn untag_procedure(
+        &self,
+        value: PointerValue<'ctx>,
+        arity: usize,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "untag_procedure",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i32_type().into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    value.into(),
+                    self.context
+                        .i32_type()
+                        .const_int(arity as u64, false)
+                        .into(),
+                ],
+                name,
+            )
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    /// Untags a function. The value should be a `trilogy_callable_value` and the return pointer will be
+    /// a bare function pointer.
+    pub(crate) fn untag_function(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "untag_function",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
