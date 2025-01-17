@@ -61,6 +61,7 @@ impl Token {
             "except" => TokenType::KwExcept,
             "exit" => TokenType::KwExit,
             "export" => TokenType::KwExport,
+            "extern" => TokenType::KwExtern,
             "extends" => TokenType::KwExtends,
             "false" => TokenType::KwFalse,
             "fn" => TokenType::KwFn,

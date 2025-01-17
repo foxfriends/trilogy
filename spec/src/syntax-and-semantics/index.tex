@@ -369,6 +369,14 @@ languages.
         \bnfsp
         \bnfts{\}}
     } \\
+    \bnfprod{ExternProcedureDefinition}{
+        \bnfts{\kw{extern}}
+        \bnfsp
+        \bnfts{\kw{proc}}
+        \bnfsp
+        \bnfpn{ProcedureHead}
+        \bnfsp
+    } \\
     \bnfprod{FunctionDefinition}{
         \bnfts{\kw{func}}
         \bnfsp
@@ -383,8 +391,14 @@ languages.
 \end{bnf*}
 
 For name resolution purposes, defintions of all types are stored in the same
-scope. For example, aprocedure and a function defined in the same module may
+scope. For example, a procedure and a function defined in the same module may
 not have the same name.
+
+Worth noting is the use of the \kw{extern} keyword: a procedure can be declared as an
+external procedure indicating that it is not implemented within the current file, but
+will be available at compilation time, from the current module's native library. At
+this time, it is incorrect to use the \kw{extern} keyword in any user program, but it
+is included for use within the core library.
 
 \subimport{law/}{index.tex}
 

@@ -67,20 +67,20 @@ typedef struct trilogy_struct_value {
      */
     unsigned long atom;
     /**
-     * The OWNED single value of this struct.
+     * The value of this struct.
      */
-    struct trilogy_value* contents;
+    trilogy_value contents;
 } trilogy_struct_value;
 
 typedef struct trilogy_tuple_value {
     /**
-     * The OWNED first value of this tuple.
+     * The first value of this tuple.
      */
-    struct trilogy_value* fst;
+    trilogy_value fst;
     /**
-     * The OWNED second value of this tuple.
+     * The second value of this tuple.
      */
-    struct trilogy_value* snd;
+    trilogy_value snd;
 } trilogy_tuple_value;
 
 typedef struct trilogy_array_value {
@@ -99,7 +99,7 @@ typedef struct trilogy_array_value {
     /**
      * An array of length `cap` containing the values of this array.
      */
-    struct trilogy_value* contents;
+    trilogy_value* contents;
 } trilogy_array_value;
 
 typedef struct trilogy_set_value {
@@ -118,7 +118,7 @@ typedef struct trilogy_set_value {
     /**
      * An array of length `cap` containing the values of this set.
      */
-    struct trilogy_value* contents;
+    trilogy_value* contents;
 } trilogy_set_value;
 
 typedef struct trilogy_record_value {
@@ -137,7 +137,7 @@ typedef struct trilogy_record_value {
     /**
      * An array of length `cap` containing the key-value pairs of this record.
      */
-    struct trilogy_tuple_value* contents;
+    trilogy_tuple_value* contents;
 } trilogy_record_value;
 
 typedef struct trilogy_callable_value {

@@ -398,13 +398,10 @@ impl<'ctx> Codegen<'ctx> {
         arguments: &[BasicMetadataValueEnum<'ctx>],
         name: &str,
     ) -> PointerValue<'ctx> {
-        let output = self
-            .builder
-            .build_alloca(self.value_type(), "retval")
-            .unwrap();
+        let output = self.builder.build_alloca(self.value_type(), name).unwrap();
         let mut args = vec![output.into()];
         args.extend_from_slice(arguments);
-        procedure.build_procedure_call(self, &args, name);
+        procedure.build_procedure_call(self, &args, "");
         output
     }
 
@@ -420,62 +417,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         function.build_procedure_call(self, &[output.into(), argument], name);
         output
-    }
-
-    /// Untags a function value. The returned PointerValue is a bare function pointer, NOT
-    /// a Trilogy callable value.
-    pub(crate) fn untag_callable(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        let untag = self.module.get_function("untag_callable").unwrap();
-        self.builder
-            .build_call(untag, &[value.into()], "")
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_pointer_value()
-    }
-
-    /// Untags an integer value.
-    pub(crate) fn untag_integer(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
-        let untag = self.module.get_function("untag_integer").unwrap();
-        self.builder
-            .build_call(untag, &[value.into()], "")
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_int_value()
-    }
-
-    /// Untags an integer value.
-    pub(crate) fn untag_boolean(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
-        let untag = self.module.get_function("untag_bool").unwrap();
-        self.builder
-            .build_call(untag, &[value.into()], "")
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_int_value()
-    }
-
-    /// Untags a string value. The returrned PointerValue points to a value of `string_value_type`.
-    pub(crate) fn untag_string(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        let untag = self.module.get_function("untag_string").unwrap();
-        self.builder
-            .build_call(untag, &[value.into()], "")
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_pointer_value()
-    }
-
-    /// Untags an atom value.
-    pub(crate) fn untag_atom(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
-        let untag = self.module.get_function("untag_atom").unwrap();
-        self.builder
-            .build_call(untag, &[value.into()], "")
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_int_value()
     }
 
     pub(crate) fn branch_undefined(

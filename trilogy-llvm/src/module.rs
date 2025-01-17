@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use crate::codegen::{Codegen, Head};
+use inkwell::module::Linkage;
+use std::collections::HashMap;
 use trilogy_ir::ir::{self, DefinitionItem};
 
 impl<'ctx> Codegen<'ctx> {
@@ -23,22 +23,12 @@ impl<'ctx> Codegen<'ctx> {
 
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.
-        subcontext.import_core();
-        subcontext.import_internal();
-
         for definition in module.definitions() {
             match &definition.item {
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {
                     let location = module.module.as_external().unwrap().to_owned();
-
-                    if let Some(submodule) = subcontext.modules.get(&location).unwrap() {
-                        subcontext.import_module(&location, submodule);
-                    } else {
-                        match location.as_str() {
-                            "trilogy:core" => { /* core is always imported, secretly */ }
-                            _ => panic!("unknown builtin module requested"),
-                        }
-                    }
+                    let submodule = subcontext.modules.get(&location).unwrap().unwrap();
+                    subcontext.import_module(&location, submodule);
                     subcontext
                         .globals
                         .insert(module.name.id.clone(), Head::Module(location));
@@ -50,11 +40,19 @@ impl<'ctx> Codegen<'ctx> {
                         .insert(constant.name.id.clone(), Head::Constant);
                 }
                 DefinitionItem::Procedure(procedure) => {
-                    subcontext.declare_procedure(procedure, definition.is_exported);
-                    let arity = procedure.overloads[0].parameters.len();
+                    subcontext.declare_procedure(
+                        &procedure.name.to_string(),
+                        procedure.arity,
+                        if definition.is_exported {
+                            Linkage::External
+                        } else {
+                            Linkage::Private
+                        },
+                        procedure.overloads.is_empty(),
+                    );
                     subcontext
                         .globals
-                        .insert(procedure.name.id.clone(), Head::Procedure(arity));
+                        .insert(procedure.name.id.clone(), Head::Procedure(procedure.arity));
                 }
                 _ => {}
             }

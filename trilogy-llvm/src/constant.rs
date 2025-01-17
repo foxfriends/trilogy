@@ -1,17 +1,42 @@
 use crate::{scope::Scope, Codegen};
-use inkwell::module::Linkage;
+use inkwell::{
+    attributes::{Attribute, AttributeLoc},
+    module::Linkage,
+    values::FunctionValue,
+};
 use trilogy_ir::ir;
 
-impl Codegen<'_> {
+impl<'ctx> Codegen<'ctx> {
+    fn add_constant(&self, location: &str, name: &str, linkage: Linkage) -> FunctionValue<'ctx> {
+        let procedure = self.module.add_function(
+            &format!("{}::{}", location, name),
+            self.procedure_type(0),
+            Some(linkage),
+        );
+        procedure.add_attribute(
+            AttributeLoc::Param(0),
+            self.context.create_type_attribute(
+                Attribute::get_named_enum_kind_id("sret"),
+                self.value_type().into(),
+            ),
+        );
+        procedure.get_nth_param(0).unwrap().set_name("sretptr");
+        procedure
+    }
+
     pub(crate) fn import_constant(&self, location: &str, constant: &ir::ConstantDefinition) {
-        self.add_procedure(&format!("{}::{}", location, constant.name), 0, true);
+        self.add_constant(location, &constant.name.to_string(), Linkage::External);
     }
 
     pub(crate) fn declare_constant(&self, constant: &ir::ConstantDefinition, exported: bool) {
-        self.add_procedure(
-            &format!("{}::{}", self.location, constant.name),
-            0,
-            exported,
+        self.add_constant(
+            &self.location,
+            &constant.name.to_string(),
+            if exported {
+                Linkage::External
+            } else {
+                Linkage::Private
+            },
         );
     }
 

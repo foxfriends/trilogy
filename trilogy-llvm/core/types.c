@@ -18,7 +18,7 @@ char* type_name(trilogy_value_tag tag) {
         case TAG_RECORD:    return "record";
         case TAG_CALLABLE:  return "callable";
         default:
-            panic("runtime error: invalid trilogy_value tag\n");
+            internal_panic("runtime error: invalid trilogy_value tag\n");
             return "undefined";
     }
 }

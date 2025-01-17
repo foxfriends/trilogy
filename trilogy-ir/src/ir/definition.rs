@@ -168,6 +168,7 @@ impl Definition {
                     .overloads
                     .push(Procedure::convert(converter, *ast))
             }
+            syntax::DefinitionItem::ExternalProcedure(..) => {}
             syntax::DefinitionItem::Rule(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
                 let definition = definitions.get_mut(&symbol.id).unwrap();
@@ -275,7 +276,26 @@ impl Definition {
                 }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
-                Self::new(span, ProcedureDefinition::declare(name))
+                Self::new(
+                    span,
+                    ProcedureDefinition::declare(name, ast.head.parameters.len()),
+                )
+            }
+            syntax::DefinitionItem::ExternalProcedure(ast) => {
+                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
+                    let original = original.declaration_span;
+                    converter.error(Error::DuplicateDefinition {
+                        original,
+                        duplicate: ast.head.name.clone(),
+                    });
+                    return vec![];
+                }
+                let span = ast.span();
+                let name = Identifier::declare(converter, ast.head.name.clone());
+                Self::new(
+                    span,
+                    ProcedureDefinition::declare(name, ast.head.parameters.len()),
+                )
             }
             syntax::DefinitionItem::Rule(ast) => {
                 if converter

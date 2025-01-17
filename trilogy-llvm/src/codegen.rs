@@ -131,17 +131,12 @@ impl<'ctx> Codegen<'ctx> {
         let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
 
         self.builder.position_at_end(basic_block);
-        let main = self
+        let main_accessor = self
             .module
             .get_function(&format!("{entrymodule}::{entrypoint}"))
             .unwrap();
-        let output = self
-            .builder
-            .build_alloca(self.value_type(), "output")
-            .unwrap();
-        self.builder
-            .build_direct_call(main, &[output.into()], "main")
-            .unwrap();
+        let main = self.call_procedure(main_accessor, &[], "");
+        let output = self.call_procedure(main, &[], "");
         let tag = self.get_tag(output);
         let is_unit = self
             .builder
@@ -162,38 +157,12 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(exit_int);
-        let exit_code = self.untag_integer(output);
+        let exit_code = self.untag_integer(output, "");
         let exit_code = self
             .builder
             .build_int_truncate(exit_code, self.context.i32_type(), "")
             .unwrap();
         self.builder.build_return(Some(&exit_code)).unwrap();
-    }
-
-    pub(crate) fn add_procedure(
-        &self,
-        name: &str,
-        arity: usize,
-        exported: bool,
-    ) -> FunctionValue<'ctx> {
-        let procedure = self.module.add_function(
-            name,
-            self.procedure_type(arity),
-            if exported {
-                Some(Linkage::External)
-            } else {
-                Some(Linkage::Private)
-            },
-        );
-        procedure.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        procedure.get_nth_param(0).unwrap().set_name("sretptr");
-        procedure
     }
 
     pub(crate) fn add_function(&self, name: &str, exported: bool) -> FunctionValue<'ctx> {
@@ -233,5 +202,16 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         scope.variables.insert(id, variable);
         variable
+    }
+
+    pub(crate) fn embed_c_string<S: AsRef<str>>(&self, string: S) -> PointerValue<'ctx> {
+        let string = string.as_ref();
+        let global = self.module.add_global(
+            self.context.i8_type().array_type((string.len() + 1) as u32),
+            None,
+            "",
+        );
+        global.set_initializer(&self.context.const_string(string.as_bytes(), true));
+        global.as_pointer_value()
     }
 }

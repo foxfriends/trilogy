@@ -17,4 +17,8 @@ where
             Location::library("atom").unwrap(),
             include_str!("./atom.tri").to_owned(),
         )
+        .source_module(
+            Location::library("core").unwrap(),
+            include_str!("./core.tri").to_owned(),
+        )
 }

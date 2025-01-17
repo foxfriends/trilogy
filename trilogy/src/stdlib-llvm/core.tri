@@ -1,0 +1,14 @@
+extern proc print!(value)
+export print
+
+extern proc panic!(value)
+export panic
+
+extern proc exit_!(value)
+export exit_
+
+extern proc structural_eq!(lhs, rhs)
+export structural_eq
+
+extern proc lookup_atom!(lhs, rhs)
+export lookup_atom

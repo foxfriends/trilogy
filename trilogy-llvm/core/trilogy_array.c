@@ -30,11 +30,11 @@ trilogy_array_value* assume_array(trilogy_value* val) {
     return (trilogy_array_value*)val->payload;
 }
 
-void destroy_array(trilogy_array_value* arr) {
+void trilogy_array_destroy(trilogy_array_value* arr) {
     if (--arr->rc == 0) {
         if (arr->contents == NULL) return;
         for (unsigned long i = 0; i < arr->len; ++i) {
-            destroy_trilogy_value(&arr->contents[i]);
+            trilogy_value_destroy(&arr->contents[i]);
         }
         free(arr->contents);
     }

@@ -12,6 +12,15 @@ trilogy_value trilogy_string_new(size_t len, char* s) {
     return t;
 }
 
+trilogy_value trilogy_string_clone(trilogy_string_value* orig) {
+    trilogy_string_value* str = malloc(sizeof(trilogy_string_value));
+    str->len = orig->len;
+    str->contents = malloc(sizeof(char) * orig->len);
+    strncpy(str->contents, orig->contents, orig->len);
+    trilogy_value t = { .tag = TAG_STRING, .payload = (unsigned long)str };
+    return t;
+}
+
 trilogy_value trilogy_string_from_c(char* s) {
     unsigned long len = (unsigned long)strlen(s);
     trilogy_string_value* str = malloc(sizeof(trilogy_string_value));
@@ -38,6 +47,6 @@ trilogy_string_value* assume_string(trilogy_value* val) {
     return (trilogy_string_value*)val->payload;
 }
 
-void destroy_string(trilogy_string_value* val) {
+void trilogy_string_destroy(trilogy_string_value* val) {
     free(val->contents);
 }

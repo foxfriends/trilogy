@@ -63,7 +63,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             _ => {
                 let function = self.compile_expression(scope, &application.function);
-                let function = self.untag_callable(function);
+                let function = self.untag_callable(function, "");
                 match &application.argument.value {
                     // Procedure application
                     Value::Pack(pack) => {
@@ -98,16 +98,11 @@ impl<'ctx> Codegen<'ctx> {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(name) = &module_ref.value {
             if let Some(Head::Module(name)) = self.globals.get(&name.id) {
-                if name == "trilogy:core" {
-                    let declared = self.module.get_function(ident.as_ref()).unwrap();
-                    return self.callable_value(declared.as_global_value().as_pointer_value());
-                } else {
-                    let declared = self
-                        .module
-                        .get_function(&format!("{}::{}", name, ident.as_ref()))
-                        .unwrap();
-                    return self.callable_value(declared.as_global_value().as_pointer_value());
-                }
+                let declared = self
+                    .module
+                    .get_function(&format!("{}::{}", name, ident.as_ref()))
+                    .unwrap();
+                return self.callable_value(declared.as_global_value().as_pointer_value());
             }
         }
 
@@ -133,11 +128,10 @@ impl<'ctx> Codegen<'ctx> {
                 self.context.ptr_type(AddressSpace::default()).const_null()
             }
             Builtin::Exit => {
-                let exit = self.trilogy_exit();
                 let argument = self.compile_expression(scope, expression);
-                let output = self.call_procedure(exit, &[argument.into()], "exit");
+                self.exit(argument);
                 // self.builder.build_unreachable().unwrap();
-                output
+                argument
             }
             Builtin::Typeof => {
                 let argument = self.compile_expression(scope, expression);
@@ -163,11 +157,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::StructuralEquality => {
                 let lhs = self.compile_expression(scope, lhs);
                 let rhs = self.compile_expression(scope, rhs);
-                self.call_procedure(
-                    self.trilogy_structural_eq(),
-                    &[lhs.into(), rhs.into()],
-                    "eq",
-                )
+                self.structural_eq(lhs, rhs, "eq")
             }
             _ => todo!(),
         }
@@ -187,22 +177,18 @@ impl<'ctx> Codegen<'ctx> {
                 .get(&identifier.id)
                 .expect("Unresolved variable")
             {
+                // these... are the same?
                 Head::Constant => {
                     let global_name =
                         format!("{}::{name}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();
-                    let stack = self.builder.build_alloca(self.value_type(), name).unwrap();
-                    self.builder
-                        .build_call(function, &[stack.into()], "")
-                        .unwrap();
-                    stack
+                    self.call_procedure(function, &[], name)
                 }
                 Head::Procedure(..) => {
                     let global_name =
                         format!("{}::{name}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();
-                    let pointer = function.as_global_value().as_pointer_value();
-                    self.callable_value(pointer)
+                    self.call_procedure(function, &[], name)
                 }
                 _ => todo!(),
             }
@@ -214,7 +200,7 @@ impl<'ctx> Codegen<'ctx> {
         let if_true = self.context.append_basic_block(scope.function, "if_true");
         let if_false = self.context.append_basic_block(scope.function, "if_false");
         let if_cont = self.context.append_basic_block(scope.function, "if_cont");
-        let condition = self.untag_boolean(condition);
+        let condition = self.untag_boolean(condition, "");
         self.builder
             .build_conditional_branch(condition, if_true, if_false)
             .unwrap();

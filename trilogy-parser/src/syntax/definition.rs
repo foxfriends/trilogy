@@ -12,6 +12,8 @@ pub enum DefinitionItem {
     ExternalModule(Box<ExternalModuleDefinition>),
     /// A procedure definition.
     Procedure(Box<ProcedureDefinition>),
+    /// An external procedure definition.
+    ExternalProcedure(Box<ExternalProcedureDefinition>),
     /// A constant definition.
     Constant(Box<ConstantDefinition>),
     /// A function definition.
@@ -93,6 +95,9 @@ impl Definition {
             KwConst => DefinitionItem::Constant(Box::new(ConstantDefinition::parse(parser)?)),
             KwRule => DefinitionItem::Rule(Box::new(RuleDefinition::parse(parser)?)),
             KwProc => DefinitionItem::Procedure(Box::new(ProcedureDefinition::parse(parser)?)),
+            KwExtern => DefinitionItem::ExternalProcedure(Box::new(
+                ExternalProcedureDefinition::parse(parser)?,
+            )),
             KwFunc => DefinitionItem::Function(Box::new(FunctionDefinition::parse(parser)?)),
             KwTest => DefinitionItem::Test(Box::new(TestDefinition::parse(parser)?)),
             DocInner => {

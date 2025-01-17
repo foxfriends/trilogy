@@ -32,6 +32,8 @@ pub enum TokenType {
     KwExit,
     /// `export`
     KwExport,
+    /// `extern`
+    KwExtern,
     /// `false`
     KwFalse,
     /// `fn`

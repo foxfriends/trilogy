@@ -5,8 +5,16 @@
 
 trilogy_value trilogy_tuple(trilogy_value* fst, trilogy_value* snd) {
     trilogy_tuple_value* tup = malloc(sizeof(trilogy_tuple_value));
-    tup->fst = fst;
-    tup->snd = snd;
+    tup->fst = *fst;
+    tup->snd = *snd;
+    trilogy_value t = { .tag = TAG_TUPLE, .payload = (unsigned long)tup };
+    return t;
+}
+
+trilogy_value trilogy_tuple_clone(trilogy_tuple_value* orig) {
+    trilogy_tuple_value* tup = malloc(sizeof(trilogy_tuple_value));
+    tup->fst = trilogy_value_clone(&orig->fst);
+    tup->snd = trilogy_value_clone(&orig->snd);
     trilogy_value t = { .tag = TAG_TUPLE, .payload = (unsigned long)tup };
     return t;
 }
@@ -20,9 +28,7 @@ trilogy_tuple_value* assume_tuple(trilogy_value* val) {
     return (trilogy_tuple_value*)val->payload;
 }
 
-void destroy_tuple(trilogy_tuple_value* val) {
-    destroy_trilogy_value(val->fst);
-    free(val->fst);
-    destroy_trilogy_value(val->snd);
-    free(val->snd);
+void trilogy_tuple_destroy(trilogy_tuple_value* val) {
+    trilogy_value_destroy(&val->fst);
+    trilogy_value_destroy(&val->snd);
 }

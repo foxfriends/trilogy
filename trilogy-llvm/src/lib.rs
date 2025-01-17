@@ -7,6 +7,7 @@ mod codegen;
 mod constant;
 mod core;
 mod expression;
+mod internal;
 mod module;
 mod pattern_match;
 mod procedure;
@@ -30,9 +31,7 @@ pub fn evaluate(
     _parameters: Vec<String>,
 ) -> String {
     let context = Context::create();
-
     let codegen = Codegen::new(&context, &modules);
-    codegen.import_core();
 
     for (file, module) in &modules {
         let Some(module) = module else {
@@ -61,6 +60,7 @@ pub fn compile(
 ) -> HashMap<String, String> {
     let context = Context::create();
     let codegen = Codegen::new(&context, &modules);
+
     let mut compiled = HashMap::with_capacity(modules.len() + 1);
     compiled.insert("trilogy:runtime".to_owned(), codegen.module.to_string());
     for (file, module) in &modules {
@@ -84,7 +84,6 @@ pub fn compile_and_link(
 ) -> String {
     let context = Context::create();
     let codegen = Codegen::new(&context, &modules);
-    codegen.import_core();
 
     for (file, module) in &modules {
         let Some(module) = module else {

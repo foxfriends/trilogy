@@ -17,7 +17,7 @@ unsigned long assume_atom(trilogy_value* val) {
     return (unsigned long)val->payload;
 }
 
-void trilogy_lookup_atom(
+void lookup_atom(
     struct trilogy_value* rv,
     struct trilogy_value* atom
 ) {

@@ -30,11 +30,11 @@ trilogy_set_value* assume_set(trilogy_value* val) {
     return (trilogy_set_value*)val->payload;
 }
 
-void destroy_set(trilogy_set_value* set) {
+void trilogy_set_destroy(trilogy_set_value* set) {
     if (--set->rc == 0) {
         if (set->contents == NULL) return;
         for (unsigned long i = 0; i < set->len; ++i) {
-            destroy_trilogy_value(&set->contents[i]);
+            trilogy_value_destroy(&set->contents[i]);
         }
         free(set->contents);
     }

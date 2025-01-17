@@ -3,10 +3,18 @@
 #include "trilogy_value.h"
 #include "internal.h"
 
-trilogy_value trilogy_struct(unsigned long i, trilogy_value* val) {
+trilogy_value trilogy_struct_new(unsigned long i, trilogy_value* val) {
     trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
     st->atom = i;
-    st->contents = val;
+    st->contents = *val;
+    trilogy_value t = { .tag = TAG_STRUCT, .payload = (unsigned long)st };
+    return t;
+}
+
+trilogy_value trilogy_struct_clone(trilogy_struct_value* val) {
+    trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
+    st->atom = val->atom;
+    st->contents = trilogy_value_clone(&val->contents);
     trilogy_value t = { .tag = TAG_STRUCT, .payload = (unsigned long)st };
     return t;
 }
@@ -20,7 +28,6 @@ trilogy_struct_value* assume_struct(trilogy_value* val) {
     return (trilogy_struct_value*)val->payload;
 }
 
-void destroy_struct(trilogy_struct_value* val) {
-    destroy_trilogy_value(val->contents);
-    free(val->contents);
+void trilogy_struct_destroy(trilogy_struct_value* val) {
+    trilogy_value_destroy(&val->contents);
 }

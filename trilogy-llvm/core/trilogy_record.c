@@ -30,11 +30,11 @@ trilogy_record_value* assume_record(trilogy_value* val) {
     return (trilogy_record_value*)val->payload;
 }
 
-void destroy_record(trilogy_record_value* record) {
+void trilogy_record_destroy(trilogy_record_value* record) {
     if (--record->rc == 0) {
         if (record->contents == NULL) return;
         for (unsigned long i = 0; i < record->len; ++i) {
-            destroy_tuple(&record->contents[i]);
+            trilogy_tuple_destroy(&record->contents[i]);
         }
         free(record->contents);
     }
