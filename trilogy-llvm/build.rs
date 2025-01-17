@@ -6,6 +6,9 @@ fn try_command(command: &mut Command) {
         println!("cargo::error={}", String::from_utf8_lossy(&output.stderr));
         std::process::exit(1);
     }
+    if !output.stderr.is_empty() {
+        println!("cargo::warning={}", String::from_utf8_lossy(&output.stderr));
+    }
 }
 
 fn main() {
@@ -35,7 +38,7 @@ fn main() {
 
     try_command(
         Command::new("clang")
-            .args(["-S", "-emit-llvm"])
+            .args(["-S", "-emit-llvm", "-Wall"])
             .args(&sources)
             .current_dir(&core),
     );
