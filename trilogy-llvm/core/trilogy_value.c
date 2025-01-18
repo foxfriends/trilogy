@@ -21,59 +21,42 @@ void trilogy_unit_untag(trilogy_value* val) {
     if (val->tag != TAG_UNIT) rte("unit", val->tag);
 }
 
-trilogy_value trilogy_value_clone(trilogy_value* value) {
-    switch (value->tag) {
+void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
+    switch (from->tag) {
         case TAG_UNIT:
         case TAG_BOOL:
         case TAG_ATOM:
         case TAG_CHAR:
         case TAG_INTEGER:
-            return *value;
-        case TAG_STRING: {
-            trilogy_value t;
-            trilogy_string_clone_into(&t, trilogy_string_assume(value));
-            return t;
-        }
-        case TAG_BITS: {
-            trilogy_value t;
-            trilogy_bits_clone_into(&t, trilogy_bits_assume(value));
-            return t;
-        }
-        case TAG_STRUCT: {
-            trilogy_value t;
-            trilogy_struct_clone_into(&t, trilogy_struct_assume(value));
-            return t;
-        }
-        case TAG_TUPLE: {
-            trilogy_value t;
-            trilogy_tuple_clone_into(&t, trilogy_tuple_assume(value));
-            return t;
-        }
-        case TAG_ARRAY: {
-            trilogy_value t;
-            trilogy_array_clone_into(&t, trilogy_array_assume(value));
-            return t;
-        }
-        case TAG_SET: {
-            trilogy_value t;
-            trilogy_set_clone_into(&t, trilogy_set_assume(value));
-            return t;
-        }
+            *into = *from;
+            break;
+        case TAG_STRING:
+            trilogy_string_clone_into(into, trilogy_string_assume(from));
+            break;
+        case TAG_BITS:
+            trilogy_bits_clone_into(into, trilogy_bits_assume(from));
+            break;
+        case TAG_STRUCT:
+            trilogy_struct_clone_into(into, trilogy_struct_assume(from));
+            break;
+        case TAG_TUPLE:
+            trilogy_tuple_clone_into(into, trilogy_tuple_assume(from));
+            break;
+        case TAG_ARRAY:
+            trilogy_array_clone_into(into, trilogy_array_assume(from));
+            break;
+        case TAG_SET:
+            trilogy_set_clone_into(into, trilogy_set_assume(from));
+            break;
         case TAG_RECORD:
-            return trilogy_record_clone(trilogy_record_assume(value));
-        case TAG_CALLABLE: {
-            trilogy_value t;
-            trilogy_callable_clone_into(&t, trilogy_callable_assume(value));
-            return t;
-        }
+            trilogy_record_clone_into(into, trilogy_record_assume(from));
+            break;
+        case TAG_CALLABLE:
+            trilogy_callable_clone_into(into, trilogy_callable_assume(from));
+            break;
         default:
-            internal_panic("unreachable");
-            return trilogy_undefined;
+            internal_panic("invalid trilogy value");
     }
-}
-
-void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
-    *into = trilogy_value_clone(from);
 }
 
 void trilogy_value_destroy(trilogy_value* value) {

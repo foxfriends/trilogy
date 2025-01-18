@@ -4,21 +4,25 @@
 #include "trilogy_tuple.h"
 #include "internal.h"
 
-trilogy_value trilogy_record_empty() {
+trilogy_record_value* trilogy_record_init(trilogy_value* tv, trilogy_record_value* rec) {
+    tv->tag = TAG_RECORD;
+    tv->payload = (unsigned long)rec;
+    return rec;
+}
+
+trilogy_record_value* trilogy_record_init_empty(trilogy_value* tv) {
     trilogy_record_value* record = malloc(sizeof(trilogy_record_value));
     record->rc = 1;
     record->len = 0;
     record->cap = 0;
     record->contents = NULL;
-    trilogy_value t = { .tag = TAG_RECORD, .payload = (unsigned long)record };
-    return t;
+    return trilogy_record_init(tv, record);
 }
 
-trilogy_value trilogy_record_clone(trilogy_record_value* record) {
+trilogy_record_value* trilogy_record_clone_into(trilogy_value* tv, trilogy_record_value* record) {
     assert(record->rc != 0);
     ++record->rc;
-    trilogy_value t = { .tag = TAG_RECORD, .payload = (unsigned long)record };
-    return t;
+    return trilogy_record_init(tv, record);
 }
 
 trilogy_record_value* trilogy_record_untag(trilogy_value* val) {
