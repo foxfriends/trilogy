@@ -3,22 +3,26 @@
 #include "trilogy_bits.h"
 #include "internal.h"
 
-trilogy_value trilogy_bits_new(unsigned long len, unsigned char* b) {
+trilogy_bits_value* trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
+    tv->tag = TAG_BITS;
+    tv->payload = (unsigned long)bits;
+    return bits;
+}
+
+trilogy_bits_value* trilogy_bits_init_new(trilogy_value* tv, unsigned long len, unsigned char* b) {
     trilogy_bits_value* bits = malloc(sizeof(trilogy_bits_value));
     bits->len = len;
     bits->contents = malloc(sizeof(unsigned char) * len);
     memcpy(bits->contents, b, len);
-    trilogy_value t = { .tag = TAG_BITS, .payload = (unsigned long)bits };
-    return t;
+    return trilogy_bits_init(tv, bits);
 }
 
-trilogy_value trilogy_bits_clone(trilogy_bits_value* val) {
+trilogy_bits_value* trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val) {
     trilogy_bits_value* bits = malloc(sizeof(trilogy_bits_value));
     bits->len = val->len;
     bits->contents = malloc(sizeof(unsigned char) * val->len);
     memcpy(bits->contents, val->contents, val->len);
-    trilogy_value t = { .tag = TAG_BITS, .payload = (unsigned long)bits };
-    return t;
+    return trilogy_bits_init(tv, bits);
 }
 
 trilogy_bits_value* trilogy_bits_untag(trilogy_value* val) {

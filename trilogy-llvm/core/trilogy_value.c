@@ -34,10 +34,16 @@ trilogy_value trilogy_value_clone(trilogy_value* value) {
             trilogy_string_clone_into(&t, trilogy_string_assume(value));
             return t;
         }
-        case TAG_BITS:
-            return trilogy_bits_clone(trilogy_bits_assume(value));
-        case TAG_STRUCT:
-            return trilogy_struct_clone(trilogy_struct_assume(value));
+        case TAG_BITS: {
+            trilogy_value t;
+            trilogy_bits_clone_into(&t, trilogy_bits_assume(value));
+            return t;
+        }
+        case TAG_STRUCT: {
+            trilogy_value t;
+            trilogy_struct_clone_into(&t, trilogy_struct_assume(value));
+            return t;
+        }
         case TAG_TUPLE:
             return trilogy_tuple_clone(trilogy_tuple_assume(value));
         case TAG_ARRAY: {
