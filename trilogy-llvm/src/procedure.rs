@@ -23,13 +23,13 @@ impl<'ctx> Codegen<'ctx> {
     ) -> FunctionValue<'ctx> {
         let long_name = format!("{}::{}", self.location, name);
 
-        let procedure_scope = self.dibuilder.create_function(
-            self.dicu.as_debug_info_scope(),
+        let procedure_scope = self.di.builder.create_function(
+            self.di.unit.as_debug_info_scope(),
             name,
             None,
-            self.dicu.get_file(),
+            self.di.unit.get_file(),
             span.start().line as u32,
-            self.procedure_di_type(arity),
+            self.di.procedure_di_type(arity),
             linkage == Linkage::External,
             !is_extern,
             0,
@@ -116,6 +116,9 @@ impl<'ctx> Codegen<'ctx> {
         let cleanup = self.context.append_basic_block(function, "cleanup");
 
         let mut scope = Scope::begin(function);
+
+        self.di
+            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
         scope.set_cleanup(cleanup);
 
         'body: {
@@ -163,5 +166,6 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_value_destroy(pointer);
         }
         self.builder.build_return(None).unwrap();
+        self.di.pop_debug_scope();
     }
 }

@@ -1,8 +1,8 @@
-use crate::codegen::{Codegen, Head};
-use inkwell::{
-    debug_info::{DWARFEmissionKind, DWARFSourceLanguage},
-    module::Linkage,
+use crate::{
+    codegen::{Codegen, Head},
+    debug_info::DebugInfo,
 };
+use inkwell::module::Linkage;
 use std::{collections::HashMap, path::PathBuf};
 use trilogy_ir::ir::{self, DefinitionItem};
 use url::Url;
@@ -29,29 +29,12 @@ impl<'ctx> Codegen<'ctx> {
             "trilogy" => (url.path().to_owned(), "/".to_owned()),
             _ => (name.to_owned(), "/".to_owned()),
         };
-        let (dibuilder, dicu) = module.create_debug_info_builder(
-            true,
-            DWARFSourceLanguage::C,
-            &filename,
-            &directory,
-            "trilogy",
-            false,
-            "",
-            0,
-            "",
-            DWARFEmissionKind::Full,
-            0,
-            false,
-            false,
-            "",
-            "",
-        );
+        let di = DebugInfo::new(&module, &filename, &directory);
         Codegen {
             atoms: self.atoms.clone(),
             context: self.context,
             builder: self.context.create_builder(),
-            dibuilder,
-            dicu,
+            di,
             execution_engine: self.execution_engine.clone(),
             module,
             modules: self.modules,

@@ -44,13 +44,13 @@ impl<'ctx> Codegen<'ctx> {
         };
         let procedure = self.add_constant(&self.location, &constant.name.to_string(), linkage);
 
-        let procedure_scope = self.dibuilder.create_function(
-            self.dicu.as_debug_info_scope(),
+        let procedure_scope = self.di.builder.create_function(
+            self.di.unit.as_debug_info_scope(),
             &constant.name.to_string(),
             None,
-            self.dicu.get_file(),
+            self.di.unit.get_file(),
             span.start().line as u32,
-            self.procedure_di_type(0),
+            self.di.procedure_di_type(0),
             linkage == Linkage::External,
             true,
             0,
@@ -74,6 +74,8 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         let mut scope = Scope::begin(function);
+        self.di
+            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
         let basic_block = self.context.append_basic_block(function, "entry");
         let initialize = self.context.append_basic_block(function, "initialize");
         let initialized = self.context.append_basic_block(function, "initialized");
@@ -103,5 +105,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.builder.build_store(scope.sret(), value).unwrap();
         self.builder.build_return(None).unwrap();
+        self.di.pop_debug_scope();
     }
 }

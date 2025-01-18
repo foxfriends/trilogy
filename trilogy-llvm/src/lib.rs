@@ -36,7 +36,7 @@ pub fn evaluate(
 
     for (file, module) in &modules {
         let submodule = codegen.compile_module(file, module);
-        submodule.dibuilder.finalize();
+        submodule.di.builder.finalize();
         codegen.module.link_in_module(submodule.module).unwrap();
     }
 
@@ -83,7 +83,7 @@ pub fn compile_and_link(
 
     for (file, module) in &modules {
         let submodule = codegen.compile_module(file, module);
-        submodule.dibuilder.finalize();
+        submodule.di.builder.finalize();
         codegen.module.link_in_module(submodule.module).unwrap();
     }
 

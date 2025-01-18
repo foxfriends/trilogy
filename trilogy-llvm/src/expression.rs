@@ -13,6 +13,8 @@ impl<'ctx> Codegen<'ctx> {
         scope: &mut Scope<'ctx>,
         expression: &ir::Expression,
     ) -> Option<PointerValue<'ctx>> {
+        self.set_span(expression.span);
+
         let output = match &expression.value {
             Value::Unit => self.allocate_const(self.unit_const()),
             Value::Boolean(b) => self.allocate_const(self.bool_const(*b)),
@@ -27,10 +29,12 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Atom(atom) => self.allocate_const(self.atom_const(atom.to_owned())),
             Value::Sequence(exprs) => {
+                self.di.push_block_scope(expression.span);
                 let mut value = self.allocate_const(self.unit_const());
                 for expr in exprs {
                     value = self.compile_expression(scope, expr)?;
                 }
+                self.di.pop_debug_scope();
                 value
             }
             Value::Application(app) => self.compile_application(scope, app)?,

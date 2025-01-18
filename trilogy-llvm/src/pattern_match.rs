@@ -15,6 +15,7 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         on_fail: BasicBlock<'ctx>,
     ) -> Option<()> {
+        self.set_span(pattern.span);
         match &pattern.value {
             Value::Reference(id) => {
                 let variable = self.variable(scope, id);

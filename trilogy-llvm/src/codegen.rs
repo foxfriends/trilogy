@@ -1,13 +1,11 @@
 #![expect(dead_code, reason = "WIP")]
 
-use crate::{scope::Scope, types};
+use crate::{debug_info::DebugInfo, scope::Scope, types};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     builder::Builder,
     context::Context,
-    debug_info::{
-        AsDIScope, DICompileUnit, DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
-    },
+    debug_info::AsDIScope,
     execution_engine::ExecutionEngine,
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     memory_buffer::MemoryBuffer,
@@ -34,8 +32,7 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) context: &'ctx Context,
     pub(crate) module: Module<'ctx>,
     pub(crate) builder: Builder<'ctx>,
-    pub(crate) dibuilder: DebugInfoBuilder<'ctx>,
-    pub(crate) dicu: DICompileUnit<'ctx>,
+    pub(crate) di: DebugInfo<'ctx>,
     pub(crate) execution_engine: ExecutionEngine<'ctx>,
     pub(crate) modules: &'ctx HashMap<String, &'ctx ir::Module>,
     pub(crate) globals: HashMap<Id, Head>,
@@ -64,29 +61,12 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("callable".to_owned(), types::TAG_CALLABLE);
 
         let module = context.create_module("trilogy:runtime");
-        let (dibuilder, dicu) = module.create_debug_info_builder(
-            true,
-            DWARFSourceLanguage::C,
-            "trilogy:runtime",
-            ".",
-            "trilogy",
-            false,
-            "",
-            0,
-            "",
-            DWARFEmissionKind::Full,
-            0,
-            false,
-            false,
-            "",
-            "",
-        );
+        let di = DebugInfo::new(&module, "trilogy:runtime", ".");
 
         let codegen = Codegen {
             atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
-            dibuilder,
-            dicu,
+            di,
             context,
             execution_engine: module
                 .create_jit_execution_engine(OptimizationLevel::Default)
@@ -147,9 +127,7 @@ impl<'ctx> Codegen<'ctx> {
             MemoryBuffer::create_from_memory_range(include_bytes!("../core/core.bc"), "core");
         let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
         self.module.link_in_module(core).unwrap();
-
-        self.dibuilder.finalize();
-
+        self.di.builder.finalize();
         (self.module, self.execution_engine)
     }
 
@@ -243,24 +221,24 @@ impl<'ctx> Codegen<'ctx> {
 
         if let Some(subp) = scope.function.get_subprogram() {
             if let Some(name) = id.id.name() {
-                let di_variable = self.dibuilder.create_auto_variable(
+                let di_variable = self.di.builder.create_auto_variable(
                     subp.as_debug_info_scope(),
                     name,
-                    self.dicu.get_file(),
+                    self.di.unit.get_file(),
                     id.declaration_span.start().line as u32,
-                    self.value_di_type().as_type(),
+                    self.di.value_di_type().as_type(),
                     true,
                     LLVMDIFlagPublic,
                     0,
                 );
-                let di_location = self.dibuilder.create_debug_location(
+                let di_location = self.di.builder.create_debug_location(
                     self.context,
                     id.span.start().line as u32,
                     id.span.start().column as u32,
                     subp.as_debug_info_scope(),
                     None,
                 );
-                self.dibuilder.insert_declare_at_end(
+                self.di.builder.insert_declare_at_end(
                     variable,
                     Some(di_variable),
                     None,
