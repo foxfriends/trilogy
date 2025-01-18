@@ -21,12 +21,12 @@ trilogy_value trilogy_record_clone(trilogy_record_value* record) {
     return t;
 }
 
-trilogy_record_value* untag_record(trilogy_value* val) {
+trilogy_record_value* trilogy_record_untag(trilogy_value* val) {
     if (val->tag != TAG_RECORD) rte("record", val->tag);
-    return assume_record(val);
+    return trilogy_record_assume(val);
 }
 
-trilogy_record_value* assume_record(trilogy_value* val) {
+trilogy_record_value* trilogy_record_assume(trilogy_value* val) {
     return (trilogy_record_value*)val->payload;
 }
 

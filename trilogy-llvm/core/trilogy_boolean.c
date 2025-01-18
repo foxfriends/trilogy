@@ -10,11 +10,11 @@ trilogy_value trilogy_boolean(bool b) {
     return t;
 }
 
-bool untag_boolean(trilogy_value* val) {
+bool trilogy_boolean_untag(trilogy_value* val) {
     if (val->tag != TAG_BOOL) rte("bool", val->tag);
-    return assume_boolean(val);
+    return trilogy_boolean_assume(val);
 }
 
-bool assume_boolean(trilogy_value* val) {
+bool trilogy_boolean_assume(trilogy_value* val) {
     return (bool)val->payload;
 }

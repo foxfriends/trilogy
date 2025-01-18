@@ -19,12 +19,12 @@ trilogy_value trilogy_tuple_clone(trilogy_tuple_value* orig) {
     return t;
 }
 
-trilogy_tuple_value* untag_tuple(trilogy_value* val) {
+trilogy_tuple_value* trilogy_tuple_untag(trilogy_value* val) {
     if (val->tag != TAG_TUPLE) rte("tuple", val->tag);
-    return assume_tuple(val);
+    return trilogy_tuple_assume(val);
 }
 
-trilogy_tuple_value* assume_tuple(trilogy_value* val) {
+trilogy_tuple_value* trilogy_tuple_assume(trilogy_value* val) {
     return (trilogy_tuple_value*)val->payload;
 }
 

@@ -5,10 +5,10 @@ trilogy_value trilogy_integer(long i) {
     trilogy_value t = { .tag = TAG_INTEGER, .payload = (unsigned long)i };
     return t;
 }
-long untag_integer(trilogy_value* val) {
+long trilogy_integer_untag(trilogy_value* val) {
     if (val->tag != TAG_INTEGER) rte("integer", val->tag);
-    return assume_integer(val);
+    return trilogy_integer_assume(val);
 }
-long assume_integer(trilogy_value* val) {
+long trilogy_integer_assume(trilogy_value* val) {
     return (long)val->payload;
 }

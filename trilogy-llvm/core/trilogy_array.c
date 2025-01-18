@@ -21,12 +21,12 @@ trilogy_value trilogy_array_clone(trilogy_array_value* arr) {
     return t;
 }
 
-trilogy_array_value* untag_array(trilogy_value* val) {
+trilogy_array_value* trilogy_array_untag(trilogy_value* val) {
     if (val->tag != TAG_ARRAY) rte("array", val->tag);
-    return assume_array(val);
+    return trilogy_array_assume(val);
 }
 
-trilogy_array_value* assume_array(trilogy_value* val) {
+trilogy_array_value* trilogy_array_assume(trilogy_value* val) {
     return (trilogy_array_value*)val->payload;
 }
 

@@ -21,12 +21,12 @@ trilogy_value trilogy_bits_clone(trilogy_bits_value* val) {
     return t;
 }
 
-trilogy_bits_value* untag_bits(trilogy_value* val) {
+trilogy_bits_value* trilogy_bits_untag(trilogy_value* val) {
     if (val->tag != TAG_BITS) rte("bits", val->tag);
-    return assume_bits(val);
+    return trilogy_bits_assume(val);
 }
 
-trilogy_bits_value* assume_bits(trilogy_value* val) {
+trilogy_bits_value* trilogy_bits_assume(trilogy_value* val) {
     return (trilogy_bits_value*)val->payload;
 }
 

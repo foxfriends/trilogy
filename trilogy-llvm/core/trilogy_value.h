@@ -3,7 +3,7 @@
 
 extern const trilogy_value trilogy_undefined;
 extern const trilogy_value trilogy_unit;
-void untag_unit(trilogy_value* val);
+void trilogy_unit_untag(trilogy_value* val);
 
 void trilogy_value_destroy(trilogy_value* val);
 trilogy_value trilogy_value_clone(trilogy_value* val);

@@ -17,7 +17,7 @@ const trilogy_value trilogy_undefined = { .tag = TAG_UNDEFINED, .payload = 0 };
 
 const trilogy_value trilogy_unit = { .tag = TAG_UNIT, .payload = 0 };
 
-void untag_unit(trilogy_value* val) {
+void trilogy_unit_untag(trilogy_value* val) {
     if (val->tag != TAG_UNIT) rte("unit", val->tag);
 }
 
@@ -30,22 +30,22 @@ trilogy_value trilogy_value_clone(trilogy_value* value) {
         case TAG_INTEGER:
             return *value;
         case TAG_STRING:
-            return trilogy_string_clone(assume_string(value));
+            return trilogy_string_clone(trilogy_string_assume(value));
         case TAG_BITS:
-            return trilogy_bits_clone(assume_bits(value));
+            return trilogy_bits_clone(trilogy_bits_assume(value));
         case TAG_STRUCT:
-            return trilogy_struct_clone(assume_struct(value));
+            return trilogy_struct_clone(trilogy_struct_assume(value));
         case TAG_TUPLE:
-            return trilogy_tuple_clone(assume_tuple(value));
+            return trilogy_tuple_clone(trilogy_tuple_assume(value));
         case TAG_ARRAY:
-            return trilogy_array_clone(assume_array(value));
+            return trilogy_array_clone(trilogy_array_assume(value));
         case TAG_SET:
-            return trilogy_set_clone(assume_set(value));
+            return trilogy_set_clone(trilogy_set_assume(value));
         case TAG_RECORD:
-            return trilogy_record_clone(assume_record(value));
+            return trilogy_record_clone(trilogy_record_assume(value));
         case TAG_CALLABLE: {
             trilogy_value t;
-            trilogy_callable_clone_into(&t, assume_callable(value));
+            trilogy_callable_clone_into(&t, trilogy_callable_assume(value));
             return t;
         }
         default:
@@ -61,47 +61,47 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
 void trilogy_value_destroy(trilogy_value* value) {
     switch (value->tag) {
         case TAG_STRING: {
-            trilogy_string_value* p = assume_string(value);
+            trilogy_string_value* p = trilogy_string_assume(value);
             trilogy_string_destroy(p);
             free(p);
             break;
         }
         case TAG_BITS: {
-            trilogy_bits_value* p = assume_bits(value);
+            trilogy_bits_value* p = trilogy_bits_assume(value);
             trilogy_bits_destroy(p);
             break;
         }
         case TAG_TUPLE: {
-            trilogy_tuple_value* p = assume_tuple(value);
+            trilogy_tuple_value* p = trilogy_tuple_assume(value);
             trilogy_tuple_destroy(p);
             break;
         }
         case TAG_STRUCT: {
-            trilogy_struct_value* p = assume_struct(value);
+            trilogy_struct_value* p = trilogy_struct_assume(value);
             trilogy_struct_destroy(p);
             free(p);
             break;
         }
         case TAG_ARRAY: {
-            trilogy_array_value* p = assume_array(value);
+            trilogy_array_value* p = trilogy_array_assume(value);
             trilogy_array_destroy(p);
             free(p);
             break;
         }
         case TAG_SET: {
-            trilogy_set_value* p = assume_set(value);
+            trilogy_set_value* p = trilogy_set_assume(value);
             trilogy_set_destroy(p);
             free(p);
             break;
         }
         case TAG_RECORD: {
-            trilogy_record_value* p = assume_record(value);
+            trilogy_record_value* p = trilogy_record_assume(value);
             trilogy_record_destroy(p);
             free(p);
             break;
         }
         case TAG_CALLABLE: {
-            trilogy_callable_value* p = assume_callable(value);
+            trilogy_callable_value* p = trilogy_callable_assume(value);
             trilogy_callable_destroy(p);
             free(p);
             break;

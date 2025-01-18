@@ -38,12 +38,12 @@ char* trilogy_string_to_c(trilogy_string_value* str) {
     return ptr;
 }
 
-trilogy_string_value* untag_string(trilogy_value* val) {
+trilogy_string_value* trilogy_string_untag(trilogy_value* val) {
     if (val->tag != TAG_STRING) rte("string", val->tag);
-    return assume_string(val);
+    return trilogy_string_assume(val);
 }
 
-trilogy_string_value* assume_string(trilogy_value* val) {
+trilogy_string_value* trilogy_string_assume(trilogy_value* val) {
     return (trilogy_string_value*)val->payload;
 }
 

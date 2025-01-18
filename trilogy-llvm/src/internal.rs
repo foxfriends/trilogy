@@ -18,9 +18,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags a unit, though returns nothing. Fairly useless except as an assertion.
-    pub(crate) fn untag_unit(&self, value: PointerValue<'ctx>, name: &str) {
+    pub(crate) fn trilogy_unit_untag(&self, value: PointerValue<'ctx>, name: &str) {
         let f = self.declare_internal(
-            "untag_unit",
+            "trilogy_unit_untag",
             self.context.void_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -30,9 +30,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags a boolean value. The return value is of type `i1`.
-    pub(crate) fn untag_boolean(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
+    pub(crate) fn trilogy_boolean_untag(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
         let f = self.declare_internal(
-            "untag_boolean",
+            "trilogy_boolean_untag",
             self.context.bool_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -47,9 +47,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags a character value. The return value is of i32 type (a unicode code point).
-    pub(crate) fn untag_character(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
+    pub(crate) fn trilogy_character_untag(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
         let f = self.declare_internal(
-            "untag_character",
+            "trilogy_character_untag",
             self.context.i32_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -64,9 +64,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags an integer value.
-    pub(crate) fn untag_integer(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
+    pub(crate) fn trilogy_integer_untag(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
         let f = self.declare_internal(
-            "untag_integer",
+            "trilogy_integer_untag",
             self.context.i64_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -81,9 +81,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags a string value. The returned PointerValue points to a value of `string_value_type`.
-    pub(crate) fn untag_string(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn trilogy_string_untag(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_string",
+            "trilogy_string_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -98,9 +98,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags an atom value.
-    pub(crate) fn untag_atom(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
+    pub(crate) fn trilogy_atom_untag(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
         let f = self.declare_internal(
-            "untag_atom",
+            "trilogy_atom_untag",
             self.context.i64_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -114,9 +114,9 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
-    pub(crate) fn untag_bits(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn trilogy_bits_untag(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_bits",
+            "trilogy_bits_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -130,9 +130,9 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn untag_struct(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn trilogy_struct_untag(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_struct",
+            "trilogy_struct_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -146,9 +146,9 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn untag_tuple(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn trilogy_tuple_untag(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_tuple",
+            "trilogy_tuple_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -162,9 +162,9 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn untag_array(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn trilogy_array_untag(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_array",
+            "trilogy_array_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -178,9 +178,9 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn untag_set(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn trilogy_set_untag(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_set",
+            "trilogy_set_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -194,9 +194,9 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn untag_record(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn trilogy_record_untag(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_record",
+            "trilogy_record_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -211,13 +211,13 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags a callable value. The returned PointerValue points to a `trilogy_callable_value`.
-    pub(crate) fn untag_callable(
+    pub(crate) fn trilogy_callable_untag(
         &self,
         value: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_callable",
+            "trilogy_callable_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -233,14 +233,14 @@ impl<'ctx> Codegen<'ctx> {
 
     /// Untags a procedure. The value should be a `trilogy_callable_value` and the return pointer will be
     /// a bare function pointer.
-    pub(crate) fn untag_procedure(
+    pub(crate) fn trilogy_procedure_untag(
         &self,
         value: PointerValue<'ctx>,
         arity: usize,
         name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_procedure",
+            "trilogy_procedure_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -269,13 +269,13 @@ impl<'ctx> Codegen<'ctx> {
 
     /// Untags a function. The value should be a `trilogy_callable_value` and the return pointer will be
     /// a bare function pointer.
-    pub(crate) fn untag_function(
+    pub(crate) fn trilogy_function_untag(
         &self,
         value: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
-            "untag_function",
+            "trilogy_function_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,

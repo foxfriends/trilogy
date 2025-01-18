@@ -8,14 +8,14 @@ void panic(
     struct trilogy_value* rv,
     struct trilogy_value* val
 ) {
-    internal_panic(trilogy_string_to_c(untag_string(val)));
+    internal_panic(trilogy_string_to_c(trilogy_string_untag(val)));
 }
 
 void print(
     struct trilogy_value* rv,
     struct trilogy_value* val
 ) {
-    char* ptr = trilogy_string_to_c(untag_string(val));
+    char* ptr = trilogy_string_to_c(trilogy_string_untag(val));
     printf("%s", ptr);
     free(ptr);
     *rv = trilogy_unit;

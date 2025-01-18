@@ -21,12 +21,12 @@ trilogy_value trilogy_set_clone(trilogy_set_value* set) {
     return t;
 }
 
-trilogy_set_value* untag_set(trilogy_value* val) {
+trilogy_set_value* trilogy_set_untag(trilogy_value* val) {
     if (val->tag != TAG_SET) rte("set", val->tag);
-    return assume_set(val);
+    return trilogy_set_assume(val);
 }
 
-trilogy_set_value* assume_set(trilogy_value* val) {
+trilogy_set_value* trilogy_set_assume(trilogy_value* val) {
     return (trilogy_set_value*)val->payload;
 }
 

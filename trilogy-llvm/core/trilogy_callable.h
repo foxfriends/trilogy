@@ -8,9 +8,9 @@ void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* c, v
 void trilogy_callable_clone_into(trilogy_value*, trilogy_callable_value* orig);
 void trilogy_callable_destroy(trilogy_callable_value* val);
 
-trilogy_callable_value* untag_callable(trilogy_value* val);
-trilogy_callable_value* assume_callable(trilogy_value* val);
+trilogy_callable_value* trilogy_callable_untag(trilogy_value* val);
+trilogy_callable_value* trilogy_callable_assume(trilogy_value* val);
 
-void* untag_function(trilogy_callable_value* val);
-void* untag_procedure(trilogy_callable_value* val, unsigned int arity);
-void* untag_rule(trilogy_callable_value* val, unsigned int arity);
+void* trilogy_function_untag(trilogy_callable_value* val);
+void* trilogy_procedure_untag(trilogy_callable_value* val, unsigned int arity);
+void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity);

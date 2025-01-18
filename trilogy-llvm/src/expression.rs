@@ -198,7 +198,7 @@ impl<'ctx> Codegen<'ctx> {
         let if_true = self.context.append_basic_block(scope.function, "if_true");
         let if_false = self.context.append_basic_block(scope.function, "if_false");
         let if_cont = self.context.append_basic_block(scope.function, "if_cont");
-        let condition = self.untag_boolean(condition, "");
+        let condition = self.trilogy_boolean_untag(condition, "");
         self.builder
             .build_conditional_branch(condition, if_true, if_false)
             .unwrap();

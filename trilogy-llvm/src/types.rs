@@ -47,8 +47,8 @@ impl<'ctx> TrilogyCallable<'ctx> for PointerValue<'ctx> {
         args: &[BasicMetadataValueEnum<'ctx>],
         name: &str,
     ) {
-        let callable = codegen.untag_callable(self, "");
-        let function = codegen.untag_procedure(callable, args.len() - 1, "");
+        let callable = codegen.trilogy_callable_untag(self, "");
+        let function = codegen.trilogy_procedure_untag(callable, args.len() - 1, "");
         codegen
             .builder
             .build_indirect_call(codegen.procedure_type(args.len() - 1), function, args, name)
@@ -61,8 +61,8 @@ impl<'ctx> TrilogyCallable<'ctx> for PointerValue<'ctx> {
         args: &[BasicMetadataValueEnum<'ctx>],
         name: &str,
     ) {
-        let callable = codegen.untag_callable(self, "");
-        let function = codegen.untag_function(callable, "");
+        let callable = codegen.trilogy_callable_untag(self, "");
+        let function = codegen.trilogy_function_untag(callable, "");
         codegen
             .builder
             .build_indirect_call(codegen.procedure_type(1), function, args, name)

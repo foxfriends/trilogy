@@ -19,12 +19,12 @@ trilogy_value trilogy_struct_clone(trilogy_struct_value* val) {
     return t;
 }
 
-trilogy_struct_value* untag_struct(trilogy_value* val) {
+trilogy_struct_value* trilogy_struct_untag(trilogy_value* val) {
     if (val->tag != TAG_STRUCT) rte("struct", val->tag);
-    return assume_struct(val);
+    return trilogy_struct_assume(val);
 }
 
-trilogy_struct_value* assume_struct(trilogy_value* val) {
+trilogy_struct_value* trilogy_struct_assume(trilogy_value* val) {
     return (trilogy_struct_value*)val->payload;
 }
 
