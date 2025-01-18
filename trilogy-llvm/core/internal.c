@@ -2,27 +2,42 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "trilogy_string.h"
+#include "trilogy_array.h"
 #include "internal.h"
 #include "types.h"
 
-void trace() {
-    void* buffer[128];
+void print_trace() {
+    void* buffer[100];
     int count = backtrace(buffer, 100);
     char** trace = backtrace_symbols(buffer, count);
     for (int i = 0; i < count; ++i) {
         fprintf(stderr, "%s\n", trace[i]);
     }
+    free(trace);
+}
+
+void trace(struct trilogy_value* rt) {
+    void* buffer[100];
+    int count = backtrace(buffer, 100);
+    trilogy_array_value* arr = trilogy_array_init_cap(rt, count);
+
+    char** trace = backtrace_symbols(buffer, count);
+    for (int i = 0; i < count; ++i) {
+        trilogy_string_init_from_c(&arr->contents[i], trace[i]);
+    }
+    free(trace);
 }
 
 void internal_panic(char* msg) {
     fprintf(stderr, "%s", msg);
-    trace();
+    print_trace();
     exit(255);
 }
 
 void rte(char* expected, unsigned char tag) {
     fprintf(stderr, "runtime type error: expected %s but received %s\n", expected, type_name(tag));
-    trace();
+    print_trace();
     exit(255);
 }
 

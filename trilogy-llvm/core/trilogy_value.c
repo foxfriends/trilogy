@@ -29,16 +29,22 @@ trilogy_value trilogy_value_clone(trilogy_value* value) {
         case TAG_CHAR:
         case TAG_INTEGER:
             return *value;
-        case TAG_STRING:
-            return trilogy_string_clone(trilogy_string_assume(value));
+        case TAG_STRING: {
+            trilogy_value t;
+            trilogy_string_clone_into(&t, trilogy_string_assume(value));
+            return t;
+        }
         case TAG_BITS:
             return trilogy_bits_clone(trilogy_bits_assume(value));
         case TAG_STRUCT:
             return trilogy_struct_clone(trilogy_struct_assume(value));
         case TAG_TUPLE:
             return trilogy_tuple_clone(trilogy_tuple_assume(value));
-        case TAG_ARRAY:
-            return trilogy_array_clone(trilogy_array_assume(value));
+        case TAG_ARRAY: {
+            trilogy_value t;
+            trilogy_array_clone_into(&t, trilogy_array_assume(value));
+            return t;
+        }
         case TAG_SET:
             return trilogy_set_clone(trilogy_set_assume(value));
         case TAG_RECORD:

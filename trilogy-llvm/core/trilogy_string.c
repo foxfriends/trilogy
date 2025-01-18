@@ -3,32 +3,35 @@
 #include "trilogy_string.h"
 #include "internal.h"
 
-trilogy_value trilogy_string_new(size_t len, char* s) {
+trilogy_string_value* trilogy_string_init(trilogy_value* tv, trilogy_string_value* str) {
+    tv->tag = TAG_STRING;
+    tv->payload = (unsigned long)str;
+    return str;
+}
+
+trilogy_string_value* trilogy_string_init_new(trilogy_value* tv, size_t len, char* s) {
     trilogy_string_value* str = malloc(sizeof(trilogy_string_value));
     str->len = len;
     str->contents = malloc(sizeof(char) * len);
     strncpy(str->contents, s, len);
-    trilogy_value t = { .tag = TAG_STRING, .payload = (unsigned long)str };
-    return t;
+    return trilogy_string_init(tv, str);
 }
 
-trilogy_value trilogy_string_clone(trilogy_string_value* orig) {
+trilogy_string_value* trilogy_string_clone_into(trilogy_value* tv, trilogy_string_value* orig) {
     trilogy_string_value* str = malloc(sizeof(trilogy_string_value));
     str->len = orig->len;
     str->contents = malloc(sizeof(char) * orig->len);
     strncpy(str->contents, orig->contents, orig->len);
-    trilogy_value t = { .tag = TAG_STRING, .payload = (unsigned long)str };
-    return t;
+    return trilogy_string_init(tv, str);
 }
 
-trilogy_value trilogy_string_from_c(char* s) {
+trilogy_string_value* trilogy_string_init_from_c(trilogy_value* tv, char* s) {
     unsigned long len = (unsigned long)strlen(s);
     trilogy_string_value* str = malloc(sizeof(trilogy_string_value));
     str->len = len;
     str->contents = malloc(sizeof(char) * len);
     strncpy(str->contents, s, len);
-    trilogy_value t = { .tag = TAG_STRING, .payload = (unsigned long)str };
-    return t;
+    return trilogy_string_init(tv, str);
 }
 
 char* trilogy_string_to_c(trilogy_string_value* str) {

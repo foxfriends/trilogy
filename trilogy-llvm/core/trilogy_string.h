@@ -1,9 +1,10 @@
 #pragma once
 #include "types.h"
 
-trilogy_value trilogy_string_new(unsigned long len, char* s);
-trilogy_value trilogy_string_clone(trilogy_string_value* orig);
-trilogy_value trilogy_string_from_c(char* s);
+trilogy_string_value* trilogy_string_init(trilogy_value* tv, trilogy_string_value* str);
+trilogy_string_value* trilogy_string_init_new(trilogy_value* tv, unsigned long len, char* s);
+trilogy_string_value* trilogy_string_clone_into(trilogy_value* tv, trilogy_string_value* orig);
+trilogy_string_value* trilogy_string_init_from_c(trilogy_value* tv, char* s);
 char* trilogy_string_to_c(trilogy_string_value* val);
 trilogy_string_value* trilogy_string_untag(trilogy_value* val);
 trilogy_string_value* trilogy_string_assume(trilogy_value* val);
