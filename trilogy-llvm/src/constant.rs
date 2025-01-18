@@ -1,9 +1,12 @@
 use crate::{scope::Scope, Codegen};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
+    debug_info::AsDIScope,
+    llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Linkage,
     values::FunctionValue,
 };
+use source_span::Span;
 use trilogy_ir::ir;
 
 impl<'ctx> Codegen<'ctx> {
@@ -28,16 +31,34 @@ impl<'ctx> Codegen<'ctx> {
         self.add_constant(location, &constant.name.to_string(), Linkage::External);
     }
 
-    pub(crate) fn declare_constant(&self, constant: &ir::ConstantDefinition, exported: bool) {
-        self.add_constant(
-            &self.location,
+    pub(crate) fn declare_constant(
+        &self,
+        constant: &ir::ConstantDefinition,
+        exported: bool,
+        span: Span,
+    ) {
+        let linkage = if exported {
+            Linkage::External
+        } else {
+            Linkage::Private
+        };
+        let procedure = self.add_constant(&self.location, &constant.name.to_string(), linkage);
+
+        let procedure_scope = self.dibuilder.create_function(
+            self.dicu.as_debug_info_scope(),
             &constant.name.to_string(),
-            if exported {
-                Linkage::External
-            } else {
-                Linkage::Private
-            },
+            None,
+            self.dicu.get_file(),
+            span.start().line as u32,
+            self.procedure_di_type(0),
+            linkage == Linkage::External,
+            true,
+            0,
+            LLVMDIFlagPublic,
+            false,
         );
+
+        procedure.set_subprogram(procedure_scope);
     }
 
     pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition) {

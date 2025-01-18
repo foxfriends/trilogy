@@ -76,7 +76,7 @@ impl<'ctx> Codegen<'ctx> {
                         .insert(module.name.id.clone(), Head::Module(location));
                 }
                 DefinitionItem::Constant(constant) => {
-                    subcontext.declare_constant(constant, definition.is_exported);
+                    subcontext.declare_constant(constant, definition.is_exported, definition.span);
                     subcontext
                         .globals
                         .insert(constant.name.id.clone(), Head::Constant);

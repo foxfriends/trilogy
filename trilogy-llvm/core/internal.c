@@ -22,6 +22,7 @@ void internal_panic(char* msg) {
 
 void rte(char* expected, unsigned char tag) {
     fprintf(stderr, "runtime type error: expected %s but received %s\n", expected, type_name(tag));
+    trace();
     exit(255);
 }
 
