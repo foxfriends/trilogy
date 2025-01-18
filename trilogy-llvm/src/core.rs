@@ -11,7 +11,7 @@ impl<'ctx> Codegen<'ctx> {
             return func;
         }
         self.module
-            .add_function(&name, self.procedure_type(arity), Some(Linkage::External))
+            .add_function(name, self.procedure_type(arity), Some(Linkage::External))
     }
 
     pub(crate) fn structural_eq(
