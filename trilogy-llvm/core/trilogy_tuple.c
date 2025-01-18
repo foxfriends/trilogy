@@ -3,20 +3,24 @@
 #include "trilogy_value.h"
 #include "internal.h"
 
-trilogy_value trilogy_tuple(trilogy_value* fst, trilogy_value* snd) {
+trilogy_tuple_value* trilogy_tuple_init(trilogy_value* tv, trilogy_tuple_value* tup) {
+    tv->tag = TAG_TUPLE;
+    tv->payload = (unsigned long)tup;
+    return tup;
+}
+
+trilogy_tuple_value* trilogy_tuple_init_new(trilogy_value* tv, trilogy_value* fst, trilogy_value* snd) {
     trilogy_tuple_value* tup = malloc(sizeof(trilogy_tuple_value));
     tup->fst = *fst;
     tup->snd = *snd;
-    trilogy_value t = { .tag = TAG_TUPLE, .payload = (unsigned long)tup };
-    return t;
+    return trilogy_tuple_init(tv, tup);
 }
 
-trilogy_value trilogy_tuple_clone(trilogy_tuple_value* orig) {
+trilogy_tuple_value* trilogy_tuple_clone_into(trilogy_value* tv, trilogy_tuple_value* orig) {
     trilogy_tuple_value* tup = malloc(sizeof(trilogy_tuple_value));
     tup->fst = trilogy_value_clone(&orig->fst);
     tup->snd = trilogy_value_clone(&orig->snd);
-    trilogy_value t = { .tag = TAG_TUPLE, .payload = (unsigned long)tup };
-    return t;
+    return trilogy_tuple_init(tv, tup);
 }
 
 trilogy_tuple_value* trilogy_tuple_untag(trilogy_value* val) {

@@ -4,21 +4,25 @@
 #include "trilogy_value.h"
 #include "internal.h"
 
-trilogy_value trilogy_set_empty() {
+trilogy_set_value* trilogy_set_init(trilogy_value* tv, trilogy_set_value* set) {
+    tv->tag = TAG_SET;
+    tv->payload = (unsigned long)set;
+    return set;
+}
+
+trilogy_set_value* trilogy_set_init_empty(trilogy_value* tv) {
     trilogy_set_value* set = malloc(sizeof(trilogy_set_value));
     set->rc = 1;
     set->len = 0;
     set->cap = 0;
     set->contents = NULL;
-    trilogy_value t = { .tag = TAG_SET, .payload = (unsigned long)set };
-    return t;
+    return trilogy_set_init(tv, set);
 }
 
-trilogy_value trilogy_set_clone(trilogy_set_value* set) {
+trilogy_set_value* trilogy_set_clone_into(trilogy_value* tv, trilogy_set_value* set) {
     assert(set->rc != 0);
     ++set->rc;
-    trilogy_value t = { .tag = TAG_SET, .payload = (unsigned long)set };
-    return t;
+    return trilogy_set_init(tv, set);
 }
 
 trilogy_set_value* trilogy_set_untag(trilogy_value* val) {
