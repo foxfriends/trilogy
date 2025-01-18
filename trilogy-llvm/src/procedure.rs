@@ -46,15 +46,20 @@ impl<'ctx> Codegen<'ctx> {
                 Linkage::Private
             }),
         );
-        function.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        function.get_nth_param(0).unwrap().set_name("sretptr");
         function.set_subprogram(procedure_scope);
+
+        if !is_extern {
+            // Internal procedures first parameters are marked with `sret`. External procedures
+            // just fill the first parameter by convention, but it's not actually `sret` cause it's just C.
+            function.add_attribute(
+                AttributeLoc::Param(0),
+                self.context.create_type_attribute(
+                    Attribute::get_named_enum_kind_id("sret"),
+                    self.value_type().into(),
+                ),
+            );
+            function.get_nth_param(0).unwrap().set_name("sretptr");
+        }
 
         let accessor = self
             .module

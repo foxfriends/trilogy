@@ -162,12 +162,15 @@ impl<'ctx> Codegen<'ctx> {
         let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
 
         self.builder.position_at_end(basic_block);
+        // Reference main
         let main_accessor = self
             .module
             .get_function(&format!("{entrymodule}::{entrypoint}"))
             .unwrap();
         let main = self.call_procedure(main_accessor, &[], "");
+        // Call main
         let output = self.call_procedure(main, &[], "");
+        // Convert return value to exit code
         let tag = self.get_tag(output);
         let is_unit = self
             .builder

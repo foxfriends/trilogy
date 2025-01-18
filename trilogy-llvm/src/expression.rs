@@ -64,7 +64,6 @@ impl<'ctx> Codegen<'ctx> {
             }
             _ => {
                 let function = self.compile_expression(scope, &application.function)?;
-                let function = self.untag_callable(function, "");
                 match &application.argument.value {
                     // Procedure application
                     Value::Pack(pack) => {
@@ -103,7 +102,7 @@ impl<'ctx> Codegen<'ctx> {
                     .module
                     .get_function(&format!("{}::{}", name, ident.as_ref()))
                     .unwrap();
-                return self.callable_value(declared.as_global_value().as_pointer_value());
+                return self.call_procedure(declared, &[], "");
             }
         }
 
@@ -179,14 +178,7 @@ impl<'ctx> Codegen<'ctx> {
                 .get(&identifier.id)
                 .expect("Unresolved variable")
             {
-                // these... are the same?
-                Head::Constant => {
-                    let global_name =
-                        format!("{}::{name}", self.module.get_name().to_str().unwrap());
-                    let function = self.module.get_function(&global_name).unwrap();
-                    self.call_procedure(function, &[], name)
-                }
-                Head::Procedure(..) => {
+                Head::Constant | Head::Procedure(..) => {
                     let global_name =
                         format!("{}::{name}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();

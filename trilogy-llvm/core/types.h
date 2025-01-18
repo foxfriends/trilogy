@@ -18,9 +18,9 @@ typedef enum trilogy_value_tag : unsigned char {
 } trilogy_value_tag;
 
 typedef enum trilogy_callable_tag : unsigned char {
-    CALLABLE_FUNCTION,
-    CALLABLE_PROCEDURE,
-    CALLABLE_RULE
+    CALLABLE_FUNCTION = 1,
+    CALLABLE_PROCEDURE = 2,
+    CALLABLE_RULE = 3
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {
