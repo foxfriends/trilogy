@@ -7,7 +7,7 @@ use inkwell::{
     AddressSpace,
 };
 
-use crate::codegen::Codegen;
+use crate::codegen::{Codegen, NeverValue};
 
 impl<'ctx> Codegen<'ctx> {
     fn declare_internal(&self, name: &str, ty: FunctionType<'ctx>) -> FunctionValue<'ctx> {
@@ -313,7 +313,7 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
-    pub(crate) fn internal_panic(&self, message: PointerValue<'ctx>) {
+    pub(crate) fn internal_panic(&self, message: PointerValue<'ctx>) -> NeverValue {
         let f = self.declare_internal(
             "internal_panic",
             self.context.void_type().fn_type(
@@ -323,6 +323,7 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder.build_call(f, &[message.into()], "").unwrap();
         self.builder.build_unreachable().unwrap();
+        NeverValue
     }
 
     pub(crate) fn trilogy_value_clone_into(
@@ -343,6 +344,17 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_call(f, &[into.into(), from.into()], "")
             .unwrap();
+    }
+
+    pub(crate) fn trilogy_value_destroy(&self, value: PointerValue<'ctx>) {
+        let f = self.declare_internal(
+            "trilogy_value_destroy",
+            self.context.void_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder.build_call(f, &[value.into()], "").unwrap();
     }
 
     pub(crate) fn trilogy_callable_init_proc(
@@ -381,7 +393,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
-    pub(crate) fn exit(&self, t: PointerValue<'ctx>) {
+    pub(crate) fn exit(&self, t: PointerValue<'ctx>) -> NeverValue {
         let f = self.declare_internal(
             "exit_",
             self.context.void_type().fn_type(
@@ -390,6 +402,7 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         self.builder.build_call(f, &[t.into()], "").unwrap();
-        // self.builder.build_unreachable().unwrap();
+        self.builder.build_unreachable().unwrap();
+        NeverValue
     }
 }

@@ -61,7 +61,9 @@ impl<'ctx> Codegen<'ctx> {
         self.branch_undefined(global.as_pointer_value(), initialize, initialized);
 
         self.builder.position_at_end(initialize);
-        let computed = self.compile_expression(&mut scope, &definition.value);
+        let computed = self
+            .compile_expression(&mut scope, &definition.value)
+            .unwrap_or_else(|| self.allocate_const(self.unit_const()));
         let computed = self
             .builder
             .build_load(self.value_type(), computed, "initial_value")

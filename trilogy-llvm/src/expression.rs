@@ -12,8 +12,8 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         scope: &mut Scope<'ctx>,
         expression: &ir::Expression,
-    ) -> PointerValue<'ctx> {
-        match &expression.value {
+    ) -> Option<PointerValue<'ctx>> {
+        let output = match &expression.value {
             Value::Unit => self.allocate_const(self.unit_const()),
             Value::Boolean(b) => self.allocate_const(self.bool_const(*b)),
             Value::Character(ch) => self.allocate_const(self.char_const(*ch)),
@@ -29,17 +29,18 @@ impl<'ctx> Codegen<'ctx> {
             Value::Sequence(exprs) => {
                 let mut value = self.allocate_const(self.unit_const());
                 for expr in exprs {
-                    value = self.compile_expression(scope, expr);
+                    value = self.compile_expression(scope, expr)?;
                 }
                 value
             }
-            Value::Application(app) => self.compile_application(scope, app),
+            Value::Application(app) => self.compile_application(scope, app)?,
             Value::Builtin(val) => self.builtin_value(scope, *val),
             Value::Reference(val) => self.compile_reference(scope, val),
             Value::ModuleAccess(access) => self.compile_module_access(scope, &access.0, &access.1),
-            Value::IfElse(if_else) => self.compile_if_else(scope, if_else),
+            Value::IfElse(if_else) => self.compile_if_else(scope, if_else)?,
             _ => todo!(),
-        }
+        };
+        Some(output)
     }
 
     fn builtin_value(&self, _scope: &mut Scope<'ctx>, _builtin: Builtin) -> PointerValue<'ctx> {
@@ -50,7 +51,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         scope: &mut Scope<'ctx>,
         application: &ir::Application,
-    ) -> PointerValue<'ctx> {
+    ) -> Option<PointerValue<'ctx>> {
         match &application.function.value {
             Value::Builtin(builtin) => {
                 self.compile_apply_builtin(scope, *builtin, &application.argument)
@@ -62,27 +63,27 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_apply_binary(scope, *builtin, &app.argument, &application.argument)
             }
             _ => {
-                let function = self.compile_expression(scope, &application.function);
+                let function = self.compile_expression(scope, &application.function)?;
                 let function = self.untag_callable(function, "");
                 match &application.argument.value {
                     // Procedure application
                     Value::Pack(pack) => {
-                        let arguments: Vec<_> = pack
+                        let arguments = pack
                             .values
                             .iter()
                             .map(|val| {
                                 assert!(!val.is_spread);
-                                BasicMetadataValueEnum::from(
-                                    self.compile_expression(scope, &val.expression),
-                                )
+                                Some(BasicMetadataValueEnum::from(
+                                    self.compile_expression(scope, &val.expression)?,
+                                ))
                             })
-                            .collect();
-                        self.call_procedure(function, &arguments, "")
+                            .collect::<Option<Vec<_>>>()?;
+                        Some(self.call_procedure(function, &arguments, ""))
                     }
                     // Function application
                     _ => {
-                        let argument = self.compile_expression(scope, &application.argument);
-                        self.apply_function(function, argument.into(), "")
+                        let argument = self.compile_expression(scope, &application.argument)?;
+                        Some(self.apply_function(function, argument.into(), ""))
                     }
                 }
             }
@@ -114,32 +115,34 @@ impl<'ctx> Codegen<'ctx> {
         scope: &mut Scope<'ctx>,
         builtin: Builtin,
         expression: &ir::Expression,
-    ) -> PointerValue<'ctx> {
+    ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::Return => {
-                let argument = self.compile_expression(scope, expression);
+                let argument = self.compile_expression(scope, expression)?;
                 let val = self
                     .builder
                     .build_load(self.value_type(), argument, "retval")
                     .unwrap()
                     .into_struct_value();
                 self.builder.build_store(scope.sret(), val).unwrap();
-                self.builder.build_return(None).unwrap();
-                self.context.ptr_type(AddressSpace::default()).const_null()
+                self.builder
+                    .build_unconditional_branch(scope.cleanup.unwrap())
+                    .unwrap();
+                None
             }
             Builtin::Exit => {
-                let argument = self.compile_expression(scope, expression);
-                self.exit(argument);
-                argument
+                let argument = self.compile_expression(scope, expression)?;
+                _ = self.exit(argument);
+                None
             }
             Builtin::Typeof => {
-                let argument = self.compile_expression(scope, expression);
+                let argument = self.compile_expression(scope, expression)?;
                 let tag = self.get_tag(argument);
                 let raw_atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
-                self.raw_atom_value(raw_atom)
+                Some(self.raw_atom_value(raw_atom))
             }
             _ => todo!(),
         }
@@ -151,12 +154,12 @@ impl<'ctx> Codegen<'ctx> {
         builtin: Builtin,
         lhs: &ir::Expression,
         rhs: &ir::Expression,
-    ) -> PointerValue<'ctx> {
+    ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::StructuralEquality => {
                 let lhs = self.compile_expression(scope, lhs);
                 let rhs = self.compile_expression(scope, rhs);
-                self.structural_eq(lhs, rhs, "eq")
+                Some(self.structural_eq(lhs?, rhs?, "eq"))
             }
             _ => todo!(),
         }
@@ -194,8 +197,12 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn compile_if_else(&self, scope: &mut Scope<'ctx>, if_else: &ir::IfElse) -> PointerValue<'ctx> {
-        let condition = self.compile_expression(scope, &if_else.condition);
+    fn compile_if_else(
+        &self,
+        scope: &mut Scope<'ctx>,
+        if_else: &ir::IfElse,
+    ) -> Option<PointerValue<'ctx>> {
+        let condition = self.compile_expression(scope, &if_else.condition)?;
         let if_true = self.context.append_basic_block(scope.function, "if_true");
         let if_false = self.context.append_basic_block(scope.function, "if_false");
         let if_cont = self.context.append_basic_block(scope.function, "if_cont");
@@ -219,11 +226,17 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         self.builder.position_at_end(if_cont);
-        let phi = self
-            .builder
-            .build_phi(self.context.ptr_type(AddressSpace::default()), "if_eval")
-            .unwrap();
-        phi.add_incoming(&[(&when_true, if_true), (&when_false, if_false)]);
-        phi.as_basic_value().into_pointer_value()
+        match (when_true, when_false) {
+            (None, None) => None,
+            (Some(when_true), Some(when_false)) => {
+                let phi = self
+                    .builder
+                    .build_phi(self.context.ptr_type(AddressSpace::default()), "if_eval")
+                    .unwrap();
+                phi.add_incoming(&[(&when_true, if_true), (&when_false, if_false)]);
+                Some(phi.as_basic_value().into_pointer_value())
+            }
+            (Some(v), None) | (None, Some(v)) => Some(v),
+        }
     }
 }

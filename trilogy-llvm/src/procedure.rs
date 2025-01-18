@@ -106,41 +106,57 @@ impl<'ctx> Codegen<'ctx> {
             .get_function(if name == "main" { MAIN_NAME } else { &name })
             .unwrap();
 
-        let mut scope = Scope::begin(function);
-        let basic_block = self.context.append_basic_block(function, "entry");
+        let entry = self.context.append_basic_block(function, "entry");
         let no_match = self.context.append_basic_block(function, "no_match");
-        self.builder.position_at_end(basic_block);
+        let cleanup = self.context.append_basic_block(function, "cleanup");
 
-        for (n, param) in procedure.parameters.iter().enumerate() {
-            let value = function
-                .get_nth_param(n as u32 + 1)
+        let mut scope = Scope::begin(function);
+        scope.set_cleanup(cleanup);
+
+        'body: {
+            self.builder.position_at_end(entry);
+            for (n, param) in procedure.parameters.iter().enumerate() {
+                let value = function
+                    .get_nth_param(n as u32 + 1)
+                    .unwrap()
+                    .into_pointer_value();
+                if self
+                    .compile_pattern_match(&mut scope, param, value, no_match)
+                    .is_none()
+                {
+                    break 'body;
+                }
+            }
+
+            // There is no implicit return of the final value of a procedure. That value is lost,
+            // and unit is returned instead. It is most likely that there is a return in the body,
+            // and this final return will be dead code.
+            let _value = self.compile_expression(&mut scope, &procedure.body);
+            if !self
+                .builder
+                .get_insert_block()
                 .unwrap()
-                .into_pointer_value();
-            self.compile_pattern_match(&mut scope, param, value, no_match);
-        }
-
-        // There is no implicit return of the final value of a procedure. That value is lost,
-        // and unit is returned instead. It is most likely that there is a return in the body,
-        // and this final return will be dead code.
-        let _value = self.compile_expression(&mut scope, &procedure.body);
-        if !self
-            .builder
-            .get_insert_block()
-            .unwrap()
-            .get_last_instruction()
-            .unwrap()
-            .is_terminator()
-        {
-            self.builder
-                .build_store(scope.sret(), self.unit_const())
-                .unwrap();
-            self.builder.build_return(None).unwrap();
+                .get_last_instruction()
+                .unwrap()
+                .is_terminator()
+            {
+                self.builder
+                    .build_store(scope.sret(), self.unit_const())
+                    .unwrap();
+                self.builder.build_unconditional_branch(cleanup).unwrap();
+            }
         }
 
         self.builder.position_at_end(no_match);
-        self.internal_panic(self.embed_c_string(format!(
+        _ = self.internal_panic(self.embed_c_string(format!(
             "no argument match in call to proc {}::{}!(...)\n",
             self.location, definition.name,
         )));
+
+        self.builder.position_at_end(cleanup);
+        for pointer in scope.variables.into_values() {
+            self.trilogy_value_destroy(pointer);
+        }
+        self.builder.build_return(None).unwrap();
     }
 }

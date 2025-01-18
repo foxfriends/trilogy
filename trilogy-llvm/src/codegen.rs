@@ -26,6 +26,9 @@ pub(crate) enum Head {
     Module(String),
 }
 
+#[must_use = "confirm that the current basic block will end without further instructions"]
+pub(crate) struct NeverValue;
+
 pub(crate) struct Codegen<'ctx> {
     pub(crate) atoms: Rc<RefCell<HashMap<String, u64>>>,
     pub(crate) context: &'ctx Context,
