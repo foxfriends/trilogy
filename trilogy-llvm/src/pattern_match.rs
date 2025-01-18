@@ -16,7 +16,7 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         match &pattern.value {
             Value::Reference(id) => {
-                let variable = self.variable(scope, id.id.clone());
+                let variable = self.variable(scope, id);
                 let value = self
                     .builder
                     .build_load(self.value_type(), value, id.id.name().unwrap_or(""))

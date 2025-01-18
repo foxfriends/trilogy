@@ -5,7 +5,11 @@ use inkwell::{
     attributes::{Attribute, AttributeLoc},
     builder::Builder,
     context::Context,
+    debug_info::{
+        AsDIScope, DICompileUnit, DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
+    },
     execution_engine::ExecutionEngine,
+    llvm_sys::debuginfo::LLVMDIFlagPublic,
     memory_buffer::MemoryBuffer,
     module::{Linkage, Module},
     values::{FunctionValue, PointerValue},
@@ -27,8 +31,10 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) context: &'ctx Context,
     pub(crate) module: Module<'ctx>,
     pub(crate) builder: Builder<'ctx>,
+    pub(crate) dibuilder: DebugInfoBuilder<'ctx>,
+    pub(crate) dicu: DICompileUnit<'ctx>,
     pub(crate) execution_engine: ExecutionEngine<'ctx>,
-    pub(crate) modules: &'ctx HashMap<String, Option<&'ctx ir::Module>>,
+    pub(crate) modules: &'ctx HashMap<String, &'ctx ir::Module>,
     pub(crate) globals: HashMap<Id, Head>,
     pub(crate) location: String,
 }
@@ -36,7 +42,7 @@ pub(crate) struct Codegen<'ctx> {
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn new(
         context: &'ctx Context,
-        modules: &'ctx HashMap<String, Option<&'ctx ir::Module>>,
+        modules: &'ctx HashMap<String, &'ctx ir::Module>,
     ) -> Self {
         let mut atoms = HashMap::new();
         atoms.insert("undefined".to_owned(), types::TAG_UNDEFINED);
@@ -55,9 +61,29 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("callable".to_owned(), types::TAG_CALLABLE);
 
         let module = context.create_module("trilogy:runtime");
+        let (dibuilder, dicu) = module.create_debug_info_builder(
+            true,
+            DWARFSourceLanguage::C,
+            "trilogy:runtime",
+            ".",
+            "trilogy",
+            false,
+            "",
+            0,
+            "",
+            DWARFEmissionKind::Full,
+            0,
+            false,
+            false,
+            "",
+            "",
+        );
+
         let codegen = Codegen {
             atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
+            dibuilder,
+            dicu,
             context,
             execution_engine: module
                 .create_jit_execution_engine(OptimizationLevel::Default)
@@ -118,6 +144,8 @@ impl<'ctx> Codegen<'ctx> {
             MemoryBuffer::create_from_memory_range(include_bytes!("../core/core.bc"), "core");
         let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
         self.module.link_in_module(core).unwrap();
+
+        self.dibuilder.finalize();
 
         (self.module, self.execution_engine)
     }
@@ -186,9 +214,13 @@ impl<'ctx> Codegen<'ctx> {
         procedure
     }
 
-    pub(crate) fn variable(&self, scope: &mut Scope<'ctx>, id: Id) -> PointerValue<'ctx> {
-        if scope.variables.contains_key(&id) {
-            return *scope.variables.get(&id).unwrap();
+    pub(crate) fn variable(
+        &self,
+        scope: &mut Scope<'ctx>,
+        id: &ir::Identifier,
+    ) -> PointerValue<'ctx> {
+        if scope.variables.contains_key(&id.id) {
+            return *scope.variables.get(&id.id).unwrap();
         }
 
         let builder = self.context.create_builder();
@@ -197,10 +229,41 @@ impl<'ctx> Codegen<'ctx> {
             Some(instruction) => builder.position_before(&instruction),
             None => builder.position_at_end(entry),
         }
+
         let variable = builder
             .build_alloca(self.value_type(), &id.to_string())
             .unwrap();
-        scope.variables.insert(id, variable);
+        scope.variables.insert(id.id.clone(), variable);
+
+        if let Some(subp) = scope.function.get_subprogram() {
+            if let Some(name) = id.id.name() {
+                let di_variable = self.dibuilder.create_auto_variable(
+                    subp.as_debug_info_scope(),
+                    name,
+                    self.dicu.get_file(),
+                    id.declaration_span.start().line as u32,
+                    self.value_di_type().as_type(),
+                    true,
+                    LLVMDIFlagPublic,
+                    0,
+                );
+                let di_location = self.dibuilder.create_debug_location(
+                    self.context,
+                    id.span.start().line as u32,
+                    id.span.start().column as u32,
+                    subp.as_debug_info_scope(),
+                    None,
+                );
+                self.dibuilder.insert_declare_at_end(
+                    variable,
+                    Some(di_variable),
+                    None,
+                    di_location,
+                    builder.get_insert_block().unwrap(),
+                );
+            }
+        }
+
         variable
     }
 

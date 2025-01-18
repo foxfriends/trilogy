@@ -1,16 +1,27 @@
+#include <execinfo.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "internal.h"
 #include "types.h"
 
+void trace() {
+    void* buffer[128];
+    int count = backtrace(buffer, 100);
+    char** trace = backtrace_symbols(buffer, count);
+    for (int i = 0; i < count; ++i) {
+        fprintf(stderr, "%s\n", trace[i]);
+    }
+}
+
 void internal_panic(char* msg) {
-    printf("%s", msg);
+    fprintf(stderr, "%s", msg);
+    trace();
     exit(255);
 }
 
 void rte(char* expected, unsigned char tag) {
-    printf("runtime type error: expected %s but received %s\n", expected, type_name(tag));
+    fprintf(stderr, "runtime type error: expected %s but received %s\n", expected, type_name(tag));
     exit(255);
 }
 

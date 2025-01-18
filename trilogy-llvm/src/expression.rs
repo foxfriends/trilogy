@@ -130,7 +130,6 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Exit => {
                 let argument = self.compile_expression(scope, expression);
                 self.exit(argument);
-                // self.builder.build_unreachable().unwrap();
                 argument
             }
             Builtin::Typeof => {

@@ -7,15 +7,11 @@ use crate::codegen::Codegen;
 
 impl<'ctx> Codegen<'ctx> {
     fn declare_core(&self, name: &str, arity: usize) -> FunctionValue<'ctx> {
-        let long_name = format!("trilogy:core::{name}");
         if let Some(func) = self.module.get_function(name) {
             return func;
         }
-        self.module.add_function(
-            &long_name,
-            self.procedure_type(arity),
-            Some(Linkage::External),
-        )
+        self.module
+            .add_function(&name, self.procedure_type(arity), Some(Linkage::External))
     }
 
     pub(crate) fn structural_eq(

@@ -390,6 +390,6 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         self.builder.build_call(f, &[t.into()], "").unwrap();
-        self.builder.build_unreachable().unwrap();
+        // self.builder.build_unreachable().unwrap();
     }
 }

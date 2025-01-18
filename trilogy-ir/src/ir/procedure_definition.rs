@@ -18,10 +18,9 @@ impl ProcedureDefinition {
     }
 
     pub fn span(&self) -> Span {
-        self.overloads
-            .first()
-            .unwrap()
-            .span
-            .union(self.overloads.last().unwrap().span)
+        match self.overloads.first() {
+            Some(first) => first.span.union(self.overloads.last().unwrap().span),
+            None => self.name.span,
+        }
     }
 }

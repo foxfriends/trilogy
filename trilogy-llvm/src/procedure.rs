@@ -1,10 +1,13 @@
 use crate::{scope::Scope, Codegen};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
+    debug_info::AsDIScope,
+    llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Linkage,
     values::FunctionValue,
     AddressSpace,
 };
+use source_span::Span;
 use trilogy_ir::ir;
 
 const MAIN_NAME: &str = "trilogy:::main";
@@ -16,8 +19,24 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         linkage: Linkage,
         is_extern: bool,
+        span: Span,
     ) -> FunctionValue<'ctx> {
         let long_name = format!("{}::{}", self.location, name);
+
+        let procedure_scope = self.dibuilder.create_function(
+            self.dicu.as_debug_info_scope(),
+            name,
+            None,
+            self.dicu.get_file(),
+            span.start().line as u32,
+            self.procedure_di_type(arity),
+            linkage == Linkage::External,
+            !is_extern,
+            0,
+            LLVMDIFlagPublic,
+            false,
+        );
+
         let function = self.module.add_function(
             if name == "main" { MAIN_NAME } else { name },
             self.procedure_type(arity),
@@ -35,6 +54,7 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         function.get_nth_param(0).unwrap().set_name("sretptr");
+        function.set_subprogram(procedure_scope);
 
         let accessor = self
             .module

@@ -3,6 +3,7 @@
 #include "trilogy_value.h"
 
 void internal_panic(char* msg);
+void trace();
 void rte(char* expected, unsigned char tag);
 void exit_(struct trilogy_value* code);
 bool is_structural_eq(

@@ -38,7 +38,7 @@ fn main() {
 
     try_command(
         Command::new("clang")
-            .args(["-S", "-emit-llvm", "-Wall"])
+            .args(["-g", "-S", "-emit-llvm", "-Wall"])
             .args(&sources)
             .current_dir(&core),
     );

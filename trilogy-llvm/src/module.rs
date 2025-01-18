@@ -1,15 +1,57 @@
 use crate::codegen::{Codegen, Head};
-use inkwell::module::Linkage;
-use std::collections::HashMap;
+use inkwell::{
+    debug_info::{DWARFEmissionKind, DWARFSourceLanguage},
+    module::Linkage,
+};
+use std::{collections::HashMap, path::PathBuf};
 use trilogy_ir::ir::{self, DefinitionItem};
+use url::Url;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn sub(&self, name: &str) -> Codegen<'ctx> {
         let module = self.context.create_module(name);
+        let url = Url::parse(name).unwrap();
+        let (filename, directory) = match url.scheme() {
+            "file" => {
+                let path: PathBuf = url.path().parse().unwrap();
+                (
+                    path.file_name().unwrap().to_string_lossy().into_owned(),
+                    path.parent().unwrap().display().to_string(),
+                )
+            }
+            "http" | "https" => {
+                let path: PathBuf = url.path().parse().unwrap();
+                (
+                    path.file_name().unwrap().to_string_lossy().into_owned(),
+                    path.parent().unwrap().display().to_string(),
+                )
+            }
+            "trilogy" => (url.path().to_owned(), "/".to_owned()),
+            _ => (name.to_owned(), "/".to_owned()),
+        };
+        let (dibuilder, dicu) = module.create_debug_info_builder(
+            true,
+            DWARFSourceLanguage::C,
+            &filename,
+            &directory,
+            "trilogy",
+            false,
+            "",
+            0,
+            "",
+            DWARFEmissionKind::Full,
+            0,
+            false,
+            false,
+            "",
+            "",
+        );
         Codegen {
             atoms: self.atoms.clone(),
             context: self.context,
             builder: self.context.create_builder(),
+            dibuilder,
+            dicu,
             execution_engine: self.execution_engine.clone(),
             module,
             modules: self.modules,
@@ -27,7 +69,7 @@ impl<'ctx> Codegen<'ctx> {
             match &definition.item {
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {
                     let location = module.module.as_external().unwrap().to_owned();
-                    let submodule = subcontext.modules.get(&location).unwrap().unwrap();
+                    let submodule = subcontext.modules.get(&location).unwrap();
                     subcontext.import_module(&location, submodule);
                     subcontext
                         .globals
@@ -49,6 +91,7 @@ impl<'ctx> Codegen<'ctx> {
                             Linkage::Private
                         },
                         procedure.overloads.is_empty(),
+                        procedure.span(),
                     );
                     subcontext
                         .globals
@@ -71,6 +114,7 @@ impl<'ctx> Codegen<'ctx> {
                 _ => todo!(),
             }
         }
+
         subcontext
     }
 

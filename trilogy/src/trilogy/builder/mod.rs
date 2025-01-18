@@ -9,8 +9,6 @@ use crate::{Cache, NoopCache};
 #[cfg(feature = "std")]
 use home::home_dir;
 use std::collections::HashMap;
-#[cfg(feature = "llvm")]
-use std::collections::HashSet;
 #[cfg(feature = "tvm")]
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -38,8 +36,6 @@ pub struct Builder<C: Cache + 'static> {
     asm_modules: HashMap<Location, String>,
     #[cfg(feature = "tvm")]
     native_modules: HashMap<Location, Native>,
-    #[cfg(feature = "llvm")]
-    native_modules: HashSet<Location>,
     source_modules: HashMap<Location, String>,
     is_library: bool,
     cache: C,
@@ -103,8 +99,6 @@ impl Builder<NoopCache> {
             asm_modules: HashMap::new(),
             #[cfg(feature = "tvm")]
             native_modules: HashMap::new(),
-            #[cfg(feature = "llvm")]
-            native_modules: HashSet::new(),
             source_modules: HashMap::new(),
             is_library: false,
             cache: NoopCache,
@@ -119,15 +113,6 @@ impl<C: Cache> Builder<C> {
     #[cfg(feature = "tvm")]
     pub fn native_module<N: Into<Native>>(mut self, location: Location, library: N) -> Self {
         self.native_modules.insert(location, library.into());
-        self
-    }
-
-    /// Adds a native module to this builder as a library.
-    ///
-    /// The location describes how Trilogy code should reference this module.
-    #[cfg(feature = "llvm")]
-    pub fn native_module(mut self, location: Location) -> Self {
-        self.native_modules.insert(location);
         self
     }
 
@@ -158,6 +143,7 @@ impl<C: Cache> Builder<C> {
             root_dir: self.root_dir,
             #[cfg(feature = "tvm")]
             asm_modules: self.asm_modules,
+            #[cfg(feature = "tvm")]
             native_modules: self.native_modules,
             source_modules: self.source_modules,
             is_library: false,
@@ -194,6 +180,7 @@ impl<C: Cache> Builder<C> {
             root_dir,
             #[cfg(feature = "tvm")]
             asm_modules,
+            #[cfg(feature = "tvm")]
             native_modules,
             source_modules,
             is_library,
@@ -232,13 +219,10 @@ impl<C: Cache> Builder<C> {
         ));
 
         #[cfg(feature = "llvm")]
-        return Ok(Trilogy::new(
-            Source::Trilogy {
-                modules,
-                entrypoint,
-            },
-            native_modules,
-        ));
+        return Ok(Trilogy::new(Source::Trilogy {
+            modules,
+            entrypoint,
+        }));
 
         unreachable!()
     }

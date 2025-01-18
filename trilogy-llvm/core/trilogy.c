@@ -8,7 +8,7 @@ void panic(
     struct trilogy_value* rv,
     struct trilogy_value* val
 ) {
-    internal_panic(trilogy_string_to_c(assume_string(val)));
+    internal_panic(trilogy_string_to_c(untag_string(val)));
 }
 
 void print(
