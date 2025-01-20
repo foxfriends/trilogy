@@ -32,7 +32,7 @@ impl<'ctx> Codegen<'ctx> {
                     todo!("Support non-integers")
                 }
             }
-            Value::Bits(..) => todo!(),
+            Value::Bits(b) => self.allocate_const(self.bits_const(b)),
             Value::Array(..) => todo!(),
             Value::Set(..) => todo!(),
             Value::Record(..) => todo!(),

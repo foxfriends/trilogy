@@ -1,13 +1,14 @@
-#![expect(dead_code, reason = "WIP")]
 use crate::codegen::Codegen;
+use bitvec::field::BitField;
 use inkwell::{
     basic_block::BasicBlock,
-    types::{ArrayType, FunctionType, IntType, StructType},
+    types::{FunctionType, IntType, StructType},
     values::{
         BasicMetadataValueEnum, BasicValue, FunctionValue, IntValue, PointerValue, StructValue,
     },
     AddressSpace, IntPredicate,
 };
+use trilogy_ir::ir::Bits;
 
 pub(crate) const TAG_UNDEFINED: u64 = 0;
 pub(crate) const TAG_UNIT: u64 = 1;
@@ -166,13 +167,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    pub(crate) fn get_payload(&self, pointer: PointerValue<'ctx>) -> IntValue<'ctx> {
-        self.builder
-            .build_load(self.payload_type(), self.payload_gep(pointer), "payload")
-            .unwrap()
-            .into_int_value()
-    }
-
     pub(crate) fn set_payload(&self, pointer: PointerValue<'ctx>, value: IntValue<'ctx>) {
         self.builder
             .build_store(self.payload_gep(pointer), value)
@@ -189,59 +183,9 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
-    pub(crate) fn get_string_value_length(
-        &self,
-        string_value: PointerValue<'ctx>,
-        name: &str,
-    ) -> IntValue<'ctx> {
-        let length_field = self
-            .builder
-            .build_struct_gep(self.string_value_type(), string_value, 0, "")
-            .unwrap();
-        self.builder
-            .build_load(self.context.i64_type(), length_field, name)
-            .unwrap()
-            .into_int_value()
-    }
-
-    pub(crate) fn get_string_value_pointer(
-        &self,
-        string_value: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let pointer_field = self
-            .builder
-            .build_struct_gep(self.string_value_type(), string_value, 1, "")
-            .unwrap();
-        self.builder
-            .build_load(
-                self.context.ptr_type(AddressSpace::default()),
-                pointer_field,
-                name,
-            )
-            .unwrap()
-            .into_pointer_value()
-    }
-
     pub(crate) fn bits_value_type(&self) -> StructType<'ctx> {
         self.context
             .struct_type(&[self.usize_type().into(), self.usize_type().into()], false)
-    }
-
-    pub(crate) fn int_value_type(&self) -> StructType<'ctx> {
-        self.context
-            .struct_type(&[self.usize_type().into(), self.usize_type().into()], false)
-    }
-
-    pub(crate) fn real_value_type(&self) -> StructType<'ctx> {
-        self.context.struct_type(
-            &[self.int_value_type().into(), self.int_value_type().into()],
-            false,
-        )
-    }
-
-    pub(crate) fn number_value_type(&self) -> ArrayType<'ctx> {
-        self.int_value_type().array_type(4)
     }
 
     pub(crate) fn unit_const(&self) -> StructValue<'ctx> {
@@ -256,20 +200,6 @@ impl<'ctx> Codegen<'ctx> {
             self.tag_type().const_int(TAG_BOOL, false).into(),
             self.payload_type().const_int(value as u64, false).into(),
         ])
-    }
-
-    pub(crate) fn bool_value(&self, value: IntValue<'ctx>) -> PointerValue<'ctx> {
-        let pointer = self
-            .builder
-            .build_alloca(self.value_type(), "bool")
-            .unwrap();
-        let value = self
-            .builder
-            .build_int_z_extend(value, self.payload_type(), "")
-            .unwrap();
-        self.set_tag(pointer, TAG_BOOL);
-        self.set_payload(pointer, value);
-        pointer
     }
 
     pub(crate) fn atom_const(&self, atom: String) -> StructValue<'ctx> {
@@ -299,33 +229,11 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn char_value(&self, value: IntValue<'ctx>) -> PointerValue<'ctx> {
-        let pointer = self
-            .builder
-            .build_alloca(self.value_type(), "char")
-            .unwrap();
-        self.set_tag(pointer, TAG_CHAR);
-        let int = self
-            .builder
-            .build_int_z_extend(value, self.payload_type(), "")
-            .unwrap();
-        self.set_payload(pointer, int);
-        pointer
-    }
-
     pub(crate) fn int_const(&self, value: i64) -> StructValue<'ctx> {
         self.value_type().const_named_struct(&[
             self.tag_type().const_int(TAG_NUMBER, false).into(),
             self.payload_type().const_int(value as u64, false).into(),
         ])
-    }
-
-    /// NOTE: the value *must* be a 64 bit signed integer, or this will be messed up.
-    pub(crate) fn int_value(&self, value: IntValue<'ctx>) -> PointerValue<'ctx> {
-        let pointer = self.builder.build_alloca(self.value_type(), "int").unwrap();
-        self.set_tag(pointer, TAG_NUMBER);
-        self.set_payload(pointer, value);
-        pointer
     }
 
     pub(crate) fn string_const(&self, value: &str) -> StructValue<'ctx> {
@@ -357,32 +265,37 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn string_value(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        let pointer = self
-            .builder
-            .build_alloca(self.value_type(), "string")
-            .unwrap();
-        self.set_tag(pointer, TAG_STRING);
-        let value = self
-            .builder
-            .build_ptr_to_int(value, self.context.i64_type(), "")
-            .unwrap();
-        self.set_payload(pointer, value);
-        pointer
-    }
-
-    pub(crate) fn callable_value(&self, target: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        let pointer = self
-            .builder
-            .build_alloca(self.value_type(), "callable")
-            .unwrap();
-        self.set_tag(pointer, TAG_CALLABLE);
+    pub(crate) fn bits_const(&self, value: &Bits) -> StructValue<'ctx> {
+        let bit_len = value.value().len();
+        let bytes: Vec<u8> = value
+            .value()
+            .chunks(8)
+            .map(|s| s.load_be::<u8>() << 8 - s.len())
+            .collect();
+        let byte_len = bytes.len();
+        let bitstring =
+            self.module
+                .add_global(self.context.i8_type().array_type(byte_len as u32), None, "");
+        bitstring.set_initializer(&self.context.const_string(&bytes, false));
+        bitstring.set_constant(true);
+        let bitstring = self.bits_value_type().const_named_struct(&[
+            self.context
+                .i64_type()
+                .const_int(bit_len as u64, false)
+                .into(),
+            bitstring.as_pointer_value().into(),
+        ]);
+        let global = self.module.add_global(self.bits_value_type(), None, "");
+        global.set_initializer(&bitstring);
+        global.set_constant(true);
         let int = self
             .builder
-            .build_ptr_to_int(target, self.payload_type(), "")
+            .build_ptr_to_int(global.as_pointer_value(), self.payload_type(), "")
             .unwrap();
-        self.set_payload(pointer, int);
-        pointer
+        self.value_type().const_named_struct(&[
+            self.tag_type().const_int(TAG_BITS, false).into(),
+            int.into(),
+        ])
     }
 
     pub(crate) fn procedure_type(&self, arity: usize) -> FunctionType<'ctx> {
@@ -392,6 +305,7 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    #[expect(dead_code)]
     pub(crate) fn function_type(&self) -> FunctionType<'ctx> {
         self.procedure_type(1)
     }
@@ -419,7 +333,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "retval")
             .unwrap();
-        function.build_procedure_call(self, &[output.into(), argument], name);
+        function.build_function_call(self, &[output.into(), argument], name);
         output
     }
 
