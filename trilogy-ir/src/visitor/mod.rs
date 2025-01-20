@@ -90,6 +90,12 @@ pub trait IrVisitor: Sized {
     visit_value!(visit_atom, str);
     visit_node!(visit_query, Query);
     visit_node!(visit_iterator, Iterator);
+    visit_node!(visit_array, Pack);
+    visit_node!(visit_array_comprehension, Iterator);
+    visit_node!(visit_set, Pack);
+    visit_node!(visit_set_comprehension, Iterator);
+    visit_node!(visit_record, Pack);
+    visit_node!(visit_record_comprehension, Iterator);
     visit_node!(visit_while, While);
     visit_node!(visit_for, Iterator);
     visit_node!(visit_application, Application);
@@ -156,7 +162,12 @@ impl IrVisitable for Value {
             Wildcard => visitor.visit_wildcard(),
             Atom(val) => visitor.visit_atom(val),
             Query(val) => visitor.visit_query(val),
-            Iterator(val) => visitor.visit_iterator(val),
+            ArrayComprehension(val) => visitor.visit_array_comprehension(val),
+            SetComprehension(val) => visitor.visit_set_comprehension(val),
+            RecordComprehension(val) => visitor.visit_record_comprehension(val),
+            Array(val) => visitor.visit_array(val),
+            Set(val) => visitor.visit_set(val),
+            Record(val) => visitor.visit_record(val),
             While(val) => visitor.visit_while(val),
             For(val) => visitor.visit_for(val),
             Application(val) => visitor.visit_application(val),

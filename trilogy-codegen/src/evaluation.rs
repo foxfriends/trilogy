@@ -430,6 +430,112 @@ impl IrVisitor for Evaluator<'_, '_> {
             .call_module();
     }
 
+    fn visit_array(&mut self, pack: &ir::Pack) {
+        self.context.constant(Array::default());
+        self.context.scope.intermediate();
+        for element in &pack.values {
+            self.context.instruction(Instruction::Clone);
+            self.context.evaluate(&element.expression);
+            if element.is_spread {
+                self.context
+                    .typecheck("array")
+                    .instruction(Instruction::Glue);
+            } else {
+                self.context.instruction(Instruction::Insert);
+            }
+        }
+        self.context.scope.end_intermediate();
+    }
+
+    fn visit_array_comprehension(&mut self, iter: &ir::Iterator) {
+        self.context.comprehension(
+            |context| {
+                context
+                    .constant(Array::new())
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Insert)
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Glue);
+            },
+            |context| {
+                context
+                    .iterator(iter, None, None)
+                    .constant(Array::default());
+            },
+        );
+    }
+
+    fn visit_set(&mut self, pack: &ir::Pack) {
+        self.context.constant(Set::default());
+        self.context.scope.intermediate();
+        for element in &pack.values {
+            self.context.evaluate(&element.expression);
+            if element.is_spread {
+                self.context.typecheck("set").instruction(Instruction::Glue);
+            } else {
+                self.context.instruction(Instruction::Insert);
+            }
+        }
+        self.context.scope.end_intermediate();
+    }
+
+    fn visit_set_comprehension(&mut self, iter: &ir::Iterator) {
+        self.context.comprehension(
+            |context| {
+                context
+                    .constant(Set::new())
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Insert)
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Glue);
+            },
+            |context| {
+                context.iterator(iter, None, None).constant(Set::default());
+            },
+        );
+    }
+
+    fn visit_record(&mut self, pack: &ir::Pack) {
+        self.context.constant(Record::default()).intermediate();
+        for element in &pack.values {
+            if element.is_spread {
+                self.context
+                    .evaluate(&element.expression)
+                    .typecheck("record")
+                    .instruction(Instruction::Glue);
+            } else if let ir::Value::Mapping(mapping) = &element.expression.value {
+                self.context.evaluate(&mapping.0).intermediate();
+                self.context
+                    .evaluate(&mapping.1)
+                    .end_intermediate()
+                    .instruction(Instruction::Assign);
+            } else {
+                panic!("record values must be mappings")
+            }
+        }
+        self.context.scope.end_intermediate();
+    }
+
+    fn visit_record_comprehension(&mut self, iter: &ir::Iterator) {
+        self.context.comprehension(
+            |context| {
+                context
+                    .typecheck("tuple")
+                    .constant(Record::new())
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Uncons)
+                    .instruction(Instruction::Assign)
+                    .instruction(Instruction::Swap)
+                    .instruction(Instruction::Glue);
+            },
+            |context| {
+                context
+                    .iterator(iter, None, None)
+                    .constant(Record::default());
+            },
+        );
+    }
+
     fn visit_application(&mut self, application: &ir::Application) {
         match unapply_2(application) {
             (None, ir::Value::Builtin(builtin), arg) if is_unary_operator(*builtin) => {
@@ -455,115 +561,6 @@ impl IrVisitor for Evaluator<'_, '_> {
                     .evaluate_annotated(rhs, "<intermediate>", application.argument.span)
                     .end_intermediate();
                 write_operator(self.context, *builtin);
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Pack(pack)) => {
-                self.context.constant(Record::default()).intermediate();
-                for element in &pack.values {
-                    if element.is_spread {
-                        self.context
-                            .evaluate(&element.expression)
-                            .typecheck("record")
-                            .instruction(Instruction::Glue);
-                    } else if let ir::Value::Mapping(mapping) = &element.expression.value {
-                        self.context.evaluate(&mapping.0).intermediate();
-                        self.context
-                            .evaluate(&mapping.1)
-                            .end_intermediate()
-                            .instruction(Instruction::Assign);
-                    } else {
-                        panic!("record values must be mappings")
-                    }
-                }
-                self.context.scope.end_intermediate();
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Record), ir::Value::Iterator(iter)) => {
-                self.context.comprehension(
-                    |context| {
-                        context
-                            .typecheck("tuple")
-                            .constant(Record::new())
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Uncons)
-                            .instruction(Instruction::Assign)
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Glue);
-                    },
-                    |context| {
-                        context
-                            .iterator(iter, None, None)
-                            .constant(Record::default());
-                    },
-                );
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Record), ..) => {
-                unreachable!("record is applied to pack or iterator");
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Set), ir::Value::Pack(pack)) => {
-                self.context.constant(Set::default());
-                self.context.scope.intermediate();
-                for element in &pack.values {
-                    self.context.evaluate(&element.expression);
-                    if element.is_spread {
-                        self.context.typecheck("set").instruction(Instruction::Glue);
-                    } else {
-                        self.context.instruction(Instruction::Insert);
-                    }
-                }
-                self.context.scope.end_intermediate();
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Set), ir::Value::Iterator(iter)) => {
-                self.context.comprehension(
-                    |context| {
-                        context
-                            .constant(Set::new())
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert)
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Glue);
-                    },
-                    |context| {
-                        context.iterator(iter, None, None).constant(Set::default());
-                    },
-                );
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Set), ..) => {
-                unreachable!("set is applied to pack or iterator");
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Array), ir::Value::Pack(pack)) => {
-                self.context.constant(Array::default());
-                self.context.scope.intermediate();
-                for element in &pack.values {
-                    self.context.instruction(Instruction::Clone);
-                    self.context.evaluate(&element.expression);
-                    if element.is_spread {
-                        self.context
-                            .typecheck("array")
-                            .instruction(Instruction::Glue);
-                    } else {
-                        self.context.instruction(Instruction::Insert);
-                    }
-                }
-                self.context.scope.end_intermediate();
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Array), ir::Value::Iterator(iter)) => {
-                self.context.comprehension(
-                    |context| {
-                        context
-                            .constant(Array::new())
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Insert)
-                            .instruction(Instruction::Swap)
-                            .instruction(Instruction::Glue);
-                    },
-                    |context| {
-                        context
-                            .iterator(iter, None, None)
-                            .constant(Array::default());
-                    },
-                );
-            }
-            (None, ir::Value::Builtin(ir::Builtin::Array), ..) => {
-                unreachable!("array is applied to pack or iterator");
             }
             (None, ir::Value::Builtin(ir::Builtin::Is), ir::Value::Query(query)) => {
                 let is_fail = self.context.make_label("is_fail");

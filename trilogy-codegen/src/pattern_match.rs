@@ -131,6 +131,183 @@ impl IrVisitor for PatternMatcher<'_, '_> {
         }
     }
 
+    fn visit_array(&mut self, pack: &ir::Pack) {
+        let cleanup = self.context.make_label("array_cleanup");
+        // Before even attempting to match this array, check its length and the length of
+        // the pattern. If the pattern is longer than the array, then give up already.
+        // The spread element doesn't count towards length since it can be 0. If the pattern
+        // is shorter than the array and there is no spread, then also give up.
+        let needed = pack
+            .values
+            .iter()
+            .filter(|element| !element.is_spread)
+            .count();
+        let cmp = if pack.values.iter().any(|el| el.is_spread) {
+            Instruction::Geq
+        } else {
+            Instruction::ValEq
+        };
+        self.context
+            .try_type("array", Err(&cleanup))
+            .instruction(Instruction::Copy)
+            .instruction(Instruction::Length)
+            .constant(needed)
+            .instruction(cmp)
+            .cond_jump(&cleanup);
+        // If that worked, then we'll have enough elements and won't have to check that
+        // below at all.
+
+        // Going to be modifying this array in place, so clone it before we begin.
+        // Trilogy does not have slices.
+        self.context.instruction(Instruction::Clone);
+        let array = self.context.scope.intermediate();
+        for (i, element) in pack.values.iter().enumerate() {
+            if element.is_spread {
+                // When it's the spread element, take all the elements we aren't going to
+                // need for the tail of this pattern from the array.
+                let cleanup_spread = self.context.make_label("cleanup_spread");
+                let elements_in_tail = pack.values.len() - i - 1;
+                let length = self
+                    .context
+                    // First determine the runtime length to find out how many elements
+                    // we don't need later.
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::Length)
+                    .constant(elements_in_tail)
+                    .instruction(Instruction::Subtract)
+                    .intermediate();
+                self.context
+                    // Take that many elements from (a copy of) the array
+                    .instruction(Instruction::LoadLocal(array))
+                    .instruction(Instruction::LoadLocal(length))
+                    .instruction(Instruction::Take)
+                    // And match that prefix with the element pattern
+                    .pattern_match(&element.expression, &cleanup_spread)
+                    // Then use the copy of length that's still on the stack to drop those
+                    // elements we just took from the original array.
+                    .instruction(Instruction::Skip)
+                    .bubble(|c| {
+                        // If we fail during the spread matching, the length that's on the stack has
+                        // to be discarded still.
+                        c.label(cleanup_spread)
+                            .instruction(Instruction::Pop)
+                            .jump(&cleanup);
+                    })
+                    .end_intermediate(); // length
+            } else {
+                // When it's not the spread element, just match the first element.
+                self.context
+                    .instruction(Instruction::Copy)
+                    .instruction(Instruction::Zero)
+                    .instruction(Instruction::Access)
+                    .pattern_match(&element.expression, &cleanup)
+                    // And then we drop that element from the array and leave just the tail on
+                    // the stack.
+                    .instruction(Instruction::One)
+                    .instruction(Instruction::Skip);
+            }
+        }
+        // There should now be an empty array on the stack, so get rid of it before continuing.
+        self.context
+            .instruction(Instruction::Pop)
+            .bubble(|c| {
+                c.label(cleanup)
+                    // Otherwise, we have to cleanup. The only thing on the stack is the array.
+                    .instruction(Instruction::Pop)
+                    .jump(self.on_fail);
+            })
+            .end_intermediate(); // array
+    }
+
+    fn visit_set(&mut self, pack: &ir::Pack) {
+        let cleanup1 = self.context.make_label("set_cleanup1");
+        let cleanup2 = self.context.make_label("set_cleanup2");
+        let mut spread = None;
+        self.context
+            .try_type("set", Err(&cleanup1))
+            .instruction(Instruction::Clone);
+        let set = self.context.scope.intermediate();
+        for element in &pack.values {
+            if element.is_spread {
+                spread = Some(&element.expression);
+                continue;
+            }
+            let value = self.context.evaluate(&element.expression).intermediate();
+            self.context
+                .instruction(Instruction::LoadLocal(set))
+                .instruction(Instruction::LoadLocal(value))
+                .instruction(Instruction::Contains)
+                .cond_jump(&cleanup2)
+                .instruction(Instruction::Delete)
+                .end_intermediate();
+        }
+        self.context.scope.end_intermediate();
+        if let Some(spread) = spread {
+            self.context.pattern_match(spread, self.on_fail);
+        } else {
+            self.context
+                .instruction(Instruction::Length)
+                .instruction(Instruction::Zero)
+                .instruction(Instruction::ValEq)
+                .cond_jump(self.on_fail);
+        }
+        self.context.bubble(|c| {
+            c.label(cleanup2)
+                .instruction(Instruction::Pop)
+                .label(cleanup1)
+                .instruction(Instruction::Pop)
+                .jump(self.on_fail);
+        });
+    }
+
+    fn visit_record(&mut self, pack: &ir::Pack) {
+        let cleanup1 = self.context.make_label("record_cleanup1");
+        let cleanup2 = self.context.make_label("record_cleanup2");
+        let mut spread = None;
+        self.context
+            .try_type("record", Err(&cleanup1))
+            .instruction(Instruction::Clone);
+        let record = self.context.scope.intermediate();
+        for element in &pack.values {
+            if element.is_spread {
+                spread = Some(&element.expression);
+                continue;
+            }
+            let ir::Value::Mapping(mapping) = &element.expression.value else {
+                panic!("record pattern elements must be mapping ");
+            };
+            let key = self.context.evaluate(&mapping.0).intermediate();
+            self.context
+                .instruction(Instruction::LoadLocal(record))
+                .instruction(Instruction::LoadLocal(key))
+                .instruction(Instruction::Contains)
+                .cond_jump(&cleanup2)
+                .instruction(Instruction::LoadLocal(record))
+                .instruction(Instruction::LoadLocal(key))
+                .instruction(Instruction::Access)
+                .pattern_match(&mapping.1, &cleanup2)
+                .instruction(Instruction::Delete)
+                .end_intermediate();
+        }
+        self.context.scope.end_intermediate();
+        if let Some(spread) = spread {
+            self.context.pattern_match(spread, self.on_fail);
+        } else {
+            self.context
+                .instruction(Instruction::Length)
+                .instruction(Instruction::Zero)
+                .instruction(Instruction::ValEq)
+                .cond_jump(self.on_fail);
+        }
+        self.context.bubble(|c| {
+            c.label(cleanup2)
+                .instruction(Instruction::Pop)
+                .label(cleanup1)
+                .instruction(Instruction::Pop)
+                .jump(self.on_fail);
+        });
+    }
+
     fn visit_application(&mut self, application: &ir::Application) {
         match unapply_2(application) {
             (None, ir::Value::Builtin(Builtin::Negate), value) => {
@@ -260,180 +437,6 @@ impl IrVisitor for PatternMatcher<'_, '_> {
                             .instruction(Instruction::Pop)
                             .jump(self.on_fail);
                     });
-            }
-            (None, ir::Value::Builtin(Builtin::Array), ir::Value::Pack(pack)) => {
-                let cleanup = self.context.make_label("array_cleanup");
-                // Before even attempting to match this array, check its length and the length of
-                // the pattern. If the pattern is longer than the array, then give up already.
-                // The spread element doesn't count towards length since it can be 0. If the pattern
-                // is shorter than the array and there is no spread, then also give up.
-                let needed = pack
-                    .values
-                    .iter()
-                    .filter(|element| !element.is_spread)
-                    .count();
-                let cmp = if pack.values.iter().any(|el| el.is_spread) {
-                    Instruction::Geq
-                } else {
-                    Instruction::ValEq
-                };
-                self.context
-                    .try_type("array", Err(&cleanup))
-                    .instruction(Instruction::Copy)
-                    .instruction(Instruction::Length)
-                    .constant(needed)
-                    .instruction(cmp)
-                    .cond_jump(&cleanup);
-                // If that worked, then we'll have enough elements and won't have to check that
-                // below at all.
-
-                // Going to be modifying this array in place, so clone it before we begin.
-                // Trilogy does not have slices.
-                self.context.instruction(Instruction::Clone);
-                let array = self.context.scope.intermediate();
-                for (i, element) in pack.values.iter().enumerate() {
-                    if element.is_spread {
-                        // When it's the spread element, take all the elements we aren't going to
-                        // need for the tail of this pattern from the array.
-                        let cleanup_spread = self.context.make_label("cleanup_spread");
-                        let elements_in_tail = pack.values.len() - i - 1;
-                        let length = self
-                            .context
-                            // First determine the runtime length to find out how many elements
-                            // we don't need later.
-                            .instruction(Instruction::Copy)
-                            .instruction(Instruction::Length)
-                            .constant(elements_in_tail)
-                            .instruction(Instruction::Subtract)
-                            .intermediate();
-                        self.context
-                            // Take that many elements from (a copy of) the array
-                            .instruction(Instruction::LoadLocal(array))
-                            .instruction(Instruction::LoadLocal(length))
-                            .instruction(Instruction::Take)
-                            // And match that prefix with the element pattern
-                            .pattern_match(&element.expression, &cleanup_spread)
-                            // Then use the copy of length that's still on the stack to drop those
-                            // elements we just took from the original array.
-                            .instruction(Instruction::Skip)
-                            .bubble(|c| {
-                                // If we fail during the spread matching, the length that's on the stack has
-                                // to be discarded still.
-                                c.label(cleanup_spread)
-                                    .instruction(Instruction::Pop)
-                                    .jump(&cleanup);
-                            })
-                            .end_intermediate(); // length
-                    } else {
-                        // When it's not the spread element, just match the first element.
-                        self.context
-                            .instruction(Instruction::Copy)
-                            .instruction(Instruction::Zero)
-                            .instruction(Instruction::Access)
-                            .pattern_match(&element.expression, &cleanup)
-                            // And then we drop that element from the array and leave just the tail on
-                            // the stack.
-                            .instruction(Instruction::One)
-                            .instruction(Instruction::Skip);
-                    }
-                }
-                // There should now be an empty array on the stack, so get rid of it before continuing.
-                self.context
-                    .instruction(Instruction::Pop)
-                    .bubble(|c| {
-                        c.label(cleanup)
-                            // Otherwise, we have to cleanup. The only thing on the stack is the array.
-                            .instruction(Instruction::Pop)
-                            .jump(self.on_fail);
-                    })
-                    .end_intermediate(); // array
-            }
-            (None, ir::Value::Builtin(Builtin::Record), ir::Value::Pack(pack)) => {
-                let cleanup1 = self.context.make_label("record_cleanup1");
-                let cleanup2 = self.context.make_label("record_cleanup2");
-                let mut spread = None;
-                self.context
-                    .try_type("record", Err(&cleanup1))
-                    .instruction(Instruction::Clone);
-                let record = self.context.scope.intermediate();
-                for element in &pack.values {
-                    if element.is_spread {
-                        spread = Some(&element.expression);
-                        continue;
-                    }
-                    let ir::Value::Mapping(mapping) = &element.expression.value else {
-                        panic!("record pattern elements must be mapping ");
-                    };
-                    let key = self.context.evaluate(&mapping.0).intermediate();
-                    self.context
-                        .instruction(Instruction::LoadLocal(record))
-                        .instruction(Instruction::LoadLocal(key))
-                        .instruction(Instruction::Contains)
-                        .cond_jump(&cleanup2)
-                        .instruction(Instruction::LoadLocal(record))
-                        .instruction(Instruction::LoadLocal(key))
-                        .instruction(Instruction::Access)
-                        .pattern_match(&mapping.1, &cleanup2)
-                        .instruction(Instruction::Delete)
-                        .end_intermediate();
-                }
-                self.context.scope.end_intermediate();
-                if let Some(spread) = spread {
-                    self.context.pattern_match(spread, self.on_fail);
-                } else {
-                    self.context
-                        .instruction(Instruction::Length)
-                        .instruction(Instruction::Zero)
-                        .instruction(Instruction::ValEq)
-                        .cond_jump(self.on_fail);
-                }
-                self.context.bubble(|c| {
-                    c.label(cleanup2)
-                        .instruction(Instruction::Pop)
-                        .label(cleanup1)
-                        .instruction(Instruction::Pop)
-                        .jump(self.on_fail);
-                });
-            }
-            (None, ir::Value::Builtin(Builtin::Set), ir::Value::Pack(pack)) => {
-                let cleanup1 = self.context.make_label("set_cleanup1");
-                let cleanup2 = self.context.make_label("set_cleanup2");
-                let mut spread = None;
-                self.context
-                    .try_type("set", Err(&cleanup1))
-                    .instruction(Instruction::Clone);
-                let set = self.context.scope.intermediate();
-                for element in &pack.values {
-                    if element.is_spread {
-                        spread = Some(&element.expression);
-                        continue;
-                    }
-                    let value = self.context.evaluate(&element.expression).intermediate();
-                    self.context
-                        .instruction(Instruction::LoadLocal(set))
-                        .instruction(Instruction::LoadLocal(value))
-                        .instruction(Instruction::Contains)
-                        .cond_jump(&cleanup2)
-                        .instruction(Instruction::Delete)
-                        .end_intermediate();
-                }
-                self.context.scope.end_intermediate();
-                if let Some(spread) = spread {
-                    self.context.pattern_match(spread, self.on_fail);
-                } else {
-                    self.context
-                        .instruction(Instruction::Length)
-                        .instruction(Instruction::Zero)
-                        .instruction(Instruction::ValEq)
-                        .cond_jump(self.on_fail);
-                }
-                self.context.bubble(|c| {
-                    c.label(cleanup2)
-                        .instruction(Instruction::Pop)
-                        .label(cleanup1)
-                        .instruction(Instruction::Pop)
-                        .jump(self.on_fail);
-                });
             }
             what => panic!("not a pattern ({what:?})"),
         }

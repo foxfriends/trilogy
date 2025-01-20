@@ -58,19 +58,17 @@ impl IrVisitor for Bindings {
     fn visit_application(&mut self, node: &Application) {
         match &node.function.value {
             Value::Builtin(Builtin::Pin) => {}
-            // The values of a set pattern are expressions, not patterns,
-            // only visit the spread element for bindings.
-            Value::Builtin(Builtin::Set) => match &node.argument.value {
-                Value::Pack(pack) => {
-                    for value in &pack.values {
-                        if value.is_spread {
-                            value.visit(self);
-                        }
-                    }
-                }
-                _ => panic!(),
-            },
             _ => node.visit(self),
+        }
+    }
+
+    fn visit_set(&mut self, pack: &Pack) {
+        // The values of a set pattern are expressions, not patterns,
+        // only visit the spread element for bindings.
+        for value in &pack.values {
+            if value.is_spread {
+                value.visit(self);
+            }
         }
     }
 

@@ -33,6 +33,12 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
             Value::Bits(..) => todo!(),
+            Value::Array(..) => todo!(),
+            Value::Set(..) => todo!(),
+            Value::Record(..) => todo!(),
+            Value::ArrayComprehension(..) => todo!(),
+            Value::SetComprehension(..) => todo!(),
+            Value::RecordComprehension(..) => todo!(),
             Value::Sequence(exprs) => {
                 self.di.push_block_scope(expression.span);
                 let mut value = self.allocate_const(self.unit_const());
@@ -64,7 +70,6 @@ impl<'ctx> Codegen<'ctx> {
             Value::Disjunction(..) => panic!("disjunction not permitted in expression context"),
             Value::Wildcard => panic!("wildcard not permitted in expression context"),
             Value::Query(..) => panic!("query not permitted in expression context"),
-            Value::Iterator(..) => panic!("iterator not permitted in expression context"),
         };
         Some(output)
     }

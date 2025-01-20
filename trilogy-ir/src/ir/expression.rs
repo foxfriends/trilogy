@@ -30,67 +30,52 @@ impl Expression {
                     Self::atom(ast.atom.span(), ast.atom.value()),
                 ),
             Array(ast) => {
-                let start_span = ast.open_bracket.span;
                 let span = ast.span();
                 let elements = ast
                     .elements
                     .into_iter()
                     .map(|element| Element::convert_array(converter, element))
                     .collect::<Pack>();
-                Self::builtin(start_span, Builtin::Array).apply_to(span, Self::pack(span, elements))
+                Self::array(span, elements)
             }
             Set(ast) => {
-                let start_span = ast.start_token().span;
                 let span = ast.span();
                 let elements = ast
                     .elements
                     .into_iter()
                     .map(|element| Element::convert_set(converter, element))
                     .collect::<Pack>();
-                Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
+                Self::set(span, elements)
             }
             Record(ast) => {
-                let start_span = ast.open_brace_pipe.span;
                 let span = ast.span();
                 let elements = ast
                     .elements
                     .into_iter()
                     .map(|element| Element::convert_record(converter, element))
                     .collect::<Pack>();
-                Self::builtin(start_span, Builtin::Record)
-                    .apply_to(span, Self::pack(span, elements))
+                Self::record(span, elements)
             }
             ArrayComprehension(ast) => {
-                let start_span = ast.open_bracket.span;
                 let span = ast.span();
                 let iterator = Self::convert_iterator(converter, ast.query, ast.expression);
-                Self::builtin(start_span, Builtin::Array).apply_to(span, iterator)
+                Self::array_comprehension(span, iterator)
             }
             SetComprehension(ast) => {
-                let start_span = ast.open_bracket_pipe.span;
                 let span = ast.span();
                 let iterator = Self::convert_iterator(converter, ast.query, ast.expression);
-                Self::builtin(start_span, Builtin::Set).apply_to(span, iterator)
+                Self::set_comprehension(span, iterator)
             }
             RecordComprehension(ast) => {
                 let span = ast.span();
-                let start_span = ast.open_brace_pipe.span;
-                let iter_span = ast
-                    .query
-                    .span()
-                    .union(ast.key_expression.span())
-                    .union(ast.expression.span());
                 converter.push_scope();
                 let query = Query::convert(converter, ast.query);
                 let key = Self::convert(converter, ast.key_expression);
                 let value = Self::convert(converter, ast.expression);
                 converter.pop_scope();
-                let iterator = Self::iterator(
-                    iter_span,
-                    query,
-                    Self::mapping(key.span.union(value.span), key, value),
-                );
-                Self::builtin(start_span, Builtin::Record).apply_to(span, iterator)
+                let iterator =
+                    Iterator::new(query, Self::mapping(key.span.union(value.span), key, value));
+                Self::record_comprehension(span, iterator)
             }
             Reference(ast) => Self::reference(
                 ast.span(),
@@ -308,7 +293,6 @@ impl Expression {
                     .apply_to(span, Self::convert_pattern(converter, ast.rhs))
             }
             Array(ast) => {
-                let start_span = ast.open_bracket.span;
                 let span = ast.span();
                 let mut elements: Pack = ast
                     .head
@@ -328,10 +312,9 @@ impl Expression {
                         .map(|element| Self::convert_pattern(converter, element))
                         .map(Element::from),
                 );
-                Self::builtin(start_span, Builtin::Array).apply_to(span, Self::pack(span, elements))
+                Self::array(span, elements)
             }
             Set(ast) => {
-                let start_span = ast.open_bracket_pipe.span;
                 let span = ast.span();
                 let mut elements: Pack = ast
                     .elements
@@ -345,10 +328,9 @@ impl Expression {
                         .map(|element| Self::convert_rest_pattern(converter, element))
                         .map(Element::spread),
                 );
-                Self::builtin(start_span, Builtin::Set).apply_to(span, Self::pack(span, elements))
+                Self::set(span, elements)
             }
             Record(ast) => {
-                let start_span = ast.start_token().span;
                 let span = ast.span();
                 let mut elements: Pack = ast
                     .elements
@@ -368,8 +350,7 @@ impl Expression {
                         .map(|element| Self::convert_rest_pattern(converter, element))
                         .map(Element::spread),
                 );
-                Self::builtin(start_span, Builtin::Record)
-                    .apply_to(span, Self::pack(span, elements))
+                Self::record(span, elements)
             }
             Pinned(ast) => Identifier::declared(converter, &ast.identifier)
                 .map(|identifier| {
@@ -423,13 +404,12 @@ impl Expression {
         converter: &mut Converter,
         query: syntax::Query,
         expression: syntax::Expression,
-    ) -> Self {
-        let span = query.span().union(expression.span());
+    ) -> Iterator {
         converter.push_scope();
         let query = Query::convert(converter, query);
         let body = Self::convert(converter, expression);
         converter.pop_scope();
-        Self::iterator(span, query, body)
+        Iterator::new(query, body)
     }
 
     fn convert_template(converter: &mut Converter, ast: syntax::Template) -> Self {
@@ -460,10 +440,8 @@ impl Expression {
                         converter.error(Error::UnboundIdentifier { name: tag.clone() });
                         Expression::reference(tag.span(), Identifier::unresolved(converter, tag))
                     });
-                let strings = Self::builtin(span, Builtin::Array)
-                    .apply_to(span, Self::pack(span, Pack::from_iter(strings)));
-                let interpolations = Self::builtin(span, Builtin::Array)
-                    .apply_to(span, Self::pack(span, Pack::from_iter(interpolations)));
+                let strings = Self::array(span, Pack::from_iter(strings));
+                let interpolations = Self::array(span, Pack::from_iter(interpolations));
                 tag.apply_to(span, strings).apply_to(span, interpolations)
             }
             None => {
@@ -549,8 +527,28 @@ impl Expression {
         Self::new(span, Value::Handled(Box::new(handled)))
     }
 
-    pub(super) fn iterator(span: Span, query: Query, value: Expression) -> Self {
-        Self::new(span, Value::Iterator(Box::new(Iterator::new(query, value))))
+    pub(super) fn array(span: Span, value: Pack) -> Self {
+        Self::new(span, Value::Array(Box::new(value)))
+    }
+
+    pub(super) fn set(span: Span, value: Pack) -> Self {
+        Self::new(span, Value::Set(Box::new(value)))
+    }
+
+    pub(super) fn record(span: Span, value: Pack) -> Self {
+        Self::new(span, Value::Record(Box::new(value)))
+    }
+
+    pub(super) fn array_comprehension(span: Span, value: Iterator) -> Self {
+        Self::new(span, Value::ArrayComprehension(Box::new(value)))
+    }
+
+    pub(super) fn set_comprehension(span: Span, value: Iterator) -> Self {
+        Self::new(span, Value::SetComprehension(Box::new(value)))
+    }
+
+    pub(super) fn record_comprehension(span: Span, value: Iterator) -> Self {
+        Self::new(span, Value::RecordComprehension(Box::new(value)))
     }
 
     pub(super) fn assignment(span: Span, assignment: Assignment) -> Self {
@@ -662,7 +660,6 @@ pub enum Value {
     Wildcard,
     Atom(String),
     Query(Box<Query>),
-    Iterator(Box<Iterator>),
     While(Box<While>),
     For(Box<Iterator>),
     Application(Box<Application>),
@@ -676,6 +673,12 @@ pub enum Value {
     Reference(Box<Identifier>),
     ModuleAccess(Box<(Expression, syntax::Identifier)>),
     Assert(Box<Assert>),
+    ArrayComprehension(Box<Iterator>),
+    SetComprehension(Box<Iterator>),
+    RecordComprehension(Box<Iterator>),
+    Array(Box<Pack>),
+    Set(Box<Pack>),
+    Record(Box<Pack>),
     End,
 }
 
