@@ -59,7 +59,7 @@ void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
         trilogy_array_push(trilogy_array_assume(arr), val);
         break;
     default:
-        rte("array, set, or record", val->tag);
+        rte("array, set, or record", arr->tag);
     }
     *rv = trilogy_unit;
 }
@@ -72,7 +72,7 @@ void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
         );
         break;
     default:
-        rte("array, set, or record", val->tag);
+        rte("array, set, or record", arr->tag);
     }
     *rv = trilogy_unit;
 }

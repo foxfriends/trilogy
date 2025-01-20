@@ -270,7 +270,7 @@ impl<'ctx> Codegen<'ctx> {
         let bytes: Vec<u8> = value
             .value()
             .chunks(8)
-            .map(|s| s.load_be::<u8>() << 8 - s.len())
+            .map(|s| s.load_be::<u8>() << (8 - s.len()))
             .collect();
         let byte_len = bytes.len();
         let bitstring =

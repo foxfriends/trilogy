@@ -33,7 +33,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
             Value::Bits(b) => self.allocate_const(self.bits_const(b)),
-            Value::Array(arr) => self.compile_array(scope, &arr)?,
+            Value::Array(arr) => self.compile_array(scope, arr)?,
             Value::Set(..) => todo!(),
             Value::Record(..) => todo!(),
             Value::ArrayComprehension(..) => todo!(),
@@ -84,6 +84,7 @@ impl<'ctx> Codegen<'ctx> {
         for element in &pack.values {
             let value = self.compile_expression(scope, &element.expression)?;
             if element.is_spread {
+                let value = self.trilogy_array_untag(value, "");
                 self.trilogy_array_append(array_value, value);
             } else {
                 self.trilogy_array_push(array_value, value);
