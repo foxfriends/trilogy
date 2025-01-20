@@ -18,16 +18,21 @@ impl<'ctx> Codegen<'ctx> {
         let output = match &expression.value {
             Value::Unit => self.allocate_const(self.unit_const()),
             Value::Boolean(b) => self.allocate_const(self.bool_const(*b)),
+            Value::Atom(atom) => self.allocate_const(self.atom_const(atom.to_owned())),
             Value::Character(ch) => self.allocate_const(self.char_const(*ch)),
             Value::String(s) => self.allocate_const(self.string_const(s)),
-            Value::Number(num) if num.value().im.is_zero() && num.value().re.is_integer() => {
-                if let Some(int) = num.value().re.to_i64() {
-                    self.allocate_const(self.int_const(int))
+            Value::Number(num) => {
+                if num.value().im.is_zero() && num.value().re.is_integer() {
+                    if let Some(int) = num.value().re.to_i64() {
+                        self.allocate_const(self.int_const(int))
+                    } else {
+                        todo!("Support large integers")
+                    }
                 } else {
-                    todo!("Support non-integers and large integers")
+                    todo!("Support non-integers")
                 }
             }
-            Value::Atom(atom) => self.allocate_const(self.atom_const(atom.to_owned())),
+            Value::Bits(..) => todo!(),
             Value::Sequence(exprs) => {
                 self.di.push_block_scope(expression.span);
                 let mut value = self.allocate_const(self.unit_const());
@@ -38,16 +43,33 @@ impl<'ctx> Codegen<'ctx> {
                 value
             }
             Value::Application(app) => self.compile_application(scope, app)?,
-            Value::Builtin(val) => self.builtin_value(scope, *val),
+            Value::Builtin(val) => self.reference_builtin(scope, *val),
             Value::Reference(val) => self.compile_reference(scope, val),
             Value::ModuleAccess(access) => self.compile_module_access(scope, &access.0, &access.1),
             Value::IfElse(if_else) => self.compile_if_else(scope, if_else)?,
-            _ => todo!(),
+            Value::Assignment(assign) => self.compile_assignment(scope, assign)?,
+            Value::While(..) => todo!(),
+            Value::For(..) => todo!(),
+            Value::Let(..) => todo!(),
+            Value::Match(..) => todo!(),
+            Value::Assert(..) => todo!(),
+            Value::Fn(..) => todo!(),
+            Value::Do(..) => todo!(),
+            Value::Qy(..) => todo!(),
+            Value::Handled(..) => todo!(),
+            Value::End => todo!(),
+            Value::Pack(..) => panic!("arbitrary packs are not permitted"),
+            Value::Mapping(..) => panic!("arbitrary mappings are not permitted"),
+            Value::Conjunction(..) => panic!("conjunction not permitted in expression context"),
+            Value::Disjunction(..) => panic!("disjunction not permitted in expression context"),
+            Value::Wildcard => panic!("wildcard not permitted in expression context"),
+            Value::Query(..) => panic!("query not permitted in expression context"),
+            Value::Iterator(..) => panic!("iterator not permitted in expression context"),
         };
         Some(output)
     }
 
-    fn builtin_value(&self, _scope: &mut Scope<'ctx>, _builtin: Builtin) -> PointerValue<'ctx> {
+    fn reference_builtin(&self, _scope: &mut Scope<'ctx>, _builtin: Builtin) -> PointerValue<'ctx> {
         todo!()
     }
 
@@ -57,38 +79,42 @@ impl<'ctx> Codegen<'ctx> {
         application: &ir::Application,
     ) -> Option<PointerValue<'ctx>> {
         match &application.function.value {
-            Value::Builtin(builtin) => {
-                self.compile_apply_builtin(scope, *builtin, &application.argument)
+            Value::Builtin(builtin) if builtin.is_unary() => {
+                return self.compile_apply_builtin(scope, *builtin, &application.argument)
             }
-            Value::Application(app) if matches!(app.function.value, Value::Builtin(..)) => {
-                let Value::Builtin(builtin) = &app.function.value else {
-                    unreachable!();
-                };
-                self.compile_apply_binary(scope, *builtin, &app.argument, &application.argument)
-            }
-            _ => {
-                let function = self.compile_expression(scope, &application.function)?;
-                match &application.argument.value {
-                    // Procedure application
-                    Value::Pack(pack) => {
-                        let arguments = pack
-                            .values
-                            .iter()
-                            .map(|val| {
-                                assert!(!val.is_spread);
-                                Some(BasicMetadataValueEnum::from(
-                                    self.compile_expression(scope, &val.expression)?,
-                                ))
-                            })
-                            .collect::<Option<Vec<_>>>()?;
-                        Some(self.call_procedure(function, &arguments, ""))
-                    }
-                    // Function application
-                    _ => {
-                        let argument = self.compile_expression(scope, &application.argument)?;
-                        Some(self.apply_function(function, argument.into(), ""))
-                    }
+            Value::Application(app) => match &app.function.value {
+                Value::Builtin(builtin) if builtin.is_binary() => {
+                    return self.compile_apply_binary(
+                        scope,
+                        *builtin,
+                        &app.argument,
+                        &application.argument,
+                    )
                 }
+                _ => {}
+            },
+            _ => {}
+        };
+        let function = self.compile_expression(scope, &application.function)?;
+        match &application.argument.value {
+            // Procedure application
+            Value::Pack(pack) => {
+                let arguments = pack
+                    .values
+                    .iter()
+                    .map(|val| {
+                        assert!(!val.is_spread);
+                        Some(BasicMetadataValueEnum::from(
+                            self.compile_expression(scope, &val.expression)?,
+                        ))
+                    })
+                    .collect::<Option<Vec<_>>>()?;
+                Some(self.call_procedure(function, &arguments, ""))
+            }
+            // Function application
+            _ => {
+                let argument = self.compile_expression(scope, &application.argument)?;
+                Some(self.apply_function(function, argument.into(), ""))
             }
         }
     }
@@ -170,6 +196,23 @@ impl<'ctx> Codegen<'ctx> {
                 Some(self.referential_eq(lhs?, rhs?, "eq"))
             }
             _ => todo!(),
+        }
+    }
+
+    fn compile_assignment(
+        &self,
+        scope: &mut Scope<'ctx>,
+        assign: &ir::Assignment,
+    ) -> Option<PointerValue<'ctx>> {
+        match &assign.lhs.value {
+            Value::Reference(variable) => {
+                let value = self.compile_expression(scope, &assign.rhs)?;
+                let pointer = *scope.variables.get(&variable.id).unwrap();
+                self.builder.build_store(pointer, value).unwrap();
+                Some(pointer)
+            }
+            Value::Application(..) => todo!(),
+            _ => panic!("invalid lvalue in assignment"),
         }
     }
 

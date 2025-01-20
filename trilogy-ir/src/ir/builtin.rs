@@ -146,4 +146,47 @@ impl Builtin {
         };
         Expression::builtin(span, op)
     }
+
+    pub fn is_unary(self) -> bool {
+        matches!(
+            self,
+            Builtin::Invert | Builtin::Negate | Builtin::Not | Builtin::Yield | Builtin::Typeof
+        )
+    }
+
+    pub fn is_binary(self) -> bool {
+        matches!(
+            self,
+            Self::Access
+                | Self::And
+                | Self::Or
+                | Self::Add
+                | Self::Subtract
+                | Self::Multiply
+                | Self::Divide
+                | Self::Remainder
+                | Self::Power
+                | Self::IntDivide
+                | Self::StructuralEquality
+                | Self::StructuralInequality
+                | Self::ReferenceEquality
+                | Self::ReferenceInequality
+                | Self::Lt
+                | Self::Gt
+                | Self::Leq
+                | Self::Geq
+                | Self::BitwiseAnd
+                | Self::BitwiseOr
+                | Self::BitwiseXor
+                | Self::LeftShift
+                | Self::RightShift
+                | Self::Sequence
+                | Self::Cons
+                | Self::Glue
+                | Self::Compose
+                | Self::RCompose
+                | Self::Pipe
+                | Self::RPipe,
+        )
+    }
 }
