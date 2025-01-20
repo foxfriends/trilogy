@@ -26,7 +26,7 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
     case TAG_BOOL:
     case TAG_ATOM:
     case TAG_CHAR:
-    case TAG_INTEGER:
+    case TAG_NUMBER:
         *into = *from;
         break;
     case TAG_STRING:
@@ -119,7 +119,7 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_BOOL:
     case TAG_ATOM:
     case TAG_CHAR:
-    case TAG_INTEGER:
+    case TAG_NUMBER:
     case TAG_CALLABLE:
         return lhs->payload == rhs->payload;
     case TAG_STRING: {

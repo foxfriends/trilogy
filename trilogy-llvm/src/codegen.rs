@@ -51,7 +51,7 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("atom".to_owned(), types::TAG_ATOM);
         atoms.insert("char".to_owned(), types::TAG_CHAR);
         atoms.insert("string".to_owned(), types::TAG_STRING);
-        atoms.insert("integer".to_owned(), types::TAG_INTEGER);
+        atoms.insert("number".to_owned(), types::TAG_NUMBER);
         atoms.insert("bits".to_owned(), types::TAG_BITS);
         atoms.insert("struct".to_owned(), types::TAG_STRUCT);
         atoms.insert("tuple".to_owned(), types::TAG_TUPLE);

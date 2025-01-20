@@ -15,7 +15,7 @@ char* type_name(trilogy_value_tag tag) {
         return "character";
     case TAG_STRING:
         return "string";
-    case TAG_INTEGER:
+    case TAG_NUMBER:
         return "number";
     case TAG_BITS:
         return "bits";

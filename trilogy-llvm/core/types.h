@@ -7,7 +7,7 @@ typedef enum trilogy_value_tag : unsigned char {
     TAG_ATOM = 3,
     TAG_CHAR = 4,
     TAG_STRING = 5,
-    TAG_INTEGER = 6,
+    TAG_NUMBER = 6,
     TAG_BITS = 7,
     TAG_STRUCT = 8,
     TAG_TUPLE = 9,

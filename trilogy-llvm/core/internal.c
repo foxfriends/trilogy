@@ -33,7 +33,7 @@ void print_trace() {
     switch (val->tag) {
     case TAG_UNIT:
         exit(0);
-    case TAG_INTEGER:
+    case TAG_NUMBER:
         exit(val->payload);
     default:
         rte("number", val->tag);

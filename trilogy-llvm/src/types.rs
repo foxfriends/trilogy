@@ -15,7 +15,7 @@ pub(crate) const TAG_BOOL: u64 = 2;
 pub(crate) const TAG_ATOM: u64 = 3;
 pub(crate) const TAG_CHAR: u64 = 4;
 pub(crate) const TAG_STRING: u64 = 5;
-pub(crate) const TAG_INTEGER: u64 = 6;
+pub(crate) const TAG_NUMBER: u64 = 6;
 pub(crate) const TAG_BITS: u64 = 7;
 pub(crate) const TAG_STRUCT: u64 = 8;
 pub(crate) const TAG_TUPLE: u64 = 9;
@@ -315,7 +315,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn int_const(&self, value: i64) -> StructValue<'ctx> {
         self.value_type().const_named_struct(&[
-            self.tag_type().const_int(TAG_INTEGER, false).into(),
+            self.tag_type().const_int(TAG_NUMBER, false).into(),
             self.payload_type().const_int(value as u64, false).into(),
         ])
     }
@@ -323,7 +323,7 @@ impl<'ctx> Codegen<'ctx> {
     /// NOTE: the value *must* be a 64 bit signed integer, or this will be messed up.
     pub(crate) fn int_value(&self, value: IntValue<'ctx>) -> PointerValue<'ctx> {
         let pointer = self.builder.build_alloca(self.value_type(), "int").unwrap();
-        self.set_tag(pointer, TAG_INTEGER);
+        self.set_tag(pointer, TAG_NUMBER);
         self.set_payload(pointer, value);
         pointer
     }
