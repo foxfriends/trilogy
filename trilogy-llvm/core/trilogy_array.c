@@ -1,10 +1,11 @@
+#include "trilogy_array.h"
+#include "internal.h"
+#include "trilogy_value.h"
 #include <assert.h>
 #include <stdlib.h>
-#include "trilogy_array.h"
-#include "trilogy_value.h"
-#include "internal.h"
 
-trilogy_array_value* trilogy_array_init(trilogy_value* tv, trilogy_array_value* arr) {
+trilogy_array_value*
+trilogy_array_init(trilogy_value* tv, trilogy_array_value* arr) {
     tv->tag = TAG_ARRAY;
     tv->payload = (unsigned long)arr;
     return arr;
@@ -19,7 +20,8 @@ trilogy_array_value* trilogy_array_init_empty(trilogy_value* tv) {
     return trilogy_array_init(tv, arr);
 }
 
-trilogy_array_value* trilogy_array_init_cap(trilogy_value* tv, unsigned long cap) {
+trilogy_array_value*
+trilogy_array_init_cap(trilogy_value* tv, unsigned long cap) {
     trilogy_array_value* arr = malloc(sizeof(trilogy_array_value));
     arr->rc = 1;
     arr->len = 0;
@@ -28,7 +30,8 @@ trilogy_array_value* trilogy_array_init_cap(trilogy_value* tv, unsigned long cap
     return trilogy_array_init(tv, arr);
 }
 
-trilogy_array_value* trilogy_array_clone_into(trilogy_value* tv, trilogy_array_value* arr) {
+trilogy_array_value*
+trilogy_array_clone_into(trilogy_value* tv, trilogy_array_value* arr) {
     assert(arr->rc != 0);
     ++arr->rc;
     return trilogy_array_init(tv, arr);

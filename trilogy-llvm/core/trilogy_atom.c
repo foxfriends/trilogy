@@ -1,10 +1,10 @@
 #include "trilogy_atom.h"
-#include "trilogy_value.h"
 #include "internal.h"
 #include "runtime.h"
+#include "trilogy_value.h"
 
 trilogy_value trilogy_atom(unsigned long i) {
-    trilogy_value t = { .tag = TAG_ATOM, .payload = i };
+    trilogy_value t = {.tag = TAG_ATOM, .payload = i};
     return t;
 }
 
@@ -17,10 +17,7 @@ unsigned long trilogy_atom_assume(trilogy_value* val) {
     return (unsigned long)val->payload;
 }
 
-void lookup_atom(
-    struct trilogy_value* rv,
-    struct trilogy_value* atom
-) {
+void lookup_atom(trilogy_value* rv, trilogy_value* atom) {
     unsigned int atom_id = trilogy_atom_untag(atom);
     if (atom_id < atom_registry_sz) {
         rv->tag = TAG_STRING;

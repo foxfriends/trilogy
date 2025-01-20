@@ -1,15 +1,17 @@
-#include <stdlib.h>
-#include <string.h>
 #include "trilogy_bits.h"
 #include "internal.h"
+#include <stdlib.h>
+#include <string.h>
 
-trilogy_bits_value* trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
+trilogy_bits_value*
+trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
     tv->tag = TAG_BITS;
     tv->payload = (unsigned long)bits;
     return bits;
 }
 
-trilogy_bits_value* trilogy_bits_init_new(trilogy_value* tv, unsigned long len, unsigned char* b) {
+trilogy_bits_value*
+trilogy_bits_init_new(trilogy_value* tv, unsigned long len, unsigned char* b) {
     trilogy_bits_value* bits = malloc(sizeof(trilogy_bits_value));
     bits->len = len;
     bits->contents = malloc(sizeof(unsigned char) * len);
@@ -17,7 +19,8 @@ trilogy_bits_value* trilogy_bits_init_new(trilogy_value* tv, unsigned long len, 
     return trilogy_bits_init(tv, bits);
 }
 
-trilogy_bits_value* trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val) {
+trilogy_bits_value*
+trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val) {
     trilogy_bits_value* bits = malloc(sizeof(trilogy_bits_value));
     bits->len = val->len;
     bits->contents = malloc(sizeof(unsigned char) * val->len);
@@ -34,6 +37,4 @@ trilogy_bits_value* trilogy_bits_assume(trilogy_value* val) {
     return (trilogy_bits_value*)val->payload;
 }
 
-void trilogy_bits_destroy(trilogy_bits_value* b) {
-    free(b->contents);
-}
+void trilogy_bits_destroy(trilogy_bits_value* b) { free(b->contents); }

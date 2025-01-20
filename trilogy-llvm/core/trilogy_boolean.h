@@ -1,6 +1,6 @@
 #pragma once
-#include <stdbool.h>
 #include "types.h"
+#include <stdbool.h>
 
 extern const trilogy_value trilogy_true;
 extern const trilogy_value trilogy_false;

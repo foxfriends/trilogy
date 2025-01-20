@@ -1,8 +1,8 @@
+#include "trilogy_set.h"
+#include "internal.h"
+#include "trilogy_value.h"
 #include <assert.h>
 #include <stdlib.h>
-#include "trilogy_set.h"
-#include "trilogy_value.h"
-#include "internal.h"
 
 trilogy_set_value* trilogy_set_init(trilogy_value* tv, trilogy_set_value* set) {
     tv->tag = TAG_SET;
@@ -19,7 +19,8 @@ trilogy_set_value* trilogy_set_init_empty(trilogy_value* tv) {
     return trilogy_set_init(tv, set);
 }
 
-trilogy_set_value* trilogy_set_clone_into(trilogy_value* tv, trilogy_set_value* set) {
+trilogy_set_value*
+trilogy_set_clone_into(trilogy_value* tv, trilogy_set_value* set) {
     assert(set->rc != 0);
     ++set->rc;
     return trilogy_set_init(tv, set);

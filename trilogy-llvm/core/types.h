@@ -26,12 +26,12 @@ typedef enum trilogy_callable_tag : unsigned char {
 typedef struct trilogy_value {
     trilogy_value_tag tag;
     /**
-     * The payload is held in `unsigned long` to be a 64 bit container for anything.
-     * The actual value type of the payload depends on the tag.
+     * The payload is held in `unsigned long` to be a 64 bit container for
+     * anything. The actual value type of the payload depends on the tag.
      *
-     * We do not use a union because the field should be left-padded, which would not
-     * be the default in a union, but does happen correctly if we cast the payload around
-     * manually.
+     * We do not use a union because the field should be left-padded, which
+     * would not be the default in a union, but does happen correctly if we cast
+     * the payload around manually.
      */
     unsigned long payload;
 } trilogy_value;
@@ -42,8 +42,8 @@ typedef struct trilogy_string_value {
      */
     unsigned long len;
     /**
-     * The raw byte contents of this string. This data is ASSUMED to be UTF-8, and is
-     * not null terminated.
+     * The raw byte contents of this string. This data is ASSUMED to be UTF-8,
+     * and is not null terminated.
      */
     char* contents;
 } trilogy_string_value;
@@ -56,7 +56,8 @@ typedef struct trilogy_bits_value {
     /**
      * The raw bytes of the bits value.
      *
-     * This is a bytearray of `len/8` bytes. The value of any excess padding bits is undefined.
+     * This is a bytearray of `len/8` bytes. The value of any excess padding
+     * bits is undefined.
      */
     unsigned char* contents;
 } trilogy_bits_value;
@@ -93,7 +94,8 @@ typedef struct trilogy_array_value {
      */
     unsigned long len;
     /**
-     * The capacity of this array; values in cells past the len contain unspecified data.
+     * The capacity of this array; values in cells past the len contain
+     * unspecified data.
      */
     unsigned long cap;
     /**
@@ -112,7 +114,8 @@ typedef struct trilogy_set_value {
      */
     unsigned long len;
     /**
-     * The capacity of this set; values in cells past the len contain unspecified data.
+     * The capacity of this set; values in cells past the len contain
+     * unspecified data.
      */
     unsigned long cap;
     /**
@@ -131,7 +134,8 @@ typedef struct trilogy_record_value {
      */
     unsigned long len;
     /**
-     * The capacity of this record; values in cells past the len contain unspecified data.
+     * The capacity of this record; values in cells past the len contain
+     * unspecified data.
      */
     unsigned long cap;
     /**
@@ -146,7 +150,8 @@ typedef struct trilogy_callable_value {
      */
     trilogy_callable_tag tag;
     /**
-     * The number of parameters to this callable. Functions must have arity 1. Other types may have any arity.
+     * The number of parameters to this callable. Functions must have arity 1.
+     * Other types may have any arity.
      */
     unsigned int arity;
     /**

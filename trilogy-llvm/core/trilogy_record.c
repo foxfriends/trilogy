@@ -1,10 +1,11 @@
+#include "trilogy_record.h"
+#include "internal.h"
+#include "trilogy_tuple.h"
 #include <assert.h>
 #include <stdlib.h>
-#include "trilogy_record.h"
-#include "trilogy_tuple.h"
-#include "internal.h"
 
-trilogy_record_value* trilogy_record_init(trilogy_value* tv, trilogy_record_value* rec) {
+trilogy_record_value*
+trilogy_record_init(trilogy_value* tv, trilogy_record_value* rec) {
     tv->tag = TAG_RECORD;
     tv->payload = (unsigned long)rec;
     return rec;
@@ -19,7 +20,8 @@ trilogy_record_value* trilogy_record_init_empty(trilogy_value* tv) {
     return trilogy_record_init(tv, record);
 }
 
-trilogy_record_value* trilogy_record_clone_into(trilogy_value* tv, trilogy_record_value* record) {
+trilogy_record_value*
+trilogy_record_clone_into(trilogy_value* tv, trilogy_record_value* record) {
     assert(record->rc != 0);
     ++record->rc;
     return trilogy_record_init(tv, record);

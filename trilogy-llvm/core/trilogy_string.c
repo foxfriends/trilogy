@@ -1,15 +1,17 @@
-#include <stdlib.h>
-#include <string.h>
 #include "trilogy_string.h"
 #include "internal.h"
+#include <stdlib.h>
+#include <string.h>
 
-trilogy_string_value* trilogy_string_init(trilogy_value* tv, trilogy_string_value* str) {
+trilogy_string_value*
+trilogy_string_init(trilogy_value* tv, trilogy_string_value* str) {
     tv->tag = TAG_STRING;
     tv->payload = (unsigned long)str;
     return str;
 }
 
-trilogy_string_value* trilogy_string_init_new(trilogy_value* tv, size_t len, char* s) {
+trilogy_string_value*
+trilogy_string_init_new(trilogy_value* tv, size_t len, char* s) {
     trilogy_string_value* str = malloc(sizeof(trilogy_string_value));
     str->len = len;
     str->contents = malloc(sizeof(char) * len);
@@ -17,7 +19,8 @@ trilogy_string_value* trilogy_string_init_new(trilogy_value* tv, size_t len, cha
     return trilogy_string_init(tv, str);
 }
 
-trilogy_string_value* trilogy_string_clone_into(trilogy_value* tv, trilogy_string_value* orig) {
+trilogy_string_value*
+trilogy_string_clone_into(trilogy_value* tv, trilogy_string_value* orig) {
     trilogy_string_value* str = malloc(sizeof(trilogy_string_value));
     str->len = orig->len;
     str->contents = malloc(sizeof(char) * orig->len);
@@ -50,6 +53,4 @@ trilogy_string_value* trilogy_string_assume(trilogy_value* val) {
     return (trilogy_string_value*)val->payload;
 }
 
-void trilogy_string_destroy(trilogy_string_value* val) {
-    free(val->contents);
-}
+void trilogy_string_destroy(trilogy_string_value* val) { free(val->contents); }

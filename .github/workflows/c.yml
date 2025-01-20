@@ -1,0 +1,27 @@
+name: C CI
+
+on: push
+
+jobs:
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+      - name: Install clang-format
+        run: sudo apt-get install clang-format
+      - name: Run clang-format
+        run: clang-format --Werror --dry-run *.{c,h}
+        working-directory: trilogy-llvm/core
+  iwyu:
+    name: iwyu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+      - name: Install IWYU
+        run: sudo apt-get install iwyu
+      - name: Run IWYU
+        run: ls *.{c,h} | xargs -I _ iwyu -Xiwyu --error _
+        working-directory: trilogy-llvm/core
