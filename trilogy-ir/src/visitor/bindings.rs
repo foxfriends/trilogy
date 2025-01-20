@@ -31,6 +31,12 @@ impl IrVisitor for Bindings {
             Reference(ident) => {
                 self.bindings.insert(ident.id.clone());
             }
+            Set(pack) => self.visit_set(pack),
+            Array(pack) => self.visit_array(pack),
+            Record(pack) => self.visit_record(pack),
+            SetComprehension(iter) => self.visit_set_comprehension(iter),
+            ArrayComprehension(iter) => self.visit_array_comprehension(iter),
+            RecordComprehension(iter) => self.visit_record_comprehension(iter),
             _ => {}
         }
     }

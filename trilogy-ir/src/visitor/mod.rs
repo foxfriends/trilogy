@@ -128,7 +128,10 @@ pub trait IrVisitor: Sized {
 
     fn visit_module_access(&mut self, node: &(Expression, trilogy_parser::syntax::Identifier)) {
         node.0.visit(self);
+        self.visit_raw_ident(&node.1);
     }
+
+    fn visit_raw_ident(&mut self, _node: &trilogy_parser::syntax::Identifier) {}
 }
 
 pub trait IrVisitable {
@@ -235,8 +238,8 @@ impl IrVisitable for QueryValue {
 
 impl IrVisitable for Iterator {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
-        visitor.visit_expression(&self.value);
         visitor.visit_query(&self.query);
+        visitor.visit_expression(&self.value);
     }
 }
 
