@@ -4,11 +4,26 @@ export print
 extern proc panic!(value)
 export panic
 
+extern proc trace!(value)
+export trace
+
 extern proc exit_!(value)
 export exit_
 
 extern proc structural_eq!(lhs, rhs)
 export structural_eq
 
+extern proc referential_eq!(lhs, rhs)
+export referential_eq
+
 extern proc lookup_atom!(lhs, rhs)
 export lookup_atom
+
+extern proc length!(arr)
+export length
+
+extern proc push!(arr, val)
+export push
+
+extern proc append!(arr, val)
+export append

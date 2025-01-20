@@ -12,7 +12,7 @@ trilogy_record_init(trilogy_value* tv, trilogy_record_value* rec) {
 }
 
 trilogy_record_value* trilogy_record_init_empty(trilogy_value* tv) {
-    trilogy_record_value* record = malloc(sizeof(trilogy_record_value));
+    trilogy_record_value* record = malloc_safe(sizeof(trilogy_record_value));
     record->rc = 1;
     record->len = 0;
     record->cap = 0;

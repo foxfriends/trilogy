@@ -147,7 +147,13 @@ impl Builtin {
     pub fn is_unary(self) -> bool {
         matches!(
             self,
-            Builtin::Invert | Builtin::Negate | Builtin::Not | Builtin::Yield | Builtin::Typeof
+            Builtin::Invert
+                | Builtin::Negate
+                | Builtin::Not
+                | Builtin::Yield
+                | Builtin::Typeof
+                | Builtin::Return
+                | Builtin::Exit,
         )
     }
 

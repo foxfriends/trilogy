@@ -169,7 +169,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(exit_int);
-        let exit_code = self.trilogy_integer_untag(output, "");
+        let exit_code = self.trilogy_number_untag(output, "");
         let exit_code = self
             .builder
             .build_int_truncate(exit_code, self.context.i32_type(), "")

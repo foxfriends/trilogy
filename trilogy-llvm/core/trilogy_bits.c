@@ -12,18 +12,18 @@ trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
 
 trilogy_bits_value*
 trilogy_bits_init_new(trilogy_value* tv, unsigned long len, unsigned char* b) {
-    trilogy_bits_value* bits = malloc(sizeof(trilogy_bits_value));
+    trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
     bits->len = len;
-    bits->contents = malloc(sizeof(unsigned char) * len);
+    bits->contents = malloc_safe(sizeof(unsigned char) * len);
     memcpy(bits->contents, b, len);
     return trilogy_bits_init(tv, bits);
 }
 
 trilogy_bits_value*
 trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val) {
-    trilogy_bits_value* bits = malloc(sizeof(trilogy_bits_value));
+    trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
     bits->len = val->len;
-    bits->contents = malloc(sizeof(unsigned char) * val->len);
+    bits->contents = malloc_safe(sizeof(unsigned char) * val->len);
     memcpy(bits->contents, val->contents, val->len);
     return trilogy_bits_init(tv, bits);
 }

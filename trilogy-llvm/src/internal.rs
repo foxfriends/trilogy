@@ -72,13 +72,13 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Untags an integer value.
-    pub(crate) fn trilogy_integer_untag(
+    pub(crate) fn trilogy_number_untag(
         &self,
         value: PointerValue<'ctx>,
         name: &str,
     ) -> IntValue<'ctx> {
         let f = self.declare_internal(
-            "trilogy_integer_untag",
+            "trilogy_number_untag",
             self.context.i64_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -214,6 +214,73 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_array_init_cap(
+        &self,
+        value: PointerValue<'ctx>,
+        cap: usize,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_array_init_cap",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    value.into(),
+                    self.context.i64_type().const_int(cap as u64, false).into(),
+                ],
+                name,
+            )
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_array_push(&self, array: PointerValue<'ctx>, value: PointerValue<'ctx>) {
+        let f = self.declare_internal(
+            "trilogy_array_push",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[array.into(), value.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_array_append(
+        &self,
+        array: PointerValue<'ctx>,
+        value: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_internal(
+            "trilogy_array_append",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[array.into(), value.into()], "")
+            .unwrap();
+    }
+
     pub(crate) fn trilogy_set_untag(
         &self,
         value: PointerValue<'ctx>,
@@ -333,14 +400,14 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn is_structural_eq(
+    pub(crate) fn trilogy_value_structural_eq(
         &self,
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
         name: &str,
     ) -> IntValue<'ctx> {
         let f = self.declare_internal(
-            "is_structural_eq",
+            "trilogy_value_structural_eq",
             self.context.bool_type().fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),

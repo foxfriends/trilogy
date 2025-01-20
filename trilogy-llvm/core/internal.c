@@ -39,3 +39,9 @@ void print_trace() {
         rte("number", val->tag);
     }
 }
+
+void* malloc_safe(size_t size) {
+    void* ptr = malloc(size);
+    if (ptr == NULL) internal_panic("out of memory");
+    return ptr;
+}

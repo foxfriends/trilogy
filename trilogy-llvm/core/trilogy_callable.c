@@ -10,7 +10,8 @@ void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
 void trilogy_callable_clone_into(
     trilogy_value* t, trilogy_callable_value* orig
 ) {
-    trilogy_callable_value* callable = malloc(sizeof(trilogy_callable_value));
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
     callable->tag = orig->tag;
     callable->arity = orig->arity;
     callable->closure =
@@ -21,7 +22,8 @@ void trilogy_callable_clone_into(
 }
 
 void trilogy_callable_init_func(trilogy_value* t, void* c, void* p) {
-    trilogy_callable_value* callable = malloc(sizeof(trilogy_callable_value));
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
     callable->tag = CALLABLE_FUNCTION;
     callable->arity = 1;
     callable->closure = c;
@@ -32,7 +34,8 @@ void trilogy_callable_init_func(trilogy_value* t, void* c, void* p) {
 void trilogy_callable_init_proc(
     trilogy_value* t, unsigned int arity, void* c, void* p
 ) {
-    trilogy_callable_value* callable = malloc(sizeof(trilogy_callable_value));
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
     callable->tag = CALLABLE_PROCEDURE;
     callable->arity = arity;
     callable->closure = c;
@@ -43,7 +46,8 @@ void trilogy_callable_init_proc(
 void trilogy_callable_init_rule(
     trilogy_value* t, unsigned int arity, void* c, void* p
 ) {
-    trilogy_callable_value* callable = malloc(sizeof(trilogy_callable_value));
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
     callable->tag = CALLABLE_RULE;
     callable->arity = arity;
     callable->closure = c;

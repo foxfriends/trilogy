@@ -11,7 +11,7 @@ trilogy_set_value* trilogy_set_init(trilogy_value* tv, trilogy_set_value* set) {
 }
 
 trilogy_set_value* trilogy_set_init_empty(trilogy_value* tv) {
-    trilogy_set_value* set = malloc(sizeof(trilogy_set_value));
+    trilogy_set_value* set = malloc_safe(sizeof(trilogy_set_value));
     set->rc = 1;
     set->len = 0;
     set->cap = 0;

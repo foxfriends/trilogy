@@ -33,7 +33,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
             Value::Bits(b) => self.allocate_const(self.bits_const(b)),
-            Value::Array(..) => todo!(),
+            Value::Array(arr) => self.compile_array(scope, &arr)?,
             Value::Set(..) => todo!(),
             Value::Record(..) => todo!(),
             Value::ArrayComprehension(..) => todo!(),
@@ -74,8 +74,26 @@ impl<'ctx> Codegen<'ctx> {
         Some(output)
     }
 
-    fn reference_builtin(&self, _scope: &mut Scope<'ctx>, _builtin: Builtin) -> PointerValue<'ctx> {
-        todo!()
+    fn compile_array(
+        &self,
+        scope: &mut Scope<'ctx>,
+        pack: &ir::Pack,
+    ) -> Option<PointerValue<'ctx>> {
+        let array = self.builder.build_alloca(self.value_type(), "").unwrap();
+        let array_value = self.trilogy_array_init_cap(array, pack.values.len(), "");
+        for element in &pack.values {
+            let value = self.compile_expression(scope, &element.expression)?;
+            if element.is_spread {
+                self.trilogy_array_append(array_value, value);
+            } else {
+                self.trilogy_array_push(array_value, value);
+            }
+        }
+        Some(array)
+    }
+
+    fn reference_builtin(&self, _scope: &mut Scope<'ctx>, builtin: Builtin) -> PointerValue<'ctx> {
+        todo!("reference {:?}", builtin);
     }
 
     fn compile_application(
