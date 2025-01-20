@@ -164,6 +164,11 @@ impl<'ctx> Codegen<'ctx> {
                 let rhs = self.compile_expression(scope, rhs);
                 Some(self.structural_eq(lhs?, rhs?, "eq"))
             }
+            Builtin::ReferenceEquality => {
+                let lhs = self.compile_expression(scope, lhs);
+                let rhs = self.compile_expression(scope, rhs);
+                Some(self.referential_eq(lhs?, rhs?, "eq"))
+            }
             _ => todo!(),
         }
     }

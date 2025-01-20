@@ -1,5 +1,3 @@
-#![expect(dead_code, reason = "wip")]
-
 use inkwell::{
     module::Linkage,
     values::{FunctionValue, PointerValue},
