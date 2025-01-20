@@ -1,3 +1,5 @@
+#![expect(dead_code, reason = "wip")]
+
 use inkwell::{
     module::Linkage,
     values::{FunctionValue, PointerValue},
@@ -21,6 +23,16 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_core("structural_eq", 2);
+        self.call_procedure(f, &[lhs.into(), rhs.into()], name)
+    }
+
+    pub(crate) fn referential_eq(
+        &self,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_core("referential_eq", 2);
         self.call_procedure(f, &[lhs.into(), rhs.into()], name)
     }
 }

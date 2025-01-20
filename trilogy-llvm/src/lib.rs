@@ -15,14 +15,6 @@ mod procedure;
 mod scope;
 mod types;
 
-#[repr(C)]
-#[derive(Debug, Default)]
-#[allow(dead_code, reason = "WIP")]
-struct TrilogyValue {
-    tag: u8,
-    value: [u8; 8],
-}
-
 type Entrypoint = unsafe extern "C" fn() -> u8;
 
 pub fn evaluate(
