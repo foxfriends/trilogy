@@ -1,5 +1,4 @@
 #pragma once
-#include "internal.h"
 #include "types.h"
 
 void trace(trilogy_value* rt);
