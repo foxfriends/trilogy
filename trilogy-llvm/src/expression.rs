@@ -24,7 +24,7 @@ impl<'ctx> Codegen<'ctx> {
         target: PointerValue<'ctx>,
         expression: &ir::Expression,
     ) -> Option<()> {
-        self.set_span(expression.span);
+        let prev = self.set_span(expression.span);
 
         match &expression.value {
             Value::Unit => {
@@ -46,9 +46,7 @@ impl<'ctx> Codegen<'ctx> {
                     .unwrap();
             }
             Value::String(s) => {
-                self.builder
-                    .build_store(target, self.string_const(s))
-                    .unwrap();
+                self.string_const(target, s);
             }
             Value::Number(num) => {
                 if num.value().im.is_zero() && num.value().re.is_integer() {
@@ -110,6 +108,10 @@ impl<'ctx> Codegen<'ctx> {
             Value::Query(..) => panic!("query not permitted in expression context"),
         };
 
+        if let Some(prev) = prev {
+            self.builder.set_current_debug_location(prev);
+        }
+
         Some(())
     }
 
@@ -124,13 +126,11 @@ impl<'ctx> Codegen<'ctx> {
         for element in &pack.values {
             self.compile_expression(scope, temporary, &element.expression)?;
             if element.is_spread {
-                let value = self.trilogy_array_untag(temporary, "");
-                self.trilogy_array_append(array_value, value);
-                self.trilogy_value_destroy(temporary);
+                self.trilogy_array_append(array_value, temporary);
             } else {
                 self.trilogy_array_push(array_value, temporary);
-                self.trilogy_value_destroy(temporary);
             }
+            self.trilogy_value_destroy(temporary);
         }
         Some(())
     }

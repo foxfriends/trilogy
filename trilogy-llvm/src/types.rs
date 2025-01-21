@@ -172,7 +172,7 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn string_const(&self, value: &str) -> StructValue<'ctx> {
+    pub(crate) fn string_const(&self, into: PointerValue<'ctx>, value: &str) {
         let bytes = value.as_bytes();
         let string = self.module.add_global(
             self.context.i8_type().array_type(bytes.len() as u32),
@@ -181,24 +181,11 @@ impl<'ctx> Codegen<'ctx> {
         );
         string.set_initializer(&self.context.const_string(bytes, false));
         string.set_constant(true);
-        let string = self.string_value_type().const_named_struct(&[
-            self.context
-                .i64_type()
-                .const_int(value.len() as u64, false)
-                .into(),
-            string.as_pointer_value().into(),
-        ]);
-        let global = self.module.add_global(self.string_value_type(), None, "");
-        global.set_initializer(&string);
-        global.set_constant(true);
-        let int = self
-            .builder
-            .build_ptr_to_int(global.as_pointer_value(), self.payload_type(), "")
-            .unwrap();
-        self.value_type().const_named_struct(&[
-            self.tag_type().const_int(TAG_STRING, false).into(),
-            int.into(),
-        ])
+        self.trilogy_string_init_new(
+            into,
+            self.context.i64_type().const_int(value.len() as u64, false),
+            string.as_pointer_value(),
+        );
     }
 
     pub(crate) fn bits_const(&self, value: &Bits) -> StructValue<'ctx> {

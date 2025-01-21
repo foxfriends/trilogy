@@ -92,6 +92,28 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
+    pub(crate) fn trilogy_string_init_new(
+        &self,
+        value: PointerValue<'ctx>,
+        len: IntValue<'ctx>,
+        string: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_internal(
+            "trilogy_string_init_new",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into(), len.into(), string.into()], "")
+            .unwrap();
+    }
+
     /// Untags a string value. The returned PointerValue points to a value of `string_value_type`.
     pub(crate) fn trilogy_string_untag(
         &self,

@@ -1,7 +1,7 @@
 use inkwell::{
     debug_info::{
-        AsDIScope, DIBasicType, DICompileUnit, DIScope, DISubroutineType, DWARFEmissionKind,
-        DWARFSourceLanguage, DebugInfoBuilder,
+        AsDIScope, DIBasicType, DICompileUnit, DILocation, DIScope, DISubroutineType,
+        DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
     },
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Module,
@@ -87,16 +87,18 @@ impl<'ctx> DebugInfo<'ctx> {
     }
 }
 
-impl Codegen<'_> {
-    pub(crate) fn set_span(&self, span: Span) {
+impl<'ctx> Codegen<'ctx> {
+    pub(crate) fn set_span(&self, span: Span) -> Option<DILocation<'ctx>> {
+        let prev = self.builder.get_current_debug_location();
         let location = self.di.builder.create_debug_location(
             self.context,
-            span.start().line as u32,
-            span.start().column as u32,
+            span.start().line as u32 + 1,
+            span.start().column as u32 + 1,
             self.di.get_debug_scope().unwrap(),
             None,
         );
         self.builder.set_current_debug_location(location);
+        prev
     }
 }
 

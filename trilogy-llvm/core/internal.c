@@ -45,3 +45,9 @@ void* malloc_safe(size_t size) {
     if (ptr == NULL) internal_panic("out of memory");
     return ptr;
 }
+
+void* calloc_safe(size_t num, size_t size) {
+    void* ptr = calloc(num, size);
+    if (ptr == NULL) internal_panic("out of memory");
+    return ptr;
+}

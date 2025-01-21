@@ -72,11 +72,13 @@ void trilogy_value_destroy(trilogy_value* value) {
     case TAG_BITS: {
         trilogy_bits_value* p = trilogy_bits_assume(value);
         trilogy_bits_destroy(p);
+        free(p);
         break;
     }
     case TAG_TUPLE: {
         trilogy_tuple_value* p = trilogy_tuple_assume(value);
         trilogy_tuple_destroy(p);
+        free(p);
         break;
     }
     case TAG_STRUCT: {
@@ -88,19 +90,16 @@ void trilogy_value_destroy(trilogy_value* value) {
     case TAG_ARRAY: {
         trilogy_array_value* p = trilogy_array_assume(value);
         trilogy_array_destroy(p);
-        free(p);
         break;
     }
     case TAG_SET: {
         trilogy_set_value* p = trilogy_set_assume(value);
         trilogy_set_destroy(p);
-        free(p);
         break;
     }
     case TAG_RECORD: {
         trilogy_record_value* p = trilogy_record_assume(value);
         trilogy_record_destroy(p);
-        free(p);
         break;
     }
     case TAG_CALLABLE: {

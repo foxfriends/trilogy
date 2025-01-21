@@ -29,7 +29,7 @@ trilogy_array_init_cap(trilogy_value* tv, unsigned long cap) {
     arr->rc = 1;
     arr->len = 0;
     arr->cap = cap;
-    arr->contents = malloc_safe(sizeof(trilogy_value) * cap);
+    arr->contents = cap == 0 ? NULL : calloc_safe(cap, sizeof(trilogy_value));
     return trilogy_array_init(tv, arr);
 }
 
@@ -46,7 +46,7 @@ unsigned long trilogy_array_cap(trilogy_array_value* arr) { return arr->cap; }
 
 unsigned long
 __trilogy_array_resize(trilogy_array_value* arr, unsigned long cap) {
-    trilogy_value* new_contents = malloc_safe(sizeof(trilogy_value) * cap);
+    trilogy_value* new_contents = calloc_safe(cap, sizeof(trilogy_value));
     memcpy(new_contents, arr->contents, sizeof(trilogy_value) * arr->len);
     free(arr->contents);
     arr->cap = cap;
@@ -105,5 +105,6 @@ void trilogy_array_destroy(trilogy_array_value* arr) {
             trilogy_value_destroy(&arr->contents[i]);
         }
         free(arr->contents);
+        free(arr);
     }
 }

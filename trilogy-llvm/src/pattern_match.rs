@@ -20,7 +20,6 @@ impl<'ctx> Codegen<'ctx> {
             Value::Reference(id) => {
                 let variable = self.variable(scope, id);
                 self.trilogy_value_clone_into(variable, value);
-                self.builder.build_store(variable, value).unwrap();
             }
             Value::Conjunction(conj) => {
                 self.compile_pattern_match(scope, &conj.0, value, on_fail)?;
@@ -74,8 +73,10 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
             Value::String(string) => {
-                let constant = self.allocate_const(self.string_const(string));
+                let constant = self.allocate_value("");
+                self.string_const(constant, string);
                 let is_match = self.trilogy_value_structural_eq(value, constant, "");
+                self.trilogy_value_destroy(constant);
                 self.pm_cont_if(scope, is_match, on_fail);
             }
             Value::Application(app) => {

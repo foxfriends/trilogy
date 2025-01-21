@@ -44,5 +44,6 @@ void trilogy_record_destroy(trilogy_record_value* record) {
             trilogy_tuple_destroy(&record->contents[i]);
         }
         free(record->contents);
+        free(record);
     }
 }

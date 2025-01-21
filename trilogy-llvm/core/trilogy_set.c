@@ -43,5 +43,6 @@ void trilogy_set_destroy(trilogy_set_value* set) {
             trilogy_value_destroy(&set->contents[i]);
         }
         free(set->contents);
+        free(set);
     }
 }
