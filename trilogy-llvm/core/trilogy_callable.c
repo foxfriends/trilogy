@@ -1,8 +1,10 @@
 #include "trilogy_callable.h"
 #include "internal.h"
 #include <stdlib.h>
+#include <assert.h>
 
 void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
+    assert(t->tag == TAG_UNDEFINED);
     t->tag = TAG_CALLABLE;
     t->payload = (unsigned long)payload;
 }

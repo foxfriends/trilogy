@@ -1,20 +1,20 @@
 use inkwell::{
     debug_info::{
-        AsDIScope, DIBasicType, DICompileUnit, DILexicalBlock, DIScope, DISubroutineType,
-        DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
+        AsDIScope, DIBasicType, DICompileUnit, DIScope, DISubroutineType, DWARFEmissionKind,
+        DWARFSourceLanguage, DebugInfoBuilder,
     },
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Module,
 };
 use source_span::Span;
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::codegen::Codegen;
 
 pub(crate) struct DebugInfo<'ctx> {
     pub(crate) builder: DebugInfoBuilder<'ctx>,
     pub(crate) unit: DICompileUnit<'ctx>,
-    pub(crate) debug_scopes: RefCell<Vec<DIScope<'ctx>>>,
+    pub(crate) debug_scopes: Rc<RefCell<Vec<DIScope<'ctx>>>>,
 }
 
 impl<'ctx> DebugInfo<'ctx> {
@@ -39,8 +39,13 @@ impl<'ctx> DebugInfo<'ctx> {
         DebugInfo {
             builder,
             unit,
-            debug_scopes: RefCell::new(vec![unit.as_debug_info_scope()]),
+            debug_scopes: Rc::new(RefCell::new(vec![unit.as_debug_info_scope()])),
         }
+    }
+
+    #[inline(always)]
+    pub(crate) fn validate(&self) {
+        assert_eq!(self.debug_scopes.borrow().len(), 1);
     }
 
     pub(crate) fn value_di_type(&self) -> DIBasicType<'ctx> {
@@ -58,11 +63,13 @@ impl<'ctx> DebugInfo<'ctx> {
         )
     }
 
-    pub(crate) fn push_debug_scope(&self, scope: DIScope<'ctx>) {
-        self.debug_scopes.borrow_mut().push(scope);
+    pub(crate) fn push_debug_scope(&self, scope: DIScope<'ctx>) -> DIScopeGuard<'ctx> {
+        let mut scopes = self.debug_scopes.borrow_mut();
+        scopes.push(scope);
+        DIScopeGuard(self.debug_scopes.clone(), scopes.len())
     }
 
-    pub(crate) fn push_block_scope(&self, span: Span) -> DILexicalBlock<'ctx> {
+    pub(crate) fn push_block_scope(&self, span: Span) -> DIScopeGuard<'ctx> {
         let scope = self.get_debug_scope().unwrap();
         let block = self.builder.create_lexical_block(
             scope,
@@ -70,14 +77,9 @@ impl<'ctx> DebugInfo<'ctx> {
             span.start().line as u32,
             span.start().column as u32,
         );
-        self.debug_scopes
-            .borrow_mut()
-            .push(block.as_debug_info_scope());
-        block
-    }
-
-    pub(crate) fn pop_debug_scope(&self) {
-        self.debug_scopes.borrow_mut().pop();
+        let mut scopes = self.debug_scopes.borrow_mut();
+        scopes.push(block.as_debug_info_scope());
+        DIScopeGuard(self.debug_scopes.clone(), scopes.len())
     }
 
     pub(crate) fn get_debug_scope(&self) -> Option<DIScope<'ctx>> {
@@ -95,5 +97,15 @@ impl Codegen<'_> {
             None,
         );
         self.builder.set_current_debug_location(location);
+    }
+}
+
+pub(crate) struct DIScopeGuard<'ctx>(Rc<RefCell<Vec<DIScope<'ctx>>>>, usize);
+
+impl Drop for DIScopeGuard<'_> {
+    fn drop(&mut self) {
+        let mut scopes = self.0.borrow_mut();
+        assert_eq!(scopes.len(), self.1);
+        scopes.pop();
     }
 }

@@ -6,6 +6,7 @@
 
 trilogy_record_value*
 trilogy_record_init(trilogy_value* tv, trilogy_record_value* rec) {
+    assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_RECORD;
     tv->payload = (unsigned long)rec;
     return rec;

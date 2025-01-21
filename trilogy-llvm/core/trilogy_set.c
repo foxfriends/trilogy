@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 trilogy_set_value* trilogy_set_init(trilogy_value* tv, trilogy_set_value* set) {
+    assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_SET;
     tv->payload = (unsigned long)set;
     return set;

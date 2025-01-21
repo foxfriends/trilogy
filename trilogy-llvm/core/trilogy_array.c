@@ -8,6 +8,7 @@
 
 trilogy_array_value*
 trilogy_array_init(trilogy_value* tv, trilogy_array_value* arr) {
+    assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_ARRAY;
     tv->payload = (unsigned long)arr;
     return arr;

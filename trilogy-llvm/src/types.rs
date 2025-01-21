@@ -26,68 +26,38 @@ pub(crate) const TAG_RECORD: u64 = 12;
 pub(crate) const TAG_CALLABLE: u64 = 13;
 
 pub(crate) trait TrilogyCallable<'ctx> {
-    fn build_procedure_call(
-        self,
-        codegen: &Codegen<'ctx>,
-        args: &[BasicMetadataValueEnum<'ctx>],
-        name: &str,
-    );
+    fn build_procedure_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]);
 
-    fn build_function_call(
-        self,
-        codegen: &Codegen<'ctx>,
-        args: &[BasicMetadataValueEnum<'ctx>],
-        name: &str,
-    );
+    fn build_function_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]);
 }
 
 impl<'ctx> TrilogyCallable<'ctx> for PointerValue<'ctx> {
-    fn build_procedure_call(
-        self,
-        codegen: &Codegen<'ctx>,
-        args: &[BasicMetadataValueEnum<'ctx>],
-        name: &str,
-    ) {
+    fn build_procedure_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
         let callable = codegen.trilogy_callable_untag(self, "");
         let function = codegen.trilogy_procedure_untag(callable, args.len() - 1, "");
         codegen
             .builder
-            .build_indirect_call(codegen.procedure_type(args.len() - 1), function, args, name)
+            .build_indirect_call(codegen.procedure_type(args.len() - 1), function, args, "")
             .unwrap();
     }
 
-    fn build_function_call(
-        self,
-        codegen: &Codegen<'ctx>,
-        args: &[BasicMetadataValueEnum<'ctx>],
-        name: &str,
-    ) {
+    fn build_function_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
         let callable = codegen.trilogy_callable_untag(self, "");
         let function = codegen.trilogy_function_untag(callable, "");
         codegen
             .builder
-            .build_indirect_call(codegen.procedure_type(1), function, args, name)
+            .build_indirect_call(codegen.procedure_type(1), function, args, "")
             .unwrap();
     }
 }
 
 impl<'ctx> TrilogyCallable<'ctx> for FunctionValue<'ctx> {
-    fn build_procedure_call(
-        self,
-        codegen: &Codegen<'ctx>,
-        args: &[BasicMetadataValueEnum<'ctx>],
-        name: &str,
-    ) {
-        codegen.builder.build_call(self, args, name).unwrap();
+    fn build_procedure_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
+        codegen.builder.build_call(self, args, "").unwrap();
     }
 
-    fn build_function_call(
-        self,
-        codegen: &Codegen<'ctx>,
-        args: &[BasicMetadataValueEnum<'ctx>],
-        name: &str,
-    ) {
-        codegen.builder.build_call(self, args, name).unwrap();
+    fn build_function_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
+        codegen.builder.build_call(self, args, "").unwrap();
     }
 }
 
@@ -145,32 +115,8 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
-    pub(crate) fn tag_gep(&self, pointer: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        self.builder
-            .build_struct_gep(self.value_type(), pointer, 0, "")
-            .unwrap()
-    }
-
-    pub(crate) fn set_tag(&self, pointer: PointerValue<'ctx>, tag: u64) {
-        self.builder
-            .build_store(self.tag_gep(pointer), self.tag_type().const_int(tag, false))
-            .unwrap();
-    }
-
     pub(crate) fn payload_type(&self) -> IntType<'ctx> {
         self.context.i64_type()
-    }
-
-    pub(crate) fn payload_gep(&self, pointer: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        self.builder
-            .build_struct_gep(self.value_type(), pointer, 1, "payload")
-            .unwrap()
-    }
-
-    pub(crate) fn set_payload(&self, pointer: PointerValue<'ctx>, value: IntValue<'ctx>) {
-        self.builder
-            .build_store(self.payload_gep(pointer), value)
-            .unwrap();
     }
 
     pub(crate) fn string_value_type(&self) -> StructType<'ctx> {
@@ -210,16 +156,6 @@ impl<'ctx> Codegen<'ctx> {
             self.tag_type().const_int(TAG_ATOM, false).into(),
             self.payload_type().const_int(*id, false).into(),
         ])
-    }
-
-    pub(crate) fn raw_atom_value(&self, atom: IntValue<'ctx>) -> PointerValue<'ctx> {
-        let pointer = self
-            .builder
-            .build_alloca(self.value_type(), "atom")
-            .unwrap();
-        self.set_tag(pointer, TAG_ATOM);
-        self.set_payload(pointer, atom);
-        pointer
     }
 
     pub(crate) fn char_const(&self, value: char) -> StructValue<'ctx> {
@@ -312,29 +248,22 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn call_procedure(
         &self,
+        target: PointerValue<'ctx>,
         procedure: impl TrilogyCallable<'ctx>,
         arguments: &[BasicMetadataValueEnum<'ctx>],
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let output = self.builder.build_alloca(self.value_type(), name).unwrap();
-        let mut args = vec![output.into()];
+    ) {
+        let mut args = vec![target.into()];
         args.extend_from_slice(arguments);
-        procedure.build_procedure_call(self, &args, "");
-        output
+        procedure.build_procedure_call(self, &args);
     }
 
     pub(crate) fn apply_function(
         &self,
+        target: PointerValue<'ctx>,
         function: impl TrilogyCallable<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let output = self
-            .builder
-            .build_alloca(self.value_type(), "retval")
-            .unwrap();
-        function.build_function_call(self, &[output.into(), argument], name);
-        output
+    ) {
+        function.build_function_call(self, &[target.into(), argument]);
     }
 
     pub(crate) fn branch_undefined(

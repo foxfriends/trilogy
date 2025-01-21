@@ -1,7 +1,9 @@
 #include "trilogy_number.h"
 #include "internal.h"
+#include <assert.h>
 
 void trilogy_number_init(trilogy_value* tv, long n) {
+    assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_NUMBER;
     tv->payload = (unsigned long)n;
 }

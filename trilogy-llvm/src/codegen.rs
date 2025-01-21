@@ -80,6 +80,14 @@ impl<'ctx> Codegen<'ctx> {
         codegen
     }
 
+    pub(crate) fn allocate_value(&self, name: &str) -> PointerValue<'ctx> {
+        let value = self.builder.build_alloca(self.value_type(), name).unwrap();
+        self.builder
+            .build_store(value, self.value_type().const_zero())
+            .unwrap();
+        value
+    }
+
     fn build_atom_registry(&self) {
         let atoms = self.atoms.borrow();
         let mut atoms_vec: Vec<_> = atoms.iter().collect();
@@ -140,14 +148,19 @@ impl<'ctx> Codegen<'ctx> {
         let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
 
         self.builder.position_at_end(basic_block);
+
         // Reference main
         let main_accessor = self
             .module
             .get_function(&format!("{entrymodule}::{entrypoint}"))
             .unwrap();
-        let main = self.call_procedure(main_accessor, &[], "");
+        let main = self.allocate_value("main");
+        self.call_procedure(main, main_accessor, &[]);
+
         // Call main
-        let output = self.call_procedure(main, &[], "");
+        let output = self.allocate_value("main.out");
+        self.call_procedure(output, main, &[]);
+
         // Convert return value to exit code
         let tag = self.get_tag(output);
         let is_unit = self
@@ -216,6 +229,9 @@ impl<'ctx> Codegen<'ctx> {
 
         let variable = builder
             .build_alloca(self.value_type(), &id.to_string())
+            .unwrap();
+        builder
+            .build_store(variable, self.value_type().const_zero())
             .unwrap();
         scope.variables.insert(id.id.clone(), variable);
 

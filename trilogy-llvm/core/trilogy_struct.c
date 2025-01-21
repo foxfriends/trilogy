@@ -2,9 +2,11 @@
 #include "internal.h"
 #include "trilogy_value.h"
 #include <stdlib.h>
+#include <assert.h>
 
 trilogy_struct_value*
 trilogy_struct_init(trilogy_value* tv, trilogy_struct_value* st) {
+    assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_STRUCT;
     tv->payload = (unsigned long)st;
     return st;

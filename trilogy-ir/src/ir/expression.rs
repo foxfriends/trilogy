@@ -172,9 +172,13 @@ impl Expression {
     pub(super) fn convert_block(converter: &mut Converter, ast: syntax::Block) -> Self {
         let span = ast.span();
         converter.push_scope();
-        let sequence = Self::convert_sequence(converter, &mut ast.statements.into_iter());
-        converter.pop_scope();
-        Self::sequence(span, sequence)
+        if ast.statements.is_empty() {
+            Self::unit(span)
+        } else {
+            let sequence = Self::convert_sequence(converter, &mut ast.statements.into_iter());
+            converter.pop_scope();
+            Self::sequence(span, sequence)
+        }
     }
 
     pub(super) fn convert_sequence(

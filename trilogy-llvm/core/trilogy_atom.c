@@ -2,10 +2,12 @@
 #include "internal.h"
 #include "runtime.h"
 #include "trilogy_value.h"
+#include <assert.h>
 
-trilogy_value trilogy_atom(unsigned long i) {
-    trilogy_value t = {.tag = TAG_ATOM, .payload = i};
-    return t;
+void trilogy_atom_init(trilogy_value* t, unsigned long i) {
+    assert(t->tag == TAG_UNDEFINED);
+    t->tag = TAG_ATOM;
+    t->payload = i;
 }
 
 unsigned long trilogy_atom_untag(trilogy_value* val) {

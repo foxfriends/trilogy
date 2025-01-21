@@ -113,6 +113,23 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    /// Initializes an atom value
+    pub(crate) fn trilogy_atom_init(&self, target: PointerValue<'ctx>, value: IntValue<'ctx>) {
+        let f = self.declare_internal(
+            "trilogy_atom_init",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), value.into()], "")
+            .unwrap();
+    }
+
     /// Untags an atom value.
     pub(crate) fn trilogy_atom_untag(
         &self,

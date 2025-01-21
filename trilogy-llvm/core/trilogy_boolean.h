@@ -4,6 +4,6 @@
 
 extern const trilogy_value trilogy_true;
 extern const trilogy_value trilogy_false;
-trilogy_value trilogy_boolean(bool b);
+void trilogy_boolean_init(trilogy_value* t, bool b);
 bool trilogy_boolean_untag(trilogy_value* val);
 bool trilogy_boolean_assume(trilogy_value* val);

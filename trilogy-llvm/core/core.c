@@ -33,11 +33,11 @@ void trace(trilogy_value* rt) {
 }
 
 void referential_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
-    *rv = trilogy_boolean(trilogy_value_referential_eq(lhs, rhs));
+    trilogy_boolean_init(rv, trilogy_value_referential_eq(lhs, rhs));
 }
 
 void structural_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
-    *rv = trilogy_boolean(trilogy_value_structural_eq(lhs, rhs));
+    trilogy_boolean_init(rv, trilogy_value_structural_eq(lhs, rhs));
 }
 
 void length(trilogy_value* rv, trilogy_value* val) {

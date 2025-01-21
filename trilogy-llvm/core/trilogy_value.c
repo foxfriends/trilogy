@@ -8,6 +8,7 @@
 #include "trilogy_string.h"
 #include "trilogy_struct.h"
 #include "trilogy_tuple.h"
+#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,8 @@ void trilogy_unit_untag(trilogy_value* val) {
 }
 
 void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
+    assert(into->tag == TAG_UNDEFINED);
+    assert(from->tag != TAG_UNDEFINED);
     switch (from->tag) {
     case TAG_UNIT:
     case TAG_BOOL:
@@ -54,7 +57,7 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
         trilogy_callable_clone_into(into, trilogy_callable_assume(from));
         break;
     default:
-        internal_panic("invalid trilogy value");
+        internal_panic("invalid trilogy value\n");
     }
 }
 
@@ -109,9 +112,13 @@ void trilogy_value_destroy(trilogy_value* value) {
     default:
         break;
     }
+    value->tag = TAG_UNDEFINED;
+    value->payload = 0;
 }
 
 bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
+    assert(lhs->tag != TAG_UNDEFINED);
+    assert(rhs->tag != TAG_UNDEFINED);
     if (lhs == rhs) return true;
     if (lhs->tag != rhs->tag) return false;
     switch (lhs->tag) {
@@ -173,6 +180,8 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
 }
 
 bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs) {
+    assert(lhs->tag != TAG_UNDEFINED);
+    assert(rhs->tag != TAG_UNDEFINED);
     if (lhs->tag != rhs->tag) return false;
     switch (lhs->tag) {
     case TAG_ARRAY:

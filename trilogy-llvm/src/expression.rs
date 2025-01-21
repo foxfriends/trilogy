@@ -1,30 +1,61 @@
 use crate::{codegen::Head, scope::Scope, Codegen};
-use inkwell::{
-    values::{BasicMetadataValueEnum, PointerValue},
-    AddressSpace,
-};
+use inkwell::values::PointerValue;
 use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, Value};
 use trilogy_parser::syntax;
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn compile_expression(
+    #[must_use = "allocated value must be destroyed"]
+    pub(crate) fn allocate_expression(
         &self,
         scope: &mut Scope<'ctx>,
         expression: &ir::Expression,
+        name: &str,
     ) -> Option<PointerValue<'ctx>> {
+        let target = self.allocate_value(name);
+        self.compile_expression(scope, target, expression)?;
+        Some(target)
+    }
+
+    #[must_use = "must acknowldge continuation of control flow"]
+    pub(crate) fn compile_expression(
+        &self,
+        scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
+        expression: &ir::Expression,
+    ) -> Option<()> {
         self.set_span(expression.span);
 
-        let output = match &expression.value {
-            Value::Unit => self.allocate_const(self.unit_const()),
-            Value::Boolean(b) => self.allocate_const(self.bool_const(*b)),
-            Value::Atom(atom) => self.allocate_const(self.atom_const(atom.to_owned())),
-            Value::Character(ch) => self.allocate_const(self.char_const(*ch)),
-            Value::String(s) => self.allocate_const(self.string_const(s)),
+        match &expression.value {
+            Value::Unit => {
+                self.builder.build_store(target, self.unit_const()).unwrap();
+            }
+            Value::Boolean(b) => {
+                self.builder
+                    .build_store(target, self.bool_const(*b))
+                    .unwrap();
+            }
+            Value::Atom(atom) => {
+                self.builder
+                    .build_store(target, self.atom_const(atom.to_owned()))
+                    .unwrap();
+            }
+            Value::Character(ch) => {
+                self.builder
+                    .build_store(target, self.char_const(*ch))
+                    .unwrap();
+            }
+            Value::String(s) => {
+                self.builder
+                    .build_store(target, self.string_const(s))
+                    .unwrap();
+            }
             Value::Number(num) => {
                 if num.value().im.is_zero() && num.value().re.is_integer() {
                     if let Some(int) = num.value().re.to_i64() {
-                        self.allocate_const(self.int_const(int))
+                        self.builder
+                            .build_store(target, self.int_const(int))
+                            .unwrap();
                     } else {
                         todo!("Support large integers")
                     }
@@ -32,28 +63,35 @@ impl<'ctx> Codegen<'ctx> {
                     todo!("Support non-integers")
                 }
             }
-            Value::Bits(b) => self.allocate_const(self.bits_const(b)),
-            Value::Array(arr) => self.compile_array(scope, arr)?,
+            Value::Bits(b) => {
+                self.builder
+                    .build_store(target, self.bits_const(b))
+                    .unwrap();
+            }
+            Value::Array(arr) => self.compile_array(scope, target, arr)?,
             Value::Set(..) => todo!(),
             Value::Record(..) => todo!(),
             Value::ArrayComprehension(..) => todo!(),
             Value::SetComprehension(..) => todo!(),
             Value::RecordComprehension(..) => todo!(),
             Value::Sequence(exprs) => {
-                self.di.push_block_scope(expression.span);
-                let mut value = self.allocate_const(self.unit_const());
+                let guard = self.di.push_block_scope(expression.span);
+                let mut exprs = exprs.into_iter();
+                self.compile_expression(scope, target, exprs.next().unwrap())?;
                 for expr in exprs {
-                    value = self.compile_expression(scope, expr)?;
+                    self.trilogy_value_destroy(target);
+                    self.compile_expression(scope, target, expr)?;
                 }
-                self.di.pop_debug_scope();
-                value
+                std::mem::drop(guard);
             }
-            Value::Application(app) => self.compile_application(scope, app)?,
-            Value::Builtin(val) => self.reference_builtin(scope, *val),
-            Value::Reference(val) => self.compile_reference(scope, val),
-            Value::ModuleAccess(access) => self.compile_module_access(scope, &access.0, &access.1),
-            Value::IfElse(if_else) => self.compile_if_else(scope, if_else)?,
-            Value::Assignment(assign) => self.compile_assignment(scope, assign)?,
+            Value::Application(app) => self.compile_application(scope, target, app)?,
+            Value::Builtin(val) => self.reference_builtin(scope, target, *val),
+            Value::Reference(val) => self.compile_reference(scope, target, val),
+            Value::ModuleAccess(access) => {
+                self.compile_module_access(scope, target, &access.0, &access.1)
+            }
+            Value::IfElse(if_else) => self.compile_if_else(scope, target, if_else)?,
+            Value::Assignment(assign) => self.compile_assignment(scope, target, assign)?,
             Value::While(..) => todo!(),
             Value::For(..) => todo!(),
             Value::Let(..) => todo!(),
@@ -71,45 +109,56 @@ impl<'ctx> Codegen<'ctx> {
             Value::Wildcard => panic!("wildcard not permitted in expression context"),
             Value::Query(..) => panic!("query not permitted in expression context"),
         };
-        Some(output)
+
+        Some(())
     }
 
     fn compile_array(
         &self,
         scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
         pack: &ir::Pack,
-    ) -> Option<PointerValue<'ctx>> {
-        let array = self.builder.build_alloca(self.value_type(), "").unwrap();
-        let array_value = self.trilogy_array_init_cap(array, pack.values.len(), "");
+    ) -> Option<()> {
+        let array_value = self.trilogy_array_init_cap(target, pack.values.len(), "arr");
+        let temporary = self.allocate_value("arr.el");
         for element in &pack.values {
-            let value = self.compile_expression(scope, &element.expression)?;
+            self.compile_expression(scope, temporary, &element.expression)?;
             if element.is_spread {
-                let value = self.trilogy_array_untag(value, "");
+                let value = self.trilogy_array_untag(temporary, "");
                 self.trilogy_array_append(array_value, value);
+                self.trilogy_value_destroy(temporary);
             } else {
-                self.trilogy_array_push(array_value, value);
+                self.trilogy_array_push(array_value, temporary);
+                self.trilogy_value_destroy(temporary);
             }
         }
-        Some(array)
+        Some(())
     }
 
-    fn reference_builtin(&self, _scope: &mut Scope<'ctx>, builtin: Builtin) -> PointerValue<'ctx> {
+    fn reference_builtin(
+        &self,
+        _scope: &mut Scope<'ctx>,
+        _target: PointerValue<'ctx>,
+        builtin: Builtin,
+    ) {
         todo!("reference {:?}", builtin);
     }
 
     fn compile_application(
         &self,
         scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
         application: &ir::Application,
-    ) -> Option<PointerValue<'ctx>> {
+    ) -> Option<()> {
         match &application.function.value {
             Value::Builtin(builtin) if builtin.is_unary() => {
-                return self.compile_apply_builtin(scope, *builtin, &application.argument)
+                return self.compile_apply_builtin(scope, target, *builtin, &application.argument)
             }
             Value::Application(app) => match &app.function.value {
                 Value::Builtin(builtin) if builtin.is_binary() => {
                     return self.compile_apply_binary(
                         scope,
+                        target,
                         *builtin,
                         &app.argument,
                         &application.argument,
@@ -119,7 +168,7 @@ impl<'ctx> Codegen<'ctx> {
             },
             _ => {}
         };
-        let function = self.compile_expression(scope, &application.function)?;
+        let function = self.allocate_expression(scope, &application.function, "")?;
         match &application.argument.value {
             // Procedure application
             Value::Pack(pack) => {
@@ -128,27 +177,39 @@ impl<'ctx> Codegen<'ctx> {
                     .iter()
                     .map(|val| {
                         assert!(!val.is_spread);
-                        Some(BasicMetadataValueEnum::from(
-                            self.compile_expression(scope, &val.expression)?,
-                        ))
+                        self.allocate_expression(scope, &val.expression, "")
                     })
                     .collect::<Option<Vec<_>>>()?;
-                Some(self.call_procedure(function, &arguments, ""))
+                self.call_procedure(
+                    target,
+                    function,
+                    &arguments
+                        .iter()
+                        .map(|arg| (*arg).into())
+                        .collect::<Vec<_>>(),
+                );
+                for argument in arguments {
+                    self.trilogy_value_destroy(argument);
+                }
             }
             // Function application
             _ => {
-                let argument = self.compile_expression(scope, &application.argument)?;
-                Some(self.apply_function(function, argument.into(), ""))
+                let argument = self.allocate_expression(scope, &application.argument, "")?;
+                self.apply_function(target, function, argument.into());
+                self.trilogy_value_destroy(argument);
             }
         }
+        self.trilogy_value_destroy(function);
+        Some(())
     }
 
     fn compile_module_access(
         &self,
         _scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
         module_ref: &ir::Expression,
         ident: &syntax::Identifier,
-    ) -> PointerValue<'ctx> {
+    ) {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(name) = &module_ref.value {
             if let Some(Head::Module(name)) = self.globals.get(&name.id) {
@@ -156,7 +217,8 @@ impl<'ctx> Codegen<'ctx> {
                     .module
                     .get_function(&format!("{}::{}", name, ident.as_ref()))
                     .unwrap();
-                return self.call_procedure(declared, &[], "");
+                self.call_procedure(target, declared, &[]);
+                return;
             }
         }
 
@@ -166,36 +228,33 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_apply_builtin(
         &self,
         scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
         builtin: Builtin,
         expression: &ir::Expression,
-    ) -> Option<PointerValue<'ctx>> {
+    ) -> Option<()> {
         match builtin {
             Builtin::Return => {
-                let argument = self.compile_expression(scope, expression)?;
-                let val = self
-                    .builder
-                    .build_load(self.value_type(), argument, "retval")
-                    .unwrap()
-                    .into_struct_value();
-                self.builder.build_store(scope.sret(), val).unwrap();
+                self.compile_expression(scope, scope.sret(), expression)?;
                 self.builder
                     .build_unconditional_branch(scope.cleanup.unwrap())
                     .unwrap();
                 None
             }
             Builtin::Exit => {
-                let argument = self.compile_expression(scope, expression)?;
-                _ = self.exit(argument);
+                self.compile_expression(scope, target, expression)?;
+                _ = self.exit(target);
                 None
             }
             Builtin::Typeof => {
-                let argument = self.compile_expression(scope, expression)?;
+                let argument = self.allocate_expression(scope, expression, "")?;
                 let tag = self.get_tag(argument);
                 let raw_atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
-                Some(self.raw_atom_value(raw_atom))
+                self.trilogy_atom_init(target, raw_atom);
+                self.trilogy_value_destroy(argument);
+                Some(())
             }
             _ => todo!(),
         }
@@ -204,20 +263,27 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_apply_binary(
         &self,
         scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
         builtin: Builtin,
         lhs: &ir::Expression,
         rhs: &ir::Expression,
-    ) -> Option<PointerValue<'ctx>> {
+    ) -> Option<()> {
         match builtin {
             Builtin::StructuralEquality => {
-                let lhs = self.compile_expression(scope, lhs);
-                let rhs = self.compile_expression(scope, rhs);
-                Some(self.structural_eq(lhs?, rhs?, "eq"))
+                let lhs = self.allocate_expression(scope, lhs, "seq.lhs")?;
+                let rhs = self.allocate_expression(scope, rhs, "seq.rhs")?;
+                self.structural_eq(target, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(())
             }
             Builtin::ReferenceEquality => {
-                let lhs = self.compile_expression(scope, lhs);
-                let rhs = self.compile_expression(scope, rhs);
-                Some(self.referential_eq(lhs?, rhs?, "eq"))
+                let lhs = self.allocate_expression(scope, lhs, "req.lhs")?;
+                let rhs = self.allocate_expression(scope, rhs, "req.rhs")?;
+                self.referential_eq(target, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(())
             }
             _ => todo!(),
         }
@@ -226,14 +292,16 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_assignment(
         &self,
         scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
         assign: &ir::Assignment,
-    ) -> Option<PointerValue<'ctx>> {
+    ) -> Option<()> {
         match &assign.lhs.value {
             Value::Reference(variable) => {
-                let value = self.compile_expression(scope, &assign.rhs)?;
+                self.compile_expression(scope, target, &assign.rhs)?;
                 let pointer = *scope.variables.get(&variable.id).unwrap();
-                self.builder.build_store(pointer, value).unwrap();
-                Some(pointer)
+                self.trilogy_value_destroy(pointer);
+                self.builder.build_store(pointer, target).unwrap();
+                Some(())
             }
             Value::Application(..) => todo!(),
             _ => panic!("invalid lvalue in assignment"),
@@ -243,10 +311,11 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_reference(
         &self,
         scope: &Scope<'ctx>,
+        target: PointerValue<'ctx>,
         identifier: &ir::Identifier,
-    ) -> PointerValue<'ctx> {
+    ) {
         if let Some(variable) = scope.variables.get(&identifier.id) {
-            *variable
+            self.trilogy_value_clone_into(target, *variable);
         } else {
             let name = identifier.id.name().unwrap();
             match self
@@ -258,7 +327,7 @@ impl<'ctx> Codegen<'ctx> {
                     let global_name =
                         format!("{}::{name}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();
-                    self.call_procedure(function, &[], name)
+                    self.call_procedure(target, function, &[])
                 }
                 _ => todo!(),
             }
@@ -268,43 +337,32 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_if_else(
         &self,
         scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
         if_else: &ir::IfElse,
-    ) -> Option<PointerValue<'ctx>> {
-        let condition = self.compile_expression(scope, &if_else.condition)?;
-        let if_true = self.context.append_basic_block(scope.function, "if_true");
-        let if_false = self.context.append_basic_block(scope.function, "if_false");
-        let if_cont = self.context.append_basic_block(scope.function, "if_cont");
-        let condition = self.trilogy_boolean_untag(condition, "");
+    ) -> Option<()> {
+        let condition = self.allocate_expression(scope, &if_else.condition, "if.cond")?;
+        let if_true = self.context.append_basic_block(scope.function, "if.true");
+        let if_false = self.context.append_basic_block(scope.function, "if.false");
+        let if_cont = self.context.append_basic_block(scope.function, "if.cont");
+        let cond_bool = self.trilogy_boolean_untag(condition, "");
+        self.trilogy_value_destroy(condition);
         self.builder
-            .build_conditional_branch(condition, if_true, if_false)
+            .build_conditional_branch(cond_bool, if_true, if_false)
             .unwrap();
 
         self.builder.position_at_end(if_true);
-        let when_true = self.compile_expression(scope, &if_else.when_true);
-        let if_true = self.builder.get_insert_block().unwrap();
-        if !if_true.get_last_instruction().unwrap().is_terminator() {
+        let when_true = self.compile_expression(scope, target, &if_else.when_true);
+        if when_true.is_some() {
             self.builder.build_unconditional_branch(if_cont).unwrap();
         }
 
         self.builder.position_at_end(if_false);
-        let when_false = self.compile_expression(scope, &if_else.when_false);
-        let if_false = self.builder.get_insert_block().unwrap();
-        if !if_false.get_last_instruction().unwrap().is_terminator() {
+        let when_false = self.compile_expression(scope, target, &if_else.when_false);
+        if when_false.is_some() {
             self.builder.build_unconditional_branch(if_cont).unwrap();
         }
 
         self.builder.position_at_end(if_cont);
-        match (when_true, when_false) {
-            (None, None) => None,
-            (Some(when_true), Some(when_false)) => {
-                let phi = self
-                    .builder
-                    .build_phi(self.context.ptr_type(AddressSpace::default()), "if_eval")
-                    .unwrap();
-                phi.add_incoming(&[(&when_true, if_true), (&when_false, if_false)]);
-                Some(phi.as_basic_value().into_pointer_value())
-            }
-            (Some(v), None) | (None, Some(v)) => Some(v),
-        }
+        when_false.or(when_true)
     }
 }

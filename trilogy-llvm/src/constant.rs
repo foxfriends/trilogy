@@ -53,7 +53,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.procedure_di_type(0),
             linkage == Linkage::External,
             true,
-            0,
+            span.start().line as u32,
             LLVMDIFlagPublic,
             false,
         );
@@ -74,8 +74,11 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         let mut scope = Scope::begin(function);
-        self.di
+        self.di.validate();
+        let guard = self
+            .di
             .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
+        self.set_span(definition.value.span);
         let basic_block = self.context.append_basic_block(function, "entry");
         let initialize = self.context.append_basic_block(function, "initialize");
         let initialized = self.context.append_basic_block(function, "initialized");
@@ -84,27 +87,19 @@ impl<'ctx> Codegen<'ctx> {
         self.branch_undefined(global.as_pointer_value(), initialize, initialized);
 
         self.builder.position_at_end(initialize);
-        let computed = self
-            .compile_expression(&mut scope, &definition.value)
-            .unwrap_or_else(|| self.allocate_const(self.unit_const()));
-        let computed = self
-            .builder
-            .build_load(self.value_type(), computed, "initial_value")
-            .unwrap();
-        self.builder
-            .build_store(global.as_pointer_value(), computed)
-            .unwrap();
-        self.builder
-            .build_unconditional_branch(initialized)
-            .unwrap();
+        if self
+            .compile_expression(&mut scope, global.as_pointer_value(), &definition.value)
+            .is_some()
+        {
+            self.builder
+                .build_unconditional_branch(initialized)
+                .unwrap();
+        }
 
         self.builder.position_at_end(initialized);
-        let value = self
-            .builder
-            .build_load(self.value_type(), global.as_pointer_value(), "")
-            .unwrap();
-        self.builder.build_store(scope.sret(), value).unwrap();
+        self.trilogy_value_clone_into(scope.sret(), global.as_pointer_value());
         self.builder.build_return(None).unwrap();
-        self.di.pop_debug_scope();
+        std::mem::drop(guard);
+        self.di.validate();
     }
 }

@@ -22,23 +22,24 @@ impl<'ctx> Codegen<'ctx> {
         span: Span,
     ) -> FunctionValue<'ctx> {
         let long_name = format!("{}::{}", self.location, name);
+        let linkage_name = if name == "main" { MAIN_NAME } else { name };
 
         let procedure_scope = self.di.builder.create_function(
-            self.di.unit.as_debug_info_scope(),
+            self.di.unit.get_file().as_debug_info_scope(),
             name,
-            None,
+            Some(linkage_name),
             self.di.unit.get_file(),
             span.start().line as u32,
             self.di.procedure_di_type(arity),
             linkage == Linkage::External,
             !is_extern,
-            0,
+            span.start().line as u32,
             LLVMDIFlagPublic,
             false,
         );
 
         let function = self.module.add_function(
-            if name == "main" { MAIN_NAME } else { name },
+            linkage_name,
             self.procedure_type(arity),
             Some(if is_extern {
                 Linkage::External
@@ -110,16 +111,18 @@ impl<'ctx> Codegen<'ctx> {
             .module
             .get_function(if name == "main" { MAIN_NAME } else { &name })
             .unwrap();
+        let guard = self
+            .di
+            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
 
         let entry = self.context.append_basic_block(function, "entry");
         let no_match = self.context.append_basic_block(function, "no_match");
         let cleanup = self.context.append_basic_block(function, "cleanup");
 
         let mut scope = Scope::begin(function);
-
-        self.di
-            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
         scope.set_cleanup(cleanup);
+
+        self.set_span(procedure.head_span);
 
         'body: {
             self.builder.position_at_end(entry);
@@ -139,15 +142,8 @@ impl<'ctx> Codegen<'ctx> {
             // There is no implicit return of the final value of a procedure. That value is lost,
             // and unit is returned instead. It is most likely that there is a return in the body,
             // and this final return will be dead code.
-            let _value = self.compile_expression(&mut scope, &procedure.body);
-            if !self
-                .builder
-                .get_insert_block()
-                .unwrap()
-                .get_last_instruction()
-                .unwrap()
-                .is_terminator()
-            {
+            if let Some(value) = self.allocate_expression(&mut scope, &procedure.body, "") {
+                self.trilogy_value_destroy(value);
                 self.builder
                     .build_store(scope.sret(), self.unit_const())
                     .unwrap();
@@ -166,6 +162,7 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_value_destroy(pointer);
         }
         self.builder.build_return(None).unwrap();
-        self.di.pop_debug_scope();
+        std::mem::drop(guard);
+        self.di.validate();
     }
 }

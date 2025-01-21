@@ -7,7 +7,7 @@ use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, Value};
 
 impl<'ctx> Codegen<'ctx> {
-    #[must_use]
+    #[must_use = "must acknowledge continuation of control flow"]
     pub(crate) fn compile_pattern_match(
         &self,
         scope: &mut Scope<'ctx>,
@@ -129,21 +129,22 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<()> {
         match builtin {
             Builtin::Typeof => {
-                let expected_type = self.compile_expression(scope, expression)?;
-
+                let expected_type = self.allocate_expression(scope, expression, "")?;
                 let tag = self.get_tag(value);
                 let atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
-                let atom = self.raw_atom_value(atom);
-
-                let cmp = self.trilogy_value_structural_eq(expected_type, atom, "");
+                let type_ptr = self.builder.build_alloca(self.value_type(), "").unwrap();
+                self.trilogy_atom_init(type_ptr, atom);
+                let cmp = self.trilogy_value_structural_eq(expected_type, type_ptr, "");
+                // NOTE: atom does not require destruction, so type_ptr is ok
                 self.pm_cont_if(scope, cmp, on_fail);
             }
             Builtin::Pin => {
-                let expected_value = self.compile_expression(scope, expression)?;
-                let cmp = self.trilogy_value_structural_eq(expected_value, value, "");
+                let pinned = self.allocate_expression(scope, expression, "pin")?;
+                let cmp = self.trilogy_value_structural_eq(value, pinned, "");
+                self.trilogy_value_destroy(pinned);
                 self.pm_cont_if(scope, cmp, on_fail);
             }
             _ => todo!(),

@@ -16,21 +16,21 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn structural_eq(
         &self,
+        target: PointerValue<'ctx>,
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
+    ) {
         let f = self.declare_core("structural_eq", 2);
-        self.call_procedure(f, &[lhs.into(), rhs.into()], name)
+        self.call_procedure(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn referential_eq(
         &self,
+        target: PointerValue<'ctx>,
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
+    ) {
         let f = self.declare_core("referential_eq", 2);
-        self.call_procedure(f, &[lhs.into(), rhs.into()], name)
+        self.call_procedure(target, f, &[lhs.into(), rhs.into()]);
     }
 }

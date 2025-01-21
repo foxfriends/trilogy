@@ -1,10 +1,12 @@
 #include "trilogy_string.h"
 #include "internal.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
 trilogy_string_value*
 trilogy_string_init(trilogy_value* tv, trilogy_string_value* str) {
+    assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_STRING;
     tv->payload = (unsigned long)str;
     return str;

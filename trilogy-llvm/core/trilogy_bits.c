@@ -2,9 +2,11 @@
 #include "internal.h"
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 trilogy_bits_value*
 trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
+    assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_BITS;
     tv->payload = (unsigned long)bits;
     return bits;
