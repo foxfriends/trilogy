@@ -1,8 +1,7 @@
 #include "trilogy_callable.h"
-#include "trilogy_array.h"
 #include "internal.h"
+#include "trilogy_array.h"
 #include <assert.h>
-#include <stdlib.h>
 
 #define NO_CLOSURE 0
 
@@ -25,7 +24,9 @@ void trilogy_callable_clone_into(
     trilogy_callable_init(t, callable);
 }
 
-void trilogy_callable_init_func(trilogy_value* t, trilogy_array_value* c, void* p) {
+void trilogy_callable_init_func(
+    trilogy_value* t, trilogy_array_value* c, void* p
+) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     callable->tag = CALLABLE_FUNCTION;
