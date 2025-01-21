@@ -1,7 +1,7 @@
 use crate::{codegen::Head, scope::Scope, Codegen};
 use inkwell::values::PointerValue;
 use num::{ToPrimitive, Zero};
-use trilogy_ir::ir::{self, Builtin, Value};
+use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_parser::syntax;
 
 impl<'ctx> Codegen<'ctx> {
@@ -92,7 +92,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Assignment(assign) => self.compile_assignment(scope, target, assign)?,
             Value::While(..) => todo!(),
             Value::For(..) => todo!(),
-            Value::Let(..) => todo!(),
+            Value::Let(expr) => self.compile_let(scope, target, expr)?,
             Value::Match(..) => todo!(),
             Value::Assert(..) => todo!(),
             Value::Fn(..) => todo!(),
@@ -142,6 +142,32 @@ impl<'ctx> Codegen<'ctx> {
         builtin: Builtin,
     ) {
         todo!("reference {:?}", builtin);
+    }
+
+    fn compile_let(
+        &self,
+        scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
+        decl: &ir::Let,
+    ) -> Option<()> {
+        match &decl.query.value {
+            QueryValue::Direct(unif) => {
+                let on_fail = self.context.append_basic_block(scope.function, "");
+                let cont = self.builder.get_insert_block().unwrap();
+                self.builder.position_at_end(on_fail);
+                _ = self.internal_panic(
+                    self.embed_c_string("unexpected end of execution (no match in declaration)\n"),
+                );
+                self.builder.position_at_end(cont);
+
+                let value = self.allocate_expression(scope, &unif.expression, "")?;
+                self.compile_pattern_match(scope, &unif.pattern, value, on_fail)?;
+                self.trilogy_value_destroy(value);
+                self.compile_expression(scope, target, &decl.body)?;
+            }
+            _ => todo!("non-deterministic branching "),
+        }
+        Some(())
     }
 
     fn compile_application(
