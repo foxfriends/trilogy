@@ -76,7 +76,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::RecordComprehension(..) => todo!(),
             Value::Sequence(exprs) => {
                 let guard = self.di.push_block_scope(expression.span);
-                let mut exprs = exprs.into_iter();
+                let mut exprs = exprs.iter();
                 self.compile_expression(scope, target, exprs.next().unwrap())?;
                 for expr in exprs {
                     self.trilogy_value_destroy(target);
