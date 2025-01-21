@@ -44,17 +44,16 @@ iterating on the design.
     - [x] Parsing
     - [x] Syntactic analysis
     - [x] Name resolution
-    - [x] Bytecode generation
-    - [x] Virtual machine
-    - [x] Garbage collector
-    - [ ] Testing (In progress)
-    - [ ] Standard library (In progress)
+    - [x] ~~Bytecode generation~~
+    - [x] ~~Virtual machine~~
+    - [x] ~~Garbage collector~~
+    - [ ] LLVM code generation (in progress)
+    - [ ] Testing
+    - [ ] Standard library
 - [ ] Implement the ecosystem
     - [ ] Formatter
     - [ ] Linter
     - [ ] LSP
     - [ ] DAP
-- [ ] Future experimental features:
-    - [ ] Bytecode optimization
+- [ ] Future experimental ideas:
     - [ ] Try out IC based VM (HVM)
-    - [ ] Add another level between current IR and code generation
