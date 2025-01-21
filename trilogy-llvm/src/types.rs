@@ -3,9 +3,7 @@ use bitvec::field::BitField;
 use inkwell::{
     basic_block::BasicBlock,
     types::{FunctionType, IntType, StructType},
-    values::{
-        BasicMetadataValueEnum, BasicValue, FunctionValue, IntValue, PointerValue, StructValue,
-    },
+    values::{BasicValue, IntValue, PointerValue, StructValue},
     AddressSpace, IntPredicate,
 };
 use trilogy_ir::ir::Bits;
@@ -24,42 +22,6 @@ pub(crate) const TAG_ARRAY: u64 = 10;
 pub(crate) const TAG_SET: u64 = 11;
 pub(crate) const TAG_RECORD: u64 = 12;
 pub(crate) const TAG_CALLABLE: u64 = 13;
-
-pub(crate) trait TrilogyCallable<'ctx> {
-    fn build_procedure_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]);
-
-    fn build_function_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]);
-}
-
-impl<'ctx> TrilogyCallable<'ctx> for PointerValue<'ctx> {
-    fn build_procedure_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
-        let callable = codegen.trilogy_callable_untag(self, "");
-        let function = codegen.trilogy_procedure_untag(callable, args.len() - 1, "");
-        codegen
-            .builder
-            .build_indirect_call(codegen.procedure_type(args.len() - 1), function, args, "")
-            .unwrap();
-    }
-
-    fn build_function_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
-        let callable = codegen.trilogy_callable_untag(self, "");
-        let function = codegen.trilogy_function_untag(callable, "");
-        codegen
-            .builder
-            .build_indirect_call(codegen.procedure_type(1), function, args, "")
-            .unwrap();
-    }
-}
-
-impl<'ctx> TrilogyCallable<'ctx> for FunctionValue<'ctx> {
-    fn build_procedure_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
-        codegen.builder.build_call(self, args, "").unwrap();
-    }
-
-    fn build_function_call(self, codegen: &Codegen<'ctx>, args: &[BasicMetadataValueEnum<'ctx>]) {
-        codegen.builder.build_call(self, args, "").unwrap();
-    }
-}
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn allocate_const<V: BasicValue<'ctx>>(&self, value: V) -> PointerValue<'ctx> {
@@ -123,6 +85,18 @@ impl<'ctx> Codegen<'ctx> {
         self.context.struct_type(
             &[
                 self.usize_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+            ],
+            false,
+        )
+    }
+
+    pub(crate) fn callable_value_type(&self) -> StructType<'ctx> {
+        self.context.struct_type(
+            &[
+                self.tag_type().into(),
+                self.context.i32_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
             ],
             false,
@@ -221,36 +195,17 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    pub(crate) fn procedure_type(&self, arity: usize) -> FunctionType<'ctx> {
+    pub(crate) fn procedure_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
+        let extras = if has_closure { 2 } else { 1 };
         self.context.void_type().fn_type(
-            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + 1],
+            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + extras],
             false,
         )
     }
 
     #[expect(dead_code)]
-    pub(crate) fn function_type(&self) -> FunctionType<'ctx> {
-        self.procedure_type(1)
-    }
-
-    pub(crate) fn call_procedure(
-        &self,
-        target: PointerValue<'ctx>,
-        procedure: impl TrilogyCallable<'ctx>,
-        arguments: &[BasicMetadataValueEnum<'ctx>],
-    ) {
-        let mut args = vec![target.into()];
-        args.extend_from_slice(arguments);
-        procedure.build_procedure_call(self, &args);
-    }
-
-    pub(crate) fn apply_function(
-        &self,
-        target: PointerValue<'ctx>,
-        function: impl TrilogyCallable<'ctx>,
-        argument: BasicMetadataValueEnum<'ctx>,
-    ) {
-        function.build_function_call(self, &[target.into(), argument]);
+    pub(crate) fn function_type(&self, has_closure: bool) -> FunctionType<'ctx> {
+        self.procedure_type(1, has_closure)
     }
 
     pub(crate) fn branch_undefined(

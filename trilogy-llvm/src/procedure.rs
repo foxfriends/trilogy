@@ -40,7 +40,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let function = self.module.add_function(
             linkage_name,
-            self.procedure_type(arity),
+            self.procedure_type(arity, false),
             Some(if is_extern {
                 Linkage::External
             } else {
@@ -62,9 +62,9 @@ impl<'ctx> Codegen<'ctx> {
             function.get_nth_param(0).unwrap().set_name("sretptr");
         }
 
-        let accessor = self
-            .module
-            .add_function(&long_name, self.procedure_type(0), Some(linkage));
+        let accessor =
+            self.module
+                .add_function(&long_name, self.procedure_type(0, false), Some(linkage));
         accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
@@ -95,8 +95,11 @@ impl<'ctx> Codegen<'ctx> {
         if let Some(function) = self.module.get_function(&long_name) {
             return function;
         }
-        self.module
-            .add_function(&long_name, self.procedure_type(0), Some(Linkage::External))
+        self.module.add_function(
+            &long_name,
+            self.procedure_type(0, false),
+            Some(Linkage::External),
+        )
     }
 
     pub(crate) fn compile_procedure(&self, definition: &ir::ProcedureDefinition) {

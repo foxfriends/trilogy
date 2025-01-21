@@ -207,6 +207,7 @@ impl<'ctx> Codegen<'ctx> {
                     })
                     .collect::<Option<Vec<_>>>()?;
                 self.call_procedure(
+                    scope,
                     target,
                     function,
                     &arguments
@@ -221,7 +222,7 @@ impl<'ctx> Codegen<'ctx> {
             // Function application
             _ => {
                 let argument = self.allocate_expression(scope, &application.argument, "")?;
-                self.apply_function(target, function, argument.into());
+                self.apply_function(scope, target, function, argument.into());
                 self.trilogy_value_destroy(argument);
             }
         }
@@ -243,7 +244,7 @@ impl<'ctx> Codegen<'ctx> {
                     .module
                     .get_function(&format!("{}::{}", name, ident.as_ref()))
                     .unwrap();
-                self.call_procedure(target, declared, &[]);
+                self.call_procedure_direct(target, declared, &[]);
                 return;
             }
         }
@@ -353,7 +354,7 @@ impl<'ctx> Codegen<'ctx> {
                     let global_name =
                         format!("{}::{name}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();
-                    self.call_procedure(target, function, &[])
+                    self.call_procedure_direct(target, function, &[])
                 }
                 _ => todo!(),
             }

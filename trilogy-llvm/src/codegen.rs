@@ -143,6 +143,7 @@ impl<'ctx> Codegen<'ctx> {
         let main_wrapper =
             self.module
                 .add_function("main", self.context.i32_type().fn_type(&[], false), None);
+        let scope = Scope::begin(main_wrapper);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
         let exit_unit = self.context.append_basic_block(main_wrapper, "exit_unit");
         let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
@@ -155,11 +156,11 @@ impl<'ctx> Codegen<'ctx> {
             .get_function(&format!("{entrymodule}::{entrypoint}"))
             .unwrap();
         let main = self.allocate_value("main");
-        self.call_procedure(main, main_accessor, &[]);
+        self.call_procedure_direct(main, main_accessor, &[]);
 
         // Call main
         let output = self.allocate_value("main.out");
-        self.call_procedure(output, main, &[]);
+        self.call_procedure(&scope, output, main, &[]);
 
         // Convert return value to exit code
         let tag = self.get_tag(output);
@@ -193,7 +194,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn add_function(&self, name: &str, exported: bool) -> FunctionValue<'ctx> {
         let procedure = self.module.add_function(
             name,
-            self.procedure_type(1),
+            self.procedure_type(1, false),
             if exported {
                 Some(Linkage::External)
             } else {

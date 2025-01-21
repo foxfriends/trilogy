@@ -155,9 +155,15 @@ typedef struct trilogy_callable_value {
      */
     unsigned int arity;
     /**
-     * Context captured from the closure of this callable.
+     * Context captured from the closure of this callable; it is stored in a
+     * standard Trilogy array as a conveniently ref-counted array type.
+     *
+     * The identity and population of each field is a static analysis concern.
+     *
+     * NOTE: there is the inherent risk of circular references here,
+     * which should likely be solved weak references of some sort...
      */
-    void* closure;
+    trilogy_array_value* closure;
     /**
      * Pointer to the function itself.
      */

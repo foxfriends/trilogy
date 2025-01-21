@@ -10,8 +10,11 @@ impl<'ctx> Codegen<'ctx> {
         if let Some(func) = self.module.get_function(name) {
             return func;
         }
-        self.module
-            .add_function(name, self.procedure_type(arity), Some(Linkage::External))
+        self.module.add_function(
+            name,
+            self.procedure_type(arity, false),
+            Some(Linkage::External),
+        )
     }
 
     pub(crate) fn structural_eq(
@@ -21,7 +24,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("structural_eq", 2);
-        self.call_procedure(target, f, &[lhs.into(), rhs.into()]);
+        self.call_procedure_direct(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn referential_eq(
@@ -31,6 +34,6 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("referential_eq", 2);
-        self.call_procedure(target, f, &[lhs.into(), rhs.into()]);
+        self.call_procedure_direct(target, f, &[lhs.into(), rhs.into()]);
     }
 }

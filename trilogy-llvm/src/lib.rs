@@ -3,6 +3,7 @@ use inkwell::context::Context;
 use std::collections::HashMap;
 use trilogy_ir::ir;
 
+mod call;
 mod codegen;
 mod constant;
 mod core;

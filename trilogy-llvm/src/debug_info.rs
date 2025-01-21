@@ -55,6 +55,7 @@ impl<'ctx> DebugInfo<'ctx> {
     }
 
     pub(crate) fn procedure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
+        // TODO: does this need a different type when it's a closure?
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             Some(self.value_di_type().as_type()),

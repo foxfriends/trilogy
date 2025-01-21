@@ -1,7 +1,10 @@
 #include "trilogy_callable.h"
+#include "trilogy_array.h"
 #include "internal.h"
 #include <assert.h>
 #include <stdlib.h>
+
+#define NO_CLOSURE 0
 
 void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
     assert(t->tag == TAG_UNDEFINED);
@@ -16,14 +19,13 @@ void trilogy_callable_clone_into(
         malloc_safe(sizeof(trilogy_callable_value));
     callable->tag = orig->tag;
     callable->arity = orig->arity;
-    callable->closure =
-        orig->closure; // TODO: this thing needs to be cloneable,
-                       // probably by being refcounted
+    callable->closure = orig->closure;
+    if (callable->closure != NO_CLOSURE) callable->closure->rc += 1;
     callable->function = orig->function;
     trilogy_callable_init(t, callable);
 }
 
-void trilogy_callable_init_func(trilogy_value* t, void* c, void* p) {
+void trilogy_callable_init_func(trilogy_value* t, trilogy_array_value* c, void* p) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     callable->tag = CALLABLE_FUNCTION;
@@ -34,7 +36,7 @@ void trilogy_callable_init_func(trilogy_value* t, void* c, void* p) {
 }
 
 void trilogy_callable_init_proc(
-    trilogy_value* t, unsigned int arity, void* c, void* p
+    trilogy_value* t, unsigned int arity, trilogy_array_value* c, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
@@ -46,7 +48,7 @@ void trilogy_callable_init_proc(
 }
 
 void trilogy_callable_init_rule(
-    trilogy_value* t, unsigned int arity, void* c, void* p
+    trilogy_value* t, unsigned int arity, trilogy_array_value* c, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
@@ -58,7 +60,7 @@ void trilogy_callable_init_rule(
 }
 
 void trilogy_callable_destroy(trilogy_callable_value* val) {
-    if (val->closure != NULL) free(val->closure);
+    if (val->closure != NO_CLOSURE) trilogy_array_destroy(val->closure);
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
