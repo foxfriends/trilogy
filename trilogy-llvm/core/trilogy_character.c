@@ -1,6 +1,5 @@
 #include "trilogy_character.h"
 #include "internal.h"
-#include <stdlib.h>
 #include <assert.h>
 
 void trilogy_character_init(trilogy_value* t, unsigned int ch) {
@@ -14,4 +13,6 @@ unsigned int trilogy_character_untag(trilogy_value* val) {
     return trilogy_character_assume(val);
 }
 
-unsigned int trilogy_character_assume(trilogy_value* val) { return (unsigned int)val->payload; }
+unsigned int trilogy_character_assume(trilogy_value* val) {
+    return (unsigned int)val->payload;
+}

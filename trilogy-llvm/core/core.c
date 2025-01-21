@@ -67,9 +67,7 @@ void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
 void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     switch (arr->tag) {
     case TAG_ARRAY:
-        trilogy_array_append(
-            trilogy_array_assume(arr), trilogy_array_untag(val)
-        );
+        trilogy_array_append(trilogy_array_assume(arr), val);
         break;
     default:
         rte("array, set, or record", arr->tag);

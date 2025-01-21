@@ -1,8 +1,8 @@
 #include "trilogy_struct.h"
 #include "internal.h"
 #include "trilogy_value.h"
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
 
 trilogy_struct_value*
 trilogy_struct_init(trilogy_value* tv, trilogy_struct_value* st) {

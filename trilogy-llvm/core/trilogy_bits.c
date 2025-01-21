@@ -1,8 +1,8 @@
 #include "trilogy_bits.h"
 #include "internal.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 trilogy_bits_value*
 trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
