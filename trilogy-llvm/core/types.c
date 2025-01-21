@@ -1,5 +1,4 @@
 #include "types.h"
-#include "internal.h"
 
 char* type_name(trilogy_value_tag tag) {
     switch (tag) {
