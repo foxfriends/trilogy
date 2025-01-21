@@ -20,10 +20,12 @@ That makes a trilogy. Hopefully I produce something useful. Third time's the cha
 
 ## Status
 
-The 0.1 "barely functioning" version of Trilogy and all its components is nearing
-readiness. Though far from a fully working ecosystem, at least the language will
-soon work, for the most part, enough to begin experimenting with its usability and
-iterating on the design.
+The v0.0 "barely functioning" version of Trilogy was completed in 2023, using a custom bytecode virtual machine.
+While it did succeed at its [original goal](https://github.com/foxfriends/advent-of-code/tree/main/2023), there
+were numerous flaws with performance, memory usage, and bugs in general.
+
+A v0.1 version is now in the works, backed by LLVM for a more robust and performant implementation and better
+FFI to native libraries.
 
 - [x] Read some papers and instructions on programming languages
     - https://www.eff-lang.org/handlers-tutorial.pdf
