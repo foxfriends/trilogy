@@ -14,7 +14,13 @@ typedef enum trilogy_value_tag : unsigned char {
     TAG_ARRAY = 10,
     TAG_SET = 11,
     TAG_RECORD = 12,
-    TAG_CALLABLE = 13
+    TAG_CALLABLE = 13,
+    /**
+     * Not an observable value in a Trilogy program, but the reference counted
+     * reference to a heap allocated variable is a distinguished type at runtime
+     * level...
+     */
+    TAG_REFERENCE = 14
 } trilogy_value_tag;
 
 typedef enum trilogy_callable_tag : unsigned char {
@@ -146,6 +152,10 @@ typedef struct trilogy_record_value {
 
 typedef struct trilogy_callable_value {
     /**
+     * The reference count for this callable.
+     */
+    unsigned int rc;
+    /**
      * Determines which type of call this callable requires
      */
     trilogy_callable_tag tag;
@@ -155,19 +165,44 @@ typedef struct trilogy_callable_value {
      */
     unsigned int arity;
     /**
-     * Context captured from the closure of this callable; it is stored in a
-     * standard Trilogy array as a conveniently ref-counted array type.
+     * Number of elements in the closure list.
+     */
+    unsigned int closure_size;
+    /**
+     * Context captured from the closure of this callable. This is an array of
+     * trilogy values (all of which would likely be references?).
      *
      * The identity and population of each field is a static analysis concern.
      *
      * NOTE: there is the inherent risk of circular references here,
      * which should likely be solved weak references of some sort...
      */
-    trilogy_array_value* closure;
+    trilogy_value* closure;
     /**
      * Pointer to the function itself.
      */
     void* function;
 } trilogy_callable_value;
+
+/**
+ * A shared variable reference, represented as an upvalue.
+ */
+typedef struct trilogy_reference {
+    /**
+     * The reference count for this reference.
+     */
+    unsigned int rc;
+    /**
+     * Pointer to the location of the variable. Will be pointing to the value
+     * field if the referenced value has been moved to the heap, or to the
+     * original stack location if not.
+     */
+    trilogy_value* location;
+    /**
+     * The actual value of this variable, if it is on the heap. Will be
+     * undefined if the value remains on the stack.
+     */
+    trilogy_value closed;
+} trilogy_reference;
 
 char* type_name(trilogy_value_tag tag);

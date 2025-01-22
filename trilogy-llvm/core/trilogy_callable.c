@@ -1,7 +1,8 @@
 #include "trilogy_callable.h"
 #include "internal.h"
-#include "trilogy_array.h"
+#include "trilogy_value.h"
 #include <assert.h>
+#include <stdlib.h>
 
 #define NO_CLOSURE 0
 
@@ -14,54 +15,76 @@ void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
 void trilogy_callable_clone_into(
     trilogy_value* t, trilogy_callable_value* orig
 ) {
-    trilogy_callable_value* callable =
-        malloc_safe(sizeof(trilogy_callable_value));
-    callable->tag = orig->tag;
-    callable->arity = orig->arity;
-    callable->closure = orig->closure;
-    if (callable->closure != NO_CLOSURE) callable->closure->rc += 1;
-    callable->function = orig->function;
-    trilogy_callable_init(t, callable);
+    assert(orig->rc != 0);
+    orig->rc++;
+    trilogy_callable_init(t, orig);
 }
 
-void trilogy_callable_init_func(
-    trilogy_value* t, trilogy_array_value* c, void* p
+void trilogy_callable_init_fn(
+    trilogy_value* t, unsigned int closure_size, trilogy_value* c, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
+    callable->rc = 1;
     callable->tag = CALLABLE_FUNCTION;
     callable->arity = 1;
+    callable->closure_size = closure_size;
     callable->closure = c;
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
-void trilogy_callable_init_proc(
-    trilogy_value* t, unsigned int arity, trilogy_array_value* c, void* p
+void trilogy_callable_init_do(
+    trilogy_value* t, unsigned int arity, unsigned int closure_size,
+    trilogy_value* c, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
+    callable->rc = 1;
     callable->tag = CALLABLE_PROCEDURE;
     callable->arity = arity;
+    callable->closure_size = closure_size;
     callable->closure = c;
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
-void trilogy_callable_init_rule(
-    trilogy_value* t, unsigned int arity, trilogy_array_value* c, void* p
+void trilogy_callable_init_qy(
+    trilogy_value* t, unsigned int arity, unsigned int closure_size,
+    trilogy_value* c, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
+    callable->rc = 1;
     callable->tag = CALLABLE_RULE;
     callable->arity = arity;
+    callable->closure_size = closure_size;
     callable->closure = c;
     callable->function = p;
     trilogy_callable_init(t, callable);
+}
+
+void trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p) {
+    trilogy_callable_init_do(t, arity, 0, NO_CLOSURE, p);
+}
+
+void trilogy_callable_init_func(trilogy_value* t, void* p) {
+    trilogy_callable_init_fn(t, 0, NO_CLOSURE, p);
+}
+
+void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
+    trilogy_callable_init_qy(t, arity, 0, NO_CLOSURE, p);
 }
 
 void trilogy_callable_destroy(trilogy_callable_value* val) {
-    if (val->closure != NO_CLOSURE) trilogy_array_destroy(val->closure);
+    if (--val->rc == 0) {
+        if (val->closure != NO_CLOSURE) {
+            for (unsigned int i = 0; i < val->closure_size; ++i) {
+                trilogy_value_destroy(&val->closure[i]);
+            }
+        }
+        free(val);
+    }
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {

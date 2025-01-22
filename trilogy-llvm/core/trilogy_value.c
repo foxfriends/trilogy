@@ -4,6 +4,7 @@
 #include "trilogy_bits.h"
 #include "trilogy_callable.h"
 #include "trilogy_record.h"
+#include "trilogy_reference.h"
 #include "trilogy_set.h"
 #include "trilogy_string.h"
 #include "trilogy_struct.h"
@@ -56,6 +57,9 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
     case TAG_CALLABLE:
         trilogy_callable_clone_into(into, trilogy_callable_assume(from));
         break;
+    case TAG_REFERENCE:
+        trilogy_reference_clone_into(into, trilogy_reference_assume(from));
+        break;
     default:
         internal_panic("invalid trilogy value\n");
     }
@@ -105,7 +109,11 @@ void trilogy_value_destroy(trilogy_value* value) {
     case TAG_CALLABLE: {
         trilogy_callable_value* p = trilogy_callable_assume(value);
         trilogy_callable_destroy(p);
-        free(p);
+        break;
+    }
+    case TAG_REFERENCE: {
+        trilogy_reference* p = trilogy_reference_assume(value);
+        trilogy_reference_destroy(p);
         break;
     }
     default:
@@ -126,8 +134,18 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_ATOM:
     case TAG_CHAR:
     case TAG_NUMBER:
-    case TAG_CALLABLE:
         return lhs->payload == rhs->payload;
+    case TAG_CALLABLE: {
+        // Closures can only be reference equal, but closure-less functions
+        // should be treated all the same no matter how they got cloned up
+        trilogy_callable_value* lhs_fn = (trilogy_callable_value*)lhs->payload;
+        trilogy_callable_value* rhs_fn = (trilogy_callable_value*)rhs->payload;
+        if (lhs_fn->closure_size == 0 && rhs_fn->closure_size == 0) {
+            return lhs_fn->function == rhs_fn->function;
+        } else {
+            return lhs_fn == rhs_fn;
+        }
+    }
     case TAG_STRING: {
         trilogy_string_value* lhs_str = (trilogy_string_value*)lhs->payload;
         trilogy_string_value* rhs_str = (trilogy_string_value*)rhs->payload;
@@ -187,6 +205,17 @@ bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_SET:
     case TAG_RECORD: {
         return lhs->payload == rhs->payload;
+    }
+    case TAG_CALLABLE: {
+        // Closures can only be reference equal, but closure-less functions
+        // should be treated all the same no matter how they got cloned up
+        trilogy_callable_value* lhs_fn = (trilogy_callable_value*)lhs->payload;
+        trilogy_callable_value* rhs_fn = (trilogy_callable_value*)rhs->payload;
+        if (lhs_fn->closure_size == 0 && rhs_fn->closure_size == 0) {
+            return lhs_fn->function == rhs_fn->function;
+        } else {
+            return lhs_fn == rhs_fn;
+        }
     }
     default:
         return trilogy_value_structural_eq(lhs, rhs);
