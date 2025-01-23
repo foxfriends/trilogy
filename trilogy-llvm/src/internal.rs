@@ -511,7 +511,6 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         t: PointerValue<'ctx>,
         arity: usize,
-        context: PointerValue<'ctx>,
         function: PointerValue<'ctx>,
     ) {
         let f = self.declare_internal(
@@ -520,7 +519,6 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
@@ -535,7 +533,6 @@ impl<'ctx> Codegen<'ctx> {
                         .i64_type()
                         .const_int(arity as u64, false)
                         .into(),
-                    context.into(),
                     function.into(),
                 ],
                 "",

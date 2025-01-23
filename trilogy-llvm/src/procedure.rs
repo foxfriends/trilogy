@@ -5,7 +5,6 @@ use inkwell::{
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Linkage,
     values::FunctionValue,
-    AddressSpace,
 };
 use source_span::Span;
 use trilogy_ir::ir;
@@ -75,12 +74,7 @@ impl<'ctx> Codegen<'ctx> {
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
-        self.trilogy_callable_init_proc(
-            sret,
-            arity,
-            self.context.ptr_type(AddressSpace::default()).const_zero(),
-            function.as_global_value().as_pointer_value(),
-        );
+        self.trilogy_callable_init_proc(sret, arity, function.as_global_value().as_pointer_value());
         self.builder.build_return(None).unwrap();
 
         function
