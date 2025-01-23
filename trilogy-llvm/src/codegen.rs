@@ -11,7 +11,7 @@ use inkwell::{
     memory_buffer::MemoryBuffer,
     module::{Linkage, Module},
     values::{FunctionValue, PointerValue},
-    IntPredicate, OptimizationLevel,
+    OptimizationLevel,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use trilogy_ir::{ir, Id};
@@ -137,58 +137,6 @@ impl<'ctx> Codegen<'ctx> {
         self.module.link_in_module(core).unwrap();
         self.di.builder.finalize();
         (self.module, self.execution_engine)
-    }
-
-    pub(crate) fn compile_entrypoint(&self, entrymodule: &str, entrypoint: &str) {
-        let main_wrapper =
-            self.module
-                .add_function("main", self.context.i32_type().fn_type(&[], false), None);
-        let scope = Scope::begin(main_wrapper);
-        let basic_block = self.context.append_basic_block(main_wrapper, "entry");
-        let exit_unit = self.context.append_basic_block(main_wrapper, "exit_unit");
-        let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
-
-        self.builder.position_at_end(basic_block);
-
-        // Reference main
-        let main_accessor = self
-            .module
-            .get_function(&format!("{entrymodule}::{entrypoint}"))
-            .unwrap();
-        let main = self.allocate_value("main");
-        self.call_procedure_direct(main, main_accessor, &[]);
-
-        // Call main
-        let output = self.allocate_value("main.out");
-        self.call_procedure(&scope, output, main, &[]);
-
-        // Convert return value to exit code
-        let tag = self.get_tag(output);
-        let is_unit = self
-            .builder
-            .build_int_compare(
-                IntPredicate::EQ,
-                tag,
-                self.tag_type().const_int(types::TAG_UNIT, false),
-                "",
-            )
-            .unwrap();
-        self.builder
-            .build_conditional_branch(is_unit, exit_unit, exit_int)
-            .unwrap();
-
-        self.builder.position_at_end(exit_unit);
-        self.builder
-            .build_return(Some(&self.context.i32_type().const_int(0, false)))
-            .unwrap();
-
-        self.builder.position_at_end(exit_int);
-        let exit_code = self.trilogy_number_untag(output, "");
-        let exit_code = self
-            .builder
-            .build_int_truncate(exit_code, self.context.i32_type(), "")
-            .unwrap();
-        self.builder.build_return(Some(&exit_code)).unwrap();
     }
 
     pub(crate) fn add_function(&self, name: &str, exported: bool) -> FunctionValue<'ctx> {

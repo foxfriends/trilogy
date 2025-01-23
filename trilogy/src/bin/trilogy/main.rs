@@ -111,8 +111,18 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
     }
 
     match result {
+        #[cfg(feature = "tvm")]
         Ok(value) if print => {
             println!("{}", value);
+        }
+        #[cfg(feature = "llvm")]
+        Ok(value) if print => {
+            println!("{:?}", value);
+        }
+        #[cfg(feature = "llvm")]
+        Ok(value) => {
+            // NOTE: for now, we're printing no matter what...
+            println!("{:?}", value);
         }
         #[cfg(feature = "tvm")]
         Ok(Value::Number(number)) if number.is_integer() => {
@@ -131,8 +141,6 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
             }
             std::process::exit(255)
         }
-        #[cfg(feature = "llvm")]
-        Ok(..) => std::process::exit(0),
         #[cfg(feature = "tvm")]
         Ok(..) => std::process::exit(255),
         Err(error) if debug => {

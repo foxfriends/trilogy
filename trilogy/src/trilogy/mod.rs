@@ -151,7 +151,7 @@ impl Trilogy {
     /// This is equivalent to `self.call("main", vec![])`.
     #[cfg(feature = "llvm")]
     #[expect(clippy::result_unit_err, reason = "This is placeholder")]
-    pub fn run(&self) -> Result<String, ()> {
+    pub fn run(&self) -> Result<trilogy_llvm::TrilogyValue, ()> {
         Ok(self.call("main", vec![]))
     }
 
@@ -218,7 +218,11 @@ impl Trilogy {
     /// diagnose and could be anything from a bug in the compiler to an error
     /// in the Trilogy program.
     #[cfg(feature = "llvm")]
-    pub fn call(&self, main: impl ModulePath, parameters: Vec<String>) -> String {
+    pub fn call(
+        &self,
+        main: impl ModulePath,
+        parameters: Vec<String>,
+    ) -> trilogy_llvm::TrilogyValue {
         match &self.source {
             Source::Trilogy {
                 modules,
@@ -383,24 +387,7 @@ impl Trilogy {
                     .iter()
                     .map(|(location, module)| (location.to_string(), module))
                     .collect();
-                trilogy_llvm::compile_and_link(modules, &entrypoint.to_string(), "main")
-            }
-        }
-    }
-
-    /// Compiles a Trilogy program to LLVM assembly code, returning a single linked module as a string.
-    #[cfg(feature = "llvm")]
-    pub fn compile_modules(&self) -> HashMap<String, String> {
-        match &self.source {
-            Source::Trilogy {
-                modules,
-                entrypoint,
-            } => {
-                let modules = modules
-                    .iter()
-                    .map(|(location, module)| (location.to_string(), module))
-                    .collect();
-                trilogy_llvm::compile(modules, &entrypoint.to_string(), "main")
+                trilogy_llvm::compile_to_llvm(modules, &entrypoint.to_string(), "main")
             }
         }
     }

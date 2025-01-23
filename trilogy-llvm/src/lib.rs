@@ -1,6 +1,6 @@
 use codegen::Codegen;
 use inkwell::context::Context;
-use std::collections::HashMap;
+use std::{collections::HashMap, ffi::c_void};
 use trilogy_ir::ir;
 
 mod call;
@@ -8,6 +8,7 @@ mod codegen;
 mod constant;
 mod core;
 mod debug_info;
+mod entrypoint;
 mod expression;
 mod internal;
 mod module;
@@ -16,14 +17,21 @@ mod procedure;
 mod scope;
 mod types;
 
-type Entrypoint = unsafe extern "C" fn() -> u8;
+type Entrypoint = unsafe extern "C" fn() -> c_void;
+
+#[repr(C)]
+#[derive(Default, Debug)]
+pub struct TrilogyValue {
+    pub tag: u32,
+    pub payload: u64,
+}
 
 pub fn evaluate(
     modules: HashMap<String, &ir::Module>,
     entrymodule: &str,
     entrypoint: &str,
     _parameters: Vec<String>,
-) -> String {
+) -> TrilogyValue {
     let context = Context::create();
     let codegen = Codegen::new(&context, &modules);
 
@@ -33,40 +41,19 @@ pub fn evaluate(
         codegen.module.link_in_module(submodule.module).unwrap();
     }
 
-    codegen.compile_entrypoint(entrymodule, entrypoint);
+    let mut output = TrilogyValue::default();
+    codegen.compile_embedded(entrymodule, entrypoint, &mut output as *mut TrilogyValue);
     let (_module, ee) = codegen.finish();
 
-    let result = unsafe {
+    unsafe {
         let tri_main = ee.get_function::<Entrypoint>("main").unwrap();
-        tri_main.call()
+        tri_main.call();
     };
 
-    println!("{result}");
-    "Ok".to_owned()
+    output
 }
 
-pub fn compile(
-    modules: HashMap<String, &ir::Module>,
-    entrymodule: &str,
-    entrypoint: &str,
-) -> HashMap<String, String> {
-    let context = Context::create();
-    let codegen = Codegen::new(&context, &modules);
-
-    let mut compiled = HashMap::with_capacity(modules.len() + 1);
-    compiled.insert("trilogy:runtime".to_owned(), codegen.module.to_string());
-    for (file, module) in &modules {
-        let submodule = codegen.compile_module(file, module);
-        if file == entrymodule {
-            submodule.compile_entrypoint(entrymodule, entrypoint);
-        }
-        compiled.insert(file.to_owned(), submodule.module.to_string());
-    }
-
-    compiled
-}
-
-pub fn compile_and_link(
+pub fn compile_to_llvm(
     modules: HashMap<String, &ir::Module>,
     entrymodule: &str,
     entrypoint: &str,
@@ -80,7 +67,7 @@ pub fn compile_and_link(
         codegen.module.link_in_module(submodule.module).unwrap();
     }
 
-    codegen.compile_entrypoint(entrymodule, entrypoint);
+    codegen.compile_standalone(entrymodule, entrypoint);
     let (module, _) = codegen.finish();
     module.to_string()
 }
