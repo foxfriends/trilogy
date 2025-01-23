@@ -5,7 +5,7 @@ use inkwell::{
 
 use crate::{codegen::Codegen, scope::Scope, types, TrilogyValue};
 
-impl<'ctx> Codegen<'ctx> {
+impl Codegen<'_> {
     pub(crate) fn compile_standalone(&self, entrymodule: &str, entrypoint: &str) {
         let main_wrapper =
             self.module

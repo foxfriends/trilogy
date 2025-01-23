@@ -1,5 +1,6 @@
 use crate::{codegen::Codegen, scope::Scope};
 use inkwell::{
+    llvm_sys::LLVMCallConv,
     values::{BasicMetadataValueEnum, FunctionValue, PointerValue},
     AddressSpace, IntPredicate,
 };
@@ -58,7 +59,8 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(direct_block);
-        self.builder
+        let call = self
+            .builder
             .build_indirect_call(
                 self.procedure_type(args.len() - 1, false),
                 function,
@@ -66,11 +68,13 @@ impl<'ctx> Codegen<'ctx> {
                 "",
             )
             .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         self.builder.build_unconditional_branch(cont_block).unwrap();
 
         self.builder.position_at_end(closure_block);
         args.push(closure.into());
-        self.builder
+        let call = self
+            .builder
             .build_indirect_call(
                 self.procedure_type(args.len() - 1, true),
                 function,
@@ -78,6 +82,7 @@ impl<'ctx> Codegen<'ctx> {
                 "",
             )
             .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         self.builder.build_unconditional_branch(cont_block).unwrap();
 
         self.builder.position_at_end(cont_block);
@@ -152,9 +157,11 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(closure_block);
         args.push(closure.into());
-        self.builder
+        let call = self
+            .builder
             .build_indirect_call(self.procedure_type(1, true), function, &args, "")
             .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         self.builder.build_unconditional_branch(cont_block).unwrap();
 
         self.builder.position_at_end(cont_block);

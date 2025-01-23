@@ -2,7 +2,7 @@ use crate::{scope::Scope, Codegen};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
-    llvm_sys::debuginfo::LLVMDIFlagPublic,
+    llvm_sys::{debuginfo::LLVMDIFlagPublic, LLVMCallConv},
     module::Linkage,
     values::FunctionValue,
 };
@@ -11,20 +11,21 @@ use trilogy_ir::ir;
 
 impl<'ctx> Codegen<'ctx> {
     fn add_constant(&self, location: &str, name: &str, linkage: Linkage) -> FunctionValue<'ctx> {
-        let procedure = self.module.add_function(
+        let accessor = self.module.add_function(
             &format!("{}::{}", location, name),
             self.procedure_type(0, false),
             Some(linkage),
         );
-        procedure.add_attribute(
+        accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
                 Attribute::get_named_enum_kind_id("sret"),
                 self.value_type().into(),
             ),
         );
-        procedure.get_nth_param(0).unwrap().set_name("sretptr");
-        procedure
+        accessor.get_nth_param(0).unwrap().set_name("sretptr");
+        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        accessor
     }
 
     pub(crate) fn import_constant(&self, location: &str, constant: &ir::ConstantDefinition) {
@@ -42,9 +43,8 @@ impl<'ctx> Codegen<'ctx> {
         } else {
             Linkage::Private
         };
-        let procedure = self.add_constant(&self.location, &constant.name.to_string(), linkage);
-
-        let procedure_scope = self.di.builder.create_function(
+        let accessor = self.add_constant(&self.location, &constant.name.to_string(), linkage);
+        let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
             &constant.name.to_string(),
             None,
@@ -57,8 +57,7 @@ impl<'ctx> Codegen<'ctx> {
             LLVMDIFlagPublic,
             false,
         );
-
-        procedure.set_subprogram(procedure_scope);
+        accessor.set_subprogram(subprogram);
     }
 
     pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition) {

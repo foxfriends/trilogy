@@ -64,6 +64,21 @@ impl<'ctx> Codegen<'ctx> {
                         .globals
                         .insert(constant.name.id.clone(), Head::Constant);
                 }
+                DefinitionItem::Procedure(procedure) if procedure.overloads.is_empty() => {
+                    subcontext.declare_extern_procedure(
+                        &procedure.name.to_string(),
+                        procedure.arity,
+                        if definition.is_exported {
+                            Linkage::External
+                        } else {
+                            Linkage::Private
+                        },
+                        procedure.span(),
+                    );
+                    subcontext
+                        .globals
+                        .insert(procedure.name.id.clone(), Head::Procedure(procedure.arity));
+                }
                 DefinitionItem::Procedure(procedure) => {
                     subcontext.declare_procedure(
                         &procedure.name.to_string(),
@@ -73,13 +88,13 @@ impl<'ctx> Codegen<'ctx> {
                         } else {
                             Linkage::Private
                         },
-                        procedure.overloads.is_empty(),
                         procedure.span(),
                     );
                     subcontext
                         .globals
                         .insert(procedure.name.id.clone(), Head::Procedure(procedure.arity));
                 }
+
                 _ => {}
             }
         }
@@ -87,6 +102,7 @@ impl<'ctx> Codegen<'ctx> {
         // Now comes actual codegen
         for definition in module.definitions() {
             match &definition.item {
+                DefinitionItem::Procedure(procedure) if procedure.overloads.is_empty() => {}
                 DefinitionItem::Procedure(procedure) => {
                     subcontext.compile_procedure(procedure);
                 }
