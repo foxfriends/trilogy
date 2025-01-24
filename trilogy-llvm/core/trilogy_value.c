@@ -119,8 +119,7 @@ void trilogy_value_destroy(trilogy_value* value) {
     default:
         break;
     }
-    value->tag = TAG_UNDEFINED;
-    value->payload = 0;
+    *value = trilogy_undefined;
 }
 
 bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {

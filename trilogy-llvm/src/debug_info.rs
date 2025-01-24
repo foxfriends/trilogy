@@ -15,6 +15,7 @@ pub(crate) struct DebugInfo<'ctx> {
     pub(crate) builder: DebugInfoBuilder<'ctx>,
     pub(crate) unit: DICompileUnit<'ctx>,
     pub(crate) debug_scopes: Rc<RefCell<Vec<DIScope<'ctx>>>>,
+    pub(crate) nesting: Rc<RefCell<Vec<Vec<DIScope<'ctx>>>>>,
 }
 
 impl<'ctx> DebugInfo<'ctx> {
@@ -40,6 +41,7 @@ impl<'ctx> DebugInfo<'ctx> {
             builder,
             unit,
             debug_scopes: Rc::new(RefCell::new(vec![unit.as_debug_info_scope()])),
+            nesting: Rc::default(),
         }
     }
 
@@ -55,7 +57,6 @@ impl<'ctx> DebugInfo<'ctx> {
     }
 
     pub(crate) fn procedure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
-        // TODO: does this need a different type when it's a closure?
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             Some(self.value_di_type().as_type()),
@@ -64,13 +65,28 @@ impl<'ctx> DebugInfo<'ctx> {
         )
     }
 
-    pub(crate) fn push_debug_scope(&self, scope: DIScope<'ctx>) -> DIScopeGuard<'ctx> {
-        let mut scopes = self.debug_scopes.borrow_mut();
-        scopes.push(scope);
-        DIScopeGuard(self.debug_scopes.clone(), scopes.len())
+    pub(crate) fn closure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
+        // TODO: the last parameter is NOT a value, but we say it is anyway :shrug:
+        self.procedure_di_type(arity + 1)
     }
 
-    pub(crate) fn push_block_scope(&self, span: Span) -> DIScopeGuard<'ctx> {
+    pub(crate) fn begin_closure(&self) {
+        let mut main_scope = self.debug_scopes.borrow_mut();
+        self.nesting.borrow_mut().push(main_scope.clone());
+        main_scope.truncate(1);
+    }
+
+    pub(crate) fn end_closure(&self) {
+        let parent_scope = self.nesting.borrow_mut().pop().unwrap();
+        *self.debug_scopes.borrow_mut() = parent_scope;
+    }
+
+    pub(crate) fn push_debug_scope(&self, scope: DIScope<'ctx>) {
+        let mut scopes = self.debug_scopes.borrow_mut();
+        scopes.push(scope);
+    }
+
+    pub(crate) fn push_block_scope(&self, span: Span) {
         let scope = self.get_debug_scope().unwrap();
         let block = self.builder.create_lexical_block(
             scope,
@@ -80,7 +96,10 @@ impl<'ctx> DebugInfo<'ctx> {
         );
         let mut scopes = self.debug_scopes.borrow_mut();
         scopes.push(block.as_debug_info_scope());
-        DIScopeGuard(self.debug_scopes.clone(), scopes.len())
+    }
+
+    pub(crate) fn pop_scope(&self) {
+        self.debug_scopes.borrow_mut().pop();
     }
 
     pub(crate) fn get_debug_scope(&self) -> Option<DIScope<'ctx>> {
@@ -100,15 +119,5 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder.set_current_debug_location(location);
         prev
-    }
-}
-
-pub(crate) struct DIScopeGuard<'ctx>(Rc<RefCell<Vec<DIScope<'ctx>>>>, usize);
-
-impl Drop for DIScopeGuard<'_> {
-    fn drop(&mut self) {
-        let mut scopes = self.0.borrow_mut();
-        assert_eq!(scopes.len(), self.1);
-        scopes.pop();
     }
 }

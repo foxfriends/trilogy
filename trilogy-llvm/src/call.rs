@@ -20,7 +20,7 @@ impl<'ctx> Codegen<'ctx> {
         args.extend_from_slice(arguments);
         let closure = self
             .builder
-            .build_struct_gep(self.callable_value_type(), callable, 2, "")
+            .build_struct_gep(self.callable_value_type(), callable, 4, "")
             .unwrap();
         let closure = self
             .builder

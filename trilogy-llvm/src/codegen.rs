@@ -1,6 +1,10 @@
 #![expect(dead_code, reason = "WIP")]
 
-use crate::{debug_info::DebugInfo, scope::Scope, types};
+use crate::{
+    debug_info::DebugInfo,
+    scope::{Scope, Variable},
+    types,
+};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     builder::Builder,
@@ -11,7 +15,7 @@ use inkwell::{
     memory_buffer::MemoryBuffer,
     module::{Linkage, Module},
     values::{FunctionValue, PointerValue},
-    OptimizationLevel,
+    AddressSpace, OptimizationLevel,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use trilogy_ir::{ir, Id};
@@ -160,15 +164,68 @@ impl<'ctx> Codegen<'ctx> {
         procedure
     }
 
+    pub(crate) fn get_variable(
+        &self,
+        scope: &mut Scope<'ctx>,
+        id: &ir::Identifier,
+    ) -> Option<PointerValue<'ctx>> {
+        if scope.variables.contains_key(&id.id) {
+            return Some(scope.variables.get(&id.id).unwrap().ptr());
+        }
+
+        if scope.parent_variables.contains(&id.id) {
+            let closure_index = scope.closure.len();
+            scope.closure.push(id.id.clone());
+
+            // Closure is an array of trilogy values, where each of those trilogy values is a reference
+            // To access the variable then:
+            // 1. Consider the nth element of the array
+            // 2. Get the value inside
+            // 3. Assume a reference, and load its location field
+            // 4. That value of that location field is the pointer to the actual value
+            let closure = scope.get_closure_ptr();
+            let location = unsafe {
+                let array_entry = self
+                    .builder
+                    .build_gep(
+                        self.value_type().array_type(0),
+                        closure,
+                        &[
+                            self.context.i32_type().const_int(0, false),
+                            self.context
+                                .i32_type()
+                                .const_int(closure_index as u64, false),
+                        ],
+                        "",
+                    )
+                    .unwrap();
+                let ref_value = self.trilogy_reference_assume(array_entry);
+                let location = self
+                    .builder
+                    .build_struct_gep(self.reference_value_type(), ref_value, 1, "")
+                    .unwrap();
+                self.builder
+                    .build_load(self.context.ptr_type(AddressSpace::default()), location, "")
+                    .unwrap()
+                    .into_pointer_value()
+            };
+            scope
+                .variables
+                .insert(id.id.clone(), Variable::Closed(location));
+            return Some(location);
+        }
+
+        None
+    }
+
     pub(crate) fn variable(
         &self,
         scope: &mut Scope<'ctx>,
         id: &ir::Identifier,
     ) -> PointerValue<'ctx> {
-        if scope.variables.contains_key(&id.id) {
-            return *scope.variables.get(&id.id).unwrap();
+        if let Some(variable) = self.get_variable(scope, id) {
+            return variable;
         }
-
         let builder = self.context.create_builder();
         let entry = scope.function.get_first_basic_block().unwrap();
         match entry.get_first_instruction() {
@@ -182,7 +239,9 @@ impl<'ctx> Codegen<'ctx> {
         builder
             .build_store(variable, self.value_type().const_zero())
             .unwrap();
-        scope.variables.insert(id.id.clone(), variable);
+        scope
+            .variables
+            .insert(id.id.clone(), Variable::Owned(variable));
 
         if let Some(subp) = scope.function.get_subprogram() {
             if let Some(name) = id.id.name() {

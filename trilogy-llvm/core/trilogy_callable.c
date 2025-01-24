@@ -6,6 +6,10 @@
 
 #define NO_CLOSURE 0
 
+trilogy_value* prepare_closure(unsigned int closure_size) {
+    return calloc_safe(closure_size, sizeof(trilogy_value));
+}
+
 void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
     assert(t->tag == TAG_UNDEFINED);
     t->tag = TAG_CALLABLE;
@@ -76,12 +80,16 @@ void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
     trilogy_callable_init_qy(t, arity, 0, NO_CLOSURE, p);
 }
 
+#include <stdio.h>
+
 void trilogy_callable_destroy(trilogy_callable_value* val) {
     if (--val->rc == 0) {
+        printf("freeing callable (%d closure size)\n", val->closure_size);
         if (val->closure != NO_CLOSURE) {
             for (unsigned int i = 0; i < val->closure_size; ++i) {
                 trilogy_value_destroy(&val->closure[i]);
             }
+            free(val->closure);
         }
         free(val);
     }

@@ -1,4 +1,7 @@
-use crate::{scope::Scope, Codegen};
+use crate::{
+    scope::{Scope, Variable},
+    Codegen,
+};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
@@ -179,15 +182,26 @@ impl<'ctx> Codegen<'ctx> {
             .module
             .get_function(if name == "main" { MAIN_NAME } else { &name })
             .unwrap();
-        let guard = self
-            .di
-            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
-
-        let entry = self.context.append_basic_block(function, "entry");
-        let no_match = self.context.append_basic_block(function, "no_match");
-        let cleanup = self.context.append_basic_block(function, "cleanup");
-
         let mut scope = Scope::begin(function);
+        self.compile_procedure_body(&mut scope, procedure);
+    }
+
+    pub(crate) fn compile_procedure_body(
+        &self,
+        scope: &mut Scope<'ctx>,
+        procedure: &ir::Procedure,
+    ) {
+        self.di.push_debug_scope(
+            scope
+                .function
+                .get_subprogram()
+                .unwrap()
+                .as_debug_info_scope(),
+        );
+        let entry = self.context.append_basic_block(scope.function, "entry");
+        let no_match = self.context.append_basic_block(scope.function, "no_match");
+        let cleanup = self.context.append_basic_block(scope.function, "cleanup");
+
         scope.set_cleanup(cleanup);
 
         self.set_span(procedure.head_span);
@@ -195,12 +209,13 @@ impl<'ctx> Codegen<'ctx> {
         'body: {
             self.builder.position_at_end(entry);
             for (n, param) in procedure.parameters.iter().enumerate() {
-                let value = function
+                let value = scope
+                    .function
                     .get_nth_param(n as u32 + 1)
                     .unwrap()
                     .into_pointer_value();
                 if self
-                    .compile_pattern_match(&mut scope, param, value, no_match)
+                    .compile_pattern_match(scope, param, value, no_match)
                     .is_none()
                 {
                     break 'body;
@@ -210,7 +225,7 @@ impl<'ctx> Codegen<'ctx> {
             // There is no implicit return of the final value of a procedure. That value is lost,
             // and unit is returned instead. It is most likely that there is a return in the body,
             // and this final return will be dead code.
-            if let Some(value) = self.allocate_expression(&mut scope, &procedure.body, "") {
+            if let Some(value) = self.allocate_expression(scope, &procedure.body, "") {
                 self.trilogy_value_destroy(value);
                 self.builder
                     .build_store(scope.sret(), self.unit_const())
@@ -220,17 +235,18 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         self.builder.position_at_end(no_match);
-        _ = self.internal_panic(self.embed_c_string(format!(
-            "no argument match in call to proc {}::{}!(...)\n",
-            self.location, definition.name,
-        )));
+        _ = self.internal_panic(self.embed_c_string("no argument match in call to procedure\n"));
 
         self.builder.position_at_end(cleanup);
-        for pointer in scope.variables.into_values() {
-            self.trilogy_value_destroy(pointer);
+        for (id, var) in scope.variables.iter() {
+            if let Some(upvalue) = scope.upvalues.get(id) {
+                let upvalue = self.trilogy_reference_assume(*upvalue);
+                self.trilogy_reference_close(upvalue);
+            } else if let Variable::Owned(pointer) = var {
+                self.trilogy_value_destroy(*pointer);
+            }
         }
         self.builder.build_return(None).unwrap();
-        std::mem::drop(guard);
-        self.di.validate();
+        self.di.pop_scope();
     }
 }

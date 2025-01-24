@@ -74,8 +74,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let mut scope = Scope::begin(function);
         self.di.validate();
-        let guard = self
-            .di
+        self.di
             .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
         self.set_span(definition.value.span);
         let basic_block = self.context.append_basic_block(function, "entry");
@@ -98,7 +97,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(initialized);
         self.trilogy_value_clone_into(scope.sret(), global.as_pointer_value());
         self.builder.build_return(None).unwrap();
-        std::mem::drop(guard);
+        self.di.pop_scope();
         self.di.validate();
     }
 }

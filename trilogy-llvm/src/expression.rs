@@ -1,5 +1,8 @@
 use crate::{codegen::Head, scope::Scope, Codegen};
-use inkwell::values::PointerValue;
+use inkwell::{
+    debug_info::AsDIScope, llvm_sys::debuginfo::LLVMDIFlagPublic, module::Linkage,
+    values::PointerValue,
+};
 use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_parser::syntax;
@@ -73,14 +76,14 @@ impl<'ctx> Codegen<'ctx> {
             Value::SetComprehension(..) => todo!(),
             Value::RecordComprehension(..) => todo!(),
             Value::Sequence(exprs) => {
-                let guard = self.di.push_block_scope(expression.span);
+                self.di.push_block_scope(expression.span);
                 let mut exprs = exprs.iter();
                 self.compile_expression(scope, target, exprs.next().unwrap())?;
                 for expr in exprs {
                     self.trilogy_value_destroy(target);
                     self.compile_expression(scope, target, expr)?;
                 }
-                std::mem::drop(guard);
+                self.di.pop_scope();
             }
             Value::Application(app) => self.compile_application(scope, target, app)?,
             Value::Builtin(val) => self.reference_builtin(scope, target, *val),
@@ -96,7 +99,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Match(..) => todo!(),
             Value::Assert(..) => todo!(),
             Value::Fn(..) => todo!(),
-            Value::Do(..) => todo!(),
+            Value::Do(closure) => self.compile_do(scope, target, closure),
             Value::Qy(..) => todo!(),
             Value::Handled(..) => todo!(),
             Value::End => todo!(),
@@ -325,9 +328,9 @@ impl<'ctx> Codegen<'ctx> {
         match &assign.lhs.value {
             Value::Reference(variable) => {
                 self.compile_expression(scope, target, &assign.rhs)?;
-                let pointer = *scope.variables.get(&variable.id).unwrap();
+                let pointer = self.get_variable(scope, variable).unwrap();
                 self.trilogy_value_destroy(pointer);
-                self.builder.build_store(pointer, target).unwrap();
+                self.trilogy_value_clone_into(pointer, target);
                 Some(())
             }
             Value::Application(..) => todo!(),
@@ -337,12 +340,12 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_reference(
         &self,
-        scope: &Scope<'ctx>,
+        scope: &mut Scope<'ctx>,
         target: PointerValue<'ctx>,
         identifier: &ir::Identifier,
     ) {
-        if let Some(variable) = scope.variables.get(&identifier.id) {
-            self.trilogy_value_clone_into(target, *variable);
+        if let Some(variable) = self.get_variable(scope, identifier) {
+            self.trilogy_value_clone_into(target, variable);
         } else {
             let name = identifier.id.name().unwrap();
             match self
@@ -391,5 +394,78 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(if_cont);
         when_false.or(when_true)
+    }
+
+    fn compile_do(
+        &self,
+        scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
+        procedure: &ir::Procedure,
+    ) {
+        let insert_block = self.builder.get_insert_block().unwrap();
+        let debug_location = self.builder.get_current_debug_location().unwrap();
+        self.di.begin_closure();
+        let current = scope.function.get_name().to_str().unwrap();
+        let name = format!("{current}<do@{}>", procedure.span);
+
+        let arity = procedure.parameters.len();
+        let procedure_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
+            &name,
+            None,
+            self.di.unit.get_file(),
+            procedure.span.start().line as u32,
+            self.di.closure_di_type(arity),
+            false,
+            true,
+            procedure.span.start().line as u32,
+            LLVMDIFlagPublic,
+            false,
+        );
+
+        let function = self.module.add_function(
+            &name,
+            self.procedure_type(arity, true),
+            Some(Linkage::Internal),
+        );
+        function.set_subprogram(procedure_scope);
+        let mut child_scope = scope.child(function);
+        self.compile_procedure_body(&mut child_scope, procedure);
+        self.di.end_closure();
+        self.builder.set_current_debug_location(debug_location);
+
+        let closure_size = child_scope.closure.len();
+        self.builder.position_at_end(insert_block);
+        let closure = self.prepare_closure(closure_size);
+        for (i, id) in child_scope.closure.iter().enumerate() {
+            let new_upvalue = unsafe {
+                self.builder
+                    .build_gep(
+                        self.value_type(),
+                        closure,
+                        &[
+                            self.context.i32_type().const_int(0, false),
+                            self.context.i32_type().const_int(i as u64, false),
+                        ],
+                        "",
+                    )
+                    .unwrap()
+            };
+
+            if let Some(ptr) = scope.upvalues.get(id) {
+                self.trilogy_value_clone_into(new_upvalue, *ptr);
+            } else {
+                let variable = scope.variables.get(id).unwrap().ptr();
+                self.trilogy_reference_to(new_upvalue, variable);
+                scope.upvalues.insert(id.clone(), new_upvalue);
+            }
+        }
+        self.trilogy_callable_init_do(
+            target,
+            arity,
+            closure_size,
+            closure,
+            function.as_global_value().as_pointer_value(),
+        );
     }
 }

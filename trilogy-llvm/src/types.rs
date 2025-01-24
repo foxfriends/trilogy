@@ -91,10 +91,23 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn reference_value_type(&self) -> StructType<'ctx> {
+        self.context.struct_type(
+            &[
+                self.context.i32_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.value_type().into(),
+            ],
+            false,
+        )
+    }
+
     pub(crate) fn callable_value_type(&self) -> StructType<'ctx> {
         self.context.struct_type(
             &[
+                self.context.i32_type().into(),
                 self.tag_type().into(),
+                self.context.i32_type().into(),
                 self.context.i32_type().into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),

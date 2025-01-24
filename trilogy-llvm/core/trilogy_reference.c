@@ -38,8 +38,7 @@ trilogy_reference* trilogy_reference_assume(trilogy_value* val) {
 
 void trilogy_reference_destroy(trilogy_reference* ref) {
     if (--ref->rc == 0) {
-        assert(ref->location == &ref->closed);
-        trilogy_value_destroy(&ref->closed);
+        if (ref->location == &ref->closed) trilogy_value_destroy(&ref->closed);
         free(ref);
     }
 }

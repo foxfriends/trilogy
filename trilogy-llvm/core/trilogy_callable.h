@@ -1,6 +1,8 @@
 #pragma once
 #include "types.h"
 
+trilogy_value* prepare_closure(unsigned int closure_size);
+
 void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload);
 void trilogy_callable_init_fn(
     trilogy_value* t, unsigned int closure_size, trilogy_value* c, void* p

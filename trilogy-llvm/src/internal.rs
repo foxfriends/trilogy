@@ -552,4 +552,119 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unreachable().unwrap();
         NeverValue
     }
+
+    pub(crate) fn trilogy_reference_close(&self, t: PointerValue<'ctx>) {
+        let f = self.declare_internal(
+            "trilogy_reference_close",
+            self.context.void_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder.build_call(f, &[t.into()], "").unwrap();
+    }
+
+    pub(crate) fn trilogy_reference_assume(&self, t: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_reference_assume",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[t.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_reference_to(
+        &self,
+        t: PointerValue<'ctx>,
+        p: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_reference_to",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[t.into(), p.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn prepare_closure(&self, closure_size: usize) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "prepare_closure",
+            self.context
+                .ptr_type(AddressSpace::default())
+                .fn_type(&[self.context.i32_type().into()], false),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[self
+                    .context
+                    .i32_type()
+                    .const_int(closure_size as u64, false)
+                    .into()],
+                "",
+            )
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_callable_init_do(
+        &self,
+        t: PointerValue<'ctx>,
+        arity: usize,
+        closure_size: usize,
+        closure: PointerValue<'ctx>,
+        function: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_internal(
+            "trilogy_callable_init_do",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    t.into(),
+                    self.context
+                        .i64_type()
+                        .const_int(arity as u64, false)
+                        .into(),
+                    self.context
+                        .i64_type()
+                        .const_int(closure_size as u64, false)
+                        .into(),
+                    closure.into(),
+                    function.into(),
+                ],
+                "",
+            )
+            .unwrap();
+    }
 }

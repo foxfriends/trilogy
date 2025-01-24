@@ -187,6 +187,9 @@ impl Expression {
     ) -> Vec<Self> {
         let mut sequence = vec![];
         Self::convert_sequence_into(converter, statements, &mut sequence);
+        if sequence.is_empty() {
+            sequence.push(Expression::unit(Span::default()))
+        }
         sequence
     }
 
