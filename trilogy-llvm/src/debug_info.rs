@@ -7,7 +7,8 @@ use inkwell::{
     module::Module,
 };
 use source_span::Span;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use url::Url;
 
 use crate::codegen::Codegen;
 
@@ -15,16 +16,34 @@ pub(crate) struct DebugInfo<'ctx> {
     pub(crate) builder: DebugInfoBuilder<'ctx>,
     pub(crate) unit: DICompileUnit<'ctx>,
     pub(crate) debug_scopes: Rc<RefCell<Vec<DIScope<'ctx>>>>,
-    pub(crate) nesting: Rc<RefCell<Vec<Vec<DIScope<'ctx>>>>>,
 }
 
 impl<'ctx> DebugInfo<'ctx> {
-    pub(crate) fn new(module: &Module<'ctx>, filename: &str, directory: &str) -> Self {
+    pub(crate) fn new(module: &Module<'ctx>, name: &str) -> Self {
+        let url = Url::parse(name).unwrap();
+        let (filename, directory) = match url.scheme() {
+            "file" => {
+                let path: PathBuf = url.path().parse().unwrap();
+                (
+                    path.file_name().unwrap().to_string_lossy().into_owned(),
+                    path.parent().unwrap().display().to_string(),
+                )
+            }
+            "http" | "https" => {
+                let path: PathBuf = url.path().parse().unwrap();
+                (
+                    path.file_name().unwrap().to_string_lossy().into_owned(),
+                    path.parent().unwrap().display().to_string(),
+                )
+            }
+            "trilogy" => (url.path().to_owned(), "/".to_owned()),
+            _ => (name.to_owned(), "/".to_owned()),
+        };
         let (builder, unit) = module.create_debug_info_builder(
             true,
             DWARFSourceLanguage::C,
-            filename,
-            directory,
+            &filename,
+            &directory,
             "trilogy",
             false,
             "",
@@ -41,7 +60,6 @@ impl<'ctx> DebugInfo<'ctx> {
             builder,
             unit,
             debug_scopes: Rc::new(RefCell::new(vec![unit.as_debug_info_scope()])),
-            nesting: Rc::default(),
         }
     }
 
@@ -68,17 +86,6 @@ impl<'ctx> DebugInfo<'ctx> {
     pub(crate) fn closure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
         // TODO: the last parameter is NOT a value, but we say it is anyway :shrug:
         self.procedure_di_type(arity + 1)
-    }
-
-    pub(crate) fn begin_closure(&self) {
-        let mut main_scope = self.debug_scopes.borrow_mut();
-        self.nesting.borrow_mut().push(main_scope.clone());
-        main_scope.truncate(1);
-    }
-
-    pub(crate) fn end_closure(&self) {
-        let parent_scope = self.nesting.borrow_mut().pop().unwrap();
-        *self.debug_scopes.borrow_mut() = parent_scope;
     }
 
     pub(crate) fn push_debug_scope(&self, scope: DIScope<'ctx>) {

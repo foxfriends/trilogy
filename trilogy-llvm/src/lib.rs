@@ -1,6 +1,6 @@
 use codegen::Codegen;
 use inkwell::context::Context;
-use std::{collections::HashMap, ffi::c_void};
+use std::{collections::HashMap, ffi::c_void, rc::Rc};
 use trilogy_ir::ir;
 
 mod call;
@@ -38,7 +38,10 @@ pub fn evaluate(
     for (file, module) in &modules {
         let submodule = codegen.compile_module(file, module);
         submodule.di.builder.finalize();
-        codegen.module.link_in_module(submodule.module).unwrap();
+        codegen
+            .module
+            .link_in_module(Rc::into_inner(submodule.module).unwrap())
+            .unwrap();
     }
 
     let mut output = TrilogyValue::default();
@@ -64,7 +67,10 @@ pub fn compile_to_llvm(
     for (file, module) in &modules {
         let submodule = codegen.compile_module(file, module);
         submodule.di.builder.finalize();
-        codegen.module.link_in_module(submodule.module).unwrap();
+        codegen
+            .module
+            .link_in_module(Rc::into_inner(submodule.module).unwrap())
+            .unwrap();
     }
 
     codegen.compile_standalone(entrymodule, entrypoint);

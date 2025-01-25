@@ -1,48 +1,8 @@
-use crate::{
-    codegen::{Codegen, Head},
-    debug_info::DebugInfo,
-};
+use crate::codegen::{Codegen, Head};
 use inkwell::module::Linkage;
-use std::{collections::HashMap, path::PathBuf};
 use trilogy_ir::ir::{self, DefinitionItem};
-use url::Url;
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn sub(&self, name: &str) -> Codegen<'ctx> {
-        let module = self.context.create_module(name);
-        let url = Url::parse(name).unwrap();
-        let (filename, directory) = match url.scheme() {
-            "file" => {
-                let path: PathBuf = url.path().parse().unwrap();
-                (
-                    path.file_name().unwrap().to_string_lossy().into_owned(),
-                    path.parent().unwrap().display().to_string(),
-                )
-            }
-            "http" | "https" => {
-                let path: PathBuf = url.path().parse().unwrap();
-                (
-                    path.file_name().unwrap().to_string_lossy().into_owned(),
-                    path.parent().unwrap().display().to_string(),
-                )
-            }
-            "trilogy" => (url.path().to_owned(), "/".to_owned()),
-            _ => (name.to_owned(), "/".to_owned()),
-        };
-        let di = DebugInfo::new(&module, &filename, &directory);
-        Codegen {
-            atoms: self.atoms.clone(),
-            context: self.context,
-            builder: self.context.create_builder(),
-            di,
-            execution_engine: self.execution_engine.clone(),
-            module,
-            modules: self.modules,
-            globals: HashMap::new(),
-            location: name.to_owned(),
-        }
-    }
-
     pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
         let mut subcontext = self.sub(file);
 

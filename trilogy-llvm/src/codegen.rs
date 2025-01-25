@@ -20,6 +20,7 @@ use inkwell::{
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use trilogy_ir::{ir, Id};
 
+#[derive(Clone)]
 pub(crate) enum Head {
     Constant,
     Function,
@@ -34,7 +35,7 @@ pub(crate) struct NeverValue;
 pub(crate) struct Codegen<'ctx> {
     pub(crate) atoms: Rc<RefCell<HashMap<String, u64>>>,
     pub(crate) context: &'ctx Context,
-    pub(crate) module: Module<'ctx>,
+    pub(crate) module: Rc<Module<'ctx>>,
     pub(crate) builder: Builder<'ctx>,
     pub(crate) di: DebugInfo<'ctx>,
     pub(crate) execution_engine: ExecutionEngine<'ctx>,
@@ -65,7 +66,7 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("callable".to_owned(), types::TAG_CALLABLE);
 
         let module = context.create_module("trilogy:runtime");
-        let di = DebugInfo::new(&module, "trilogy:runtime", ".");
+        let di = DebugInfo::new(&module, "trilogy:runtime");
 
         let codegen = Codegen {
             atoms: Rc::new(RefCell::new(atoms)),
@@ -75,13 +76,43 @@ impl<'ctx> Codegen<'ctx> {
             execution_engine: module
                 .create_jit_execution_engine(OptimizationLevel::Default)
                 .unwrap(),
-            module,
+            module: Rc::new(module),
             modules,
             globals: HashMap::default(),
             location: "trilogy:runtime".to_owned(),
         };
 
         codegen
+    }
+
+    pub(crate) fn sub(&self, name: &str) -> Codegen<'ctx> {
+        let module = self.context.create_module(name);
+        let di = DebugInfo::new(&module, &name);
+        Codegen {
+            atoms: self.atoms.clone(),
+            context: self.context,
+            builder: self.context.create_builder(),
+            di,
+            execution_engine: self.execution_engine.clone(),
+            module: Rc::new(module),
+            modules: self.modules,
+            globals: HashMap::new(),
+            location: name.to_owned(),
+        }
+    }
+
+    pub(crate) fn inner(&self) -> Codegen<'ctx> {
+        Codegen {
+            atoms: self.atoms.clone(),
+            context: self.context,
+            builder: self.context.create_builder(),
+            di: DebugInfo::new(&self.module, &self.location),
+            execution_engine: self.execution_engine.clone(),
+            module: self.module.clone(),
+            modules: self.modules,
+            globals: self.globals.clone(),
+            location: self.location.clone(),
+        }
     }
 
     pub(crate) fn allocate_value(&self, name: &str) -> PointerValue<'ctx> {
@@ -140,7 +171,7 @@ impl<'ctx> Codegen<'ctx> {
         let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
         self.module.link_in_module(core).unwrap();
         self.di.builder.finalize();
-        (self.module, self.execution_engine)
+        (Rc::into_inner(self.module).unwrap(), self.execution_engine)
     }
 
     pub(crate) fn add_function(&self, name: &str, exported: bool) -> FunctionValue<'ctx> {
@@ -167,15 +198,15 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn get_variable(
         &self,
         scope: &mut Scope<'ctx>,
-        id: &ir::Identifier,
+        id: &Id,
     ) -> Option<PointerValue<'ctx>> {
-        if scope.variables.contains_key(&id.id) {
-            return Some(scope.variables.get(&id.id).unwrap().ptr());
+        if scope.variables.contains_key(id) {
+            return Some(scope.variables.get(id).unwrap().ptr());
         }
 
-        if scope.parent_variables.contains(&id.id) {
+        if scope.parent_variables.contains(id) {
             let closure_index = scope.closure.len();
-            scope.closure.push(id.id.clone());
+            scope.closure.push(id.clone());
 
             // Closure is an array of trilogy values, where each of those trilogy values is a reference
             // To access the variable then:
@@ -211,7 +242,7 @@ impl<'ctx> Codegen<'ctx> {
             };
             scope
                 .variables
-                .insert(id.id.clone(), Variable::Closed(location));
+                .insert(id.clone(), Variable::Closed(location));
             return Some(location);
         }
 
@@ -223,7 +254,7 @@ impl<'ctx> Codegen<'ctx> {
         scope: &mut Scope<'ctx>,
         id: &ir::Identifier,
     ) -> PointerValue<'ctx> {
-        if let Some(variable) = self.get_variable(scope, id) {
+        if let Some(variable) = self.get_variable(scope, &id.id) {
             return variable;
         }
         let builder = self.context.create_builder();

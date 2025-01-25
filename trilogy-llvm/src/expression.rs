@@ -328,7 +328,7 @@ impl<'ctx> Codegen<'ctx> {
         match &assign.lhs.value {
             Value::Reference(variable) => {
                 self.compile_expression(scope, target, &assign.rhs)?;
-                let pointer = self.get_variable(scope, variable).unwrap();
+                let pointer = self.get_variable(scope, &variable.id).unwrap();
                 self.trilogy_value_destroy(pointer);
                 self.trilogy_value_clone_into(pointer, target);
                 Some(())
@@ -344,7 +344,7 @@ impl<'ctx> Codegen<'ctx> {
         target: PointerValue<'ctx>,
         identifier: &ir::Identifier,
     ) {
-        if let Some(variable) = self.get_variable(scope, identifier) {
+        if let Some(variable) = self.get_variable(scope, &identifier.id) {
             self.trilogy_value_clone_into(target, variable);
         } else {
             let name = identifier.id.name().unwrap();
@@ -402,46 +402,44 @@ impl<'ctx> Codegen<'ctx> {
         target: PointerValue<'ctx>,
         procedure: &ir::Procedure,
     ) {
-        let insert_block = self.builder.get_insert_block().unwrap();
-        let debug_location = self.builder.get_current_debug_location().unwrap();
-        self.di.begin_closure();
         let current = scope.function.get_name().to_str().unwrap();
         let name = format!("{current}<do@{}>", procedure.span);
-
         let arity = procedure.parameters.len();
-        let procedure_scope = self.di.builder.create_function(
-            self.di.unit.get_file().as_debug_info_scope(),
-            &name,
-            None,
-            self.di.unit.get_file(),
-            procedure.span.start().line as u32,
-            self.di.closure_di_type(arity),
-            false,
-            true,
-            procedure.span.start().line as u32,
-            LLVMDIFlagPublic,
-            false,
-        );
 
-        let function = self.module.add_function(
-            &name,
-            self.procedure_type(arity, true),
-            Some(Linkage::Internal),
-        );
-        function.set_subprogram(procedure_scope);
-        let mut child_scope = scope.child(function);
-        self.compile_procedure_body(&mut child_scope, procedure);
-        self.di.end_closure();
-        self.builder.set_current_debug_location(debug_location);
+        let (function, child_scope) = {
+            let closure_codegen = self.inner();
+            let procedure_scope = closure_codegen.di.builder.create_function(
+                closure_codegen.di.unit.get_file().as_debug_info_scope(),
+                &name,
+                None,
+                closure_codegen.di.unit.get_file(),
+                procedure.span.start().line as u32,
+                closure_codegen.di.closure_di_type(arity),
+                false,
+                true,
+                procedure.span.start().line as u32,
+                LLVMDIFlagPublic,
+                false,
+            );
+
+            let function = closure_codegen.module.add_function(
+                &name,
+                closure_codegen.procedure_type(arity, true),
+                Some(Linkage::Internal),
+            );
+            function.set_subprogram(procedure_scope);
+            let mut child_scope = scope.child(function);
+            closure_codegen.compile_procedure_body(&mut child_scope, procedure);
+            (function, child_scope)
+        };
 
         let closure_size = child_scope.closure.len();
-        self.builder.position_at_end(insert_block);
         let closure = self.prepare_closure(closure_size);
         for (i, id) in child_scope.closure.iter().enumerate() {
             let new_upvalue = unsafe {
                 self.builder
                     .build_gep(
-                        self.value_type(),
+                        self.value_type().array_type(0),
                         closure,
                         &[
                             self.context.i32_type().const_int(0, false),
@@ -454,8 +452,11 @@ impl<'ctx> Codegen<'ctx> {
 
             if let Some(ptr) = scope.upvalues.get(id) {
                 self.trilogy_value_clone_into(new_upvalue, *ptr);
-            } else {
-                let variable = scope.variables.get(id).unwrap().ptr();
+            } else if let Some(variable) = scope.variables.get(id) {
+                self.trilogy_reference_to(new_upvalue, variable.ptr());
+                scope.upvalues.insert(id.clone(), new_upvalue);
+            } else if scope.parent_variables.contains(id) {
+                let variable = self.get_variable(scope, id).expect("closure is messed up");
                 self.trilogy_reference_to(new_upvalue, variable);
                 scope.upvalues.insert(id.clone(), new_upvalue);
             }
