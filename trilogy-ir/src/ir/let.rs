@@ -1,6 +1,5 @@
 use super::*;
 use crate::Converter;
-use source_span::Span;
 use trilogy_parser::{syntax, Spanned};
 
 #[derive(Clone, Debug)]
@@ -21,13 +20,18 @@ impl Let {
     ) -> Expression {
         let span = ast.span();
         let query = Query::convert(converter, ast.query);
-        let body = Expression::convert_sequence(converter, rest);
-        // TODO: Span::default() is not best here, but there's not really a proper span for
-        // this, so what to do?
-        Expression::r#let(
-            span,
-            crate::ir::Let::new(query, Expression::sequence(Span::default(), body)),
-        )
+        let body = match Expression::convert_sequence(converter, rest) {
+            Some(body) => {
+                let body_span = body
+                    .iter()
+                    .map(|expr| expr.span)
+                    .reduce(|a, b| a.union(b))
+                    .unwrap();
+                Expression::sequence(body_span, body)
+            }
+            None => Expression::unit(span),
+        };
+        Expression::r#let(span, crate::ir::Let::new(query, body))
     }
 
     pub(super) fn convert(converter: &mut Converter, ast: syntax::LetExpression) -> Expression {

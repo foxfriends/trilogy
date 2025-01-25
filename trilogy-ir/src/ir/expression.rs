@@ -172,25 +172,24 @@ impl Expression {
     pub(super) fn convert_block(converter: &mut Converter, ast: syntax::Block) -> Self {
         let span = ast.span();
         converter.push_scope();
-        if ast.statements.is_empty() {
-            Self::unit(span)
-        } else {
-            let sequence = Self::convert_sequence(converter, &mut ast.statements.into_iter());
-            converter.pop_scope();
-            Self::sequence(span, sequence)
-        }
+        let expr = Self::convert_sequence(converter, &mut ast.statements.into_iter())
+            .map(|seq| Self::sequence(span, seq))
+            .unwrap_or_else(|| Self::unit(span));
+        converter.pop_scope();
+        expr
     }
 
     pub(super) fn convert_sequence(
         converter: &mut Converter,
         statements: &mut impl std::iter::Iterator<Item = syntax::Statement>,
-    ) -> Vec<Self> {
+    ) -> Option<Vec<Self>> {
         let mut sequence = vec![];
         Self::convert_sequence_into(converter, statements, &mut sequence);
         if sequence.is_empty() {
-            sequence.push(Expression::unit(Span::default()))
+            None
+        } else {
+            Some(sequence)
         }
-        sequence
     }
 
     fn convert_sequence_into(

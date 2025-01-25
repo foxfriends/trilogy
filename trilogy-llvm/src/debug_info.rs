@@ -98,8 +98,8 @@ impl<'ctx> DebugInfo<'ctx> {
         let block = self.builder.create_lexical_block(
             scope,
             self.unit.get_file(),
-            span.start().line as u32,
-            span.start().column as u32,
+            span.start().line as u32 + 1,
+            span.start().column as u32 + 1,
         );
         let mut scopes = self.debug_scopes.borrow_mut();
         scopes.push(block.as_debug_info_scope());

@@ -16,6 +16,7 @@ impl<'ctx> Codegen<'ctx> {
         on_fail: BasicBlock<'ctx>,
     ) -> Option<()> {
         self.set_span(pattern.span);
+
         match &pattern.value {
             Value::Reference(id) => {
                 let variable = self.variable(scope, id);
@@ -82,6 +83,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Application(app) => {
                 self.compile_match_application(scope, value, app, on_fail)?
             }
+            Value::Wildcard => {}
             _ => todo!(),
         }
         Some(())

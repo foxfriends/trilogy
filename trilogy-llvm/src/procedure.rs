@@ -34,11 +34,11 @@ impl<'ctx> Codegen<'ctx> {
             name,
             Some(name),
             self.di.unit.get_file(),
-            span.start().line as u32,
+            span.start().line as u32 + 1,
             self.di.procedure_di_type(arity),
             linkage == Linkage::External,
             false,
-            span.start().line as u32,
+            span.start().line as u32 + 1,
             LLVMDIFlagPublic,
             false,
         );
@@ -111,11 +111,11 @@ impl<'ctx> Codegen<'ctx> {
             name,
             Some(linkage_name),
             self.di.unit.get_file(),
-            span.start().line as u32,
+            span.start().line as u32 + 1,
             self.di.procedure_di_type(arity),
             linkage == Linkage::External,
             true,
-            span.start().line as u32,
+            span.start().line as u32 + 1,
             LLVMDIFlagPublic,
             false,
         );
@@ -204,10 +204,9 @@ impl<'ctx> Codegen<'ctx> {
 
         scope.set_cleanup(cleanup);
 
-        self.set_span(procedure.head_span);
-
         'body: {
             self.builder.position_at_end(entry);
+            self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
                 let value = scope
                     .function

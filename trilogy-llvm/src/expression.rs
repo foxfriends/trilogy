@@ -413,11 +413,11 @@ impl<'ctx> Codegen<'ctx> {
                 &name,
                 None,
                 closure_codegen.di.unit.get_file(),
-                procedure.span.start().line as u32,
+                procedure.span.start().line as u32 + 1,
                 closure_codegen.di.closure_di_type(arity),
                 false,
                 true,
-                procedure.span.start().line as u32,
+                procedure.span.start().line as u32 + 1,
                 LLVMDIFlagPublic,
                 false,
             );

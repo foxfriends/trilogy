@@ -280,7 +280,7 @@ impl<'ctx> Codegen<'ctx> {
                     subp.as_debug_info_scope(),
                     name,
                     self.di.unit.get_file(),
-                    id.declaration_span.start().line as u32,
+                    id.declaration_span.start().line as u32 + 1,
                     self.di.value_di_type().as_type(),
                     true,
                     LLVMDIFlagPublic,
@@ -288,8 +288,8 @@ impl<'ctx> Codegen<'ctx> {
                 );
                 let di_location = self.di.builder.create_debug_location(
                     self.context,
-                    id.span.start().line as u32,
-                    id.span.start().column as u32,
+                    id.span.start().line as u32 + 1,
+                    id.span.start().column as u32 + 1,
                     subp.as_debug_info_scope(),
                     None,
                 );

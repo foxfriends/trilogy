@@ -18,9 +18,10 @@ impl ProcedureDefinition {
     }
 
     pub fn span(&self) -> Span {
-        match self.overloads.first() {
-            Some(first) => first.span.union(self.overloads.last().unwrap().span),
-            None => self.name.span,
+        match self.overloads.as_slice() {
+            [first] => first.head_span.union(first.span),
+            [] => self.name.span,
+            _ => unreachable!("prodecure can have only one overload"),
         }
     }
 }
