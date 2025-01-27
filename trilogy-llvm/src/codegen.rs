@@ -1,14 +1,26 @@
+#![expect(dead_code, reason = "WIP")]
 use crate::{
     debug_info::DebugInfo,
     scope::{Scope, Variable},
     types,
 };
 use inkwell::{
-    builder::Builder, context::Context, debug_info::AsDIScope, execution_engine::ExecutionEngine,
-    llvm_sys::debuginfo::LLVMDIFlagPublic, memory_buffer::MemoryBuffer, module::Module,
-    values::PointerValue, AddressSpace, OptimizationLevel,
+    basic_block::BasicBlock,
+    builder::Builder,
+    context::Context,
+    debug_info::AsDIScope,
+    execution_engine::ExecutionEngine,
+    llvm_sys::debuginfo::LLVMDIFlagPublic,
+    memory_buffer::MemoryBuffer,
+    module::Module,
+    values::{FunctionValue, InstructionValue, PointerValue},
+    AddressSpace, OptimizationLevel,
 };
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::{Rc, Weak},
+};
 use trilogy_ir::{ir, Id};
 
 #[derive(Clone)]
@@ -34,9 +46,60 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) modules: &'ctx HashMap<String, &'ctx ir::Module>,
     pub(crate) globals: HashMap<Id, Head>,
     pub(crate) location: String,
+
+    /// The chain of continuations arriving at the current expression being compiled.
+    ///
+    /// The last one is the current point. There should always be at least one (while
+    /// compiling a function), and they should be topologically sorted according to their
+    /// contained `capture_from` lists.
+    pub(crate) continuation_points: Vec<Rc<ContinuationPoint<'ctx>>>,
+}
+
+/// During the reverse continuation phase, when closing this continuation block,
+/// insert the instructions to build the closure after this instruction, and
+/// replace this instruction with the allocation of a properly sized closure array.
+struct Exit<'ctx> {
+    instruction: InstructionValue<'ctx>,
+    block: BasicBlock<'ctx>,
+}
+
+/// NOTE: Continuations for return, yield, and end are implicitly carried
+/// as parameters to a continuation, as per calling convention.
+pub(crate) struct ContinuationPoint<'ctx> {
+    /// The end of this continuation point. Only one exit is necessary, as the continuation
+    /// is split at any branch, one for each branch target, and gets merged afterwards.
+    ///
+    /// The latest continuation point does not have an exit set, as it has not yet exited.
+    exit: Option<Exit<'ctx>>,
+
+    /// Pointers to variables available at this point in the continuation.
+    /// These pointers may be to values on stack, or to locations in the closure.
+    pub(crate) variables: HashMap<Id, Variable<'ctx>>,
+    /// The list of all variables which can possibly be referenced from this location.
+    /// If the variable is not already referenced (i.e. found in the `variables` map),
+    /// then it must be requested from all of the `capture_from` continuation points
+    /// and added to the closure array and variables map.
+    pub(crate) parent_variables: HashSet<Id>,
+
+    /// Maintains the order of variables found in the closure array.
+    pub(crate) closure: Vec<Id>,
+    /// The mapping from variable names to their upvalues. If one already exists for a variable
+    /// as it is being captured, it must be reused.
+    pub(crate) upvalues: HashMap<Id, PointerValue<'ctx>>,
+    /// The lexical pre-continuations from which this continuation may be reached. May be many
+    /// in the case of branching instructions such as `if` or `match`.
+    pub(crate) capture_from: Vec<Weak<ContinuationPoint<'ctx>>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
+    pub(crate) fn get_function(&self) -> FunctionValue<'ctx> {
+        self.builder
+            .get_insert_block()
+            .unwrap()
+            .get_parent()
+            .unwrap()
+    }
+
     pub(crate) fn new(
         context: &'ctx Context,
         modules: &'ctx HashMap<String, &'ctx ir::Module>,
@@ -72,11 +135,16 @@ impl<'ctx> Codegen<'ctx> {
             modules,
             globals: HashMap::default(),
             location: "trilogy:runtime".to_owned(),
+            continuation_points: vec![],
         };
 
         codegen
     }
 
+    /// Creates a `Codegen` for another (distinct) Trilogy module.
+    ///
+    /// This function is called `sub` as in `submodule` incorrectly; it is not for creating
+    /// a `Codegen` for a Trilogy module's submodule.
     pub(crate) fn sub(&self, name: &str) -> Codegen<'ctx> {
         let module = self.context.create_module(name);
         let di = DebugInfo::new(&module, name);
@@ -90,9 +158,11 @@ impl<'ctx> Codegen<'ctx> {
             modules: self.modules,
             globals: HashMap::new(),
             location: name.to_owned(),
+            continuation_points: vec![],
         }
     }
 
+    /// Creates a `Codegen` for a sub-function or continuation.
     pub(crate) fn inner(&self) -> Codegen<'ctx> {
         Codegen {
             atoms: self.atoms.clone(),
@@ -104,6 +174,7 @@ impl<'ctx> Codegen<'ctx> {
             modules: self.modules,
             globals: self.globals.clone(),
             location: self.location.clone(),
+            continuation_points: vec![],
         }
     }
 
