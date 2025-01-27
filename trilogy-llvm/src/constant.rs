@@ -1,4 +1,4 @@
-use crate::{scope::Scope, Codegen};
+use crate::Codegen;
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
@@ -72,7 +72,6 @@ impl<'ctx> Codegen<'ctx> {
             .get_function(&format!("{}::{}", self.location, definition.name))
             .unwrap();
 
-        let mut scope = Scope::begin(function);
         self.di.validate();
         self.di
             .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
@@ -86,7 +85,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(initialize);
         if self
-            .compile_expression(&mut scope, global.as_pointer_value(), &definition.value)
+            .compile_expression(global.as_pointer_value(), &definition.value)
             .is_some()
         {
             self.builder
@@ -94,9 +93,10 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap();
         }
 
+        // TODO: someday constants... should be constant. And deterministic
         self.builder.position_at_end(initialized);
-        self.trilogy_value_clone_into(scope.sret(), global.as_pointer_value());
-        self.builder.build_return(None).unwrap();
+        let return_cont = function.get_first_param().unwrap().into_pointer_value();
+        self.call_continuation(return_cont, global.as_pointer_value().into());
         self.di.pop_scope();
         self.di.validate();
     }

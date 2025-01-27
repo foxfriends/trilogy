@@ -3,14 +3,13 @@ use inkwell::{
     AddressSpace, IntPredicate,
 };
 
-use crate::{codegen::Codegen, scope::Scope, types, TrilogyValue};
+use crate::{codegen::Codegen, types, TrilogyValue};
 
 impl Codegen<'_> {
     pub(crate) fn compile_standalone(&self, entrymodule: &str, entrypoint: &str) {
         let main_wrapper =
             self.module
                 .add_function("main", self.context.i32_type().fn_type(&[], false), None);
-        let scope = Scope::begin(main_wrapper);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
         let exit_unit = self.context.append_basic_block(main_wrapper, "exit_unit");
         let exit_int = self.context.append_basic_block(main_wrapper, "exit_int");
@@ -27,7 +26,7 @@ impl Codegen<'_> {
 
         // Call main
         let output = self.allocate_value("main.out");
-        self.call_procedure(&scope, output, main, &[]);
+        self.call_procedure(output, main, &[]);
 
         // Convert return value to exit code
         let tag = self.get_tag(output);
@@ -88,7 +87,6 @@ impl Codegen<'_> {
             ),
         );
 
-        let scope = Scope::begin(main_wrapper);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
 
         self.builder.position_at_end(basic_block);
@@ -101,7 +99,7 @@ impl Codegen<'_> {
         self.call_procedure_direct(main, main_accessor, &[]);
 
         // Call main
-        self.call_procedure(&scope, output_ptr.as_pointer_value(), main, &[]);
+        self.call_procedure(output_ptr.as_pointer_value(), main, &[]);
         self.builder.build_return(None).unwrap();
     }
 }

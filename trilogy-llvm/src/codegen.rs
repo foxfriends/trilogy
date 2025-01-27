@@ -1,9 +1,5 @@
 #![expect(dead_code, reason = "WIP")]
-use crate::{
-    debug_info::DebugInfo,
-    scope::{Scope, Variable},
-    types,
-};
+use crate::{debug_info::DebugInfo, types};
 use inkwell::{
     basic_block::BasicBlock,
     builder::Builder,
@@ -13,7 +9,7 @@ use inkwell::{
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     memory_buffer::MemoryBuffer,
     module::Module,
-    values::{FunctionValue, InstructionValue, PointerValue},
+    values::{BasicValue, FunctionValue, InstructionValue, IntValue, PointerValue},
     AddressSpace, OptimizationLevel,
 };
 use std::{
@@ -52,29 +48,54 @@ pub(crate) struct Codegen<'ctx> {
     /// The last one is the current point. There should always be at least one (while
     /// compiling a function), and they should be topologically sorted according to their
     /// contained `capture_from` lists.
-    pub(crate) continuation_points: Vec<Rc<ContinuationPoint<'ctx>>>,
+    pub(crate) continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
 }
 
 /// During the reverse continuation phase, when closing this continuation block,
 /// insert the instructions to build the closure after this instruction, and
 /// replace this instruction with the allocation of a properly sized closure array.
-struct Exit<'ctx> {
-    instruction: InstructionValue<'ctx>,
-    block: BasicBlock<'ctx>,
+#[derive(Default, Copy, Clone)]
+enum Exit<'ctx> {
+    #[default]
+    Current,
+    Continued {
+        instruction: InstructionValue<'ctx>,
+        size_placeholder: IntValue<'ctx>,
+        block: BasicBlock<'ctx>,
+    },
+    Returned {
+        instruction: InstructionValue<'ctx>,
+        block: BasicBlock<'ctx>,
+    },
+}
+
+enum Variable<'ctx> {
+    Closed(PointerValue<'ctx>),
+    Owned(PointerValue<'ctx>),
+}
+
+impl<'ctx> Variable<'ctx> {
+    fn ptr(&self) -> PointerValue<'ctx> {
+        match self {
+            Self::Closed(ptr) => *ptr,
+            Self::Owned(ptr) => *ptr,
+        }
+    }
 }
 
 /// NOTE: Continuations for return, yield, and end are implicitly carried
 /// as parameters to a continuation, as per calling convention.
+#[derive(Default)]
 pub(crate) struct ContinuationPoint<'ctx> {
     /// The end of this continuation point. Only one exit is necessary, as the continuation
     /// is split at any branch, one for each branch target, and gets merged afterwards.
     ///
     /// The latest continuation point does not have an exit set, as it has not yet exited.
-    exit: Option<Exit<'ctx>>,
+    exit: Exit<'ctx>,
 
     /// Pointers to variables available at this point in the continuation.
     /// These pointers may be to values on stack, or to locations in the closure.
-    pub(crate) variables: HashMap<Id, Variable<'ctx>>,
+    variables: RefCell<HashMap<Id, Variable<'ctx>>>,
     /// The list of all variables which can possibly be referenced from this location.
     /// If the variable is not already referenced (i.e. found in the `variables` map),
     /// then it must be requested from all of the `capture_from` continuation points
@@ -82,13 +103,32 @@ pub(crate) struct ContinuationPoint<'ctx> {
     pub(crate) parent_variables: HashSet<Id>,
 
     /// Maintains the order of variables found in the closure array.
-    pub(crate) closure: Vec<Id>,
+    pub(crate) closure: RefCell<Vec<Id>>,
     /// The mapping from variable names to their upvalues. If one already exists for a variable
     /// as it is being captured, it must be reused.
-    pub(crate) upvalues: HashMap<Id, PointerValue<'ctx>>,
+    pub(crate) upvalues: RefCell<HashMap<Id, PointerValue<'ctx>>>,
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
     pub(crate) capture_from: Vec<Weak<ContinuationPoint<'ctx>>>,
+}
+
+impl<'ctx> ContinuationPoint<'ctx> {
+    fn child(parent: &Rc<ContinuationPoint<'ctx>>) -> Self {
+        Self {
+            exit: Exit::Current,
+            variables: RefCell::default(),
+            closure: RefCell::default(),
+            parent_variables: parent
+                .variables
+                .borrow()
+                .keys()
+                .chain(parent.parent_variables.iter())
+                .cloned()
+                .collect(),
+            upvalues: RefCell::default(),
+            capture_from: vec![Rc::downgrade(parent)],
+        }
+    }
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -135,7 +175,7 @@ impl<'ctx> Codegen<'ctx> {
             modules,
             globals: HashMap::default(),
             location: "trilogy:runtime".to_owned(),
-            continuation_points: vec![],
+            continuation_points: RefCell::default(),
         };
 
         codegen
@@ -158,12 +198,14 @@ impl<'ctx> Codegen<'ctx> {
             modules: self.modules,
             globals: HashMap::new(),
             location: name.to_owned(),
-            continuation_points: vec![],
+            continuation_points: RefCell::default(),
         }
     }
 
     /// Creates a `Codegen` for a sub-function or continuation.
     pub(crate) fn inner(&self) -> Codegen<'ctx> {
+        let mut points = self.continuation_points.borrow().clone();
+        points.push(Rc::new(ContinuationPoint::child(points.last().unwrap())));
         Codegen {
             atoms: self.atoms.clone(),
             context: self.context,
@@ -174,8 +216,125 @@ impl<'ctx> Codegen<'ctx> {
             modules: self.modules,
             globals: self.globals.clone(),
             location: self.location.clone(),
-            continuation_points: vec![],
+            continuation_points: RefCell::new(points),
         }
+    }
+
+    pub(crate) fn set_returned(&self, instruction: InstructionValue<'ctx>) {
+        Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
+            .unwrap()
+            .exit = Exit::Returned {
+            block: instruction.get_parent().unwrap(),
+            instruction,
+        };
+    }
+
+    pub(crate) fn close_continuation(&self) {
+        while let Some(last) = self.continuation_points.borrow_mut().pop() {
+            // This is where we do the cleanup, and then call the return continuation if we haven't already
+            // set up an exit.
+
+            match last.exit {
+                Exit::Current => {
+                    // When we're in the current continuation, and we hit the end, then we need to fake
+                    // a return. This might be best moved elsewhere
+                    for (id, var) in last.variables.borrow().iter() {
+                        if let Some(upvalue) = last.upvalues.borrow().get(id) {
+                            let upvalue = self.trilogy_reference_assume(*upvalue);
+                            self.trilogy_reference_close(upvalue);
+                        } else if let Variable::Owned(pointer) = var {
+                            self.trilogy_value_destroy(*pointer);
+                        }
+                    }
+                    // If the current lexical continuation ends without value, then it should `return unit`
+                    self.call_continuation(
+                        self.get_function()
+                            .get_first_param()
+                            .unwrap()
+                            .into_pointer_value(),
+                        self.unit_const().into(),
+                    );
+                    self.builder.build_return(None).unwrap();
+                }
+                Exit::Returned { instruction, .. } => {
+                    // If the current lexical continuation ended by returning, then we're just injecting
+                    // cleanup before the return...
+                    self.builder.position_before(&instruction);
+                    for (id, var) in last.variables.borrow().iter() {
+                        if let Some(upvalue) = last.upvalues.borrow().get(id) {
+                            let upvalue = self.trilogy_reference_assume(*upvalue);
+                            self.trilogy_reference_close(upvalue);
+                        } else if let Variable::Owned(pointer) = var {
+                            self.trilogy_value_destroy(*pointer);
+                        }
+                    }
+                }
+                Exit::Continued {
+                    instruction,
+                    block,
+                    size_placeholder,
+                } => {
+                    self.builder.position_at(block, &instruction);
+                    let (closure_size, closure) = self.build_closure(&last);
+                    instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                    size_placeholder.replace_all_uses_with(
+                        self.context
+                            .i32_type()
+                            .const_int(closure_size as u64, false),
+                    );
+                    instruction.erase_from_basic_block();
+                }
+            }
+        }
+    }
+
+    pub(crate) fn close_as_do(
+        &self,
+        target: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
+        arity: usize,
+    ) {
+        let child_scope = self.continuation_points.borrow_mut().pop().unwrap();
+        let (closure_size, closure) = self.build_closure(&child_scope);
+        self.trilogy_callable_init_do(
+            target,
+            arity,
+            closure_size,
+            closure,
+            function.as_global_value().as_pointer_value(),
+        );
+    }
+
+    fn build_closure(&self, child_scope: &ContinuationPoint<'ctx>) -> (usize, PointerValue<'ctx>) {
+        let scope = self.continuation_points.borrow().last().unwrap().clone();
+        let closure_size = child_scope.closure.borrow().len();
+        let closure = self.prepare_closure(closure_size);
+        for (i, id) in child_scope.closure.borrow().iter().enumerate() {
+            let new_upvalue = unsafe {
+                self.builder
+                    .build_gep(
+                        self.value_type().array_type(0),
+                        closure,
+                        &[
+                            self.context.i32_type().const_int(0, false),
+                            self.context.i32_type().const_int(i as u64, false),
+                        ],
+                        "",
+                    )
+                    .unwrap()
+            };
+            if let Some(ptr) = scope.upvalues.borrow().get(id) {
+                self.trilogy_value_clone_into(new_upvalue, *ptr);
+            } else if let Some(variable) = scope.variables.borrow().get(id) {
+                self.trilogy_reference_to(new_upvalue, variable.ptr());
+                scope.upvalues.borrow_mut().insert(id.clone(), new_upvalue);
+            } else if scope.parent_variables.contains(id) {
+                let variable = self.get_variable(id).expect("closure is messed up");
+                self.trilogy_reference_to(new_upvalue, variable);
+                scope.upvalues.borrow_mut().insert(id.clone(), new_upvalue);
+            }
+        }
+        (closure_size, closure)
     }
 
     pub(crate) fn allocate_value(&self, name: &str) -> PointerValue<'ctx> {
@@ -237,32 +396,38 @@ impl<'ctx> Codegen<'ctx> {
         (Rc::into_inner(self.module).unwrap(), self.execution_engine)
     }
 
-    pub(crate) fn get_variable(
-        &self,
-        scope: &mut Scope<'ctx>,
-        id: &Id,
-    ) -> Option<PointerValue<'ctx>> {
-        if scope.variables.contains_key(id) {
-            return Some(scope.variables.get(id).unwrap().ptr());
+    fn current_continuation(&self) -> Rc<ContinuationPoint<'ctx>> {
+        self.continuation_points.borrow().last().unwrap().clone()
+    }
+
+    pub(crate) fn get_variable(&self, id: &Id) -> Option<PointerValue<'ctx>> {
+        let scope = self.current_continuation();
+        if let Some(var) = scope.variables.borrow().get(id) {
+            return Some(var.ptr());
         }
 
         if scope.parent_variables.contains(id) {
-            let closure_index = scope.closure.len();
-            scope.closure.push(id.clone());
+            let mut closure = scope.closure.borrow_mut();
+            let closure_index = closure.len();
+            closure.push(id.clone());
 
-            // Closure is an array of trilogy values, where each of those trilogy values is a reference
-            // To access the variable then:
+            // Closure is an array of `trilogy_value`, where each of those values is a reference.
+            // To access the variable:
             // 1. Consider the nth element of the array
             // 2. Get the value inside
             // 3. Assume a reference, and load its location field
             // 4. That value of that location field is the pointer to the actual value
-            let closure = scope.get_closure_ptr();
+            let closure_ptr = self
+                .get_function()
+                .get_last_param()
+                .unwrap()
+                .into_pointer_value();
             let location = unsafe {
                 let array_entry = self
                     .builder
                     .build_gep(
                         self.value_type().array_type(0),
-                        closure,
+                        closure_ptr,
                         &[
                             self.context.i32_type().const_int(0, false),
                             self.context
@@ -284,6 +449,7 @@ impl<'ctx> Codegen<'ctx> {
             };
             scope
                 .variables
+                .borrow_mut()
                 .insert(id.clone(), Variable::Closed(location));
             return Some(location);
         }
@@ -291,16 +457,13 @@ impl<'ctx> Codegen<'ctx> {
         None
     }
 
-    pub(crate) fn variable(
-        &self,
-        scope: &mut Scope<'ctx>,
-        id: &ir::Identifier,
-    ) -> PointerValue<'ctx> {
-        if let Some(variable) = self.get_variable(scope, &id.id) {
+    pub(crate) fn variable(&self, id: &ir::Identifier) -> PointerValue<'ctx> {
+        if let Some(variable) = self.get_variable(&id.id) {
             return variable;
         }
+
         let builder = self.context.create_builder();
-        let entry = scope.function.get_first_basic_block().unwrap();
+        let entry = self.get_function().get_first_basic_block().unwrap();
         match entry.get_first_instruction() {
             Some(instruction) => builder.position_before(&instruction),
             None => builder.position_at_end(entry),
@@ -312,11 +475,13 @@ impl<'ctx> Codegen<'ctx> {
         builder
             .build_store(variable, self.value_type().const_zero())
             .unwrap();
+        let scope = self.current_continuation();
         scope
             .variables
+            .borrow_mut()
             .insert(id.id.clone(), Variable::Owned(variable));
 
-        if let Some(subp) = scope.function.get_subprogram() {
+        if let Some(subp) = self.get_function().get_subprogram() {
             if let Some(name) = id.id.name() {
                 let di_variable = self.di.builder.create_auto_variable(
                     subp.as_debug_info_scope(),

@@ -1,14 +1,16 @@
-use crate::{codegen::Codegen, scope::Scope};
+use crate::codegen::Codegen;
 use inkwell::{
     llvm_sys::LLVMCallConv,
-    values::{BasicMetadataValueEnum, FunctionValue, PointerValue},
+    values::{
+        BasicMetadataValueEnum, BasicValue, FunctionValue, InstructionValue, LLVMTailCallKind,
+        PointerValue,
+    },
     AddressSpace, IntPredicate,
 };
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn call_procedure(
         &self,
-        scope: &Scope<'ctx>,
         target: PointerValue<'ctx>,
         procedure: PointerValue<'ctx>,
         arguments: &[BasicMetadataValueEnum<'ctx>],
@@ -49,9 +51,15 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap();
 
-        let direct_block = self.context.append_basic_block(scope.function, "call.proc");
-        let closure_block = self.context.append_basic_block(scope.function, "call.do");
-        let cont_block = self.context.append_basic_block(scope.function, "call.cont");
+        let direct_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.proc");
+        let closure_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.do");
+        let cont_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.cont");
 
         let function = self.trilogy_procedure_untag(callable, args.len() - 1, "");
         self.builder
@@ -88,6 +96,50 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(cont_block);
     }
 
+    pub(crate) fn call_continuation(
+        &self,
+        function: PointerValue<'ctx>,
+        argument: BasicMetadataValueEnum<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        let callable = self.trilogy_callable_untag(function, "");
+
+        let closure = self
+            .builder
+            .build_struct_gep(self.callable_value_type(), callable, 4, "")
+            .unwrap();
+        let closure = self
+            .builder
+            .build_load(self.context.ptr_type(AddressSpace::default()), closure, "")
+            .unwrap()
+            .into_pointer_value();
+
+        let mut args = vec![
+            todo!(
+                "this should be a previously bound return continuation (and other continuations)"
+            ),
+            argument,
+            closure.into(),
+        ];
+
+        let function = self.trilogy_function_untag(callable, "");
+
+        let call = self
+            .builder
+            .build_indirect_call(
+                self.procedure_type(args.len() - 1, true),
+                function,
+                &args,
+                "",
+            )
+            .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        self.builder.build_return(None).unwrap();
+        call.try_as_basic_value()
+            .either(|l| l.as_instruction_value(), |r| Some(r))
+            .unwrap()
+    }
+
     pub(crate) fn call_procedure_direct(
         &self,
         target: PointerValue<'ctx>,
@@ -101,7 +153,6 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn apply_function(
         &self,
-        scope: &Scope<'ctx>,
         target: PointerValue<'ctx>,
         function: PointerValue<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
@@ -140,9 +191,15 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap();
 
-        let direct_block = self.context.append_basic_block(scope.function, "call.proc");
-        let closure_block = self.context.append_basic_block(scope.function, "call.do");
-        let cont_block = self.context.append_basic_block(scope.function, "call.cont");
+        let direct_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.proc");
+        let closure_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.do");
+        let cont_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.cont");
 
         let function = self.trilogy_function_untag(callable, "");
         self.builder
