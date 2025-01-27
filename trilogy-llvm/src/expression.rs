@@ -353,7 +353,7 @@ impl<'ctx> Codegen<'ctx> {
                 .get(&identifier.id)
                 .expect("Unresolved variable")
             {
-                Head::Constant | Head::Procedure(..) => {
+                Head::Constant | Head::Procedure => {
                     let global_name =
                         format!("{}::{name}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();

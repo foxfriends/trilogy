@@ -37,7 +37,7 @@ impl<'ctx> Codegen<'ctx> {
                     );
                     subcontext
                         .globals
-                        .insert(procedure.name.id.clone(), Head::Procedure(procedure.arity));
+                        .insert(procedure.name.id.clone(), Head::Procedure);
                 }
                 DefinitionItem::Procedure(procedure) => {
                     subcontext.declare_procedure(
@@ -52,7 +52,7 @@ impl<'ctx> Codegen<'ctx> {
                     );
                     subcontext
                         .globals
-                        .insert(procedure.name.id.clone(), Head::Procedure(procedure.arity));
+                        .insert(procedure.name.id.clone(), Head::Procedure);
                 }
 
                 _ => {}

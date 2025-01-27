@@ -1,31 +1,23 @@
-#![expect(dead_code, reason = "WIP")]
-
 use crate::{
     debug_info::DebugInfo,
     scope::{Scope, Variable},
     types,
 };
 use inkwell::{
-    attributes::{Attribute, AttributeLoc},
-    builder::Builder,
-    context::Context,
-    debug_info::AsDIScope,
-    execution_engine::ExecutionEngine,
-    llvm_sys::debuginfo::LLVMDIFlagPublic,
-    memory_buffer::MemoryBuffer,
-    module::{Linkage, Module},
-    values::{FunctionValue, PointerValue},
-    AddressSpace, OptimizationLevel,
+    builder::Builder, context::Context, debug_info::AsDIScope, execution_engine::ExecutionEngine,
+    llvm_sys::debuginfo::LLVMDIFlagPublic, memory_buffer::MemoryBuffer, module::Module,
+    values::PointerValue, AddressSpace, OptimizationLevel,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use trilogy_ir::{ir, Id};
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub(crate) enum Head {
     Constant,
     Function,
-    Procedure(usize),
-    Rule(usize),
+    Procedure,
+    Rule,
     Module(String),
 }
 
@@ -172,27 +164,6 @@ impl<'ctx> Codegen<'ctx> {
         self.module.link_in_module(core).unwrap();
         self.di.builder.finalize();
         (Rc::into_inner(self.module).unwrap(), self.execution_engine)
-    }
-
-    pub(crate) fn add_function(&self, name: &str, exported: bool) -> FunctionValue<'ctx> {
-        let procedure = self.module.add_function(
-            name,
-            self.procedure_type(1, false),
-            if exported {
-                Some(Linkage::External)
-            } else {
-                Some(Linkage::Private)
-            },
-        );
-        procedure.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        procedure.get_nth_param(0).unwrap().set_name("sretptr");
-        procedure
     }
 
     pub(crate) fn get_variable(
