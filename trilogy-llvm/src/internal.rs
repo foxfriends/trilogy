@@ -220,6 +220,28 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    /// Untags a continuation. The value should be a `trilogy_callable_value` and the return pointer will be
+    /// a bare function pointer.
+    pub(crate) fn trilogy_continuation_untag(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_continuation_untag",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
     /// Untags a function. The value should be a `trilogy_callable_value` and the return pointer will be
     /// a bare function pointer.
     pub(crate) fn trilogy_function_untag(

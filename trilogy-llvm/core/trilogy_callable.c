@@ -32,6 +32,8 @@ void trilogy_callable_init_fn(
     callable->rc = 1;
     callable->tag = CALLABLE_FUNCTION;
     callable->arity = 1;
+    callable->return_to = NULL;
+    callable->yield_to = NULL;
     callable->closure_size = closure_size;
     callable->closure = c;
     callable->function = p;
@@ -47,6 +49,8 @@ void trilogy_callable_init_do(
     callable->rc = 1;
     callable->tag = CALLABLE_PROCEDURE;
     callable->arity = arity;
+    callable->return_to = NULL;
+    callable->yield_to = NULL;
     callable->closure_size = closure_size;
     callable->closure = c;
     callable->function = p;
@@ -62,6 +66,8 @@ void trilogy_callable_init_qy(
     callable->rc = 1;
     callable->tag = CALLABLE_RULE;
     callable->arity = arity;
+    callable->return_to = NULL;
+    callable->yield_to = NULL;
     callable->closure_size = closure_size;
     callable->closure = c;
     callable->function = p;
@@ -78,6 +84,24 @@ void trilogy_callable_init_func(trilogy_value* t, void* p) {
 
 void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
     trilogy_callable_init_qy(t, arity, 0, NO_CLOSURE, p);
+}
+
+void trilogy_callable_init_cont(
+    trilogy_value* t, unsigned int arity, trilogy_value* return_to,
+    trilogy_value* yield_to, unsigned int closure_size, trilogy_value* c,
+    void* p
+) {
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    callable->rc = 1;
+    callable->tag = CALLABLE_CONTINUATION;
+    callable->arity = arity;
+    callable->return_to = return_to;
+    callable->yield_to = yield_to;
+    callable->closure_size = closure_size;
+    callable->closure = c;
+    callable->function = p;
+    trilogy_callable_init(t, callable);
 }
 
 #include <stdio.h>
@@ -121,5 +145,11 @@ void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity) {
     if (val->tag != CALLABLE_RULE)
         internal_panic("invalid call of non-rule callable");
     if (val->arity != arity) internal_panic("rule call arity mismatch");
+    return (void*)val->function;
+}
+
+void* trilogy_continuation_untag(trilogy_callable_value* val) {
+    if (val->tag != CALLABLE_CONTINUATION)
+        internal_panic("invalid call of non-rule callable");
     return (void*)val->function;
 }

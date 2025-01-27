@@ -22,11 +22,13 @@ impl Codegen<'_> {
             .get_function(&format!("{entrymodule}::{entrypoint}"))
             .unwrap();
         let main = self.allocate_value("main");
-        self.call_procedure_direct(main, main_accessor, &[]);
+        self.call_internal(main, main_accessor, &[]);
 
         // Call main
         let output = self.allocate_value("main.out");
-        self.call_procedure(output, main, &[]);
+
+        // TODO: get output of this call into `output`
+        self.call_procedure(main, &[]);
 
         // Convert return value to exit code
         let tag = self.get_tag(output);
@@ -96,10 +98,11 @@ impl Codegen<'_> {
             .get_function(&format!("{entrymodule}::{entrypoint}"))
             .unwrap();
         let main = self.allocate_value("main");
-        self.call_procedure_direct(main, main_accessor, &[]);
+        self.call_internal(main, main_accessor, &[]);
 
         // Call main
-        self.call_procedure(output_ptr.as_pointer_value(), main, &[]);
+        // TODO: get output of this call into `output`
+        self.call_procedure(main, &[]);
         self.builder.build_return(None).unwrap();
     }
 }

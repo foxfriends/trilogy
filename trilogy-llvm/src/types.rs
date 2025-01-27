@@ -77,6 +77,51 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
+    pub(crate) fn get_callable_return_to(
+        &self,
+        pointer: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let value = self
+            .builder
+            .build_struct_gep(self.callable_value_type(), pointer, 4, "")
+            .unwrap();
+        self.builder
+            .build_load(self.value_type().array_type(0), value, name)
+            .unwrap()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn get_callable_yield_to(
+        &self,
+        pointer: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let value = self
+            .builder
+            .build_struct_gep(self.callable_value_type(), pointer, 5, "")
+            .unwrap();
+        self.builder
+            .build_load(self.value_type().array_type(0), value, name)
+            .unwrap()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn get_callable_closure(
+        &self,
+        pointer: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let value = self
+            .builder
+            .build_struct_gep(self.callable_value_type(), pointer, 6, "")
+            .unwrap();
+        self.builder
+            .build_load(self.value_type().array_type(0), value, name)
+            .unwrap()
+            .into_pointer_value()
+    }
+
     pub(crate) fn payload_type(&self) -> IntType<'ctx> {
         self.context.i64_type()
     }
@@ -108,6 +153,8 @@ impl<'ctx> Codegen<'ctx> {
                 self.context.i32_type().into(),
                 self.tag_type().into(),
                 self.context.i32_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.i32_type().into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
@@ -209,7 +256,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn procedure_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
-        let extras = if has_closure { 2 } else { 1 };
+        let extras = if has_closure { 4 } else { 3 };
         self.context.void_type().fn_type(
             &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + extras],
             false,

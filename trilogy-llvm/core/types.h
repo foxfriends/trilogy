@@ -26,7 +26,8 @@ typedef enum trilogy_value_tag : unsigned char {
 typedef enum trilogy_callable_tag : unsigned char {
     CALLABLE_FUNCTION = 1,
     CALLABLE_PROCEDURE = 2,
-    CALLABLE_RULE = 3
+    CALLABLE_RULE = 3,
+    CALLABLE_CONTINUATION = 4
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {
@@ -164,6 +165,12 @@ typedef struct trilogy_callable_value {
      * Other types may have any arity.
      */
     unsigned int arity;
+    /**
+     * For captured continuations, the return and yield points are stored rather
+     *than provided. (The `end` pointer is still provided)
+     **/
+    trilogy_value* return_to;
+    trilogy_value* yield_to;
     /**
      * Number of elements in the closure list.
      */

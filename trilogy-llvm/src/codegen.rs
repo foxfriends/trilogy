@@ -140,6 +140,27 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
+    pub(crate) fn get_return(&self) -> PointerValue<'ctx> {
+        self.get_function()
+            .get_nth_param(0)
+            .unwrap()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn get_yield(&self) -> PointerValue<'ctx> {
+        self.get_function()
+            .get_nth_param(1)
+            .unwrap()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn get_end(&self) -> PointerValue<'ctx> {
+        self.get_function()
+            .get_nth_param(2)
+            .unwrap()
+            .into_pointer_value()
+    }
+
     pub(crate) fn new(
         context: &'ctx Context,
         modules: &'ctx HashMap<String, &'ctx ir::Module>,

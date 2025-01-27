@@ -24,7 +24,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("structural_eq", 2);
-        self.call_procedure_direct(target, f, &[lhs.into(), rhs.into()]);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn referential_eq(
@@ -34,6 +34,6 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("referential_eq", 2);
-        self.call_procedure_direct(target, f, &[lhs.into(), rhs.into()]);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 }
