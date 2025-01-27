@@ -520,6 +520,7 @@ impl<'ctx> Codegen<'ctx> {
 // The challenge: IR is not CPS, so each expression does not know its continuation at time of codegen;
 //      1. Run a CPS conversion pass between IR and LLVM. A lot of work, but reliable
 //      2. Double-traverse during LLVM pass; go down, write code assuming a context, go back up and rebuild it. Messy, but easy, if it works.
-//          Only sequence nodes really require special handling, other places are all self-contained and will not be different in CPS form.
+//          Maintain a list of all parent nodes in the CPS graph, and every time a variable or keyword is referenced
+//          revisit those nodes to add a capture to that variable, if not already.
 //
-// I think we're going with (2) here.
+// I think we're going with (2) here...
