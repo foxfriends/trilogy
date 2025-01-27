@@ -75,15 +75,11 @@ impl<'ctx> Codegen<'ctx> {
             Value::ArrayComprehension(..) => todo!(),
             Value::SetComprehension(..) => todo!(),
             Value::RecordComprehension(..) => todo!(),
-            Value::Sequence(exprs) => {
+            Value::Sequence(seq) => {
                 self.di.push_block_scope(expression.span);
-                let mut exprs = exprs.iter();
-                self.compile_expression(scope, target, exprs.next().unwrap())?;
-                for expr in exprs {
-                    self.trilogy_value_destroy(target);
-                    self.compile_expression(scope, target, expr)?;
-                }
+                let res = self.compile_sequence(scope, target, seq);
                 self.di.pop_scope();
+                res?;
             }
             Value::Application(app) => self.compile_application(scope, target, app)?,
             Value::Builtin(val) => self.reference_builtin(scope, target, *val),
@@ -115,6 +111,21 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.set_current_debug_location(prev);
         }
 
+        Some(())
+    }
+
+    fn compile_sequence(
+        &self,
+        scope: &mut Scope<'ctx>,
+        target: PointerValue<'ctx>,
+        seq: &[ir::Expression],
+    ) -> Option<()> {
+        let mut exprs = seq.iter();
+        self.compile_expression(scope, target, exprs.next().unwrap())?;
+        for expr in exprs {
+            self.trilogy_value_destroy(target);
+            self.compile_expression(scope, target, expr)?;
+        }
         Some(())
     }
 
@@ -470,3 +481,45 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 }
+
+// TODO: all expressions must execute in CPS mode; a continuation is captured at certain points
+// 1. Any call to a function or procedure
+//      To enable the capture of `return`, all calls never return and instead go to a callback
+//      The return closure is carried through the whole continuation of a procedure; implicitly in the context
+// 2. Any non-deterministic `let`
+//      An `or` is executed with each side on a separate execution
+//      An `in` is executed with each element on a separate execution
+//      A `rule` is executed with a execution spawned for each possible binding
+//
+//      In any case, the `end` keyword is implemented as a continuation into the runtime, created at this point,
+//      that takes care of starting the next execution, or terminating the program.
+// 3. Any branch point (`if`, `match`)
+//      Not required for the branch itself, but required for the reconvergence
+//      Technically only required if either branch diverges, but we can simplify implementation by always making a continuation
+// 4. Any `when` or `yield`
+//      Capture at `when` for `cancel`
+//      Capture at `yield` for `resume`
+// 5. Any `for` or `while`
+//      Capture the exit of the loop for `break`
+//      Capture the entry of the loop for `continue`
+//
+// This manifests as each expression being compiled as having two possibly "targets"
+// 1. A pointer into which to save the evaluation result (as it is now)
+// 2. A continuation into which to call with the result (but at the time of compilation, that continuation is not known)
+//
+// Since only the "compiler" of the expression knows which place that is, the expression compilation must return its
+// value via an LLVM SSA register (e.g. an `Option<StructValue<'ctx>>` directly); and the caller can deal with that.
+// This is different than my previous two approaches (return an `Option<PointerValue<'ctx>>` controlling both data flow
+// and control flow, and return an `Option<()>` controlling only the control flow), which did not work as the expression
+// itself dictates neither the data flow nor control flow, and should not concern itself with those details.
+//
+// The naive approach: always assume every variable is captured, and basically don't use the stack at all.
+// Kind of easy to build...
+//
+// Slightly better: run codegen for "the rest" of this continuation, compute the captures, and reconstruct the context
+// The challenge: IR is not CPS, so each expression does not know its continuation at time of codegen;
+//      1. Run a CPS conversion pass between IR and LLVM. A lot of work, but reliable
+//      2. Double-traverse during LLVM pass; go down, write code assuming a context, go back up and rebuild it. Messy, but easy, if it works.
+//          Only sequence nodes really require special handling, other places are all self-contained and will not be different in CPS form.
+//
+// I think we're going with (2) here.
