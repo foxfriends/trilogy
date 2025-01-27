@@ -1,10 +1,9 @@
 #include "trilogy_callable.h"
 #include "internal.h"
+#include "trilogy_array.h"
 #include "trilogy_value.h"
 #include <assert.h>
 #include <stdlib.h>
-
-#define NO_CLOSURE 0
 
 trilogy_value* prepare_closure(unsigned int closure_size) {
     return calloc_safe(closure_size, sizeof(trilogy_value));
@@ -25,7 +24,7 @@ void trilogy_callable_clone_into(
 }
 
 void trilogy_callable_init_fn(
-    trilogy_value* t, unsigned int closure_size, trilogy_value* c, void* p
+    trilogy_value* t, trilogy_array_value* closure, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
@@ -34,15 +33,13 @@ void trilogy_callable_init_fn(
     callable->arity = 1;
     callable->return_to = NULL;
     callable->yield_to = NULL;
-    callable->closure_size = closure_size;
-    callable->closure = c;
+    callable->closure = closure;
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
 void trilogy_callable_init_do(
-    trilogy_value* t, unsigned int arity, unsigned int closure_size,
-    trilogy_value* c, void* p
+    trilogy_value* t, unsigned int arity, trilogy_array_value* closure, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
@@ -51,15 +48,13 @@ void trilogy_callable_init_do(
     callable->arity = arity;
     callable->return_to = NULL;
     callable->yield_to = NULL;
-    callable->closure_size = closure_size;
-    callable->closure = c;
+    callable->closure = closure;
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
 void trilogy_callable_init_qy(
-    trilogy_value* t, unsigned int arity, unsigned int closure_size,
-    trilogy_value* c, void* p
+    trilogy_value* t, unsigned int arity, trilogy_array_value* closure, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
@@ -68,28 +63,26 @@ void trilogy_callable_init_qy(
     callable->arity = arity;
     callable->return_to = NULL;
     callable->yield_to = NULL;
-    callable->closure_size = closure_size;
-    callable->closure = c;
+    callable->closure = closure;
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
 void trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p) {
-    trilogy_callable_init_do(t, arity, 0, NO_CLOSURE, p);
+    trilogy_callable_init_do(t, arity, NO_CLOSURE, p);
 }
 
 void trilogy_callable_init_func(trilogy_value* t, void* p) {
-    trilogy_callable_init_fn(t, 0, NO_CLOSURE, p);
+    trilogy_callable_init_fn(t, NO_CLOSURE, p);
 }
 
 void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
-    trilogy_callable_init_qy(t, arity, 0, NO_CLOSURE, p);
+    trilogy_callable_init_qy(t, arity, NO_CLOSURE, p);
 }
 
 void trilogy_callable_init_cont(
     trilogy_value* t, unsigned int arity, trilogy_value* return_to,
-    trilogy_value* yield_to, unsigned int closure_size, trilogy_value* c,
-    void* p
+    trilogy_value* yield_to, trilogy_array_value* closure, void* p
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
@@ -98,25 +91,31 @@ void trilogy_callable_init_cont(
     callable->arity = arity;
     callable->return_to = return_to;
     callable->yield_to = yield_to;
-    callable->closure_size = closure_size;
-    callable->closure = c;
+    callable->closure = closure;
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
-#include <stdio.h>
-
 void trilogy_callable_destroy(trilogy_callable_value* val) {
     if (--val->rc == 0) {
-        printf("freeing callable (%d closure size)\n", val->closure_size);
         if (val->closure != NO_CLOSURE) {
-            for (unsigned int i = 0; i < val->closure_size; ++i) {
-                trilogy_value_destroy(&val->closure[i]);
-            }
-            free(val->closure);
+            trilogy_array_destroy(val->closure);
+        }
+        if (val->return_to != NULL) {
+            trilogy_value_destroy(val->return_to);
+            free(val->return_to);
+        }
+        if (val->yield_to != NULL) {
+            trilogy_value_destroy(val->yield_to);
+            free(val->yield_to);
         }
         free(val);
     }
+}
+
+trilogy_array_value*
+trilogy_callable_closure_into(trilogy_value* val, trilogy_callable_value* cal) {
+    return trilogy_array_clone_into(val, cal->closure);
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {

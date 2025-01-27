@@ -206,7 +206,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
 
-            if let Some(value) = self.allocate_expression(&procedure.body, "") {
+            if let Some(value) = self.compile_expression(&procedure.body, "") {
                 // There is no implicit return of the final value of a procedure. That value is lost,
                 // and unit is returned instead. It is most likely that there is a return in the body,
                 // in which case we never reach this point

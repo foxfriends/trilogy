@@ -172,19 +172,15 @@ typedef struct trilogy_callable_value {
     trilogy_value* return_to;
     trilogy_value* yield_to;
     /**
-     * Number of elements in the closure list.
-     */
-    unsigned int closure_size;
-    /**
      * Context captured from the closure of this callable. This is an array of
-     * trilogy values (all of which would likely be references?).
+     * trilogy values (all of which would should be references?).
      *
      * The identity and population of each field is a static analysis concern.
      *
      * NOTE: there is the inherent risk of circular references here,
      * which should likely be solved weak references of some sort...
      */
-    trilogy_value* closure;
+    trilogy_array_value* closure;
     /**
      * Pointer to the function itself.
      */

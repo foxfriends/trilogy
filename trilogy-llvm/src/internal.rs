@@ -184,6 +184,30 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_callable_closure_into(
+        &self,
+        target: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_callable_closure_into",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), callable.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
     /// Untags a procedure. The value should be a `trilogy_callable_value` and the return pointer will be
     /// a bare function pointer.
     pub(crate) fn trilogy_procedure_untag(
@@ -428,34 +452,10 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn prepare_closure(&self, closure_size: usize) -> PointerValue<'ctx> {
-        let f = self.declare_internal(
-            "prepare_closure",
-            self.context
-                .ptr_type(AddressSpace::default())
-                .fn_type(&[self.context.i32_type().into()], false),
-        );
-        self.builder
-            .build_call(
-                f,
-                &[self
-                    .context
-                    .i32_type()
-                    .const_int(closure_size as u64, false)
-                    .into()],
-                "",
-            )
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_pointer_value()
-    }
-
     pub(crate) fn trilogy_callable_init_do(
         &self,
         t: PointerValue<'ctx>,
         arity: usize,
-        closure_size: usize,
         closure: PointerValue<'ctx>,
         function: PointerValue<'ctx>,
     ) {
@@ -464,7 +464,6 @@ impl<'ctx> Codegen<'ctx> {
             self.context.void_type().fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.i64_type().into(),
                     self.context.i64_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -480,10 +479,6 @@ impl<'ctx> Codegen<'ctx> {
                     self.context
                         .i64_type()
                         .const_int(arity as u64, false)
-                        .into(),
-                    self.context
-                        .i64_type()
-                        .const_int(closure_size as u64, false)
                         .into(),
                     closure.into(),
                     function.into(),

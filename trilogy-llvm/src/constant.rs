@@ -84,10 +84,10 @@ impl<'ctx> Codegen<'ctx> {
         self.branch_undefined(global.as_pointer_value(), initialize, initialized);
 
         self.builder.position_at_end(initialize);
-        if self
-            .compile_expression(global.as_pointer_value(), &definition.value)
-            .is_some()
-        {
+        if let Some(result) = self.compile_expression(&definition.value, "") {
+            self.builder
+                .build_store(global.as_pointer_value(), result)
+                .unwrap();
             self.builder
                 .build_unconditional_branch(initialized)
                 .unwrap();

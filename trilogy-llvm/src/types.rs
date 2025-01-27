@@ -84,7 +84,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let value = self
             .builder
-            .build_struct_gep(self.callable_value_type(), pointer, 4, "")
+            .build_struct_gep(self.callable_value_type(), pointer, 3, "")
             .unwrap();
         self.builder
             .build_load(self.value_type().array_type(0), value, name)
@@ -99,7 +99,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let value = self
             .builder
-            .build_struct_gep(self.callable_value_type(), pointer, 5, "")
+            .build_struct_gep(self.callable_value_type(), pointer, 4, "")
             .unwrap();
         self.builder
             .build_load(self.value_type().array_type(0), value, name)
@@ -114,7 +114,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let value = self
             .builder
-            .build_struct_gep(self.callable_value_type(), pointer, 6, "")
+            .build_struct_gep(self.callable_value_type(), pointer, 5, "")
             .unwrap();
         self.builder
             .build_load(self.value_type().array_type(0), value, name)
@@ -155,7 +155,6 @@ impl<'ctx> Codegen<'ctx> {
                 self.context.i32_type().into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.i32_type().into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
             ],

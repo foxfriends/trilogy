@@ -138,8 +138,6 @@ impl<'ctx> Codegen<'ctx> {
         function: PointerValue<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
     ) {
-        let callable = self.trilogy_callable_untag(function, "");
-
         let mut args = vec![
             self.get_return().into(),
             self.get_yield().into(),
@@ -148,8 +146,11 @@ impl<'ctx> Codegen<'ctx> {
             argument,
         ];
 
-        let closure = self.get_callable_closure(callable, "");
+        let callable = self.trilogy_callable_untag(function, "");
+        let closure = self.allocate_value("");
+        self.trilogy_callable_closure_into(closure, callable, "");
         let has_closure = self.is_closure(closure);
+        self.trilogy_value_destroy(callable);
 
         let direct_block = self
             .context

@@ -117,7 +117,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<()> {
         match builtin {
             Builtin::Typeof => {
-                let expected_type = self.allocate_expression(expression, "")?;
+                let expected_type = self.compile_expression(expression, "")?;
                 let tag = self.get_tag(value);
                 let atom = self
                     .builder
@@ -130,7 +130,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.pm_cont_if(cmp, on_fail);
             }
             Builtin::Pin => {
-                let pinned = self.allocate_expression(expression, "pin")?;
+                let pinned = self.compile_expression(expression, "pin")?;
                 let cmp = self.trilogy_value_structural_eq(value, pinned, "");
                 self.trilogy_value_destroy(pinned);
                 self.pm_cont_if(cmp, on_fail);

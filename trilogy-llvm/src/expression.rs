@@ -8,53 +8,48 @@ use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_parser::syntax;
 
 impl<'ctx> Codegen<'ctx> {
-    #[must_use = "allocated value must be destroyed"]
-    pub(crate) fn allocate_expression(
+    #[must_use = "must acknowldge continuation of control flow"]
+    pub(crate) fn compile_expression(
         &self,
         expression: &ir::Expression,
         name: &str,
     ) -> Option<PointerValue<'ctx>> {
-        let target = self.allocate_value(name);
-        self.compile_expression(target, expression)?;
-        Some(target)
-    }
-
-    #[must_use = "must acknowldge continuation of control flow"]
-    pub(crate) fn compile_expression(
-        &self,
-        target: PointerValue<'ctx>,
-        expression: &ir::Expression,
-    ) -> Option<()> {
         let prev = self.set_span(expression.span);
 
-        match &expression.value {
+        let result = match &expression.value {
             Value::Unit => {
-                self.builder.build_store(target, self.unit_const()).unwrap();
+                let val = self.allocate_value(name);
+                self.builder.build_store(val, self.unit_const()).unwrap();
+                Some(val)
             }
             Value::Boolean(b) => {
-                self.builder
-                    .build_store(target, self.bool_const(*b))
-                    .unwrap();
+                let val = self.allocate_value(name);
+                self.builder.build_store(val, self.bool_const(*b)).unwrap();
+                Some(val)
             }
             Value::Atom(atom) => {
+                let val = self.allocate_value(name);
                 self.builder
-                    .build_store(target, self.atom_const(atom.to_owned()))
+                    .build_store(val, self.atom_const(atom.to_owned()))
                     .unwrap();
+                Some(val)
             }
             Value::Character(ch) => {
-                self.builder
-                    .build_store(target, self.char_const(*ch))
-                    .unwrap();
+                let val = self.allocate_value(name);
+                self.builder.build_store(val, self.char_const(*ch)).unwrap();
+                Some(val)
             }
             Value::String(s) => {
-                self.string_const(target, s);
+                let val = self.allocate_value(name);
+                self.string_const(val, s);
+                Some(val)
             }
             Value::Number(num) => {
                 if num.value().im.is_zero() && num.value().re.is_integer() {
                     if let Some(int) = num.value().re.to_i64() {
-                        self.builder
-                            .build_store(target, self.int_const(int))
-                            .unwrap();
+                        let val = self.allocate_value(name);
+                        self.builder.build_store(val, self.int_const(int)).unwrap();
+                        Some(val)
                     } else {
                         todo!("Support large integers")
                     }
@@ -63,11 +58,11 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
             Value::Bits(b) => {
-                self.builder
-                    .build_store(target, self.bits_const(b))
-                    .unwrap();
+                let val = self.allocate_value(name);
+                self.builder.build_store(val, self.bits_const(b)).unwrap();
+                Some(val)
             }
-            Value::Array(arr) => self.compile_array(target, arr)?,
+            Value::Array(arr) => self.compile_array(arr, name),
             Value::Set(..) => todo!(),
             Value::Record(..) => todo!(),
             Value::ArrayComprehension(..) => todo!(),
@@ -75,23 +70,25 @@ impl<'ctx> Codegen<'ctx> {
             Value::RecordComprehension(..) => todo!(),
             Value::Sequence(seq) => {
                 self.di.push_block_scope(expression.span);
-                let res = self.compile_sequence(target, seq);
+                let res = self.compile_sequence(seq, name);
                 self.di.pop_scope();
-                res?;
+                res
             }
-            Value::Application(app) => self.compile_application(target, app)?,
-            Value::Builtin(val) => self.reference_builtin(target, *val),
-            Value::Reference(val) => self.compile_reference(target, val),
-            Value::ModuleAccess(access) => self.compile_module_access(target, &access.0, &access.1),
-            Value::IfElse(if_else) => self.compile_if_else(target, if_else)?,
-            Value::Assignment(assign) => self.compile_assignment(target, assign)?,
+            Value::Application(app) => self.compile_application(app, name),
+            Value::Builtin(val) => Some(self.reference_builtin(*val, name)),
+            Value::Reference(val) => Some(self.compile_reference(val, name)),
+            Value::ModuleAccess(access) => {
+                Some(self.compile_module_access(&access.0, &access.1, name))
+            }
+            Value::IfElse(if_else) => self.compile_if_else(if_else, name),
+            Value::Assignment(assign) => self.compile_assignment(assign, name),
             Value::While(..) => todo!(),
             Value::For(..) => todo!(),
-            Value::Let(expr) => self.compile_let(target, expr)?,
+            Value::Let(expr) => self.compile_let(expr, name),
             Value::Match(..) => todo!(),
             Value::Assert(..) => todo!(),
             Value::Fn(..) => todo!(),
-            Value::Do(closure) => self.compile_do(target, closure),
+            Value::Do(closure) => Some(self.compile_do(closure, name)),
             Value::Qy(..) => todo!(),
             Value::Handled(..) => todo!(),
             Value::End => todo!(),
@@ -107,24 +104,24 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.set_current_debug_location(prev);
         }
 
-        Some(())
+        result
     }
 
-    fn compile_sequence(&self, target: PointerValue<'ctx>, seq: &[ir::Expression]) -> Option<()> {
+    fn compile_sequence(&self, seq: &[ir::Expression], name: &str) -> Option<PointerValue<'ctx>> {
         let mut exprs = seq.iter();
-        self.compile_expression(target, exprs.next().unwrap())?;
+        let mut value = self.compile_expression(exprs.next().unwrap(), name)?;
         for expr in exprs {
-            self.trilogy_value_destroy(target);
-            self.compile_expression(target, expr)?;
+            self.trilogy_value_destroy(value);
+            value = self.compile_expression(expr, name)?;
         }
-        Some(())
+        Some(value)
     }
 
-    fn compile_array(&self, target: PointerValue<'ctx>, pack: &ir::Pack) -> Option<()> {
+    fn compile_array(&self, pack: &ir::Pack, name: &str) -> Option<PointerValue<'ctx>> {
+        let target = self.allocate_value(name);
         let array_value = self.trilogy_array_init_cap(target, pack.values.len(), "arr");
-        let temporary = self.allocate_value("arr.el");
         for element in &pack.values {
-            self.compile_expression(temporary, &element.expression)?;
+            let temporary = self.compile_expression(&element.expression, "arr.el")?;
             if element.is_spread {
                 self.trilogy_array_append(array_value, temporary);
             } else {
@@ -132,14 +129,21 @@ impl<'ctx> Codegen<'ctx> {
             }
             self.trilogy_value_destroy(temporary);
         }
-        Some(())
+        Some(target)
     }
 
-    fn reference_builtin(&self, _target: PointerValue<'ctx>, builtin: Builtin) {
-        todo!("reference {:?}", builtin);
+    fn reference_builtin(&self, builtin: Builtin, name: &str) -> PointerValue<'ctx> {
+        match builtin {
+            Builtin::Return => {
+                let val = self.allocate_value(name);
+                self.trilogy_value_clone_into(val, self.get_return());
+                val
+            }
+            _ => todo!(),
+        }
     }
 
-    fn compile_let(&self, target: PointerValue<'ctx>, decl: &ir::Let) -> Option<()> {
+    fn compile_let(&self, decl: &ir::Let, name: &str) -> Option<PointerValue<'ctx>> {
         match &decl.query.value {
             QueryValue::Direct(unif) => {
                 let on_fail = self.context.append_basic_block(self.get_function(), "");
@@ -150,39 +154,38 @@ impl<'ctx> Codegen<'ctx> {
                 );
                 self.builder.position_at_end(cont);
 
-                let value = self.allocate_expression(&unif.expression, "")?;
+                let value = self.compile_expression(&unif.expression, "")?;
                 self.compile_pattern_match(&unif.pattern, value, on_fail)?;
                 self.trilogy_value_destroy(value);
-                self.compile_expression(target, &decl.body)?;
+                self.compile_expression(&decl.body, name)
             }
             _ => todo!("non-deterministic branching "),
         }
-        Some(())
     }
 
     fn compile_application(
         &self,
-        target: PointerValue<'ctx>,
         application: &ir::Application,
-    ) -> Option<()> {
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
         match &application.function.value {
             Value::Builtin(builtin) if builtin.is_unary() => {
-                return self.compile_apply_builtin(target, *builtin, &application.argument)
+                return self.compile_apply_builtin(*builtin, &application.argument, name)
             }
             Value::Application(app) => match &app.function.value {
                 Value::Builtin(builtin) if builtin.is_binary() => {
                     return self.compile_apply_binary(
-                        target,
                         *builtin,
                         &app.argument,
                         &application.argument,
+                        name,
                     )
                 }
                 _ => {}
             },
             _ => {}
         };
-        let function = self.allocate_expression(&application.function, "")?;
+        let function = self.compile_expression(&application.function, "")?;
         match &application.argument.value {
             // Procedure application
             Value::Pack(pack) => {
@@ -190,8 +193,11 @@ impl<'ctx> Codegen<'ctx> {
                     .values
                     .iter()
                     .map(|val| {
-                        assert!(!val.is_spread);
-                        self.allocate_expression(&val.expression, "")
+                        assert!(
+                            !val.is_spread,
+                            "a spread is not permitted in procedure argument lists"
+                        );
+                        self.compile_expression(&val.expression, "")
                     })
                     .collect::<Option<Vec<_>>>()?;
                 self.call_procedure(
@@ -201,36 +207,33 @@ impl<'ctx> Codegen<'ctx> {
                         .map(|arg| (*arg).into())
                         .collect::<Vec<_>>(),
                 );
-                for argument in arguments {
-                    self.trilogy_value_destroy(argument);
-                }
             }
             // Function application
             _ => {
-                let argument = self.allocate_expression(&application.argument, "")?;
+                let argument = self.compile_expression(&application.argument, "")?;
                 self.apply_function(function, argument.into());
-                self.trilogy_value_destroy(argument);
             }
         }
-        self.trilogy_value_destroy(function);
-        Some(())
+
+        todo!()
     }
 
     fn compile_module_access(
         &self,
-        target: PointerValue<'ctx>,
         module_ref: &ir::Expression,
         ident: &syntax::Identifier,
-    ) {
+        name: &str,
+    ) -> PointerValue<'ctx> {
         // Possibly a static module reference, which we can support very easily and efficiently
-        if let Value::Reference(name) = &module_ref.value {
-            if let Some(Head::Module(name)) = self.globals.get(&name.id) {
+        if let Value::Reference(module) = &module_ref.value {
+            if let Some(Head::Module(module)) = self.globals.get(&module.id) {
+                let target = self.allocate_value(name);
                 let declared = self
                     .module
-                    .get_function(&format!("{}::{}", name, ident.as_ref()))
+                    .get_function(&format!("{}::{}", module, ident.as_ref()))
                     .unwrap();
                 self.call_internal(target, declared, &[]);
-                return;
+                return target;
             }
         }
 
@@ -239,13 +242,13 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_apply_builtin(
         &self,
-        target: PointerValue<'ctx>,
         builtin: Builtin,
         expression: &ir::Expression,
-    ) -> Option<()> {
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::Return => {
-                let result = self.allocate_expression(expression, "")?;
+                let result = self.compile_expression(expression, name)?;
                 let return_cont = self
                     .get_function()
                     .get_first_param()
@@ -256,20 +259,21 @@ impl<'ctx> Codegen<'ctx> {
                 None
             }
             Builtin::Exit => {
-                let result = self.allocate_expression(expression, "")?;
+                let result = self.compile_expression(expression, name)?;
                 _ = self.exit(result);
                 None
             }
             Builtin::Typeof => {
-                let argument = self.allocate_expression(expression, "")?;
+                let out = self.allocate_value(name);
+                let argument = self.compile_expression(expression, "")?;
                 let tag = self.get_tag(argument);
                 let raw_atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
-                self.trilogy_atom_init(target, raw_atom);
+                self.trilogy_atom_init(out, raw_atom);
                 self.trilogy_value_destroy(argument);
-                Some(())
+                Some(out)
             }
             _ => todo!(),
         }
@@ -277,27 +281,29 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_apply_binary(
         &self,
-        target: PointerValue<'ctx>,
         builtin: Builtin,
         lhs: &ir::Expression,
         rhs: &ir::Expression,
-    ) -> Option<()> {
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::StructuralEquality => {
-                let lhs = self.allocate_expression(lhs, "seq.lhs")?;
-                let rhs = self.allocate_expression(rhs, "seq.rhs")?;
-                self.structural_eq(target, lhs, rhs);
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "seq.lhs")?;
+                let rhs = self.compile_expression(rhs, "seq.rhs")?;
+                self.structural_eq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
-                Some(())
+                Some(out)
             }
             Builtin::ReferenceEquality => {
-                let lhs = self.allocate_expression(lhs, "req.lhs")?;
-                let rhs = self.allocate_expression(rhs, "req.rhs")?;
-                self.referential_eq(target, lhs, rhs);
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "req.lhs")?;
+                let rhs = self.compile_expression(rhs, "req.rhs")?;
+                self.referential_eq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
-                Some(())
+                Some(out)
             }
             _ => todo!(),
         }
@@ -305,45 +311,49 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_assignment(
         &self,
-        target: PointerValue<'ctx>,
         assign: &ir::Assignment,
-    ) -> Option<()> {
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
         match &assign.lhs.value {
             Value::Reference(variable) => {
-                self.compile_expression(target, &assign.rhs)?;
+                let value = self.compile_expression(&assign.rhs, name)?;
                 let pointer = self.get_variable(&variable.id).unwrap();
                 self.trilogy_value_destroy(pointer);
-                self.trilogy_value_clone_into(pointer, target);
-                Some(())
+                self.trilogy_value_clone_into(pointer, value);
+                Some(value)
             }
             Value::Application(..) => todo!(),
             _ => panic!("invalid lvalue in assignment"),
         }
     }
 
-    fn compile_reference(&self, target: PointerValue<'ctx>, identifier: &ir::Identifier) {
+    fn compile_reference(&self, identifier: &ir::Identifier, name: &str) -> PointerValue<'ctx> {
         if let Some(variable) = self.get_variable(&identifier.id) {
+            let target = self.allocate_value(name);
             self.trilogy_value_clone_into(target, variable);
+            target
         } else {
-            let name = identifier.id.name().unwrap();
+            let ident = identifier.id.name().unwrap();
             match self
                 .globals
                 .get(&identifier.id)
                 .expect("Unresolved variable")
             {
                 Head::Constant | Head::Procedure => {
+                    let target = self.allocate_value(name);
                     let global_name =
-                        format!("{}::{name}", self.module.get_name().to_str().unwrap());
+                        format!("{}::{ident}", self.module.get_name().to_str().unwrap());
                     let function = self.module.get_function(&global_name).unwrap();
-                    self.call_internal(target, function, &[])
+                    self.call_internal(target, function, &[]);
+                    target
                 }
                 _ => todo!(),
             }
         }
     }
 
-    fn compile_if_else(&self, target: PointerValue<'ctx>, if_else: &ir::IfElse) -> Option<()> {
-        let condition = self.allocate_expression(&if_else.condition, "if.cond")?;
+    fn compile_if_else(&self, if_else: &ir::IfElse, name: &str) -> Option<PointerValue<'ctx>> {
+        let condition = self.compile_expression(&if_else.condition, "if.cond")?;
         let function = self.get_function();
         let if_true = self.context.append_basic_block(function, "if.true");
         let if_false = self.context.append_basic_block(function, "if.false");
@@ -355,13 +365,13 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(if_true);
-        let when_true = self.compile_expression(target, &if_else.when_true);
+        let when_true = self.compile_expression(&if_else.when_true, name);
         if when_true.is_some() {
             self.builder.build_unconditional_branch(if_cont).unwrap();
         }
 
         self.builder.position_at_end(if_false);
-        let when_false = self.compile_expression(target, &if_else.when_false);
+        let when_false = self.compile_expression(&if_else.when_false, name);
         if when_false.is_some() {
             self.builder.build_unconditional_branch(if_cont).unwrap();
         }
@@ -370,16 +380,16 @@ impl<'ctx> Codegen<'ctx> {
         when_false.or(when_true)
     }
 
-    fn compile_do(&self, target: PointerValue<'ctx>, procedure: &ir::Procedure) {
+    fn compile_do(&self, procedure: &ir::Procedure, name: &str) -> PointerValue<'ctx> {
         let function = self.get_function();
         let current = function.get_name().to_str().unwrap();
-        let name = format!("{current}<do@{}>", procedure.span);
+        let function_name = format!("{current}<do@{}>", procedure.span);
         let arity = procedure.parameters.len();
 
         let closure_codegen = self.inner();
         let procedure_scope = closure_codegen.di.builder.create_function(
             closure_codegen.di.unit.get_file().as_debug_info_scope(),
-            &name,
+            &function_name,
             None,
             closure_codegen.di.unit.get_file(),
             procedure.span.start().line as u32 + 1,
@@ -392,13 +402,15 @@ impl<'ctx> Codegen<'ctx> {
         );
 
         let function = closure_codegen.module.add_function(
-            &name,
+            &function_name,
             closure_codegen.procedure_type(arity, true),
             Some(Linkage::Internal),
         );
         function.set_subprogram(procedure_scope);
         closure_codegen.compile_procedure_body(function, procedure);
+        let target = self.allocate_value(name);
         closure_codegen.close_as_do(target, function, arity);
+        target
     }
 }
 
