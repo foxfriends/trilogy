@@ -87,7 +87,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn sub(&self, name: &str) -> Codegen<'ctx> {
         let module = self.context.create_module(name);
-        let di = DebugInfo::new(&module, &name);
+        let di = DebugInfo::new(&module, name);
         Codegen {
             atoms: self.atoms.clone(),
             context: self.context,

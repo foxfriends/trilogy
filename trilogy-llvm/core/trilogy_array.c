@@ -3,9 +3,9 @@
 #include "trilogy_value.h"
 #include <assert.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 trilogy_array_value*
 trilogy_array_init(trilogy_value* tv, trilogy_array_value* arr) {
@@ -37,7 +37,6 @@ trilogy_array_init_cap(trilogy_value* tv, unsigned long cap) {
 trilogy_array_value*
 trilogy_array_clone_into(trilogy_value* tv, trilogy_array_value* arr) {
     assert(arr->rc != 0);
-    printf("cloning array (len %d cap %d rc %d)\n", arr->len, arr->cap, arr->rc);
     ++arr->rc;
     return trilogy_array_init(tv, arr);
 }
@@ -101,9 +100,7 @@ trilogy_array_value* trilogy_array_assume(trilogy_value* val) {
 }
 
 void trilogy_array_destroy(trilogy_array_value* arr) {
-    printf("destroying array (len %d cap %d rc %d)\n", arr->len, arr->cap, arr->rc);
     if (--arr->rc == 0) {
-        printf("freeing array (len %d cap %d)\n", arr->len, arr->cap);
         if (arr->contents == NULL) return;
         for (unsigned long i = 0; i < arr->len; ++i) {
             trilogy_value_destroy(&arr->contents[i]);
