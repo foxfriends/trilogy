@@ -39,9 +39,10 @@ impl<'ctx> Codegen<'ctx> {
         let callable = self.trilogy_callable_untag(procedure, "");
 
         let mut args = vec![
-            todo!("build return continuation"),
+            self.get_return().into(),
             self.get_yield().into(),
             self.get_end().into(),
+            todo!("build continuation"),
         ];
         args.extend_from_slice(arguments);
 
@@ -111,7 +112,7 @@ impl<'ctx> Codegen<'ctx> {
         let function = self.trilogy_continuation_untag(callable, "");
         let call = self
             .builder
-            .build_indirect_call(self.procedure_type(1, true), function, &args, "")
+            .build_indirect_call(self.continuation_type(), function, &args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
@@ -140,9 +141,10 @@ impl<'ctx> Codegen<'ctx> {
         let callable = self.trilogy_callable_untag(function, "");
 
         let mut args = vec![
-            todo!("build return continuation"),
+            self.get_return().into(),
             self.get_yield().into(),
             self.get_end().into(),
+            todo!("build continuation"),
             argument,
         ];
 
@@ -166,7 +168,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(direct_block);
         self.builder
-            .build_indirect_call(self.procedure_type(1, false), function, &args, "")
+            .build_indirect_call(self.function_type(false), function, &args, "")
             .unwrap();
         self.builder.build_unconditional_branch(cont_block).unwrap();
 
@@ -174,7 +176,7 @@ impl<'ctx> Codegen<'ctx> {
         args.push(closure.into());
         let call = self
             .builder
-            .build_indirect_call(self.procedure_type(1, true), function, &args, "")
+            .build_indirect_call(self.function_type(true), function, &args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         self.builder.build_unconditional_branch(cont_block).unwrap();

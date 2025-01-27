@@ -161,6 +161,13 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn get_continuation(&self) -> PointerValue<'ctx> {
+        self.get_function()
+            .get_nth_param(3)
+            .unwrap()
+            .into_pointer_value()
+    }
+
     pub(crate) fn new(
         context: &'ctx Context,
         modules: &'ctx HashMap<String, &'ctx ir::Module>,

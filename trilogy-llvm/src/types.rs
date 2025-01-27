@@ -256,16 +256,33 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn procedure_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
-        let extras = if has_closure { 4 } else { 3 };
+        // 0: return
+        // 1: yield
+        // 2: end
+        // 3: continuation
+        // [4..4 + arity): args
+        // 4 + arity: closure
+        let extras = if has_closure { 5 } else { 4 };
         self.context.void_type().fn_type(
             &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + extras],
             false,
         )
     }
 
-    #[expect(dead_code)]
     pub(crate) fn function_type(&self, has_closure: bool) -> FunctionType<'ctx> {
         self.procedure_type(1, has_closure)
+    }
+
+    pub(crate) fn continuation_type(&self) -> FunctionType<'ctx> {
+        // 0: return
+        // 1: yield
+        // 2: end
+        // 3: argument
+        // 4: closure
+        self.context.void_type().fn_type(
+            &[self.context.ptr_type(AddressSpace::default()).into(); 5],
+            false,
+        )
     }
 
     pub(crate) fn branch_undefined(
