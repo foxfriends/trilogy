@@ -33,7 +33,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.procedure_di_type(arity),
-            linkage == Linkage::External,
+            linkage != Linkage::External,
             false,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -110,7 +110,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.procedure_di_type(arity),
-            linkage == Linkage::External,
+            linkage != Linkage::External,
             true,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -179,6 +179,7 @@ impl<'ctx> Codegen<'ctx> {
             .module
             .get_function(if name == "main" { MAIN_NAME } else { &name })
             .unwrap();
+        self.set_current_definition(name, procedure.span);
         self.compile_procedure_body(function, procedure);
     }
 

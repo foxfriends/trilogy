@@ -12,7 +12,8 @@ trilogy_reference_init(trilogy_value* tv, trilogy_reference* ref) {
 }
 
 trilogy_reference* trilogy_reference_to(trilogy_value* tv, trilogy_value* val) {
-    if (val->tag == TAG_REFERENCE) return trilogy_reference_clone_into(tv, val);
+    if (val->tag == TAG_REFERENCE)
+        return trilogy_reference_clone_into(tv, trilogy_reference_assume(val));
     trilogy_reference* ref = malloc(sizeof(trilogy_reference));
     ref->rc = 1;
     ref->location = val;

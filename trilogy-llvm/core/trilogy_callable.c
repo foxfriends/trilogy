@@ -24,8 +24,9 @@ void trilogy_callable_clone_into(
 }
 
 void trilogy_callable_init_fn(
-    trilogy_value* t, trilogy_array_value* closure, void* p
+    trilogy_value* t, trilogy_value* closure, void* p
 ) {
+    assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     callable->rc = 1;
@@ -33,14 +34,16 @@ void trilogy_callable_init_fn(
     callable->arity = 1;
     callable->return_to = NULL;
     callable->yield_to = NULL;
-    callable->closure = closure;
+    callable->closure =
+        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
 void trilogy_callable_init_do(
-    trilogy_value* t, unsigned int arity, trilogy_array_value* closure, void* p
+    trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
 ) {
+    assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     callable->rc = 1;
@@ -48,14 +51,16 @@ void trilogy_callable_init_do(
     callable->arity = arity;
     callable->return_to = NULL;
     callable->yield_to = NULL;
-    callable->closure = closure;
+    callable->closure =
+        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
 
 void trilogy_callable_init_qy(
-    trilogy_value* t, unsigned int arity, trilogy_array_value* closure, void* p
+    trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
 ) {
+    assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     callable->rc = 1;
@@ -63,7 +68,8 @@ void trilogy_callable_init_qy(
     callable->arity = arity;
     callable->return_to = NULL;
     callable->yield_to = NULL;
-    callable->closure = closure;
+    callable->closure =
+        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
     trilogy_callable_init(t, callable);
 }
@@ -81,17 +87,22 @@ void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
 }
 
 void trilogy_callable_init_cont(
-    trilogy_value* t, unsigned int arity, trilogy_value* return_to,
-    trilogy_value* yield_to, trilogy_array_value* closure, void* p
+    trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
+    trilogy_value* closure, void* p
 ) {
+    assert(closure != NO_CLOSURE);
+    assert(closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     callable->rc = 1;
     callable->tag = CALLABLE_CONTINUATION;
-    callable->arity = arity;
-    callable->return_to = return_to;
-    callable->yield_to = yield_to;
-    callable->closure = closure;
+    callable->arity = 1;
+    callable->return_to = malloc_safe(sizeof(trilogy_value));
+    trilogy_value_clone_into(callable->return_to, return_to);
+    callable->yield_to = malloc_safe(sizeof(trilogy_value));
+    trilogy_value_clone_into(callable->yield_to, yield_to);
+    callable->closure =
+        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
     trilogy_callable_init(t, callable);
 }

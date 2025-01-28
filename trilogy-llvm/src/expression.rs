@@ -249,11 +249,7 @@ impl<'ctx> Codegen<'ctx> {
         match builtin {
             Builtin::Return => {
                 let result = self.compile_expression(expression, name)?;
-                let return_cont = self
-                    .get_function()
-                    .get_first_param()
-                    .unwrap()
-                    .into_pointer_value();
+                let return_cont = self.get_return();
                 let return_call = self.call_continuation(return_cont, result.into());
                 self.set_returned(return_call);
                 None
@@ -381,8 +377,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_do(&self, procedure: &ir::Procedure, name: &str) -> PointerValue<'ctx> {
-        let function = self.get_function();
-        let current = function.get_name().to_str().unwrap();
+        let (current, _) = self.get_current_definition();
         let function_name = format!("{current}<do@{}>", procedure.span);
         let arity = procedure.parameters.len();
 
@@ -394,7 +389,7 @@ impl<'ctx> Codegen<'ctx> {
             closure_codegen.di.unit.get_file(),
             procedure.span.start().line as u32 + 1,
             closure_codegen.di.closure_di_type(arity),
-            false,
+            true,
             true,
             procedure.span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -407,6 +402,7 @@ impl<'ctx> Codegen<'ctx> {
             Some(Linkage::Internal),
         );
         function.set_subprogram(procedure_scope);
+        closure_codegen.set_current_definition(function_name, procedure.span);
         closure_codegen.compile_procedure_body(function, procedure);
         let target = self.allocate_value(name);
         closure_codegen.close_as_do(target, function, arity);

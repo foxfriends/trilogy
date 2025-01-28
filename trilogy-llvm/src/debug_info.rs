@@ -83,8 +83,16 @@ impl<'ctx> DebugInfo<'ctx> {
         )
     }
 
+    pub(crate) fn continuation_di_type(&self) -> DISubroutineType<'ctx> {
+        self.builder.create_subroutine_type(
+            self.unit.get_file(),
+            Some(self.value_di_type().as_type()),
+            &vec![self.value_di_type().as_type(); 5],
+            LLVMDIFlagPublic,
+        )
+    }
+
     pub(crate) fn closure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
-        // TODO: the last parameter is NOT a value, but we say it is anyway :shrug:
         self.procedure_di_type(arity + 1)
     }
 

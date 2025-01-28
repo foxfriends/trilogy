@@ -1,4 +1,3 @@
-#![expect(dead_code, reason = "WIP")]
 use crate::{debug_info::DebugInfo, types};
 use inkwell::{
     basic_block::BasicBlock,
@@ -12,6 +11,7 @@ use inkwell::{
     values::{BasicValue, FunctionValue, InstructionValue, PointerValue},
     AddressSpace, OptimizationLevel,
 };
+use source_span::Span;
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
@@ -49,6 +49,8 @@ pub(crate) struct Codegen<'ctx> {
     /// compiling a function), and they should be topologically sorted according to their
     /// contained `capture_from` lists.
     pub(crate) continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
+
+    current_definition: RefCell<(String, Span)>,
 }
 
 /// During the reverse continuation phase, when closing this continuation block,
@@ -64,7 +66,6 @@ enum Exit<'ctx> {
     },
     Returned {
         instruction: InstructionValue<'ctx>,
-        block: BasicBlock<'ctx>,
     },
 }
 
@@ -108,6 +109,7 @@ pub(crate) struct ContinuationPoint<'ctx> {
     upvalues: RefCell<HashMap<Id, PointerValue<'ctx>>>,
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
+    #[expect(dead_code, reason = "I feel like needed but maybe it's not")]
     capture_from: Vec<Weak<ContinuationPoint<'ctx>>>,
 }
 
@@ -140,31 +142,51 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn get_return(&self) -> PointerValue<'ctx> {
-        self.get_function()
-            .get_nth_param(0)
-            .unwrap()
-            .into_pointer_value()
+        let container = self.allocate_value("");
+        self.trilogy_value_clone_into(
+            container,
+            self.get_function()
+                .get_nth_param(0)
+                .unwrap()
+                .into_pointer_value(),
+        );
+        container
     }
 
     pub(crate) fn get_yield(&self) -> PointerValue<'ctx> {
-        self.get_function()
-            .get_nth_param(1)
-            .unwrap()
-            .into_pointer_value()
+        let container = self.allocate_value("");
+        self.trilogy_value_clone_into(
+            container,
+            self.get_function()
+                .get_nth_param(1)
+                .unwrap()
+                .into_pointer_value(),
+        );
+        container
     }
 
     pub(crate) fn get_end(&self) -> PointerValue<'ctx> {
-        self.get_function()
-            .get_nth_param(2)
-            .unwrap()
-            .into_pointer_value()
+        let container = self.allocate_value("");
+        self.trilogy_value_clone_into(
+            container,
+            self.get_function()
+                .get_nth_param(2)
+                .unwrap()
+                .into_pointer_value(),
+        );
+        container
     }
 
     pub(crate) fn get_continuation(&self) -> PointerValue<'ctx> {
-        self.get_function()
-            .get_nth_param(3)
-            .unwrap()
-            .into_pointer_value()
+        let container = self.allocate_value("");
+        self.trilogy_value_clone_into(
+            container,
+            self.get_function()
+                .get_nth_param(3)
+                .unwrap()
+                .into_pointer_value(),
+        );
+        container
     }
 
     pub(crate) fn new(
@@ -203,6 +225,7 @@ impl<'ctx> Codegen<'ctx> {
             globals: HashMap::default(),
             location: "trilogy:runtime".to_owned(),
             continuation_points: RefCell::default(),
+            current_definition: RefCell::default(),
         };
 
         codegen
@@ -226,10 +249,11 @@ impl<'ctx> Codegen<'ctx> {
             globals: HashMap::new(),
             location: name.to_owned(),
             continuation_points: RefCell::default(),
+            current_definition: RefCell::default(),
         }
     }
 
-    /// Creates a `Codegen` for a sub-function or continuation.
+    /// Creates a `Codegen` for a sub-function.
     pub(crate) fn inner(&self) -> Codegen<'ctx> {
         let mut points = self.continuation_points.borrow().clone();
         points.push(Rc::new(ContinuationPoint::child(points.last().unwrap())));
@@ -244,16 +268,32 @@ impl<'ctx> Codegen<'ctx> {
             globals: self.globals.clone(),
             location: self.location.clone(),
             continuation_points: RefCell::new(points),
+            current_definition: RefCell::default(),
         }
+    }
+
+    pub(crate) fn set_current_definition(&self, name: String, span: Span) {
+        *self.current_definition.borrow_mut() = (name, span)
+    }
+
+    pub(crate) fn get_current_definition(&self) -> (String, Span) {
+        self.current_definition.borrow().clone()
     }
 
     pub(crate) fn set_returned(&self, instruction: InstructionValue<'ctx>) {
         Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
             .unwrap()
-            .exit = Exit::Returned {
+            .exit = Exit::Returned { instruction };
+    }
+
+    pub(crate) fn set_continued(&self, instruction: InstructionValue<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued {
             block: instruction.get_parent().unwrap(),
             instruction,
         };
+        let new = Rc::new(ContinuationPoint::child(cps.last().unwrap()));
+        cps.push(new);
     }
 
     pub(crate) fn close_continuation(&self) {

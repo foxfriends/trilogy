@@ -107,21 +107,6 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn get_callable_closure(
-        &self,
-        pointer: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let value = self
-            .builder
-            .build_struct_gep(self.callable_value_type(), pointer, 5, "")
-            .unwrap();
-        self.builder
-            .build_load(self.value_type().array_type(0), value, name)
-            .unwrap()
-            .into_pointer_value()
-    }
-
     pub(crate) fn payload_type(&self) -> IntType<'ctx> {
         self.context.i64_type()
     }

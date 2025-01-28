@@ -51,7 +51,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.procedure_di_type(0),
-            linkage == Linkage::External,
+            linkage != Linkage::External,
             true,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,

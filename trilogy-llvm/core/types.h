@@ -167,13 +167,16 @@ typedef struct trilogy_callable_value {
     unsigned int arity;
     /**
      * For captured continuations, the return and yield points are stored rather
-     *than provided. (The `end` pointer is still provided)
+     * than provided. (The `end` pointer is still provided)
+     *
+     * The return_to and yield_to are owned despite being pointers.
      **/
     trilogy_value* return_to;
     trilogy_value* yield_to;
     /**
      * Context captured from the closure of this callable. This is an array of
-     * trilogy values (all of which would should be references?).
+     * trilogy values (all of which would should be references?). The array is
+     * owned by the callable, and uses the array struct mostly as a convenience.
      *
      * The identity and population of each field is a static analysis concern.
      *
