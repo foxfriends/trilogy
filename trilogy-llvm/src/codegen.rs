@@ -273,7 +273,10 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn set_current_definition(&self, name: String, span: Span) {
-        *self.current_definition.borrow_mut() = (name, span)
+        *self.current_definition.borrow_mut() = (name, span);
+        self.continuation_points
+            .borrow_mut()
+            .push(Rc::new(ContinuationPoint::default()));
     }
 
     pub(crate) fn get_current_definition(&self) -> (String, Span) {
@@ -296,6 +299,32 @@ impl<'ctx> Codegen<'ctx> {
         cps.push(new);
     }
 
+    pub(crate) fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
+        for (id, var) in cp.variables.borrow().iter() {
+            let Variable::Owned(pointer) = var else {
+                continue;
+            };
+
+            if let Some(pointer) = cp.upvalues.borrow().get(id) {
+                let upvalue = self.trilogy_reference_assume(*pointer);
+                self.trilogy_reference_close(upvalue);
+                self.trilogy_value_destroy(*pointer);
+            }
+
+            self.trilogy_value_destroy(*pointer);
+        }
+    }
+
+    pub(crate) fn cleanup_scope(&self, cp: &ContinuationPoint<'ctx>) {
+        for var in cp.variables.borrow().values() {
+            let Variable::Owned(pointer) = var else {
+                continue;
+            };
+
+            self.trilogy_value_destroy(*pointer);
+        }
+    }
+
     pub(crate) fn close_continuation(&self) {
         while let Some(last) = self.continuation_points.borrow_mut().pop() {
             // This is where we do the cleanup, and then call the return continuation if we haven't already
@@ -303,18 +332,11 @@ impl<'ctx> Codegen<'ctx> {
 
             match last.exit {
                 Exit::Current => {
+                    self.clean_and_close_scope(&last);
+                    // If the current lexical continuation ends without value, then it should `return unit`
+                    //
                     // When we're in the current continuation, and we hit the end, then we need to fake
                     // a return. This might be best moved elsewhere
-                    for (id, var) in last.variables.borrow().iter() {
-                        if let Some(pointer) = last.upvalues.borrow().get(id) {
-                            let upvalue = self.trilogy_reference_assume(*pointer);
-                            self.trilogy_reference_close(upvalue);
-                            self.trilogy_value_destroy(*pointer);
-                        } else if let Variable::Owned(pointer) = var {
-                            self.trilogy_value_destroy(*pointer);
-                        }
-                    }
-                    // If the current lexical continuation ends without value, then it should `return unit`
                     self.call_continuation(
                         self.get_function()
                             .get_first_param()
@@ -328,19 +350,7 @@ impl<'ctx> Codegen<'ctx> {
                     // If the current lexical continuation ended by returning, then we're just injecting
                     // cleanup before the call to the return continuation
                     self.builder.position_before(&instruction);
-                    for (id, var) in last.variables.borrow().iter() {
-                        let Variable::Owned(pointer) = var else {
-                            continue;
-                        };
-
-                        if let Some(pointer) = last.upvalues.borrow().get(id) {
-                            let upvalue = self.trilogy_reference_assume(*pointer);
-                            self.trilogy_reference_close(upvalue);
-                            self.trilogy_value_destroy(*pointer);
-                        }
-
-                        self.trilogy_value_destroy(*pointer);
-                    }
+                    self.clean_and_close_scope(&last);
                 }
                 Exit::Continued { instruction, block } => {
                     self.builder.position_at(block, &instruction);
@@ -387,6 +397,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             self.trilogy_array_push(closure_array, new_upvalue);
         }
+        self.clean_and_close_scope(&child_scope);
         closure
     }
 
@@ -449,7 +460,7 @@ impl<'ctx> Codegen<'ctx> {
         (Rc::into_inner(self.module).unwrap(), self.execution_engine)
     }
 
-    fn current_continuation(&self) -> Rc<ContinuationPoint<'ctx>> {
+    pub(crate) fn current_continuation(&self) -> Rc<ContinuationPoint<'ctx>> {
         self.continuation_points.borrow().last().unwrap().clone()
     }
 

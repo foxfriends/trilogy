@@ -27,6 +27,8 @@ void trilogy_callable_destroy(trilogy_callable_value* val);
 
 trilogy_array_value*
 trilogy_callable_closure_into(trilogy_value*, trilogy_callable_value* orig);
+void trilogy_callable_return_to_into(trilogy_value*, trilogy_callable_value* orig);
+void trilogy_callable_yield_to_into(trilogy_value*, trilogy_callable_value* orig);
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val);
 trilogy_callable_value* trilogy_callable_assume(trilogy_value* val);

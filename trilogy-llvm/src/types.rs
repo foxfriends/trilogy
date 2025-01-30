@@ -77,36 +77,6 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
-    pub(crate) fn get_callable_return_to(
-        &self,
-        pointer: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let value = self
-            .builder
-            .build_struct_gep(self.callable_value_type(), pointer, 3, "")
-            .unwrap();
-        self.builder
-            .build_load(self.value_type().array_type(0), value, name)
-            .unwrap()
-            .into_pointer_value()
-    }
-
-    pub(crate) fn get_callable_yield_to(
-        &self,
-        pointer: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let value = self
-            .builder
-            .build_struct_gep(self.callable_value_type(), pointer, 4, "")
-            .unwrap();
-        self.builder
-            .build_load(self.value_type().array_type(0), value, name)
-            .unwrap()
-            .into_pointer_value()
-    }
-
     pub(crate) fn payload_type(&self) -> IntType<'ctx> {
         self.context.i64_type()
     }
@@ -127,21 +97,6 @@ impl<'ctx> Codegen<'ctx> {
                 self.context.i32_type().into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.value_type().into(),
-            ],
-            false,
-        )
-    }
-
-    pub(crate) fn callable_value_type(&self) -> StructType<'ctx> {
-        self.context.struct_type(
-            &[
-                self.context.i32_type().into(),
-                self.tag_type().into(),
-                self.context.i32_type().into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
             ],
             false,
         )
@@ -251,10 +206,6 @@ impl<'ctx> Codegen<'ctx> {
             &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + extras],
             false,
         )
-    }
-
-    pub(crate) fn function_type(&self, has_closure: bool) -> FunctionType<'ctx> {
-        self.procedure_type(1, has_closure)
     }
 
     pub(crate) fn continuation_type(&self) -> FunctionType<'ctx> {

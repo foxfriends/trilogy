@@ -36,27 +36,6 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
-    /// Untags an integer value.
-    pub(crate) fn trilogy_number_untag(
-        &self,
-        value: PointerValue<'ctx>,
-        name: &str,
-    ) -> IntValue<'ctx> {
-        let f = self.declare_internal(
-            "trilogy_number_untag",
-            self.context.i64_type().fn_type(
-                &[self.context.ptr_type(AddressSpace::default()).into()],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(f, &[value.into()], name)
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_int_value()
-    }
-
     pub(crate) fn trilogy_string_init_new(
         &self,
         value: PointerValue<'ctx>,
@@ -206,6 +185,46 @@ impl<'ctx> Codegen<'ctx> {
             .try_as_basic_value()
             .unwrap_left()
             .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_callable_return_to_into(
+        &self,
+        target: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_internal(
+            "trilogy_callable_return_to_into",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), callable.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_callable_yield_to_into(
+        &self,
+        target: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_internal(
+            "trilogy_callable_yield_to_into",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), callable.into()], "")
+            .unwrap();
     }
 
     /// Untags a procedure. The value should be a `trilogy_callable_value` and the return pointer will be
@@ -522,5 +541,28 @@ impl<'ctx> Codegen<'ctx> {
                 "",
             )
             .unwrap();
+    }
+
+    pub(crate) fn trilogy_unhandled_effect(&self, effect: PointerValue<'ctx>) -> NeverValue {
+        let f = self.declare_internal(
+            "trilogy_unhandled_effect",
+            self.context.void_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder.build_call(f, &[effect.into()], "").unwrap();
+        self.builder.build_unreachable().unwrap();
+        NeverValue
+    }
+
+    pub(crate) fn trilogy_execution_ended(&self) -> NeverValue {
+        let f = self.declare_internal(
+            "trilogy_execution_ended",
+            self.context.void_type().fn_type(&[], false),
+        );
+        self.builder.build_call(f, &[], "").unwrap();
+        self.builder.build_unreachable().unwrap();
+        NeverValue
     }
 }

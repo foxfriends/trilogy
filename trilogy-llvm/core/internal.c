@@ -51,3 +51,11 @@ void* calloc_safe(size_t num, size_t size) {
     if (ptr == NULL) internal_panic("out of memory");
     return ptr;
 }
+
+void trilogy_unhandled_effect(trilogy_value* effect) {
+    internal_panic("unhandled effect caused program to terminate");
+}
+
+void trilogy_execution_ended() {
+    internal_panic("the only remaining execution ended");
+}

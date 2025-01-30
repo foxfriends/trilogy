@@ -215,12 +215,14 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
 
+        let cp = self.current_continuation();
         self.close_continuation();
 
         self.builder.position_at_end(no_match);
-        // Unimportant to cleanup right now because about to panic...
-        // TODO: run cleanup and call `end` continuation
-        _ = self.internal_panic(self.embed_c_string("no argument match in call to procedure\n"));
+        self.cleanup_scope(&cp);
+        let end = self.get_end();
+        let unit = self.allocate_const(self.unit_const());
+        self.call_continuation(end, unit.into());
         self.di.pop_scope();
     }
 }
