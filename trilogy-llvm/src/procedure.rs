@@ -190,9 +190,9 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.position_at_end(entry);
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
-                // NOTE: for now, sret is in 1. Later, I will change this...
+                // NOTE: params start at 3, due to return, yield, and end
                 let value = function
-                    .get_nth_param(n as u32 + 1)
+                    .get_nth_param(n as u32 + 3)
                     .unwrap()
                     .into_pointer_value();
                 if self.compile_pattern_match(param, value, no_match).is_none() {

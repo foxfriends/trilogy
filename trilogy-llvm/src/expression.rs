@@ -91,7 +91,10 @@ impl<'ctx> Codegen<'ctx> {
             Value::Do(closure) => Some(self.compile_do(closure, name)),
             Value::Qy(..) => todo!(),
             Value::Handled(..) => todo!(),
-            Value::End => todo!(),
+            Value::End => {
+                self.compile_end();
+                None
+            }
             Value::Pack(..) => panic!("arbitrary packs are not permitted"),
             Value::Mapping(..) => panic!("arbitrary mappings are not permitted"),
             Value::Conjunction(..) => panic!("conjunction not permitted in expression context"),
@@ -105,6 +108,13 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         result
+    }
+
+    fn compile_end(&self) {
+        let end = self.get_end();
+        let alloca = self.allocate_value("");
+        let instruction = self.call_continuation(end, alloca.into());
+        self.set_ended(instruction);
     }
 
     fn compile_sequence(&self, seq: &[ir::Expression], name: &str) -> Option<PointerValue<'ctx>> {

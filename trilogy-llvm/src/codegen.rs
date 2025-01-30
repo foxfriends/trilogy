@@ -1,6 +1,5 @@
 use crate::{debug_info::DebugInfo, types};
 use inkwell::{
-    basic_block::BasicBlock,
     builder::Builder,
     context::Context,
     debug_info::AsDIScope,
@@ -62,9 +61,11 @@ enum Exit<'ctx> {
     Current,
     Continued {
         instruction: InstructionValue<'ctx>,
-        block: BasicBlock<'ctx>,
     },
     Returned {
+        instruction: InstructionValue<'ctx>,
+    },
+    Ended {
         instruction: InstructionValue<'ctx>,
     },
 }
@@ -289,12 +290,15 @@ impl<'ctx> Codegen<'ctx> {
             .exit = Exit::Returned { instruction };
     }
 
+    pub(crate) fn set_ended(&self, instruction: InstructionValue<'ctx>) {
+        Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
+            .unwrap()
+            .exit = Exit::Ended { instruction };
+    }
+
     pub(crate) fn set_continued(&self, instruction: InstructionValue<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
-        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued {
-            block: instruction.get_parent().unwrap(),
-            instruction,
-        };
+        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued { instruction };
         let new = Rc::new(ContinuationPoint::child(cps.last().unwrap()));
         cps.push(new);
     }
@@ -357,17 +361,23 @@ impl<'ctx> Codegen<'ctx> {
                             .into_pointer_value(),
                         self.unit_const().into(),
                     );
-                    self.builder.build_return(None).unwrap();
                 }
-                Exit::Returned { instruction, .. } => {
+                Exit::Returned { instruction } => {
                     // If the current lexical continuation ended by returning, then we're just injecting
                     // cleanup before the call to the return continuation
                     self.builder.position_before(&instruction);
                     self.clean_and_close_scope(&parent);
                 }
-                Exit::Continued { instruction, block } => {
+                Exit::Ended { instruction } => {
+                    // If the current lexical continuation ended by ending, then it's similar to returning
+                    // but without needing to build a closure
+                    self.builder.position_before(&instruction);
+                    self.cleanup_scope(&parent);
+                }
+                Exit::Continued { instruction } => {
                     let child = child.unwrap();
-                    self.builder.position_at(block, &instruction);
+                    self.builder
+                        .position_at(instruction.get_parent().unwrap(), &instruction);
                     let closure = self.build_closure(&parent, &child);
                     self.clean_and_close_scope(&child);
                     instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());

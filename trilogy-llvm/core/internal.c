@@ -53,9 +53,9 @@ void* calloc_safe(size_t num, size_t size) {
 }
 
 void trilogy_unhandled_effect(trilogy_value* effect) {
-    internal_panic("unhandled effect caused program to terminate");
+    internal_panic("unhandled effect caused program to terminate\n");
 }
 
 void trilogy_execution_ended() {
-    internal_panic("the only remaining execution ended");
+    internal_panic("the only remaining execution ended\n");
 }

@@ -285,6 +285,7 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let mut args = vec![target.into()];
         args.extend_from_slice(arguments);
-        self.builder.build_call(procedure, &args, "").unwrap();
+        let call = self.builder.build_call(procedure, &args, "").unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
     }
 }
