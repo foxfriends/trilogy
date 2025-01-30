@@ -24,11 +24,12 @@ pub(crate) const TAG_RECORD: u64 = 12;
 pub(crate) const TAG_CALLABLE: u64 = 13;
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn allocate_const<V: BasicValue<'ctx>>(&self, value: V) -> PointerValue<'ctx> {
-        let pointer = self
-            .builder
-            .build_alloca(self.value_type(), "const")
-            .unwrap();
+    pub(crate) fn allocate_const<V: BasicValue<'ctx>>(
+        &self,
+        value: V,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let pointer = self.builder.build_alloca(self.value_type(), name).unwrap();
         self.builder.build_store(pointer, value).unwrap();
         pointer
     }

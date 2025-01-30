@@ -370,18 +370,20 @@ impl<'ctx> Codegen<'ctx> {
 
             match parent.exit {
                 Exit::Current => {
-                    self.clean_and_close_scope(&parent);
                     // If the current lexical continuation ends without value, then it should `return unit`
                     //
                     // When we're in the current continuation, and we hit the end, then we need to fake
                     // a return. This might be best moved elsewhere
-                    self.call_continuation(
+                    let value = self.allocate_const(self.unit_const(), "runoff");
+                    let call = self.call_continuation(
                         self.get_function()
                             .get_first_param()
                             .unwrap()
                             .into_pointer_value(),
-                        self.unit_const().into(),
+                        value.into(),
                     );
+                    self.builder.position_before(&call);
+                    self.clean_and_close_scope(&parent);
                 }
                 Exit::Returned {
                     instruction,

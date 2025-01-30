@@ -171,6 +171,7 @@ impl<'ctx> Codegen<'ctx> {
         argument: BasicMetadataValueEnum<'ctx>,
     ) -> InstructionValue<'ctx> {
         let callable = self.trilogy_callable_untag(function, "");
+        let function = self.trilogy_continuation_untag(callable, "continue");
 
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
@@ -186,7 +187,6 @@ impl<'ctx> Codegen<'ctx> {
             self.get_callable_closure(callable).into(),
         ];
 
-        let function = self.trilogy_continuation_untag(callable, "");
         // NOTE: cleanup will be inserted here
         let call = self
             .builder

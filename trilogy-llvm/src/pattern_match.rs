@@ -41,28 +41,28 @@ impl<'ctx> Codegen<'ctx> {
                 self.builder.position_at_end(on_success);
             }
             Value::Unit => {
-                let constant = self.allocate_const(self.unit_const());
+                let constant = self.allocate_const(self.unit_const(), "");
                 let is_match = self.trilogy_value_structural_eq(value, constant, "");
                 self.pm_cont_if(is_match, on_fail);
             }
             Value::Boolean(val) => {
-                let constant = self.allocate_const(self.bool_const(*val));
+                let constant = self.allocate_const(self.bool_const(*val), "");
                 let is_match = self.trilogy_value_structural_eq(value, constant, "");
                 self.pm_cont_if(is_match, on_fail);
             }
             Value::Atom(val) => {
-                let constant = self.allocate_const(self.atom_const(val.to_owned()));
+                let constant = self.allocate_const(self.atom_const(val.to_owned()), "");
                 let is_match = self.trilogy_value_structural_eq(value, constant, "");
                 self.pm_cont_if(is_match, on_fail);
             }
             Value::Character(val) => {
-                let constant = self.allocate_const(self.char_const(*val));
+                let constant = self.allocate_const(self.char_const(*val), "");
                 let is_match = self.trilogy_value_structural_eq(value, constant, "");
                 self.pm_cont_if(is_match, on_fail);
             }
             Value::Number(num) if num.value().im.is_zero() && num.value().re.is_integer() => {
                 if let Some(int) = num.value().re.to_i64() {
-                    let constant = self.allocate_const(self.int_const(int));
+                    let constant = self.allocate_const(self.int_const(int), "");
                     let is_match = self.trilogy_value_structural_eq(value, constant, "");
                     self.pm_cont_if(is_match, on_fail);
                 } else {

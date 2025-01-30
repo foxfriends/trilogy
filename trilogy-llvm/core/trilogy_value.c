@@ -23,6 +23,8 @@ void trilogy_unit_untag(trilogy_value* val) {
 }
 
 void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
+    assert(into != NULL);
+    assert(from != NULL);
     assert(into->tag == TAG_UNDEFINED);
     assert(from->tag != TAG_UNDEFINED);
     switch (from->tag) {
@@ -66,6 +68,7 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
 }
 
 void trilogy_value_destroy(trilogy_value* value) {
+    assert(value != NULL);
     switch (value->tag) {
     case TAG_STRING: {
         trilogy_string_value* p = trilogy_string_assume(value);
