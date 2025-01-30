@@ -73,8 +73,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.di.validate();
-        self.di
-            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
+        self.di.push_subprogram(function.get_subprogram().unwrap());
         self.set_span(definition.value.span);
         let basic_block = self.context.append_basic_block(function, "entry");
         let initialize = self.context.append_basic_block(function, "initialize");

@@ -2,7 +2,7 @@ use crate::{debug_info::DebugInfo, types};
 use inkwell::{
     builder::Builder,
     context::Context,
-    debug_info::AsDIScope,
+    debug_info::{AsDIScope, DILocation},
     execution_engine::ExecutionEngine,
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     memory_buffer::MemoryBuffer,
@@ -61,12 +61,15 @@ enum Exit<'ctx> {
     Current,
     Continued {
         instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
     },
     Returned {
         instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
     },
     Ended {
         instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
     },
 }
 
@@ -284,27 +287,47 @@ impl<'ctx> Codegen<'ctx> {
         self.current_definition.borrow().clone()
     }
 
-    pub(crate) fn set_returned(&self, instruction: InstructionValue<'ctx>) {
+    pub(crate) fn set_returned(
+        &self,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
         Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
             .unwrap()
-            .exit = Exit::Returned { instruction };
+            .exit = Exit::Returned {
+            instruction,
+            debug_location,
+        };
     }
 
-    pub(crate) fn set_ended(&self, instruction: InstructionValue<'ctx>) {
+    pub(crate) fn set_ended(
+        &self,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
         Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
             .unwrap()
-            .exit = Exit::Ended { instruction };
+            .exit = Exit::Ended {
+            instruction,
+            debug_location,
+        };
     }
 
-    pub(crate) fn set_continued(&self, instruction: InstructionValue<'ctx>) {
+    pub(crate) fn set_continued(
+        &self,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
         let mut cps = self.continuation_points.borrow_mut();
-        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued { instruction };
+        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued {
+            instruction,
+            debug_location,
+        };
         let new = Rc::new(ContinuationPoint::child(cps.last().unwrap()));
         cps.push(new);
     }
 
     fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
-        // TODO: clone debug scopes with new subprogram node
         for (id, var) in cp.variables.borrow().iter() {
             let Variable::Owned(pointer) = var else {
                 continue;
@@ -345,8 +368,6 @@ impl<'ctx> Codegen<'ctx> {
             // This is where we do the cleanup, and then call the return continuation if we haven't already
             // set up an exit.
 
-            // TODO: ensure debug scope is accurate
-
             match parent.exit {
                 Exit::Current => {
                     self.clean_and_close_scope(&parent);
@@ -362,22 +383,34 @@ impl<'ctx> Codegen<'ctx> {
                         self.unit_const().into(),
                     );
                 }
-                Exit::Returned { instruction } => {
+                Exit::Returned {
+                    instruction,
+                    debug_location,
+                } => {
                     // If the current lexical continuation ended by returning, then we're just injecting
                     // cleanup before the call to the return continuation
                     self.builder.position_before(&instruction);
+                    self.builder.set_current_debug_location(debug_location);
                     self.clean_and_close_scope(&parent);
                 }
-                Exit::Ended { instruction } => {
+                Exit::Ended {
+                    instruction,
+                    debug_location,
+                } => {
                     // If the current lexical continuation ended by ending, then it's similar to returning
                     // but without needing to build a closure
                     self.builder.position_before(&instruction);
+                    self.builder.set_current_debug_location(debug_location);
                     self.cleanup_scope(&parent);
                 }
-                Exit::Continued { instruction } => {
+                Exit::Continued {
+                    instruction,
+                    debug_location,
+                } => {
                     let child = child.unwrap();
                     self.builder
                         .position_at(instruction.get_parent().unwrap(), &instruction);
+                    self.builder.set_current_debug_location(debug_location);
                     let closure = self.build_closure(&parent, &child);
                     self.clean_and_close_scope(&child);
                     instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());

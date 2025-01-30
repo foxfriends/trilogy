@@ -114,7 +114,10 @@ impl<'ctx> Codegen<'ctx> {
         let end = self.get_end();
         let alloca = self.allocate_value("");
         let instruction = self.call_continuation(end, alloca.into());
-        self.set_ended(instruction);
+        self.set_ended(
+            instruction,
+            self.builder.get_current_debug_location().unwrap(),
+        );
     }
 
     fn compile_sequence(&self, seq: &[ir::Expression], name: &str) -> Option<PointerValue<'ctx>> {
@@ -261,7 +264,10 @@ impl<'ctx> Codegen<'ctx> {
                 let result = self.compile_expression(expression, name)?;
                 let return_cont = self.get_return();
                 let return_call = self.call_continuation(return_cont, result.into());
-                self.set_returned(return_call);
+                self.set_returned(
+                    return_call,
+                    self.builder.get_current_debug_location().unwrap(),
+                );
                 None
             }
             Builtin::Exit => {

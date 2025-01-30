@@ -1,10 +1,11 @@
 use inkwell::{
     debug_info::{
-        AsDIScope, DIBasicType, DICompileUnit, DILocation, DIScope, DISubroutineType,
-        DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
+        AsDIScope, DIBasicType, DICompileUnit, DILexicalBlock, DILocation, DIScope, DISubprogram,
+        DISubroutineType, DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
     },
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Module,
+    values::FunctionValue,
 };
 use source_span::Span;
 use std::{cell::RefCell, path::PathBuf, rc::Rc};
@@ -15,7 +16,24 @@ use crate::codegen::Codegen;
 pub(crate) struct DebugInfo<'ctx> {
     pub(crate) builder: DebugInfoBuilder<'ctx>,
     pub(crate) unit: DICompileUnit<'ctx>,
-    pub(crate) debug_scopes: Rc<RefCell<Vec<DIScope<'ctx>>>>,
+    debug_scopes: Rc<RefCell<Vec<DebugScope<'ctx>>>>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum DebugScope<'ctx> {
+    Unit(DICompileUnit<'ctx>),
+    Subprogram(DISubprogram<'ctx>),
+    LexicalBlock(DILexicalBlock<'ctx>, u32, u32),
+}
+
+impl<'ctx> DebugScope<'ctx> {
+    fn as_debug_info_scope(&self) -> DIScope<'ctx> {
+        match self {
+            Self::Unit(scope) => scope.as_debug_info_scope(),
+            Self::Subprogram(scope) => scope.as_debug_info_scope(),
+            Self::LexicalBlock(scope, ..) => scope.as_debug_info_scope(),
+        }
+    }
 }
 
 impl<'ctx> DebugInfo<'ctx> {
@@ -59,7 +77,7 @@ impl<'ctx> DebugInfo<'ctx> {
         DebugInfo {
             builder,
             unit,
-            debug_scopes: Rc::new(RefCell::new(vec![unit.as_debug_info_scope()])),
+            debug_scopes: Rc::new(RefCell::new(vec![DebugScope::Unit(unit)])),
         }
     }
 
@@ -96,21 +114,20 @@ impl<'ctx> DebugInfo<'ctx> {
         self.procedure_di_type(arity + 1)
     }
 
-    pub(crate) fn push_debug_scope(&self, scope: DIScope<'ctx>) {
+    pub(crate) fn push_subprogram(&self, scope: DISubprogram<'ctx>) {
         let mut scopes = self.debug_scopes.borrow_mut();
-        scopes.push(scope);
+        scopes.push(DebugScope::Subprogram(scope));
     }
 
     pub(crate) fn push_block_scope(&self, span: Span) {
+        let line = span.start().line as u32 + 1;
+        let column = span.start().column as u32 + 1;
         let scope = self.get_debug_scope().unwrap();
-        let block = self.builder.create_lexical_block(
-            scope,
-            self.unit.get_file(),
-            span.start().line as u32 + 1,
-            span.start().column as u32 + 1,
-        );
+        let block = self
+            .builder
+            .create_lexical_block(scope, self.unit.get_file(), line, column);
         let mut scopes = self.debug_scopes.borrow_mut();
-        scopes.push(block.as_debug_info_scope());
+        scopes.push(DebugScope::LexicalBlock(block, line, column));
     }
 
     pub(crate) fn pop_scope(&self) {
@@ -118,7 +135,10 @@ impl<'ctx> DebugInfo<'ctx> {
     }
 
     pub(crate) fn get_debug_scope(&self) -> Option<DIScope<'ctx>> {
-        self.debug_scopes.borrow().last().copied()
+        self.debug_scopes
+            .borrow()
+            .last()
+            .map(|s| s.as_debug_info_scope())
     }
 }
 
@@ -134,5 +154,42 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder.set_current_debug_location(location);
         prev
+    }
+
+    pub(crate) fn transfer_debug_info(&self, function: FunctionValue<'ctx>) {
+        let mut new_scopes = self.di.debug_scopes.borrow().clone();
+        assert!(matches!(new_scopes[0], DebugScope::Unit(..)));
+        assert!(matches!(new_scopes[1], DebugScope::Subprogram(..)));
+        new_scopes[1] = DebugScope::Subprogram(function.get_subprogram().unwrap());
+        for i in 2..new_scopes.len() {
+            new_scopes[i] = match &new_scopes[i] {
+                DebugScope::Unit(..) | DebugScope::Subprogram(..) => {
+                    panic!("cannot have multiple units or subprograms")
+                }
+                DebugScope::LexicalBlock(.., line, column) => {
+                    let scope = new_scopes[i - 1].as_debug_info_scope();
+                    DebugScope::LexicalBlock(
+                        self.di.builder.create_lexical_block(
+                            scope,
+                            self.di.unit.get_file(),
+                            *line,
+                            *column,
+                        ),
+                        *line,
+                        *column,
+                    )
+                }
+            }
+        }
+        let location = self.builder.get_current_debug_location().unwrap();
+        let new_location = self.di.builder.create_debug_location(
+            self.context,
+            location.get_line(),
+            location.get_column(),
+            new_scopes.last().unwrap().as_debug_info_scope(),
+            None,
+        );
+        *self.di.debug_scopes.borrow_mut() = new_scopes;
+        self.builder.set_current_debug_location(new_location);
     }
 }

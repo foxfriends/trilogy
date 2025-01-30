@@ -181,8 +181,7 @@ impl<'ctx> Codegen<'ctx> {
         function: FunctionValue<'ctx>,
         procedure: &ir::Procedure,
     ) {
-        self.di
-            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
+        self.di.push_subprogram(function.get_subprogram().unwrap());
         let entry = self.context.append_basic_block(function, "entry");
         let no_match = self.context.append_basic_block(function, "no_match");
 
