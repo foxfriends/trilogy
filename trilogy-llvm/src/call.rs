@@ -35,13 +35,13 @@ impl<'ctx> Codegen<'ctx> {
 
     fn add_continuation(&self) -> FunctionValue<'ctx> {
         let (name, span) = self.get_current_definition();
-        let chain_function =
+        let function =
             self.module
                 .add_function(&name, self.continuation_type(), Some(Linkage::Private));
         let procedure_scope = self.di.builder.create_function(
             self.di.unit.get_file().as_debug_info_scope(),
             &name,
-            Some(chain_function.get_name().to_str().unwrap()),
+            Some(function.get_name().to_str().unwrap()),
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.continuation_di_type(),
@@ -51,8 +51,13 @@ impl<'ctx> Codegen<'ctx> {
             LLVMDIFlagPublic,
             false,
         );
-        chain_function.set_subprogram(procedure_scope);
-        chain_function
+        function.set_subprogram(procedure_scope);
+        function.get_nth_param(0).unwrap().set_name("return_to");
+        function.get_nth_param(1).unwrap().set_name("yield_to");
+        function.get_nth_param(2).unwrap().set_name("end_to");
+        function.get_nth_param(3).unwrap().set_name("cont_val");
+        function.get_nth_param(4).unwrap().set_name("closure");
+        function
     }
 
     fn get_callable_closure(&self, callable: PointerValue<'ctx>) -> PointerValue<'ctx> {
@@ -74,11 +79,13 @@ impl<'ctx> Codegen<'ctx> {
 
         let continuation = self.allocate_value("cont");
 
+        let return_to = self.get_return();
+        let yield_to = self.get_yield();
+
         let mut args = vec![
-            self.get_return().into(),
+            continuation.into(),
             self.get_yield().into(),
             self.get_end().into(),
-            continuation.into(),
         ];
         args.extend_from_slice(arguments);
 
@@ -90,8 +97,8 @@ impl<'ctx> Codegen<'ctx> {
         self.set_continued(parent_closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
             continuation,
-            self.get_return(),
-            self.get_yield(),
+            return_to,
+            yield_to,
             parent_closure,
             chain_function.as_global_value().as_pointer_value(),
         );
@@ -212,27 +219,31 @@ impl<'ctx> Codegen<'ctx> {
         let yield_continuation = self.allocate_value("yield");
         let end_continuation = self.allocate_value("end");
 
-        let parent_closure = self.allocate_value("");
-        self.trilogy_array_init_cap(parent_closure, 0, "");
+        let return_closure = self.allocate_value("");
+        let yield_closure = self.allocate_value("");
+        let end_closure = self.allocate_value("");
+        self.trilogy_array_init_cap(return_closure, 0, "");
+        self.trilogy_array_init_cap(yield_closure, 0, "");
+        self.trilogy_array_init_cap(end_closure, 0, "");
         self.trilogy_callable_init_cont(
             return_continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            parent_closure,
+            return_closure,
             chain_function.as_global_value().as_pointer_value(),
         );
         self.trilogy_callable_init_cont(
             yield_continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            parent_closure,
+            yield_closure,
             yield_function.as_global_value().as_pointer_value(),
         );
         self.trilogy_callable_init_cont(
             end_continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            parent_closure,
+            end_closure,
             end_function.as_global_value().as_pointer_value(),
         );
 
@@ -245,7 +256,6 @@ impl<'ctx> Codegen<'ctx> {
                     return_continuation.into(),
                     yield_continuation.into(),
                     end_continuation.into(),
-                    return_continuation.into(),
                 ],
                 "",
             )

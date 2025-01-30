@@ -123,15 +123,10 @@ impl<'ctx> Codegen<'ctx> {
             Some(Linkage::Private),
         );
         function.set_subprogram(procedure_scope);
-        function.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        function.get_nth_param(0).unwrap().set_name("sretptr");
         function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.get_nth_param(0).unwrap().set_name("return_to");
+        function.get_nth_param(1).unwrap().set_name("yield_to");
+        function.get_nth_param(2).unwrap().set_name("end_to");
 
         let accessor =
             self.module

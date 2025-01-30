@@ -309,10 +309,12 @@ impl<'ctx> Codegen<'ctx> {
             if let Some(pointer) = cp.upvalues.borrow().get(id) {
                 let upvalue = self.trilogy_reference_assume(*pointer);
                 self.trilogy_reference_close(upvalue);
+            } else {
                 self.trilogy_value_destroy(*pointer);
             }
-
-            self.trilogy_value_destroy(*pointer);
+        }
+        for param in self.get_function().get_param_iter() {
+            self.trilogy_value_destroy(param.into_pointer_value());
         }
     }
 
@@ -324,24 +326,26 @@ impl<'ctx> Codegen<'ctx> {
 
             self.trilogy_value_destroy(*pointer);
         }
+        for param in self.get_function().get_param_iter() {
+            self.trilogy_value_destroy(param.into_pointer_value());
+        }
     }
 
     pub(crate) fn close_continuation(&self) {
-        let mut child = self.continuation_points.borrow_mut().pop().unwrap();
-        assert!(!matches!(child.exit, Exit::Continued { .. }));
+        let mut child: Option<Rc<ContinuationPoint<'ctx>>> = None;
 
-        while let Some(last) = {
-            let rcs = self.continuation_points.borrow();
-            rcs.last().cloned()
+        while let Some(parent) = {
+            let mut rcs = self.continuation_points.borrow_mut();
+            rcs.pop()
         } {
             // This is where we do the cleanup, and then call the return continuation if we haven't already
             // set up an exit.
 
             // TODO: ensure debug scope is accurate
 
-            match last.exit {
+            match parent.exit {
                 Exit::Current => {
-                    self.clean_and_close_scope(&child);
+                    self.clean_and_close_scope(&parent);
                     // If the current lexical continuation ends without value, then it should `return unit`
                     //
                     // When we're in the current continuation, and we hit the end, then we need to fake
@@ -359,17 +363,19 @@ impl<'ctx> Codegen<'ctx> {
                     // If the current lexical continuation ended by returning, then we're just injecting
                     // cleanup before the call to the return continuation
                     self.builder.position_before(&instruction);
-                    self.clean_and_close_scope(&child);
+                    self.clean_and_close_scope(&parent);
                 }
                 Exit::Continued { instruction, block } => {
+                    let child = child.unwrap();
                     self.builder.position_at(block, &instruction);
-                    let closure = self.build_closure(&child);
+                    let closure = self.build_closure(&parent, &child);
+                    self.clean_and_close_scope(&child);
                     instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                     instruction.erase_from_basic_block();
                 }
             }
 
-            child = self.continuation_points.borrow_mut().pop().unwrap();
+            child = Some(parent);
         }
     }
 
@@ -379,8 +385,10 @@ impl<'ctx> Codegen<'ctx> {
         function: FunctionValue<'ctx>,
         arity: usize,
     ) {
-        let child_scope = self.continuation_points.borrow_mut().pop().unwrap();
-        let closure = self.build_closure(&child_scope);
+        let mut rcs = self.continuation_points.borrow_mut();
+        let child_scope = rcs.pop().unwrap();
+        let scope = rcs.last().unwrap().clone();
+        let closure = self.build_closure(&scope, &child_scope);
         self.trilogy_callable_init_do(
             target,
             arity,
@@ -389,8 +397,11 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
-    fn build_closure(&self, child_scope: &ContinuationPoint<'ctx>) -> PointerValue<'ctx> {
-        let scope = self.continuation_points.borrow().last().unwrap().clone();
+    fn build_closure(
+        &self,
+        scope: &ContinuationPoint<'ctx>,
+        child_scope: &ContinuationPoint<'ctx>,
+    ) -> PointerValue<'ctx> {
         let closure_size = child_scope.closure.borrow().len();
         let closure = self.allocate_value("closure");
         let closure_array = self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
@@ -408,7 +419,6 @@ impl<'ctx> Codegen<'ctx> {
             }
             self.trilogy_array_push(closure_array, new_upvalue);
         }
-        self.clean_and_close_scope(child_scope);
         closure
     }
 

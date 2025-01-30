@@ -198,10 +198,9 @@ impl<'ctx> Codegen<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
-        // 3: continuation
-        // [4..4 + arity): args
-        // 4 + arity: closure
-        let extras = if has_closure { 5 } else { 4 };
+        // [3..3 + arity): args
+        // 3 + arity: closure
+        let extras = if has_closure { 4 } else { 3 };
         self.context.void_type().fn_type(
             &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + extras],
             false,

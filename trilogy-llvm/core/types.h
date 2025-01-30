@@ -168,11 +168,9 @@ typedef struct trilogy_callable_value {
     /**
      * For captured continuations, the return and yield points are stored rather
      * than provided. (The `end` pointer is still provided)
-     *
-     * The return_to and yield_to are owned despite being pointers.
      **/
-    trilogy_value* return_to;
-    trilogy_value* yield_to;
+    struct trilogy_callable_value* return_to;
+    struct trilogy_callable_value* yield_to;
     /**
      * Context captured from the closure of this callable. This is an array of
      * trilogy values (all of which would should be references?). The array is
