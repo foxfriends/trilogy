@@ -122,8 +122,8 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         if (val->closure != NO_CLOSURE) {
             trilogy_array_destroy(val->closure);
         }
-        // NOTE: even a continuation may have return_to and yield_to as NULL, as is the case in
-        // the wrapper of main.
+        // NOTE: even a continuation may have return_to and yield_to as NULL, as
+        // is the case in the wrapper of main.
         if (val->return_to != NULL) {
             trilogy_value_destroy(val->return_to);
             free(val->return_to);
@@ -143,12 +143,16 @@ trilogy_callable_closure_into(trilogy_value* val, trilogy_callable_value* cal) {
     return trilogy_array_clone_into(val, cal->closure);
 }
 
-void trilogy_callable_return_to_into(trilogy_value* val, trilogy_callable_value* cal) {
+void trilogy_callable_return_to_into(
+    trilogy_value* val, trilogy_callable_value* cal
+) {
     if (cal->return_to == NULL) return;
     trilogy_value_clone_into(val, cal->return_to);
 }
 
-void trilogy_callable_yield_to_into(trilogy_value* val, trilogy_callable_value* cal) {
+void trilogy_callable_yield_to_into(
+    trilogy_value* val, trilogy_callable_value* cal
+) {
     if (cal->yield_to == NULL) return;
     trilogy_value_clone_into(val, cal->yield_to);
 }

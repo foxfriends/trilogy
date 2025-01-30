@@ -408,7 +408,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             self.trilogy_array_push(closure_array, new_upvalue);
         }
-        self.clean_and_close_scope(&child_scope);
+        self.clean_and_close_scope(child_scope);
         closure
     }
 

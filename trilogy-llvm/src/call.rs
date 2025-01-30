@@ -41,7 +41,7 @@ impl<'ctx> Codegen<'ctx> {
         let procedure_scope = self.di.builder.create_function(
             self.di.unit.get_file().as_debug_info_scope(),
             &name,
-            Some(&chain_function.get_name().to_str().unwrap()),
+            Some(chain_function.get_name().to_str().unwrap()),
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.continuation_di_type(),

@@ -87,7 +87,7 @@ impl<'ctx> DebugInfo<'ctx> {
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             Some(self.value_di_type().as_type()),
-            &vec![self.value_di_type().as_type(); 5],
+            &[self.value_di_type().as_type(); 5],
             LLVMDIFlagPublic,
         )
     }
