@@ -97,8 +97,10 @@ void trilogy_callable_init_cont(
     callable->rc = 1;
     callable->tag = CALLABLE_CONTINUATION;
     callable->arity = 1;
-    callable->return_to = return_to == NULL ? NULL : trilogy_callable_assume(return_to);
-    callable->yield_to = yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
+    callable->return_to =
+        return_to == NULL ? NULL : trilogy_callable_assume(return_to);
+    callable->yield_to =
+        yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;

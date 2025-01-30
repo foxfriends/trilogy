@@ -72,8 +72,9 @@ impl<'ctx> Codegen<'ctx> {
             .get_function(&format!("{}::{}", self.location, definition.name))
             .unwrap();
 
-        self.di.validate();
         self.di.push_subprogram(function.get_subprogram().unwrap());
+        self.di
+            .push_block_scope(definition.name.span.union(definition.value.span));
         self.set_span(definition.value.span);
         let basic_block = self.context.append_basic_block(function, "entry");
         let initialize = self.context.append_basic_block(function, "initialize");
@@ -97,6 +98,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_cont = function.get_first_param().unwrap().into_pointer_value();
         self.call_continuation(return_cont, global.as_pointer_value().into());
         self.di.pop_scope();
-        self.di.validate();
+        self.di.pop_scope();
     }
 }

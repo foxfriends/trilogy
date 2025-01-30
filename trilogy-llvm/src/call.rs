@@ -46,7 +46,7 @@ impl<'ctx> Codegen<'ctx> {
             span.start().line as u32 + 1,
             self.di.continuation_di_type(),
             true,
-            false,
+            true,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,
             false,

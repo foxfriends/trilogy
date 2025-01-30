@@ -182,6 +182,7 @@ impl<'ctx> Codegen<'ctx> {
         procedure: &ir::Procedure,
     ) {
         self.di.push_subprogram(function.get_subprogram().unwrap());
+        self.di.push_block_scope(procedure.span);
         let entry = self.context.append_basic_block(function, "entry");
         let no_match = self.context.append_basic_block(function, "no_match");
 
@@ -215,6 +216,7 @@ impl<'ctx> Codegen<'ctx> {
         let end = self.get_end();
         let unit = self.allocate_const(self.unit_const());
         self.call_continuation(end, unit.into());
+        self.di.pop_scope();
         self.di.pop_scope();
     }
 }

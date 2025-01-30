@@ -14,7 +14,7 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         on_fail: BasicBlock<'ctx>,
     ) -> Option<()> {
-        self.set_span(pattern.span);
+        let prev = self.set_span(pattern.span);
 
         match &pattern.value {
             Value::Reference(id) => {
@@ -80,6 +80,11 @@ impl<'ctx> Codegen<'ctx> {
             Value::Wildcard => {}
             _ => todo!(),
         }
+
+        if let Some(prev) = prev {
+            self.overwrite_debug_location(prev);
+        }
+
         Some(())
     }
 

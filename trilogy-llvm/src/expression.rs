@@ -104,7 +104,7 @@ impl<'ctx> Codegen<'ctx> {
         };
 
         if let Some(prev) = prev {
-            self.builder.set_current_debug_location(prev);
+            self.overwrite_debug_location(prev);
         }
 
         result
