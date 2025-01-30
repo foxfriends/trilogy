@@ -82,7 +82,10 @@ impl<'ctx> Codegen<'ctx> {
         ];
         args.extend_from_slice(arguments);
 
-        let parent_closure = self.allocate_value("cont.closure");
+        let parent_closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         self.set_continued(parent_closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
@@ -126,6 +129,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let entry = self.context.append_basic_block(chain_function, "entry");
         self.builder.position_at_end(entry);
+        // TODO: clone debug scopes with new subprogram node
         self.get_continuation()
     }
 

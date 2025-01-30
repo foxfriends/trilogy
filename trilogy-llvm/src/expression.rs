@@ -159,7 +159,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(value);
                 self.compile_expression(&decl.body, name)
             }
-            _ => todo!("non-deterministic branching "),
+            _ => todo!("non-deterministic branching"),
         }
     }
 
@@ -200,22 +200,22 @@ impl<'ctx> Codegen<'ctx> {
                         self.compile_expression(&val.expression, "")
                     })
                     .collect::<Option<Vec<_>>>()?;
-                self.call_procedure(
-                    function,
-                    &arguments
-                        .iter()
-                        .map(|arg| (*arg).into())
-                        .collect::<Vec<_>>(),
-                );
+                Some(
+                    self.call_procedure(
+                        function,
+                        &arguments
+                            .iter()
+                            .map(|arg| (*arg).into())
+                            .collect::<Vec<_>>(),
+                    ),
+                )
             }
             // Function application
             _ => {
                 let argument = self.compile_expression(&application.argument, "")?;
-                self.apply_function(function, argument.into());
+                Some(self.apply_function(function, argument.into()))
             }
         }
-
-        todo!()
     }
 
     fn compile_module_access(

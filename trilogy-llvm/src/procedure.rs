@@ -175,11 +175,9 @@ impl<'ctx> Codegen<'ctx> {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
         let name = definition.name.to_string();
-        let function = self
-            .module
-            .get_function(if name == "main" { MAIN_NAME } else { &name })
-            .unwrap();
-        self.set_current_definition(name, procedure.span);
+        let linkage_name = if name == "main" { MAIN_NAME } else { &name };
+        let function = self.module.get_function(linkage_name).unwrap();
+        self.set_current_definition(linkage_name.to_owned(), procedure.span);
         self.compile_procedure_body(function, procedure);
     }
 

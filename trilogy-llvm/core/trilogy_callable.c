@@ -97,14 +97,16 @@ void trilogy_callable_init_cont(
     callable->rc = 1;
     callable->tag = CALLABLE_CONTINUATION;
     callable->arity = 1;
-    if (return_to) {
+    if (return_to != NULL) {
         callable->return_to = malloc_safe(sizeof(trilogy_value));
+        *callable->return_to = trilogy_undefined;
         trilogy_value_clone_into(callable->return_to, return_to);
     } else {
         callable->return_to = NULL;
     }
-    if (yield_to) {
+    if (yield_to != NULL) {
         callable->yield_to = malloc_safe(sizeof(trilogy_value));
+        *callable->yield_to = trilogy_undefined;
         trilogy_value_clone_into(callable->yield_to, yield_to);
     } else {
         callable->yield_to = NULL;
@@ -136,6 +138,8 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
 
 trilogy_array_value*
 trilogy_callable_closure_into(trilogy_value* val, trilogy_callable_value* cal) {
+    assert(val->tag == TAG_UNDEFINED);
+    if (cal->closure == NO_CLOSURE) return NULL;
     return trilogy_array_clone_into(val, cal->closure);
 }
 
