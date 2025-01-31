@@ -138,7 +138,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
 
         self.builder.position_at_end(closure_block);
-        args.push(bound_closure.into());
+        args.push(bound_closure);
         let args_loaded: Vec<_> = args
             .iter()
             .map(|arg| {

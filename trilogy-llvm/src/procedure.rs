@@ -220,7 +220,7 @@ impl<'ctx> Codegen<'ctx> {
         self.cleanup_scope(&cp);
         let end = self.get_end("");
         let unit = self.allocate_const(self.unit_const(), "");
-        self.call_continuation(end, unit.into());
+        self.call_continuation(end, unit);
         self.di.pop_scope();
         self.di.pop_scope();
     }

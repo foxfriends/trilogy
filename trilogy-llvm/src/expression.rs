@@ -113,7 +113,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_end(&self) {
         let end = self.get_end("");
         let alloca = self.allocate_value("");
-        let instruction = self.call_continuation(end, alloca.into());
+        let instruction = self.call_continuation(end, alloca);
         self.set_ended(
             instruction,
             self.builder.get_current_debug_location().unwrap(),
@@ -209,20 +209,12 @@ impl<'ctx> Codegen<'ctx> {
                         self.compile_expression(&val.expression, "")
                     })
                     .collect::<Option<Vec<_>>>()?;
-                Some(
-                    self.call_procedure(
-                        function,
-                        &arguments
-                            .iter()
-                            .map(|arg| (*arg).into())
-                            .collect::<Vec<_>>(),
-                    ),
-                )
+                Some(self.call_procedure(function, &arguments))
             }
             // Function application
             _ => {
                 let argument = self.compile_expression(&application.argument, "")?;
-                Some(self.apply_function(function, argument.into()))
+                Some(self.apply_function(function, argument))
             }
         }
     }
@@ -259,7 +251,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Return => {
                 let result = self.compile_expression(expression, name)?;
                 let return_cont = self.get_return("");
-                let return_call = self.call_continuation(return_cont, result.into());
+                let return_call = self.call_continuation(return_cont, result);
                 self.set_returned(
                     return_call,
                     self.builder.get_current_debug_location().unwrap(),
