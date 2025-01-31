@@ -145,51 +145,43 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    pub(crate) fn get_return(&self) -> PointerValue<'ctx> {
-        let container = self.allocate_value("");
-        self.trilogy_value_clone_into(
-            container,
-            self.get_function()
-                .get_nth_param(0)
-                .unwrap()
-                .into_pointer_value(),
-        );
+    pub(crate) fn get_return(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        let temp = self.allocate_value("");
+        self.builder
+            .build_store(temp, self.get_function().get_nth_param(0).unwrap())
+            .unwrap();
+        self.trilogy_value_clone_into(container, temp);
         container
     }
 
-    pub(crate) fn get_yield(&self) -> PointerValue<'ctx> {
-        let container = self.allocate_value("");
-        self.trilogy_value_clone_into(
-            container,
-            self.get_function()
-                .get_nth_param(1)
-                .unwrap()
-                .into_pointer_value(),
-        );
+    pub(crate) fn get_yield(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        let temp = self.allocate_value("");
+        self.builder
+            .build_store(temp, self.get_function().get_nth_param(1).unwrap())
+            .unwrap();
+        self.trilogy_value_clone_into(container, temp);
         container
     }
 
-    pub(crate) fn get_end(&self) -> PointerValue<'ctx> {
-        let container = self.allocate_value("");
-        self.trilogy_value_clone_into(
-            container,
-            self.get_function()
-                .get_nth_param(2)
-                .unwrap()
-                .into_pointer_value(),
-        );
+    pub(crate) fn get_end(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        let temp = self.allocate_value("");
+        self.builder
+            .build_store(temp, self.get_function().get_nth_param(2).unwrap())
+            .unwrap();
+        self.trilogy_value_clone_into(container, temp);
         container
     }
 
-    pub(crate) fn get_continuation(&self) -> PointerValue<'ctx> {
-        let container = self.allocate_value("");
-        self.trilogy_value_clone_into(
-            container,
-            self.get_function()
-                .get_nth_param(3)
-                .unwrap()
-                .into_pointer_value(),
-        );
+    pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        let temp = self.allocate_value("");
+        self.builder
+            .build_store(temp, self.get_function().get_nth_param(3).unwrap())
+            .unwrap();
+        self.trilogy_value_clone_into(container, temp);
         container
     }
 
@@ -341,7 +333,9 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
         for param in self.get_function().get_param_iter() {
-            self.trilogy_value_destroy(param.into_pointer_value());
+            let param_ptr = self.builder.build_alloca(self.value_type(), "").unwrap();
+            self.builder.build_store(param_ptr, param).unwrap();
+            self.trilogy_value_destroy(param_ptr);
         }
     }
 
@@ -354,7 +348,9 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_value_destroy(*pointer);
         }
         for param in self.get_function().get_param_iter() {
-            self.trilogy_value_destroy(param.into_pointer_value());
+            let param_ptr = self.builder.build_alloca(self.value_type(), "").unwrap();
+            self.builder.build_store(param_ptr, param).unwrap();
+            self.trilogy_value_destroy(param_ptr);
         }
     }
 
@@ -375,13 +371,8 @@ impl<'ctx> Codegen<'ctx> {
                     // When we're in the current continuation, and we hit the end, then we need to fake
                     // a return. This might be best moved elsewhere
                     let value = self.allocate_const(self.unit_const(), "runoff");
-                    let call = self.call_continuation(
-                        self.get_function()
-                            .get_first_param()
-                            .unwrap()
-                            .into_pointer_value(),
-                        value.into(),
-                    );
+                    let return_to = self.get_return("");
+                    let call = self.call_continuation(return_to, value);
                     self.builder.position_before(&call);
                     self.clean_and_close_scope(&parent);
                 }

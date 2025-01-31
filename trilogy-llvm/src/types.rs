@@ -202,8 +202,14 @@ impl<'ctx> Codegen<'ctx> {
         // [3..3 + arity): args
         // 3 + arity: closure
         let extras = if has_closure { 4 } else { 3 };
+        self.context
+            .void_type()
+            .fn_type(&vec![self.value_type().into(); arity + extras], false)
+    }
+
+    pub(crate) fn accessor_type(&self) -> FunctionType<'ctx> {
         self.context.void_type().fn_type(
-            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + extras],
+            &[self.context.ptr_type(AddressSpace::default()).into()],
             false,
         )
     }
@@ -214,10 +220,9 @@ impl<'ctx> Codegen<'ctx> {
         // 2: end
         // 3: argument
         // 4: closure
-        self.context.void_type().fn_type(
-            &[self.context.ptr_type(AddressSpace::default()).into(); 5],
-            false,
-        )
+        self.context
+            .void_type()
+            .fn_type(&[self.value_type().into(); 5], false)
     }
 
     pub(crate) fn branch_undefined(

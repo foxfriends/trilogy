@@ -13,7 +13,7 @@ impl<'ctx> Codegen<'ctx> {
     fn add_constant(&self, location: &str, name: &str, linkage: Linkage) -> FunctionValue<'ctx> {
         let accessor = self.module.add_function(
             &format!("{}::{}", location, name),
-            self.procedure_type(0, false),
+            self.accessor_type(),
             Some(linkage),
         );
         accessor.add_attribute(

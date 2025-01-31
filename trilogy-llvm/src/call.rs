@@ -70,7 +70,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         callable: PointerValue<'ctx>,
         function: PointerValue<'ctx>,
-        arguments: &[BasicMetadataValueEnum<'ctx>],
+        arguments: &[PointerValue<'ctx>],
     ) -> PointerValue<'ctx> {
         let bound_closure = self.get_callable_closure(callable);
 
@@ -79,14 +79,10 @@ impl<'ctx> Codegen<'ctx> {
 
         let continuation = self.allocate_value("cont");
 
-        let return_to = self.get_return();
-        let yield_to = self.get_yield();
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
 
-        let mut args = vec![
-            continuation.into(),
-            self.get_yield().into(),
-            self.get_end().into(),
-        ];
+        let mut args = vec![continuation, self.get_yield(""), self.get_end("")];
         args.extend_from_slice(arguments);
 
         let parent_closure = self
@@ -119,9 +115,23 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(direct_block);
+        let args_loaded: Vec<_> = args
+            .iter()
+            .map(|arg| {
+                self.builder
+                    .build_load(self.value_type(), *arg, "")
+                    .unwrap()
+                    .into()
+            })
+            .collect();
         let call = self
             .builder
-            .build_indirect_call(self.procedure_type(arity, false), function, &args, "")
+            .build_indirect_call(
+                self.procedure_type(arity, false),
+                function,
+                &args_loaded,
+                "",
+            )
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
@@ -129,9 +139,18 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(closure_block);
         args.push(bound_closure.into());
+        let args_loaded: Vec<_> = args
+            .iter()
+            .map(|arg| {
+                self.builder
+                    .build_load(self.value_type(), *arg, "")
+                    .unwrap()
+                    .into()
+            })
+            .collect();
         let call = self
             .builder
-            .build_indirect_call(self.procedure_type(arity, true), function, &args, "")
+            .build_indirect_call(self.procedure_type(arity, true), function, &args_loaded, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
@@ -140,14 +159,13 @@ impl<'ctx> Codegen<'ctx> {
         let entry = self.context.append_basic_block(chain_function, "entry");
         self.builder.position_at_end(entry);
         self.transfer_debug_info(chain_function);
-        // TODO: clone debug scopes with new subprogram node
-        self.get_continuation()
+        self.get_continuation("")
     }
 
     pub(crate) fn call_procedure(
         &self,
         value: PointerValue<'ctx>,
-        arguments: &[BasicMetadataValueEnum<'ctx>],
+        arguments: &[PointerValue<'ctx>],
     ) -> PointerValue<'ctx> {
         let callable = self.trilogy_callable_untag(value, "");
         let arity = arguments.len();
@@ -158,7 +176,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn apply_function(
         &self,
         value: PointerValue<'ctx>,
-        argument: BasicMetadataValueEnum<'ctx>,
+        argument: PointerValue<'ctx>,
     ) -> PointerValue<'ctx> {
         let callable = self.trilogy_callable_untag(value, "");
         let function = self.trilogy_function_untag(callable, "");
@@ -168,7 +186,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn call_continuation(
         &self,
         function: PointerValue<'ctx>,
-        argument: BasicMetadataValueEnum<'ctx>,
+        argument: PointerValue<'ctx>,
     ) -> InstructionValue<'ctx> {
         let callable = self.trilogy_callable_untag(function, "");
         let function = self.trilogy_continuation_untag(callable, "continue");
@@ -179,13 +197,21 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_return_to_into(return_to, callable);
         self.trilogy_callable_yield_to_into(yield_to, callable);
 
-        let args = vec![
-            return_to.into(),
-            yield_to.into(),
-            self.get_end().into(),
+        let args: Vec<_> = [
+            return_to,
+            yield_to,
+            self.get_end(""),
             argument,
-            self.get_callable_closure(callable).into(),
-        ];
+            self.get_callable_closure(callable),
+        ]
+        .iter()
+        .map(|val| {
+            self.builder
+                .build_load(self.value_type(), *val, "")
+                .unwrap()
+                .into()
+        })
+        .collect();
 
         // NOTE: cleanup will be inserted here
         let call = self
@@ -251,25 +277,26 @@ impl<'ctx> Codegen<'ctx> {
             end_function.as_global_value().as_pointer_value(),
         );
 
+        let args: Vec<_> = [return_continuation, yield_continuation, end_continuation]
+            .iter()
+            .map(|arg| {
+                self.builder
+                    .build_load(self.value_type(), *arg, "")
+                    .unwrap()
+                    .into()
+            })
+            .collect();
+
         let call = self
             .builder
-            .build_indirect_call(
-                self.procedure_type(0, false),
-                function,
-                &[
-                    return_continuation.into(),
-                    yield_continuation.into(),
-                    end_continuation.into(),
-                ],
-                "",
-            )
+            .build_indirect_call(self.procedure_type(0, false), function, &args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         self.builder.build_return(None).unwrap();
 
         let entry = self.context.append_basic_block(yield_function, "entry");
         self.builder.position_at_end(entry);
-        let effect = self.get_continuation();
+        let effect = self.get_continuation("");
         _ = self.trilogy_unhandled_effect(effect);
 
         let entry = self.context.append_basic_block(end_function, "entry");
@@ -278,7 +305,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let entry = self.context.append_basic_block(chain_function, "entry");
         self.builder.position_at_end(entry);
-        self.get_continuation()
+        self.get_continuation("")
     }
 
     pub(crate) fn call_internal(

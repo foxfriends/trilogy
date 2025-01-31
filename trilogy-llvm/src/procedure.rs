@@ -130,7 +130,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let accessor =
             self.module
-                .add_function(&accessor_name, self.procedure_type(0, false), Some(linkage));
+                .add_function(&accessor_name, self.accessor_type(), Some(linkage));
         accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
@@ -159,7 +159,7 @@ impl<'ctx> Codegen<'ctx> {
         }
         let accessor = self.module.add_function(
             &accessor_name,
-            self.procedure_type(0, false),
+            self.accessor_type(),
             Some(Linkage::External),
         );
         accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
@@ -194,8 +194,13 @@ impl<'ctx> Codegen<'ctx> {
                 let value = function
                     .get_nth_param(n as u32 + 3)
                     .unwrap()
-                    .into_pointer_value();
-                if self.compile_pattern_match(param, value, no_match).is_none() {
+                    .into_struct_value();
+                let value_param = self.builder.build_alloca(self.value_type(), "").unwrap();
+                self.builder.build_store(value_param, value).unwrap();
+                if self
+                    .compile_pattern_match(param, value_param, no_match)
+                    .is_none()
+                {
                     break 'body;
                 }
             }
@@ -213,7 +218,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(no_match);
         self.cleanup_scope(&cp);
-        let end = self.get_end();
+        let end = self.get_end("");
         let unit = self.allocate_const(self.unit_const(), "");
         self.call_continuation(end, unit.into());
         self.di.pop_scope();
