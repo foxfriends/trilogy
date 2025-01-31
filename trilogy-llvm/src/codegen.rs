@@ -59,6 +59,7 @@ pub(crate) struct Codegen<'ctx> {
 enum Exit<'ctx> {
     #[default]
     Current,
+    Branched,
     Continued {
         instruction: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
@@ -319,6 +320,22 @@ impl<'ctx> Codegen<'ctx> {
         cps.push(new);
     }
 
+    pub(crate) fn split_continuation_point(&self) -> ContinuationPoint<'ctx> {
+        let mut cps = self.continuation_points.borrow_mut();
+        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Branched;
+        let parent = cps.last().unwrap();
+        let new = Rc::new(ContinuationPoint::child(parent));
+        let next = ContinuationPoint::child(parent);
+        cps.push(new);
+        next
+    }
+
+    pub(crate) fn push_continuation_point(&self, cp: ContinuationPoint<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
+        cps.push(Rc::new(cp));
+    }
+
     fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
         for (id, var) in cp.variables.borrow().iter() {
             let Variable::Owned(pointer) = var else {
@@ -365,6 +382,10 @@ impl<'ctx> Codegen<'ctx> {
             // set up an exit.
 
             match parent.exit {
+                Exit::Branched => {
+                    // When there's a branch, the continuation doesn't actually end, so we don't do anything.
+                    // This assumes that both of the branches will end.
+                }
                 Exit::Current => {
                     // If the current lexical continuation ends without value, then it should `return unit`
                     //
@@ -405,7 +426,7 @@ impl<'ctx> Codegen<'ctx> {
                         .position_at(instruction.get_parent().unwrap(), &instruction);
                     self.builder.set_current_debug_location(debug_location);
                     let closure = self.build_closure(&parent, &child);
-                    self.clean_and_close_scope(&child);
+                    self.clean_and_close_scope(&parent);
                     instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                     instruction.erase_from_basic_block();
                 }

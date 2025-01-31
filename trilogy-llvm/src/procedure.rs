@@ -184,7 +184,6 @@ impl<'ctx> Codegen<'ctx> {
         self.di.push_subprogram(function.get_subprogram().unwrap());
         self.di.push_block_scope(procedure.span);
         let entry = self.context.append_basic_block(function, "entry");
-        let no_match = self.context.append_basic_block(function, "no_match");
 
         'body: {
             self.builder.position_at_end(entry);
@@ -198,7 +197,7 @@ impl<'ctx> Codegen<'ctx> {
                 let value_param = self.builder.build_alloca(self.value_type(), "").unwrap();
                 self.builder.build_store(value_param, value).unwrap();
                 if self
-                    .compile_pattern_match(param, value_param, no_match)
+                    .compile_pattern_match(param, value_param, self.get_end("no_match"))
                     .is_none()
                 {
                     break 'body;
@@ -213,14 +212,7 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
 
-        let cp = self.current_continuation();
         self.close_continuation();
-
-        self.builder.position_at_end(no_match);
-        self.cleanup_scope(&cp);
-        let end = self.get_end("");
-        let unit = self.allocate_const(self.unit_const(), "");
-        self.call_continuation(end, unit);
         self.di.pop_scope();
         self.di.pop_scope();
     }

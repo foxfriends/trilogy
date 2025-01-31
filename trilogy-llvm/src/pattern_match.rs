@@ -12,7 +12,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         pattern: &ir::Expression,
         value: PointerValue<'ctx>,
-        on_fail: BasicBlock<'ctx>,
+        on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
         let prev = self.set_span(pattern.span);
 
@@ -26,12 +26,12 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_pattern_match(&conj.1, value, on_fail)?;
             }
             Value::Disjunction(conj) => {
-                // TODO: this is supposed to be able to cause a branch... instead of just being `else`
+                // TODO: implement the branching here, right now it's just taking the first and ignoring the second
                 // e.g. `let a:_ or _:a = 1:2`
                 let function = self.get_function();
                 let secondary = self.context.append_basic_block(function, "pm_disj_second");
                 let on_success = self.context.append_basic_block(function, "pm_disj_cont");
-                self.compile_pattern_match(&conj.0, value, secondary)?;
+                self.compile_pattern_match(&conj.0, value, on_fail)?;
                 self.builder.build_unconditional_branch(on_success).unwrap();
 
                 self.builder.position_at_end(secondary);
@@ -88,14 +88,23 @@ impl<'ctx> Codegen<'ctx> {
         Some(())
     }
 
-    fn pm_cont_if(&self, cond: IntValue<'ctx>, on_fail: BasicBlock<'ctx>) -> BasicBlock<'ctx> {
+    fn pm_cont_if(&self, cond: IntValue<'ctx>, on_fail: PointerValue<'ctx>) -> BasicBlock<'ctx> {
+        let fail = self
+            .context
+            .append_basic_block(self.get_function(), "pm_fail");
         let cont = self
             .context
             .append_basic_block(self.get_function(), "pm_cont");
+        let joiner = self.split_continuation_point();
+
         self.builder
-            .build_conditional_branch(cond, cont, on_fail)
+            .build_conditional_branch(cond, cont, fail)
             .unwrap();
+        self.builder.position_at_end(fail);
+        self.call_continuation(on_fail, self.allocate_const(self.unit_const(), ""));
         self.builder.position_at_end(cont);
+
+        self.push_continuation_point(joiner);
         cont
     }
 
@@ -103,7 +112,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         value: PointerValue<'ctx>,
         application: &ir::Application,
-        on_fail: BasicBlock<'ctx>,
+        on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
         match &application.function.value {
             Value::Builtin(builtin) => {
@@ -118,7 +127,7 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         builtin: Builtin,
         expression: &ir::Expression,
-        on_fail: BasicBlock<'ctx>,
+        on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
         match builtin {
             Builtin::Typeof => {
