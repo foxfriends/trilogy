@@ -1,7 +1,9 @@
 use crate::{codegen::Head, Codegen};
 use inkwell::{
-    debug_info::AsDIScope, llvm_sys::debuginfo::LLVMDIFlagPublic, module::Linkage,
-    values::PointerValue,
+    debug_info::AsDIScope,
+    llvm_sys::debuginfo::LLVMDIFlagPublic,
+    module::Linkage,
+    values::{BasicValue, PointerValue},
 };
 use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
@@ -400,32 +402,48 @@ impl<'ctx> Codegen<'ctx> {
         let (current, _) = self.get_current_definition();
         let function_name = format!("{current}<do@{}>", procedure.span);
         let arity = procedure.parameters.len();
+        let function = self.module.add_function(
+            &function_name,
+            self.procedure_type(arity, true),
+            Some(Linkage::Internal),
+        );
 
-        let closure_codegen = self.inner();
-        let procedure_scope = closure_codegen.di.builder.create_function(
-            closure_codegen.di.unit.get_file().as_debug_info_scope(),
+        let target = self.allocate_value(name);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        let outside = self.start_closure(
+            closure.as_instruction_value().unwrap(),
+            self.builder.get_current_debug_location().unwrap(),
+        );
+
+        self.trilogy_callable_init_do(
+            target,
+            arity,
+            closure,
+            function.as_global_value().as_pointer_value(),
+        );
+        let here = self.builder.get_insert_block().unwrap();
+
+        let procedure_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
             &function_name,
             None,
-            closure_codegen.di.unit.get_file(),
+            self.di.unit.get_file(),
             procedure.span.start().line as u32 + 1,
-            closure_codegen.di.closure_di_type(arity),
+            self.di.closure_di_type(arity),
             true,
             true,
             procedure.span.start().line as u32 + 1,
             LLVMDIFlagPublic,
             false,
         );
-
-        let function = closure_codegen.module.add_function(
-            &function_name,
-            closure_codegen.procedure_type(arity, true),
-            Some(Linkage::Internal),
-        );
         function.set_subprogram(procedure_scope);
-        closure_codegen.set_current_definition(function_name, procedure.span);
-        closure_codegen.compile_procedure_body(function, procedure);
-        let target = self.allocate_value(name);
-        closure_codegen.close_as_do(target, function, arity);
+        self.compile_procedure_body(function, procedure);
+
+        self.builder.position_at_end(here);
+        self.push_continuation_point(outside);
         target
     }
 }

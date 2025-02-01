@@ -52,6 +52,12 @@ pub(crate) struct Codegen<'ctx> {
     current_definition: RefCell<(String, Span)>,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct ExitPos<'ctx> {
+    instruction: InstructionValue<'ctx>,
+    debug_location: DILocation<'ctx>,
+}
+
 /// During the reverse continuation phase, when closing this continuation block,
 /// insert the instructions to build the closure after this instruction, and
 /// replace this instruction with the allocation of a properly sized closure array.
@@ -60,21 +66,13 @@ enum Exit<'ctx> {
     #[default]
     Current,
     Branched,
-    Continued {
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    },
-    Returned {
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    },
-    Ended {
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    },
+    Closed(ExitPos<'ctx>),
+    Continued(ExitPos<'ctx>),
+    Returned(ExitPos<'ctx>),
+    Ended(ExitPos<'ctx>),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 enum Variable<'ctx> {
     Closed(PointerValue<'ctx>),
     Owned(PointerValue<'ctx>),
@@ -264,25 +262,6 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    /// Creates a `Codegen` for a sub-function.
-    pub(crate) fn inner(&self) -> Codegen<'ctx> {
-        let mut points = self.continuation_points.borrow().clone();
-        points.push(Rc::new(ContinuationPoint::child(points.last().unwrap())));
-        Codegen {
-            atoms: self.atoms.clone(),
-            context: self.context,
-            builder: self.context.create_builder(),
-            di: DebugInfo::new(&self.module, &self.location),
-            execution_engine: self.execution_engine.clone(),
-            module: self.module.clone(),
-            modules: self.modules,
-            globals: self.globals.clone(),
-            location: self.location.clone(),
-            continuation_points: RefCell::new(points),
-            current_definition: RefCell::default(),
-        }
-    }
-
     pub(crate) fn set_current_definition(&self, name: String, span: Span) {
         *self.current_definition.borrow_mut() = (name, span);
         self.continuation_points
@@ -301,10 +280,10 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
             .unwrap()
-            .exit = Exit::Returned {
+            .exit = Exit::Returned(ExitPos {
             instruction,
             debug_location,
-        };
+        });
     }
 
     pub(crate) fn set_ended(
@@ -314,10 +293,10 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
             .unwrap()
-            .exit = Exit::Ended {
+            .exit = Exit::Ended(ExitPos {
             instruction,
             debug_location,
-        };
+        });
     }
 
     pub(crate) fn set_continued(
@@ -326,12 +305,33 @@ impl<'ctx> Codegen<'ctx> {
         debug_location: DILocation<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
-        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued {
+        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued(ExitPos {
             instruction,
             debug_location,
-        };
+        });
         let new = Rc::new(ContinuationPoint::child(cps.last().unwrap()));
         cps.push(new);
+    }
+
+    pub(crate) fn start_closure(
+        &self,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) -> ContinuationPoint<'ctx> {
+        let mut cps = self.continuation_points.borrow_mut();
+        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Branched;
+        let parent = cps.last().unwrap();
+        let mut hidden = ContinuationPoint::child(parent);
+        hidden.exit = Exit::Closed(ExitPos {
+            instruction,
+            debug_location,
+        });
+        let hidden = Rc::new(hidden);
+        let new = Rc::new(ContinuationPoint::child(&hidden));
+        let next = ContinuationPoint::child(parent);
+        cps.push(hidden);
+        cps.push(new);
+        next
     }
 
     pub(crate) fn split_continuation_point(&self) -> ContinuationPoint<'ctx> {
@@ -400,11 +400,29 @@ impl<'ctx> Codegen<'ctx> {
             Exit::Branched => {
                 // When there's a branch, the continuation doesn't actually end, so we don't do anything.
                 // This assumes that both of the branches will end.
+                return;
             }
-            Exit::Continued {
+            Exit::Closed(ExitPos {
                 instruction,
                 debug_location,
-            } => {
+            }) => {
+                self.builder
+                    .position_at(instruction.get_parent().unwrap(), instruction);
+                self.builder.set_current_debug_location(*debug_location);
+                // When it's closed, the continuation also doesn't end, but it DOES produce a closure.
+                // Since this node is just a fake, we actually build the closure based on its single parent,
+                // (which should be marked Branched)...
+                assert_eq!(point.capture_from.len(), 1);
+                let parent = point.capture_from.first().unwrap().upgrade().unwrap();
+                let closure = self.build_closure(&parent, child);
+                instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                instruction.erase_from_basic_block();
+                return;
+            }
+            Exit::Continued(ExitPos {
+                instruction,
+                debug_location,
+            }) => {
                 self.builder
                     .position_at(instruction.get_parent().unwrap(), instruction);
                 self.builder.set_current_debug_location(*debug_location);
@@ -412,15 +430,15 @@ impl<'ctx> Codegen<'ctx> {
                 self.clean_and_close_scope(&point);
                 instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                 instruction.erase_from_basic_block();
-                for parent in point
-                    .capture_from
-                    .iter()
-                    .map(|ptr| Weak::upgrade(ptr).unwrap())
-                {
-                    self.close_continuation_chain(parent, &point)
-                }
             }
             _ => unreachable!(),
+        }
+        for parent in point
+            .capture_from
+            .iter()
+            .map(|ptr| Weak::upgrade(ptr).unwrap())
+        {
+            self.close_continuation_chain(parent, &point)
         }
     }
 
@@ -430,12 +448,10 @@ impl<'ctx> Codegen<'ctx> {
             rcs.pop().map(|rc| Rc::into_inner(rc).unwrap())
         } {
             match point.exit {
-                Exit::Branched => {
+                Exit::Branched | Exit::Closed(..) | Exit::Continued { .. } => {
                     // When there's a branch, the continuation doesn't actually end, so we don't do anything.
                     // This assumes that both of the branches will end.
-                    continue;
-                }
-                Exit::Continued { .. } => {
+                    //
                     // When it's continued or merged, that means there is a child out there with this node
                     // in its capture_from list, so we don't actually do anything now. That child will trigger
                     // this node's cleanup as it walks up its chain.
@@ -452,20 +468,20 @@ impl<'ctx> Codegen<'ctx> {
                     self.builder.position_before(&call);
                     self.clean_and_close_scope(&point);
                 }
-                Exit::Returned {
+                Exit::Returned(ExitPos {
                     instruction,
                     debug_location,
-                } => {
+                }) => {
                     // If the current lexical continuation ended by returning, then we're just injecting
                     // cleanup before the call to the return continuation
                     self.builder.position_before(&instruction);
                     self.builder.set_current_debug_location(debug_location);
                     self.clean_and_close_scope(&point);
                 }
-                Exit::Ended {
+                Exit::Ended(ExitPos {
                     instruction,
                     debug_location,
-                } => {
+                }) => {
                     // If the current lexical continuation ended by ending, then it's similar to returning
                     // but without needing to build a closure
                     self.builder.position_before(&instruction);
@@ -484,24 +500,6 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn close_as_do(
-        &self,
-        target: PointerValue<'ctx>,
-        function: FunctionValue<'ctx>,
-        arity: usize,
-    ) {
-        let mut rcs = self.continuation_points.borrow_mut();
-        let child_scope = rcs.pop().unwrap();
-        let scope = rcs.last().unwrap().clone();
-        let closure = self.build_closure(&scope, &child_scope);
-        self.trilogy_callable_init_do(
-            target,
-            arity,
-            closure,
-            function.as_global_value().as_pointer_value(),
-        );
-    }
-
     fn build_closure(
         &self,
         scope: &ContinuationPoint<'ctx>,
@@ -512,7 +510,7 @@ impl<'ctx> Codegen<'ctx> {
         let closure_array = self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
         let mut upvalues = scope.upvalues.borrow_mut();
         for id in child_scope.closure.borrow().iter() {
-            let new_upvalue = self.allocate_value("");
+            let new_upvalue = self.allocate_value("up");
             if let Some(ptr) = upvalues.get(id) {
                 self.trilogy_value_clone_into(new_upvalue, *ptr);
             } else if let Some(variable) = scope.variables.borrow().get(id) {

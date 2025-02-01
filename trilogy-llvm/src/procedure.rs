@@ -170,6 +170,7 @@ impl<'ctx> Codegen<'ctx> {
         let function = self.module.get_function(linkage_name).unwrap();
         self.set_current_definition(linkage_name.to_owned(), procedure.span);
         self.compile_procedure_body(function, procedure);
+        self.close_continuation();
     }
 
     pub(crate) fn compile_procedure_body(
@@ -208,7 +209,6 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
 
-        self.close_continuation();
         self.di.pop_scope();
         self.di.pop_scope();
     }

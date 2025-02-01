@@ -18,7 +18,7 @@ use crate::codegen::Codegen;
 pub(crate) struct DebugInfo<'ctx> {
     pub(crate) builder: DebugInfoBuilder<'ctx>,
     pub(crate) unit: DICompileUnit<'ctx>,
-    debug_scopes: Rc<RefCell<Vec<DebugScope<'ctx>>>>,
+    debug_scopes: Rc<RefCell<Vec<Vec<DebugScope<'ctx>>>>>,
 
     value_type: DICompositeType<'ctx>,
     value_pointer_type: DIDerivedType<'ctx>,
@@ -114,7 +114,7 @@ impl<'ctx> DebugInfo<'ctx> {
         DebugInfo {
             builder,
             unit,
-            debug_scopes: Rc::new(RefCell::new(vec![DebugScope::Unit(unit)])),
+            debug_scopes: Rc::new(RefCell::new(vec![])),
             value_type,
             value_pointer_type,
             continuation_type,
@@ -144,29 +144,44 @@ impl<'ctx> DebugInfo<'ctx> {
 
     pub(crate) fn push_subprogram(&self, scope: DISubprogram<'ctx>) {
         let mut scopes = self.debug_scopes.borrow_mut();
-        scopes.push(DebugScope::Subprogram(scope));
+        scopes.push(vec![
+            DebugScope::Unit(self.unit),
+            DebugScope::Subprogram(scope),
+        ]);
     }
 
     pub(crate) fn push_block_scope(&self, span: Span) {
         let line = span.start().line as u32 + 1;
         let column = span.start().column as u32 + 1;
-        let scope = self.get_debug_scope().unwrap();
+        let scope = self.get_debug_scope();
         let block = self
             .builder
             .create_lexical_block(scope, self.unit.get_file(), line, column);
         let mut scopes = self.debug_scopes.borrow_mut();
-        scopes.push(DebugScope::LexicalBlock(block, line, column));
+        scopes
+            .last_mut()
+            .unwrap()
+            .push(DebugScope::LexicalBlock(block, line, column));
     }
 
     pub(crate) fn pop_scope(&self) {
-        self.debug_scopes.borrow_mut().pop();
+        let mut scope_stacks = self.debug_scopes.borrow_mut();
+        if matches!(
+            scope_stacks.last_mut().unwrap().pop().unwrap(),
+            DebugScope::Subprogram(..)
+        ) {
+            scope_stacks.pop();
+        }
     }
 
-    pub(crate) fn get_debug_scope(&self) -> Option<DIScope<'ctx>> {
+    pub(crate) fn get_debug_scope(&self) -> DIScope<'ctx> {
         self.debug_scopes
             .borrow()
             .last()
-            .map(|s| s.as_debug_info_scope())
+            .unwrap()
+            .last()
+            .unwrap()
+            .as_debug_info_scope()
     }
 }
 
@@ -177,7 +192,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context,
             span.start().line as u32 + 1,
             span.start().column as u32 + 1,
-            self.di.get_debug_scope().unwrap(),
+            self.di.get_debug_scope(),
             None,
         );
         self.builder.set_current_debug_location(location);
@@ -185,7 +200,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn overwrite_debug_location(&self, location: DILocation<'ctx>) {
-        let current_scope = self.di.get_debug_scope().unwrap();
+        let current_scope = self.di.get_debug_scope();
         if location.get_scope() == current_scope {
             self.builder.set_current_debug_location(location)
         } else {
@@ -201,7 +216,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn transfer_debug_info(&self, function: FunctionValue<'ctx>) {
-        let mut scopes = self.di.debug_scopes.borrow_mut();
+        let mut scope_stacks = self.di.debug_scopes.borrow_mut();
+        let scopes = scope_stacks.last_mut().unwrap();
         let mut new_scopes = Vec::with_capacity(scopes.len());
         assert!(matches!(scopes[0], DebugScope::Unit(..)));
         assert!(matches!(scopes[1], DebugScope::Subprogram(..)));
