@@ -66,6 +66,7 @@ enum Exit<'ctx> {
     #[default]
     Current,
     Branched,
+    Started(ExitPos<'ctx>),
     Closed(ExitPos<'ctx>),
     Continued(ExitPos<'ctx>),
     Returned(ExitPos<'ctx>),
@@ -117,26 +118,49 @@ pub(crate) struct ContinuationPoint<'ctx> {
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
-    fn child(parent: &Rc<ContinuationPoint<'ctx>>) -> Self {
+    fn same(parent: &Rc<ContinuationPoint<'ctx>>) -> Self {
         Self {
             exit: Exit::Current,
-            variables: RefCell::default(),
-            closure: RefCell::default(),
-            parent_variables: parent
-                .variables
-                .borrow()
-                .keys()
-                .chain(parent.parent_variables.iter())
-                .cloned()
-                .collect(),
-            upvalues: RefCell::default(),
+            variables: parent.variables.clone(),
+            closure: parent.closure.clone(),
+            parent_variables: parent.parent_variables.clone(),
+            upvalues: parent.upvalues.clone(),
             capture_from: vec![Rc::downgrade(parent)],
         }
     }
 
-    pub(crate) fn add_parent(&mut self, parent: Rc<ContinuationPoint<'ctx>>) {
-        self.capture_from.push(Rc::downgrade(&parent));
+    fn child(parent: &Rc<ContinuationPoint<'ctx>>) -> Self {
+        Self::child_of(parent, vec![Rc::downgrade(parent)])
     }
+
+    fn child_of(
+        shared_parent: &Rc<ContinuationPoint<'ctx>>,
+        capture_from: Vec<Weak<ContinuationPoint<'ctx>>>,
+    ) -> Self {
+        Self {
+            exit: Exit::Current,
+            variables: RefCell::default(),
+            closure: RefCell::default(),
+            parent_variables: shared_parent
+                .variables
+                .borrow()
+                .keys()
+                .chain(shared_parent.parent_variables.iter())
+                .cloned()
+                .collect(),
+            upvalues: RefCell::default(),
+            capture_from: if capture_from.is_empty() {
+                vec![Rc::downgrade(&shared_parent)]
+            } else {
+                capture_from
+            },
+        }
+    }
+}
+
+pub(crate) struct Brancher<'ctx> {
+    parent: Rc<ContinuationPoint<'ctx>>,
+    children: Vec<Weak<ContinuationPoint<'ctx>>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -313,47 +337,93 @@ impl<'ctx> Codegen<'ctx> {
         cps.push(new);
     }
 
-    pub(crate) fn start_closure(
-        &self,
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    ) -> ContinuationPoint<'ctx> {
+    pub(crate) fn set_branched(&self) -> Brancher<'ctx> {
         let mut cps = self.continuation_points.borrow_mut();
         Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Branched;
-        let parent = cps.last().unwrap();
-        let mut hidden = ContinuationPoint::child(parent);
+        let parent = cps.last().unwrap().clone();
+        Brancher {
+            parent,
+            children: vec![],
+        }
+    }
+
+    pub(crate) fn set_merged(
+        &self,
+        brancher: &mut Brancher<'ctx>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let last = cps.last_mut().unwrap();
+        Rc::get_mut(last).unwrap().exit = Exit::Continued(ExitPos {
+            instruction,
+            debug_location,
+        });
+        brancher.children.push(Rc::downgrade(&last));
+    }
+
+    pub(crate) fn start_branch(
+        &self,
+        brancher: &Brancher<'ctx>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
+        let mut hidden = ContinuationPoint::same(&brancher.parent);
+        hidden.exit = Exit::Started(ExitPos {
+            instruction,
+            debug_location,
+        });
+        let hidden = Rc::new(hidden);
+        let new = Rc::new(ContinuationPoint::child(&hidden));
+        cps.push(hidden);
+        cps.push(new);
+    }
+
+    pub(crate) fn end_branch(
+        &self,
+        brancher: &Brancher<'ctx>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
+        let mut end = ContinuationPoint::child(&brancher.parent);
+        end.exit = Exit::Ended(ExitPos {
+            instruction,
+            debug_location,
+        });
+        cps.push(Rc::new(end));
+    }
+
+    pub(crate) fn start_closure(
+        &self,
+        brancher: &Brancher<'ctx>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
+        let mut hidden = ContinuationPoint::same(&brancher.parent);
         hidden.exit = Exit::Closed(ExitPos {
             instruction,
             debug_location,
         });
         let hidden = Rc::new(hidden);
         let new = Rc::new(ContinuationPoint::child(&hidden));
-        let next = ContinuationPoint::child(parent);
         cps.push(hidden);
         cps.push(new);
-        next
     }
 
-    pub(crate) fn split_continuation_point(&self) -> ContinuationPoint<'ctx> {
-        let mut cps = self.continuation_points.borrow_mut();
-        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Branched;
-        let parent = cps.last().unwrap();
-        let new = Rc::new(ContinuationPoint::child(parent));
-        let next = ContinuationPoint::child(parent);
-        cps.push(new);
-        next
-    }
-
-    pub(crate) fn push_continuation_point(&self, cp: ContinuationPoint<'ctx>) {
+    pub(crate) fn start_merge(&self, brancher: Brancher<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
         assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
-        cps.push(Rc::new(cp));
-    }
-
-    pub(crate) fn set_merged(&self, merge_to: &mut ContinuationPoint<'ctx>) {
-        let mut cps = self.continuation_points.borrow_mut();
-        cps.pop();
-        merge_to.add_parent(cps.last().unwrap().clone());
+        let new = Rc::new(ContinuationPoint::child_of(
+            &brancher.parent,
+            brancher.children,
+        ));
+        cps.push(new);
     }
 
     fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
@@ -409,15 +479,22 @@ impl<'ctx> Codegen<'ctx> {
                 self.builder
                     .position_at(instruction.get_parent().unwrap(), instruction);
                 self.builder.set_current_debug_location(*debug_location);
-                // When it's closed, the continuation also doesn't end, but it DOES produce a closure.
-                // Since this node is just a fake, we actually build the closure based on its single parent,
-                // (which should be marked Branched)...
-                assert_eq!(point.capture_from.len(), 1);
-                let parent = point.capture_from.first().unwrap().upgrade().unwrap();
-                let closure = self.build_closure(&parent, child);
+                let closure = self.build_closure(&point, child);
                 instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                 instruction.erase_from_basic_block();
                 return;
+            }
+            Exit::Started(ExitPos {
+                instruction,
+                debug_location,
+            }) => {
+                self.builder
+                    .position_at(instruction.get_parent().unwrap(), instruction);
+                self.builder.set_current_debug_location(*debug_location);
+                let closure = self.build_closure(&point, child);
+                self.clean_and_close_scope(&point);
+                instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                instruction.erase_from_basic_block();
             }
             Exit::Continued(ExitPos {
                 instruction,
@@ -448,7 +525,7 @@ impl<'ctx> Codegen<'ctx> {
             rcs.pop().map(|rc| Rc::into_inner(rc).unwrap())
         } {
             match point.exit {
-                Exit::Branched | Exit::Closed(..) | Exit::Continued { .. } => {
+                Exit::Branched | Exit::Closed(..) | Exit::Continued(..) | Exit::Started(..) => {
                     // When there's a branch, the continuation doesn't actually end, so we don't do anything.
                     // This assumes that both of the branches will end.
                     //

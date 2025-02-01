@@ -193,10 +193,7 @@ impl<'ctx> Codegen<'ctx> {
                     .into_struct_value();
                 let value_param = self.builder.build_alloca(self.value_type(), "").unwrap();
                 self.builder.build_store(value_param, value).unwrap();
-                if self
-                    .compile_pattern_match(param, value_param, self.get_end("no_match"))
-                    .is_none()
-                {
+                if self.compile_pattern_match(param, value_param).is_none() {
                     break 'body;
                 }
             }

@@ -166,7 +166,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.builder.position_at_end(cont);
 
                 let value = self.compile_expression(&unif.expression, "")?;
-                self.compile_pattern_match(&unif.pattern, value, self.get_end(""))?;
+                self.compile_pattern_match(&unif.pattern, value)?;
                 self.trilogy_value_destroy(value);
                 self.compile_expression(&decl.body, name)
             }
@@ -357,38 +357,70 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_if_else(&self, if_else: &ir::IfElse, name: &str) -> Option<PointerValue<'ctx>> {
         let condition = self.compile_expression(&if_else.condition, "if.cond")?;
 
-        let next = self.split_continuation_point();
-        let mut merge = self.split_continuation_point();
-
         let function = self.get_function();
-        let if_true = self.context.append_basic_block(function, "if.true");
-        let if_false = self.context.append_basic_block(function, "if.false");
+        let if_true_block = self.context.append_basic_block(function, "if.true");
+        let if_false_block = self.context.append_basic_block(function, "if.false");
+        let if_true_function = self.add_continuation("if.true");
+        let if_false_function = self.add_continuation("if.false");
+        let merge_to_function = self.add_continuation("if.cont");
 
-        let merge_to_function = self.add_continuation();
-
-        let cond_bool = self.trilogy_boolean_untag(condition, "");
+        let cond_bool = self.trilogy_boolean_untag(condition, "if.cond");
         self.trilogy_value_destroy(condition);
         self.builder
-            .build_conditional_branch(cond_bool, if_true, if_false)
+            .build_conditional_branch(cond_bool, if_true_block, if_false_block)
             .unwrap();
 
-        self.builder.position_at_end(if_true);
+        let mut brancher = self.set_branched();
+
+        self.builder.position_at_end(if_true_block);
+        let continue_to =
+            self.continue_to(if_true_function, self.allocate_const(self.unit_const(), ""));
+        self.start_branch(
+            &brancher,
+            continue_to,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+
+        let if_true_entry = self.context.append_basic_block(if_true_function, "entry");
+        self.builder.position_at_end(if_true_entry);
+        self.transfer_debug_info(if_true_function);
         let when_true = self.compile_expression(&if_else.when_true, name);
+
         if let Some(value) = when_true {
-            self.continue_to(merge_to_function, value);
-            self.set_merged(&mut merge);
+            let continue_to = self.continue_to(merge_to_function, value);
+            self.set_merged(
+                &mut brancher,
+                continue_to,
+                self.builder.get_current_debug_location().unwrap(),
+            );
         }
 
-        self.builder.position_at_end(if_false);
-        self.push_continuation_point(next);
+        self.builder.position_at_end(if_false_block);
+        let continue_to = self.continue_to(
+            if_false_function,
+            self.allocate_const(self.unit_const(), ""),
+        );
+        self.start_branch(
+            &brancher,
+            continue_to,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+
+        let if_false_entry = self.context.append_basic_block(if_false_function, "entry");
+        self.builder.position_at_end(if_false_entry);
+        self.transfer_debug_info(if_false_function);
         let when_false = self.compile_expression(&if_else.when_false, name);
         if let Some(value) = when_false {
-            self.continue_to(merge_to_function, value);
-            self.set_merged(&mut merge);
+            let continue_to = self.continue_to(merge_to_function, value);
+            self.set_merged(
+                &mut brancher,
+                continue_to,
+                self.builder.get_current_debug_location().unwrap(),
+            );
         }
 
         if when_true.is_some() || when_false.is_some() {
-            self.push_continuation_point(merge);
+            self.start_merge(brancher);
             let entry = self.context.append_basic_block(merge_to_function, "entry");
             self.builder.position_at_end(entry);
             self.transfer_debug_info(merge_to_function);
@@ -413,7 +445,11 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
-        let outside = self.start_closure(
+
+        let brancher = self.set_branched();
+
+        self.start_closure(
+            &brancher,
             closure.as_instruction_value().unwrap(),
             self.builder.get_current_debug_location().unwrap(),
         );
@@ -443,7 +479,7 @@ impl<'ctx> Codegen<'ctx> {
         self.compile_procedure_body(function, procedure);
 
         self.builder.position_at_end(here);
-        self.push_continuation_point(outside);
+        self.start_merge(brancher);
         target
     }
 }

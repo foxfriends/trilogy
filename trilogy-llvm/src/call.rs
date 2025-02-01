@@ -33,8 +33,13 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    pub(crate) fn add_continuation(&self) -> FunctionValue<'ctx> {
-        let (name, span) = self.get_current_definition();
+    pub(crate) fn add_continuation(&self, name: &str) -> FunctionValue<'ctx> {
+        let (parent_name, span) = self.get_current_definition();
+        let name = if name.is_empty() {
+            parent_name
+        } else {
+            format!("{parent_name}.{name}")
+        };
         let function =
             self.module
                 .add_function(&name, self.continuation_type(), Some(Linkage::Private));
@@ -75,7 +80,7 @@ impl<'ctx> Codegen<'ctx> {
         let bound_closure = self.get_callable_closure(callable);
 
         let arity = arguments.len();
-        let chain_function = self.add_continuation();
+        let chain_function = self.add_continuation("");
 
         let continuation = self.allocate_value("cont");
         let return_to = self.get_return("");
@@ -257,7 +262,11 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    pub(crate) fn continue_to(&self, function: FunctionValue<'ctx>, argument: PointerValue<'ctx>) {
+    pub(crate) fn continue_to(
+        &self,
+        function: FunctionValue<'ctx>,
+        argument: PointerValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let end_to = self.get_end("");
@@ -266,12 +275,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
-
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        self.set_continued(
-            parent_closure.as_instruction_value().unwrap(),
-            self.builder.get_current_debug_location().unwrap(),
-        );
 
         let args: Vec<_> = [return_to, yield_to, end_to, argument, parent_closure]
             .iter()
@@ -287,6 +291,7 @@ impl<'ctx> Codegen<'ctx> {
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
         self.builder.build_return(None).unwrap();
+        parent_closure.as_instruction_value().unwrap()
     }
 
     pub(crate) fn call_main(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
