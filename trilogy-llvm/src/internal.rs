@@ -107,10 +107,6 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn trilogy_array_assume(&self, t: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        self.trilogy_array_assume_in(&self.builder, t)
-    }
-
     pub(crate) fn trilogy_array_assume_in(
         &self,
         builder: &Builder<'ctx>,
@@ -165,15 +161,6 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_call(f, &[array.into(), value.into()], "")
             .unwrap();
-    }
-
-    pub(crate) fn trilogy_array_at(
-        &self,
-        output: PointerValue<'ctx>,
-        array: PointerValue<'ctx>,
-        index: IntValue<'ctx>,
-    ) {
-        self.trilogy_array_at_in(&self.builder, output, array, index);
     }
 
     pub(crate) fn trilogy_array_at_in(
