@@ -1,4 +1,4 @@
-use crate::codegen::Codegen;
+use crate::{codegen::Codegen, types::CALLABLE_CONTINUATION};
 use inkwell::{
     debug_info::AsDIScope,
     llvm_sys::{debuginfo::LLVMDIFlagPublic, LLVMCallConv},
@@ -178,6 +178,38 @@ impl<'ctx> Codegen<'ctx> {
         argument: PointerValue<'ctx>,
     ) -> PointerValue<'ctx> {
         let callable = self.trilogy_callable_untag(value, "");
+        let tag_ptr = self
+            .builder
+            .build_struct_gep(self.callable_value_type(), callable, 1, "")
+            .unwrap();
+        let tag = self
+            .builder
+            .build_load(self.tag_type(), tag_ptr, "")
+            .unwrap()
+            .into_int_value();
+        let is_continuation = self
+            .builder
+            .build_int_compare(
+                IntPredicate::EQ,
+                tag,
+                self.context
+                    .i8_type()
+                    .const_int(CALLABLE_CONTINUATION, false),
+                "",
+            )
+            .unwrap();
+
+        let call_continuation = self.context.append_basic_block(self.get_function(), "");
+        let call_function = self.context.append_basic_block(self.get_function(), "");
+
+        self.builder
+            .build_conditional_branch(is_continuation, call_continuation, call_function)
+            .unwrap();
+
+        self.builder.position_at_end(call_continuation);
+        self.call_continuation(value, argument);
+
+        self.builder.position_at_end(call_function);
         let function = self.trilogy_function_untag(callable, "");
         self.call_callable(callable, function, &[argument])
     }

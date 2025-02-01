@@ -22,6 +22,16 @@ pub(crate) const TAG_ARRAY: u64 = 10;
 pub(crate) const TAG_SET: u64 = 11;
 pub(crate) const TAG_RECORD: u64 = 12;
 pub(crate) const TAG_CALLABLE: u64 = 13;
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const TAG_REFERENCE: u64 = 14;
+
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const CALLABLE_FUNCTION: u64 = 1;
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const CALLABLE_PROCEDURE: u64 = 2;
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const CALLABLE_RULE: u64 = 3;
+pub(crate) const CALLABLE_CONTINUATION: u64 = 4;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn allocate_const<V: BasicValue<'ctx>>(
@@ -86,6 +96,21 @@ impl<'ctx> Codegen<'ctx> {
         self.context.struct_type(
             &[
                 self.usize_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+            ],
+            false,
+        )
+    }
+
+    pub(crate) fn callable_value_type(&self) -> StructType<'ctx> {
+        self.context.struct_type(
+            &[
+                self.context.i32_type().into(),
+                self.context.i8_type().into(),
+                self.context.i32_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
             ],
             false,
