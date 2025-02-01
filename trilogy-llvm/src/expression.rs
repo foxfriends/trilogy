@@ -441,13 +441,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         let brancher = self.branch();
-
-        self.capture_from(
-            &brancher,
-            closure.as_instruction_value().unwrap(),
-            self.builder.get_current_debug_location().unwrap(),
-        );
-
         self.trilogy_callable_init_do(
             target,
             arity,
@@ -455,6 +448,12 @@ impl<'ctx> Codegen<'ctx> {
             function.as_global_value().as_pointer_value(),
         );
         let here = self.builder.get_insert_block().unwrap();
+
+        self.capture_from(
+            &brancher,
+            closure.as_instruction_value().unwrap(),
+            self.builder.get_current_debug_location().unwrap(),
+        );
 
         let procedure_scope = self.di.builder.create_function(
             self.di.unit.get_file().as_debug_info_scope(),
@@ -473,6 +472,7 @@ impl<'ctx> Codegen<'ctx> {
         self.compile_procedure_body(function, procedure);
 
         self.builder.position_at_end(here);
+        self.continue_from(&brancher);
         target
     }
 }
