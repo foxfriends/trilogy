@@ -193,7 +193,7 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_SET:
     case TAG_RECORD:
     default:
-        internal_panic("unimplemented");
+        internal_panic("unimplemented\n");
         return false;
     }
 }

@@ -151,26 +151,26 @@ trilogy_callable_value* trilogy_callable_assume(trilogy_value* val) {
 
 void* trilogy_function_untag(trilogy_callable_value* val) {
     if (val->tag != CALLABLE_FUNCTION)
-        internal_panic("invalid application of non-function callable");
+        internal_panic("invalid application of non-function callable\n");
     return (void*)val->function;
 }
 
 void* trilogy_procedure_untag(trilogy_callable_value* val, unsigned int arity) {
     if (val->tag != CALLABLE_PROCEDURE)
-        internal_panic("invalid call of non-procedure callable");
-    if (val->arity != arity) internal_panic("procedure call arity mismatch");
+        internal_panic("invalid call of non-procedure callable\n");
+    if (val->arity != arity) internal_panic("procedure call arity mismatch\n");
     return (void*)val->function;
 }
 
 void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity) {
     if (val->tag != CALLABLE_RULE)
-        internal_panic("invalid call of non-rule callable");
-    if (val->arity != arity) internal_panic("rule call arity mismatch");
+        internal_panic("invalid call of non-rule callable\n");
+    if (val->arity != arity) internal_panic("rule call arity mismatch\n");
     return (void*)val->function;
 }
 
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
     if (val->tag != CALLABLE_CONTINUATION)
-        internal_panic("invalid call of non-rule callable");
+        internal_panic("invalid call of non-rule callable\n");
     return (void*)val->function;
 }
