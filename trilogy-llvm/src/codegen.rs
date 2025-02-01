@@ -65,10 +65,7 @@ struct Parent<'ctx> {
 #[derive(Clone, Debug)]
 enum Exit<'ctx> {
     Close(Parent<'ctx>),
-    Clean {
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    },
+    Clean(Parent<'ctx>),
     Capture(Parent<'ctx>),
 }
 
@@ -145,13 +142,15 @@ impl<'ctx> ContinuationPoint<'ctx> {
 
     fn clean_from(
         &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
         instruction: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
     ) {
-        self.parents.push(Exit::Clean {
+        self.parents.push(Exit::Clean(Parent {
+            parent: Rc::downgrade(parent),
             instruction,
             debug_location,
-        });
+        }));
     }
 
     fn capture_from(
@@ -343,7 +342,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut cps = self.continuation_points.borrow_mut();
         let last = cps.last().unwrap();
         let mut next = last.chain();
-        next.clean_from(instruction, debug_location);
+        next.clean_from(last, instruction, debug_location);
         cps.push(Rc::new(next));
     }
 
@@ -446,18 +445,21 @@ impl<'ctx> Codegen<'ctx> {
                         self.builder
                             .position_at(instruction.get_parent().unwrap(), instruction);
                         self.builder.set_current_debug_location(*debug_location);
-                        let closure = self.build_closure(&parent.upgrade().unwrap(), &point);
-                        self.clean_and_close_scope(&point);
+                        let parent = parent.upgrade().unwrap();
+                        let closure = self.build_closure(&parent, &point);
+                        self.clean_and_close_scope(&parent);
                         instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         instruction.erase_from_basic_block();
                     }
-                    Exit::Clean {
+                    Exit::Clean(Parent {
+                        parent,
                         instruction,
                         debug_location,
-                    } => {
+                    }) => {
                         self.builder.position_before(instruction);
                         self.builder.set_current_debug_location(*debug_location);
-                        self.clean_and_close_scope(&point);
+                        let parent = parent.upgrade().unwrap();
+                        self.clean_and_close_scope(&parent);
                     }
                     Exit::Capture(Parent {
                         parent,
