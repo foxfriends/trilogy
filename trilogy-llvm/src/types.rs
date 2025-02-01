@@ -214,6 +214,13 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn external_type(&self, arity: usize) -> FunctionType<'ctx> {
+        self.context.void_type().fn_type(
+            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity],
+            false,
+        )
+    }
+
     pub(crate) fn continuation_type(&self) -> FunctionType<'ctx> {
         // 0: return
         // 1: yield

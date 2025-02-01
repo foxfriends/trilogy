@@ -4,7 +4,7 @@ use inkwell::{
     debug_info::AsDIScope,
     llvm_sys::{debuginfo::LLVMDIFlagPublic, LLVMCallConv},
     module::Linkage,
-    values::FunctionValue,
+    values::{BasicMetadataValueEnum, FunctionValue},
 };
 use source_span::Span;
 use trilogy_ir::ir;
@@ -21,11 +21,9 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let accessor_name = format!("{}::{}", self.location, name);
         let wrapper_name = format!("{}::{}.fastcc", self.location, name);
-        let original_function = self.module.add_function(
-            name,
-            self.procedure_type(arity, false),
-            Some(Linkage::External),
-        );
+        let original_function =
+            self.module
+                .add_function(name, self.external_type(arity), Some(Linkage::External));
         let procedure_scope = self.di.builder.create_function(
             self.di.unit.get_file().as_debug_info_scope(),
             name,
@@ -48,32 +46,30 @@ impl<'ctx> Codegen<'ctx> {
             self.procedure_type(arity, false),
             Some(Linkage::Private),
         );
-        wrapper_function.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        wrapper_function
-            .get_nth_param(0)
-            .unwrap()
-            .set_name("sretptr");
         wrapper_function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         let wrapper_entry = self.context.append_basic_block(wrapper_function, "entry");
-        let params = wrapper_function
-            .get_param_iter()
-            .map(|val| val.into())
-            .collect::<Vec<_>>();
         self.builder.position_at_end(wrapper_entry);
+        self.set_current_definition(wrapper_name.to_owned(), span);
+
+        let ret_val = self.allocate_value("");
+        let mut params = vec![ret_val.into()];
+        params.extend(wrapper_function.get_param_iter().skip(3).map(|val| {
+            let param = self.allocate_value("");
+            self.builder.build_store(param, val).unwrap();
+            BasicMetadataValueEnum::<'ctx>::from(param)
+        }));
         self.builder
             .build_direct_call(original_function, &params, "")
             .unwrap();
-        self.builder.build_return(None).unwrap();
+        let return_call = self.call_continuation(self.get_return(""), ret_val);
+        self.set_returned(
+            return_call,
+            self.builder.get_current_debug_location().unwrap(),
+        );
 
         let accessor =
             self.module
-                .add_function(&accessor_name, self.procedure_type(0, false), Some(linkage));
+                .add_function(&accessor_name, self.accessor_type(), Some(linkage));
         accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
