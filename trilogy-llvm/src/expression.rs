@@ -152,7 +152,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_let(&self, decl: &ir::Let, name: &str) -> Option<PointerValue<'ctx>> {
         match &decl.query.value {
-            QueryValue::Direct(unif) => {
+            QueryValue::Direct(unif) if decl.query.is_once() => {
                 let on_fail = self.context.append_basic_block(self.get_function(), "");
                 let cont = self.builder.get_insert_block().unwrap();
                 self.builder.position_at_end(on_fail);
