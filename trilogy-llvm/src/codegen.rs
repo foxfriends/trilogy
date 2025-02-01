@@ -73,15 +73,18 @@ enum Exit<'ctx> {
 }
 
 #[derive(Clone, Copy, Debug)]
-enum Variable<'ctx> {
-    Closed(PointerValue<'ctx>),
+pub(crate) enum Variable<'ctx> {
+    Closed {
+        location: PointerValue<'ctx>,
+        upvalue: PointerValue<'ctx>,
+    },
     Owned(PointerValue<'ctx>),
 }
 
 impl<'ctx> Variable<'ctx> {
-    fn ptr(&self) -> PointerValue<'ctx> {
+    pub(crate) fn ptr(&self) -> PointerValue<'ctx> {
         match self {
-            Self::Closed(ptr) => *ptr,
+            Self::Closed { location, .. } => *location,
             Self::Owned(ptr) => *ptr,
         }
     }
@@ -194,7 +197,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn get_return(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.allocate_value("");
+        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
         self.builder
             .build_store(temp, self.get_function().get_nth_param(0).unwrap())
             .unwrap();
@@ -204,7 +207,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn get_yield(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.allocate_value("");
+        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
         self.builder
             .build_store(temp, self.get_function().get_nth_param(1).unwrap())
             .unwrap();
@@ -214,7 +217,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn get_end(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.allocate_value("");
+        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
         self.builder
             .build_store(temp, self.get_function().get_nth_param(2).unwrap())
             .unwrap();
@@ -224,7 +227,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.allocate_value("");
+        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
         self.builder
             .build_store(temp, self.get_function().get_nth_param(3).unwrap())
             .unwrap();
@@ -232,13 +235,16 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
-    pub(crate) fn get_closure(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        let temp = self.allocate_value("");
-        self.builder
+    fn get_closure(&self, builder: &Builder<'ctx>, name: &str) -> PointerValue<'ctx> {
+        let container = builder.build_alloca(self.value_type(), name).unwrap();
+        builder
+            .build_store(container, self.value_type().const_zero())
+            .unwrap();
+        let temp = builder.build_alloca(self.value_type(), "").unwrap();
+        builder
             .build_store(temp, self.get_function().get_last_param().unwrap())
             .unwrap();
-        self.trilogy_value_clone_into(container, temp);
+        self.trilogy_value_clone_into_in(builder, container, temp);
         container
     }
 
@@ -398,19 +404,25 @@ impl<'ctx> Codegen<'ctx> {
 
     fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
         for (id, var) in cp.variables.borrow().iter() {
-            let Variable::Owned(pointer) = var else {
-                continue;
-            };
-
-            if let Some(pointer) = cp.upvalues.borrow().get(id) {
-                let upvalue = self.trilogy_reference_assume(*pointer);
-                self.trilogy_reference_close(upvalue);
-            } else {
-                self.trilogy_value_destroy(*pointer);
+            match var {
+                Variable::Owned(pointer) => {
+                    if let Some(pointer) = cp.upvalues.borrow().get(id) {
+                        let upvalue = self.trilogy_reference_assume(*pointer);
+                        self.trilogy_reference_close(upvalue);
+                    } else {
+                        self.trilogy_value_destroy(*pointer);
+                    }
+                }
+                Variable::Closed { upvalue, .. } => {
+                    self.trilogy_value_destroy(*upvalue);
+                }
             }
         }
         for param in self.get_function().get_param_iter() {
-            let param_ptr = self.builder.build_alloca(self.value_type(), "").unwrap();
+            let param_ptr = self
+                .builder
+                .build_alloca(self.value_type(), "param")
+                .unwrap();
             self.builder.build_store(param_ptr, param).unwrap();
             self.trilogy_value_destroy(param_ptr);
         }
@@ -479,31 +491,43 @@ impl<'ctx> Codegen<'ctx> {
                 let new_upvalue = self.allocate_value(&upvalue_name);
                 self.trilogy_value_clone_into(new_upvalue, *ptr);
                 new_upvalue
-            } else if let Some(variable) = scope.variables.borrow().get(id) {
-                let builder = self.context.create_builder();
-                let declaration = variable.ptr().as_instruction_value().unwrap();
-                builder.position_at(
-                    declaration.get_parent().unwrap(),
-                    // NOTE: some reason this `position_at` seems to position BEFORE, not after as it is described, so we
-                    // must position before the next instruction.
-                    &declaration.get_next_instruction().unwrap(),
-                );
-                let new_upvalue = builder
-                    .build_alloca(self.value_type(), &upvalue_name)
-                    .unwrap();
-                builder
-                    .build_store(new_upvalue, self.value_type().const_zero())
-                    .unwrap();
-                self.trilogy_reference_to(&builder, new_upvalue, variable.ptr());
-                upvalues.insert(id.clone(), new_upvalue);
-                new_upvalue
             } else {
-                // TODO: share the upvalue from the closure, not make a wrongish clone of it
-                let new_upvalue = self.allocate_value(&upvalue_name);
-                let variable = self.get_variable(id).expect("closure is messed up");
-                self.trilogy_reference_to(&self.builder, new_upvalue, variable);
-                upvalues.insert(id.clone(), new_upvalue);
-                new_upvalue
+                match self
+                    .get_variable_from(scope, id)
+                    .expect("closure is messed up")
+                {
+                    Variable::Closed { upvalue, .. } => {
+                        let new_upvalue = self.allocate_value(&upvalue_name);
+                        self.trilogy_value_clone_into(new_upvalue, upvalue);
+                        upvalues.insert(id.clone(), new_upvalue);
+                        new_upvalue
+                    }
+                    Variable::Owned(variable) => {
+                        let builder = self.context.create_builder();
+                        let declaration = variable.as_instruction_value().unwrap();
+                        builder.position_at(
+                            declaration.get_parent().unwrap(),
+                            // NOTE: some reason this `position_at` seems to position BEFORE, not after as it is described, so we
+                            // must position after the next instruction.
+                            //
+                            // We also actually want it to be after the storing of the 0, so we go two instructions forwards...
+                            &declaration
+                                .get_next_instruction()
+                                .unwrap()
+                                .get_next_instruction()
+                                .unwrap(),
+                        );
+                        let new_upvalue = builder
+                            .build_alloca(self.value_type(), &upvalue_name)
+                            .unwrap();
+                        builder
+                            .build_store(new_upvalue, self.value_type().const_zero())
+                            .unwrap();
+                        self.trilogy_reference_to_in(&builder, new_upvalue, variable);
+                        upvalues.insert(id.clone(), new_upvalue);
+                        new_upvalue
+                    }
+                }
             };
             self.trilogy_array_push(closure_array, new_upvalue);
         }
@@ -573,10 +597,17 @@ impl<'ctx> Codegen<'ctx> {
         self.continuation_points.borrow().last().unwrap().clone()
     }
 
-    pub(crate) fn get_variable(&self, id: &Id) -> Option<PointerValue<'ctx>> {
-        let scope = self.current_continuation();
+    pub(crate) fn get_variable(&self, id: &Id) -> Option<Variable<'ctx>> {
+        self.get_variable_from(&self.current_continuation(), id)
+    }
+
+    pub(crate) fn get_variable_from(
+        &self,
+        scope: &ContinuationPoint<'ctx>,
+        id: &Id,
+    ) -> Option<Variable<'ctx>> {
         if let Some(var) = scope.variables.borrow().get(id) {
-            return Some(var.ptr());
+            return Some(*var);
         }
 
         if scope.parent_variables.contains(id) {
@@ -584,38 +615,51 @@ impl<'ctx> Codegen<'ctx> {
             let closure_index = closure.len();
             closure.push(id.clone());
 
+            let builder = self.context.create_builder();
+            let entry = self.get_function().get_first_basic_block().unwrap();
+            match entry.get_first_instruction() {
+                Some(instruction) => builder.position_before(&instruction),
+                None => builder.position_at_end(entry),
+            }
+
             // Closure is a Trilogy array of Trilogy reference
             // To access the variable:
             // 1. Consider the nth element of the array
             // 2. Get the value inside
             // 3. Assume a reference, and load its location field
             // 4. That value of that location field is the pointer to the actual value
-            let closure_ptr = self.get_closure("");
-            let closure_array = self.trilogy_array_assume(closure_ptr);
-            let reference = self.allocate_value("");
-            self.trilogy_array_at(
-                reference,
+            let closure_ptr = self.get_closure(&builder, "");
+            let closure_array = self.trilogy_array_assume_in(&builder, closure_ptr);
+            let upvalue = builder
+                .build_alloca(self.value_type(), &format!("{id}.up"))
+                .unwrap();
+            builder
+                .build_store(upvalue, self.value_type().const_zero())
+                .unwrap();
+            self.trilogy_array_at_in(
+                &builder,
+                upvalue,
                 closure_array,
                 self.context
                     .i64_type()
                     .const_int(closure_index as u64, false),
             );
-            self.trilogy_value_destroy(closure_ptr);
-            let ref_value = self.trilogy_reference_assume(reference);
-            let location = self
-                .builder
+            self.trilogy_value_destroy_in(&builder, closure_ptr);
+            let ref_value = self.trilogy_reference_assume_in(&builder, upvalue);
+            let location = builder
                 .build_struct_gep(self.reference_value_type(), ref_value, 1, "")
                 .unwrap();
-            let location = self
-                .builder
-                .build_load(self.context.ptr_type(AddressSpace::default()), location, "")
+            let location = builder
+                .build_load(
+                    self.context.ptr_type(AddressSpace::default()),
+                    location,
+                    id.name().unwrap_or(""),
+                )
                 .unwrap()
                 .into_pointer_value();
-            scope
-                .variables
-                .borrow_mut()
-                .insert(id.clone(), Variable::Closed(location));
-            return Some(location);
+            let variable = Variable::Closed { location, upvalue };
+            scope.variables.borrow_mut().insert(id.clone(), variable);
+            return Some(variable);
         }
 
         None
@@ -623,7 +667,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn variable(&self, id: &ir::Identifier) -> PointerValue<'ctx> {
         if let Some(variable) = self.get_variable(&id.id) {
-            return variable;
+            return variable.ptr();
         }
 
         let builder = self.context.create_builder();

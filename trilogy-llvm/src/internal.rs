@@ -108,6 +108,14 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn trilogy_array_assume(&self, t: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        self.trilogy_array_assume_in(&self.builder, t)
+    }
+
+    pub(crate) fn trilogy_array_assume_in(
+        &self,
+        builder: &Builder<'ctx>,
+        t: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
             "trilogy_array_assume",
             self.context.ptr_type(AddressSpace::default()).fn_type(
@@ -115,7 +123,7 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder
+        builder
             .build_call(f, &[t.into()], "")
             .unwrap()
             .try_as_basic_value()
@@ -165,6 +173,16 @@ impl<'ctx> Codegen<'ctx> {
         array: PointerValue<'ctx>,
         index: IntValue<'ctx>,
     ) {
+        self.trilogy_array_at_in(&self.builder, output, array, index);
+    }
+
+    pub(crate) fn trilogy_array_at_in(
+        &self,
+        builder: &Builder<'ctx>,
+        output: PointerValue<'ctx>,
+        array: PointerValue<'ctx>,
+        index: IntValue<'ctx>,
+    ) {
         let f = self.declare_internal(
             "trilogy_array_at",
             self.context.void_type().fn_type(
@@ -176,7 +194,7 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder
+        builder
             .build_call(f, &[output.into(), array.into(), index.into()], "")
             .unwrap();
     }
@@ -388,6 +406,15 @@ impl<'ctx> Codegen<'ctx> {
         into: PointerValue<'ctx>,
         from: PointerValue<'ctx>,
     ) {
+        self.trilogy_value_clone_into_in(&self.builder, into, from);
+    }
+
+    pub(crate) fn trilogy_value_clone_into_in(
+        &self,
+        builder: &Builder<'ctx>,
+        into: PointerValue<'ctx>,
+        from: PointerValue<'ctx>,
+    ) {
         let f = self.declare_internal(
             "trilogy_value_clone_into",
             self.context.void_type().fn_type(
@@ -398,12 +425,20 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder
+        builder
             .build_call(f, &[into.into(), from.into()], "")
             .unwrap();
     }
 
     pub(crate) fn trilogy_value_destroy(&self, value: PointerValue<'ctx>) {
+        self.trilogy_value_destroy_in(&self.builder, value);
+    }
+
+    pub(crate) fn trilogy_value_destroy_in(
+        &self,
+        builder: &Builder<'ctx>,
+        value: PointerValue<'ctx>,
+    ) {
         let f = self.declare_internal(
             "trilogy_value_destroy",
             self.context.void_type().fn_type(
@@ -411,7 +446,7 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder.build_call(f, &[value.into()], "").unwrap();
+        builder.build_call(f, &[value.into()], "").unwrap();
     }
 
     pub(crate) fn trilogy_callable_init_proc(
@@ -472,6 +507,14 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn trilogy_reference_assume(&self, t: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        self.trilogy_reference_assume_in(&self.builder, t)
+    }
+
+    pub(crate) fn trilogy_reference_assume_in(
+        &self,
+        builder: &Builder<'ctx>,
+        t: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
             "trilogy_reference_assume",
             self.context.ptr_type(AddressSpace::default()).fn_type(
@@ -479,7 +522,7 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder
+        builder
             .build_call(f, &[t.into()], "")
             .unwrap()
             .try_as_basic_value()
@@ -487,7 +530,7 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    pub(crate) fn trilogy_reference_to(
+    pub(crate) fn trilogy_reference_to_in(
         &self,
         builder: &Builder<'ctx>,
         t: PointerValue<'ctx>,

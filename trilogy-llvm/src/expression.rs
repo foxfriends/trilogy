@@ -311,9 +311,9 @@ impl<'ctx> Codegen<'ctx> {
         match &assign.lhs.value {
             Value::Reference(variable) => {
                 let value = self.compile_expression(&assign.rhs, name)?;
-                let pointer = self.get_variable(&variable.id).unwrap();
-                self.trilogy_value_destroy(pointer);
-                self.trilogy_value_clone_into(pointer, value);
+                let variable = self.get_variable(&variable.id).unwrap();
+                self.trilogy_value_destroy(variable.ptr());
+                self.trilogy_value_clone_into(variable.ptr(), value);
                 Some(value)
             }
             Value::Application(..) => todo!(),
@@ -324,7 +324,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_reference(&self, identifier: &ir::Identifier, name: &str) -> PointerValue<'ctx> {
         if let Some(variable) = self.get_variable(&identifier.id) {
             let target = self.allocate_value(name);
-            self.trilogy_value_clone_into(target, variable);
+            self.trilogy_value_clone_into(target, variable.ptr());
             target
         } else {
             let ident = identifier.id.name().unwrap();
@@ -403,6 +403,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(if_false_entry);
         self.transfer_debug_info(if_false_function);
         let when_false = self.compile_expression(&if_else.when_false, name);
+
         if let Some(value) = when_false {
             let continue_to = self.continue_to(merge_to_function, value);
             self.merge_into(
