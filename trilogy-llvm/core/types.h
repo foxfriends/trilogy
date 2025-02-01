@@ -26,7 +26,8 @@ typedef enum trilogy_value_tag : unsigned char {
 typedef enum trilogy_callable_tag : unsigned char {
     CALLABLE_FUNCTION = 1,
     CALLABLE_PROCEDURE = 2,
-    CALLABLE_RULE = 3
+    CALLABLE_RULE = 3,
+    CALLABLE_CONTINUATION = 4
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {
@@ -165,19 +166,22 @@ typedef struct trilogy_callable_value {
      */
     unsigned int arity;
     /**
-     * Number of elements in the closure list.
-     */
-    unsigned int closure_size;
+     * For captured continuations, the return and yield points are stored rather
+     * than provided. (The `end` pointer is still provided)
+     **/
+    struct trilogy_callable_value* return_to;
+    struct trilogy_callable_value* yield_to;
     /**
      * Context captured from the closure of this callable. This is an array of
-     * trilogy values (all of which would likely be references?).
+     * trilogy values (all of which would should be references?). The array is
+     * owned by the callable, and uses the array struct mostly as a convenience.
      *
      * The identity and population of each field is a static analysis concern.
      *
      * NOTE: there is the inherent risk of circular references here,
      * which should likely be solved weak references of some sort...
      */
-    trilogy_value* closure;
+    trilogy_array_value* closure;
     /**
      * Pointer to the function itself.
      */

@@ -1,4 +1,4 @@
-use crate::{scope::Scope, Codegen};
+use crate::Codegen;
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
@@ -13,7 +13,7 @@ impl<'ctx> Codegen<'ctx> {
     fn add_constant(&self, location: &str, name: &str, linkage: Linkage) -> FunctionValue<'ctx> {
         let accessor = self.module.add_function(
             &format!("{}::{}", location, name),
-            self.procedure_type(0, false),
+            self.accessor_type(),
             Some(linkage),
         );
         accessor.add_attribute(
@@ -51,7 +51,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.procedure_di_type(0),
-            linkage == Linkage::External,
+            linkage != Linkage::External,
             true,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -72,10 +72,9 @@ impl<'ctx> Codegen<'ctx> {
             .get_function(&format!("{}::{}", self.location, definition.name))
             .unwrap();
 
-        let mut scope = Scope::begin(function);
-        self.di.validate();
+        self.di.push_subprogram(function.get_subprogram().unwrap());
         self.di
-            .push_debug_scope(function.get_subprogram().unwrap().as_debug_info_scope());
+            .push_block_scope(definition.name.span.union(definition.value.span));
         self.set_span(definition.value.span);
         let basic_block = self.context.append_basic_block(function, "entry");
         let initialize = self.context.append_basic_block(function, "initialize");
@@ -85,19 +84,20 @@ impl<'ctx> Codegen<'ctx> {
         self.branch_undefined(global.as_pointer_value(), initialize, initialized);
 
         self.builder.position_at_end(initialize);
-        if self
-            .compile_expression(&mut scope, global.as_pointer_value(), &definition.value)
-            .is_some()
-        {
+        if let Some(result) = self.compile_expression(&definition.value, "") {
+            self.builder
+                .build_store(global.as_pointer_value(), result)
+                .unwrap();
             self.builder
                 .build_unconditional_branch(initialized)
                 .unwrap();
         }
 
+        // TODO: someday constants... should be constant. And deterministic
         self.builder.position_at_end(initialized);
-        self.trilogy_value_clone_into(scope.sret(), global.as_pointer_value());
-        self.builder.build_return(None).unwrap();
+        let return_cont = function.get_first_param().unwrap().into_pointer_value();
+        self.call_continuation(return_cont, global.as_pointer_value());
         self.di.pop_scope();
-        self.di.validate();
+        self.di.pop_scope();
     }
 }

@@ -13,4 +13,7 @@ long trilogy_number_untag(trilogy_value* val) {
     return trilogy_number_assume(val);
 }
 
-long trilogy_number_assume(trilogy_value* val) { return (long)val->payload; }
+long trilogy_number_assume(trilogy_value* val) {
+    assert(val->tag == TAG_NUMBER);
+    return (long)val->payload;
+}

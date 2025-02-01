@@ -17,4 +17,7 @@ bool trilogy_boolean_untag(trilogy_value* val) {
     return trilogy_boolean_assume(val);
 }
 
-bool trilogy_boolean_assume(trilogy_value* val) { return (bool)val->payload; }
+bool trilogy_boolean_assume(trilogy_value* val) {
+    assert(val->tag == TAG_BOOL);
+    return (bool)val->payload;
+}

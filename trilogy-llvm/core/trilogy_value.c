@@ -23,6 +23,8 @@ void trilogy_unit_untag(trilogy_value* val) {
 }
 
 void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
+    assert(into != NULL);
+    assert(from != NULL);
     assert(into->tag == TAG_UNDEFINED);
     assert(from->tag != TAG_UNDEFINED);
     switch (from->tag) {
@@ -66,6 +68,7 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
 }
 
 void trilogy_value_destroy(trilogy_value* value) {
+    assert(value != NULL);
     switch (value->tag) {
     case TAG_STRING: {
         trilogy_string_value* p = trilogy_string_assume(value);
@@ -139,7 +142,7 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
         // should be treated all the same no matter how they got cloned up
         trilogy_callable_value* lhs_fn = (trilogy_callable_value*)lhs->payload;
         trilogy_callable_value* rhs_fn = (trilogy_callable_value*)rhs->payload;
-        if (lhs_fn->closure_size == 0 && rhs_fn->closure_size == 0) {
+        if (lhs_fn->closure == NO_CLOSURE && rhs_fn->closure == NO_CLOSURE) {
             return lhs_fn->function == rhs_fn->function;
         } else {
             return lhs_fn == rhs_fn;
@@ -190,7 +193,7 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_SET:
     case TAG_RECORD:
     default:
-        internal_panic("unimplemented");
+        internal_panic("unimplemented\n");
         return false;
     }
 }
@@ -210,7 +213,7 @@ bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs) {
         // should be treated all the same no matter how they got cloned up
         trilogy_callable_value* lhs_fn = (trilogy_callable_value*)lhs->payload;
         trilogy_callable_value* rhs_fn = (trilogy_callable_value*)rhs->payload;
-        if (lhs_fn->closure_size == 0 && rhs_fn->closure_size == 0) {
+        if (lhs_fn->closure == NO_CLOSURE && rhs_fn->closure == NO_CLOSURE) {
             return lhs_fn->function == rhs_fn->function;
         } else {
             return lhs_fn == rhs_fn;

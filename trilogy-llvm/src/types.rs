@@ -22,13 +22,24 @@ pub(crate) const TAG_ARRAY: u64 = 10;
 pub(crate) const TAG_SET: u64 = 11;
 pub(crate) const TAG_RECORD: u64 = 12;
 pub(crate) const TAG_CALLABLE: u64 = 13;
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const TAG_REFERENCE: u64 = 14;
+
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const CALLABLE_FUNCTION: u64 = 1;
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const CALLABLE_PROCEDURE: u64 = 2;
+#[expect(dead_code, reason = "completeness")]
+pub(crate) const CALLABLE_RULE: u64 = 3;
+pub(crate) const CALLABLE_CONTINUATION: u64 = 4;
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn allocate_const<V: BasicValue<'ctx>>(&self, value: V) -> PointerValue<'ctx> {
-        let pointer = self
-            .builder
-            .build_alloca(self.value_type(), "const")
-            .unwrap();
+    pub(crate) fn allocate_const<V: BasicValue<'ctx>>(
+        &self,
+        value: V,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let pointer = self.builder.build_alloca(self.value_type(), name).unwrap();
         self.builder.build_store(pointer, value).unwrap();
         pointer
     }
@@ -91,26 +102,27 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn callable_value_type(&self) -> StructType<'ctx> {
+        self.context.struct_type(
+            &[
+                self.context.i32_type().into(),
+                self.context.i8_type().into(),
+                self.context.i32_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+            ],
+            false,
+        )
+    }
+
     pub(crate) fn reference_value_type(&self) -> StructType<'ctx> {
         self.context.struct_type(
             &[
                 self.context.i32_type().into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.value_type().into(),
-            ],
-            false,
-        )
-    }
-
-    pub(crate) fn callable_value_type(&self) -> StructType<'ctx> {
-        self.context.struct_type(
-            &[
-                self.context.i32_type().into(),
-                self.tag_type().into(),
-                self.context.i32_type().into(),
-                self.context.i32_type().into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
             ],
             false,
         )
@@ -209,16 +221,40 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn procedure_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
-        let extras = if has_closure { 2 } else { 1 };
+        // 0: return
+        // 1: yield
+        // 2: end
+        // [3..3 + arity): args
+        // 3 + arity: closure
+        let extras = if has_closure { 4 } else { 3 };
+        self.context
+            .void_type()
+            .fn_type(&vec![self.value_type().into(); arity + extras], false)
+    }
+
+    pub(crate) fn accessor_type(&self) -> FunctionType<'ctx> {
         self.context.void_type().fn_type(
-            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + extras],
+            &[self.context.ptr_type(AddressSpace::default()).into()],
             false,
         )
     }
 
-    #[expect(dead_code)]
-    pub(crate) fn function_type(&self, has_closure: bool) -> FunctionType<'ctx> {
-        self.procedure_type(1, has_closure)
+    pub(crate) fn external_type(&self, arity: usize) -> FunctionType<'ctx> {
+        self.context.void_type().fn_type(
+            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity],
+            false,
+        )
+    }
+
+    pub(crate) fn continuation_type(&self) -> FunctionType<'ctx> {
+        // 0: return
+        // 1: yield
+        // 2: end
+        // 3: argument
+        // 4: closure
+        self.context
+            .void_type()
+            .fn_type(&[self.value_type().into(); 5], false)
     }
 
     pub(crate) fn branch_undefined(

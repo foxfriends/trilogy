@@ -34,6 +34,7 @@ trilogy_record_value* trilogy_record_untag(trilogy_value* val) {
 }
 
 trilogy_record_value* trilogy_record_assume(trilogy_value* val) {
+    assert(val->tag == TAG_RECORD);
     return (trilogy_record_value*)val->payload;
 }
 

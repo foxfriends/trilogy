@@ -33,6 +33,7 @@ trilogy_set_value* trilogy_set_untag(trilogy_value* val) {
 }
 
 trilogy_set_value* trilogy_set_assume(trilogy_value* val) {
+    assert(val->tag == TAG_SET);
     return (trilogy_set_value*)val->payload;
 }
 

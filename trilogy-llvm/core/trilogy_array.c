@@ -66,7 +66,7 @@ trilogy_array_reserve(trilogy_array_value* arr, unsigned long to_reserve) {
     unsigned long space = arr->cap - arr->len;
     if (space >= to_reserve) return arr->cap;
     unsigned long max_claimable = ULONG_MAX - arr->cap;
-    if (to_reserve > max_claimable) internal_panic("array limit");
+    if (to_reserve > max_claimable) internal_panic("array limit\n");
     if (to_reserve < arr->cap) to_reserve = arr->cap;
     if (to_reserve > max_claimable) to_reserve = max_claimable;
     return __trilogy_array_resize(arr, arr->cap + to_reserve);
@@ -90,12 +90,20 @@ void trilogy_array_append(trilogy_array_value* arr, trilogy_value* tv) {
     arr->len += tail_len;
 }
 
+void trilogy_array_at(
+    trilogy_value* tv, trilogy_array_value* arr, unsigned long index
+) {
+    assert(index < arr->len);
+    trilogy_value_clone_into(tv, &arr->contents[index]);
+}
+
 trilogy_array_value* trilogy_array_untag(trilogy_value* val) {
     if (val->tag != TAG_ARRAY) rte("array", val->tag);
     return trilogy_array_assume(val);
 }
 
 trilogy_array_value* trilogy_array_assume(trilogy_value* val) {
+    assert(val->tag == TAG_ARRAY);
     return (trilogy_array_value*)val->payload;
 }
 

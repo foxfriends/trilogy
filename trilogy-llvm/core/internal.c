@@ -42,12 +42,20 @@ void print_trace() {
 
 void* malloc_safe(size_t size) {
     void* ptr = malloc(size);
-    if (ptr == NULL) internal_panic("out of memory");
+    if (ptr == NULL) internal_panic("out of memory\n");
     return ptr;
 }
 
 void* calloc_safe(size_t num, size_t size) {
     void* ptr = calloc(num, size);
-    if (ptr == NULL) internal_panic("out of memory");
+    if (ptr == NULL) internal_panic("out of memory\n");
     return ptr;
+}
+
+void trilogy_unhandled_effect(trilogy_value* effect) {
+    internal_panic("unhandled effect caused program to terminate\n");
+}
+
+void trilogy_execution_ended() {
+    internal_panic("the only remaining execution ended\n");
 }

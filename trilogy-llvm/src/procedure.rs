@@ -1,13 +1,10 @@
-use crate::{
-    scope::{Scope, Variable},
-    Codegen,
-};
+use crate::Codegen;
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
     llvm_sys::{debuginfo::LLVMDIFlagPublic, LLVMCallConv},
     module::Linkage,
-    values::FunctionValue,
+    values::{BasicMetadataValueEnum, FunctionValue},
 };
 use source_span::Span;
 use trilogy_ir::ir;
@@ -24,11 +21,9 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let accessor_name = format!("{}::{}", self.location, name);
         let wrapper_name = format!("{}::{}.fastcc", self.location, name);
-        let original_function = self.module.add_function(
-            name,
-            self.procedure_type(arity, false),
-            Some(Linkage::External),
-        );
+        let original_function =
+            self.module
+                .add_function(name, self.external_type(arity), Some(Linkage::External));
         let procedure_scope = self.di.builder.create_function(
             self.di.unit.get_file().as_debug_info_scope(),
             name,
@@ -36,7 +31,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.procedure_di_type(arity),
-            linkage == Linkage::External,
+            linkage != Linkage::External,
             false,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -51,32 +46,26 @@ impl<'ctx> Codegen<'ctx> {
             self.procedure_type(arity, false),
             Some(Linkage::Private),
         );
-        wrapper_function.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        wrapper_function
-            .get_nth_param(0)
-            .unwrap()
-            .set_name("sretptr");
         wrapper_function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         let wrapper_entry = self.context.append_basic_block(wrapper_function, "entry");
-        let params = wrapper_function
-            .get_param_iter()
-            .map(|val| val.into())
-            .collect::<Vec<_>>();
         self.builder.position_at_end(wrapper_entry);
+        self.set_current_definition(wrapper_name.to_owned(), span);
+
+        let ret_val = self.allocate_value("");
+        let mut params = vec![ret_val.into()];
+        params.extend(wrapper_function.get_param_iter().skip(3).map(|val| {
+            let param = self.allocate_value("");
+            self.builder.build_store(param, val).unwrap();
+            BasicMetadataValueEnum::<'ctx>::from(param)
+        }));
         self.builder
             .build_direct_call(original_function, &params, "")
             .unwrap();
-        self.builder.build_return(None).unwrap();
+        self.call_continuation(self.get_return(""), ret_val);
 
         let accessor =
             self.module
-                .add_function(&accessor_name, self.procedure_type(0, false), Some(linkage));
+                .add_function(&accessor_name, self.accessor_type(), Some(linkage));
         accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
@@ -113,7 +102,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.procedure_di_type(arity),
-            linkage == Linkage::External,
+            linkage != Linkage::External,
             true,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -126,19 +115,14 @@ impl<'ctx> Codegen<'ctx> {
             Some(Linkage::Private),
         );
         function.set_subprogram(procedure_scope);
-        function.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        function.get_nth_param(0).unwrap().set_name("sretptr");
         function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.get_nth_param(0).unwrap().set_name("return_to");
+        function.get_nth_param(1).unwrap().set_name("yield_to");
+        function.get_nth_param(2).unwrap().set_name("end_to");
 
         let accessor =
             self.module
-                .add_function(&accessor_name, self.procedure_type(0, false), Some(linkage));
+                .add_function(&accessor_name, self.accessor_type(), Some(linkage));
         accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
@@ -167,7 +151,7 @@ impl<'ctx> Codegen<'ctx> {
         }
         let accessor = self.module.add_function(
             &accessor_name,
-            self.procedure_type(0, false),
+            self.accessor_type(),
             Some(Linkage::External),
         );
         accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
@@ -178,74 +162,49 @@ impl<'ctx> Codegen<'ctx> {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
         let name = definition.name.to_string();
-        let function = self
-            .module
-            .get_function(if name == "main" { MAIN_NAME } else { &name })
-            .unwrap();
-        let mut scope = Scope::begin(function);
-        self.compile_procedure_body(&mut scope, procedure);
+        let linkage_name = if name == "main" { MAIN_NAME } else { &name };
+        let function = self.module.get_function(linkage_name).unwrap();
+        self.set_current_definition(linkage_name.to_owned(), procedure.span);
+        self.compile_procedure_body(function, procedure);
+        self.close_continuation();
     }
 
     pub(crate) fn compile_procedure_body(
         &self,
-        scope: &mut Scope<'ctx>,
+        function: FunctionValue<'ctx>,
         procedure: &ir::Procedure,
     ) {
-        self.di.push_debug_scope(
-            scope
-                .function
-                .get_subprogram()
-                .unwrap()
-                .as_debug_info_scope(),
-        );
-        let entry = self.context.append_basic_block(scope.function, "entry");
-        let no_match = self.context.append_basic_block(scope.function, "no_match");
-        let cleanup = self.context.append_basic_block(scope.function, "cleanup");
-
-        scope.set_cleanup(cleanup);
+        self.di.push_subprogram(function.get_subprogram().unwrap());
+        self.di.push_block_scope(procedure.span);
+        let entry = self.context.append_basic_block(function, "entry");
 
         'body: {
             self.builder.position_at_end(entry);
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
-                let value = scope
-                    .function
-                    .get_nth_param(n as u32 + 1)
+                // NOTE: params start at 3, due to return, yield, and end
+                let value = function
+                    .get_nth_param(n as u32 + 3)
                     .unwrap()
-                    .into_pointer_value();
-                if self
-                    .compile_pattern_match(scope, param, value, no_match)
-                    .is_none()
-                {
+                    .into_struct_value();
+                let value_param = self.builder.build_alloca(self.value_type(), "").unwrap();
+                self.builder.build_store(value_param, value).unwrap();
+                if self.compile_pattern_match(param, value_param).is_none() {
                     break 'body;
                 }
             }
 
-            // There is no implicit return of the final value of a procedure. That value is lost,
-            // and unit is returned instead. It is most likely that there is a return in the body,
-            // and this final return will be dead code.
-            if let Some(value) = self.allocate_expression(scope, &procedure.body, "") {
+            if let Some(value) = self.compile_expression(&procedure.body, "") {
+                // There is no implicit return of the final value of a procedure. That value is lost,
+                // and unit is returned instead. It is most likely that there is a return in the body,
+                // in which case we never reach this point
                 self.trilogy_value_destroy(value);
-                self.builder
-                    .build_store(scope.sret(), self.unit_const())
-                    .unwrap();
-                self.builder.build_unconditional_branch(cleanup).unwrap();
+                let ret = self.get_return("");
+                self.call_continuation(ret, self.allocate_const(self.unit_const(), ""));
             }
         }
 
-        self.builder.position_at_end(no_match);
-        _ = self.internal_panic(self.embed_c_string("no argument match in call to procedure\n"));
-
-        self.builder.position_at_end(cleanup);
-        for (id, var) in scope.variables.iter() {
-            if let Some(upvalue) = scope.upvalues.get(id) {
-                let upvalue = self.trilogy_reference_assume(*upvalue);
-                self.trilogy_reference_close(upvalue);
-            } else if let Variable::Owned(pointer) = var {
-                self.trilogy_value_destroy(*pointer);
-            }
-        }
-        self.builder.build_return(None).unwrap();
+        self.di.pop_scope();
         self.di.pop_scope();
     }
 }

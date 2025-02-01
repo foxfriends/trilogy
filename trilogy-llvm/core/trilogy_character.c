@@ -14,5 +14,6 @@ unsigned int trilogy_character_untag(trilogy_value* val) {
 }
 
 unsigned int trilogy_character_assume(trilogy_value* val) {
+    assert(val->tag == TAG_CHAR);
     return (unsigned int)val->payload;
 }
