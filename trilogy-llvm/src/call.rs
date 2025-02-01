@@ -33,7 +33,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    fn add_continuation(&self) -> FunctionValue<'ctx> {
+    pub(crate) fn add_continuation(&self) -> FunctionValue<'ctx> {
         let (name, span) = self.get_current_definition();
         let function =
             self.module
@@ -78,7 +78,6 @@ impl<'ctx> Codegen<'ctx> {
         let chain_function = self.add_continuation();
 
         let continuation = self.allocate_value("cont");
-
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
 
@@ -224,6 +223,38 @@ impl<'ctx> Codegen<'ctx> {
         call.try_as_basic_value()
             .either(|l| l.as_instruction_value(), Some)
             .unwrap()
+    }
+
+    pub(crate) fn continue_to(&self, function: FunctionValue<'ctx>, argument: PointerValue<'ctx>) {
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        let end_to = self.get_end("");
+
+        let parent_closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+        self.set_continued(
+            parent_closure.as_instruction_value().unwrap(),
+            self.builder.get_current_debug_location().unwrap(),
+        );
+
+        let args: Vec<_> = [return_to, yield_to, end_to, argument, parent_closure]
+            .iter()
+            .map(|val| {
+                self.builder
+                    .build_load(self.value_type(), *val, "")
+                    .unwrap()
+                    .into()
+            })
+            .collect();
+
+        let call = self.builder.build_direct_call(function, &args, "").unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        self.builder.build_return(None).unwrap();
     }
 
     pub(crate) fn call_main(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {

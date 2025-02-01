@@ -354,10 +354,16 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_if_else(&self, if_else: &ir::IfElse, name: &str) -> Option<PointerValue<'ctx>> {
         let condition = self.compile_expression(&if_else.condition, "if.cond")?;
+
+        let next = self.split_continuation_point();
+        let mut merge = self.split_continuation_point();
+
         let function = self.get_function();
         let if_true = self.context.append_basic_block(function, "if.true");
         let if_false = self.context.append_basic_block(function, "if.false");
-        let if_cont = self.context.append_basic_block(function, "if.cont");
+
+        let merge_to_function = self.add_continuation();
+
         let cond_bool = self.trilogy_boolean_untag(condition, "");
         self.trilogy_value_destroy(condition);
         self.builder
@@ -366,18 +372,28 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(if_true);
         let when_true = self.compile_expression(&if_else.when_true, name);
-        if when_true.is_some() {
-            self.builder.build_unconditional_branch(if_cont).unwrap();
+        if let Some(value) = when_true {
+            self.continue_to(merge_to_function, value);
+            self.set_merged(&mut merge);
         }
 
         self.builder.position_at_end(if_false);
+        self.push_continuation_point(next);
         let when_false = self.compile_expression(&if_else.when_false, name);
-        if when_false.is_some() {
-            self.builder.build_unconditional_branch(if_cont).unwrap();
+        if let Some(value) = when_false {
+            self.continue_to(merge_to_function, value);
+            self.set_merged(&mut merge);
         }
 
-        self.builder.position_at_end(if_cont);
-        when_false.or(when_true)
+        if when_true.is_some() || when_false.is_some() {
+            self.push_continuation_point(merge);
+            let entry = self.context.append_basic_block(merge_to_function, "entry");
+            self.builder.position_at_end(entry);
+            self.transfer_debug_info(merge_to_function);
+            Some(self.get_continuation(""))
+        } else {
+            None
+        }
     }
 
     fn compile_do(&self, procedure: &ir::Procedure, name: &str) -> PointerValue<'ctx> {

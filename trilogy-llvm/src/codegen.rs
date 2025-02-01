@@ -19,7 +19,7 @@ use std::{
 use trilogy_ir::{ir, Id};
 
 #[derive(Clone)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) enum Head {
     Constant,
     Function,
@@ -55,7 +55,7 @@ pub(crate) struct Codegen<'ctx> {
 /// During the reverse continuation phase, when closing this continuation block,
 /// insert the instructions to build the closure after this instruction, and
 /// replace this instruction with the allocation of a properly sized closure array.
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, Debug)]
 enum Exit<'ctx> {
     #[default]
     Current,
@@ -74,6 +74,7 @@ enum Exit<'ctx> {
     },
 }
 
+#[derive(Debug)]
 enum Variable<'ctx> {
     Closed(PointerValue<'ctx>),
     Owned(PointerValue<'ctx>),
@@ -90,7 +91,7 @@ impl<'ctx> Variable<'ctx> {
 
 /// NOTE: Continuations for return, yield, and end are implicitly carried
 /// as parameters to a continuation, as per calling convention.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct ContinuationPoint<'ctx> {
     /// The end of this continuation point. Only one exit is necessary, as the continuation
     /// is split at any branch, one for each branch target, and gets merged afterwards.
@@ -114,7 +115,6 @@ pub(crate) struct ContinuationPoint<'ctx> {
     upvalues: RefCell<HashMap<Id, PointerValue<'ctx>>>,
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
-    #[expect(dead_code, reason = "I feel like needed but maybe it's not")]
     capture_from: Vec<Weak<ContinuationPoint<'ctx>>>,
 }
 
@@ -134,6 +134,10 @@ impl<'ctx> ContinuationPoint<'ctx> {
             upvalues: RefCell::default(),
             capture_from: vec![Rc::downgrade(parent)],
         }
+    }
+
+    pub(crate) fn add_parent(&mut self, parent: Rc<ContinuationPoint<'ctx>>) {
+        self.capture_from.push(Rc::downgrade(&parent));
     }
 }
 
@@ -336,6 +340,12 @@ impl<'ctx> Codegen<'ctx> {
         cps.push(Rc::new(cp));
     }
 
+    pub(crate) fn set_merged(&self, merge_to: &mut ContinuationPoint<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        cps.pop();
+        merge_to.add_parent(cps.last().unwrap().clone());
+    }
+
     fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
         for (id, var) in cp.variables.borrow().iter() {
             let Variable::Owned(pointer) = var else {
@@ -371,20 +381,55 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
+    fn close_continuation_chain(
+        &self,
+        point: Rc<ContinuationPoint<'ctx>>,
+        child: &ContinuationPoint<'ctx>,
+    ) {
+        match &point.exit {
+            Exit::Branched => {
+                // When there's a branch, the continuation doesn't actually end, so we don't do anything.
+                // This assumes that both of the branches will end.
+            }
+            Exit::Continued {
+                instruction,
+                debug_location,
+            } => {
+                self.builder
+                    .position_at(instruction.get_parent().unwrap(), &instruction);
+                self.builder.set_current_debug_location(*debug_location);
+                let closure = self.build_closure(&point, &child);
+                self.clean_and_close_scope(&point);
+                instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                instruction.erase_from_basic_block();
+                for parent in point
+                    .capture_from
+                    .iter()
+                    .map(|ptr| Weak::upgrade(ptr).unwrap())
+                {
+                    self.close_continuation_chain(parent, &point)
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
     pub(crate) fn close_continuation(&self) {
-        let mut child: Option<Rc<ContinuationPoint<'ctx>>> = None;
-
-        while let Some(parent) = {
+        while let Some(point) = {
             let mut rcs = self.continuation_points.borrow_mut();
-            rcs.pop()
+            rcs.pop().map(|rc| Rc::into_inner(rc).unwrap())
         } {
-            // This is where we do the cleanup, and then call the return continuation if we haven't already
-            // set up an exit.
-
-            match parent.exit {
+            match point.exit {
                 Exit::Branched => {
                     // When there's a branch, the continuation doesn't actually end, so we don't do anything.
                     // This assumes that both of the branches will end.
+                    continue;
+                }
+                Exit::Continued { .. } => {
+                    // When it's continued or merged, that means there is a child out there with this node
+                    // in its capture_from list, so we don't actually do anything now. That child will trigger
+                    // this node's cleanup as it walks up its chain.
+                    continue;
                 }
                 Exit::Current => {
                     // If the current lexical continuation ends without value, then it should `return unit`
@@ -395,7 +440,7 @@ impl<'ctx> Codegen<'ctx> {
                     let return_to = self.get_return("");
                     let call = self.call_continuation(return_to, value);
                     self.builder.position_before(&call);
-                    self.clean_and_close_scope(&parent);
+                    self.clean_and_close_scope(&point);
                 }
                 Exit::Returned {
                     instruction,
@@ -405,7 +450,7 @@ impl<'ctx> Codegen<'ctx> {
                     // cleanup before the call to the return continuation
                     self.builder.position_before(&instruction);
                     self.builder.set_current_debug_location(debug_location);
-                    self.clean_and_close_scope(&parent);
+                    self.clean_and_close_scope(&point);
                 }
                 Exit::Ended {
                     instruction,
@@ -415,24 +460,17 @@ impl<'ctx> Codegen<'ctx> {
                     // but without needing to build a closure
                     self.builder.position_before(&instruction);
                     self.builder.set_current_debug_location(debug_location);
-                    self.cleanup_scope(&parent);
-                }
-                Exit::Continued {
-                    instruction,
-                    debug_location,
-                } => {
-                    let child = child.unwrap();
-                    self.builder
-                        .position_at(instruction.get_parent().unwrap(), &instruction);
-                    self.builder.set_current_debug_location(debug_location);
-                    let closure = self.build_closure(&parent, &child);
-                    self.clean_and_close_scope(&parent);
-                    instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
-                    instruction.erase_from_basic_block();
+                    self.cleanup_scope(&point);
                 }
             }
 
-            child = Some(parent);
+            for parent in point
+                .capture_from
+                .iter()
+                .map(|ptr| Weak::upgrade(ptr).unwrap())
+            {
+                self.close_continuation_chain(parent, &point)
+            }
         }
     }
 
