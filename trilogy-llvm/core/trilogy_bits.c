@@ -36,6 +36,7 @@ trilogy_bits_value* trilogy_bits_untag(trilogy_value* val) {
 }
 
 trilogy_bits_value* trilogy_bits_assume(trilogy_value* val) {
+    assert(val->tag == TAG_BITS);
     return (trilogy_bits_value*)val->payload;
 }
 

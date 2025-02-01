@@ -35,6 +35,7 @@ void trilogy_reference_close(trilogy_reference* ref) {
 }
 
 trilogy_reference* trilogy_reference_assume(trilogy_value* val) {
+    assert(val->tag == TAG_REFERENCE);
     return (trilogy_reference*)val->payload;
 }
 

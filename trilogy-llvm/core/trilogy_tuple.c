@@ -34,6 +34,7 @@ trilogy_tuple_value* trilogy_tuple_untag(trilogy_value* val) {
 }
 
 trilogy_tuple_value* trilogy_tuple_assume(trilogy_value* val) {
+    assert(val->tag == TAG_TUPLE);
     return (trilogy_tuple_value*)val->payload;
 }
 

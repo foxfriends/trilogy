@@ -16,6 +16,7 @@ unsigned long trilogy_atom_untag(trilogy_value* val) {
 }
 
 unsigned long trilogy_atom_assume(trilogy_value* val) {
+    assert(val->tag == TAG_ATOM);
     return (unsigned long)val->payload;
 }
 

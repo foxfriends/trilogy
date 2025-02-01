@@ -34,6 +34,7 @@ trilogy_struct_value* trilogy_struct_untag(trilogy_value* val) {
 }
 
 trilogy_struct_value* trilogy_struct_assume(trilogy_value* val) {
+    assert(val->tag == TAG_STRUCT);
     return (trilogy_struct_value*)val->payload;
 }
 

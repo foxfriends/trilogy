@@ -90,12 +90,20 @@ void trilogy_array_append(trilogy_array_value* arr, trilogy_value* tv) {
     arr->len += tail_len;
 }
 
+void trilogy_array_at(
+    trilogy_value* tv, trilogy_array_value* arr, unsigned long index
+) {
+    assert(index < arr->len);
+    trilogy_value_clone_into(tv, &arr->contents[index]);
+}
+
 trilogy_array_value* trilogy_array_untag(trilogy_value* val) {
     if (val->tag != TAG_ARRAY) rte("array", val->tag);
     return trilogy_array_assume(val);
 }
 
 trilogy_array_value* trilogy_array_assume(trilogy_value* val) {
+    assert(val->tag == TAG_ARRAY);
     return (trilogy_array_value*)val->payload;
 }
 

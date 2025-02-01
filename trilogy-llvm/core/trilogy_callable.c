@@ -145,6 +145,7 @@ trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
 }
 
 trilogy_callable_value* trilogy_callable_assume(trilogy_value* val) {
+    assert(val->tag == TAG_CALLABLE);
     return (void*)val->payload;
 }
 

@@ -54,6 +54,7 @@ trilogy_string_value* trilogy_string_untag(trilogy_value* val) {
 }
 
 trilogy_string_value* trilogy_string_assume(trilogy_value* val) {
+    assert(val->tag == TAG_STRING);
     return (trilogy_string_value*)val->payload;
 }
 

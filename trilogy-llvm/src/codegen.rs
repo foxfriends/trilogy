@@ -190,6 +190,16 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    pub(crate) fn get_closure(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        let temp = self.allocate_value("");
+        self.builder
+            .build_store(temp, self.get_function().get_last_param().unwrap())
+            .unwrap();
+        self.trilogy_value_clone_into(container, temp);
+        container
+    }
+
     pub(crate) fn new(
         context: &'ctx Context,
         modules: &'ctx HashMap<String, &'ctx ir::Module>,
@@ -396,9 +406,9 @@ impl<'ctx> Codegen<'ctx> {
                 debug_location,
             } => {
                 self.builder
-                    .position_at(instruction.get_parent().unwrap(), &instruction);
+                    .position_at(instruction.get_parent().unwrap(), instruction);
                 self.builder.set_current_debug_location(*debug_location);
-                let closure = self.build_closure(&point, &child);
+                let closure = self.build_closure(&point, child);
                 self.clean_and_close_scope(&point);
                 instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                 instruction.erase_from_basic_block();
@@ -500,17 +510,18 @@ impl<'ctx> Codegen<'ctx> {
         let closure_size = child_scope.closure.borrow().len();
         let closure = self.allocate_value("closure");
         let closure_array = self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
+        let mut upvalues = scope.upvalues.borrow_mut();
         for id in child_scope.closure.borrow().iter() {
             let new_upvalue = self.allocate_value("");
-            if let Some(ptr) = scope.upvalues.borrow().get(id) {
+            if let Some(ptr) = upvalues.get(id) {
                 self.trilogy_value_clone_into(new_upvalue, *ptr);
             } else if let Some(variable) = scope.variables.borrow().get(id) {
                 self.trilogy_reference_to(new_upvalue, variable.ptr());
-                scope.upvalues.borrow_mut().insert(id.clone(), new_upvalue);
+                upvalues.insert(id.clone(), new_upvalue);
             } else if scope.parent_variables.contains(id) {
                 let variable = self.get_variable(id).expect("closure is messed up");
                 self.trilogy_reference_to(new_upvalue, variable);
-                scope.upvalues.borrow_mut().insert(id.clone(), new_upvalue);
+                upvalues.insert(id.clone(), new_upvalue);
             }
             self.trilogy_array_push(closure_array, new_upvalue);
         }
@@ -591,42 +602,33 @@ impl<'ctx> Codegen<'ctx> {
             let closure_index = closure.len();
             closure.push(id.clone());
 
-            // Closure is an array of `trilogy_value`, where each of those values is a reference.
+            // Closure is a Trilogy array of Trilogy reference
             // To access the variable:
             // 1. Consider the nth element of the array
             // 2. Get the value inside
             // 3. Assume a reference, and load its location field
             // 4. That value of that location field is the pointer to the actual value
-            let closure_ptr = self
-                .get_function()
-                .get_last_param()
+            let closure_ptr = self.get_closure("");
+            let closure_array = self.trilogy_array_assume(closure_ptr);
+            let reference = self.allocate_value("");
+            self.trilogy_array_at(
+                reference,
+                closure_array,
+                self.context
+                    .i64_type()
+                    .const_int(closure_index as u64, false),
+            );
+            self.trilogy_value_destroy(closure_ptr);
+            let ref_value = self.trilogy_reference_assume(reference);
+            let location = self
+                .builder
+                .build_struct_gep(self.reference_value_type(), ref_value, 1, "")
+                .unwrap();
+            let location = self
+                .builder
+                .build_load(self.context.ptr_type(AddressSpace::default()), location, "")
                 .unwrap()
                 .into_pointer_value();
-            let location = unsafe {
-                let array_entry = self
-                    .builder
-                    .build_gep(
-                        self.value_type().array_type(0),
-                        closure_ptr,
-                        &[
-                            self.context.i32_type().const_int(0, false),
-                            self.context
-                                .i32_type()
-                                .const_int(closure_index as u64, false),
-                        ],
-                        "",
-                    )
-                    .unwrap();
-                let ref_value = self.trilogy_reference_assume(array_entry);
-                let location = self
-                    .builder
-                    .build_struct_gep(self.reference_value_type(), ref_value, 1, "")
-                    .unwrap();
-                self.builder
-                    .build_load(self.context.ptr_type(AddressSpace::default()), location, "")
-                    .unwrap()
-                    .into_pointer_value()
-            };
             scope
                 .variables
                 .borrow_mut()
