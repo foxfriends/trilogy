@@ -52,8 +52,9 @@ pub(crate) struct Codegen<'ctx> {
     current_definition: RefCell<(String, Span)>,
 }
 
-#[derive(Copy, Clone, Debug)]
-struct ExitPos<'ctx> {
+#[derive(Clone, Debug)]
+struct Parent<'ctx> {
+    parent: Weak<ContinuationPoint<'ctx>>,
     instruction: InstructionValue<'ctx>,
     debug_location: DILocation<'ctx>,
 }
@@ -61,16 +62,14 @@ struct ExitPos<'ctx> {
 /// During the reverse continuation phase, when closing this continuation block,
 /// insert the instructions to build the closure after this instruction, and
 /// replace this instruction with the allocation of a properly sized closure array.
-#[derive(Default, Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 enum Exit<'ctx> {
-    #[default]
-    Current,
-    Branched,
-    Started(ExitPos<'ctx>),
-    Closed(ExitPos<'ctx>),
-    Continued(ExitPos<'ctx>),
-    Returned(ExitPos<'ctx>),
-    Ended(ExitPos<'ctx>),
+    Close(Parent<'ctx>),
+    Clean {
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    },
+    Capture(Parent<'ctx>),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -92,12 +91,6 @@ impl<'ctx> Variable<'ctx> {
 /// as parameters to a continuation, as per calling convention.
 #[derive(Default, Debug)]
 pub(crate) struct ContinuationPoint<'ctx> {
-    /// The end of this continuation point. Only one exit is necessary, as the continuation
-    /// is split at any branch, one for each branch target, and gets merged afterwards.
-    ///
-    /// The latest continuation point does not have an exit set, as it has not yet exited.
-    exit: Exit<'ctx>,
-
     /// Pointers to variables available at this point in the continuation.
     /// These pointers may be to values on stack, or to locations in the closure.
     variables: RefCell<HashMap<Id, Variable<'ctx>>>,
@@ -114,53 +107,80 @@ pub(crate) struct ContinuationPoint<'ctx> {
     upvalues: RefCell<HashMap<Id, PointerValue<'ctx>>>,
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
-    capture_from: Vec<Weak<ContinuationPoint<'ctx>>>,
+    parents: Vec<Exit<'ctx>>,
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
-    fn same(parent: &Rc<ContinuationPoint<'ctx>>) -> Self {
+    fn chain(&self) -> Self {
         Self {
-            exit: Exit::Current,
-            variables: parent.variables.clone(),
-            closure: parent.closure.clone(),
-            parent_variables: parent.parent_variables.clone(),
-            upvalues: parent.upvalues.clone(),
-            capture_from: vec![Rc::downgrade(parent)],
-        }
-    }
-
-    fn child(parent: &Rc<ContinuationPoint<'ctx>>) -> Self {
-        Self::child_of(parent, vec![Rc::downgrade(parent)])
-    }
-
-    fn child_of(
-        shared_parent: &Rc<ContinuationPoint<'ctx>>,
-        capture_from: Vec<Weak<ContinuationPoint<'ctx>>>,
-    ) -> Self {
-        Self {
-            exit: Exit::Current,
             variables: RefCell::default(),
             closure: RefCell::default(),
-            parent_variables: shared_parent
+            parent_variables: self
                 .variables
                 .borrow()
                 .keys()
-                .chain(shared_parent.parent_variables.iter())
+                .chain(self.parent_variables.iter())
                 .cloned()
                 .collect(),
             upvalues: RefCell::default(),
-            capture_from: if capture_from.is_empty() {
-                vec![Rc::downgrade(&shared_parent)]
-            } else {
-                capture_from
-            },
+            parents: vec![],
         }
+    }
+
+    fn close_from(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.parents.push(Exit::Close(Parent {
+            parent: Rc::downgrade(parent),
+            instruction,
+            debug_location,
+        }));
+    }
+
+    fn clean_from(
+        &mut self,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.parents.push(Exit::Clean {
+            instruction,
+            debug_location,
+        });
+    }
+
+    fn capture_from(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.parents.push(Exit::Capture(Parent {
+            parent: Rc::downgrade(parent),
+            instruction,
+            debug_location,
+        }));
     }
 }
 
-pub(crate) struct Brancher<'ctx> {
-    parent: Rc<ContinuationPoint<'ctx>>,
-    children: Vec<Weak<ContinuationPoint<'ctx>>>,
+pub(crate) struct Brancher<'ctx>(Rc<ContinuationPoint<'ctx>>);
+pub(crate) struct Merger<'ctx>(Vec<Exit<'ctx>>);
+
+impl<'ctx> Merger<'ctx> {
+    fn close_from(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.0.push(Exit::Close(Parent {
+            parent: Rc::downgrade(parent),
+            instruction,
+            debug_location,
+        }));
+    }
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -297,133 +317,83 @@ impl<'ctx> Codegen<'ctx> {
         self.current_definition.borrow().clone()
     }
 
-    pub(crate) fn set_returned(
-        &self,
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    ) {
-        Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
-            .unwrap()
-            .exit = Exit::Returned(ExitPos {
-            instruction,
-            debug_location,
-        });
-    }
-
-    pub(crate) fn set_ended(
-        &self,
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    ) {
-        Rc::get_mut(self.continuation_points.borrow_mut().last_mut().unwrap())
-            .unwrap()
-            .exit = Exit::Ended(ExitPos {
-            instruction,
-            debug_location,
-        });
-    }
-
-    pub(crate) fn set_continued(
+    pub(crate) fn close(
         &self,
         instruction: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
-        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Continued(ExitPos {
-            instruction,
-            debug_location,
-        });
-        let new = Rc::new(ContinuationPoint::child(cps.last().unwrap()));
-        cps.push(new);
+        let last = cps.last().unwrap();
+        let mut next = last.chain();
+        next.close_from(last, instruction, debug_location);
+        cps.push(Rc::new(next));
     }
 
-    pub(crate) fn set_branched(&self) -> Brancher<'ctx> {
-        let mut cps = self.continuation_points.borrow_mut();
-        Rc::get_mut(cps.last_mut().unwrap()).unwrap().exit = Exit::Branched;
-        let parent = cps.last().unwrap().clone();
-        Brancher {
-            parent,
-            children: vec![],
-        }
-    }
-
-    pub(crate) fn set_merged(
+    pub(crate) fn clean(
         &self,
-        brancher: &mut Brancher<'ctx>,
         instruction: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
-        let last = cps.last_mut().unwrap();
-        Rc::get_mut(last).unwrap().exit = Exit::Continued(ExitPos {
-            instruction,
-            debug_location,
-        });
-        brancher.children.push(Rc::downgrade(&last));
+        let last = cps.last().unwrap();
+        let mut next = last.chain();
+        next.clean_from(instruction, debug_location);
+        cps.push(Rc::new(next));
     }
 
-    pub(crate) fn start_branch(
+    pub(crate) fn close_from(
         &self,
         brancher: &Brancher<'ctx>,
         instruction: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
-        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
-        let mut hidden = ContinuationPoint::same(&brancher.parent);
-        hidden.exit = Exit::Started(ExitPos {
-            instruction,
-            debug_location,
-        });
-        let hidden = Rc::new(hidden);
-        let new = Rc::new(ContinuationPoint::child(&hidden));
-        cps.push(hidden);
-        cps.push(new);
+        let mut next = brancher.0.chain();
+        next.close_from(&brancher.0, instruction, debug_location);
+        cps.push(Rc::new(next));
     }
 
-    pub(crate) fn end_branch(
+    pub(crate) fn continue_from(&self, brancher: &Brancher<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        cps.push(brancher.0.clone());
+    }
+
+    pub(crate) fn capture_from(
         &self,
         brancher: &Brancher<'ctx>,
         instruction: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
-        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
-        let mut end = ContinuationPoint::child(&brancher.parent);
-        end.exit = Exit::Ended(ExitPos {
-            instruction,
-            debug_location,
-        });
-        cps.push(Rc::new(end));
+        let mut next = brancher.0.chain();
+        next.capture_from(&brancher.0, instruction, debug_location);
+        cps.push(Rc::new(next));
     }
 
-    pub(crate) fn start_closure(
+    pub(crate) fn branch(&self) -> Brancher<'ctx> {
+        let parent = self.continuation_points.borrow().last().unwrap().clone();
+        Brancher(parent)
+    }
+
+    pub(crate) fn merger(&self) -> Merger<'ctx> {
+        Merger(vec![])
+    }
+
+    pub(crate) fn merge_into(
         &self,
-        brancher: &Brancher<'ctx>,
+        merger: &mut Merger<'ctx>,
         instruction: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
     ) {
-        let mut cps = self.continuation_points.borrow_mut();
-        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
-        let mut hidden = ContinuationPoint::same(&brancher.parent);
-        hidden.exit = Exit::Closed(ExitPos {
-            instruction,
-            debug_location,
-        });
-        let hidden = Rc::new(hidden);
-        let new = Rc::new(ContinuationPoint::child(&hidden));
-        cps.push(hidden);
-        cps.push(new);
+        let cps = self.continuation_points.borrow();
+        merger.close_from(cps.last().unwrap(), instruction, debug_location);
     }
 
-    pub(crate) fn start_merge(&self, brancher: Brancher<'ctx>) {
+    pub(crate) fn merge_branch(&self, branch: Brancher<'ctx>, merger: Merger<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
-        assert!(!matches!(cps.last().unwrap().exit, Exit::Current));
-        let new = Rc::new(ContinuationPoint::child_of(
-            &brancher.parent,
-            brancher.children,
-        ));
-        cps.push(new);
+        let mut cp = branch.0.chain();
+        cp.parents = merger.0;
+        cps.push(Rc::new(cp))
     }
 
     fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
@@ -446,133 +416,50 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn cleanup_scope(&self, cp: &ContinuationPoint<'ctx>) {
-        for var in cp.variables.borrow().values() {
-            let Variable::Owned(pointer) = var else {
-                continue;
-            };
-
-            self.trilogy_value_destroy(*pointer);
-        }
-        for param in self.get_function().get_param_iter() {
-            let param_ptr = self.builder.build_alloca(self.value_type(), "").unwrap();
-            self.builder.build_store(param_ptr, param).unwrap();
-            self.trilogy_value_destroy(param_ptr);
-        }
-    }
-
-    fn close_continuation_chain(
-        &self,
-        point: Rc<ContinuationPoint<'ctx>>,
-        child: &ContinuationPoint<'ctx>,
-    ) {
-        match &point.exit {
-            Exit::Branched => {
-                // When there's a branch, the continuation doesn't actually end, so we don't do anything.
-                // This assumes that both of the branches will end.
-                return;
-            }
-            Exit::Closed(ExitPos {
-                instruction,
-                debug_location,
-            }) => {
-                self.builder
-                    .position_at(instruction.get_parent().unwrap(), instruction);
-                self.builder.set_current_debug_location(*debug_location);
-                let closure = self.build_closure(&point, child);
-                instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
-                instruction.erase_from_basic_block();
-                return;
-            }
-            Exit::Started(ExitPos {
-                instruction,
-                debug_location,
-            }) => {
-                self.builder
-                    .position_at(instruction.get_parent().unwrap(), instruction);
-                self.builder.set_current_debug_location(*debug_location);
-                let closure = self.build_closure(&point, child);
-                self.clean_and_close_scope(&point);
-                instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
-                instruction.erase_from_basic_block();
-            }
-            Exit::Continued(ExitPos {
-                instruction,
-                debug_location,
-            }) => {
-                self.builder
-                    .position_at(instruction.get_parent().unwrap(), instruction);
-                self.builder.set_current_debug_location(*debug_location);
-                let closure = self.build_closure(&point, child);
-                self.clean_and_close_scope(&point);
-                instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
-                instruction.erase_from_basic_block();
-            }
-            _ => unreachable!(),
-        }
-        for parent in point
-            .capture_from
-            .iter()
-            .map(|ptr| Weak::upgrade(ptr).unwrap())
-        {
-            self.close_continuation_chain(parent, &point)
-        }
-    }
-
     pub(crate) fn close_continuation(&self) {
         while let Some(point) = {
             let mut rcs = self.continuation_points.borrow_mut();
-            rcs.pop().map(|rc| Rc::into_inner(rc).unwrap())
+            rcs.pop()
         } {
-            match point.exit {
-                Exit::Branched | Exit::Closed(..) | Exit::Continued(..) | Exit::Started(..) => {
-                    // When there's a branch, the continuation doesn't actually end, so we don't do anything.
-                    // This assumes that both of the branches will end.
-                    //
-                    // When it's continued or merged, that means there is a child out there with this node
-                    // in its capture_from list, so we don't actually do anything now. That child will trigger
-                    // this node's cleanup as it walks up its chain.
-                    continue;
+            let Some(point) = Rc::into_inner(point) else {
+                continue;
+            };
+            for parent in &point.parents {
+                match parent {
+                    Exit::Close(Parent {
+                        parent,
+                        instruction,
+                        debug_location,
+                    }) => {
+                        self.builder
+                            .position_at(instruction.get_parent().unwrap(), instruction);
+                        self.builder.set_current_debug_location(*debug_location);
+                        let closure = self.build_closure(&parent.upgrade().unwrap(), &point);
+                        self.clean_and_close_scope(&point);
+                        instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                        instruction.erase_from_basic_block();
+                    }
+                    Exit::Clean {
+                        instruction,
+                        debug_location,
+                    } => {
+                        self.builder.position_before(instruction);
+                        self.builder.set_current_debug_location(*debug_location);
+                        self.clean_and_close_scope(&point);
+                    }
+                    Exit::Capture(Parent {
+                        parent,
+                        instruction,
+                        debug_location,
+                    }) => {
+                        self.builder
+                            .position_at(instruction.get_parent().unwrap(), instruction);
+                        self.builder.set_current_debug_location(*debug_location);
+                        let closure = self.build_closure(&parent.upgrade().unwrap(), &point);
+                        instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                        instruction.erase_from_basic_block();
+                    }
                 }
-                Exit::Current => {
-                    // If the current lexical continuation ends without value, then it should `return unit`
-                    //
-                    // When we're in the current continuation, and we hit the end, then we need to fake
-                    // a return. This might be best moved elsewhere
-                    let value = self.allocate_const(self.unit_const(), "runoff");
-                    let return_to = self.get_return("");
-                    let call = self.call_continuation(return_to, value);
-                    self.builder.position_before(&call);
-                    self.clean_and_close_scope(&point);
-                }
-                Exit::Returned(ExitPos {
-                    instruction,
-                    debug_location,
-                }) => {
-                    // If the current lexical continuation ended by returning, then we're just injecting
-                    // cleanup before the call to the return continuation
-                    self.builder.position_before(&instruction);
-                    self.builder.set_current_debug_location(debug_location);
-                    self.clean_and_close_scope(&point);
-                }
-                Exit::Ended(ExitPos {
-                    instruction,
-                    debug_location,
-                }) => {
-                    // If the current lexical continuation ended by ending, then it's similar to returning
-                    // but without needing to build a closure
-                    self.builder.position_before(&instruction);
-                    self.builder.set_current_debug_location(debug_location);
-                    self.cleanup_scope(&point);
-                }
-            }
-
-            for parent in point
-                .capture_from
-                .iter()
-                .map(|ptr| Weak::upgrade(ptr).unwrap())
-            {
-                self.close_continuation_chain(parent, &point)
             }
         }
     }
@@ -587,17 +474,37 @@ impl<'ctx> Codegen<'ctx> {
         let closure_array = self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
         let mut upvalues = scope.upvalues.borrow_mut();
         for id in child_scope.closure.borrow().iter() {
-            let new_upvalue = self.allocate_value("up");
-            if let Some(ptr) = upvalues.get(id) {
+            let upvalue_name = format!("{id}.up");
+            let new_upvalue = if let Some(ptr) = upvalues.get(id) {
+                let new_upvalue = self.allocate_value(&upvalue_name);
                 self.trilogy_value_clone_into(new_upvalue, *ptr);
+                new_upvalue
             } else if let Some(variable) = scope.variables.borrow().get(id) {
-                self.trilogy_reference_to(new_upvalue, variable.ptr());
+                let builder = self.context.create_builder();
+                let declaration = variable.ptr().as_instruction_value().unwrap();
+                builder.position_at(
+                    declaration.get_parent().unwrap(),
+                    // NOTE: some reason this `position_at` seems to position BEFORE, not after as it is described, so we
+                    // must position before the next instruction.
+                    &declaration.get_next_instruction().unwrap(),
+                );
+                let new_upvalue = builder
+                    .build_alloca(self.value_type(), &upvalue_name)
+                    .unwrap();
+                builder
+                    .build_store(new_upvalue, self.value_type().const_zero())
+                    .unwrap();
+                self.trilogy_reference_to(&builder, new_upvalue, variable.ptr());
                 upvalues.insert(id.clone(), new_upvalue);
-            } else if scope.parent_variables.contains(id) {
+                new_upvalue
+            } else {
+                // TODO: share the upvalue from the closure, not make a wrongish clone of it
+                let new_upvalue = self.allocate_value(&upvalue_name);
                 let variable = self.get_variable(id).expect("closure is messed up");
-                self.trilogy_reference_to(new_upvalue, variable);
+                self.trilogy_reference_to(&self.builder, new_upvalue, variable);
                 upvalues.insert(id.clone(), new_upvalue);
-            }
+                new_upvalue
+            };
             self.trilogy_array_push(closure_array, new_upvalue);
         }
         closure
@@ -662,7 +569,7 @@ impl<'ctx> Codegen<'ctx> {
         (Rc::into_inner(self.module).unwrap(), self.execution_engine)
     }
 
-    pub(crate) fn current_continuation(&self) -> Rc<ContinuationPoint<'ctx>> {
+    fn current_continuation(&self) -> Rc<ContinuationPoint<'ctx>> {
         self.continuation_points.borrow().last().unwrap().clone()
     }
 

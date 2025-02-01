@@ -95,21 +95,16 @@ impl<'ctx> Codegen<'ctx> {
             .context
             .append_basic_block(self.get_function(), "pm_cont");
 
-        let joiner = self.set_branched();
+        let brancher = self.branch();
         self.builder
             .build_conditional_branch(cond, cont, fail)
             .unwrap();
         self.builder.position_at_end(fail);
         let end = self.get_end("");
-        let instruction = self.call_continuation(end, self.allocate_const(self.unit_const(), ""));
-        self.end_branch(
-            &joiner,
-            instruction,
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        self.call_continuation(end, self.allocate_const(self.unit_const(), ""));
 
         self.builder.position_at_end(cont);
-        self.start_merge(joiner);
+        self.continue_from(&brancher);
         cont
     }
 

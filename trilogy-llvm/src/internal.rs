@@ -1,4 +1,5 @@
 use inkwell::{
+    builder::Builder,
     module::Linkage,
     types::FunctionType,
     values::{FunctionValue, IntValue, PointerValue},
@@ -488,6 +489,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn trilogy_reference_to(
         &self,
+        builder: &Builder<'ctx>,
         t: PointerValue<'ctx>,
         p: PointerValue<'ctx>,
     ) -> PointerValue<'ctx> {
@@ -501,7 +503,7 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder
+        builder
             .build_call(f, &[t.into(), p.into()], "")
             .unwrap()
             .try_as_basic_value()

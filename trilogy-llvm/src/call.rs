@@ -94,7 +94,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        self.set_continued(
+        self.close(
             parent_closure.as_instruction_value().unwrap(),
             self.builder.get_current_debug_location().unwrap(),
         );
@@ -223,7 +223,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         function: PointerValue<'ctx>,
         argument: PointerValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
+    ) {
         let callable = self.trilogy_callable_untag(function, "");
         let function = self.trilogy_continuation_untag(callable, "continue");
 
@@ -256,10 +256,12 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        self.builder.build_return(None).unwrap();
-        call.try_as_basic_value()
+        let call = call
+            .try_as_basic_value()
             .either(|l| l.as_instruction_value(), Some)
-            .unwrap()
+            .unwrap();
+        self.clean(call, self.builder.get_current_debug_location().unwrap());
+        self.builder.build_return(None).unwrap();
     }
 
     pub(crate) fn continue_to(

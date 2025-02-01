@@ -61,11 +61,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_direct_call(original_function, &params, "")
             .unwrap();
-        let return_call = self.call_continuation(self.get_return(""), ret_val);
-        self.set_returned(
-            return_call,
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        self.call_continuation(self.get_return(""), ret_val);
 
         let accessor =
             self.module
@@ -203,6 +199,8 @@ impl<'ctx> Codegen<'ctx> {
                 // and unit is returned instead. It is most likely that there is a return in the body,
                 // in which case we never reach this point
                 self.trilogy_value_destroy(value);
+                let ret = self.get_return("");
+                self.call_continuation(ret, self.allocate_const(self.unit_const(), ""));
             }
         }
 

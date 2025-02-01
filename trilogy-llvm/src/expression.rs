@@ -115,11 +115,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_end(&self) {
         let end = self.get_end("");
         let alloca = self.allocate_value("");
-        let instruction = self.call_continuation(end, alloca);
-        self.set_ended(
-            instruction,
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        self.call_continuation(end, alloca);
     }
 
     fn compile_sequence(&self, seq: &[ir::Expression], name: &str) -> Option<PointerValue<'ctx>> {
@@ -253,11 +249,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Return => {
                 let result = self.compile_expression(expression, name)?;
                 let return_cont = self.get_return("");
-                let return_call = self.call_continuation(return_cont, result);
-                self.set_returned(
-                    return_call,
-                    self.builder.get_current_debug_location().unwrap(),
-                );
+                self.call_continuation(return_cont, result);
                 None
             }
             Builtin::Exit => {
@@ -370,12 +362,13 @@ impl<'ctx> Codegen<'ctx> {
             .build_conditional_branch(cond_bool, if_true_block, if_false_block)
             .unwrap();
 
-        let mut brancher = self.set_branched();
+        let brancher = self.branch();
+        let mut merger = self.merger();
 
         self.builder.position_at_end(if_true_block);
         let continue_to =
             self.continue_to(if_true_function, self.allocate_const(self.unit_const(), ""));
-        self.start_branch(
+        self.close_from(
             &brancher,
             continue_to,
             self.builder.get_current_debug_location().unwrap(),
@@ -388,8 +381,8 @@ impl<'ctx> Codegen<'ctx> {
 
         if let Some(value) = when_true {
             let continue_to = self.continue_to(merge_to_function, value);
-            self.set_merged(
-                &mut brancher,
+            self.merge_into(
+                &mut merger,
                 continue_to,
                 self.builder.get_current_debug_location().unwrap(),
             );
@@ -400,7 +393,7 @@ impl<'ctx> Codegen<'ctx> {
             if_false_function,
             self.allocate_const(self.unit_const(), ""),
         );
-        self.start_branch(
+        self.close_from(
             &brancher,
             continue_to,
             self.builder.get_current_debug_location().unwrap(),
@@ -412,15 +405,15 @@ impl<'ctx> Codegen<'ctx> {
         let when_false = self.compile_expression(&if_else.when_false, name);
         if let Some(value) = when_false {
             let continue_to = self.continue_to(merge_to_function, value);
-            self.set_merged(
-                &mut brancher,
+            self.merge_into(
+                &mut merger,
                 continue_to,
                 self.builder.get_current_debug_location().unwrap(),
             );
         }
 
         if when_true.is_some() || when_false.is_some() {
-            self.start_merge(brancher);
+            self.merge_branch(brancher, merger);
             let entry = self.context.append_basic_block(merge_to_function, "entry");
             self.builder.position_at_end(entry);
             self.transfer_debug_info(merge_to_function);
@@ -446,9 +439,9 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        let brancher = self.set_branched();
+        let brancher = self.branch();
 
-        self.start_closure(
+        self.capture_from(
             &brancher,
             closure.as_instruction_value().unwrap(),
             self.builder.get_current_debug_location().unwrap(),
@@ -479,7 +472,6 @@ impl<'ctx> Codegen<'ctx> {
         self.compile_procedure_body(function, procedure);
 
         self.builder.position_at_end(here);
-        self.start_merge(brancher);
         target
     }
 }
