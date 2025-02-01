@@ -389,6 +389,10 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         self.builder.position_at_end(if_false_block);
+        // NOTE: This is a bit unfortunate, as it creates another copy of the same debug info block hierarchy
+        // up to this if. Would be nice if I could compile the branches, then the functions of those branches,
+        // instead of like now when it's doing the true function in between the branches.
+        self.transfer_debug_info(function);
         let continue_to = self.continue_to(
             if_false_function,
             self.allocate_const(self.unit_const(), ""),
