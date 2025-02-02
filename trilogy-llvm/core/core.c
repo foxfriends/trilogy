@@ -61,9 +61,12 @@ void length(trilogy_value* rv, trilogy_value* val) {
 
 void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     switch (arr->tag) {
-    case TAG_ARRAY:
-        trilogy_array_push(trilogy_array_assume(arr), val);
+    case TAG_ARRAY: {
+        trilogy_value pushing = trilogy_undefined;
+        trilogy_value_clone_into(&pushing, val);
+        trilogy_array_push(trilogy_array_assume(arr), &pushing);
         break;
+    }
     default:
         rte("array, set, or record", arr->tag);
     }
@@ -72,9 +75,12 @@ void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
 
 void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     switch (arr->tag) {
-    case TAG_ARRAY:
-        trilogy_array_append(trilogy_array_assume(arr), val);
+    case TAG_ARRAY: {
+        trilogy_value appending = trilogy_undefined;
+        trilogy_value_clone_into(&appending, val);
+        trilogy_array_append(trilogy_array_assume(arr), &appending);
         break;
+    }
     default:
         rte("array, set, or record", arr->tag);
     }

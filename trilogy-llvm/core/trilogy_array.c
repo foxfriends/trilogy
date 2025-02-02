@@ -74,7 +74,8 @@ trilogy_array_reserve(trilogy_array_value* arr, unsigned long to_reserve) {
 
 void trilogy_array_push(trilogy_array_value* arr, trilogy_value* tv) {
     trilogy_array_reserve(arr, 1);
-    trilogy_value_clone_into(&arr->contents[arr->len], tv);
+    arr->contents[arr->len] = *tv;
+    *tv = trilogy_undefined;
     ++arr->len;
 }
 
@@ -82,10 +83,21 @@ void trilogy_array_append(trilogy_array_value* arr, trilogy_value* tv) {
     trilogy_array_value* tail = trilogy_array_untag(tv);
     unsigned long tail_len = trilogy_array_len(tail);
     trilogy_array_reserve(arr, tail_len);
-    for (unsigned long i = 0; i < tail_len; ++i) {
-        trilogy_value_clone_into(
-            &arr->contents[arr->len + i], &tail->contents[i]
+    if (tail->rc == 1) {
+        memcpy(
+            arr->contents + arr->len, tail->contents,
+            sizeof(trilogy_value) * tail_len
         );
+        free(tail->contents);
+        free(tail);
+        *tv = trilogy_undefined;
+    } else {
+        for (unsigned long i = 0; i < tail_len; ++i) {
+            trilogy_value_clone_into(
+                &arr->contents[arr->len + i], &tail->contents[i]
+            );
+        }
+        trilogy_value_destroy(tv);
     }
     arr->len += tail_len;
 }

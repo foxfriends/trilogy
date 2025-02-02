@@ -118,7 +118,6 @@ impl<'ctx> Codegen<'ctx> {
             } else {
                 self.trilogy_array_push(array_value, temporary);
             }
-            self.trilogy_value_destroy(temporary);
         }
         Some(target)
     }

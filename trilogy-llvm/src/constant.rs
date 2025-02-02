@@ -95,8 +95,9 @@ impl<'ctx> Codegen<'ctx> {
 
         // TODO: someday constants... should be constant. And deterministic
         self.builder.position_at_end(initialized);
-        let return_cont = function.get_first_param().unwrap().into_pointer_value();
-        self.call_continuation(return_cont, global.as_pointer_value());
+        let sret = function.get_first_param().unwrap().into_pointer_value();
+        self.trilogy_value_clone_into(sret, global.as_pointer_value());
+        self.builder.build_return(None).unwrap();
         self.di.pop_scope();
         self.di.pop_scope();
     }
