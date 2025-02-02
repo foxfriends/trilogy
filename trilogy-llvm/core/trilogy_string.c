@@ -2,6 +2,7 @@
 #include "internal.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 
 trilogy_string_value*
@@ -62,6 +63,18 @@ trilogy_string_value* trilogy_string_untag(trilogy_value* val) {
 trilogy_string_value* trilogy_string_assume(trilogy_value* val) {
     assert(val->tag == TAG_STRING);
     return (trilogy_string_value*)val->payload;
+}
+
+trilogy_string_value* trilogy_string_concat(
+    trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
+) {
+    unsigned long room = ULONG_MAX - lhs->len;
+    if (rhs->len > room) internal_panic("string length limit\n");
+    unsigned long len = lhs->len + rhs->len;
+    char* ptr = malloc_safe(sizeof(char) * len);
+    strncpy(ptr, lhs->contents, lhs->len);
+    strncpy(ptr + lhs->len, rhs->contents, rhs->len);
+    return trilogy_string_init_new(rt, len, ptr);
 }
 
 void trilogy_string_destroy(trilogy_string_value* val) { free(val->contents); }

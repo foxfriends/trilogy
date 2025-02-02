@@ -66,7 +66,7 @@ trilogy_array_reserve(trilogy_array_value* arr, unsigned long to_reserve) {
     unsigned long space = arr->cap - arr->len;
     if (space >= to_reserve) return arr->cap;
     unsigned long max_claimable = ULONG_MAX - arr->cap;
-    if (to_reserve > max_claimable) internal_panic("array limit\n");
+    if (to_reserve > max_claimable) internal_panic("array capacity limit\n");
     if (to_reserve < arr->cap) to_reserve = arr->cap;
     if (to_reserve > max_claimable) to_reserve = max_claimable;
     return __trilogy_array_resize(arr, arr->cap + to_reserve);

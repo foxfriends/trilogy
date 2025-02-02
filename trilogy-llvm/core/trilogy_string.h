@@ -15,9 +15,9 @@ trilogy_string_value* trilogy_string_assume(trilogy_value* val);
 void trilogy_string_destroy(trilogy_string_value* val);
 
 char* trilogy_string_as_c(trilogy_string_value* val);
+
 unsigned long trilogy_string_len(trilogy_string_value* val);
 unsigned int trilogy_string_at(trilogy_string_value* str, unsigned long index);
-
-void trilogy_string_glue(
-    trilogy_value* rt, trilogy_value* lhs, trilogy_value* rhs
+trilogy_string_value* trilogy_string_concat(
+    trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
 );

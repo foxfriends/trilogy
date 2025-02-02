@@ -80,8 +80,11 @@ void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     *rv = trilogy_unit;
 }
 
-#define ATOM_LEFT 14
-#define ATOM_RIGHT 15
+void glue(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_string_value* lstr = trilogy_string_untag(lhs);
+    trilogy_string_value* rstr = trilogy_string_untag(rhs);
+    trilogy_string_concat(rv, lstr, rstr);
+}
 
 void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     switch (c->tag) {

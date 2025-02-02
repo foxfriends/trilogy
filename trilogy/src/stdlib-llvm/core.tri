@@ -30,3 +30,6 @@ export append
 
 extern proc member_access!(container, index)
 export member_access
+
+extern proc glue!(lhs, rhs)
+export glue

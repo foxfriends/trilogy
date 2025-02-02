@@ -43,4 +43,14 @@ impl<'ctx> Codegen<'ctx> {
         let f = self.declare_core("member_access", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
+
+    pub(crate) fn glue(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("glue", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
 }

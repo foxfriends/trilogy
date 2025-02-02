@@ -324,6 +324,15 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_struct_init_new(out, tag, lhs);
                 Some(out)
             }
+            Builtin::Glue => {
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "glue.lhs")?;
+                let rhs = self.compile_expression(rhs, "glue.rhs")?;
+                self.glue(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             _ => todo!(),
         }
     }
