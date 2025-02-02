@@ -299,6 +299,15 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::Access => {
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "acc.c")?;
+                let rhs = self.compile_expression(rhs, "acc.i")?;
+                self.member_access(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             _ => todo!(),
         }
     }

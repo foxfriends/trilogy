@@ -100,5 +100,32 @@ so there are no runtime type errors for record access.
     \BinaryInfC{$\Gamma\vdash E\ \texttt{.}\ k : \nu$}
 \end{prooftree}
 
+For Tuples, the member expression is one of the atoms \val{'left} or
+\val{'right}, returning the left or right tuple element of the tuple
+respectively. If the value is an atom, but not one of \val{'left} or
+\val{'right}, \val{'MIA} is yielded. Otherwise, if it is not an atom,
+it is a runtime type error.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau\ :\ \rho$}
+    \AxiomC{$\Gamma\vdash i = \val{'left}$}
+    \LeftLabel{Tuple Access\textsuperscript{L}}
+    \BinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i : \tau$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau\ :\ \rho$}
+    \AxiomC{$\Gamma\vdash i = \val{'right}$}
+    \LeftLabel{Tuple Access\textsuperscript{L}}
+    \BinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i : \rho$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E : \tau\ :\ \rho$}
+    \AxiomC{$\Gamma\vdash i : \ty{Atom}$}
+    \LeftLabel{Tuple MIA}
+    \BinaryInfC{$\Gamma\vdash E\ \texttt{.}\ i \vartriangle \val{'MIA}$}
+\end{prooftree}
+
 If the value on the left is of any other type, it is a runtime type error;
 other types of values do not have members which can be accessed.

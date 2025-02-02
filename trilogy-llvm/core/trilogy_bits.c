@@ -35,6 +35,12 @@ trilogy_bits_value* trilogy_bits_untag(trilogy_value* val) {
     return trilogy_bits_assume(val);
 }
 
+bool trilogy_bits_at(trilogy_bits_value* b, unsigned long index) {
+    assert(index <= b->len);
+    unsigned char byte = b->contents[index >> 3];
+    return (bool)(1 & (byte >> (7 - (index & 7))));
+}
+
 trilogy_bits_value* trilogy_bits_assume(trilogy_value* val) {
     assert(val->tag == TAG_BITS);
     return (trilogy_bits_value*)val->payload;

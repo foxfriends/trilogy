@@ -1,11 +1,14 @@
 #include "internal.h"
 #include "trilogy_array.h"
+#include "trilogy_bits.h"
 #include "trilogy_boolean.h"
+#include "trilogy_character.h"
 #include "trilogy_number.h"
 #include "trilogy_string.h"
 #include "trilogy_value.h"
 #include "types.h"
 #include <execinfo.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -71,6 +74,31 @@ void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
         break;
     default:
         rte("array, set, or record", arr->tag);
+    }
+    *rv = trilogy_unit;
+}
+
+void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
+    switch (c->tag) {
+    case TAG_STRING: {
+        unsigned long i = trilogy_number_untag(index);
+        unsigned int ch = trilogy_string_at(trilogy_string_assume(c), i);
+        trilogy_character_init(rv, ch);
+        break;
+    }
+    case TAG_BITS: {
+        unsigned int i = trilogy_number_untag(index);
+        bool b = trilogy_bits_at(trilogy_bits_assume(c), i);
+        trilogy_boolean_init(rv, b);
+        break;
+    }
+    case TAG_ARRAY: {
+        unsigned long i = trilogy_number_untag(index);
+        trilogy_array_at(rv, trilogy_array_assume(c), i);
+        break;
+    }
+    default:
+        rte("string, bits, tuple, array, or record", c->tag);
     }
     *rv = trilogy_unit;
 }

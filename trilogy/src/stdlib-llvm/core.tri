@@ -27,3 +27,6 @@ export push
 
 extern proc append!(arr, val)
 export append
+
+extern proc member_access!(container, index)
+export member_access

@@ -48,6 +48,12 @@ char* trilogy_string_as_c(trilogy_string_value* str) {
 
 unsigned long trilogy_string_len(trilogy_string_value* str) { return str->len; }
 
+unsigned int trilogy_string_at(trilogy_string_value* str, unsigned long index) {
+    assert(index < str->len);
+    // TODO: properly support Unicode characters, instead of doing this on bytes
+    return (unsigned int)str->contents[index];
+}
+
 trilogy_string_value* trilogy_string_untag(trilogy_value* val) {
     if (val->tag != TAG_STRING) rte("string", val->tag);
     return trilogy_string_assume(val);

@@ -241,7 +241,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn external_type(&self, arity: usize) -> FunctionType<'ctx> {
         self.context.void_type().fn_type(
-            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity],
+            &vec![self.context.ptr_type(AddressSpace::default()).into(); arity + 1],
             false,
         )
     }
