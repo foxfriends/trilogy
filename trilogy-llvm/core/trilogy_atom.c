@@ -1,9 +1,8 @@
 #include "trilogy_atom.h"
 #include "internal.h"
 #include "runtime.h"
-#include "trilogy_string.h"
-#include "trilogy_value.h"
 #include <assert.h>
+#include <stddef.h>
 
 void trilogy_atom_init(trilogy_value* t, unsigned long i) {
     assert(t->tag == TAG_UNDEFINED);

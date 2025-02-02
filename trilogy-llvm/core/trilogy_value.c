@@ -243,7 +243,8 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
         }
         break;
     case TAG_ATOM: {
-        const trilogy_string_value* repr = trilogy_atom_repr(trilogy_atom_assume(val));
+        const trilogy_string_value* repr =
+            trilogy_atom_repr(trilogy_atom_assume(val));
         if (repr == NULL) internal_panic("unknown atom\n");
         trilogy_string_clone_into(rv, repr);
         break;
