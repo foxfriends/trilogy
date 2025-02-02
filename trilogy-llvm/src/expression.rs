@@ -193,20 +193,24 @@ impl<'ctx> Codegen<'ctx> {
             _ => {}
         };
         let function = self.compile_expression(&application.function, "")?;
+        self.bind_temporary(function);
         match &application.argument.value {
             // Procedure application
             Value::Pack(pack) => {
-                let arguments = pack
-                    .values
-                    .iter()
-                    .map(|val| {
-                        assert!(
-                            !val.is_spread,
-                            "a spread is not permitted in procedure argument lists"
-                        );
-                        self.compile_expression(&val.expression, "")
-                    })
-                    .collect::<Option<Vec<_>>>()?;
+                let mut arguments = Vec::with_capacity(pack.values.len());
+                for val in pack.values.iter() {
+                    assert!(
+                        !val.is_spread,
+                        "a spread is not permitted in procedure argument lists"
+                    );
+                    let param = self.compile_expression(&val.expression, "")?;
+                    self.bind_temporary(param);
+                    arguments.push(param);
+                }
+                let function = self.use_temporary(function).unwrap().ptr();
+                for arg in arguments.iter_mut() {
+                    *arg = self.use_temporary(*arg).unwrap().ptr();
+                }
                 Some(self.call_procedure(function, &arguments))
             }
             // Function application

@@ -1,11 +1,14 @@
+use crate::{codegen::Codegen, TrilogyValue};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
+    execution_engine::ExecutionEngine,
+    memory_buffer::MemoryBuffer,
+    module::Module,
     AddressSpace,
 };
+use std::rc::Rc;
 
-use crate::{codegen::Codegen, TrilogyValue};
-
-impl Codegen<'_> {
+impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_standalone(&self, entrymodule: &str, entrypoint: &str) {
         let main_wrapper =
             self.module
@@ -74,5 +77,56 @@ impl Codegen<'_> {
             .build_store(output_ptr.as_pointer_value(), return_value)
             .unwrap();
         self.builder.build_return(None).unwrap();
+    }
+
+    fn build_atom_registry(&self) {
+        let atoms = self.atoms.borrow();
+        let mut atoms_vec: Vec<_> = atoms.iter().collect();
+        atoms_vec.sort_by_key(|(_, s)| **s);
+        let atom_registry_sz =
+            self.module
+                .add_global(self.context.i64_type(), None, "atom_registry_sz");
+        atom_registry_sz.set_initializer(
+            &self
+                .context
+                .i64_type()
+                .const_int(atoms_vec.len() as u64, false),
+        );
+        let atom_registry = self.module.add_global(
+            self.string_value_type().array_type(atoms_vec.len() as u32),
+            None,
+            "atom_registry",
+        );
+        let atom_table: Vec<_> = atoms_vec
+            .into_iter()
+            .map(|(atom, _)| {
+                let bytes = atom.as_bytes();
+                let string = self.module.add_global(
+                    self.context.i8_type().array_type(bytes.len() as u32),
+                    None,
+                    "",
+                );
+                string.set_initializer(&self.context.const_string(bytes, false));
+                self.string_value_type().const_named_struct(&[
+                    self.context
+                        .i64_type()
+                        .const_int(bytes.len() as u64, false)
+                        .into(),
+                    string.as_pointer_value().into(),
+                ])
+            })
+            .collect();
+        atom_registry.set_initializer(&self.string_value_type().const_array(&atom_table));
+    }
+
+    pub(crate) fn finish(self) -> (Module<'ctx>, ExecutionEngine<'ctx>) {
+        self.build_atom_registry();
+
+        let core =
+            MemoryBuffer::create_from_memory_range(include_bytes!("../core/core.bc"), "core");
+        let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
+        self.module.link_in_module(core).unwrap();
+        self.di.builder.finalize();
+        (Rc::into_inner(self.module).unwrap(), self.execution_engine)
     }
 }

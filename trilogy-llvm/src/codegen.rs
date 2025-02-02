@@ -5,7 +5,6 @@ use inkwell::{
     debug_info::{AsDIScope, DILocation},
     execution_engine::ExecutionEngine,
     llvm_sys::debuginfo::LLVMDIFlagPublic,
-    memory_buffer::MemoryBuffer,
     module::Module,
     values::{BasicValue, FunctionValue, InstructionValue, PointerValue},
     AddressSpace, OptimizationLevel,
@@ -47,7 +46,7 @@ pub(crate) struct Codegen<'ctx> {
     /// The last one is the current point. There should always be at least one (while
     /// compiling a function), and they should be topologically sorted according to their
     /// contained `capture_from` lists.
-    pub(crate) continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
+    continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
 
     current_definition: RefCell<(String, Span)>,
 }
@@ -87,24 +86,39 @@ impl<'ctx> Variable<'ctx> {
     }
 }
 
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+enum Closed<'ctx> {
+    Variable(Id),
+    Temporary(PointerValue<'ctx>),
+}
+
+impl std::fmt::Display for Closed<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Variable(id) => id.fmt(f),
+            Self::Temporary(ptr) => write!(f, "{}.ref", ptr.get_name().to_str().unwrap()),
+        }
+    }
+}
+
 /// NOTE: Continuations for return, yield, and end are implicitly carried
 /// as parameters to a continuation, as per calling convention.
 #[derive(Default, Debug)]
-pub(crate) struct ContinuationPoint<'ctx> {
+struct ContinuationPoint<'ctx> {
     /// Pointers to variables available at this point in the continuation.
     /// These pointers may be to values on stack, or to locations in the closure.
-    variables: RefCell<HashMap<Id, Variable<'ctx>>>,
+    variables: RefCell<HashMap<Closed<'ctx>, Variable<'ctx>>>,
     /// The list of all variables which can possibly be referenced from this location.
     /// If the variable is not already referenced (i.e. found in the `variables` map),
     /// then it must be requested from all of the `capture_from` continuation points
     /// and added to the closure array and variables map.
-    parent_variables: HashSet<Id>,
+    parent_variables: HashSet<Closed<'ctx>>,
 
     /// Maintains the order of variables found in the closure array.
-    closure: RefCell<Vec<Id>>,
+    closure: RefCell<Vec<Closed<'ctx>>>,
     /// The mapping from variable names to their upvalues. If one already exists for a variable
     /// as it is being captured, it must be reused.
-    upvalues: RefCell<HashMap<Id, PointerValue<'ctx>>>,
+    upvalues: RefCell<HashMap<Closed<'ctx>, PointerValue<'ctx>>>,
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
     parents: Vec<Exit<'ctx>>,
@@ -498,7 +512,7 @@ impl<'ctx> Codegen<'ctx> {
                 new_upvalue
             } else {
                 match self
-                    .get_variable_from(scope, id)
+                    .reference_from_scope(scope, id)
                     .expect("closure is messed up")
                 {
                     Variable::Closed { upvalue, .. } => {
@@ -549,57 +563,6 @@ impl<'ctx> Codegen<'ctx> {
         value
     }
 
-    fn build_atom_registry(&self) {
-        let atoms = self.atoms.borrow();
-        let mut atoms_vec: Vec<_> = atoms.iter().collect();
-        atoms_vec.sort_by_key(|(_, s)| **s);
-        let atom_registry_sz =
-            self.module
-                .add_global(self.context.i64_type(), None, "atom_registry_sz");
-        atom_registry_sz.set_initializer(
-            &self
-                .context
-                .i64_type()
-                .const_int(atoms_vec.len() as u64, false),
-        );
-        let atom_registry = self.module.add_global(
-            self.string_value_type().array_type(atoms_vec.len() as u32),
-            None,
-            "atom_registry",
-        );
-        let atom_table: Vec<_> = atoms_vec
-            .into_iter()
-            .map(|(atom, _)| {
-                let bytes = atom.as_bytes();
-                let string = self.module.add_global(
-                    self.context.i8_type().array_type(bytes.len() as u32),
-                    None,
-                    "",
-                );
-                string.set_initializer(&self.context.const_string(bytes, false));
-                self.string_value_type().const_named_struct(&[
-                    self.context
-                        .i64_type()
-                        .const_int(bytes.len() as u64, false)
-                        .into(),
-                    string.as_pointer_value().into(),
-                ])
-            })
-            .collect();
-        atom_registry.set_initializer(&self.string_value_type().const_array(&atom_table));
-    }
-
-    pub(crate) fn finish(self) -> (Module<'ctx>, ExecutionEngine<'ctx>) {
-        self.build_atom_registry();
-
-        let core =
-            MemoryBuffer::create_from_memory_range(include_bytes!("../core/core.bc"), "core");
-        let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
-        self.module.link_in_module(core).unwrap();
-        self.di.builder.finalize();
-        (Rc::into_inner(self.module).unwrap(), self.execution_engine)
-    }
-
     fn current_continuation(&self) -> Rc<ContinuationPoint<'ctx>> {
         self.continuation_points.borrow().last().unwrap().clone()
     }
@@ -608,19 +571,32 @@ impl<'ctx> Codegen<'ctx> {
         self.get_variable_from(&self.current_continuation(), id)
     }
 
-    pub(crate) fn get_variable_from(
+    fn get_variable_from(
         &self,
         scope: &ContinuationPoint<'ctx>,
         id: &Id,
     ) -> Option<Variable<'ctx>> {
-        if let Some(var) = scope.variables.borrow().get(id) {
+        self.reference_from_scope(&scope, &Closed::Variable(id.clone()))
+    }
+
+    pub(crate) fn use_temporary(&self, temporary: PointerValue<'ctx>) -> Option<Variable<'ctx>> {
+        let cp = self.current_continuation();
+        self.reference_from_scope(&cp, &Closed::Temporary(temporary))
+    }
+
+    fn reference_from_scope(
+        &self,
+        scope: &ContinuationPoint<'ctx>,
+        closed: &Closed<'ctx>,
+    ) -> Option<Variable<'ctx>> {
+        if let Some(var) = scope.variables.borrow().get(closed) {
             return Some(*var);
         }
 
-        if scope.parent_variables.contains(id) {
+        if scope.parent_variables.contains(closed) {
             let mut closure = scope.closure.borrow_mut();
             let closure_index = closure.len();
-            closure.push(id.clone());
+            closure.push(closed.clone());
 
             let builder = self.context.create_builder();
             let entry = self.get_function().get_first_basic_block().unwrap();
@@ -638,7 +614,7 @@ impl<'ctx> Codegen<'ctx> {
             let closure_ptr = self.get_closure(&builder, "");
             let closure_array = self.trilogy_array_assume_in(&builder, closure_ptr);
             let upvalue = builder
-                .build_alloca(self.value_type(), &format!("{id}.up"))
+                .build_alloca(self.value_type(), &format!("{closed}.up"))
                 .unwrap();
             builder
                 .build_store(upvalue, self.value_type().const_zero())
@@ -660,16 +636,26 @@ impl<'ctx> Codegen<'ctx> {
                 .build_load(
                     self.context.ptr_type(AddressSpace::default()),
                     location,
-                    id.name().unwrap_or(""),
+                    &closed.to_string(),
                 )
                 .unwrap()
                 .into_pointer_value();
             let variable = Variable::Closed { location, upvalue };
-            scope.variables.borrow_mut().insert(id.clone(), variable);
+            scope
+                .variables
+                .borrow_mut()
+                .insert(closed.clone(), variable);
             return Some(variable);
         }
 
         None
+    }
+
+    pub(crate) fn bind_temporary(&self, temporary: PointerValue<'ctx>) {
+        let cp = self.current_continuation();
+        cp.variables
+            .borrow_mut()
+            .insert(Closed::Temporary(temporary), Variable::Owned(temporary));
     }
 
     pub(crate) fn variable(&self, id: &ir::Identifier) -> PointerValue<'ctx> {
@@ -694,7 +680,7 @@ impl<'ctx> Codegen<'ctx> {
         scope
             .variables
             .borrow_mut()
-            .insert(id.id.clone(), Variable::Owned(variable));
+            .insert(Closed::Variable(id.id.clone()), Variable::Owned(variable));
 
         if let Some(subp) = self.get_function().get_subprogram() {
             if let Some(name) = id.id.name() {
