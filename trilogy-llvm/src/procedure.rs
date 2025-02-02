@@ -71,7 +71,10 @@ impl<'ctx> Codegen<'ctx> {
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
         params.extend(wrapper_function.get_param_iter().skip(3).map(|val| {
-            let param = self.builder.build_alloca(self.value_type(), "").unwrap();
+            let param = self
+                .builder
+                .build_alloca(self.value_type(), "param")
+                .unwrap();
             self.builder.build_store(param, val).unwrap();
             BasicMetadataValueEnum::<'ctx>::from(param)
         }));
@@ -209,7 +212,10 @@ impl<'ctx> Codegen<'ctx> {
                     .get_nth_param(n as u32 + 3)
                     .unwrap()
                     .into_struct_value();
-                let value_param = self.builder.build_alloca(self.value_type(), "").unwrap();
+                let value_param = self
+                    .builder
+                    .build_alloca(self.value_type(), "param")
+                    .unwrap();
                 self.builder.build_store(value_param, value).unwrap();
                 if self.compile_pattern_match(param, value_param).is_none() {
                     break 'body;

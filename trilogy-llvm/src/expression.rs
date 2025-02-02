@@ -19,28 +19,10 @@ impl<'ctx> Codegen<'ctx> {
         let prev = self.set_span(expression.span);
 
         let result = match &expression.value {
-            Value::Unit => {
-                let val = self.allocate_value(name);
-                self.builder.build_store(val, self.unit_const()).unwrap();
-                Some(val)
-            }
-            Value::Boolean(b) => {
-                let val = self.allocate_value(name);
-                self.builder.build_store(val, self.bool_const(*b)).unwrap();
-                Some(val)
-            }
-            Value::Atom(atom) => {
-                let val = self.allocate_value(name);
-                self.builder
-                    .build_store(val, self.atom_const(atom.to_owned()))
-                    .unwrap();
-                Some(val)
-            }
-            Value::Character(ch) => {
-                let val = self.allocate_value(name);
-                self.builder.build_store(val, self.char_const(*ch)).unwrap();
-                Some(val)
-            }
+            Value::Unit => Some(self.allocate_const(self.unit_const(), name)),
+            Value::Boolean(b) => Some(self.allocate_const(self.bool_const(*b), name)),
+            Value::Atom(atom) => Some(self.allocate_const(self.atom_const(atom.to_owned()), name)),
+            Value::Character(ch) => Some(self.allocate_const(self.char_const(*ch), name)),
             Value::String(s) => {
                 let val = self.allocate_value(name);
                 self.string_const(val, s);
@@ -49,9 +31,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Number(num) => {
                 if num.value().im.is_zero() && num.value().re.is_integer() {
                     if let Some(int) = num.value().re.to_i64() {
-                        let val = self.allocate_value(name);
-                        self.builder.build_store(val, self.int_const(int)).unwrap();
-                        Some(val)
+                        Some(self.allocate_const(self.int_const(int), name))
                     } else {
                         todo!("Support large integers")
                     }
