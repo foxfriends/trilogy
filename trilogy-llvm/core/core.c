@@ -100,5 +100,4 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     default:
         rte("string, bits, tuple, array, or record", c->tag);
     }
-    *rv = trilogy_unit;
 }

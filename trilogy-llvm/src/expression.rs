@@ -61,7 +61,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Bits(b) => {
                 let val = self.allocate_value(name);
-                self.builder.build_store(val, self.bits_const(b)).unwrap();
+                self.bits_const(val, b);
                 Some(val)
             }
             Value::Array(arr) => self.compile_array(arr, name),

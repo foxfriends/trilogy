@@ -128,11 +128,6 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
-    pub(crate) fn bits_value_type(&self) -> StructType<'ctx> {
-        self.context
-            .struct_type(&[self.usize_type().into(), self.usize_type().into()], false)
-    }
-
     pub(crate) fn unit_const(&self) -> StructValue<'ctx> {
         self.value_type().const_named_struct(&[
             self.tag_type().const_int(TAG_UNIT, false).into(),
@@ -187,7 +182,7 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
-    pub(crate) fn bits_const(&self, value: &Bits) -> StructValue<'ctx> {
+    pub(crate) fn bits_const(&self, into: PointerValue<'ctx>, value: &Bits) {
         let bit_len = value.value().len();
         let bytes: Vec<u8> = value
             .value()
@@ -200,24 +195,11 @@ impl<'ctx> Codegen<'ctx> {
                 .add_global(self.context.i8_type().array_type(byte_len as u32), None, "");
         bitstring.set_initializer(&self.context.const_string(&bytes, false));
         bitstring.set_constant(true);
-        let bitstring = self.bits_value_type().const_named_struct(&[
-            self.context
-                .i64_type()
-                .const_int(bit_len as u64, false)
-                .into(),
-            bitstring.as_pointer_value().into(),
-        ]);
-        let global = self.module.add_global(self.bits_value_type(), None, "");
-        global.set_initializer(&bitstring);
-        global.set_constant(true);
-        let int = self
-            .builder
-            .build_ptr_to_int(global.as_pointer_value(), self.payload_type(), "")
-            .unwrap();
-        self.value_type().const_named_struct(&[
-            self.tag_type().const_int(TAG_BITS, false).into(),
-            int.into(),
-        ])
+        self.trilogy_bits_init_new(
+            into,
+            self.context.i64_type().const_int(bit_len as u64, false),
+            bitstring.as_pointer_value(),
+        );
     }
 
     pub(crate) fn procedure_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
