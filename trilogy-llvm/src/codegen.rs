@@ -420,7 +420,7 @@ impl<'ctx> Codegen<'ctx> {
     fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
         for (id, var) in cp.variables.borrow().iter() {
             match var {
-                Variable::Owned(pointer) => {
+                Variable::Owned(pointer) if matches!(id, Closed::Variable(..)) => {
                     if let Some(pointer) = cp.upvalues.borrow().get(id) {
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
@@ -432,6 +432,7 @@ impl<'ctx> Codegen<'ctx> {
                 Variable::Closed { upvalue, .. } => {
                     self.trilogy_value_destroy(*upvalue);
                 }
+                _ => {}
             }
         }
         for param in self.get_function().get_param_iter() {
