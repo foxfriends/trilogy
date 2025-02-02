@@ -315,6 +315,15 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_tuple_init_new(out, lhs, rhs);
                 Some(out)
             }
+            Builtin::Construct => {
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "struct.val")?;
+                let rhs = self.compile_expression(rhs, "")?;
+                let tag = self.trilogy_atom_untag(rhs, "struct.tag");
+                self.trilogy_value_destroy(rhs);
+                self.trilogy_struct_init_new(out, tag, lhs);
+                Some(out)
+            }
             _ => todo!(),
         }
     }

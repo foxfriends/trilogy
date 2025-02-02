@@ -16,7 +16,7 @@ export structural_eq
 extern proc referential_eq!(lhs, rhs)
 export referential_eq
 
-extern proc lookup_atom!(lhs, rhs)
+extern proc lookup_atom!(atom)
 export lookup_atom
 
 extern proc length!(arr)

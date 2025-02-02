@@ -37,15 +37,35 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
+    pub(crate) fn trilogy_atom_untag(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_atom_untag",
+            self.context.i64_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
     pub(crate) fn trilogy_string_init_new(
         &self,
         value: PointerValue<'ctx>,
         len: IntValue<'ctx>,
         string: PointerValue<'ctx>,
-    ) {
+    ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
             "trilogy_string_init_new",
-            self.context.void_type().fn_type(
+            self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
@@ -56,7 +76,10 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder
             .build_call(f, &[value.into(), len.into(), string.into()], "")
-            .unwrap();
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
     }
 
     pub(crate) fn trilogy_tuple_init_new(
@@ -64,10 +87,10 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
-    ) {
+    ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
             "trilogy_tuple_init_new",
-            self.context.void_type().fn_type(
+            self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -78,7 +101,35 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder
             .build_call(f, &[value.into(), lhs.into(), rhs.into()], "")
-            .unwrap();
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_struct_init_new(
+        &self,
+        value: PointerValue<'ctx>,
+        tag: IntValue<'ctx>,
+        val: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_struct_init_new",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into(), tag.into(), val.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
     }
 
     pub(crate) fn trilogy_bits_init_new(
@@ -86,10 +137,10 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         len: IntValue<'ctx>,
         string: PointerValue<'ctx>,
-    ) {
+    ) -> PointerValue<'ctx> {
         let f = self.declare_internal(
             "trilogy_bits_init_new",
-            self.context.void_type().fn_type(
+            self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
@@ -100,7 +151,10 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder
             .build_call(f, &[value.into(), len.into(), string.into()], "")
-            .unwrap();
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
     }
 
     /// Initializes an atom value

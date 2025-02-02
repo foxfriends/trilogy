@@ -1,6 +1,7 @@
 #include "trilogy_atom.h"
 #include "internal.h"
 #include "runtime.h"
+#include "trilogy_string.h"
 #include "trilogy_value.h"
 #include <assert.h>
 
@@ -23,8 +24,7 @@ unsigned long trilogy_atom_assume(trilogy_value* val) {
 void lookup_atom(trilogy_value* rv, trilogy_value* atom) {
     unsigned int atom_id = trilogy_atom_untag(atom);
     if (atom_id < atom_registry_sz) {
-        rv->tag = TAG_STRING;
-        rv->payload = (unsigned long)&atom_registry[atom_id];
+        trilogy_string_clone_into(rv, &atom_registry[atom_id]);
     } else {
         *rv = trilogy_unit;
     }

@@ -161,6 +161,7 @@ impl Builtin {
         matches!(
             self,
             Self::Access
+                | Self::Construct
                 | Self::And
                 | Self::Or
                 | Self::Add
