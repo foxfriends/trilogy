@@ -1,10 +1,12 @@
 #include "internal.h"
 #include "trilogy_array.h"
+#include "trilogy_atom.h"
 #include "trilogy_bits.h"
 #include "trilogy_boolean.h"
 #include "trilogy_character.h"
 #include "trilogy_number.h"
 #include "trilogy_string.h"
+#include "trilogy_tuple.h"
 #include "trilogy_value.h"
 #include "types.h"
 #include <execinfo.h>
@@ -78,6 +80,9 @@ void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     *rv = trilogy_unit;
 }
 
+#define ATOM_LEFT 14
+#define ATOM_RIGHT 15
+
 void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     switch (c->tag) {
     case TAG_STRING: {
@@ -90,6 +95,20 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
         unsigned int i = trilogy_number_untag(index);
         bool b = trilogy_bits_at(trilogy_bits_assume(c), i);
         trilogy_boolean_init(rv, b);
+        break;
+    }
+    case TAG_TUPLE: {
+        unsigned long i = trilogy_atom_untag(index);
+        switch (i) {
+        case ATOM_LEFT:
+            trilogy_tuple_left(rv, trilogy_tuple_assume(c));
+            break;
+        case ATOM_RIGHT:
+            trilogy_tuple_right(rv, trilogy_tuple_assume(c));
+            break;
+        default:
+            internal_panic("unimplemented: yield 'MIA\n");
+        }
         break;
     }
     case TAG_ARRAY: {

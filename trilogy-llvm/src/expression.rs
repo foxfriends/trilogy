@@ -308,6 +308,13 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::Cons => {
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "cons.lhs")?;
+                let rhs = self.compile_expression(rhs, "cons.rhs")?;
+                self.trilogy_tuple_init_new(out, lhs, rhs);
+                Some(out)
+            }
             _ => todo!(),
         }
     }

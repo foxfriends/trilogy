@@ -59,6 +59,28 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_tuple_init_new(
+        &self,
+        value: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_internal(
+            "trilogy_tuple_init_new",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into(), lhs.into(), rhs.into()], "")
+            .unwrap();
+    }
+
     pub(crate) fn trilogy_bits_init_new(
         &self,
         value: PointerValue<'ctx>,
