@@ -21,11 +21,10 @@ unsigned long trilogy_atom_assume(trilogy_value* val) {
     return (unsigned long)val->payload;
 }
 
-void lookup_atom(trilogy_value* rv, trilogy_value* atom) {
-    unsigned int atom_id = trilogy_atom_untag(atom);
+const trilogy_string_value* trilogy_atom_repr(unsigned long atom_id) {
     if (atom_id < atom_registry_sz) {
-        trilogy_string_clone_into(rv, &atom_registry[atom_id]);
+        return &atom_registry[atom_id];
     } else {
-        *rv = trilogy_unit;
+        return NULL;
     }
 }

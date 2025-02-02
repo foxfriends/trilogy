@@ -33,3 +33,30 @@ export member_access
 
 extern proc glue!(lhs, rhs)
 export glue
+
+extern proc cons!(lhs, rhs)
+export cons
+
+extern proc construct!(lhs, rhs)
+export construct
+
+extern proc destruct!(val)
+export destruct
+
+extern proc primitive_to_string!(val)
+
+export to_string
+proc to_string!(val) {
+  if typeof val == 'tuple {
+    let lhs = to_string!(val.'left)
+    let rhs = to_string!(val.'right)
+    return $"${lhs}:${rhs}"
+  }
+  if typeof val == 'struct {
+    let tuple = destruct!(val)
+    let lhs = to_string!(tuple.'left)
+    let rhs = to_string!(tuple.'right)
+    return $"${lhs}(${rhs})"
+  }
+  return primitive_to_string!(val)
+}

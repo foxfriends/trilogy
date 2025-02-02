@@ -1,8 +1,12 @@
 #include "trilogy_value.h"
 #include "internal.h"
 #include "trilogy_array.h"
+#include "trilogy_atom.h"
 #include "trilogy_bits.h"
+#include "trilogy_boolean.h"
 #include "trilogy_callable.h"
+#include "trilogy_character.h"
+#include "trilogy_number.h"
 #include "trilogy_record.h"
 #include "trilogy_reference.h"
 #include "trilogy_set.h"
@@ -11,6 +15,7 @@
 #include "trilogy_tuple.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -221,5 +226,64 @@ bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs) {
     }
     default:
         return trilogy_value_structural_eq(lhs, rhs);
+    }
+}
+
+void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
+    assert(val->tag != TAG_UNDEFINED);
+    switch (val->tag) {
+    case TAG_UNIT:
+        trilogy_string_init_new(rv, 4, "unit");
+        break;
+    case TAG_BOOL:
+        if (trilogy_boolean_assume(val)) {
+            trilogy_string_init_new(rv, 4, "true");
+        } else {
+            trilogy_string_init_new(rv, 5, "false");
+        }
+        break;
+    case TAG_ATOM: {
+        const trilogy_string_value* repr = trilogy_atom_repr(trilogy_atom_assume(val));
+        if (repr == NULL) internal_panic("unknown atom\n");
+        trilogy_string_clone_into(rv, repr);
+        break;
+    }
+    case TAG_CHAR: {
+        // TODO: proper Unicode support
+        char ch = (char)trilogy_character_assume(val);
+        trilogy_string_init_new(rv, 1, &ch);
+        break;
+    }
+    case TAG_NUMBER: {
+        long i = trilogy_number_assume(val);
+        int len = snprintf(NULL, (size_t)0, "%ld", i);
+        char* buf = malloc_safe(sizeof(char) * len + 1);
+        snprintf(buf, (size_t)len + 1, "%ld", i);
+        trilogy_string_init_from_c(rv, buf);
+        free(buf);
+        break;
+    }
+    case TAG_STRING:
+        trilogy_string_clone_into(rv, trilogy_string_assume(val));
+        break;
+    case TAG_BITS: {
+        trilogy_bits_value* bits = trilogy_bits_assume(val);
+        char* buf = malloc_safe(sizeof(char) * bits->len);
+        for (unsigned long i = 0; i < bits->len; ++i) {
+            buf[i] = trilogy_bits_at(bits, i) ? '1' : '0';
+        }
+        trilogy_string_init_from_c(rv, buf);
+        free(buf);
+        break;
+    }
+    case TAG_STRUCT:
+    case TAG_TUPLE:
+    case TAG_ARRAY:
+    case TAG_SET:
+    case TAG_RECORD:
+    case TAG_CALLABLE:
+    case TAG_REFERENCE:
+    default:
+        internal_panic("unimplemented\n");
     }
 }

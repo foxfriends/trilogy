@@ -2,18 +2,7 @@ module core at "trilogy:core"
 
 export dbg
 proc dbg!(value) {
-  if value == unit {
-    core::print!("unit")
-  } else if value == true {
-    core::print!("true")
-  } else if value == false {
-    core::print!("false")
-  } else if typeof value == 'string {
-    core::print!(value)
-  } else if typeof value == 'atom {
-    core::print!(core::lookup_atom!(value))
-  } else {
-    core::print!("unsupported value")
-  }
+  let str = core::to_string!(value)
+  core::print!($"${str}\n")
   return value
 }

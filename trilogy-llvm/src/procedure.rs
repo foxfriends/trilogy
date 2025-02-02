@@ -46,15 +46,32 @@ impl<'ctx> Codegen<'ctx> {
             self.procedure_type(arity, false),
             Some(Linkage::Private),
         );
+        let wrapper_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
+            &wrapper_name,
+            Some(&wrapper_name),
+            self.di.unit.get_file(),
+            span.start().line as u32 + 1,
+            self.di.procedure_di_type(arity),
+            true,
+            true,
+            span.start().line as u32 + 1,
+            LLVMDIFlagPublic,
+            false,
+        );
         wrapper_function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        wrapper_function.set_subprogram(wrapper_scope);
         let wrapper_entry = self.context.append_basic_block(wrapper_function, "entry");
         self.builder.position_at_end(wrapper_entry);
+        self.di.push_subprogram(wrapper_scope);
+        self.di.push_block_scope(span);
+        self.set_span(span);
         self.set_current_definition(wrapper_name.to_owned(), span);
 
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
         params.extend(wrapper_function.get_param_iter().skip(3).map(|val| {
-            let param = self.allocate_value("");
+            let param = self.builder.build_alloca(self.value_type(), "").unwrap();
             self.builder.build_store(param, val).unwrap();
             BasicMetadataValueEnum::<'ctx>::from(param)
         }));
@@ -62,10 +79,15 @@ impl<'ctx> Codegen<'ctx> {
             .build_direct_call(original_function, &params, "")
             .unwrap();
         self.call_continuation(self.get_return(""), ret_val);
+        self.close_continuation();
+        self.di.pop_scope();
+        self.di.pop_scope();
 
         let accessor =
             self.module
                 .add_function(&accessor_name, self.accessor_type(), Some(linkage));
+        self.set_current_definition(accessor_name.to_owned(), span);
+        self.builder.unset_current_debug_location();
         accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(

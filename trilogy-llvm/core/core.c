@@ -6,6 +6,7 @@
 #include "trilogy_character.h"
 #include "trilogy_number.h"
 #include "trilogy_string.h"
+#include "trilogy_struct.h"
 #include "trilogy_tuple.h"
 #include "trilogy_value.h"
 #include "types.h"
@@ -122,4 +123,42 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     default:
         rte("string, bits, tuple, array, or record", c->tag);
     }
+}
+
+void cons(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_value lclone = trilogy_undefined;
+    trilogy_value rclone = trilogy_undefined;
+    trilogy_value_clone_into(&lclone, lhs);
+    trilogy_value_clone_into(&rclone, lhs);
+    trilogy_tuple_init_new(rv, &lclone, &rclone);
+}
+
+void primitive_to_string(trilogy_value* rv, trilogy_value* val) {
+    trilogy_value_to_string(rv, val);
+}
+
+void lookup_atom(trilogy_value* rv, trilogy_value* atom) {
+    unsigned long atom_id = trilogy_atom_untag(atom);
+    const trilogy_string_value* repr = trilogy_atom_repr(atom_id);
+    if (repr != NULL) {
+        trilogy_string_clone_into(rv, repr);
+    } else {
+        *rv = trilogy_unit;
+    }
+}
+
+void construct(trilogy_value* rv, trilogy_value* atom, trilogy_value* value) {
+    unsigned long atom_id = trilogy_atom_untag(atom);
+    trilogy_value value_clone = trilogy_undefined;
+    trilogy_value_clone_into(&value_clone, value);
+    trilogy_struct_init_new(rv, atom_id, &value_clone);
+}
+
+void destruct(trilogy_value* rv, trilogy_value* val) {
+    trilogy_struct_value* s = trilogy_struct_untag(val);
+    trilogy_value atom = trilogy_undefined;
+    trilogy_value contents = trilogy_undefined;
+    trilogy_atom_init(&atom, s->atom);
+    trilogy_value_clone_into(&contents, &s->contents);
+    trilogy_tuple_init_new(rv, &atom, &contents);
 }
