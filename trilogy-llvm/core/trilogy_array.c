@@ -109,11 +109,12 @@ trilogy_array_value* trilogy_array_assume(trilogy_value* val) {
 
 void trilogy_array_destroy(trilogy_array_value* arr) {
     if (--arr->rc == 0) {
-        if (arr->contents == NULL) return;
-        for (unsigned long i = 0; i < arr->len; ++i) {
-            trilogy_value_destroy(&arr->contents[i]);
+        if (arr->contents != NULL) {
+            for (unsigned long i = 0; i < arr->len; ++i) {
+                trilogy_value_destroy(&arr->contents[i]);
+            }
+            free(arr->contents);
         }
-        free(arr->contents);
         free(arr);
     }
 }

@@ -2,7 +2,7 @@ use inkwell::{
     builder::Builder,
     module::Linkage,
     types::FunctionType,
-    values::{FunctionValue, IntValue, PointerValue},
+    values::{BasicValue, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
 
@@ -575,7 +575,14 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder.build_call(f, &[t.into()], "").unwrap();
+        let call = self
+            .builder
+            .build_call(f, &[t.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .either(|l| l.as_instruction_value(), Some)
+            .unwrap();
+        self.clean(call, self.builder.get_current_debug_location().unwrap());
         self.builder.build_unreachable().unwrap();
         NeverValue
     }
@@ -719,7 +726,14 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder.build_call(f, &[effect.into()], "").unwrap();
+        let call = self
+            .builder
+            .build_call(f, &[effect.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .either(|l| l.as_instruction_value(), Some)
+            .unwrap();
+        self.clean(call, self.builder.get_current_debug_location().unwrap());
         self.builder.build_unreachable().unwrap();
         NeverValue
     }
@@ -729,7 +743,14 @@ impl<'ctx> Codegen<'ctx> {
             "trilogy_execution_ended",
             self.context.void_type().fn_type(&[], false),
         );
-        self.builder.build_call(f, &[], "").unwrap();
+        let call = self
+            .builder
+            .build_call(f, &[], "")
+            .unwrap()
+            .try_as_basic_value()
+            .either(|l| l.as_instruction_value(), Some)
+            .unwrap();
+        self.clean(call, self.builder.get_current_debug_location().unwrap());
         self.builder.build_unreachable().unwrap();
         NeverValue
     }

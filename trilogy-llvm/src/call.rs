@@ -73,6 +73,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn call_callable(
         &self,
+        value: PointerValue<'ctx>,
         callable: PointerValue<'ctx>,
         function: PointerValue<'ctx>,
         arguments: &[PointerValue<'ctx>],
@@ -152,6 +153,7 @@ impl<'ctx> Codegen<'ctx> {
                     .into()
             })
             .collect();
+        self.trilogy_value_destroy(value);
         let call = self
             .builder
             .build_indirect_call(self.procedure_type(arity, true), function, &args_loaded, "")
@@ -174,7 +176,7 @@ impl<'ctx> Codegen<'ctx> {
         let callable = self.trilogy_callable_untag(value, "");
         let arity = arguments.len();
         let function = self.trilogy_procedure_untag(callable, arity, "");
-        self.call_callable(callable, function, arguments)
+        self.call_callable(value, callable, function, arguments)
     }
 
     pub(crate) fn apply_function(
@@ -216,7 +218,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(call_function);
         let function = self.trilogy_function_untag(callable, "");
-        self.call_callable(callable, function, &[argument])
+        self.call_callable(value, callable, function, &[argument])
     }
 
     pub(crate) fn call_continuation(
@@ -225,7 +227,7 @@ impl<'ctx> Codegen<'ctx> {
         argument: PointerValue<'ctx>,
     ) {
         let callable = self.trilogy_callable_untag(function, "");
-        let function = self.trilogy_continuation_untag(callable, "continue");
+        let continuation = self.trilogy_continuation_untag(callable, "continue");
 
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
@@ -249,10 +251,12 @@ impl<'ctx> Codegen<'ctx> {
         })
         .collect();
 
+        self.trilogy_value_destroy(function);
+
         // NOTE: cleanup will be inserted here
         let call = self
             .builder
-            .build_indirect_call(self.continuation_type(), function, &args, "")
+            .build_indirect_call(self.continuation_type(), continuation, &args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
@@ -356,7 +360,7 @@ impl<'ctx> Codegen<'ctx> {
                     .into()
             })
             .collect();
-
+        self.trilogy_value_destroy(value);
         let call = self
             .builder
             .build_indirect_call(self.procedure_type(0, false), function, &args, "")

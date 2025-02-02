@@ -1,7 +1,9 @@
 use crate::{codegen::Codegen, TrilogyValue};
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
+    debug_info::AsDIScope,
     execution_engine::ExecutionEngine,
+    llvm_sys::debuginfo::LLVMDIFlagPublic,
     memory_buffer::MemoryBuffer,
     module::Module,
     AddressSpace,
@@ -10,9 +12,37 @@ use std::rc::Rc;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_standalone(&self, entrymodule: &str, entrypoint: &str) {
+        let span = self
+            .modules
+            .get(entrymodule)
+            .unwrap()
+            .definitions()
+            .iter()
+            .find(|def| def.name().and_then(|id| id.name()) == Some(entrypoint))
+            .map(|def| def.span)
+            .unwrap_or_default();
+
         let main_wrapper =
             self.module
                 .add_function("main", self.context.void_type().fn_type(&[], false), None);
+        let main_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
+            "main",
+            None,
+            self.di.unit.get_file(),
+            span.start().line as u32 + 1,
+            self.di.continuation_di_type(),
+            true,
+            true,
+            span.start().line as u32 + 1,
+            LLVMDIFlagPublic,
+            false,
+        );
+        main_wrapper.set_subprogram(main_scope);
+        self.set_current_definition("main".to_owned(), span);
+        self.di.push_subprogram(main_scope);
+        self.di.push_block_scope(span);
+        self.set_span(span);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
 
         self.builder.position_at_end(basic_block);
@@ -28,6 +58,9 @@ impl<'ctx> Codegen<'ctx> {
         // Call main
         let output = self.call_main(main);
         _ = self.exit(output);
+        self.close_continuation();
+        self.di.pop_scope();
+        self.di.pop_scope();
     }
 
     pub(crate) fn compile_embedded(

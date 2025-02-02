@@ -577,7 +577,7 @@ impl<'ctx> Codegen<'ctx> {
         scope: &ContinuationPoint<'ctx>,
         id: &Id,
     ) -> Option<Variable<'ctx>> {
-        self.reference_from_scope(&scope, &Closed::Variable(id.clone()))
+        self.reference_from_scope(scope, &Closed::Variable(id.clone()))
     }
 
     pub(crate) fn use_temporary(&self, temporary: PointerValue<'ctx>) -> Option<Variable<'ctx>> {
