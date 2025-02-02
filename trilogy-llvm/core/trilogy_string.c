@@ -1,8 +1,8 @@
 #include "trilogy_string.h"
 #include "internal.h"
 #include <assert.h>
-#include <stdlib.h>
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 
 trilogy_string_value*
@@ -23,7 +23,7 @@ trilogy_string_init_new(trilogy_value* tv, size_t len, char* s) {
 }
 
 trilogy_string_value*
-trilogy_string_clone_into(trilogy_value* tv, trilogy_string_value* orig) {
+trilogy_string_clone_into(trilogy_value* tv, const trilogy_string_value* orig) {
     trilogy_string_value* str = malloc_safe(sizeof(trilogy_string_value));
     str->len = orig->len;
     str->contents = malloc_safe(sizeof(char) * orig->len);

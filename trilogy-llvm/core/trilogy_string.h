@@ -6,7 +6,7 @@ trilogy_string_init(trilogy_value* tv, trilogy_string_value* str);
 trilogy_string_value*
 trilogy_string_init_new(trilogy_value* tv, unsigned long len, char* s);
 trilogy_string_value*
-trilogy_string_clone_into(trilogy_value* tv, trilogy_string_value* orig);
+trilogy_string_clone_into(trilogy_value* tv, const trilogy_string_value* orig);
 trilogy_string_value* trilogy_string_init_from_c(trilogy_value* tv, char* s);
 
 trilogy_string_value* trilogy_string_untag(trilogy_value* val);

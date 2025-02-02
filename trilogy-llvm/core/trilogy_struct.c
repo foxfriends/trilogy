@@ -12,8 +12,9 @@ trilogy_struct_init(trilogy_value* tv, trilogy_struct_value* st) {
     return st;
 }
 
-trilogy_struct_value*
-trilogy_struct_init_new(trilogy_value* tv, unsigned long i, trilogy_value* val) {
+trilogy_struct_value* trilogy_struct_init_new(
+    trilogy_value* tv, unsigned long i, trilogy_value* val
+) {
     trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
     st->atom = i;
     st->contents = *val;
