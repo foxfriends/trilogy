@@ -408,6 +408,7 @@ impl<'ctx> Codegen<'ctx> {
                     if let Some(pointer) = cp.upvalues.borrow().get(id) {
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
+                        self.trilogy_value_destroy(*pointer);
                     } else {
                         self.trilogy_value_destroy(*pointer);
                     }
@@ -501,7 +502,6 @@ impl<'ctx> Codegen<'ctx> {
                     Variable::Closed { upvalue, .. } => {
                         let new_upvalue = self.allocate_value(&upvalue_name);
                         self.trilogy_value_clone_into(new_upvalue, upvalue);
-                        upvalues.insert(id.clone(), new_upvalue);
                         new_upvalue
                     }
                     Variable::Owned(variable) => {
@@ -519,14 +519,17 @@ impl<'ctx> Codegen<'ctx> {
                                 .get_next_instruction()
                                 .unwrap(),
                         );
-                        let new_upvalue = builder
+                        let original_upvalue = builder
                             .build_alloca(self.value_type(), &upvalue_name)
                             .unwrap();
                         builder
-                            .build_store(new_upvalue, self.value_type().const_zero())
+                            .build_store(original_upvalue, self.value_type().const_zero())
                             .unwrap();
-                        self.trilogy_reference_to_in(&builder, new_upvalue, variable);
-                        upvalues.insert(id.clone(), new_upvalue);
+                        self.trilogy_reference_to_in(&builder, original_upvalue, variable);
+                        upvalues.insert(id.clone(), original_upvalue);
+
+                        let new_upvalue = self.allocate_value(&upvalue_name);
+                        self.trilogy_value_clone_into(new_upvalue, original_upvalue);
                         new_upvalue
                     }
                 }

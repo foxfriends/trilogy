@@ -23,9 +23,13 @@ impl Statement {
         use TokenType::*;
         match token.token_type {
             KwLet => Ok(Self::Let(Box::new(LetStatement::parse(parser)?))),
-            KwIf => Ok(Self::If(Box::new(
-                IfElseExpression::parse(parser)?.strict_statement()?,
-            ))),
+            KwIf => {
+                let expr = IfElseExpression::parse(parser)?;
+                if !expr.is_strict_statement() && !expr.is_strict_expression() {
+                    parser.error(ErrorKind::IfStatementRestriction.at(expr.span()));
+                }
+                Ok(Self::If(Box::new(expr)))
+            }
             KwMatch => Ok(Self::Match(Box::new(MatchExpression::parse(parser)?))),
             KwWhile => Ok(Self::While(Box::new(WhileStatement::parse(parser)?))),
             KwFor => Ok(Self::For(Box::new(ForStatement::parse(parser)?))),

@@ -44,24 +44,7 @@ impl IfElseExpression {
         })
     }
 
-    pub(crate) fn strict_statement(self) -> SyntaxResult<Self> {
-        if self.is_strict_statement() {
-            return Ok(self);
-        }
-        if self.is_strict_expression() {
-            return Ok(self);
-        }
-        Err(ErrorKind::IfStatementRestriction.at(self.span()))
-    }
-
-    pub(crate) fn strict_expression(self) -> SyntaxResult<Self> {
-        if self.is_strict_expression() {
-            return Ok(self);
-        }
-        Err(ErrorKind::IfExpressionRestriction.at(self.span()))
-    }
-
-    fn is_strict_statement(&self) -> bool {
+    pub(crate) fn is_strict_statement(&self) -> bool {
         if !matches!(self.when_true, IfBody::Block(..)) {
             return false;
         }
@@ -71,11 +54,11 @@ impl IfElseExpression {
                 ElseBody::Block(..) => true,
                 _ => false,
             },
-            _ => true,
+            None => true,
         }
     }
 
-    fn is_strict_expression(&self) -> bool {
+    pub(crate) fn is_strict_expression(&self) -> bool {
         self.when_false.is_some()
     }
 }
@@ -117,6 +100,10 @@ impl ElseClause {
             .expect("Caller should have found this");
         let body = if parser.check(OBrace).is_ok() {
             ElseBody::Block(Block::parse(parser)?)
+        } else if parser.check(KwIf).is_ok() {
+            ElseBody::Expression(Expression::IfElse(Box::new(IfElseExpression::parse(
+                parser,
+            )?)))
         } else {
             ElseBody::Expression(Expression::parse(parser)?)
         };

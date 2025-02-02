@@ -329,9 +329,13 @@ impl Expression {
                 Ok(expr) => Ok(Ok(Self::Unary(Box::new(expr)))),
                 Err(patt) => Ok(Err(patt)),
             },
-            KwIf => Ok(Ok(Self::IfElse(Box::new(
-                IfElseExpression::parse(parser)?.strict_expression()?,
-            )))),
+            KwIf => {
+                let expr = IfElseExpression::parse(parser)?;
+                if !expr.is_strict_expression() {
+                    parser.error(ErrorKind::IfExpressionRestriction.at(expr.span()));
+                }
+                Ok(Ok(Self::IfElse(Box::new(expr))))
+            }
             KwMatch => Ok(Ok(Self::Match(Box::new(
                 MatchExpression::parse(parser)?.strict_expression()?,
             )))),

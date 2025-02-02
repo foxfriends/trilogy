@@ -228,11 +228,11 @@ impl<E: std::error::Error> Error<E> {
                 }
             }
             ErrorKind::Analysis(location, error) => {
-                use super::analyzer::ErrorKind::*;
+                use super::analyzer::ErrorKind;
                 match error {
-                    NoMainProcedure => ariadne::Report::build(kind, location, 0)
+                    ErrorKind::NoMainProcedure => ariadne::Report::build(kind, location, 0)
                         .with_message("no definition of `proc main!()` was found"),
-                    MainHasParameters { proc } => {
+                    ErrorKind::MainHasParameters { proc } => {
                         let span = cache.span(location, proc.overloads[0].span);
                         ariadne::Report::build(kind, location, span.1.start)
                             .with_message("definition of `proc main!()` must not accept parameters")
@@ -241,7 +241,7 @@ impl<E: std::error::Error> Error<E> {
                                 proc.overloads[0].parameters.len()
                             )))
                     }
-                    MainNotProcedure { item } => match item {
+                    ErrorKind::MainNotProcedure { item } => match item {
                         DefinitionItem::Function(func) => {
                             let span = cache.span(location, func.overloads[0].head_span);
                             ariadne::Report::build(kind, location, span.1.start)
@@ -277,7 +277,7 @@ impl<E: std::error::Error> Error<E> {
                         DefinitionItem::Test(..) => unreachable!(),
                         DefinitionItem::Procedure(..) => unreachable!(),
                     },
-                    ConstantCycle { def } => {
+                    ErrorKind::ConstantCycle { def } => {
                         let span = cache.span(location, def.name.span);
                         ariadne::Report::build(kind, location, span.1.start)
                             .with_message("constant circularly refers to itself")
@@ -285,7 +285,7 @@ impl<E: std::error::Error> Error<E> {
                                 "constants may not refer to themselves directly or indirectly",
                             ))
                     }
-                    ModuleCycle { def } => {
+                    ErrorKind::ModuleCycle { def } => {
                         let span = cache.span(location, def.name.span);
                         ariadne::Report::build(kind, location, span.1.start)
                             .with_message("module initialization circularly refers to itself")
