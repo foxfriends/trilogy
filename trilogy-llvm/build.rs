@@ -12,6 +12,11 @@ fn try_command(command: &mut Command) {
 }
 
 fn main() {
+    let llvm_prefix = std::env::var("LLVM_SYS_180_PREFIX")
+        .unwrap()
+        .parse::<PathBuf>()
+        .unwrap()
+        .join("bin");
     let core = std::env::var("CARGO_MANIFEST_DIR")
         .unwrap()
         .parse::<PathBuf>()
@@ -37,7 +42,7 @@ fn main() {
     }
 
     try_command(
-        Command::new("clang")
+        Command::new(llvm_prefix.join("clang"))
             .args(["-g", "-S", "-emit-llvm", "-Wall"])
             .args(&sources)
             .current_dir(&core),
@@ -47,7 +52,7 @@ fn main() {
         let ll = file.with_extension("ll");
         let bc = file.with_extension("bc");
         try_command(
-            Command::new("llvm-as")
+            Command::new(llvm_prefix.join("llvm-as"))
                 .arg(ll)
                 .arg("-o")
                 .arg(bc)
@@ -56,7 +61,7 @@ fn main() {
     }
 
     try_command(
-        Command::new("llvm-link")
+        Command::new(llvm_prefix.join("llvm-link"))
             .args(
                 sources
                     .into_iter()
