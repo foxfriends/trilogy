@@ -13,10 +13,10 @@ fn try_command(command: &mut Command) {
 
 fn main() {
     let llvm_prefix = std::env::var("LLVM_SYS_180_PREFIX")
-        .unwrap()
-        .parse::<PathBuf>()
-        .unwrap()
-        .join("bin");
+        .ok()
+        .and_then(|s| s.parse::<PathBuf>().ok())
+        .map(|p| p.join("bin"))
+        .unwrap_or(PathBuf::new());
     let core = std::env::var("CARGO_MANIFEST_DIR")
         .unwrap()
         .parse::<PathBuf>()
