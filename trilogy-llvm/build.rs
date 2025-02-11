@@ -16,7 +16,7 @@ fn main() {
         .ok()
         .and_then(|s| s.parse::<PathBuf>().ok())
         .map(|p| p.join("bin"))
-        .unwrap_or(PathBuf::new());
+        .unwrap_or_default();
     let core = std::env::var("CARGO_MANIFEST_DIR")
         .unwrap()
         .parse::<PathBuf>()
