@@ -96,6 +96,8 @@ enum Command {
     },
     /// Run the Trilogy language server.
     Lsp { files: Vec<PathBuf> },
+    /// Print the version information.
+    Version,
     /// Commands for assistance when developing Trilogy.
     #[cfg(feature = "dev")]
     #[command(subcommand)]
@@ -285,6 +287,9 @@ fn main_sync() -> std::io::Result<()> {
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;
+        }
+        Command::Version => {
+            println!("{} {} -- Trilogy Language Compiler", env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))
         }
         _ => todo!("not yet implemented"),
     }

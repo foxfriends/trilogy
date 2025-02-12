@@ -1,0 +1,5 @@
+proc main!() {
+  let ret = (return)
+  ret 3
+  return 4
+}
