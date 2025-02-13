@@ -79,7 +79,7 @@ for dir in $(ls); do
             printf "Failed to compile LLVM"
             continue
         fi
-        output=$(./a.out)
+        output=$(./a.out 2> /dev/null)
         exit=$?
         if [ "$exit" != "$expect_exit" ]; then
             fail="true"

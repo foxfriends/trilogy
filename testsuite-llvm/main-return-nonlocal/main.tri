@@ -1,0 +1,9 @@
+proc inner!(ret) {
+  ret 3
+}
+
+proc main!() {
+  let ret = (return)
+  inner!(ret)
+  return 4
+}
