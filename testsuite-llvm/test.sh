@@ -49,10 +49,12 @@ else
     "$trilogy" version
 fi
 
-result=0
-report=""
+tf=""
+cf=""
+lf=""
+
 for dir in $(ls); do
-    if [ -d "${dir}" ]; then
+            if [ -d "${dir}" ]; then
         pushd "${dir}" > /dev/null
 
         expect_output=""
@@ -70,13 +72,17 @@ for dir in $(ls); do
         command time -o "$timefile" "$trilogy" compile main.tri > main.ll
         if [ "$?" != "0" ]; then
             fail="true"
-            printf "Failed to compile Trilogy"
+            cf="true"
+            printf "Failed to compile Trilogy\n"
+            popd > /dev/null
             continue
         fi
         "${prefix}clang" main.ll
         if [ "$?" != "0" ]; then
             fail="true"
-            printf "Failed to compile LLVM"
+            lf="true"
+            printf "Failed to compile LLVM\n"
+            popd > /dev/null
             continue
         fi
         output=$(./a.out 2> /dev/null)
@@ -89,7 +95,7 @@ for dir in $(ls); do
         fi
 
         if [ -n "$fail" ]; then
-            result=1
+            tf="true"
             printf "\e[0;31mx\e[0m %s\n\tExit code: %d (expected %d)\n" "${dir}" "${exit}" "${expect_exit}"
             if [ "$output" != "$expect_output" ]; then
                 if [ -z "$expect_output" ]; then
@@ -103,12 +109,10 @@ for dir in $(ls); do
             printf "\e[0;32mo\e[0m %s\n" "${dir}"
         fi
 
-        if [ -n "$entry" ]; then
-            report="${report}${entry}\n"
-        fi
         popd > /dev/null
     fi
 done
 
-printf "%s" "$report"
-exit $result
+[ -z "$lf" ] || exit 3
+[ -z "$cf" ] || exit 2
+[ -z "$tf" ] || exit 1

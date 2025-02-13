@@ -1,0 +1,13 @@
+proc body!() {
+  return 0
+}
+
+proc main!() {
+  let mut x = 1
+  if false {
+    x = 3
+  } else {
+    x = body!()
+  }
+  return x
+}

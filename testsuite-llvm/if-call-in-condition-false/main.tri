@@ -1,0 +1,10 @@
+proc cond!() {
+  return false
+}
+
+proc main!() {
+  if cond!() {
+    return 1
+  }
+  return 0
+}

@@ -1,0 +1,12 @@
+proc cond!() {
+  return true
+}
+
+proc main!() {
+  if cond!() {
+    return 0
+  } else {
+    return 1
+  }
+  return 2
+}
