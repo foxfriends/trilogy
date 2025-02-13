@@ -21,7 +21,7 @@ void panic(trilogy_value* rv, trilogy_value* val) {
     char* cstr = malloc_safe(sizeof(char) * (str->len + 2));
     strncpy(cstr, str->contents, str->len);
     cstr[str->len] = '\n';
-    cstr[str->len+1] = '\0';
+    cstr[str->len + 1] = '\0';
     internal_panic(cstr);
 }
 
