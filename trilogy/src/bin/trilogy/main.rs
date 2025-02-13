@@ -289,7 +289,11 @@ fn main_sync() -> std::io::Result<()> {
             dev::run(dev_command)?;
         }
         Command::Version => {
-            println!("{} {} -- Trilogy Language Compiler", env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))
+            println!(
+                "{} {} -- Trilogy Language Compiler",
+                env!("CARGO_CRATE_NAME"),
+                env!("CARGO_PKG_VERSION")
+            )
         }
         _ => todo!("not yet implemented"),
     }
