@@ -14,9 +14,15 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void panic(trilogy_value* rv, trilogy_value* val) {
-    internal_panic(trilogy_string_as_c(trilogy_string_untag(val)));
+    trilogy_string_value* str = trilogy_string_untag(val);
+    char* cstr = malloc_safe(sizeof(char) * (str->len + 2));
+    strncpy(cstr, str->contents, str->len);
+    cstr[str->len] = '\n';
+    cstr[str->len+1] = '\0';
+    internal_panic(cstr);
 }
 
 void print(trilogy_value* rv, trilogy_value* val) {

@@ -59,10 +59,12 @@ for dir in $(ls); do
 
         expect_output=""
         expect_exit="0"
+        expect_error=""
 
         if [ -f spec.json ]; then
             expect_exit=$(jq '.exit // 0' -j < spec.json)
             expect_stdout=$(jq '.output // ""' -j < spec.json)
+            expect_error=$(jq '.stderr // ""' -j < spec.json)
         fi
 
         output=""
@@ -85,12 +87,19 @@ for dir in $(ls); do
             popd > /dev/null
             continue
         fi
-        output=$(./a.out 2> /dev/null)
+        ./a.out > stdout 2> stderr
         exit=$?
+        output=$(<stdout)
+        error=$(<stderr)
         if [ "$exit" != "$expect_exit" ]; then
             fail="true"
         fi
         if [ "$output" != "$expect_output" ]; then
+            fail="true"
+        fi
+        if [ -z "$expect_error" -a -n "$error" ]; then
+            fail="true"
+        elif [ -n "$expect_error" -a -z "$error" ]; then
             fail="true"
         fi
 
@@ -104,6 +113,11 @@ for dir in $(ls); do
                     printf "Output:\n%s\n" "$output"
                     printf "Expected:\n%s\n" "${expect_output}"
                 fi
+            fi
+            if [ -z "$expect_error" -a -n "$error" ]; then
+                printf "Unexpected error output:\n%s\n" "$error"
+            elif [ -n "$expect_error" -a -z "$error" ]; then
+                printf "Missing expected error output\n"
             fi
         elif [ -z "$quiet" ]; then
             printf "\e[0;32mo\e[0m %s\n" "${dir}"

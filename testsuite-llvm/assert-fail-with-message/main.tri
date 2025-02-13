@@ -1,0 +1,3 @@
+proc main!() {
+  assert "the message" as false
+}

@@ -1,6 +1,7 @@
 use inkwell::{
     module::Linkage,
     values::{FunctionValue, PointerValue},
+    AddressSpace,
 };
 
 use crate::codegen::Codegen;
@@ -52,5 +53,14 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let f = self.declare_core("glue", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn panic(&self, msg: PointerValue<'ctx>) {
+        let f = self.declare_core("panic", 1);
+        self.call_internal(
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            f,
+            &[msg.into()],
+        );
     }
 }

@@ -68,7 +68,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::For(..) => todo!(),
             Value::Let(expr) => self.compile_let(expr, name),
             Value::Match(..) => todo!(),
-            Value::Assert(..) => todo!(),
+            Value::Assert(assertion) => self.compile_assertion(assertion, name),
             Value::Fn(..) => todo!(),
             Value::Do(closure) => Some(self.compile_do(closure, name)),
             Value::Qy(..) => todo!(),
@@ -96,6 +96,29 @@ impl<'ctx> Codegen<'ctx> {
         let end = self.get_end("");
         let alloca = self.allocate_value("");
         self.call_continuation(end, alloca);
+    }
+
+    fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
+        let expression = self.compile_expression(&assertion.assertion, name)?;
+        let cond = self.trilogy_boolean_untag(expression, "");
+        let pass = self
+            .context
+            .append_basic_block(self.get_function(), "assert.pass");
+        let fail = self
+            .context
+            .append_basic_block(self.get_function(), "assert.fail");
+        self.builder
+            .build_conditional_branch(cond, pass, fail)
+            .unwrap();
+
+        self.builder.position_at_end(fail);
+        if let Some(msg) = self.compile_expression(&assertion.message, "assert.msg") {
+            self.panic(msg);
+            self.builder.build_unreachable().unwrap();
+        }
+
+        self.builder.position_at_end(pass);
+        Some(expression)
     }
 
     fn compile_sequence(&self, seq: &[ir::Expression], name: &str) -> Option<PointerValue<'ctx>> {
