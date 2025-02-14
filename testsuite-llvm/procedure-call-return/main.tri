@@ -1,0 +1,7 @@
+proc procedure!() {
+  return 3
+}
+
+proc main!() {
+  return procedure!()
+}

@@ -1,9 +1,9 @@
 proc procedure!(a, b, c) {
   assert a == 2
   assert b == 1
-  return c
+  assert c == 0
 }
 
 proc main!() {
-  return procedure!(2, 1, 0)
+  procedure!(2, 1, 0)
 }

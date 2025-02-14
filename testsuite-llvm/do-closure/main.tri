@@ -1,0 +1,7 @@
+proc main!() {
+  let n = 5
+  let closure = do() {
+    return n
+  }
+  return closure!()
+}

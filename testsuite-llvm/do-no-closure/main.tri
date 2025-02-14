@@ -1,0 +1,6 @@
+proc main!() {
+  let closure = do(n) {
+    assert n == 3
+  }
+  closure!(3)
+}

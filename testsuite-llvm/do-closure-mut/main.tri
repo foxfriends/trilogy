@@ -1,0 +1,8 @@
+proc main!() {
+  let mut n = 5
+  let closure = do() {
+    n = 6
+  }
+  closure!()
+  return n
+}

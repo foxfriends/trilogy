@@ -1,0 +1,11 @@
+proc call!(closure) {
+  closure!()
+}
+
+proc main!() {
+  let mut n = 5
+  let closure = do() { n = 6 }
+  call!(closure)
+  return n
+}
+
