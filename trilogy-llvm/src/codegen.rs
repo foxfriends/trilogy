@@ -605,6 +605,7 @@ impl<'ctx> Codegen<'ctx> {
                 Some(instruction) => builder.position_before(&instruction),
                 None => builder.position_at_end(entry),
             }
+            builder.set_current_debug_location(self.builder.get_current_debug_location().unwrap());
 
             // Closure is a Trilogy array of Trilogy reference
             // To access the variable:
