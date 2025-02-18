@@ -1,4 +1,7 @@
-use crate::{codegen::Head, Codegen};
+use crate::{
+    codegen::{Head, Variable},
+    Codegen,
+};
 use inkwell::{
     debug_info::AsDIScope,
     llvm_sys::debuginfo::LLVMDIFlagPublic,
@@ -362,26 +365,34 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_reference(&self, identifier: &ir::Identifier, name: &str) -> PointerValue<'ctx> {
-        if let Some(variable) = self.get_variable(&identifier.id) {
-            let target = self.allocate_value(name);
-            self.trilogy_value_clone_into(target, variable.ptr());
-            target
-        } else {
-            let ident = identifier.id.name().unwrap();
-            match self
-                .globals
-                .get(&identifier.id)
-                .expect("Unresolved variable")
-            {
-                Head::Constant | Head::Procedure => {
-                    let target = self.allocate_value(name);
-                    let global_name =
-                        format!("{}::{ident}", self.module.get_name().to_str().unwrap());
-                    let function = self.module.get_function(&global_name).unwrap();
-                    self.call_internal(target, function, &[]);
-                    target
+        match self.get_variable(&identifier.id) {
+            Some(Variable::Owned(variable)) => {
+                let target = self.allocate_value(name);
+                self.trilogy_value_clone_into(target, variable);
+                target
+            }
+            Some(Variable::Closed { location, .. }) => {
+                let target = self.allocate_value(name);
+                self.trilogy_value_clone_into(target, location);
+                target
+            }
+            None => {
+                let ident = identifier.id.name().unwrap();
+                match self
+                    .globals
+                    .get(&identifier.id)
+                    .expect("Unresolved variable")
+                {
+                    Head::Constant | Head::Procedure => {
+                        let target = self.allocate_value(name);
+                        let global_name =
+                            format!("{}::{ident}", self.module.get_name().to_str().unwrap());
+                        let function = self.module.get_function(&global_name).unwrap();
+                        self.call_internal(target, function, &[]);
+                        target
+                    }
+                    _ => todo!(),
                 }
-                _ => todo!(),
             }
         }
     }

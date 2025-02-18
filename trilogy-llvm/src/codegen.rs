@@ -248,17 +248,34 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
-    fn get_closure(&self, builder: &Builder<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let container = builder.build_alloca(self.value_type(), name).unwrap();
+    fn get_closure_upvalue(
+        &self,
+        builder: &Builder<'ctx>,
+        index: usize,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        // Closure is passed as the last parameter, and is a Trilogy array of Trilogy reference
+        // To access the variable:
+        // 1. Consider the nth element of the array
+        // 2. Get the value inside
+        // 3. Assume a reference, and load its location field
+        // 4. That value of that location field is the pointer to the actual value
+        let closure_ptr = builder.build_alloca(self.value_type(), "").unwrap();
         builder
-            .build_store(container, self.value_type().const_zero())
+            .build_store(closure_ptr, self.get_function().get_last_param().unwrap())
             .unwrap();
-        let temp = builder.build_alloca(self.value_type(), "").unwrap();
+        let closure_array = self.trilogy_array_assume_in(&builder, closure_ptr);
+        let upvalue = builder.build_alloca(self.value_type(), name).unwrap();
         builder
-            .build_store(temp, self.get_function().get_last_param().unwrap())
+            .build_store(upvalue, self.value_type().const_zero())
             .unwrap();
-        self.trilogy_value_clone_into_in(builder, container, temp);
-        container
+        self.trilogy_array_at_in(
+            &builder,
+            upvalue,
+            closure_array,
+            self.context.i64_type().const_int(index as u64, false),
+        );
+        upvalue
     }
 
     pub(crate) fn new(
@@ -607,37 +624,16 @@ impl<'ctx> Codegen<'ctx> {
             }
             builder.set_current_debug_location(self.builder.get_current_debug_location().unwrap());
 
-            // Closure is a Trilogy array of Trilogy reference
-            // To access the variable:
-            // 1. Consider the nth element of the array
-            // 2. Get the value inside
-            // 3. Assume a reference, and load its location field
-            // 4. That value of that location field is the pointer to the actual value
-            let closure_ptr = self.get_closure(&builder, "");
-            let closure_array = self.trilogy_array_assume_in(&builder, closure_ptr);
-            let upvalue = builder
-                .build_alloca(self.value_type(), &format!("{closed}.up"))
-                .unwrap();
-            builder
-                .build_store(upvalue, self.value_type().const_zero())
-                .unwrap();
-            self.trilogy_array_at_in(
-                &builder,
-                upvalue,
-                closure_array,
-                self.context
-                    .i64_type()
-                    .const_int(closure_index as u64, false),
-            );
-            self.trilogy_value_destroy_in(&builder, closure_ptr);
+            let upvalue =
+                self.get_closure_upvalue(&builder, closure_index, &format!("{closed}.up"));
             let ref_value = self.trilogy_reference_assume_in(&builder, upvalue);
-            let location = builder
+            let ptr_to_location = builder
                 .build_struct_gep(self.reference_value_type(), ref_value, 1, "")
                 .unwrap();
             let location = builder
                 .build_load(
                     self.context.ptr_type(AddressSpace::default()),
-                    location,
+                    ptr_to_location,
                     &closed.to_string(),
                 )
                 .unwrap()
