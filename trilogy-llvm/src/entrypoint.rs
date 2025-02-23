@@ -1,12 +1,12 @@
-use crate::{codegen::Codegen, TrilogyValue};
+use crate::{TrilogyValue, codegen::Codegen};
 use inkwell::{
+    AddressSpace,
     attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
     execution_engine::ExecutionEngine,
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     memory_buffer::MemoryBuffer,
     module::Module,
-    AddressSpace,
 };
 use std::rc::Rc;
 

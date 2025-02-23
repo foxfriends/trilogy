@@ -2,8 +2,8 @@ use super::*;
 use crate::{Converter, Error};
 use source_span::Span;
 use trilogy_parser::{
-    syntax::{self, RestPattern},
     Spanned,
+    syntax::{self, RestPattern},
 };
 
 #[derive(Clone, Debug)]

@@ -9,13 +9,13 @@ pub struct Tuple(RefCount<(Value, Value)>);
 
 impl StructuralEq for Tuple {
     fn eq(&self, other: &Self) -> bool {
-        StructuralEq::eq(&self.0 .0, &other.0 .0) && StructuralEq::eq(&self.0 .1, &other.0 .1)
+        StructuralEq::eq(&self.0.0, &other.0.0) && StructuralEq::eq(&self.0.1, &other.0.1)
     }
 }
 
 impl ReferentialEq for Tuple {
     fn eq(&self, other: &Self) -> bool {
-        ReferentialEq::eq(&self.0 .0, &other.0 .0) && ReferentialEq::eq(&self.0 .1, &other.0 .1)
+        ReferentialEq::eq(&self.0.0, &other.0.0) && ReferentialEq::eq(&self.0.1, &other.0.1)
     }
 }
 

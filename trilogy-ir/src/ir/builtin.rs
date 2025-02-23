@@ -1,5 +1,5 @@
 use super::*;
-use trilogy_parser::{syntax, Spanned};
+use trilogy_parser::{Spanned, syntax};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Builtin {

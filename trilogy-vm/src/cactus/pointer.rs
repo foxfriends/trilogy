@@ -112,8 +112,10 @@ impl<T> Pointer<T> {
     where
         T: Clone,
     {
-        let parent_index = self.resolve_index(index)?;
-        self.cactus_ref().get(parent_index)
+        unsafe {
+            let parent_index = self.resolve_index(index)?;
+            self.cactus_ref().get(parent_index)
+        }
     }
 
     /// Sets the corresponding value in the underlying cactus of this pointer.
@@ -123,8 +125,10 @@ impl<T> Pointer<T> {
     /// The cactus that this pointer refers to must still exist.
     #[inline]
     pub unsafe fn set(&mut self, index: usize, value: T) {
-        let parent_index = self.resolve_index(index).unwrap();
-        self.cactus_ref().set(parent_index, value);
+        unsafe {
+            let parent_index = self.resolve_index(index).unwrap();
+            self.cactus_ref().set(parent_index, value);
+        }
     }
 
     /// Pops a value from the range contained in this pointer.
@@ -137,12 +141,14 @@ impl<T> Pointer<T> {
     where
         T: Clone,
     {
-        let mut parents = self.parents.lock().unwrap();
-        let index = parents.len() - 1;
-        let value = self.cactus_ref().get(index)?;
-        parents.pop();
-        self.len -= 1;
-        Some(value)
+        unsafe {
+            let mut parents = self.parents.lock().unwrap();
+            let index = parents.len() - 1;
+            let value = self.cactus_ref().get(index)?;
+            parents.pop();
+            self.len -= 1;
+            Some(value)
+        }
     }
 
     #[inline]
@@ -198,28 +204,30 @@ impl<T> Pointer<T> {
     where
         T: Clone,
     {
-        if self.len < n {
-            return None;
-        }
-        let mut ranges = vec![];
-        let mut popped = 0;
-        let mut parents = self.parents.lock().unwrap();
-        while popped < n {
-            let (parent, _) = parents.last_range().unwrap();
-            if popped + parent.len() > n {
-                let from_range = n - popped;
-                parents.remove(parent.end - from_range..parent.end);
-                ranges.push(parent.end - from_range..parent.end);
-                break;
-            } else {
-                popped += parent.len();
-                parents.remove(parent.clone());
-                ranges.push(parent);
+        unsafe {
+            if self.len < n {
+                return None;
             }
+            let mut ranges = vec![];
+            let mut popped = 0;
+            let mut parents = self.parents.lock().unwrap();
+            while popped < n {
+                let (parent, _) = parents.last_range().unwrap();
+                if popped + parent.len() > n {
+                    let from_range = n - popped;
+                    parents.remove(parent.end - from_range..parent.end);
+                    ranges.push(parent.end - from_range..parent.end);
+                    break;
+                } else {
+                    popped += parent.len();
+                    parents.remove(parent.clone());
+                    ranges.push(parent);
+                }
+            }
+            ranges.reverse();
+            self.len -= n;
+            self.cactus_ref().get_ranges(ranges)
         }
-        ranges.reverse();
-        self.len -= n;
-        self.cactus_ref().get_ranges(ranges)
     }
 
     /// Appends values to the cactus under this pointer. The pointer's range
@@ -230,14 +238,16 @@ impl<T> Pointer<T> {
     /// The cactus that this pointer refers to must still exist.
     #[inline]
     pub unsafe fn append(&mut self, elements: &mut Vec<T>) -> Result<(), StackOverflow> {
-        if elements.is_empty() {
-            return Ok(());
+        unsafe {
+            if elements.is_empty() {
+                return Ok(());
+            }
+            let mut parents = self.parents.lock().unwrap();
+            self.len += elements.len();
+            let range = self.cactus_ref().len()..self.cactus_ref().len() + elements.len();
+            self.cactus_ref().append(elements)?;
+            parents.insert(range, true);
+            Ok(())
         }
-        let mut parents = self.parents.lock().unwrap();
-        self.len += elements.len();
-        let range = self.cactus_ref().len()..self.cactus_ref().len() + elements.len();
-        self.cactus_ref().append(elements)?;
-        parents.insert(range, true);
-        Ok(())
     }
 }

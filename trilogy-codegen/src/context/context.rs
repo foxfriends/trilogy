@@ -6,11 +6,11 @@ use crate::prelude::*;
 use crate::query::CodegenQuery;
 use crate::{delegate_label_maker, delegate_stack_tracker};
 use source_span::Span;
+use trilogy_ir::Id;
 use trilogy_ir::ir::{self, Iterator};
 use trilogy_ir::visitor::HasBindings;
-use trilogy_ir::Id;
 use trilogy_vm::{
-    delegate_chunk_writer, Annotation, ChunkBuilder, ChunkWriter, Instruction, Location, Offset,
+    Annotation, ChunkBuilder, ChunkWriter, Instruction, Location, Offset, delegate_chunk_writer,
 };
 
 pub(crate) struct Context<'a> {

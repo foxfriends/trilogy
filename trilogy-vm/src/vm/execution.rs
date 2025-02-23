@@ -1,16 +1,16 @@
 #![allow(clippy::unnecessary_cast)]
 
-use super::error::{ErrorKind, InternalRuntimeError};
-use super::program_reader::ProgramReader;
-use super::stack::{Cont, Stack, StackCell};
 use super::Error;
 #[cfg(feature = "stats")]
 use super::Stats;
+use super::error::{ErrorKind, InternalRuntimeError};
+use super::program_reader::ProgramReader;
+use super::stack::{Cont, Stack, StackCell};
+#[cfg(feature = "stats")]
+use crate::RefCount;
 use crate::atom::AtomInterner;
 use crate::cactus::{Branch, StackOverflow};
 use crate::runtime::callable::{Callable, CallableKind};
-#[cfg(feature = "stats")]
-use crate::RefCount;
 use crate::{
     Array, Atom, Instruction, Number, Offset, Record, ReferentialEq, Set, Struct, StructuralEq,
     Tuple, Value,

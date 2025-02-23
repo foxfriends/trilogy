@@ -1,10 +1,10 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parenthesized,
+    Data, DataEnum, DeriveInput, Error, Fields, Ident, LitStr, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    token, Data, DataEnum, DeriveInput, Error, Fields, Ident, LitStr, Token, Type,
+    token,
 };
 
 mod kw {

@@ -1,4 +1,4 @@
-use super::{cactus::StackOverflow, Cactus, Pointer};
+use super::{Cactus, Pointer, cactus::StackOverflow};
 use std::{marker::PhantomData, ops::Range};
 
 /// A slice of a Cactus stack.

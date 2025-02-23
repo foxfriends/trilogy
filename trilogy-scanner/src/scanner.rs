@@ -454,7 +454,7 @@ impl<'a> Scanner<'a> {
                     BitsOrNumber::Bits(..) => {
                         return Err(Box::new(
                             self.make_error("An imaginary component must be a number, not bits"),
-                        ))
+                        ));
                     }
                 }
             }

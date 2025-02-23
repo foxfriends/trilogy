@@ -1,8 +1,8 @@
 use super::*;
-use crate::{symbol::Symbol, Converter, Error, Id};
+use crate::{Converter, Error, Id, symbol::Symbol};
 use source_span::Span;
 use std::sync::Arc;
-use trilogy_parser::{syntax, Spanned};
+use trilogy_parser::{Spanned, syntax};
 
 #[derive(Clone, Debug)]
 pub struct Definition {

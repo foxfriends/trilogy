@@ -1,5 +1,6 @@
 use crate::{debug_info::DebugInfo, types};
 use inkwell::{
+    AddressSpace, OptimizationLevel,
     builder::Builder,
     context::Context,
     debug_info::{AsDIScope, DILocation},
@@ -7,7 +8,6 @@ use inkwell::{
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Module,
     values::{BasicValue, FunctionValue, InstructionValue, PointerValue},
-    AddressSpace, OptimizationLevel,
 };
 use source_span::Span;
 use std::{
@@ -15,7 +15,7 @@ use std::{
     collections::{HashMap, HashSet},
     rc::{Rc, Weak},
 };
-use trilogy_ir::{ir, Id};
+use trilogy_ir::{Id, ir};
 
 #[derive(Clone)]
 #[expect(dead_code)]

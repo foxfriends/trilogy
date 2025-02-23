@@ -449,7 +449,9 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         | Builtin::Sequence
         | Builtin::Construct
         | Builtin::Exit => {
-            panic!("write_operator_reference was called with a builtin that is not a referenceable operator")
+            panic!(
+                "write_operator_reference was called with a builtin that is not a referenceable operator"
+            )
         }
     };
 }

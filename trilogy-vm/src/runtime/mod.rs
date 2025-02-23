@@ -19,10 +19,10 @@ pub use bits::Bits;
 pub use callable::{Callable, Native, NativeFunction, Threading};
 pub use eq::{ReferentialEq, StructuralEq};
 pub use number::Number;
-pub use r#struct::Struct;
 pub use record::Record;
 pub use set::Set;
 pub use string::String;
+pub use r#struct::Struct;
 pub use tuple::Tuple;
 pub use value::Value;
 

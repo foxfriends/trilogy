@@ -276,7 +276,7 @@ pub mod sql {
                                         return Err(rt.runtime_error(rt.r#struct(
                                             "SqlError",
                                             format!("Unsupported SQL type: {name}"),
-                                        )))
+                                        )));
                                     }
                                 };
                                 Ok((Value::from(col.name()), value))

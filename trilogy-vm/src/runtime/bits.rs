@@ -1,7 +1,7 @@
 use crate::Number;
 use bitvec::prelude::*;
-use num::bigint::Sign;
 use num::BigInt;
+use num::bigint::Sign;
 use std::fmt::{self, Debug, Display};
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 use std::sync::Arc;

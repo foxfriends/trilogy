@@ -3,9 +3,9 @@
 use super::prelude::*;
 use daggy::{Dag, NodeIndex};
 use std::collections::{HashMap, HashSet};
+use trilogy_ir::Id;
 use trilogy_ir::ir::{self, ModuleCell};
 use trilogy_ir::visitor::{HasBindings, IrVisitable, IrVisitor};
-use trilogy_ir::Id;
 
 #[derive(Copy, Clone)]
 struct Node {

@@ -186,7 +186,7 @@ impl TryFrom<ArrayLiteral> for ArrayPattern {
                     return Err(SyntaxError::new(
                         val.span(),
                         "an array pattern may contain only a single spread element",
-                    ))
+                    ));
                 }
             }
         }

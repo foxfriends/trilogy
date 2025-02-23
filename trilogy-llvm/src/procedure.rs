@@ -2,7 +2,7 @@ use crate::Codegen;
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
-    llvm_sys::{debuginfo::LLVMDIFlagPublic, LLVMCallConv},
+    llvm_sys::{LLVMCallConv, debuginfo::LLVMDIFlagPublic},
     module::Linkage,
     values::{BasicMetadataValueEnum, FunctionValue},
 };

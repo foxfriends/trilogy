@@ -1,9 +1,9 @@
+use super::Error;
 use super::error::ErrorKind;
 use super::loader::Loader;
-use super::Error;
+use crate::Cache;
 use crate::ariadne::{CacheExt, LoaderCache};
 use crate::location::Location;
-use crate::Cache;
 use ariadne::{ColorGenerator, Config, Fmt, FnCache, Label, ReportKind};
 use std::collections::HashMap;
 use std::fmt::{self, Debug};

@@ -1,7 +1,7 @@
 use super::*;
 use crate::Converter;
 use source_span::Span;
-use trilogy_parser::{syntax, Spanned};
+use trilogy_parser::{Spanned, syntax};
 
 #[derive(Clone, Debug)]
 pub struct TestDefinition {

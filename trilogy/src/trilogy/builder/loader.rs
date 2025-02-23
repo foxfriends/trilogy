@@ -2,10 +2,10 @@ use super::report::ReportBuilder;
 use crate::cache::Cache;
 use crate::location::Location;
 
-#[cfg(not(feature = "async"))]
-use reqwest::blocking::Client;
 #[cfg(feature = "async")]
 use reqwest::Client;
+#[cfg(not(feature = "async"))]
+use reqwest::blocking::Client;
 
 use source_span::Span;
 use std::collections::{HashMap, VecDeque};

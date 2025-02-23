@@ -1,7 +1,7 @@
 use super::HasBindings;
 use super::{IrVisitable, IrVisitor};
-use crate::ir::*;
 use crate::Id;
+use crate::ir::*;
 use std::collections::HashSet;
 
 pub struct References {

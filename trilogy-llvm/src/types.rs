@@ -1,10 +1,10 @@
 use crate::codegen::Codegen;
 use bitvec::field::BitField;
 use inkwell::{
+    AddressSpace, IntPredicate,
     basic_block::BasicBlock,
     types::{FunctionType, IntType, StructType},
     values::{BasicValue, IntValue, PointerValue, StructValue},
-    AddressSpace, IntPredicate,
 };
 use trilogy_ir::ir::Bits;
 

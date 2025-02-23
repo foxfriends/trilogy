@@ -1,7 +1,7 @@
 use inkwell::{
+    AddressSpace,
     module::Linkage,
     values::{FunctionValue, PointerValue},
-    AddressSpace,
 };
 
 use crate::codegen::Codegen;

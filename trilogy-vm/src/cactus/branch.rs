@@ -1,4 +1,4 @@
-use super::{cactus::StackOverflow, Cactus, Slice};
+use super::{Cactus, Slice, cactus::StackOverflow};
 
 /// A branch of a Cactus stack.
 ///

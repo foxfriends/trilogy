@@ -2,8 +2,8 @@ use super::*;
 use crate::Converter;
 use source_span::Span;
 use trilogy_parser::{
-    syntax::{self, MatchExpressionCaseBody},
     Spanned,
+    syntax::{self, MatchExpressionCaseBody},
 };
 
 #[derive(Clone, Debug)]

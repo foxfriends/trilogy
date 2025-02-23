@@ -1,8 +1,8 @@
-use super::report::ReportBuilder;
 use super::Error;
+use super::report::ReportBuilder;
 use crate::location::Location;
 use std::collections::HashMap;
-use trilogy_ir::{ir, Converter, Resolver};
+use trilogy_ir::{Converter, Resolver, ir};
 use trilogy_parser::syntax::Document;
 
 impl Resolver for Location {

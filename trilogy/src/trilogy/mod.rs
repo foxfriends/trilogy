@@ -1,6 +1,6 @@
-use crate::location::Location;
 #[cfg(feature = "tvm")]
 use crate::RuntimeError;
+use crate::location::Location;
 use std::collections::HashMap;
 #[cfg(feature = "std")]
 use std::path::Path;

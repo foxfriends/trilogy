@@ -2,7 +2,7 @@ use crate::context::{ProgramContext, StaticMember};
 use crate::preamble::{END, RETURN};
 use crate::prelude::*;
 use std::collections::{HashMap, HashSet};
-use trilogy_ir::{ir, visitor::HasBindings, Id};
+use trilogy_ir::{Id, ir, visitor::HasBindings};
 use trilogy_vm::{Instruction, Offset, Value};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]

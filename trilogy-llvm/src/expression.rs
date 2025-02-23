@@ -1,6 +1,6 @@
 use crate::{
-    codegen::{Head, Variable},
     Codegen,
+    codegen::{Head, Variable},
 };
 use inkwell::{
     debug_info::AsDIScope,
@@ -182,7 +182,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<PointerValue<'ctx>> {
         match &application.function.value {
             Value::Builtin(builtin) if builtin.is_unary() => {
-                return self.compile_apply_builtin(*builtin, &application.argument, name)
+                return self.compile_apply_builtin(*builtin, &application.argument, name);
             }
             Value::Application(app) => match &app.function.value {
                 Value::Builtin(builtin) if builtin.is_binary() => {
@@ -191,7 +191,7 @@ impl<'ctx> Codegen<'ctx> {
                         &app.argument,
                         &application.argument,
                         name,
-                    )
+                    );
                 }
                 _ => {}
             },

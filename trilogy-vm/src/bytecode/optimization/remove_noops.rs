@@ -1,6 +1,6 @@
 use super::LineAdjuster;
-use crate::bytecode::chunk::{Line, Parameter};
 use crate::OpCode;
+use crate::bytecode::chunk::{Line, Parameter};
 
 pub(super) fn remove_noops(lines: &mut LineAdjuster) {
     for mut entry in lines {

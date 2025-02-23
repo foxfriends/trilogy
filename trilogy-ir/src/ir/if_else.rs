@@ -1,8 +1,8 @@
 use super::*;
 use crate::Converter;
 use trilogy_parser::{
-    syntax::{self, ElseBody},
     Spanned,
+    syntax::{self, ElseBody},
 };
 
 #[derive(Clone, Debug)]

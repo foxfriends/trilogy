@@ -1,5 +1,5 @@
 use super::*;
-use crate::{token_pattern::TokenPattern, Parser, Spanned};
+use crate::{Parser, Spanned, token_pattern::TokenPattern};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 

@@ -3,7 +3,7 @@ use super::line::{Line, Parameter};
 use super::{Chunk, ChunkWriter};
 use crate::atom::AtomInterner;
 use crate::bytecode::asm::{self, AsmReader};
-use crate::bytecode::optimization::{optimize, LineAdjuster};
+use crate::bytecode::optimization::{LineAdjuster, optimize};
 use crate::callable::Procedure;
 use crate::{Annotation, Atom, Instruction, Offset, OpCode, Value};
 use std::collections::HashMap;

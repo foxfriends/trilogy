@@ -1,5 +1,5 @@
 use bitvec::prelude::*;
-use num::{rational::BigRational, Complex};
+use num::{Complex, rational::BigRational};
 
 /// The raw value a token represents.
 ///

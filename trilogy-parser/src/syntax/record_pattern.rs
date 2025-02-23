@@ -146,21 +146,20 @@ impl RecordPattern {
                 elements.push((key, value));
                 Self::parse_elements(parser, open_brace_pipe, elements)
             }
-            (None, RecordPatternElement::Spread(spread, value)) => {
-                Self::parse_rest(parser, open_brace_pipe, elements, RestPattern::new(spread, value))
-            }
-            (Some(..), element @ RecordPatternElement::Element(..)) => {
-                Err(SyntaxError::new(
-                    element.span(),
-                    "no elements may follow the rest element in a record pattern, you might have meant this to be an expression",
-                ))
-            }
-            (Some(..), element @ RecordPatternElement::Spread(..)) => {
-                Err(SyntaxError::new(
-                    element.span(),
-                    "a record pattern may contain only one rest element, you might have meant this to be an expression",
-                ))
-            }
+            (None, RecordPatternElement::Spread(spread, value)) => Self::parse_rest(
+                parser,
+                open_brace_pipe,
+                elements,
+                RestPattern::new(spread, value),
+            ),
+            (Some(..), element @ RecordPatternElement::Element(..)) => Err(SyntaxError::new(
+                element.span(),
+                "no elements may follow the rest element in a record pattern, you might have meant this to be an expression",
+            )),
+            (Some(..), element @ RecordPatternElement::Spread(..)) => Err(SyntaxError::new(
+                element.span(),
+                "a record pattern may contain only one rest element, you might have meant this to be an expression",
+            )),
         }
     }
 
@@ -198,7 +197,7 @@ impl TryFrom<RecordLiteral> for RecordPattern {
                     return Err(SyntaxError::new(
                         element.span(),
                         "no elements may follow the rest (`..`) element in a set pattern",
-                    ))
+                    ));
                 }
             }
         }

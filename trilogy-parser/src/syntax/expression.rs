@@ -1,5 +1,5 @@
 use super::*;
-use crate::{token_pattern::TokenPattern, Parser, Spanned};
+use crate::{Parser, Spanned, token_pattern::TokenPattern};
 use trilogy_scanner::TokenType::{self, *};
 
 /// The many kinds of expressions in a Trilogy program.

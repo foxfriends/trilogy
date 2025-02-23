@@ -1,13 +1,13 @@
 use crate::{codegen::Codegen, types::CALLABLE_CONTINUATION};
 use inkwell::{
+    AddressSpace, IntPredicate,
     debug_info::AsDIScope,
-    llvm_sys::{debuginfo::LLVMDIFlagPublic, LLVMCallConv},
+    llvm_sys::{LLVMCallConv, debuginfo::LLVMDIFlagPublic},
     module::Linkage,
     values::{
         BasicMetadataValueEnum, BasicValue, FunctionValue, InstructionValue, IntValue,
         LLVMTailCallKind, PointerValue,
     },
-    AddressSpace, IntPredicate,
 };
 
 impl<'ctx> Codegen<'ctx> {

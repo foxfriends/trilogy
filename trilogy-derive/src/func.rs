@@ -1,4 +1,4 @@
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use syn::punctuated::Punctuated;
 use syn::{Fields, FnArg, Item, ItemFn, ItemStruct, Token};
 

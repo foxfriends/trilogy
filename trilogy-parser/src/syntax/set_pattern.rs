@@ -137,19 +137,20 @@ impl SetPattern {
                 elements.push(next);
                 Self::parse_elements(parser, open_bracket_pipe, elements)
             }
-            None => Self::parse_rest(parser, open_bracket_pipe, elements, RestPattern::new(spread.unwrap(), next)),
-            Some(..) if spread.is_none() => {
-                Err(SyntaxError::new(
-                    next.span().union(spread.unwrap().span()),
-                    "no elements may follow the rest element of a set pattern, you might have meant this to be an expression",
-                ))
-            }
-            Some(rest) => {
-                Err(SyntaxError::new(
-                    rest.span().union(spread.unwrap().span()),
-                    "a set pattern may contain only one rest element, you might have meant this to be an expression",
-                ))
-            }
+            None => Self::parse_rest(
+                parser,
+                open_bracket_pipe,
+                elements,
+                RestPattern::new(spread.unwrap(), next),
+            ),
+            Some(..) if spread.is_none() => Err(SyntaxError::new(
+                next.span().union(spread.unwrap().span()),
+                "no elements may follow the rest element of a set pattern, you might have meant this to be an expression",
+            )),
+            Some(rest) => Err(SyntaxError::new(
+                rest.span().union(spread.unwrap().span()),
+                "a set pattern may contain only one rest element, you might have meant this to be an expression",
+            )),
         }
     }
 }
@@ -179,7 +180,7 @@ impl TryFrom<SetLiteral> for SetPattern {
                     return Err(SyntaxError::new(
                         val.span(),
                         "no elements may follow the rest (`..`) element in a set pattern",
-                    ))
+                    ));
                 }
             }
         }

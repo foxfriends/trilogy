@@ -1,6 +1,6 @@
 use crate::callable::Procedure;
-use crate::{atom::AtomInterner, Chunk, ChunkBuilder, ChunkError, Instruction, Value};
 use crate::{Annotation, Offset, Program, RefCount};
+use crate::{Chunk, ChunkBuilder, ChunkError, Instruction, Value, atom::AtomInterner};
 use std::collections::HashMap;
 use std::sync::RwLock;
 

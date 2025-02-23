@@ -1,9 +1,9 @@
 use inkwell::{
+    AddressSpace,
     builder::Builder,
     module::Linkage,
     types::FunctionType,
     values::{BasicValue, FunctionValue, IntValue, PointerValue},
-    AddressSpace,
 };
 
 use crate::codegen::{Codegen, NeverValue};

@@ -64,7 +64,7 @@ impl Closure {
 
     #[inline]
     pub(crate) unsafe fn stack<'a>(&self) -> Slice<'a, StackCell> {
-        Slice::from_pointer(self.0.stack.clone())
+        unsafe { Slice::from_pointer(self.0.stack.clone()) }
     }
 }
 

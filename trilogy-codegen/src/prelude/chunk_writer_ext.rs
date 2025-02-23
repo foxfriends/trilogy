@@ -1,7 +1,7 @@
-use crate::prelude::*;
 use crate::INCORRECT_ARITY;
 use crate::INVALID_CALL;
 use crate::RUNTIME_TYPE_ERROR;
+use crate::prelude::*;
 pub(crate) use trilogy_vm::ChunkWriter;
 pub(crate) use trilogy_vm::Instruction;
 use trilogy_vm::Struct;

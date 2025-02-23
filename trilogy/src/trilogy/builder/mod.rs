@@ -2,9 +2,9 @@
 use crate::stdlib;
 
 use super::{Source, Trilogy};
-use crate::location::Location;
 #[cfg(feature = "std")]
 use crate::FileSystemCache;
+use crate::location::Location;
 use crate::{Cache, NoopCache};
 #[cfg(feature = "std")]
 use home::home_dir;

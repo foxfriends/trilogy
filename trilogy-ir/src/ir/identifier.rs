@@ -1,7 +1,7 @@
-use crate::{symbol::Symbol, Converter, Id};
+use crate::{Converter, Id, symbol::Symbol};
 use source_span::Span;
 use std::fmt::Display;
-use trilogy_parser::{syntax, Spanned};
+use trilogy_parser::{Spanned, syntax};
 
 #[derive(Clone, Debug)]
 pub struct Identifier {

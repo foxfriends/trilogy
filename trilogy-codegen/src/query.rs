@@ -4,8 +4,8 @@ use crate::{preamble::ITERATE_COLLECTION, prelude::*};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate, HasReferences, IrVisitable, IrVisitor};
-use trilogy_ir::{ir, Id};
-use trilogy_vm::{delegate_chunk_writer, Annotation, Instruction, Location};
+use trilogy_ir::{Id, ir};
+use trilogy_vm::{Annotation, Instruction, Location, delegate_chunk_writer};
 
 struct QueryState<'b, 'a> {
     context: &'b mut Context<'a>,

@@ -1,6 +1,6 @@
 use super::*;
 use crate::Parser;
-use num::{rational::BigRational, Complex};
+use num::{Complex, rational::BigRational};
 use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]

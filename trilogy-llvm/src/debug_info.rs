@@ -1,4 +1,5 @@
 use inkwell::{
+    AddressSpace,
     debug_info::{
         AsDIScope, DICompileUnit, DICompositeType, DIDerivedType, DILexicalBlock, DILocation,
         DIScope, DISubprogram, DISubroutineType, DWARFEmissionKind, DWARFSourceLanguage,
@@ -7,7 +8,6 @@ use inkwell::{
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Module,
     values::FunctionValue,
-    AddressSpace,
 };
 use source_span::Span;
 use std::{cell::RefCell, path::PathBuf, rc::Rc};

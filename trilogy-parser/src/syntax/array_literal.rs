@@ -57,7 +57,7 @@ impl ArrayLiteral {
                         open_bracket,
                         elements,
                         next,
-                    )?))
+                    )?));
                 }
             }
             if let Ok(token) = parser.check(KwFor) {

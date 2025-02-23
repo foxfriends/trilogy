@@ -3,9 +3,9 @@ use crate::prelude::*;
 use crate::{delegate_label_maker, module::Mode};
 use source_span::Span;
 use std::collections::HashMap;
-use trilogy_ir::{ir, Id};
+use trilogy_ir::{Id, ir};
 use trilogy_vm::{
-    delegate_chunk_writer, Annotation, ChunkBuilder, ChunkWriter, Instruction, Location, Value,
+    Annotation, ChunkBuilder, ChunkWriter, Instruction, Location, Value, delegate_chunk_writer,
 };
 
 pub(crate) struct ProgramContext<'a> {
@@ -293,7 +293,7 @@ impl ProgramContext<'_> {
                 }
                 ir::DefinitionItem::Module(module) => match &*module.module {
                     ir::ModuleCell::External(path) => {
-                        return Some((module.name.id.clone(), StaticMember::Chunk(path.to_owned())))
+                        return Some((module.name.id.clone(), StaticMember::Chunk(path.to_owned())));
                     }
                     ir::ModuleCell::Module(..) => Some(module.name.id.clone()),
                 },
