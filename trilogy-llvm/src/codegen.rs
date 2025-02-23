@@ -122,6 +122,11 @@ struct ContinuationPoint<'ctx> {
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
     parents: Vec<Exit<'ctx>>,
+
+    /// A bit of a hack, but this is tracking all places that a variable is destroyed during
+    /// scope cleanup without being closed. If we later determine that we need to close that
+    /// variable, this allows us to go back and make sure it was closed after all.
+    unclosed: RefCell<HashMap<PointerValue<'ctx>, Vec<InstructionValue<'ctx>>>>,
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
@@ -138,6 +143,7 @@ impl<'ctx> ContinuationPoint<'ctx> {
                 .collect(),
             upvalues: RefCell::default(),
             parents: vec![],
+            unclosed: RefCell::default(),
         }
     }
 
@@ -443,7 +449,12 @@ impl<'ctx> Codegen<'ctx> {
                         self.trilogy_reference_close(upvalue);
                         self.trilogy_value_destroy(*pointer);
                     } else {
-                        self.trilogy_value_destroy(*pointer);
+                        let instruction = self.trilogy_value_destroy(*pointer);
+                        cp.unclosed
+                            .borrow_mut()
+                            .entry(*pointer)
+                            .or_default()
+                            .push(instruction);
                     }
                 }
                 Variable::Closed { upvalue, .. } => {
@@ -559,8 +570,23 @@ impl<'ctx> Codegen<'ctx> {
                         builder
                             .build_store(original_upvalue, self.value_type().const_zero())
                             .unwrap();
-                        self.trilogy_reference_to_in(&builder, original_upvalue, variable);
+                        let upvalue_internal =
+                            self.trilogy_reference_to_in(&builder, original_upvalue, variable);
                         upvalues.insert(id.clone(), original_upvalue);
+
+                        if let Some(closing) = scope.unclosed.borrow_mut().remove(&variable) {
+                            // Due to the order of the code, captures appear above closes and cleans for
+                            // the same parent in the continuation_points list.
+                            //
+                            // Really, what we want to do is to build all the capturing closures before
+                            // building the cleaning/closing closures, so that those ones have the upvalues
+                            // list set properly... but since that's not that easy, we just store the list
+                            // of unclosed destroyed variables and close them if necessary
+                            for instruction in closing {
+                                builder.position_before(&instruction);
+                                self.trilogy_reference_close_in(&builder, upvalue_internal);
+                            }
+                        }
 
                         let new_upvalue = self.allocate_value(&upvalue_name);
                         self.trilogy_value_clone_into(new_upvalue, original_upvalue);

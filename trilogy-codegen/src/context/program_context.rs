@@ -293,7 +293,10 @@ impl ProgramContext<'_> {
                 }
                 ir::DefinitionItem::Module(module) => match &*module.module {
                     ir::ModuleCell::External(path) => {
-                        return Some((module.name.id.clone(), StaticMember::Chunk(path.to_owned())));
+                        return Some((
+                            module.name.id.clone(),
+                            StaticMember::Chunk(path.to_owned()),
+                        ));
                     }
                     ir::ModuleCell::Module(..) => Some(module.name.id.clone()),
                 },

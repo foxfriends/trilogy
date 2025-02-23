@@ -509,7 +509,6 @@ impl<'ctx> Codegen<'ctx> {
             closure.as_instruction_value().unwrap(),
             self.builder.get_current_debug_location().unwrap(),
         );
-
         let procedure_scope = self.di.builder.create_function(
             self.di.unit.get_file().as_debug_info_scope(),
             &function_name,

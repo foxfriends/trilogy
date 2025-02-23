@@ -3,7 +3,7 @@ use inkwell::{
     builder::Builder,
     module::Linkage,
     types::FunctionType,
-    values::{BasicValue, FunctionValue, IntValue, PointerValue},
+    values::{BasicValue, FunctionValue, InstructionValue, IntValue, PointerValue},
 };
 
 use crate::codegen::{Codegen, NeverValue};
@@ -515,15 +515,18 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
-    pub(crate) fn trilogy_value_destroy(&self, value: PointerValue<'ctx>) {
-        self.trilogy_value_destroy_in(&self.builder, value);
+    pub(crate) fn trilogy_value_destroy(
+        &self,
+        value: PointerValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        self.trilogy_value_destroy_in(&self.builder, value)
     }
 
     pub(crate) fn trilogy_value_destroy_in(
         &self,
         builder: &Builder<'ctx>,
         value: PointerValue<'ctx>,
-    ) {
+    ) -> InstructionValue<'ctx> {
         let f = self.declare_internal(
             "trilogy_value_destroy",
             self.context.void_type().fn_type(
@@ -531,7 +534,12 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        builder.build_call(f, &[value.into()], "").unwrap();
+        builder
+            .build_call(f, &[value.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .either(|l| l.as_instruction_value(), Some)
+            .unwrap()
     }
 
     pub(crate) fn trilogy_callable_init_proc(
@@ -588,6 +596,14 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn trilogy_reference_close(&self, t: PointerValue<'ctx>) {
+        self.trilogy_reference_close_in(&self.builder, t);
+    }
+
+    pub(crate) fn trilogy_reference_close_in(
+        &self,
+        builder: &Builder<'ctx>,
+        t: PointerValue<'ctx>,
+    ) {
         let f = self.declare_internal(
             "trilogy_reference_close",
             self.context.void_type().fn_type(
@@ -595,7 +611,7 @@ impl<'ctx> Codegen<'ctx> {
                 false,
             ),
         );
-        self.builder.build_call(f, &[t.into()], "").unwrap();
+        builder.build_call(f, &[t.into()], "").unwrap();
     }
 
     pub(crate) fn trilogy_reference_assume(&self, t: PointerValue<'ctx>) -> PointerValue<'ctx> {
