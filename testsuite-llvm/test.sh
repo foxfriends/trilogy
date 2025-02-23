@@ -81,7 +81,7 @@ for dir in $(ls); do
             popd > /dev/null
             continue
         fi
-        "${prefix}clang" main.ll
+        "${prefix}clang" main.ll -g -O0 -rdynamic
         if [ "$?" != "0" ]; then
             fail="true"
             lf="true"

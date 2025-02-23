@@ -1,6 +1,8 @@
 set quiet
 set shell := ["fish", "-c"]
 
+default: run
+
 fmt: fmt-rust fmt-c
 
 fmt-rust:
@@ -27,3 +29,8 @@ test-rust:
 [working-directory: "testsuite-llvm"]
 test-tri: 
     ./test.sh
+
+run file="main.tri": 
+    cargo run -- compile {{file}} > main.ll
+    clang main.ll -g -O0 -rdynamic
+    ./a.out
