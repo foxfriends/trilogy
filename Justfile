@@ -18,3 +18,12 @@ check-rust:
 [working-directory: "trilogy-llvm/core"]
 check-c:
     ls *.{c,h} | xargs -I _ iwyu -Xiwyu --error _
+
+test: test-rust test-tri
+
+test-rust:
+    cargo test
+
+[working-directory: "testsuite-llvm"]
+test-tri: 
+    ./test.sh

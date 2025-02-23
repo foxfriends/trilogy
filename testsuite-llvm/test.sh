@@ -1,3 +1,5 @@
+#!/bin/bash
+
 here=$(cd "$(dirname "$0")"; pwd)
 pushd "$here" > /dev/null
 
