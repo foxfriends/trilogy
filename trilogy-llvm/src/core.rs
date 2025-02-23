@@ -55,6 +55,26 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn lt(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("lt", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn gt(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("gt", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
     pub(crate) fn panic(&self, msg: PointerValue<'ctx>) {
         let f = self.declare_core("panic", 1);
         self.call_internal(

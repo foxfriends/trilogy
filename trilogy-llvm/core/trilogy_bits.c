@@ -41,6 +41,15 @@ bool trilogy_bits_at(trilogy_bits_value* b, unsigned long index) {
     return (bool)(1 & (byte >> (7 - (index & 7))));
 }
 
+int trilogy_bits_compare(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
+    unsigned long len = lhs->len < rhs->len ? lhs->len : rhs->len;
+    int cmp = memcmp(lhs, rhs, len);
+    if (cmp != 0) return cmp;
+    if (lhs->len < rhs->len) return -1;
+    if (lhs->len > rhs->len) return 1;
+    return 0;
+}
+
 trilogy_bits_value* trilogy_bits_assume(trilogy_value* val) {
     assert(val->tag == TAG_BITS);
     return (trilogy_bits_value*)val->payload;

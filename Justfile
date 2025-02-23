@@ -28,7 +28,7 @@ test-rust:
 
 [working-directory: "testsuite-llvm"]
 test-tri: 
-    ./test.sh
+    ./test.sh -r
 
 run file="main.tri": 
     cargo run -- compile {{file}} > main.ll

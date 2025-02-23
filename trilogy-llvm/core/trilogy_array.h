@@ -23,6 +23,8 @@ void trilogy_array_at(
     trilogy_value* tv, trilogy_array_value* arr, unsigned long index
 );
 
+int trilogy_array_compare(trilogy_array_value* lhs, trilogy_array_value* rhs);
+
 trilogy_array_value* trilogy_array_untag(trilogy_value* val);
 trilogy_array_value* trilogy_array_assume(trilogy_value* val);
 

@@ -43,6 +43,8 @@ typedef struct trilogy_value {
     unsigned long payload;
 } trilogy_value;
 
+typedef long trilogy_number_value;
+
 typedef struct trilogy_string_value {
     /**
      * The number of bytes in the string.

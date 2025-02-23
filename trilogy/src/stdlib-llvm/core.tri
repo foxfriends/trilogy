@@ -43,6 +43,19 @@ export construct
 extern proc destruct!(val)
 export destruct
 
+extern proc compare!(lhs, rhs)
+export compare
+
+export lt
+proc lt!(lhs, rhs) {
+  return compare!(lhs, rhs) == 'lt
+}
+
+export gt
+proc gt!(lhs, rhs) {
+  return compare!(lhs, rhs) == 'gt
+}
+
 extern proc primitive_to_string!(val)
 
 export to_string

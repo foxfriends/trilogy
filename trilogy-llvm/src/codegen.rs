@@ -305,6 +305,9 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("callable".to_owned(), types::TAG_CALLABLE);
         atoms.insert("left".to_owned(), 14);
         atoms.insert("right".to_owned(), 15);
+        atoms.insert("lt".to_owned(), 16);
+        atoms.insert("eq".to_owned(), 17);
+        atoms.insert("gt".to_owned(), 18);
 
         let module = context.create_module("trilogy:runtime");
         let di = DebugInfo::new(&module, "trilogy:runtime");

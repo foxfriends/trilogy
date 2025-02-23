@@ -278,7 +278,15 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(argument);
                 Some(out)
             }
-            _ => todo!(),
+            Builtin::Yield => {
+                let _effect = self.compile_expression(expression, name)?;
+                self.compile_end();
+                None
+                // TODO: implement this properly
+                // let yield_cont = self.get_yield("");
+                // self.call_continuation(yield_cont, effect);
+            }
+            _ => todo!("{builtin:?}"),
         }
     }
 
@@ -342,7 +350,25 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
-            _ => todo!(),
+            Builtin::Lt => {
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "lt.lhs")?;
+                let rhs = self.compile_expression(rhs, "lt.rhs")?;
+                self.lt(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::Gt => {
+                let out = self.allocate_value(name);
+                let lhs = self.compile_expression(lhs, "gt.lhs")?;
+                let rhs = self.compile_expression(rhs, "gt.rhs")?;
+                self.gt(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            _ => todo!("{builtin:?}"),
         }
     }
 

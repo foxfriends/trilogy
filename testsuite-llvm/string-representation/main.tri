@@ -1,0 +1,8 @@
+module io at "trilogy:io"
+
+proc main!() {
+  io::println!($"${unit}")
+  io::println!($"${true}")
+  io::println!($"${false}")
+  io::println!($"${3}")
+}

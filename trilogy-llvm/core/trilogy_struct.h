@@ -12,3 +12,5 @@ trilogy_struct_value* trilogy_struct_untag(trilogy_value* val);
 trilogy_struct_value* trilogy_struct_assume(trilogy_value* val);
 
 void trilogy_struct_destroy(trilogy_struct_value* val);
+
+int trilogy_struct_compare(trilogy_struct_value* lhs, trilogy_struct_value* rhs);

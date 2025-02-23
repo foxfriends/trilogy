@@ -14,5 +14,6 @@ trilogy_tuple_value* trilogy_tuple_assume(trilogy_value* val);
 
 void trilogy_tuple_left(trilogy_value* val, trilogy_tuple_value* tup);
 void trilogy_tuple_right(trilogy_value* val, trilogy_tuple_value* tup);
+int trilogy_tuple_compare(trilogy_tuple_value* lhs, trilogy_tuple_value* rhs);
 
 void trilogy_tuple_destroy(trilogy_tuple_value* val);

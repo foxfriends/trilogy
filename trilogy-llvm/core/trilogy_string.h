@@ -21,3 +21,4 @@ unsigned int trilogy_string_at(trilogy_string_value* str, unsigned long index);
 trilogy_string_value* trilogy_string_concat(
     trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
 );
+int trilogy_string_compare(trilogy_string_value* lhs, trilogy_string_value* rhs);

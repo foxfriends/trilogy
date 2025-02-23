@@ -10,6 +10,7 @@
 #include "trilogy_tuple.h"
 #include "trilogy_value.h"
 #include "types.h"
+#include <assert.h>
 #include <execinfo.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -97,6 +98,12 @@ void glue(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_string_value* lstr = trilogy_string_untag(lhs);
     trilogy_string_value* rstr = trilogy_string_untag(rhs);
     trilogy_string_concat(rv, lstr, rstr);
+}
+
+void compare(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    assert(lhs->tag != TAG_UNDEFINED);
+    assert(rhs->tag != TAG_UNDEFINED);
+    trilogy_atom_make_cmp(rv, trilogy_value_compare(lhs, rhs));
 }
 
 void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {

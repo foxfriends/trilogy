@@ -288,3 +288,35 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
         internal_panic("unimplemented\n");
     }
 }
+
+int trilogy_value_compare(trilogy_value* lhs, trilogy_value* rhs) {
+    if (lhs->tag != rhs->tag) {
+        return -2;
+    }
+    switch (lhs->tag) {
+        case TAG_UNDEFINED:
+        case TAG_UNIT: 
+        case TAG_ATOM:
+        case TAG_SET:
+        case TAG_RECORD:
+        case TAG_CALLABLE:
+        case TAG_REFERENCE:
+            return -2;
+        case TAG_BOOL:
+            return trilogy_boolean_compare(trilogy_boolean_assume(lhs), trilogy_boolean_assume(rhs));
+        case TAG_NUMBER:
+            return trilogy_number_compare(trilogy_number_assume(lhs), trilogy_number_assume(rhs));
+        case TAG_CHAR:
+            return trilogy_character_compare(trilogy_character_assume(lhs), trilogy_character_assume(rhs));
+        case TAG_STRING:
+            return trilogy_string_compare(trilogy_string_assume(lhs), trilogy_string_assume(rhs));
+        case TAG_STRUCT:
+            return trilogy_struct_compare(trilogy_struct_assume(lhs), trilogy_struct_assume(rhs));
+        case TAG_BITS:
+            return trilogy_bits_compare(trilogy_bits_assume(lhs), trilogy_bits_assume(rhs));
+        case TAG_TUPLE:
+            return trilogy_tuple_compare(trilogy_tuple_assume(lhs), trilogy_tuple_assume(rhs));
+        case TAG_ARRAY:
+            return trilogy_array_compare(trilogy_array_assume(lhs), trilogy_array_assume(rhs));
+    }
+}

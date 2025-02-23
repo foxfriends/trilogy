@@ -2,15 +2,15 @@ module core at "trilogy:core"
 
 export print
 proc print!(value) {
-  let err = core::trilogy_print!(value)
+  let err = core::print!(value)
   if err < 0 {
     yield 'ioerror
   }
 }
 
 export println
-proc println!(value) {
-  let err = core::trilogy_print!(value)
+proc println!(value and typeof 'string) {
+  let err = core::print!($"${value}\n")
   if err < 0 {
     yield 'ioerror
   }

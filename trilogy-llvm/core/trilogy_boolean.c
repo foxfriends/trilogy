@@ -21,3 +21,7 @@ bool trilogy_boolean_assume(trilogy_value* val) {
     assert(val->tag == TAG_BOOL);
     return (bool)val->payload;
 }
+
+int trilogy_boolean_compare(bool lhs, bool rhs) {
+    return ((int)lhs - (int)rhs);
+}

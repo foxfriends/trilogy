@@ -17,3 +17,9 @@ unsigned int trilogy_character_assume(trilogy_value* val) {
     assert(val->tag == TAG_CHAR);
     return (unsigned int)val->payload;
 }
+
+int trilogy_character_compare(unsigned int lhs, unsigned int rhs) {
+    if (lhs < rhs) return -1;
+    if (lhs > rhs) return 1;
+    return 0;
+}

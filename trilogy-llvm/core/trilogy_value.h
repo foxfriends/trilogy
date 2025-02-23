@@ -11,5 +11,6 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from);
 
 bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs);
 bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs);
+int trilogy_value_compare(trilogy_value* lhs, trilogy_value* rhs);
 
 void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val);

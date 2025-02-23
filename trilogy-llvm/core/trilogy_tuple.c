@@ -48,6 +48,12 @@ void trilogy_tuple_right(trilogy_value* val, trilogy_tuple_value* tup) {
     trilogy_value_clone_into(val, &tup->snd);
 }
 
+int trilogy_tuple_compare(trilogy_tuple_value* lhs, trilogy_tuple_value* rhs) {
+    int cmp = trilogy_value_compare(&lhs->fst, &rhs->fst);
+    if (cmp != 0) return cmp;
+    return trilogy_value_compare(&lhs->snd, &rhs->snd);
+}
+
 void trilogy_tuple_destroy(trilogy_tuple_value* val) {
     trilogy_value_destroy(&val->fst);
     trilogy_value_destroy(&val->snd);

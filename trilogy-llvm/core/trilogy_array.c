@@ -109,6 +109,17 @@ void trilogy_array_at(
     trilogy_value_clone_into(tv, &arr->contents[index]);
 }
 
+int trilogy_array_compare(trilogy_array_value* lhs, trilogy_array_value* rhs) {
+    unsigned long len = lhs->len < rhs->len ? lhs->len : rhs->len;
+    for (unsigned long i = 0; i < len; ++i) {
+        int cmp = trilogy_value_compare(&lhs->contents[i], &rhs->contents[i]);
+        if (cmp != 0) return cmp;
+    }
+    if (lhs->len < rhs->len) return -1;
+    if (lhs->len > rhs->len) return 1;
+    return 0;
+}
+
 trilogy_array_value* trilogy_array_untag(trilogy_value* val) {
     if (val->tag != TAG_ARRAY) rte("array", val->tag);
     return trilogy_array_assume(val);
