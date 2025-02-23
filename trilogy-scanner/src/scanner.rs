@@ -161,7 +161,7 @@ impl<'a> Scanner<'a> {
     fn ascii_escape_sequence(&mut self) -> Option<char> {
         let a = self.expect(|ch: char| ch.is_ascii_hexdigit())?;
         let b = self.expect(|ch: char| ch.is_ascii_hexdigit())?;
-        char::from_u32(hex_to_u32(a) << 4 & hex_to_u32(b))
+        char::from_u32((hex_to_u32(a) << 4) & hex_to_u32(b))
     }
 
     fn escape_sequence(&mut self) -> Result<char, &'static str> {

@@ -1,6 +1,5 @@
 use crate::{debug_info::DebugInfo, types};
 use inkwell::{
-    AddressSpace, OptimizationLevel,
     builder::Builder,
     context::Context,
     debug_info::{AsDIScope, DILocation},
@@ -8,6 +7,7 @@ use inkwell::{
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Module,
     values::{BasicValue, FunctionValue, InstructionValue, PointerValue},
+    AddressSpace, OptimizationLevel,
 };
 use source_span::Span;
 use std::{
@@ -15,7 +15,7 @@ use std::{
     collections::{HashMap, HashSet},
     rc::{Rc, Weak},
 };
-use trilogy_ir::{Id, ir};
+use trilogy_ir::{ir, Id};
 
 #[derive(Clone)]
 #[expect(dead_code)]
@@ -270,13 +270,13 @@ impl<'ctx> Codegen<'ctx> {
         builder
             .build_store(closure_ptr, self.get_function().get_last_param().unwrap())
             .unwrap();
-        let closure_array = self.trilogy_array_assume_in(&builder, closure_ptr);
+        let closure_array = self.trilogy_array_assume_in(builder, closure_ptr);
         let upvalue = builder.build_alloca(self.value_type(), name).unwrap();
         builder
             .build_store(upvalue, self.value_type().const_zero())
             .unwrap();
         self.trilogy_array_at_in(
-            &builder,
+            builder,
             upvalue,
             closure_array,
             self.context.i64_type().const_int(index as u64, false),
