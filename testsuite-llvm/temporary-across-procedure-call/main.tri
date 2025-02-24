@@ -1,8 +1,8 @@
-proc get!() { return 5 }
-proc call!(x) { return x }
+proc get!(n) { return n }
+proc call!(x, y) { return x }
 
 proc main!() {
-  if call!(get!()) == 5 {
+  if call!(get!(5), get!(6)) == 5 {
     exit 0
   }
   exit 1
