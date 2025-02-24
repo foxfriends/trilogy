@@ -1,0 +1,7 @@
+proc call!() {}
+
+proc main!() {
+  let x = 5
+  call!()
+  return 5
+}

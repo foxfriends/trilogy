@@ -25,3 +25,7 @@ bool trilogy_boolean_assume(trilogy_value* val) {
 int trilogy_boolean_compare(bool lhs, bool rhs) {
     return ((int)lhs - (int)rhs);
 }
+
+void trilogy_boolean_not(trilogy_value* rv, trilogy_value* v) {
+    trilogy_boolean_init(rv, !trilogy_boolean_untag(v));
+}

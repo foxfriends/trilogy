@@ -25,6 +25,16 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn structural_neq(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("structural_neq", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
     pub(crate) fn referential_eq(
         &self,
         target: PointerValue<'ctx>,
@@ -33,6 +43,21 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let f = self.declare_core("referential_eq", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn referential_neq(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("referential_neq", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn not(&self, target: PointerValue<'ctx>, val: PointerValue<'ctx>) {
+        let f = self.declare_core("not", 1);
+        self.call_internal(target, f, &[val.into()]);
     }
 
     pub(crate) fn member_access(

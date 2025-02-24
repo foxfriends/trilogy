@@ -1,0 +1,24 @@
+proc main!() {
+  assert "unit == unit" as unit == unit
+  assert "unit != 0" as unit != 0
+  assert "unit != 0" as unit != false
+  assert "true == true" as true == true
+  assert "false == false" as false == false
+  assert "true != false" as true != false
+  assert "'atom == 'atom" as 'atom == 'atom
+  assert "'atom == 'other" as 'atom != 'other
+  assert "3 == 3" as 3 == 3
+  assert "3 != 4" as 3 != 4
+  assert "hello == hello" as "hello" == "hello"
+  assert "hello != world" as "hello" != "world"
+  assert "0bb010 == 0bb010" as 0bb010 == 0bb010
+  assert "0bb010 != 0bb10" as 0bb010 != 0bb10
+  assert "[] == []" as [] == []
+  assert "[1] == [1]" as [1] == [1]
+  assert "[1] != [2]" as [1] != [2]
+  assert "[1, hello] == [1, hello]" as [1, "hello"] == [1, "hello"]
+  assert "[1, hello] != [hello, 1]" as [1, "hello"] != ["hello", 1]
+
+  let x = [1, 2]
+  assert "x == x" as x == x
+}

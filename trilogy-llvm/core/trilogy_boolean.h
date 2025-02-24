@@ -8,3 +8,4 @@ void trilogy_boolean_init(trilogy_value* t, bool b);
 bool trilogy_boolean_untag(trilogy_value* val);
 bool trilogy_boolean_assume(trilogy_value* val);
 int trilogy_boolean_compare(bool lhs, bool rhs);
+void trilogy_boolean_not(trilogy_value* rv, trilogy_value* v);

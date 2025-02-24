@@ -267,14 +267,21 @@ impl<'ctx> Codegen<'ctx> {
                 None
             }
             Builtin::Typeof => {
-                let out = self.allocate_value(name);
                 let argument = self.compile_expression(expression, "")?;
+                let out = self.allocate_value(name);
                 let tag = self.get_tag(argument);
                 let raw_atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
                 self.trilogy_atom_init(out, raw_atom);
+                self.trilogy_value_destroy(argument);
+                Some(out)
+            }
+            Builtin::Not => {
+                let argument = self.compile_expression(expression, "")?;
+                let out = self.allocate_value(name);
+                self.not(out, argument);
                 self.trilogy_value_destroy(argument);
                 Some(out)
             }
@@ -309,6 +316,17 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::StructuralInequality => {
+                let lhs = self.compile_expression(lhs, "sne.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "sne.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
+                self.structural_neq(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             Builtin::ReferenceEquality => {
                 let lhs = self.compile_expression(lhs, "req.lhs")?;
                 self.bind_temporary(lhs);
@@ -316,6 +334,17 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap().ptr();
                 let out = self.allocate_value(name);
                 self.referential_eq(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::ReferenceInequality => {
+                let lhs = self.compile_expression(lhs, "rne.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "rne.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
+                self.referential_neq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)

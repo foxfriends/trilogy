@@ -55,9 +55,11 @@ unsigned int trilogy_string_at(trilogy_string_value* str, unsigned long index) {
     return (unsigned int)str->contents[index];
 }
 
-int trilogy_string_compare(trilogy_string_value* lhs, trilogy_string_value* rhs) {
+int trilogy_string_compare(
+    trilogy_string_value* lhs, trilogy_string_value* rhs
+) {
     unsigned long len = lhs->len < rhs->len ? lhs->len : rhs->len;
-    int cmp = strncmp(lhs, rhs, len);
+    int cmp = strncmp(lhs->contents, rhs->contents, len);
     if (cmp != 0) return cmp;
     if (lhs->len < rhs->len) return -1;
     if (lhs->len > rhs->len) return 1;

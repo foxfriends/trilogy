@@ -1,7 +1,7 @@
 #include "trilogy_atom.h"
-#include "trilogy_value.h"
 #include "internal.h"
 #include "runtime.h"
+#include "trilogy_value.h"
 #include <assert.h>
 #include <stddef.h>
 
@@ -31,9 +31,13 @@ const trilogy_string_value* trilogy_atom_repr(unsigned long atom_id) {
 
 void trilogy_atom_make_cmp(trilogy_value* rv, int cmp) {
     switch (cmp) {
-    case -1: return trilogy_atom_init(rv, ATOM_LT);
-    case 0: return trilogy_atom_init(rv, ATOM_EQ);
-    case 1: return trilogy_atom_init(rv, ATOM_GT);
-    default: *rv = trilogy_unit;
+    case -1:
+        return trilogy_atom_init(rv, ATOM_LT);
+    case 0:
+        return trilogy_atom_init(rv, ATOM_EQ);
+    case 1:
+        return trilogy_atom_init(rv, ATOM_GT);
+    default:
+        *rv = trilogy_unit;
     }
 }

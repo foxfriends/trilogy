@@ -49,8 +49,18 @@ void referential_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_boolean_init(rv, trilogy_value_referential_eq(lhs, rhs));
 }
 
+void referential_neq(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+) {
+    trilogy_boolean_init(rv, !trilogy_value_referential_eq(lhs, rhs));
+}
+
 void structural_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_boolean_init(rv, trilogy_value_structural_eq(lhs, rhs));
+}
+
+void structural_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_boolean_init(rv, !trilogy_value_structural_eq(lhs, rhs));
 }
 
 void length(trilogy_value* rv, trilogy_value* val) {
@@ -123,6 +133,8 @@ void gte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     int cmp = trilogy_value_compare(lhs, rhs);
     trilogy_boolean_init(rv, cmp == 1 || cmp == 0);
 }
+
+void not(trilogy_value * rv, trilogy_value* v) { trilogy_boolean_not(rv, v); }
 
 void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     switch (c->tag) {

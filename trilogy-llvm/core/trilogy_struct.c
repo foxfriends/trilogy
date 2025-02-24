@@ -44,7 +44,9 @@ void trilogy_struct_destroy(trilogy_struct_value* val) {
     trilogy_value_destroy(&val->contents);
 }
 
-int trilogy_struct_compare(trilogy_struct_value* lhs, trilogy_struct_value* rhs) {
+int trilogy_struct_compare(
+    trilogy_struct_value* lhs, trilogy_struct_value* rhs
+) {
     if (lhs->atom != rhs->atom) return -2;
     return trilogy_value_compare(&lhs->contents, &rhs->contents);
 }

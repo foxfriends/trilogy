@@ -1,0 +1,9 @@
+proc get!() { return 5 }
+proc call!(x) { return x }
+
+proc main!() {
+  if call!(get!()) == 5 {
+    exit 0
+  }
+  exit 1
+}

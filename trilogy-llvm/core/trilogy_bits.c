@@ -41,9 +41,17 @@ bool trilogy_bits_at(trilogy_bits_value* b, unsigned long index) {
     return (bool)(1 & (byte >> (7 - (index & 7))));
 }
 
+unsigned long trilogy_bits_bytelen(trilogy_bits_value* val) {
+    unsigned long len = val->len / 8;
+    if (len & 7) len++;
+    return len;
+}
+
 int trilogy_bits_compare(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
-    unsigned long len = lhs->len < rhs->len ? lhs->len : rhs->len;
-    int cmp = memcmp(lhs, rhs, len);
+    unsigned long lhs_len = trilogy_bits_bytelen(lhs);
+    unsigned long rhs_len = trilogy_bits_bytelen(rhs);
+    unsigned long len = lhs_len < rhs_len ? lhs_len : rhs_len;
+    int cmp = memcmp(lhs->contents, rhs->contents, len);
     if (cmp != 0) return cmp;
     if (lhs->len < rhs->len) return -1;
     if (lhs->len > rhs->len) return 1;
