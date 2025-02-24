@@ -16,5 +16,11 @@ void glue(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void member_access(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void cons(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 
+void compare(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void lt(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void gt(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void lte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void gte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+
 void lookup_atom(trilogy_value* rv, trilogy_value* atom);
 void to_string(trilogy_value* rv, trilogy_value* val);

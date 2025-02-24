@@ -299,71 +299,109 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::StructuralEquality => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "seq.lhs")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "seq.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
                 self.structural_eq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
             Builtin::ReferenceEquality => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "req.lhs")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "req.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
                 self.referential_eq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
             Builtin::Access => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "acc.c")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "acc.i")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
                 self.member_access(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
             Builtin::Cons => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "cons.lhs")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "cons.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
                 self.trilogy_tuple_init_new(out, lhs, rhs);
                 Some(out)
             }
             Builtin::Construct => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "struct.val")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
                 let tag = self.trilogy_atom_untag(rhs, "struct.tag");
                 self.trilogy_value_destroy(rhs);
+                let out = self.allocate_value(name);
                 self.trilogy_struct_init_new(out, tag, lhs);
                 Some(out)
             }
             Builtin::Glue => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "glue.lhs")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "glue.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
                 self.glue(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
             Builtin::Lt => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "lt.lhs")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lt.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
                 self.lt(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
             Builtin::Gt => {
-                let out = self.allocate_value(name);
                 let lhs = self.compile_expression(lhs, "gt.lhs")?;
+                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "gt.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
                 self.gt(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::Leq => {
+                let lhs = self.compile_expression(lhs, "lte.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "lte.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
+                self.lte(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::Geq => {
+                let lhs = self.compile_expression(lhs, "gte.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "gte.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let out = self.allocate_value(name);
+                self.gte(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)

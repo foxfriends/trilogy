@@ -106,6 +106,24 @@ void compare(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_atom_make_cmp(rv, trilogy_value_compare(lhs, rhs));
 }
 
+void lt(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_boolean_init(rv, trilogy_value_compare(lhs, rhs) == -1);
+}
+
+void lte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    int cmp = trilogy_value_compare(lhs, rhs);
+    trilogy_boolean_init(rv, cmp == -1 || cmp == 0);
+}
+
+void gt(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_boolean_init(rv, trilogy_value_compare(lhs, rhs) == 1);
+}
+
+void gte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    int cmp = trilogy_value_compare(lhs, rhs);
+    trilogy_boolean_init(rv, cmp == 1 || cmp == 0);
+}
+
 void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     switch (c->tag) {
     case TAG_STRING: {

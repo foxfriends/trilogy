@@ -46,15 +46,17 @@ export destruct
 extern proc compare!(lhs, rhs)
 export compare
 
+extern proc lt!(lhs, rhs)
 export lt
-proc lt!(lhs, rhs) {
-  return compare!(lhs, rhs) == 'lt
-}
 
+extern proc lte!(lhs, rhs)
+export lte
+
+extern proc gt!(lhs, rhs)
 export gt
-proc gt!(lhs, rhs) {
-  return compare!(lhs, rhs) == 'gt
-}
+
+extern proc gte!(lhs, rhs)
+export gte
 
 extern proc primitive_to_string!(val)
 
