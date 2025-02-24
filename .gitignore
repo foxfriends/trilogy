@@ -6,3 +6,4 @@ a.out
 *.ll.tmp
 *.bc
 /main.tri
+*.dSYM/
