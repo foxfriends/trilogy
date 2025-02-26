@@ -9,6 +9,9 @@ use inkwell::{
 use crate::codegen::{Codegen, NeverValue};
 
 impl<'ctx> Codegen<'ctx> {
+    /// Internal functions do not satisfy any particular calling convention, and are intended
+    /// for use internally, to facilitate various other combinations of instructions. These
+    /// will never be exposed to Trilogy, as they reference things that don't exist in the language.
     fn declare_internal(&self, name: &str, ty: FunctionType<'ctx>) -> FunctionValue<'ctx> {
         if let Some(func) = self.module.get_function(name) {
             return func;

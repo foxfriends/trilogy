@@ -349,6 +349,7 @@ pub(crate) fn write_operator(context: &mut Context, builtin: Builtin) {
             context.instruction(Instruction::TypeOf);
         }
         Builtin::Pin => {}
+        Builtin::ToString => todo!(""),
         Builtin::Is => {
             panic!("write_operator was called with a builtin that is not an operator")
         }
@@ -448,7 +449,8 @@ pub(crate) fn write_operator_reference(context: &mut Context, builtin: Builtin) 
         | Builtin::Yield
         | Builtin::Sequence
         | Builtin::Construct
-        | Builtin::Exit => {
+        | Builtin::Exit
+        | Builtin::ToString => {
             panic!(
                 "write_operator_reference was called with a builtin that is not a referenceable operator"
             )

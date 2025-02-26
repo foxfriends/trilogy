@@ -9,7 +9,7 @@ proc print!(value) {
 }
 
 export println
-proc println!(value and typeof 'string) {
+proc println!(value) {
   let err = core::print!($"${value}\n")
   if err < 0 {
     yield 'ioerror

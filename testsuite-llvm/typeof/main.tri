@@ -1,0 +1,15 @@
+proc main!() {
+  assert typeof unit == 'unit
+  assert typeof true == 'bool
+  assert typeof 'hello == 'atom
+  assert typeof 'c' == 'char
+  assert typeof "hello" == 'string
+  assert typeof 3 == 'number
+  assert typeof 0bb001 == 'bits
+  assert typeof 'hello("world") == 'struct
+  assert typeof ("a":"b") == 'tuple
+  assert typeof [] == 'array
+  # assert typeof [||] == 'set
+  # assert typeof {||} == 'record
+  assert typeof main == 'callable
+}

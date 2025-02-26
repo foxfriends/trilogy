@@ -293,6 +293,11 @@ impl<'ctx> Codegen<'ctx> {
                 // let yield_cont = self.get_yield("");
                 // self.call_continuation(yield_cont, effect);
             }
+            Builtin::ToString => {
+                let value = self.compile_expression(expression, name)?;
+                let string = self.to_string(value);
+                Some(string)
+            }
             _ => todo!("{builtin:?}"),
         }
     }

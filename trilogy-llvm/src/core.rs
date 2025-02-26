@@ -7,12 +7,21 @@ use inkwell::{
 use crate::codegen::Codegen;
 
 impl<'ctx> Codegen<'ctx> {
+    /// These core functions let us call the C functions from core.c, which are backing the
+    /// Trilogy core.tri procedures. This lets us take advantage of the simpler calling convention
+    /// (no need for continuations), as the C functions definitely don't do anything like that.
     fn declare_core(&self, name: &str, arity: usize) -> FunctionValue<'ctx> {
         if let Some(func) = self.module.get_function(name) {
             return func;
         }
         self.module
             .add_function(name, self.external_type(arity), Some(Linkage::External))
+    }
+
+    /// Imported core procedures are the core.tri versions, so they cost as much as a regular
+    /// procedure call.
+    fn import_core(&self, name: &str) -> FunctionValue<'ctx> {
+        self.import_procedure("trilogy:core", name)
     }
 
     pub(crate) fn structural_eq(
@@ -127,5 +136,12 @@ impl<'ctx> Codegen<'ctx> {
             f,
             &[msg.into()],
         );
+    }
+
+    pub(crate) fn to_string(&self, argument: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        let target = self.allocate_value("to_string");
+        let function = self.import_core("to_string");
+        self.call_internal(target, function, &[]);
+        self.call_procedure(target, &[argument])
     }
 }

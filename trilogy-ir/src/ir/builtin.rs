@@ -3,42 +3,81 @@ use trilogy_parser::{Spanned, syntax};
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Builtin {
+    /// Not accessible directly from the language, but is triggered internally
+    ToString,
+    /// -
     Negate,
+    /// !
     Not,
+    /// ~
     Invert,
+    /// .
     Access,
+    /// &&
     And,
+    /// ||
     Or,
+    /// +
     Add,
+    /// -
     Subtract,
+    /// *
     Multiply,
+    /// /
     Divide,
+    /// %
     Remainder,
+    /// **
     Power,
+    /// //
     IntDivide,
+    /// ==
     StructuralEquality,
+    /// !=
     StructuralInequality,
+    /// ===
     ReferenceEquality,
+    /// !==
     ReferenceInequality,
+    /// <
     Lt,
+    /// >
     Gt,
+    /// <=
     Leq,
+    /// >=
     Geq,
+    /// &
     BitwiseAnd,
+    /// |
     BitwiseOr,
+    /// ^
     BitwiseXor,
+    /// <~
     LeftShift,
+    /// ~>
     RightShift,
+    /// ;
     Sequence,
+    /// :
     Cons,
+    /// <>
     Glue,
+    /// <<
     Compose,
+    /// >>
     RCompose,
+    /// |>
     Pipe,
+    /// <|
     RPipe,
+    /// '()
     Construct,
+    /// is
     Is,
+    /// typeof
     Typeof,
+    /// ^
     Pin,
     Yield,
     Resume,
@@ -153,7 +192,8 @@ impl Builtin {
                 | Builtin::Yield
                 | Builtin::Typeof
                 | Builtin::Return
-                | Builtin::Exit,
+                | Builtin::Exit
+                | Builtin::ToString,
         )
     }
 

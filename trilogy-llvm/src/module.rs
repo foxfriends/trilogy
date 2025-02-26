@@ -88,7 +88,7 @@ impl<'ctx> Codegen<'ctx> {
                     todo!()
                 }
                 DefinitionItem::Procedure(procedure) => {
-                    self.import_procedure(location, procedure);
+                    self.import_procedure(location, &procedure.name.to_string());
                 }
                 DefinitionItem::Constant(constant) => {
                     self.import_constant(location, constant);

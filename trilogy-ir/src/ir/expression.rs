@@ -428,7 +428,12 @@ impl Expression {
                     .into_iter()
                     .map(|seg| {
                         let suffix = Self::string(seg.suffix_token().span, seg.suffix());
-                        let interpolation = Self::convert(converter, seg.interpolation);
+                        let interpolation =
+                            Expression::builtin(seg.interpolation.span(), Builtin::ToString)
+                                .apply_to(
+                                    seg.interpolation.span(),
+                                    Self::convert(converter, seg.interpolation),
+                                );
                         (interpolation, suffix)
                     })
                     .fold(
@@ -457,7 +462,12 @@ impl Expression {
                     .into_iter()
                     .map(|seg| {
                         let suffix = Self::string(seg.suffix_token().span, seg.suffix());
-                        let interpolation = Self::convert(converter, seg.interpolation);
+                        let interpolation =
+                            Expression::builtin(seg.interpolation.span(), Builtin::ToString)
+                                .apply_to(
+                                    seg.interpolation.span(),
+                                    Self::convert(converter, seg.interpolation),
+                                );
                         (interpolation, suffix)
                     })
                     .fold(prefix, |expr, (interpolation, suffix)| {
