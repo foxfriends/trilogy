@@ -65,7 +65,7 @@ for dir in $(ls); do
 
         if [ -f spec.json ]; then
             expect_exit=$(jq '.exit // 0' -j < spec.json)
-            expect_stdout=$(jq '.output // ""' -j < spec.json)
+            expect_output=$(jq '.output // ""' -j < spec.json)
             expect_error=$(jq '.stderr // ""' -j < spec.json)
         fi
 
@@ -107,13 +107,13 @@ for dir in $(ls); do
 
         if [ -n "$fail" ]; then
             tf="true"
-            printf "\e[0;31mx\e[0m %s\n\tExit code: %d (expected %d)\n" "${dir}" "${exit}" "${expect_exit}"
+            printf "\e[0;31mx\e[0m %s\n\tExit code: %d (expected %d)\n" "$dir" "$exit" "$expect_exit"
             if [ "$output" != "$expect_output" ]; then
                 if [ -z "$expect_output" ]; then
                     printf "Unexpected output:\n%s\n" "$output"
                 else
                     printf "Output:\n%s\n" "$output"
-                    printf "Expected:\n%s\n" "${expect_output}"
+                    printf "Expected:\n%s\n" "$expect_output"
                 fi
             fi
             if [ -z "$expect_error" -a -n "$error" ]; then
@@ -122,7 +122,7 @@ for dir in $(ls); do
                 printf "Missing expected error output\n"
             fi
         elif [ -z "$quiet" ]; then
-            printf "\e[0;32mo\e[0m %s\n" "${dir}"
+            printf "\e[0;32mo\e[0m %s\n" "$dir"
         fi
 
         popd > /dev/null
