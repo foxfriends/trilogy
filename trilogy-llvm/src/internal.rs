@@ -645,7 +645,7 @@ impl<'ctx> Codegen<'ctx> {
             .try_as_basic_value()
             .either(|l| l.as_instruction_value(), Some)
             .unwrap();
-        self.clean(call, self.builder.get_current_debug_location().unwrap());
+        self.end_continuation_point_as_clean(call);
         self.builder.build_unreachable().unwrap();
         NeverValue
     }
@@ -759,7 +759,7 @@ impl<'ctx> Codegen<'ctx> {
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
-        function: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
     ) {
         let f = self.declare_internal(
             "trilogy_callable_init_cont",
@@ -782,7 +782,7 @@ impl<'ctx> Codegen<'ctx> {
                     return_to.into(),
                     yield_to.into(),
                     closure.into(),
-                    function.into(),
+                    function.as_global_value().as_pointer_value().into(),
                 ],
                 "",
             )
@@ -843,7 +843,7 @@ impl<'ctx> Codegen<'ctx> {
             .try_as_basic_value()
             .either(|l| l.as_instruction_value(), Some)
             .unwrap();
-        self.clean(call, self.builder.get_current_debug_location().unwrap());
+        self.end_continuation_point_as_clean(call);
         self.builder.build_unreachable().unwrap();
         NeverValue
     }
@@ -860,7 +860,7 @@ impl<'ctx> Codegen<'ctx> {
             .try_as_basic_value()
             .either(|l| l.as_instruction_value(), Some)
             .unwrap();
-        self.clean(call, self.builder.get_current_debug_location().unwrap());
+        self.end_continuation_point_as_clean(call);
         self.builder.build_unreachable().unwrap();
         NeverValue
     }

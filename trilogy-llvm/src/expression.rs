@@ -120,7 +120,7 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             yield_to,
             cancel_closure,
-            chain_function.as_global_value().as_pointer_value(),
+            chain_function,
         );
 
         let closure = self

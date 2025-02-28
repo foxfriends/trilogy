@@ -364,27 +364,35 @@ impl<'ctx> Codegen<'ctx> {
         self.current_definition.borrow().clone()
     }
 
-    pub(crate) fn close(
+    /// Ends the current continuation point. Cleanup code will be inserted before the provided
+    /// instruction which captures any values referenced by the continuation, and destroys any
+    /// remaining values that are going out of scope. The instruction should be an `alloca`
+    /// used as if it were the closure value, and will be replaced with the actual closure
+    /// construction instructions at a later time.
+    pub(crate) fn end_continuation_point_as_close(
         &self,
-        instruction: InstructionValue<'ctx>,
+        closure_allocation: InstructionValue<'ctx>,
         debug_location: DILocation<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
         let last = cps.last().unwrap();
         let mut next = last.chain();
-        next.close_from(last, instruction, debug_location);
+        next.close_from(last, closure_allocation, debug_location);
         cps.push(Rc::new(next));
     }
 
-    pub(crate) fn clean(
-        &self,
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
-    ) {
+    /// Ends the current continuation point. Cleanup code will be inserted before the provided
+    /// instruction which destroys all values that will be going out of scope. The instruction
+    /// should typically be the final `call` instruction in the that is being exited.
+    pub(crate) fn end_continuation_point_as_clean(&self, call_instruction: InstructionValue<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
         let last = cps.last().unwrap();
         let mut next = last.chain();
-        next.clean_from(last, instruction, debug_location);
+        next.clean_from(
+            last,
+            call_instruction,
+            self.builder.get_current_debug_location().unwrap(),
+        );
         cps.push(Rc::new(next));
     }
 

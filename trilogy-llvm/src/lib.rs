@@ -8,6 +8,7 @@ mod codegen;
 mod constant;
 mod core;
 mod debug_info;
+mod definitions;
 mod entrypoint;
 mod expression;
 mod internal;

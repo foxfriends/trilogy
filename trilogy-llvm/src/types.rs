@@ -117,6 +117,21 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn get_callable_tag(
+        &self,
+        callable: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let tag_ptr = self
+            .builder
+            .build_struct_gep(self.callable_value_type(), callable, 1, "")
+            .unwrap();
+        self.builder
+            .build_load(self.tag_type(), tag_ptr, name)
+            .unwrap()
+            .into_int_value()
+    }
+
     pub(crate) fn reference_value_type(&self) -> StructType<'ctx> {
         self.context.struct_type(
             &[
