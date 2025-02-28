@@ -77,13 +77,13 @@ impl<'ctx> Codegen<'ctx> {
             .ptr_sized_int_type(self.execution_engine.get_target_data(), None)
     }
 
-    pub(crate) fn get_tag(&self, pointer: PointerValue<'ctx>) -> IntValue<'ctx> {
+    pub(crate) fn get_tag(&self, pointer: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
         let value = self
             .builder
-            .build_struct_gep(self.value_type(), pointer, 0, "tag")
+            .build_struct_gep(self.value_type(), pointer, 0, "")
             .unwrap();
         self.builder
-            .build_load(self.tag_type(), value, "tag")
+            .build_load(self.tag_type(), value, name)
             .unwrap()
             .into_int_value()
     }
@@ -245,7 +245,7 @@ impl<'ctx> Codegen<'ctx> {
         uninit_block: BasicBlock<'ctx>,
         init_block: BasicBlock<'ctx>,
     ) {
-        let tag = self.get_tag(value);
+        let tag = self.get_tag(value, "");
         let cmp = self
             .builder
             .build_int_compare(

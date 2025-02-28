@@ -129,6 +129,11 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn destruct(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {
+        let f = self.declare_core("destruct", 1);
+        self.call_internal(target, f, &[value.into()]);
+    }
+
     pub(crate) fn panic(&self, msg: PointerValue<'ctx>) {
         let f = self.declare_core("panic", 1);
         self.call_internal(

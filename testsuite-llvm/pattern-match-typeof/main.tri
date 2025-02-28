@@ -1,0 +1,20 @@
+proc main!() {
+  let a and typeof 'unit = unit
+  assert a == unit
+  let b and typeof 'bool = true
+  assert b == true
+  let c and typeof 'atom = 'hello
+  assert c == 'hello
+  let d and typeof 'char = 'c'
+  assert d == 'c'
+  let e and typeof 'number = 3
+  assert e == 3
+  let f and typeof 'string = "string"
+  assert f == "string"
+  let g and typeof 'struct = 'hello(1)
+  assert g == 'hello(1)
+  let h and typeof 'tuple = 'a':'b'
+  assert h == 'a':'b'
+  let i and typeof 'array = []
+  assert i == []
+}

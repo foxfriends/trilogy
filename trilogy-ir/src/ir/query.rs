@@ -151,7 +151,17 @@ impl expression::Value {
         match self {
             Self::Disjunction(..) => false,
             Self::Conjunction(conj) => conj.0.value.is_once() && conj.1.value.is_once(),
-            Self::Application(..) => false, // TODO: this could be once, but needs checking its insides
+            Self::Application(app) => match &app.function.value {
+                expression::Value::Application(..) => {
+                    app.function.value.is_once() && app.argument.value.is_once()
+                }
+                expression::Value::Builtin(Builtin::Cons) => app.argument.value.is_once(),
+                expression::Value::Builtin(Builtin::Construct) => app.argument.value.is_once(),
+                expression::Value::Builtin(Builtin::Typeof) => app.argument.value.is_once(),
+                expression::Value::Builtin(Builtin::Not) => app.argument.value.is_once(),
+                expression::Value::Builtin(Builtin::Negate) => app.argument.value.is_once(),
+                _ => false,
+            },
             _ => true,
         }
     }

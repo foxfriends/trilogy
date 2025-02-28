@@ -110,6 +110,58 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_tuple_assume(
+        &self,
+        t: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_internal(
+            "trilogy_tuple_assume",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[t.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_tuple_left(&self, target: PointerValue<'ctx>, t: PointerValue<'ctx>) {
+        let f = self.declare_internal(
+            "trilogy_tuple_left",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), t.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_tuple_right(&self, target: PointerValue<'ctx>, t: PointerValue<'ctx>) {
+        let f = self.declare_internal(
+            "trilogy_tuple_right",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), t.into()], "")
+            .unwrap();
+    }
+
     pub(crate) fn trilogy_struct_init_new(
         &self,
         value: PointerValue<'ctx>,

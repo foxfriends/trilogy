@@ -171,7 +171,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(value);
                 self.compile_expression(&decl.body, name)
             }
-            _ => todo!("non-deterministic branching"),
+            _ => todo!("non-deterministic branching {:?}", decl.query.value),
         }
     }
 
@@ -269,7 +269,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Typeof => {
                 let argument = self.compile_expression(expression, "")?;
                 let out = self.allocate_value(name);
-                let tag = self.get_tag(argument);
+                let tag = self.get_tag(argument, "");
                 let raw_atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")

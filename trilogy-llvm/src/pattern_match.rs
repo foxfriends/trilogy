@@ -1,5 +1,9 @@
-use crate::Codegen;
+use crate::{
+    Codegen,
+    types::{TAG_STRUCT, TAG_TUPLE},
+};
 use inkwell::{
+    IntPredicate,
     basic_block::BasicBlock,
     values::{IntValue, PointerValue},
 };
@@ -68,6 +72,13 @@ impl<'ctx> Codegen<'ctx> {
                     todo!("Support non-integers and large integers")
                 }
             }
+            Value::Bits(bits) => {
+                let constant = self.allocate_value("");
+                self.bits_const(constant, bits);
+                let is_match = self.trilogy_value_structural_eq(value, constant, "");
+                self.trilogy_value_destroy(constant);
+                self.pm_cont_if(is_match);
+            }
             Value::String(string) => {
                 let constant = self.allocate_value("");
                 self.string_const(constant, string);
@@ -117,6 +128,56 @@ impl<'ctx> Codegen<'ctx> {
             Value::Builtin(builtin) => {
                 self.compile_match_apply_builtin(value, *builtin, &application.argument)
             }
+            Value::Application(app) => match &app.function.value {
+                Value::Builtin(Builtin::Cons) => {
+                    let tag = self.get_tag(value, "");
+                    let is_tuple = self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::EQ,
+                            tag,
+                            self.tag_type().const_int(TAG_TUPLE, false),
+                            "",
+                        )
+                        .unwrap();
+                    self.pm_cont_if(is_tuple);
+                    let tuple = self.trilogy_tuple_assume(value, "");
+                    let part = self.allocate_value("");
+                    self.trilogy_tuple_left(part, tuple);
+                    self.compile_pattern_match(&app.argument, part)?;
+                    self.trilogy_value_destroy(part);
+                    self.trilogy_tuple_right(part, tuple);
+                    self.compile_pattern_match(&application.argument, part)?;
+                    self.trilogy_value_destroy(part);
+                    Some(())
+                }
+                Value::Builtin(Builtin::Construct) => {
+                    let tag = self.get_tag(value, "");
+                    let is_struct = self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::EQ,
+                            tag,
+                            self.tag_type().const_int(TAG_STRUCT, false),
+                            "",
+                        )
+                        .unwrap();
+                    self.pm_cont_if(is_struct);
+                    let destructed = self.allocate_value("");
+                    self.destruct(destructed, value);
+                    let tuple = self.trilogy_tuple_assume(destructed, "");
+                    let part = self.allocate_value("");
+                    self.trilogy_tuple_right(part, tuple);
+                    self.compile_pattern_match(&app.argument, part)?;
+                    self.trilogy_value_destroy(part);
+                    self.trilogy_tuple_left(part, tuple);
+                    self.compile_pattern_match(&application.argument, part)?;
+                    self.trilogy_value_destroy(part);
+                    self.trilogy_value_destroy(destructed);
+                    Some(())
+                }
+                _ => panic!("only builtins can be applied in pattern matching context"),
+            },
             _ => panic!("only builtins can be applied in pattern matching context"),
         }
     }
@@ -130,12 +191,12 @@ impl<'ctx> Codegen<'ctx> {
         match builtin {
             Builtin::Typeof => {
                 let expected_type = self.compile_expression(expression, "")?;
-                let tag = self.get_tag(value);
+                let tag = self.get_tag(value, "");
                 let atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
-                let type_ptr = self.builder.build_alloca(self.value_type(), "").unwrap();
+                let type_ptr = self.allocate_value("");
                 self.trilogy_atom_init(type_ptr, atom);
                 let cmp = self.trilogy_value_structural_eq(expected_type, type_ptr, "");
                 // NOTE: atom does not require destruction, so type_ptr is ok

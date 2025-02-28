@@ -1,8 +1,13 @@
+module io at "trilogy:io"
+
 proc main!() {
   let unit = unit
   let true = true
   let 'hello = 'hello
   let 'c' = 'c'
   let 3 = 3
+  let 0bb1 = 0bb1
   let "hello" = "hello"
+  let 'a':'b' = 'a':'b'
+  let 'hello('world) = 'hello('world)
 }
