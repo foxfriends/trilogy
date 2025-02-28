@@ -77,7 +77,7 @@ for dir in $(ls); do
         if [ "$?" != "0" ]; then
             fail="true"
             cf="true"
-            printf "Failed to compile Trilogy\n"
+            printf "\e[0;31mx\e[0m %s\n\tFailed to compile Trilogy\n" "$dir"
             popd > /dev/null
             continue
         fi
@@ -85,7 +85,7 @@ for dir in $(ls); do
         if [ "$?" != "0" ]; then
             fail="true"
             lf="true"
-            printf "Failed to compile LLVM\n"
+            printf "\e[0;31mx\e[0m %s\n\tFailed to compile LLVM\n" "$dir"
             popd > /dev/null
             continue
         fi

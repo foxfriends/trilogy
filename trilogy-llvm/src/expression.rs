@@ -102,28 +102,83 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
-        let brancher = self.branch();
+        let body_function = self.add_continuation("");
         let chain_function = self.add_continuation("");
+        let handler_function = self.add_handler_function(name);
+        let brancher = self.branch();
+
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+
+        let cancel_closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CANCEL_CLOSURE")
+            .unwrap();
+        let cancel_to = self.allocate_value("cancel_to");
+        self.trilogy_callable_init_cont(
+            cancel_to,
+            return_to,
+            yield_to,
+            cancel_closure,
+            chain_function.as_global_value().as_pointer_value(),
+        );
 
         let closure = self
             .builder
-            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
             .unwrap();
+        let yield_to = self.allocate_value("");
+        self.trilogy_callable_init_handler(
+            yield_to,
+            return_to,
+            yield_to,
+            cancel_to,
+            closure,
+            handler_function.as_global_value().as_pointer_value(),
+        );
+
+        self.continue_to_handled(
+            body_function,
+            yield_to,
+            cancel_closure,
+            self.allocate_const(self.unit_const(), ""),
+        );
+        self.close_from(
+            &brancher,
+            cancel_closure.as_instruction_value().unwrap(),
+            self.builder.get_current_debug_location().unwrap(),
+        );
+
+        let body_entry = self.context.append_basic_block(body_function, "entry");
+        self.builder.position_at_end(body_entry);
+        self.transfer_debug_info(body_function);
+        let result = self.compile_expression(&handled.expression, name)?;
+        let continue_to = self.continue_to(chain_function, result);
+
         self.capture_from(
             &brancher,
             closure.as_instruction_value().unwrap(),
             self.builder.get_current_debug_location().unwrap(),
         );
-
+        let handler_entry = self.context.append_basic_block(handler_function, "entry");
+        self.builder.position_at_end(handler_entry);
+        self.transfer_debug_info(handler_function);
         self.compile_handlers(&handled.handlers);
 
-        let result = self.compile_expression(&handled.expression, name)?;
-        self.continue_to(chain_function, result);
+        self.close_from(
+            &brancher,
+            continue_to,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+        let entry = self.context.append_basic_block(chain_function, "entry");
+        self.builder.position_at_end(entry);
+        self.transfer_debug_info(chain_function);
         Some(self.get_continuation(name))
     }
 
     fn compile_handlers(&self, _handlers: &[ir::Handler]) {
-        todo!()
+        self.builder.build_unreachable().unwrap();
+        // todo!()
     }
 
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {

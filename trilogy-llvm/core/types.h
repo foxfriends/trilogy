@@ -27,7 +27,8 @@ typedef enum trilogy_callable_tag : unsigned char {
     CALLABLE_FUNCTION = 1,
     CALLABLE_PROCEDURE = 2,
     CALLABLE_RULE = 3,
-    CALLABLE_CONTINUATION = 4
+    CALLABLE_CONTINUATION = 4,
+    CALLABLE_HANDLER = 5
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {
@@ -153,8 +154,6 @@ typedef struct trilogy_record_value {
     trilogy_tuple_value* contents;
 } trilogy_record_value;
 
-struct trilogy_effect_handler;
-
 typedef struct trilogy_callable_value {
     /**
      * The reference count for this callable.
@@ -166,7 +165,7 @@ typedef struct trilogy_callable_value {
     trilogy_callable_tag tag;
     /**
      * The number of parameters to this callable. Functions must have arity 1.
-     * Other types may have any arity.
+     * Handlers have arity 2. Other types may have any arity.
      */
     unsigned int arity;
     /**
@@ -174,7 +173,12 @@ typedef struct trilogy_callable_value {
      * than provided. (The `end` pointer is still provided)
      **/
     struct trilogy_callable_value* return_to;
-    struct trilogy_effect_handler* yield_to;
+    struct trilogy_callable_value* yield_to;
+    /**
+     * For CALLABLE_HANDLER type callables only, the cancel_to pointer must be
+     *set to specify where the `cancel` keyword continues to.
+     **/
+    struct trilogy_callable_value* cancel_to;
     /**
      * Context captured from the closure of this callable. This is an array of
      * trilogy values (all of which would should be references?). The array is
@@ -191,15 +195,6 @@ typedef struct trilogy_callable_value {
      */
     void* function;
 } trilogy_callable_value;
-
-typedef struct trilogy_effect_handler {
-    unsigned int rc;
-    struct trilogy_callable_value* return_to;
-    struct trilogy_effect_handler* yield_to;
-    struct trilogy_callable_value* cancel_to;
-    trilogy_array_value* closure;
-    void* function;
-} trilogy_effect_handler;
 
 /**
  * A shared variable reference, represented as an upvalue.

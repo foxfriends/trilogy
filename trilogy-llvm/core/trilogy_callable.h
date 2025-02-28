@@ -18,9 +18,14 @@ void trilogy_callable_init_func(trilogy_value* t, void* p);
 void trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p);
 void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p);
 void trilogy_callable_init_cont(
-    trilogy_value* t, trilogy_value* return_to /* cloned */,
-    trilogy_value* yield_to /* cloned */, trilogy_value* closure /* moved */,
+    trilogy_value* t, trilogy_value* return_to /* moved */,
+    trilogy_value* yield_to /* moved */, trilogy_value* closure /* moved */,
     void* p
+);
+void trilogy_callable_init_handler(
+    trilogy_value* t, trilogy_value* return_to /* moved */,
+    trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
+    trilogy_value* closure /* moved */, void* p
 );
 void trilogy_callable_clone_into(trilogy_value*, trilogy_callable_value* orig);
 void trilogy_callable_destroy(trilogy_callable_value* val);

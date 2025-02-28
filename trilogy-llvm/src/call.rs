@@ -65,6 +65,40 @@ impl<'ctx> Codegen<'ctx> {
         function
     }
 
+    pub(crate) fn add_handler_function(&self, name: &str) -> FunctionValue<'ctx> {
+        let (parent_name, span) = self.get_current_definition();
+        let name = if name.is_empty() {
+            parent_name
+        } else {
+            format!("{parent_name}.{name}.handler")
+        };
+        let function = self
+            .module
+            .add_function(&name, self.handler_type(), Some(Linkage::Private));
+        let procedure_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
+            &name,
+            Some(function.get_name().to_str().unwrap()),
+            self.di.unit.get_file(),
+            span.start().line as u32 + 1,
+            self.di.continuation_di_type(),
+            true,
+            true,
+            span.start().line as u32 + 1,
+            LLVMDIFlagPublic,
+            false,
+        );
+        function.set_subprogram(procedure_scope);
+        function.get_nth_param(0).unwrap().set_name("return_to");
+        function.get_nth_param(1).unwrap().set_name("yield_to");
+        function.get_nth_param(2).unwrap().set_name("end_to");
+        function.get_nth_param(3).unwrap().set_name("cont_val");
+        function.get_nth_param(4).unwrap().set_name("cancel_to");
+        function.get_nth_param(5).unwrap().set_name("resume_to");
+        function.get_nth_param(6).unwrap().set_name("closure");
+        function
+    }
+
     fn get_callable_closure(&self, callable: PointerValue<'ctx>) -> PointerValue<'ctx> {
         let bound_closure = self.allocate_value("");
         self.trilogy_callable_closure_into(bound_closure, callable, "");
@@ -265,6 +299,34 @@ impl<'ctx> Codegen<'ctx> {
             .either(|l| l.as_instruction_value(), Some)
             .unwrap();
         self.clean(call, self.builder.get_current_debug_location().unwrap());
+        self.builder.build_return(None).unwrap();
+    }
+
+    pub(crate) fn continue_to_handled(
+        &self,
+        function: FunctionValue<'ctx>,
+        yield_to: PointerValue<'ctx>,
+        cancel_to_closure: PointerValue<'ctx>,
+        argument: PointerValue<'ctx>,
+    ) {
+        let return_to = self.get_return("");
+        let end_to = self.get_end("");
+
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+
+        let args: Vec<_> = [return_to, yield_to, end_to, argument, cancel_to_closure]
+            .iter()
+            .map(|val| {
+                self.builder
+                    .build_load(self.value_type(), *val, "")
+                    .unwrap()
+                    .into()
+            })
+            .collect();
+
+        let call = self.builder.build_direct_call(function, &args, "").unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
         self.builder.build_return(None).unwrap();
     }
 

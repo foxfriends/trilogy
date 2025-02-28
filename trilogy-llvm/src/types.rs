@@ -239,6 +239,19 @@ impl<'ctx> Codegen<'ctx> {
             .fn_type(&[self.value_type().into(); 5], false)
     }
 
+    pub(crate) fn handler_type(&self) -> FunctionType<'ctx> {
+        // 0: return
+        // 1: yield
+        // 2: end
+        // 3: argument
+        // 4: cancel
+        // 5: resume
+        // 6: closure
+        self.context
+            .void_type()
+            .fn_type(&[self.value_type().into(); 7], false)
+    }
+
     pub(crate) fn branch_undefined(
         &self,
         value: PointerValue<'ctx>,

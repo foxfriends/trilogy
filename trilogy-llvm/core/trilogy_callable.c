@@ -33,6 +33,7 @@ void trilogy_callable_init_fn(
     callable->arity = 1;
     callable->return_to = NULL;
     callable->yield_to = NULL;
+    callable->cancel_to = NULL;
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -50,6 +51,7 @@ void trilogy_callable_init_do(
     callable->arity = arity;
     callable->return_to = NULL;
     callable->yield_to = NULL;
+    callable->cancel_to = NULL;
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -67,6 +69,7 @@ void trilogy_callable_init_qy(
     callable->arity = arity;
     callable->return_to = NULL;
     callable->yield_to = NULL;
+    callable->cancel_to = NULL;
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -100,6 +103,30 @@ void trilogy_callable_init_cont(
         return_to == NULL ? NULL : trilogy_callable_assume(return_to);
     callable->yield_to =
         yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
+    callable->cancel_to = NULL;
+    callable->closure =
+        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
+    callable->function = p;
+    trilogy_callable_init(t, callable);
+}
+
+void trilogy_callable_init_handler(
+    trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
+    trilogy_value* cancel_to, trilogy_value* closure, void* p
+) {
+    assert(closure != NO_CLOSURE);
+    assert(closure->tag == TAG_ARRAY);
+    assert(return_to != NULL);
+    assert(yield_to != NULL);
+    assert(cancel_to != NULL);
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    callable->rc = 1;
+    callable->tag = CALLABLE_HANDLER;
+    callable->arity = 2;
+    callable->return_to = trilogy_callable_assume(return_to);
+    callable->yield_to = trilogy_callable_assume(yield_to);
+    callable->cancel_to = trilogy_callable_assume(cancel_to);
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -113,7 +140,7 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         // is the case in the wrapper of main.
         if (val->return_to != NULL) trilogy_callable_destroy(val->return_to);
         if (val->yield_to != NULL) trilogy_callable_destroy(val->yield_to);
-
+        if (val->cancel_to != NULL) trilogy_callable_destroy(val->cancel_to);
         free(val);
     }
 }
