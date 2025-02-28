@@ -1,7 +1,0 @@
-test "binds the variable with the value" {
-    assert [x for x = 1] == [1]
-}
-
-test "the variable can be any pattern" {
-    assert [n for 'x(n) = 'x(1)] == [1]
-}

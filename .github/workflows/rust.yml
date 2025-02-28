@@ -6,13 +6,6 @@ jobs:
   clippy:
     name: clippy
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - llvm,std
-          - tvm,std,32bit
-          - tvm,std,64bit
-      fail-fast: false
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -59,13 +52,6 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - llvm,std
-          - tvm,std,32bit
-          - tvm,std,64bit
-      fail-fast: false
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -89,13 +75,6 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - llvm,std
-          - tvm,std,32bit
-          - tvm,std,64bit
-      fail-fast: false
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4

@@ -4,7 +4,7 @@ on: push
 
 jobs:
   test-llvm:
-    name: test-llvm
+    name: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the source code
@@ -29,69 +29,3 @@ jobs:
       - name: Run testsuite
         run: |
           ./testsuite-llvm/test.sh -n -r
-  stdlib:
-    name: stdlib
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - tvm,std,32bit
-          - tvm,std,64bit
-          - tvm,std,multithread
-      fail-fast: false
-    steps:
-      - name: Checkout the source code
-        uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install LLVM
-        run: sudo apt-get install llvm libpolly-18-dev
-      - name: Install Rust
-        run: |
-          rustup install stable
-          rustup default stable
-      - name: Build
-        run: cargo build --no-default-features --features ${{ matrix.features }} --release
-      - name: Run stdlib tests
-        run: |
-          ls ./trilogy/src/stdlib/*.tri | xargs -I _ ./target/release/trilogy test _
-  test:
-    name: test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        features:
-          - tvm,std,32bit
-          - tvm,std,64bit
-          - tvm,std,multithread
-      fail-fast: false
-    steps:
-      - name: Checkout the source code
-        uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install LLVM
-        run: sudo apt-get install llvm libpolly-18-dev
-      - name: Install Rust
-        run: |
-          rustup install stable
-          rustup default stable
-      - name: Build
-        run: cargo build --no-default-features --features ${{ matrix.features }} --release
-      - name: Run testsuite
-        run: |
-          ls ./testsuite/*/*.tri | xargs -I _ ./target/release/trilogy test _

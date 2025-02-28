@@ -1,7 +1,0 @@
-module num at "trilogy:num" use cast
-module array at "trilogy:array" use map
-module fp at "trilogy:fp" use call
-
-test "do closures retain their module scope" {
-    assert map (call do(x) { return cast x }) ["1", "2", "3"] == [1, 2, 3]
-}

@@ -1,20 +1,13 @@
-#[cfg(feature = "std")]
 use crate::stdlib;
 
 use super::{Source, Trilogy};
-#[cfg(feature = "std")]
 use crate::FileSystemCache;
 use crate::location::Location;
 use crate::{Cache, NoopCache};
-#[cfg(feature = "std")]
 use home::home_dir;
 use std::collections::HashMap;
-#[cfg(feature = "tvm")]
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
-#[cfg(feature = "tvm")]
-use trilogy_vm::Native;
 
 mod analyzer;
 mod converter;
@@ -32,16 +25,11 @@ use report::ReportBuilder;
 /// you will be using this Builder to provide those.
 pub struct Builder<C: Cache + 'static> {
     root_dir: Option<PathBuf>,
-    #[cfg(feature = "tvm")]
-    asm_modules: HashMap<Location, String>,
-    #[cfg(feature = "tvm")]
-    native_modules: HashMap<Location, Native>,
     source_modules: HashMap<Location, String>,
     is_library: bool,
     cache: C,
 }
 
-#[cfg(feature = "std")]
 impl Builder<FileSystemCache> {
     /// Creates a new Trilogy builder that is configured as "standard".
     ///
@@ -67,14 +55,6 @@ impl Builder<FileSystemCache> {
     }
 }
 
-#[cfg(feature = "tvm")]
-impl Default for Builder<NoopCache> {
-    fn default() -> Self {
-        Self::empty()
-    }
-}
-
-#[cfg(feature = "llvm")]
 impl Default for Builder<NoopCache> {
     fn default() -> Self {
         Self::empty()
@@ -95,10 +75,6 @@ impl Builder<NoopCache> {
     fn empty() -> Self {
         Self {
             root_dir: None,
-            #[cfg(feature = "tvm")]
-            asm_modules: HashMap::new(),
-            #[cfg(feature = "tvm")]
-            native_modules: HashMap::new(),
             source_modules: HashMap::new(),
             is_library: false,
             cache: NoopCache,
@@ -107,25 +83,6 @@ impl Builder<NoopCache> {
 }
 
 impl<C: Cache> Builder<C> {
-    /// Adds a native module to this builder as a library.
-    ///
-    /// The location describes how Trilogy code should reference this module.
-    #[cfg(feature = "tvm")]
-    pub fn native_module<N: Into<Native>>(mut self, location: Location, library: N) -> Self {
-        self.native_modules.insert(location, library.into());
-        self
-    }
-
-    /// Adds an ASM module to this builder as a library.
-    ///
-    /// This module is parsed as ASM directly, and must correctly implement the Trilogy interfaces,
-    /// otherwise it is undefined behaviour as to what happens when it is executed.
-    #[cfg(feature = "tvm")]
-    pub fn asm_module(mut self, location: Location, source: String) -> Self {
-        self.asm_modules.insert(location, source);
-        self
-    }
-
     /// Adds a Trilogy source module to this builder as a library.
     ///
     /// Any other dependencies of this native module must also be added manually, otherwise
@@ -141,10 +98,6 @@ impl<C: Cache> Builder<C> {
     pub fn with_cache<C2: Cache>(self, cache: C2) -> Builder<C2> {
         Builder {
             root_dir: self.root_dir,
-            #[cfg(feature = "tvm")]
-            asm_modules: self.asm_modules,
-            #[cfg(feature = "tvm")]
-            native_modules: self.native_modules,
             source_modules: self.source_modules,
             is_library: false,
             cache,
@@ -178,10 +131,6 @@ impl<C: Cache> Builder<C> {
         let Self {
             mut cache,
             root_dir,
-            #[cfg(feature = "tvm")]
-            asm_modules,
-            #[cfg(feature = "tvm")]
-            native_modules,
             source_modules,
             is_library,
         } = self;
@@ -208,35 +157,9 @@ impl<C: Cache> Builder<C> {
         report.checkpoint(&root_path, cache)?;
         log::trace!("program analyzed: {:?}", time_analyzing.elapsed());
 
-        #[cfg(feature = "tvm")]
-        return Ok(Trilogy::new(
-            Source::Trilogy {
-                modules,
-                asm_modules,
-                entrypoint,
-            },
-            native_modules,
-        ));
-
-        #[cfg(feature = "llvm")]
-        return Ok(Trilogy::new(Source::Trilogy {
+        Ok(Trilogy::new(Source::Trilogy {
             modules,
             entrypoint,
-        }));
-
-        unreachable!()
-    }
-
-    /// Build a Trilogy instance from a pre-compiled Trilogy ASM file.
-    ///
-    /// # Errors
-    ///
-    /// This method will only error if the ASM file cannot be read. Actual errors in the
-    /// file's contents will only be detected when it comes time to run the contained program.
-    #[cfg(feature = "tvm")]
-    pub fn build_from_asm(self, file: &mut dyn Read) -> Result<Trilogy, std::io::Error> {
-        let mut asm = String::new();
-        file.read_to_string(&mut asm)?;
-        Ok(Trilogy::new(Source::Asm { asm }, self.native_modules))
+        }))
     }
 }

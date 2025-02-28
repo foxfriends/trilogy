@@ -2,9 +2,6 @@ use super::report::ReportBuilder;
 use crate::cache::Cache;
 use crate::location::Location;
 
-#[cfg(feature = "async")]
-use reqwest::Client;
-#[cfg(not(feature = "async"))]
 use reqwest::blocking::Client;
 
 use source_span::Span;
@@ -131,7 +128,6 @@ where
         }
     }
 
-    #[cfg(not(feature = "async"))]
     fn download(&self, url: &Url) -> Result<String, ErrorKind<E>> {
         self.client
             .get(url.clone())
@@ -140,21 +136,6 @@ where
             .map_err(ErrorKind::Network)?
             .text()
             .map_err(ErrorKind::Network)
-    }
-
-    #[cfg(feature = "async")]
-    fn download(&self, url: &Url) -> Result<String, ErrorKind<E>> {
-        tokio::runtime::Handle::current().block_on(async {
-            self.client
-                .get(url.clone())
-                .header("Accept", "text/x-trilogy")
-                .send()
-                .await
-                .map_err(ErrorKind::Network)?
-                .text()
-                .await
-                .map_err(ErrorKind::Network)
-        })
     }
 
     pub fn load_source(&self, location: &Location) -> Result<Option<String>, ErrorKind<E>> {

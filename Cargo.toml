@@ -2,14 +2,10 @@
 resolver = "2"
 members = [
     "trilogy",
-    "trilogy-derive",
     "trilogy-scanner",
     "trilogy-parser",
     "trilogy-parser-derive",
     "trilogy-ir",
-    "trilogy-codegen",
-    "trilogy-vm",
-    "trilogy-vm-derive",
     "trilogy-llvm",
 ]
 

@@ -1,7 +1,0 @@
-test "evaluates to true when the query passes" {
-    assert is pass
-}
-
-test "evaluates to false when the query fails" {
-    assert !(is end)
-}

@@ -1,7 +1,0 @@
-test "char is just char" {
-    assert 'c' == 'c'
-    assert 'c' === 'c'
-    assert 'c' != 'd'
-    assert 'c' !== 'd'
-    assert 'c' != 'c
-}
