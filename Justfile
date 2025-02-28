@@ -27,10 +27,16 @@ test-rust:
     cargo test
 
 [working-directory: "testsuite"]
-test-tri: 
+test-tri:
     ./test.sh -r
 
-run file="main.tri": 
+run file="main.tri":
     cargo run -- compile {{file}} > main.ll
     clang main.ll -g -O0 -rdynamic
     ./a.out
+
+clean:
+    cargo clean > /dev/null 2>&1
+    -rm -f a.out main.ll
+    -count testsuite/*/{stdout,stderr,a.out,time.*,*.ll,a.out.dSYM} > /dev/null && rm -r testsuite/*/{stdout,stderr,a.out,time.*,*.ll,a.out.dSYM}
+    -count trilogy-llvm/core/*.{ll,bc} > /dev/null && rm trilogy-llvm/core/*.{ll,bc}
