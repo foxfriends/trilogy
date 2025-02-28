@@ -3,6 +3,7 @@ use inkwell::context::Context;
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 use trilogy_ir::ir;
 
+mod bare;
 mod call;
 mod codegen;
 mod constant;
@@ -11,7 +12,6 @@ mod debug_info;
 mod definitions;
 mod entrypoint;
 mod expression;
-mod internal;
 mod module;
 mod pattern_match;
 mod procedure;

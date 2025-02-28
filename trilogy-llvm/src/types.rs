@@ -44,6 +44,11 @@ impl<'ctx> Codegen<'ctx> {
         pointer
     }
 
+    #[expect(dead_code, reason = "might be useful")]
+    pub(crate) fn allocate_undefined(&self, name: &str) -> PointerValue<'ctx> {
+        self.allocate_const(self.value_type().const_zero(), name)
+    }
+
     /// Every value in a Trilogy program is represented as an instance of this "union" struct.
     /// The first field is the tag, and the second is the value, which is often a pointer
     /// to some underlying value of which the format is known to the runtime but not the

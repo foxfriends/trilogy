@@ -106,7 +106,7 @@ impl<'ctx> Codegen<'ctx> {
             .context
             .append_basic_block(self.get_function(), "pm_cont");
 
-        let brancher = self.branch();
+        let brancher = self.end_continuation_point_as_branch();
         self.builder
             .build_conditional_branch(cond, cont, fail)
             .unwrap();
@@ -115,7 +115,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_continuation(end, self.allocate_const(self.unit_const(), ""));
 
         self.builder.position_at_end(cont);
-        self.continue_from(&brancher);
+        self.resume_continuation_point(&brancher);
         cont
     }
 

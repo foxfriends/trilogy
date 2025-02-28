@@ -143,10 +143,10 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
-    pub(crate) fn to_string(&self, argument: PointerValue<'ctx>) -> PointerValue<'ctx> {
+    pub(crate) fn to_string(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let target = self.allocate_value("to_string");
         let function = self.import_core("to_string");
         self.call_internal(target, function, &[]);
-        self.call_procedure(target, &[argument])
+        self.call_procedure(target, &[argument], name)
     }
 }

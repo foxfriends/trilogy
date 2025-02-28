@@ -44,7 +44,9 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,
     /// so may not be referenced.
-    fn construct_current_continuation(&self) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
+    pub(crate) fn construct_current_continuation(
+        &self,
+    ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
         let continuation_function = self.add_continuation("");
         let continuation = self.allocate_value("cc");
         let return_to = self.get_return("");
@@ -55,10 +57,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        self.end_continuation_point_as_close(
-            closure.as_instruction_value().unwrap(),
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
             continuation,
             return_to,
@@ -68,6 +67,40 @@ impl<'ctx> Codegen<'ctx> {
         );
 
         (continuation_function, continuation)
+    }
+
+    /// Makes a function or procedure call, following standard calling convention.
+    ///
+    /// The current basic block is terminated, as Trilogy functions return by calling
+    /// a continuation.
+    fn make_call(
+        &self,
+        function_ptr: PointerValue<'ctx>,
+        args: &[PointerValue<'ctx>],
+        arity: usize,
+        has_closure: bool,
+    ) {
+        let args_loaded: Vec<_> = args
+            .iter()
+            .map(|arg| {
+                self.builder
+                    .build_load(self.value_type(), *arg, "")
+                    .unwrap()
+                    .into()
+            })
+            .collect();
+        let call = self
+            .builder
+            .build_indirect_call(
+                self.procedure_type(arity, has_closure),
+                function_ptr,
+                &args_loaded,
+                "",
+            )
+            .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        self.builder.build_return(None).unwrap();
     }
 
     /// Calls a standard callable (function or procedure).
@@ -86,6 +119,7 @@ impl<'ctx> Codegen<'ctx> {
         callable: PointerValue<'ctx>,
         function_ptr: PointerValue<'ctx>,
         arguments: &[PointerValue<'ctx>],
+        name: &str,
     ) -> PointerValue<'ctx> {
         let arity = arguments.len();
 
@@ -96,6 +130,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // All variables and values are invalid after this point.
         let (continuation_function, current_continuation) = self.construct_current_continuation();
+        self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + 4);
         args.extend([current_continuation, yield_to, end_to]);
@@ -113,59 +148,18 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         self.builder.position_at_end(direct_block);
-        let args_loaded: Vec<_> = args
-            .iter()
-            .map(|arg| {
-                self.builder
-                    .build_load(self.value_type(), *arg, "")
-                    .unwrap()
-                    .into()
-            })
-            .collect();
-        let call = self
-            .builder
-            .build_indirect_call(
-                self.procedure_type(arity, false),
-                function_ptr,
-                &args_loaded,
-                "",
-            )
-            .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        self.builder.build_return(None).unwrap();
+        self.make_call(function_ptr, &args, arity, false);
 
         self.builder.position_at_end(closure_block);
         args.push(bound_closure);
-        let args_loaded: Vec<_> = args
-            .iter()
-            .map(|arg| {
-                self.builder
-                    .build_load(self.value_type(), *arg, "")
-                    .unwrap()
-                    .into()
-            })
-            .collect();
-        self.trilogy_value_destroy(value);
-        let call = self
-            .builder
-            .build_indirect_call(
-                self.procedure_type(arity, true),
-                function_ptr,
-                &args_loaded,
-                "",
-            )
-            .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        self.builder.build_return(None).unwrap();
+        self.make_call(function_ptr, &args, arity, true);
 
         let entry = self
             .context
             .append_basic_block(continuation_function, "entry");
         self.builder.position_at_end(entry);
         self.transfer_debug_info(continuation_function);
-        self.get_continuation("")
+        self.get_continuation(name)
     }
 
     /// Calls a procedure value with the provided arguments.
@@ -175,11 +169,12 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         procedure: PointerValue<'ctx>,
         arguments: &[PointerValue<'ctx>],
+        name: &str,
     ) -> PointerValue<'ctx> {
         let callable = self.trilogy_callable_untag(procedure, "");
         let arity = arguments.len();
         let function = self.trilogy_procedure_untag(callable, arity, "");
-        self.call_callable(procedure, callable, function, arguments)
+        self.call_callable(procedure, callable, function, arguments, name)
     }
 
     /// Applies a function value to the provided argument. This may also be used to call
@@ -191,6 +186,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         function: PointerValue<'ctx>,
         argument: PointerValue<'ctx>,
+        name: &str,
     ) -> PointerValue<'ctx> {
         let callable = self.trilogy_callable_untag(function, "");
         let tag = self.get_callable_tag(callable, "");
@@ -219,7 +215,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(call_function);
         let function = self.trilogy_function_untag(callable, "");
-        self.call_callable(function, callable, function, &[argument])
+        self.call_callable(function, callable, function, &[argument], name)
     }
 
     /// Applies a continuation value to the provided argument.
@@ -232,7 +228,8 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// The continuation's code itself knows where it is to continue to, so as usual we do not need
     /// to provide that information. The current basic block is terminated, as there is no returning
-    /// from a continuation call.
+    /// from a continuation call. The current implicit continuation point is ended as well, leaving
+    /// us without a valid implicit continuation point.
     ///
     /// As per the general calling convention, the continuation object itself is destroyed, and all
     /// arguments are moved into the call.
@@ -282,58 +279,40 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
     }
 
-    pub(crate) fn continue_to_handled(
+    fn continue_in_scope_inner(
         &self,
         function: FunctionValue<'ctx>,
         yield_to: PointerValue<'ctx>,
-        cancel_to_closure: PointerValue<'ctx>,
-        argument: PointerValue<'ctx>,
-    ) {
-        let return_to = self.get_return("");
-        let end_to = self.get_end("");
-
-        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-
-        let args: Vec<_> = [return_to, yield_to, end_to, argument, cancel_to_closure]
-            .iter()
-            .map(|val| {
-                self.builder
-                    .build_load(self.value_type(), *val, "")
-                    .unwrap()
-                    .into()
-            })
-            .collect();
-
-        let call = self.builder.build_direct_call(function, &args, "").unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        self.builder.build_return(None).unwrap();
-    }
-
-    pub(crate) fn continue_to(
-        &self,
-        function: FunctionValue<'ctx>,
-        argument: PointerValue<'ctx>,
+        argument: BasicMetadataValueEnum<'ctx>,
     ) -> InstructionValue<'ctx> {
         let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
         let end_to = self.get_end("");
 
         let parent_closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
-        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
 
-        let args: Vec<_> = [return_to, yield_to, end_to, argument, parent_closure]
-            .iter()
-            .map(|val| {
-                self.builder
-                    .build_load(self.value_type(), *val, "")
-                    .unwrap()
-                    .into()
-            })
-            .collect();
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+        let args = vec![
+            self.builder
+                .build_load(self.value_type(), return_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), yield_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), end_to, "")
+                .unwrap()
+                .into(),
+            argument,
+            self.builder
+                .build_load(self.value_type(), parent_closure, "")
+                .unwrap()
+                .into(),
+        ];
 
         let call = self.builder.build_direct_call(function, &args, "").unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
@@ -342,6 +321,61 @@ impl<'ctx> Codegen<'ctx> {
         parent_closure.as_instruction_value().unwrap()
     }
 
+    /// Continues to a point in the same lexical scope directly, without any runtime
+    /// continuation object. This is typically used within an expression that spans
+    /// multiple continuations, such as an `if-else` expression.
+    ///
+    /// The current basic block is terminated. The current continuation point must be
+    /// closed; the instruction from which to terminate it is returned, and should
+    /// be passed to some `end_continuation_` function that will close closure pointer
+    /// returned.
+    #[must_use = "continuation point must be closed"]
+    pub(crate) fn continue_in_scope(
+        &self,
+        function: FunctionValue<'ctx>,
+        argument: PointerValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        self.continue_in_scope_inner(
+            function,
+            self.get_yield(""),
+            self.builder
+                .build_load(self.value_type(), argument, "")
+                .unwrap()
+                .into(),
+        )
+    }
+
+    /// See `continue_in_scope`; this does that, but passes an `undefined` value as the
+    /// parameter, assuming that the continuation we are entering does not refer to the
+    /// value at all.
+    #[must_use = "continuation point must be closed"]
+    pub(crate) fn void_continue_in_scope(
+        &self,
+        function: FunctionValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        self.continue_in_scope_inner(
+            function,
+            self.get_yield(""),
+            self.value_type().const_zero().into(),
+        )
+    }
+
+    /// See `void_continue_in_scope`; this does that, but allows a different `yield_to`
+    /// pointer to be passed, setting that as the handler for the continued scope.
+    #[must_use = "continuation point must be closed"]
+    pub(crate) fn continue_in_scope_handled(
+        &self,
+        function: FunctionValue<'ctx>,
+        yield_to: PointerValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        self.continue_in_scope_inner(function, yield_to, self.value_type().const_zero().into())
+    }
+
+    /// Calls the `main` function as the Trilogy program entrypoint.
+    ///
+    /// This is similar to a standard procedure call, but because this is the first call
+    /// in a program, we have to create the initial `return_to`, `yield_to`, and `end_to`
+    /// continuations from scratch.
     pub(crate) fn call_main(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
         let chain_function = self.module.add_function(
             "main.return",
@@ -424,6 +458,12 @@ impl<'ctx> Codegen<'ctx> {
         self.get_continuation("")
     }
 
+    /// An internal function in this case is one that follows the convention of
+    /// the first parameter being the output parameter, and all values being
+    /// TrilogyValue pointers.
+    ///
+    /// Since an internal function cannot diverge in the way that Trilogy source
+    /// functions can, the work of calling is reduced significantly.
     pub(crate) fn call_internal(
         &self,
         target: PointerValue<'ctx>,

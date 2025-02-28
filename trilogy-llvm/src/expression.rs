@@ -1,6 +1,6 @@
 use crate::{
     Codegen,
-    codegen::{Head, Variable},
+    codegen::{Head, Merger, Variable},
 };
 use inkwell::{
     debug_info::AsDIScope,
@@ -103,26 +103,13 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
         let body_function = self.add_continuation("");
-        let chain_function = self.add_continuation("");
         let handler_function = self.add_handler_function(name);
-        let brancher = self.branch();
+        let brancher = self.end_continuation_point_as_branch();
 
         let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
+        let (cancel_to_function, cancel_to) = self.construct_current_continuation();
 
-        let cancel_closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_CANCEL_CLOSURE")
-            .unwrap();
-        let cancel_to = self.allocate_value("cancel_to");
-        self.trilogy_callable_init_cont(
-            cancel_to,
-            return_to,
-            yield_to,
-            cancel_closure,
-            chain_function,
-        );
-
+        // construct handler
         let closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
@@ -137,42 +124,34 @@ impl<'ctx> Codegen<'ctx> {
             handler_function.as_global_value().as_pointer_value(),
         );
 
-        self.continue_to_handled(
-            body_function,
-            yield_to,
-            cancel_closure,
-            self.allocate_const(self.unit_const(), ""),
-        );
-        self.close_from(
-            &brancher,
-            cancel_closure.as_instruction_value().unwrap(),
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        let body_closure = self.continue_in_scope_handled(body_function, yield_to);
+        self.add_branch_end_as_close(&brancher, body_closure);
 
         let body_entry = self.context.append_basic_block(body_function, "entry");
         self.builder.position_at_end(body_entry);
         self.transfer_debug_info(body_function);
         let result = self.compile_expression(&handled.expression, name)?;
-        let continue_to = self.continue_to(chain_function, result);
 
-        self.capture_from(
-            &brancher,
-            closure.as_instruction_value().unwrap(),
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        // NOTE: this does not work as written, but it gets the idea across...
+        // we need to call the cancel_to function or equivalent at the end of the body,
+        // mainly just to set the context back to the previous yield_to value, while
+        // continuing into the cancel_to function.
+        //
+        // This could be done by always carrying around a cancel_to pointer, like we
+        // carry the yield_to pointer, or maybe we can just use the fact that the yield_to
+        // pointer is already containing the parent yield_to inside of it somewhere, so we
+        // can just go back that way without having to carry any more.
+        self.call_continuation(cancel_to, result);
+
+        self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
         let handler_entry = self.context.append_basic_block(handler_function, "entry");
         self.builder.position_at_end(handler_entry);
         self.transfer_debug_info(handler_function);
         self.compile_handlers(&handled.handlers);
 
-        self.close_from(
-            &brancher,
-            continue_to,
-            self.builder.get_current_debug_location().unwrap(),
-        );
-        let entry = self.context.append_basic_block(chain_function, "entry");
+        let entry = self.context.append_basic_block(cancel_to_function, "entry");
         self.builder.position_at_end(entry);
-        self.transfer_debug_info(chain_function);
+        self.transfer_debug_info(cancel_to_function);
         Some(self.get_continuation(name))
     }
 
@@ -296,12 +275,12 @@ impl<'ctx> Codegen<'ctx> {
                 for arg in arguments.iter_mut() {
                     *arg = self.use_temporary(*arg).unwrap().ptr();
                 }
-                Some(self.call_procedure(function, &arguments))
+                Some(self.call_procedure(function, &arguments, name))
             }
             // Function application
             _ => {
                 let argument = self.compile_expression(&application.argument, "")?;
-                Some(self.apply_function(function, argument))
+                Some(self.apply_function(function, argument, name))
             }
         }
     }
@@ -375,7 +354,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, name)?;
-                let string = self.to_string(value);
+                let string = self.to_string(value, "");
                 Some(string)
             }
             _ => todo!("{builtin:?}"),
@@ -576,14 +555,22 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_if_else(&self, if_else: &ir::IfElse, name: &str) -> Option<PointerValue<'ctx>> {
+        // Compile the condition first, in case it branches
         let condition = self.compile_expression(&if_else.condition, "if.cond")?;
 
-        let function = self.get_function();
-        let if_true_block = self.context.append_basic_block(function, "if.true");
-        let if_false_block = self.context.append_basic_block(function, "if.false");
+        // Then save the current context: this is the place from which we are branching.
+        let original_function_scope = self.get_function();
+        let if_true_block = self
+            .context
+            .append_basic_block(original_function_scope, "if.true");
+        let if_false_block = self
+            .context
+            .append_basic_block(original_function_scope, "if.false");
         let if_true_function = self.add_continuation("if.true");
         let if_false_function = self.add_continuation("if.false");
+
         let merge_to_function = self.add_continuation("if.cont");
+        let mut merger = Merger::default();
 
         let cond_bool = self.trilogy_boolean_untag(condition, "if.cond");
         self.trilogy_value_destroy(condition);
@@ -591,17 +578,11 @@ impl<'ctx> Codegen<'ctx> {
             .build_conditional_branch(cond_bool, if_true_block, if_false_block)
             .unwrap();
 
-        let brancher = self.branch();
-        let mut merger = self.merger();
+        let brancher = self.end_continuation_point_as_branch();
 
         self.builder.position_at_end(if_true_block);
-        let continue_to =
-            self.continue_to(if_true_function, self.allocate_const(self.unit_const(), ""));
-        self.close_from(
-            &brancher,
-            continue_to,
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        let if_true_closure = self.void_continue_in_scope(if_true_function);
+        self.add_branch_end_as_close(&brancher, if_true_closure);
 
         let if_true_entry = self.context.append_basic_block(if_true_function, "entry");
         self.builder.position_at_end(if_true_entry);
@@ -609,28 +590,21 @@ impl<'ctx> Codegen<'ctx> {
         let when_true = self.compile_expression(&if_else.when_true, name);
 
         if let Some(value) = when_true {
-            let continue_to = self.continue_to(merge_to_function, value);
-            self.merge_into(
-                &mut merger,
-                continue_to,
-                self.builder.get_current_debug_location().unwrap(),
-            );
+            // Given that the expression eventually evaluates, this branch must merge.
+            let after_true_closure = self.continue_in_scope(merge_to_function, value);
+            self.end_continuation_point_as_merge(&mut merger, after_true_closure);
         }
 
+        // NOTE: This is a bit unfortunate, as in moving back to the original function scope,
+        // we must create another copy of the same debug info block hierarchy up to this point.
+        //
+        // It would be nice if I could compile the branches, then the functions of those branches,
+        // instead of like now (when it's doing the then clause's function in between the branches),
+        // or if we could just save the exact debug hierarchy and restore it rather than replicate it.
         self.builder.position_at_end(if_false_block);
-        // NOTE: This is a bit unfortunate, as it creates another copy of the same debug info block hierarchy
-        // up to this if. Would be nice if I could compile the branches, then the functions of those branches,
-        // instead of like now when it's doing the true function in between the branches.
-        self.transfer_debug_info(function);
-        let continue_to = self.continue_to(
-            if_false_function,
-            self.allocate_const(self.unit_const(), ""),
-        );
-        self.close_from(
-            &brancher,
-            continue_to,
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        self.transfer_debug_info(original_function_scope);
+        let if_false_closure = self.void_continue_in_scope(if_false_function);
+        self.add_branch_end_as_close(&brancher, if_false_closure);
 
         let if_false_entry = self.context.append_basic_block(if_false_function, "entry");
         self.builder.position_at_end(if_false_entry);
@@ -638,12 +612,8 @@ impl<'ctx> Codegen<'ctx> {
         let when_false = self.compile_expression(&if_else.when_false, name);
 
         if let Some(value) = when_false {
-            let continue_to = self.continue_to(merge_to_function, value);
-            self.merge_into(
-                &mut merger,
-                continue_to,
-                self.builder.get_current_debug_location().unwrap(),
-            );
+            let continue_in_scope = self.continue_in_scope(merge_to_function, value);
+            self.end_continuation_point_as_merge(&mut merger, continue_in_scope);
         }
 
         if when_true.is_some() || when_false.is_some() {
@@ -673,20 +643,11 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        let brancher = self.branch();
-        self.trilogy_callable_init_do(
-            target,
-            arity,
-            closure,
-            function.as_global_value().as_pointer_value(),
-        );
+        let brancher = self.end_continuation_point_as_branch();
+        self.trilogy_callable_init_do(target, arity, closure, function);
         let here = self.builder.get_insert_block().unwrap();
 
-        self.capture_from(
-            &brancher,
-            closure.as_instruction_value().unwrap(),
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
         let procedure_scope = self.di.builder.create_function(
             self.di.unit.get_file().as_debug_info_scope(),
             &function_name,
@@ -704,7 +665,7 @@ impl<'ctx> Codegen<'ctx> {
         self.compile_procedure_body(function, procedure);
 
         self.builder.position_at_end(here);
-        self.continue_from(&brancher);
+        self.resume_continuation_point(&brancher);
         target
     }
 }

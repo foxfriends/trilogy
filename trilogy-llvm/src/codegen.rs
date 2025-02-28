@@ -187,7 +187,16 @@ impl<'ctx> ContinuationPoint<'ctx> {
     }
 }
 
+/// A `Brancher` is created when a continuation point will end in more than one place (i.e. it branches).
+///
+/// At each place this continuation point might end, an `add_branch_end_` function should be called
+/// to correctly end the continuation in that position.
 pub(crate) struct Brancher<'ctx>(Rc<ContinuationPoint<'ctx>>);
+
+/// A `Merger` collects ended continuation points without starting the next continuation point immediately,
+/// typically when there are multiple continuations being built separately which will later both continue
+/// to the same place (i.e. merge).
+#[derive(Default)]
 pub(crate) struct Merger<'ctx>(Vec<Exit<'ctx>>);
 
 impl<'ctx> Merger<'ctx> {
@@ -369,21 +378,29 @@ impl<'ctx> Codegen<'ctx> {
     /// remaining values that are going out of scope. The instruction should be an `alloca`
     /// used as if it were the closure value, and will be replaced with the actual closure
     /// construction instructions at a later time.
+    ///
+    /// A new implicit continuation point is started immediately.
     pub(crate) fn end_continuation_point_as_close(
         &self,
         closure_allocation: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
         let last = cps.last().unwrap();
         let mut next = last.chain();
-        next.close_from(last, closure_allocation, debug_location);
+        next.close_from(
+            last,
+            closure_allocation,
+            self.builder.get_current_debug_location().unwrap(),
+        );
         cps.push(Rc::new(next));
     }
 
     /// Ends the current continuation point. Cleanup code will be inserted before the provided
     /// instruction which destroys all values that will be going out of scope. The instruction
     /// should typically be the final `call` instruction in the that is being exited.
+    ///
+    /// After this, there is no valid implicit continuation point. A cleaned continuation should
+    /// be at the end of a lexical scope.
     pub(crate) fn end_continuation_point_as_clean(&self, call_instruction: InstructionValue<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
         let last = cps.last().unwrap();
@@ -396,52 +413,75 @@ impl<'ctx> Codegen<'ctx> {
         cps.push(Rc::new(next));
     }
 
-    pub(crate) fn close_from(
+    /// Adds an ending to the previously branched continuation point. There should be no
+    /// existing implicit continuation point, and starts a new implicit continuation point.
+    pub(crate) fn add_branch_end_as_close(
         &self,
         brancher: &Brancher<'ctx>,
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
+        closure_allocation: InstructionValue<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
         let mut next = brancher.0.chain();
-        next.close_from(&brancher.0, instruction, debug_location);
+        next.close_from(
+            &brancher.0,
+            closure_allocation,
+            self.builder.get_current_debug_location().unwrap(),
+        );
         cps.push(Rc::new(next));
     }
 
-    pub(crate) fn continue_from(&self, brancher: &Brancher<'ctx>) {
+    /// Resumes a continuation point that was previously held for a branch, which was used
+    /// only for non-ending captures, and not actually ended. The previously branched from
+    /// continuation point becomes the implicit continuation point again.
+    pub(crate) fn resume_continuation_point(&self, brancher: &Brancher<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
         cps.push(brancher.0.clone());
     }
 
-    pub(crate) fn capture_from(
+    /// Adds a non-ending capture on this branch. The branch must still be ended later with
+    /// a proper branch ending function.
+    ///
+    /// A placeholder closure allocation must be passed, which will later be replaced by
+    /// instructions to capture the values required by the closure.
+    ///
+    /// There should be no implicit continuation point before calling this, as this will
+    /// start a new one.
+    pub(crate) fn add_branch_capture(
         &self,
         brancher: &Brancher<'ctx>,
-        instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
+        closure_allocation: InstructionValue<'ctx>,
     ) {
         let mut cps = self.continuation_points.borrow_mut();
         let mut next = brancher.0.chain();
-        next.capture_from(&brancher.0, instruction, debug_location);
+        next.capture_from(
+            &brancher.0,
+            closure_allocation,
+            self.builder.get_current_debug_location().unwrap(),
+        );
         cps.push(Rc::new(next));
     }
 
-    pub(crate) fn branch(&self) -> Brancher<'ctx> {
+    /// Prepares the current continuation point to branch into multiple endings.
+    /// The current continuation point remains the implicit continuation point,
+    /// but can safely be ignored without ending it, as it may be ended later.
+    pub(crate) fn end_continuation_point_as_branch(&self) -> Brancher<'ctx> {
         let parent = self.continuation_points.borrow().last().unwrap().clone();
         Brancher(parent)
     }
 
-    pub(crate) fn merger(&self) -> Merger<'ctx> {
-        Merger(vec![])
-    }
-
-    pub(crate) fn merge_into(
+    /// Ends the current continuation point, but does not start a new implicit
+    /// continuation point.
+    pub(crate) fn end_continuation_point_as_merge(
         &self,
         merger: &mut Merger<'ctx>,
         instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
     ) {
         let cps = self.continuation_points.borrow();
-        merger.close_from(cps.last().unwrap(), instruction, debug_location);
+        merger.close_from(
+            cps.last().unwrap(),
+            instruction,
+            self.builder.get_current_debug_location().unwrap(),
+        );
     }
 
     pub(crate) fn merge_branch(&self, branch: Brancher<'ctx>, merger: Merger<'ctx>) {

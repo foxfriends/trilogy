@@ -722,7 +722,7 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         arity: usize,
         closure: PointerValue<'ctx>,
-        function: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_do",
@@ -746,7 +746,7 @@ impl<'ctx> Codegen<'ctx> {
                         .const_int(arity as u64, false)
                         .into(),
                     closure.into(),
-                    function.into(),
+                    function.as_global_value().as_pointer_value().into(),
                 ],
                 "",
             )
