@@ -75,7 +75,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Fn(..) => todo!(),
             Value::Do(closure) => Some(self.compile_do(closure, name)),
             Value::Qy(..) => todo!(),
-            Value::Handled(..) => todo!(),
+            Value::Handled(handled) => self.compile_handled(handled, name),
             Value::End => {
                 self.compile_end();
                 None
@@ -99,6 +99,31 @@ impl<'ctx> Codegen<'ctx> {
         let end = self.get_end("");
         let alloca = self.allocate_value("");
         self.call_continuation(end, alloca);
+    }
+
+    fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
+        let brancher = self.branch();
+        let chain_function = self.add_continuation("");
+
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        self.capture_from(
+            &brancher,
+            closure.as_instruction_value().unwrap(),
+            self.builder.get_current_debug_location().unwrap(),
+        );
+
+        self.compile_handlers(&handled.handlers);
+
+        let result = self.compile_expression(&handled.expression, name)?;
+        self.continue_to(chain_function, result);
+        Some(self.get_continuation(name))
+    }
+
+    fn compile_handlers(&self, _handlers: &[ir::Handler]) {
+        todo!()
     }
 
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
@@ -571,7 +596,7 @@ impl<'ctx> Codegen<'ctx> {
             let entry = self.context.append_basic_block(merge_to_function, "entry");
             self.builder.position_at_end(entry);
             self.transfer_debug_info(merge_to_function);
-            Some(self.get_continuation(""))
+            Some(self.get_continuation(name))
         } else {
             None
         }

@@ -153,6 +153,8 @@ typedef struct trilogy_record_value {
     trilogy_tuple_value* contents;
 } trilogy_record_value;
 
+struct trilogy_effect_handler;
+
 typedef struct trilogy_callable_value {
     /**
      * The reference count for this callable.
@@ -172,7 +174,7 @@ typedef struct trilogy_callable_value {
      * than provided. (The `end` pointer is still provided)
      **/
     struct trilogy_callable_value* return_to;
-    struct trilogy_callable_value* yield_to;
+    struct trilogy_effect_handler* yield_to;
     /**
      * Context captured from the closure of this callable. This is an array of
      * trilogy values (all of which would should be references?). The array is
@@ -189,6 +191,15 @@ typedef struct trilogy_callable_value {
      */
     void* function;
 } trilogy_callable_value;
+
+typedef struct trilogy_effect_handler {
+    unsigned int rc;
+    struct trilogy_callable_value* return_to;
+    struct trilogy_effect_handler* yield_to;
+    struct trilogy_callable_value* cancel_to;
+    trilogy_array_value* closure;
+    void* function;
+} trilogy_effect_handler;
 
 /**
  * A shared variable reference, represented as an upvalue.

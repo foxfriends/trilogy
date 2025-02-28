@@ -1,0 +1,8 @@
+proc body!() {
+  return 5
+}
+
+proc main!() {
+  let y = with body!() else yield
+  assert y == 5
+}
