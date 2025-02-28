@@ -1,10 +1,15 @@
-module native at "trilogy:atom/native"
+module rt at "trilogy:atom/rt"
 
-## Creates a new anonymous atom, unique from any other atom, even one sharing
-## the same string.
-const make = native::make
+const dyn_atoms = {||}
 
-## Creates a regular atom from a string.
-const of = native::of
+export to_string
+func to_string atom = match rt::lookup_const atom
+  case name and typeof 'string then name
+  else _ then dyn_atoms.atom
 
-export make, of
+export new
+proc new!(name) {
+  let atom = rt::make_atom!()
+  dyn_atoms.atom = name
+  return atom
+}

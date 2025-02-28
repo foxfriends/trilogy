@@ -26,7 +26,7 @@
 //! let exit_value = trilogy.run().unwrap();
 //! ```
 
-#[path = "stdlib-llvm/mod.rs"]
+#[path = "stdlib/mod.rs"]
 mod stdlib;
 
 mod ariadne;

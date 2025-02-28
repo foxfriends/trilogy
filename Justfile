@@ -26,7 +26,7 @@ test: test-rust test-tri
 test-rust:
     cargo test
 
-[working-directory: "testsuite-llvm"]
+[working-directory: "testsuite"]
 test-tri: 
     ./test.sh -r
 

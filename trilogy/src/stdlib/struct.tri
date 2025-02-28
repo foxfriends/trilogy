@@ -1,9 +1,0 @@
-module asm at "trilogy:struct/asm" use destruct
-module tuple at "trilogy:tuple" use fst, snd
-
-func construct s v = asm::construct!(s, v)
-
-export construct, destruct
-
-func name val = fst <| destruct val
-func value val = snd <| destruct val
