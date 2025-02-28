@@ -1,0 +1,4 @@
+proc main!() {
+  let x and 3 = 3
+  assert x == 3
+}

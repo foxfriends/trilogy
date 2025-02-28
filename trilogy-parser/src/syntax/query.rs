@@ -83,12 +83,14 @@ impl Query {
                         let pattern = expr.try_into().inspect_err(|err: &SyntaxError| {
                             parser.error(err.clone());
                         })?;
+                        // It was not an expression, so is a pattern. It's not necessarily the whole pattern
+                        // yet though, as we don't accept `and` and `or` in expressions as per the note in
+                        // the expression parsing code.
+                        let pattern =
+                            Pattern::parse_suffix(parser, pattern::Precedence::None, pattern)?;
                         Self::unification(parser, pattern)
                     }
-                    Err(pattern) => {
-                        // It was not an expression, so is a pattern
-                        Self::unification(parser, pattern)
-                    }
+                    Err(pattern) => Self::unification(parser, pattern),
                 }
             }
             _ => {

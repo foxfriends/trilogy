@@ -1,0 +1,8 @@
+proc main!() {
+  let _ = unit
+  let _ = true
+  let _ = 'hello
+  let _ = 'c'
+  let _ = 3
+  let _ = "hello"
+}
