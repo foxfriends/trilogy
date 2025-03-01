@@ -1,12 +1,11 @@
 //! The core code generation tool.
-use crate::debug_info::DebugInfo;
 use crate::types;
-use inkwell::OptimizationLevel;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::execution_engine::ExecutionEngine;
 use inkwell::module::Module;
 use inkwell::values::PointerValue;
+use inkwell::{OptimizationLevel, values::FunctionValue};
 use source_span::Span;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -15,10 +14,13 @@ use trilogy_ir::{Id, ir};
 
 mod cleanup;
 mod continuation_point;
+mod debug_info;
+mod definitions;
 mod variables;
 
 pub(crate) use continuation_point::Merger;
 use continuation_point::{ContinuationPoint, Exit, Parent};
+use debug_info::DebugInfo;
 use variables::Closed;
 pub(crate) use variables::{Head, Variable};
 
@@ -149,5 +151,17 @@ impl<'ctx> Codegen<'ctx> {
         );
         global.set_initializer(&self.context.const_string(string.as_bytes(), true));
         global.as_pointer_value()
+    }
+
+    pub(crate) fn begin_function(&self, function: FunctionValue<'ctx>, span: Span) {
+        self.di.push_subprogram(function.get_subprogram().unwrap());
+        self.di.push_block_scope(span);
+        let entry = self.context.append_basic_block(function, "entry");
+        self.builder.position_at_end(entry);
+    }
+
+    pub(crate) fn end_function(&self) {
+        self.di.pop_scope();
+        self.di.pop_scope();
     }
 }

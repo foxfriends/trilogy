@@ -4,8 +4,6 @@
 use super::{Codegen, ContinuationPoint};
 use inkwell::AddressSpace;
 use inkwell::builder::Builder;
-use inkwell::debug_info::AsDIScope;
-use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::values::{FunctionValue, PointerValue};
 use trilogy_ir::{Id, ir};
 
@@ -278,35 +276,14 @@ impl<'ctx> Codegen<'ctx> {
             .borrow_mut()
             .insert(Closed::Variable(id.id.clone()), Variable::Owned(variable));
 
-        // Add debug information, if possible. It should always be possible...
-        if let Some(subp) = self.get_function().get_subprogram() {
-            if let Some(name) = id.id.name() {
-                let di_variable = self.di.builder.create_auto_variable(
-                    subp.as_debug_info_scope(),
-                    name,
-                    self.di.unit.get_file(),
-                    id.declaration_span.start().line as u32 + 1,
-                    self.di.value_di_type().as_type(),
-                    true,
-                    LLVMDIFlagPublic,
-                    0,
-                );
-                let di_location = self.di.builder.create_debug_location(
-                    self.context,
-                    id.span.start().line as u32 + 1,
-                    id.span.start().column as u32 + 1,
-                    subp.as_debug_info_scope(),
-                    None,
-                );
-                self.di.builder.insert_declare_at_end(
-                    variable,
-                    Some(di_variable),
-                    None,
-                    di_location,
-                    builder.get_insert_block().unwrap(),
-                );
-            }
-        }
+        self.di.describe_variable(
+            variable,
+            id.id.name().unwrap(),
+            id.declaration_span,
+            &builder,
+            self.get_function().get_subprogram().unwrap(),
+            self.create_debug_location(id.declaration_span),
+        );
 
         variable
     }

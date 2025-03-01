@@ -1,5 +1,6 @@
 use inkwell::{
     AddressSpace,
+    builder::Builder,
     debug_info::{
         AsDIScope, DICompileUnit, DICompositeType, DIDerivedType, DILexicalBlock, DILocation,
         DIScope, DISubprogram, DISubroutineType, DWARFEmissionKind, DWARFSourceLanguage,
@@ -7,7 +8,7 @@ use inkwell::{
     },
     llvm_sys::debuginfo::LLVMDIFlagPublic,
     module::Module,
-    values::FunctionValue,
+    values::{FunctionValue, PointerValue},
 };
 use source_span::Span;
 use std::{cell::RefCell, path::PathBuf, rc::Rc};
@@ -121,6 +122,30 @@ impl<'ctx> DebugInfo<'ctx> {
         }
     }
 
+    pub(super) fn create_function(
+        &self,
+        name: &str,
+        linkage_name: &str,
+        di_type: DISubroutineType<'ctx>,
+        span: Span,
+        is_local_to_unit: bool,
+        is_definition: bool,
+    ) -> DISubprogram<'ctx> {
+        self.builder.create_function(
+            self.unit.get_file().as_debug_info_scope(),
+            name,
+            Some(linkage_name),
+            self.unit.get_file(),
+            span.start().line as u32 + 1,
+            di_type,
+            is_local_to_unit,
+            is_definition,
+            span.start().line as u32 + 1,
+            LLVMDIFlagPublic,
+            false,
+        )
+    }
+
     pub(crate) fn value_di_type(&self) -> DICompositeType<'ctx> {
         self.value_type
     }
@@ -183,18 +208,50 @@ impl<'ctx> DebugInfo<'ctx> {
             .unwrap()
             .as_debug_info_scope()
     }
+
+    pub(crate) fn describe_variable(
+        &self,
+        variable: PointerValue<'ctx>,
+        name: &str,
+        span: Span,
+        builder: &Builder<'ctx>,
+        function: DISubprogram<'ctx>,
+        location: DILocation<'ctx>,
+    ) {
+        let di_variable = self.builder.create_auto_variable(
+            function.as_debug_info_scope(),
+            name,
+            self.unit.get_file(),
+            span.start().line as u32 + 1,
+            self.value_di_type().as_type(),
+            true,
+            LLVMDIFlagPublic,
+            0,
+        );
+        self.builder.insert_declare_at_end(
+            variable,
+            Some(di_variable),
+            None,
+            location,
+            builder.get_insert_block().unwrap(),
+        );
+    }
 }
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn set_span(&self, span: Span) -> Option<DILocation<'ctx>> {
-        let prev = self.builder.get_current_debug_location();
-        let location = self.di.builder.create_debug_location(
+    pub(super) fn create_debug_location(&self, span: Span) -> DILocation<'ctx> {
+        self.di.builder.create_debug_location(
             self.context,
             span.start().line as u32 + 1,
             span.start().column as u32 + 1,
             self.di.get_debug_scope(),
             None,
-        );
+        )
+    }
+
+    pub(crate) fn set_span(&self, span: Span) -> Option<DILocation<'ctx>> {
+        let prev = self.builder.get_current_debug_location();
+        let location = self.create_debug_location(span);
         self.builder.set_current_debug_location(location);
         prev
     }

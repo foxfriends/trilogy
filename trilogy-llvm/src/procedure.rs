@@ -1,8 +1,6 @@
 use crate::Codegen;
 use inkwell::{
-    attributes::{Attribute, AttributeLoc},
-    debug_info::AsDIScope,
-    llvm_sys::{LLVMCallConv, debuginfo::LLVMDIFlagPublic},
+    llvm_sys::LLVMCallConv,
     module::Linkage,
     values::{BasicMetadataValueEnum, FunctionValue},
 };
@@ -12,6 +10,23 @@ use trilogy_ir::ir;
 const MAIN_NAME: &str = "trilogy:::main";
 
 impl<'ctx> Codegen<'ctx> {
+    fn write_accessor(
+        &self,
+        accessor: FunctionValue<'ctx>,
+        accessing: FunctionValue<'ctx>,
+        arity: usize,
+    ) {
+        let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
+        let accessor_entry = self.context.append_basic_block(accessor, "entry");
+        self.builder.position_at_end(accessor_entry);
+        self.trilogy_callable_init_proc(
+            sret,
+            arity,
+            accessing.as_global_value().as_pointer_value(),
+        );
+        self.builder.build_return(None).unwrap();
+    }
+
     pub(crate) fn declare_extern_procedure(
         &self,
         name: &str,
@@ -21,53 +36,14 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let accessor_name = format!("{}::{}", self.location, name);
         let wrapper_name = format!("{}::{}.fastcc", self.location, name);
-        let original_function =
-            self.module
-                .add_function(name, self.external_type(arity), Some(Linkage::External));
-        let procedure_scope = self.di.builder.create_function(
-            self.di.unit.get_file().as_debug_info_scope(),
-            name,
-            Some(name),
-            self.di.unit.get_file(),
-            span.start().line as u32 + 1,
-            self.di.procedure_di_type(arity),
-            linkage != Linkage::External,
-            false,
-            span.start().line as u32 + 1,
-            LLVMDIFlagPublic,
-            false,
-        );
-        original_function.set_subprogram(procedure_scope);
+        let original_function = self.add_external_declaration(name, arity, span);
 
         // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that
         // converts to CCC.
-        let wrapper_function = self.module.add_function(
-            &wrapper_name,
-            self.procedure_type(arity, false),
-            Some(Linkage::Private),
-        );
-        let wrapper_scope = self.di.builder.create_function(
-            self.di.unit.get_file().as_debug_info_scope(),
-            &wrapper_name,
-            Some(&wrapper_name),
-            self.di.unit.get_file(),
-            span.start().line as u32 + 1,
-            self.di.procedure_di_type(arity),
-            true,
-            true,
-            span.start().line as u32 + 1,
-            LLVMDIFlagPublic,
-            false,
-        );
-        wrapper_function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
-        wrapper_function.set_subprogram(wrapper_scope);
-        let wrapper_entry = self.context.append_basic_block(wrapper_function, "entry");
-        self.builder.position_at_end(wrapper_entry);
-        self.di.push_subprogram(wrapper_scope);
-        self.di.push_block_scope(span);
+        let wrapper_function = self.add_procedure(&wrapper_name, arity, &wrapper_name, span, true);
+        self.begin_function(wrapper_function, span);
         self.set_span(span);
         self.set_current_definition(wrapper_name.to_owned(), span);
-
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
         params.extend(wrapper_function.get_param_iter().skip(3).map(|val| {
@@ -83,31 +59,12 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.call_continuation(self.get_return(""), ret_val);
         self.close_continuation();
-        self.di.pop_scope();
-        self.di.pop_scope();
+        self.end_function();
 
-        let accessor =
-            self.module
-                .add_function(&accessor_name, self.accessor_type(), Some(linkage));
+        let accessor = self.add_accessor(&accessor_name, linkage);
         self.set_current_definition(accessor_name.to_owned(), span);
         self.builder.unset_current_debug_location();
-        accessor.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
-        let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
-        let accessor_entry = self.context.append_basic_block(accessor, "entry");
-        self.builder.position_at_end(accessor_entry);
-        self.trilogy_callable_init_proc(
-            sret,
-            arity,
-            wrapper_function.as_global_value().as_pointer_value(),
-        );
-        self.builder.build_return(None).unwrap();
+        self.write_accessor(accessor, wrapper_function, arity);
     }
 
     pub(crate) fn declare_procedure(
@@ -120,47 +77,16 @@ impl<'ctx> Codegen<'ctx> {
         let accessor_name = format!("{}::{}", self.location, name);
         let linkage_name = if name == "main" { MAIN_NAME } else { name };
 
-        let procedure_scope = self.di.builder.create_function(
-            self.di.unit.get_file().as_debug_info_scope(),
-            name,
-            Some(linkage_name),
-            self.di.unit.get_file(),
-            span.start().line as u32 + 1,
-            self.di.procedure_di_type(arity),
-            linkage != Linkage::External,
-            true,
-            span.start().line as u32 + 1,
-            LLVMDIFlagPublic,
-            false,
-        );
-
-        let function = self.module.add_function(
+        let function = self.add_procedure(
             linkage_name,
-            self.procedure_type(arity, false),
-            Some(Linkage::Private),
+            arity,
+            name,
+            span,
+            linkage != Linkage::External,
         );
-        function.set_subprogram(procedure_scope);
-        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
-        function.get_nth_param(0).unwrap().set_name("return_to");
-        function.get_nth_param(1).unwrap().set_name("yield_to");
-        function.get_nth_param(2).unwrap().set_name("end_to");
 
-        let accessor =
-            self.module
-                .add_function(&accessor_name, self.accessor_type(), Some(linkage));
-        accessor.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
-        let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
-        let accessor_entry = self.context.append_basic_block(accessor, "entry");
-        self.builder.position_at_end(accessor_entry);
-        self.trilogy_callable_init_proc(sret, arity, function.as_global_value().as_pointer_value());
-        self.builder.build_return(None).unwrap();
+        let accessor = self.add_accessor(&accessor_name, linkage);
+        self.write_accessor(accessor, function, arity);
 
         function
     }
@@ -195,12 +121,8 @@ impl<'ctx> Codegen<'ctx> {
         function: FunctionValue<'ctx>,
         procedure: &ir::Procedure,
     ) {
-        self.di.push_subprogram(function.get_subprogram().unwrap());
-        self.di.push_block_scope(procedure.span);
-        let entry = self.context.append_basic_block(function, "entry");
-
+        self.begin_function(function, procedure.span);
         'body: {
-            self.builder.position_at_end(entry);
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
                 // NOTE: params start at 3, due to return, yield, and end
@@ -227,8 +149,6 @@ impl<'ctx> Codegen<'ctx> {
                 self.call_continuation(ret, self.allocate_const(self.unit_const(), ""));
             }
         }
-
-        self.di.pop_scope();
-        self.di.pop_scope();
+        self.end_function();
     }
 }
