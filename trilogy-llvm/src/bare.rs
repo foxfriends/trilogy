@@ -424,6 +424,26 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_callable_cancel_to_into(
+        &self,
+        target: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_cancel_to_into",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), callable.into()], "")
+            .unwrap();
+    }
+
     /// Untags a procedure. The value should be a `trilogy_callable_value` and the return pointer will be
     /// a bare function pointer.
     pub(crate) fn trilogy_procedure_untag(
@@ -469,6 +489,28 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
             "trilogy_continuation_untag",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    /// Untags a handler. The value should be a `trilogy_callable_value` and the return pointer will be
+    /// a bare function pointer.
+    pub(crate) fn trilogy_handler_untag(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_handler_untag",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 false,
@@ -796,7 +838,7 @@ impl<'ctx> Codegen<'ctx> {
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
-        function: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_handler",
@@ -821,7 +863,7 @@ impl<'ctx> Codegen<'ctx> {
                     yield_to.into(),
                     cancel_to.into(),
                     closure.into(),
-                    function.into(),
+                    function.as_global_value().as_pointer_value().into(),
                 ],
                 "",
             )

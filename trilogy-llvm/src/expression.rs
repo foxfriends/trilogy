@@ -125,7 +125,7 @@ impl<'ctx> Codegen<'ctx> {
             yield_to,
             cancel_to,
             closure,
-            handler_function.as_global_value().as_pointer_value(),
+            handler_function,
         );
 
         let body_closure = self.continue_in_scope_handled(body_function, handler);
@@ -164,7 +164,6 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_handlers(&self, _handlers: &[ir::Handler]) {
         let end = self.builder.build_unreachable().unwrap();
         self.end_continuation_point_as_clean(end);
-        // todo!()
     }
 
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
@@ -352,12 +351,8 @@ impl<'ctx> Codegen<'ctx> {
                 Some(out)
             }
             Builtin::Yield => {
-                let _effect = self.compile_expression(expression, name)?;
-                self.compile_end();
-                None
-                // TODO: implement this properly
-                // let yield_cont = self.get_yield("");
-                // self.call_continuation(yield_cont, effect);
+                let effect = self.compile_expression(expression, name)?;
+                Some(self.call_yield(effect, name))
             }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, name)?;

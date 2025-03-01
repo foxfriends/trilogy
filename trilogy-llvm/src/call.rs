@@ -437,8 +437,9 @@ impl<'ctx> Codegen<'ctx> {
             return_closure,
             chain_function,
         );
-        self.trilogy_callable_init_cont(
+        self.trilogy_callable_init_handler(
             yield_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             yield_closure,
@@ -499,5 +500,64 @@ impl<'ctx> Codegen<'ctx> {
         args.extend_from_slice(arguments);
         let call = self.builder.build_call(procedure, &args, "").unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+    }
+
+    pub(crate) fn call_yield(&self, effect: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+        let handler_value = self.get_yield("");
+        let handler = self.trilogy_callable_untag(handler_value, "");
+        let end_to = self.get_end("");
+
+        let return_to = self.allocate_value("");
+        let yield_to = self.allocate_value("");
+        let cancel_to = self.allocate_value("");
+        let closure = self.allocate_value("");
+        self.trilogy_callable_return_to_into(return_to, handler);
+        self.trilogy_callable_yield_to_into(yield_to, handler);
+        self.trilogy_callable_cancel_to_into(cancel_to, handler);
+        self.trilogy_callable_closure_into(closure, handler, "");
+
+        let (continuation_function, resume_to) = self.close_current_continuation();
+        let args = vec![
+            self.builder
+                .build_load(self.value_type(), return_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), yield_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), end_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), effect, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), cancel_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), resume_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), closure, "")
+                .unwrap()
+                .into(),
+        ];
+        let handler_continuation = self.trilogy_handler_untag(handler, "");
+        self.builder
+            .build_indirect_call(self.handler_type(), handler_continuation, &args, name)
+            .unwrap();
+        self.builder.build_unreachable().unwrap();
+
+        let entry = self
+            .context
+            .append_basic_block(continuation_function, "entry");
+        self.builder.position_at_end(entry);
+        self.transfer_debug_info(continuation_function);
+        self.get_continuation(name)
     }
 }

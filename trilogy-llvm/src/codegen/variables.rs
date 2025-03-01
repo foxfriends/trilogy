@@ -114,6 +114,28 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    /// When in a handler function, gets the cancel to pointer.
+    pub(crate) fn get_cancel(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
+        self.builder
+            .build_store(temp, self.get_function().get_nth_param(4).unwrap())
+            .unwrap();
+        self.trilogy_value_clone_into(container, temp);
+        container
+    }
+
+    /// When in a handler function, gets the resume to pointer.
+    pub(crate) fn get_resume(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
+        self.builder
+            .build_store(temp, self.get_function().get_nth_param(5).unwrap())
+            .unwrap();
+        self.trilogy_value_clone_into(container, temp);
+        container
+    }
+
     /// When in a closure, retrieves an upvalue from the captured closure.
     ///
     /// The closure is always passed as the last parameter, and is a Trilogy array of Trilogy references.

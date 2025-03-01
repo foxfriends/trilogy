@@ -18,7 +18,7 @@ mod debug_info;
 mod definitions;
 mod variables;
 
-pub(crate) use continuation_point::{Merger, Brancher};
+pub(crate) use continuation_point::{Brancher, Merger};
 use continuation_point::{ContinuationPoint, Exit, Parent};
 use debug_info::DebugInfo;
 use variables::Closed;

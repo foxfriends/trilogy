@@ -116,17 +116,17 @@ void trilogy_callable_init_handler(
 ) {
     assert(closure != NO_CLOSURE);
     assert(closure->tag == TAG_ARRAY);
-    assert(return_to != NULL);
-    assert(yield_to != NULL);
-    assert(cancel_to != NULL);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     callable->rc = 1;
     callable->tag = CALLABLE_HANDLER;
     callable->arity = 2;
-    callable->return_to = trilogy_callable_assume(return_to);
-    callable->yield_to = trilogy_callable_assume(yield_to);
-    callable->cancel_to = trilogy_callable_assume(cancel_to);
+    callable->return_to =
+        return_to == NULL ? NULL : trilogy_callable_assume(return_to);
+    callable->yield_to =
+        yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
+    callable->cancel_to =
+        cancel_to == NULL ? NULL : trilogy_callable_assume(cancel_to);
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -166,6 +166,13 @@ void trilogy_callable_yield_to_into(
     trilogy_callable_clone_into(val, cal->yield_to);
 }
 
+void trilogy_callable_cancel_to_into(
+    trilogy_value* val, trilogy_callable_value* cal
+) {
+    if (cal->cancel_to == NULL) return;
+    trilogy_callable_clone_into(val, cal->cancel_to);
+}
+
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
     if (val->tag != TAG_CALLABLE) rte("callable", val->tag);
     return trilogy_callable_assume(val);
@@ -199,5 +206,11 @@ void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity) {
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
     if (val->tag != CALLABLE_CONTINUATION)
         internal_panic("invalid call of non-rule callable\n");
+    return (void*)val->function;
+}
+
+void* trilogy_handler_untag(trilogy_callable_value* val) {
+    if (val->tag != CALLABLE_HANDLER)
+        internal_panic("invalid yield to non-handler callable\n");
     return (void*)val->function;
 }
