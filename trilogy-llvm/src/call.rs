@@ -263,36 +263,62 @@ impl<'ctx> Codegen<'ctx> {
         function: PointerValue<'ctx>,
         argument: PointerValue<'ctx>,
     ) {
+        self.call_continuation_inner(
+            function,
+            self.builder
+                .build_load(self.value_type(), argument, "")
+                .unwrap()
+                .into(),
+        )
+    }
+
+    /// Applies a continuation value, passing void as its argument. The called continuation must
+    /// not refer to the value. See `call_continuation` for more info.
+    pub(crate) fn void_call_continuation(&self, function: PointerValue<'ctx>) {
+        self.call_continuation_inner(function, self.value_type().const_zero().into())
+    }
+
+    fn call_continuation_inner(
+        &self,
+        function: PointerValue<'ctx>,
+        argument: BasicMetadataValueEnum<'ctx>,
+    ) {
         let callable = self.trilogy_callable_untag(function, "");
         let continuation = self.trilogy_continuation_untag(callable, "");
 
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
+        let end_to = self.get_end("");
         self.trilogy_callable_return_to_into(return_to, callable);
         self.trilogy_callable_yield_to_into(yield_to, callable);
+        let closure = self.get_callable_closure(callable);
 
-        let args: Vec<_> = [
-            return_to,
-            yield_to,
-            self.get_end(""),
-            argument,
-            self.get_callable_closure(callable),
-        ]
-        .iter()
-        .map(|val| {
+        let args = &[
             self.builder
-                .build_load(self.value_type(), *val, "")
+                .build_load(self.value_type(), return_to, "")
                 .unwrap()
-                .into()
-        })
-        .collect();
+                .into(),
+            self.builder
+                .build_load(self.value_type(), yield_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), end_to, "")
+                .unwrap()
+                .into(),
+            argument,
+            self.builder
+                .build_load(self.value_type(), closure, "")
+                .unwrap()
+                .into(),
+        ];
 
         self.trilogy_value_destroy(function);
 
         // NOTE: cleanup will be inserted here
         let call = self
             .builder
-            .build_indirect_call(self.continuation_type(), continuation, &args, "")
+            .build_indirect_call(self.continuation_type(), continuation, args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
@@ -319,7 +345,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        let args = vec![
+        let args = &[
             self.builder
                 .build_load(self.value_type(), return_to, "")
                 .unwrap()
@@ -339,7 +365,7 @@ impl<'ctx> Codegen<'ctx> {
                 .into(),
         ];
 
-        let call = self.builder.build_direct_call(function, &args, "").unwrap();
+        let call = self.builder.build_direct_call(function, args, "").unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
         self.builder.build_return(None).unwrap();
@@ -453,19 +479,24 @@ impl<'ctx> Codegen<'ctx> {
             end_function,
         );
 
-        let args: Vec<_> = [return_continuation, yield_continuation, end_continuation]
-            .iter()
-            .map(|arg| {
-                self.builder
-                    .build_load(self.value_type(), *arg, "")
-                    .unwrap()
-                    .into()
-            })
-            .collect();
+        let args = &[
+            self.builder
+                .build_load(self.value_type(), return_continuation, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), yield_continuation, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), end_continuation, "")
+                .unwrap()
+                .into(),
+        ];
         self.trilogy_value_destroy(value);
         let call = self
             .builder
-            .build_indirect_call(self.procedure_type(0, false), function, &args, "")
+            .build_indirect_call(self.procedure_type(0, false), function, args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         self.builder.build_return(None).unwrap();
@@ -517,7 +548,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(closure, handler, "");
 
         let (continuation_function, resume_to) = self.close_current_continuation();
-        let args = vec![
+        let args = &[
             self.builder
                 .build_load(self.value_type(), return_to, "")
                 .unwrap()
@@ -549,7 +580,7 @@ impl<'ctx> Codegen<'ctx> {
         ];
         let handler_continuation = self.trilogy_handler_untag(handler, "");
         self.builder
-            .build_indirect_call(self.handler_type(), handler_continuation, &args, name)
+            .build_indirect_call(self.handler_type(), handler_continuation, args, name)
             .unwrap();
         self.builder.build_unreachable().unwrap();
 

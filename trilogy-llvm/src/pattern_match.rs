@@ -112,7 +112,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.builder.position_at_end(fail);
         let end = self.get_end("");
-        self.call_continuation(end, self.allocate_const(self.unit_const(), ""));
+        self.void_call_continuation(end);
 
         self.builder.position_at_end(cont);
         self.resume_continuation_point(&brancher);
