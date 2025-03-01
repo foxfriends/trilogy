@@ -1,0 +1,21 @@
+module io at "trilogy:io"
+
+proc inner!() {
+  let r = yield 'in
+  assert r == 'a
+  yield 'out
+
+  assert "unreachable" as false
+}
+
+proc main!() {
+  let x = with inner!()
+    when 'in then {
+      if resume 'a
+        then cancel 1
+        else cancel 2
+    }
+    when 'out cancel false
+    else yield
+  assert x == 2
+}
