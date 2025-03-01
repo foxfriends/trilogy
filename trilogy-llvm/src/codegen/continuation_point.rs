@@ -1,0 +1,256 @@
+use super::{Closed, Codegen, Variable};
+use inkwell::debug_info::DILocation;
+use inkwell::values::{InstructionValue, PointerValue};
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
+use std::rc::{Rc, Weak};
+
+#[derive(Clone, Debug)]
+pub(super) struct Parent<'ctx> {
+    pub parent: Weak<ContinuationPoint<'ctx>>,
+    pub instruction: InstructionValue<'ctx>,
+    pub debug_location: DILocation<'ctx>,
+}
+
+/// During the reverse continuation phase, when closing this continuation block,
+/// insert the instructions to build the closure after this instruction, and
+/// replace this instruction with the allocation of a properly sized closure array.
+#[derive(Clone, Debug)]
+pub(super) enum Exit<'ctx> {
+    Close(Parent<'ctx>),
+    Clean(Parent<'ctx>),
+    Capture(Parent<'ctx>),
+}
+
+/// A `Brancher` is created when a continuation point will end in more than one place (i.e. it branches).
+///
+/// At each place this continuation point might end, an `add_branch_end_` function should be called
+/// to correctly end the continuation in that position.
+pub(crate) struct Brancher<'ctx>(Rc<ContinuationPoint<'ctx>>);
+
+/// A `Merger` collects ended continuation points without starting the next continuation point immediately,
+/// typically when there are multiple continuations being built separately which will later both continue
+/// to the same place (i.e. merge).
+#[derive(Default)]
+pub(crate) struct Merger<'ctx>(Vec<Exit<'ctx>>);
+
+impl<'ctx> Merger<'ctx> {
+    fn close_from(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.0.push(Exit::Close(Parent {
+            parent: Rc::downgrade(parent),
+            instruction,
+            debug_location,
+        }));
+    }
+}
+
+/// NOTE: Continuations for return, yield, and end are implicitly carried
+/// as parameters to a continuation, as per calling convention.
+#[derive(Default, Debug)]
+pub(super) struct ContinuationPoint<'ctx> {
+    /// Pointers to variables available at this point in the continuation.
+    /// These pointers may be to values on stack, or to locations in the closure.
+    pub variables: RefCell<HashMap<Closed<'ctx>, Variable<'ctx>>>,
+    /// The list of all variables which can possibly be referenced from this location.
+    /// If the variable is not already referenced (i.e. found in the `variables` map),
+    /// then it must be requested from all of the `capture_from` continuation points
+    /// and added to the closure array and variables map.
+    pub parent_variables: HashSet<Closed<'ctx>>,
+
+    /// Maintains the order of variables found in the closure array.
+    pub closure: RefCell<Vec<Closed<'ctx>>>,
+    /// The mapping from variable names to their upvalues. If one already exists for a variable
+    /// as it is being captured, it must be reused.
+    pub upvalues: RefCell<HashMap<Closed<'ctx>, PointerValue<'ctx>>>,
+    /// The lexical pre-continuations from which this continuation may be reached. May be many
+    /// in the case of branching instructions such as `if` or `match`.
+    pub parents: Vec<Exit<'ctx>>,
+
+    /// A bit of a hack, but this is tracking all places that a variable is destroyed during
+    /// scope cleanup without being closed. If we later determine that we need to close that
+    /// variable, this allows us to go back and make sure it was closed after all.
+    pub unclosed: RefCell<HashMap<PointerValue<'ctx>, Vec<InstructionValue<'ctx>>>>,
+}
+
+impl<'ctx> ContinuationPoint<'ctx> {
+    fn chain(&self) -> Self {
+        Self {
+            variables: RefCell::default(),
+            closure: RefCell::default(),
+            parent_variables: self
+                .variables
+                .borrow()
+                .keys()
+                .chain(self.parent_variables.iter())
+                .cloned()
+                .collect(),
+            upvalues: RefCell::default(),
+            parents: vec![],
+            unclosed: RefCell::default(),
+        }
+    }
+
+    fn close_from(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.parents.push(Exit::Close(Parent {
+            parent: Rc::downgrade(parent),
+            instruction,
+            debug_location,
+        }));
+    }
+
+    fn clean_from(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.parents.push(Exit::Clean(Parent {
+            parent: Rc::downgrade(parent),
+            instruction,
+            debug_location,
+        }));
+    }
+
+    fn capture_from(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        instruction: InstructionValue<'ctx>,
+        debug_location: DILocation<'ctx>,
+    ) {
+        self.parents.push(Exit::Capture(Parent {
+            parent: Rc::downgrade(parent),
+            instruction,
+            debug_location,
+        }));
+    }
+}
+
+impl<'ctx> Codegen<'ctx> {
+    /// Ends the current continuation point. Cleanup code will be inserted before the provided
+    /// instruction which captures any values referenced by the continuation, and destroys any
+    /// remaining values that are going out of scope. The instruction should be an `alloca`
+    /// used as if it were the closure value, and will be replaced with the actual closure
+    /// construction instructions at a later time.
+    ///
+    /// A new implicit continuation point is started immediately.
+    pub(crate) fn end_continuation_point_as_close(
+        &self,
+        closure_allocation: InstructionValue<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let last = cps.last().unwrap();
+        let mut next = last.chain();
+        next.close_from(
+            last,
+            closure_allocation,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+        cps.push(Rc::new(next));
+    }
+
+    /// Ends the current continuation point. Cleanup code will be inserted before the provided
+    /// instruction which destroys all values that will be going out of scope. The instruction
+    /// should typically be the final `call` instruction in the that is being exited.
+    ///
+    /// After this, there is no valid implicit continuation point. A cleaned continuation should
+    /// be at the end of a lexical scope.
+    pub(crate) fn end_continuation_point_as_clean(&self, call_instruction: InstructionValue<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let last = cps.last().unwrap();
+        let mut next = last.chain();
+        next.clean_from(
+            last,
+            call_instruction,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+        cps.push(Rc::new(next));
+    }
+
+    /// Adds an ending to the previously branched continuation point. There should be no
+    /// existing implicit continuation point, and starts a new implicit continuation point.
+    pub(crate) fn add_branch_end_as_close(
+        &self,
+        brancher: &Brancher<'ctx>,
+        closure_allocation: InstructionValue<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let mut next = brancher.0.chain();
+        next.close_from(
+            &brancher.0,
+            closure_allocation,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+        cps.push(Rc::new(next));
+    }
+
+    /// Resumes a continuation point that was previously held for a branch, which was used
+    /// only for non-ending captures, and not actually ended. The previously branched from
+    /// continuation point becomes the implicit continuation point again.
+    pub(crate) fn resume_continuation_point(&self, brancher: &Brancher<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        cps.push(brancher.0.clone());
+    }
+
+    /// Adds a non-ending capture on this branch. The branch must still be ended later with
+    /// a proper branch ending function.
+    ///
+    /// A placeholder closure allocation must be passed, which will later be replaced by
+    /// instructions to capture the values required by the closure.
+    ///
+    /// There should be no implicit continuation point before calling this, as this will
+    /// start a new one.
+    pub(crate) fn add_branch_capture(
+        &self,
+        brancher: &Brancher<'ctx>,
+        closure_allocation: InstructionValue<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let mut next = brancher.0.chain();
+        next.capture_from(
+            &brancher.0,
+            closure_allocation,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+        cps.push(Rc::new(next));
+    }
+
+    /// Prepares the current continuation point to branch into multiple endings.
+    /// The current continuation point remains the implicit continuation point,
+    /// but can safely be ignored without ending it, as it may be ended later.
+    pub(crate) fn end_continuation_point_as_branch(&self) -> Brancher<'ctx> {
+        let parent = self.continuation_points.borrow().last().unwrap().clone();
+        Brancher(parent)
+    }
+
+    /// Ends the current continuation point, but does not start a new implicit
+    /// continuation point.
+    pub(crate) fn end_continuation_point_as_merge(
+        &self,
+        merger: &mut Merger<'ctx>,
+        instruction: InstructionValue<'ctx>,
+    ) {
+        let cps = self.continuation_points.borrow();
+        merger.close_from(
+            cps.last().unwrap(),
+            instruction,
+            self.builder.get_current_debug_location().unwrap(),
+        );
+    }
+
+    pub(crate) fn merge_branch(&self, branch: Brancher<'ctx>, merger: Merger<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let mut cp = branch.0.chain();
+        cp.parents = merger.0;
+        cps.push(Rc::new(cp))
+    }
+}
