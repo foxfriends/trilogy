@@ -1,4 +1,5 @@
-use crate::{codegen::Codegen, types::CALLABLE_CONTINUATION};
+use crate::codegen::{Brancher, Codegen};
+use crate::types::CALLABLE_CONTINUATION;
 use inkwell::{
     AddressSpace, IntPredicate,
     llvm_sys::LLVMCallConv,
@@ -40,24 +41,48 @@ impl<'ctx> Codegen<'ctx> {
         bound_closure
     }
 
+    /// Constructs a TrilogyValue that represents the continuation from a branch.
+    /// This does not end the branch, only adds a capture point to it.
+    pub(crate) fn capture_current_continuation(
+        &self,
+        branch: &Brancher<'ctx>,
+    ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
+        self.construct_current_continuation(Some(branch))
+    }
+
     /// Constructs a TrilogyValue that represents the current continuation.
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,
     /// so may not be referenced.
-    pub(crate) fn construct_current_continuation(
+    pub(crate) fn close_current_continuation(&self) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
+        self.construct_current_continuation(None)
+    }
+
+    /// Constructs a TrilogyValue that represents the current continuation.
+    ///
+    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
+    /// so may not be referenced.
+    fn construct_current_continuation(
         &self,
+        branch: Option<&Brancher<'ctx>>,
     ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
         let continuation_function = self.add_continuation("");
         let continuation = self.allocate_value("cc");
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
 
+        self.bind_temporary(continuation);
+
         let closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
-        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        if let Some(branch) = branch {
+            self.add_branch_capture(branch, closure.as_instruction_value().unwrap());
+        } else {
+            // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+            self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        }
         self.trilogy_callable_init_cont(
             continuation,
             return_to,
@@ -129,7 +154,7 @@ impl<'ctx> Codegen<'ctx> {
         let yield_to = self.get_yield("");
 
         // All variables and values are invalid after this point.
-        let (continuation_function, current_continuation) = self.construct_current_continuation();
+        let (continuation_function, current_continuation) = self.close_current_continuation();
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + 4);

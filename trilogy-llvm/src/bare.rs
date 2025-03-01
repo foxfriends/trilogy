@@ -799,7 +799,7 @@ impl<'ctx> Codegen<'ctx> {
         function: PointerValue<'ctx>,
     ) {
         let f = self.declare_bare(
-            "trilogy_callable_init_cont",
+            "trilogy_callable_init_handler",
             self.context.void_type().fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),

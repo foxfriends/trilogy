@@ -66,29 +66,30 @@ impl<'ctx> Merger<'ctx> {
 /// These two structures do not have to align perfectly: a closure is semantically disconnected
 /// but lexically connected, while a merge is lexically disconnected but semantically connected.
 #[derive(Default, Debug)]
-pub(super) struct ContinuationPoint<'ctx> {
+pub(crate) struct ContinuationPoint<'ctx> {
     /// Pointers to variables available at this point in the continuation.
     /// These pointers may be to values on stack, or to locations in the closure.
-    pub variables: RefCell<HashMap<Closed<'ctx>, Variable<'ctx>>>,
+    pub(super) variables: RefCell<HashMap<Closed<'ctx>, Variable<'ctx>>>,
     /// The list of all variables which can possibly be referenced from this location.
     /// If the variable is not already referenced (i.e. found in the `variables` map),
     /// then it must be requested from all of the `capture_from` continuation points
     /// and added to the closure array and variables map.
-    pub parent_variables: HashSet<Closed<'ctx>>,
+    pub(super) parent_variables: HashSet<Closed<'ctx>>,
 
     /// Maintains the order of variables found in the closure array.
-    pub closure: RefCell<Vec<Closed<'ctx>>>,
+    pub(super) closure: RefCell<Vec<Closed<'ctx>>>,
     /// The mapping from variable names to their upvalues. If one already exists for a variable
     /// as it is being captured, it must be reused.
-    pub upvalues: RefCell<HashMap<Closed<'ctx>, PointerValue<'ctx>>>,
+    pub(super) upvalues: RefCell<HashMap<Closed<'ctx>, PointerValue<'ctx>>>,
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
-    pub parents: Vec<Exit<'ctx>>,
+    pub(super) parents: Vec<Exit<'ctx>>,
 
     /// A bit of a hack, but this is tracking all places that a variable is destroyed during
     /// scope cleanup without being closed. If we later determine that we need to close that
     /// variable, this allows us to go back and make sure it was closed after all.
-    pub unclosed: RefCell<HashMap<PointerValue<'ctx>, Vec<InstructionValue<'ctx>>>>,
+    pub(super) unclosed:
+        RefCell<HashMap<PointerValue<'ctx>, Vec<(InstructionValue<'ctx>, DILocation<'ctx>)>>>,
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
@@ -193,6 +194,22 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.get_current_debug_location().unwrap(),
         );
         cps.push(Rc::new(next));
+    }
+
+    /// Pops the current continuation point, typically because it is not yet being handled.
+    /// Add it back later with `become_continuation_point` when it is ready to be written to.
+    pub(crate) fn hold_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
+        self.continuation_points.borrow_mut().pop().unwrap()
+    }
+
+    /// Reinstates a previously held continuation point.
+    pub(crate) fn become_continuation_point(
+        &self,
+        continuation_point: Rc<ContinuationPoint<'ctx>>,
+    ) {
+        self.continuation_points
+            .borrow_mut()
+            .push(continuation_point);
     }
 
     /// Adds an ending to the previously branched continuation point. There should be no

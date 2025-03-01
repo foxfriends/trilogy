@@ -78,11 +78,10 @@ impl<'ctx> Codegen<'ctx> {
                         self.trilogy_value_destroy(*pointer);
                     } else {
                         let instruction = self.trilogy_value_destroy(*pointer);
-                        cp.unclosed
-                            .borrow_mut()
-                            .entry(*pointer)
-                            .or_default()
-                            .push(instruction);
+                        cp.unclosed.borrow_mut().entry(*pointer).or_default().push((
+                            instruction,
+                            self.builder.get_current_debug_location().unwrap(),
+                        ));
                     }
                 }
                 Variable::Closed { upvalue, .. } => {
@@ -152,6 +151,7 @@ impl<'ctx> Codegen<'ctx> {
                         upvalues.insert(id.clone(), original_upvalue);
 
                         if let Some(closing) = scope.unclosed.borrow_mut().remove(&variable) {
+                            let debug_location = self.builder.get_current_debug_location().unwrap();
                             // Due to the order of the code, captures appear above closes and cleans for
                             // the same parent in the continuation_points list.
                             //
@@ -159,10 +159,12 @@ impl<'ctx> Codegen<'ctx> {
                             // building the cleaning/closing closures, so that those ones have the upvalues
                             // list set properly... but since that's not that easy, we just store the list
                             // of unclosed destroyed variables and close them if necessary
-                            for instruction in closing {
+                            for (instruction, di_location) in closing {
                                 builder.position_before(&instruction);
+                                builder.set_current_debug_location(di_location);
                                 self.trilogy_reference_close_in(&builder, upvalue_internal);
                             }
+                            self.builder.set_current_debug_location(debug_location);
                         }
 
                         let new_upvalue = self.allocate_value(&upvalue_name);

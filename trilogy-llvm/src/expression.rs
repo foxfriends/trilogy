@@ -107,16 +107,20 @@ impl<'ctx> Codegen<'ctx> {
         let brancher = self.end_continuation_point_as_branch();
 
         let return_to = self.get_return("");
-        let (cancel_to_function, cancel_to) = self.construct_current_continuation();
+        let yield_to = self.get_return("");
+        let (cancel_to_function, cancel_to) = self.capture_current_continuation(&brancher);
+        let cancel_to_continuation_point = self.hold_continuation_point();
 
         // construct handler
         let closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
             .unwrap();
-        let yield_to = self.allocate_value("");
+        self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
+        let handler_continuation_point = self.hold_continuation_point();
+        let handler = self.allocate_value("yield");
         self.trilogy_callable_init_handler(
-            yield_to,
+            handler,
             return_to,
             yield_to,
             cancel_to,
@@ -124,7 +128,7 @@ impl<'ctx> Codegen<'ctx> {
             handler_function.as_global_value().as_pointer_value(),
         );
 
-        let body_closure = self.continue_in_scope_handled(body_function, yield_to);
+        let body_closure = self.continue_in_scope_handled(body_function, handler);
         self.add_branch_end_as_close(&brancher, body_closure);
 
         let body_entry = self.context.append_basic_block(body_function, "entry");
@@ -141,14 +145,16 @@ impl<'ctx> Codegen<'ctx> {
         // carry the yield_to pointer, or maybe we can just use the fact that the yield_to
         // pointer is already containing the parent yield_to inside of it somewhere, so we
         // can just go back that way without having to carry any more.
+        let cancel_to = self.use_temporary(cancel_to).unwrap().ptr();
         self.call_continuation(cancel_to, result);
 
-        self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
+        self.become_continuation_point(handler_continuation_point);
         let handler_entry = self.context.append_basic_block(handler_function, "entry");
         self.builder.position_at_end(handler_entry);
         self.transfer_debug_info(handler_function);
         self.compile_handlers(&handled.handlers);
 
+        self.become_continuation_point(cancel_to_continuation_point);
         let entry = self.context.append_basic_block(cancel_to_function, "entry");
         self.builder.position_at_end(entry);
         self.transfer_debug_info(cancel_to_function);
@@ -156,7 +162,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_handlers(&self, _handlers: &[ir::Handler]) {
-        self.builder.build_unreachable().unwrap();
+        let end = self.builder.build_unreachable().unwrap();
+        self.end_continuation_point_as_clean(end);
         // todo!()
     }
 
