@@ -216,6 +216,8 @@ impl<'ctx> Codegen<'ctx> {
     fn reference_builtin(&self, builtin: Builtin, name: &str) -> PointerValue<'ctx> {
         match builtin {
             Builtin::Return => self.get_return(name),
+            Builtin::Cancel => self.get_cancel(name),
+            Builtin::Resume => self.get_resume(name),
             _ => todo!(),
         }
     }
