@@ -117,7 +117,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn add_accessor(&self, name: &str, linkage: Linkage) -> FunctionValue<'ctx> {
         let accessor = self
             .module
-            .add_function(&name, self.accessor_type(), Some(linkage));
+            .add_function(name, self.accessor_type(), Some(linkage));
         accessor.add_attribute(
             AttributeLoc::Param(0),
             self.context.create_type_attribute(
