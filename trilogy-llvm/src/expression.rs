@@ -354,6 +354,12 @@ impl<'ctx> Codegen<'ctx> {
                 let effect = self.compile_expression(expression, name)?;
                 Some(self.call_yield(effect, name))
             }
+            Builtin::Cancel => {
+                let value = self.compile_expression(expression, name)?;
+                let cancel = self.get_cancel("");
+                self.call_continuation(cancel, value);
+                None
+            }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, name)?;
                 let string = self.to_string(value, "");
