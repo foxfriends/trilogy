@@ -1,3 +1,4 @@
+//! Generation of LLVM IR from Trilogy IR.
 use codegen::Codegen;
 use inkwell::context::Context;
 use std::{collections::HashMap, ffi::c_void, rc::Rc};

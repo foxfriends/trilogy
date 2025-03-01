@@ -1,3 +1,5 @@
+//! Functions for managing context and scope across continuation points.
+
 use super::{Closed, Codegen, Variable};
 use inkwell::debug_info::DILocation;
 use inkwell::values::{InstructionValue, PointerValue};
@@ -7,8 +9,13 @@ use std::rc::{Rc, Weak};
 
 #[derive(Clone, Debug)]
 pub(super) struct Parent<'ctx> {
+    /// A pointer to the continuation point that we are cleaning or closing from.
     pub parent: Weak<ContinuationPoint<'ctx>>,
+    /// The instruction around which to add the required cleanup instructions. The exact
+    /// interpretation of this instruction depends on the variant of `Exit` this is
+    /// contained in.
     pub instruction: InstructionValue<'ctx>,
+    /// The debug location to be set when writing cleanup instructions.
     pub debug_location: DILocation<'ctx>,
 }
 
@@ -49,8 +56,15 @@ impl<'ctx> Merger<'ctx> {
     }
 }
 
-/// NOTE: Continuations for return, yield, and end are implicitly carried
-/// as parameters to a continuation, as per calling convention.
+/// A continuation point tracks the values in scope and in closure for any segment of code
+/// that resides within one unbroken continuation. At the LLVM level, this can be considered
+/// one function; a single Trilogy function may be made up of numerous LLVM functions, its
+/// "continuation points".
+///
+/// The continuation points form a visibility chain based on the lexical structure of the
+/// program, as well as a control-flow graph based on the semantic structure of the program.
+/// These two structures do not have to align perfectly: a closure is semantically disconnected
+/// but lexically connected, while a merge is lexically disconnected but semantically connected.
 #[derive(Default, Debug)]
 pub(super) struct ContinuationPoint<'ctx> {
     /// Pointers to variables available at this point in the continuation.
@@ -78,6 +92,7 @@ pub(super) struct ContinuationPoint<'ctx> {
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
+    /// Creates a new continuation point which has visibility of the current one's variables.
     fn chain(&self) -> Self {
         Self {
             variables: RefCell::default(),
@@ -136,6 +151,10 @@ impl<'ctx> ContinuationPoint<'ctx> {
 }
 
 impl<'ctx> Codegen<'ctx> {
+    pub(super) fn current_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
+        self.continuation_points.borrow().last().unwrap().clone()
+    }
+
     /// Ends the current continuation point. Cleanup code will be inserted before the provided
     /// instruction which captures any values referenced by the continuation, and destroys any
     /// remaining values that are going out of scope. The instruction should be an `alloca`
@@ -247,6 +266,11 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
+    /// Ties a Merger's collected exits to a new continuation point, with visibility to
+    /// only their shared parent Brancher's variables in scope.
+    ///
+    /// There should not be a current implicit continuation point when calling this. A
+    /// new one is set afterwards.
     pub(crate) fn merge_branch(&self, branch: Brancher<'ctx>, merger: Merger<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
         let mut cp = branch.0.chain();

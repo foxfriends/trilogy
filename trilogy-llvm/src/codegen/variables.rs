@@ -1,3 +1,6 @@
+//! Functions for accessing variables and values. The availability of variables is highly
+//! dependent on the continuation point and its parents.
+
 use super::{Codegen, ContinuationPoint};
 use inkwell::AddressSpace;
 use inkwell::builder::Builder;
@@ -6,12 +9,19 @@ use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::values::{FunctionValue, PointerValue};
 use trilogy_ir::{Id, ir};
 
+/// Represents a referenced variable, which may either be owned by the current scope, or
+/// previously closed over and now being read from the closure.
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Variable<'ctx> {
+    /// This is a variable that was closed.
     Closed {
+        /// The pointer to the actual underlying value. This is the same as the location field
+        /// of the upvalue.
         location: PointerValue<'ctx>,
+        /// The pointer to the upvalue for this closed value.
         upvalue: PointerValue<'ctx>,
     },
+    /// This is a variable that was defined in the current continuation point and is still owned.
     Owned(PointerValue<'ctx>),
 }
 
@@ -24,9 +34,12 @@ impl<'ctx> Variable<'ctx> {
     }
 }
 
+/// Represents any value that can be closed over by a closure.
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub(super) enum Closed<'ctx> {
+    /// This is a named variable from the source code that is captured by the closure.
     Variable(Id),
+    /// This is an intermediate temporary value that was explicitly bound for capturing.
     Temporary(PointerValue<'ctx>),
 }
 
@@ -50,6 +63,7 @@ impl std::fmt::Display for Closed<'_> {
 }
 
 impl<'ctx> Codegen<'ctx> {
+    /// Gets the current LLVM function that we are in.
     pub(crate) fn get_function(&self) -> FunctionValue<'ctx> {
         self.builder
             .get_insert_block()
@@ -58,6 +72,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
+    /// Gets the `return_to` pointer from the current function context.
     pub(crate) fn get_return(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
         let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
@@ -68,6 +83,7 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    /// Gets the `yield_to` pointer from the current function context.
     pub(crate) fn get_yield(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
         let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
@@ -78,6 +94,7 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    /// Gets the `end_to` pointer from the current function context.
     pub(crate) fn get_end(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
         let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
@@ -88,6 +105,7 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    /// When in a continuation function, gets the value that was yielded to the continuation.
     pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
         let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
@@ -98,18 +116,20 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    /// When in a closure, retrieves an upvalue from the captured closure.
+    ///
+    /// The closure is always passed as the last parameter, and is a Trilogy array of Trilogy references.
+    /// To access a variable from the closure:
+    /// 1. Consider the nth element of the array
+    /// 2. Get the value inside
+    /// 3. Assume a reference, and load its location field
+    /// 4. That value of that location field is the pointer to the actual value
     fn get_closure_upvalue(
         &self,
         builder: &Builder<'ctx>,
         index: usize,
         name: &str,
     ) -> PointerValue<'ctx> {
-        // Closure is passed as the last parameter, and is a Trilogy array of Trilogy reference
-        // To access the variable:
-        // 1. Consider the nth element of the array
-        // 2. Get the value inside
-        // 3. Assume a reference, and load its location field
-        // 4. That value of that location field is the pointer to the actual value
         let closure_ptr = builder.build_alloca(self.value_type(), "").unwrap();
         builder
             .build_store(closure_ptr, self.get_function().get_last_param().unwrap())
@@ -128,44 +148,58 @@ impl<'ctx> Codegen<'ctx> {
         upvalue
     }
 
-    pub(crate) fn get_variable(&self, id: &Id) -> Option<Variable<'ctx>> {
-        self.get_variable_from(&self.current_continuation(), id)
-    }
-
-    fn get_variable_from(
-        &self,
-        scope: &ContinuationPoint<'ctx>,
-        id: &Id,
-    ) -> Option<Variable<'ctx>> {
-        self.reference_from_scope(scope, &Closed::Variable(id.clone()))
-    }
-
+    /// Records a temporary value in the current continuation, allowing it to be later
+    /// used. If a temporary is captured and used in this way, it will be added to the
+    /// closure, if necessary.
     pub(crate) fn bind_temporary(&self, temporary: PointerValue<'ctx>) {
-        let cp = self.current_continuation();
+        let cp = self.current_continuation_point();
         cp.variables
             .borrow_mut()
             .insert(Closed::Temporary(temporary), Variable::Owned(temporary));
     }
 
+    /// Uses a previously bound temporary value. If the value was not previously bound with
+    /// `bind_temporary`, this will return `None`.
     pub(crate) fn use_temporary(&self, temporary: PointerValue<'ctx>) -> Option<Variable<'ctx>> {
-        let cp = self.current_continuation();
-        self.reference_from_scope(&cp, &Closed::Temporary(temporary))
+        self.reference_from_scope(
+            &self.current_continuation_point(),
+            &Closed::Temporary(temporary),
+        )
     }
 
+    /// Gets a variable from the current scope. Any variable that is defined in the current continuation point
+    /// or is visible from the parent continuation point can be referenced in this way.
+    pub(crate) fn get_variable(&self, id: &Id) -> Option<Variable<'ctx>> {
+        self.reference_from_scope(
+            &self.current_continuation_point(),
+            &Closed::Variable(id.clone()),
+        )
+    }
+
+    /// Gets a variable or temporary from a particular scope.
     pub(super) fn reference_from_scope(
         &self,
         scope: &ContinuationPoint<'ctx>,
         closed: &Closed<'ctx>,
     ) -> Option<Variable<'ctx>> {
+        // If the variable has already been referenced in the current scope, return the saved reference to avoid
+        // doing the work of looking it up again.
+        //
+        // This is the case for all Owned variables, and also for closed variables that have already been used.
         if let Some(var) = scope.variables.borrow().get(closed) {
             return Some(*var);
         }
 
+        // Otherwise, the variable might be visible from the parent continuation point.
         if scope.parent_variables.contains(closed) {
+            // In this case, we first update the closure to ensure that we know to close over this variable
+            // before exiting the parent scope.
             let mut closure = scope.closure.borrow_mut();
             let closure_index = closure.len();
             closure.push(closed.clone());
 
+            // As recommended by the LLVM docs somewhere, we prefer to hoist variable declarations to
+            // the first basic block of the function.
             let builder = self.context.create_builder();
             let entry = self.get_function().get_first_basic_block().unwrap();
             match entry.get_first_instruction() {
@@ -174,21 +208,17 @@ impl<'ctx> Codegen<'ctx> {
             }
             builder.set_current_debug_location(self.builder.get_current_debug_location().unwrap());
 
+            // Since we declared the intended position of this variable in the closure, that's where we'll
+            // pull it from.
             let upvalue =
                 self.get_closure_upvalue(&builder, closure_index, &format!("{closed}.up"));
-            let ref_value = self.trilogy_reference_assume_in(&builder, upvalue);
-            let ptr_to_location = builder
-                .build_struct_gep(self.reference_value_type(), ref_value, 1, "")
-                .unwrap();
-            let location = builder
-                .build_load(
-                    self.context.ptr_type(AddressSpace::default()),
-                    ptr_to_location,
-                    &closed.to_string(),
-                )
-                .unwrap()
-                .into_pointer_value();
+            let location =
+                self.trilogy_reference_get_location_in(&builder, upvalue, &closed.to_string());
+            // Then we record that we have already located this variable, to avoid relocating it if referenced
+            // again from the current continuation point.
             let variable = Variable::Closed { location, upvalue };
+            // TODO: might be worth adding debug information to this variable, as if it was a declaration,
+            // same as we do for newly declared variables below.
             scope
                 .variables
                 .borrow_mut()
@@ -199,11 +229,36 @@ impl<'ctx> Codegen<'ctx> {
         None
     }
 
+    fn trilogy_reference_get_location_in(
+        &self,
+        builder: &Builder<'ctx>,
+        upvalue: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let trilogy_reference_value = self.trilogy_reference_assume_in(builder, upvalue);
+        let ptr_to_location = builder
+            // Field 1 is location, according to types.h
+            .build_struct_gep(self.reference_value_type(), trilogy_reference_value, 1, "")
+            .unwrap();
+        builder
+            .build_load(
+                self.context.ptr_type(AddressSpace::default()),
+                ptr_to_location,
+                name,
+            )
+            .unwrap()
+            .into_pointer_value()
+    }
+
+    /// References a variable, if it is already available, or defines a it in the current scope otherwise.
     pub(crate) fn variable(&self, id: &ir::Identifier) -> PointerValue<'ctx> {
+        // If the variable is already available, just return the existing reference.
         if let Some(variable) = self.get_variable(&id.id) {
             return variable.ptr();
         }
 
+        // As recommended by the LLVM docs somewhere, we prefer to hoist variable declarations to
+        // the first basic block of the function.
         let builder = self.context.create_builder();
         let entry = self.get_function().get_first_basic_block().unwrap();
         match entry.get_first_instruction() {
@@ -217,12 +272,13 @@ impl<'ctx> Codegen<'ctx> {
         builder
             .build_store(variable, self.value_type().const_zero())
             .unwrap();
-        let scope = self.current_continuation();
-        scope
+        // Add this variable as an owned variable in the current continuation point.
+        self.current_continuation_point()
             .variables
             .borrow_mut()
             .insert(Closed::Variable(id.id.clone()), Variable::Owned(variable));
 
+        // Add debug information, if possible. It should always be possible...
         if let Some(subp) = self.get_function().get_subprogram() {
             if let Some(name) = id.id.name() {
                 let di_variable = self.di.builder.create_auto_variable(
