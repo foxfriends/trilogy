@@ -142,17 +142,6 @@ impl<'ctx> Codegen<'ctx> {
         value
     }
 
-    pub(crate) fn embed_c_string<S: AsRef<str>>(&self, string: S) -> PointerValue<'ctx> {
-        let string = string.as_ref();
-        let global = self.module.add_global(
-            self.context.i8_type().array_type((string.len() + 1) as u32),
-            None,
-            "",
-        );
-        global.set_initializer(&self.context.const_string(string.as_bytes(), true));
-        global.as_pointer_value()
-    }
-
     pub(crate) fn begin_function(&self, function: FunctionValue<'ctx>, span: Span) {
         self.di.push_subprogram(function.get_subprogram().unwrap());
         self.di.push_block_scope(span);

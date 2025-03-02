@@ -570,19 +570,6 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value()
     }
 
-    pub(crate) fn internal_panic(&self, message: PointerValue<'ctx>) -> NeverValue {
-        let f = self.declare_bare(
-            "internal_panic",
-            self.context.void_type().fn_type(
-                &[self.context.ptr_type(AddressSpace::default()).into()],
-                false,
-            ),
-        );
-        self.builder.build_call(f, &[message.into()], "").unwrap();
-        self.builder.build_unreachable().unwrap();
-        NeverValue
-    }
-
     pub(crate) fn trilogy_value_clone_into(
         &self,
         into: PointerValue<'ctx>,
