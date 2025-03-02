@@ -29,7 +29,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_pattern_match(&conj.1, value)?;
             }
             Value::Disjunction(conj) => {
-                // TODO: implement the branching here, right now it's just taking the first and ignoring the second
+                // TODO: finish disjunctions with taking the second case on first one failing
                 // e.g. `let a:1 or 1:a = 1:2`
                 let function = self.get_function();
                 let secondary = self.context.append_basic_block(function, "pm_disj_second");
