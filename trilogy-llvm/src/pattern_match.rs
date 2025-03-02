@@ -33,23 +33,25 @@ impl<'ctx> Codegen<'ctx> {
                 let mut merger = Merger::default();
 
                 let brancher = self.end_continuation_point_as_branch();
-                let (first_function, go_to_first) = self.capture_current_continuation(&brancher);
+                let (second_function, go_to_second) = self.capture_current_continuation(&brancher, "disj.snd");
                 let secondary_cp = self.hold_continuation_point();
-                let (second_function, go_to_second) = self.close_current_continuation();
+                let (first_function, go_to_first) = self.close_current_continuation("disj.fst");
+                let primary_cp = self.hold_continuation_point();
                 self.void_call_continuation(go_to_first);
 
                 let primary_entry = self.context.append_basic_block(first_function, "entry");
                 self.transfer_debug_info(first_function);
                 self.builder.position_at_end(primary_entry);
+                self.become_continuation_point(primary_cp);
                 let value_ref = self.use_temporary(value).unwrap().ptr();
                 self.compile_pattern_match(&disj.0, value_ref, go_to_second)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
-                self.become_continuation_point(secondary_cp);
                 let secondary_entry = self.context.append_basic_block(second_function, "entry");
                 self.transfer_debug_info(second_function);
                 self.builder.position_at_end(secondary_entry);
+                self.become_continuation_point(secondary_cp);
                 let value_ref = self.use_temporary(value).unwrap().ptr();
                 self.compile_pattern_match(&disj.1, value_ref, on_fail)?;
                 let closure = self.void_continue_in_scope(on_success_function);

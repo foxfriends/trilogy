@@ -210,15 +210,6 @@ impl<'ctx> Codegen<'ctx> {
         self.continuation_points.borrow_mut().pop().unwrap()
     }
 
-    /// Duplicates the current continuation point so that we can go "back in time" to it later.
-    ///
-    /// The returned Rc has only one reference, and the ref count of the current continuation point is
-    /// not increased.
-    pub(crate) fn duplicate_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
-        let cp = (**self.continuation_points.borrow_mut().last().unwrap()).clone();
-        Rc::new(cp)
-    }
-
     /// Reinstates a previously held continuation point.
     pub(crate) fn become_continuation_point(
         &self,

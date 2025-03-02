@@ -46,16 +46,20 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn capture_current_continuation(
         &self,
         branch: &Brancher<'ctx>,
+        name: &str,
     ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
-        self.construct_current_continuation(Some(branch))
+        self.construct_current_continuation(Some(branch), name)
     }
 
     /// Constructs a TrilogyValue that represents the current continuation.
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,
     /// so may not be referenced.
-    pub(crate) fn close_current_continuation(&self) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
-        self.construct_current_continuation(None)
+    pub(crate) fn close_current_continuation(
+        &self,
+        name: &str,
+    ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
+        self.construct_current_continuation(None, name)
     }
 
     /// Constructs a TrilogyValue that represents the current continuation.
@@ -65,9 +69,10 @@ impl<'ctx> Codegen<'ctx> {
     fn construct_current_continuation(
         &self,
         branch: Option<&Brancher<'ctx>>,
+        name: &str,
     ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
-        let continuation_function = self.add_continuation("");
-        let continuation = self.allocate_value("cc");
+        let continuation_function = self.add_continuation(name);
+        let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
 
@@ -154,7 +159,7 @@ impl<'ctx> Codegen<'ctx> {
         let yield_to = self.get_yield("");
 
         // All variables and values are invalid after this point.
-        let (continuation_function, current_continuation) = self.close_current_continuation();
+        let (continuation_function, current_continuation) = self.close_current_continuation("cc");
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + 4);
@@ -450,9 +455,9 @@ impl<'ctx> Codegen<'ctx> {
         let yield_continuation = self.allocate_value("yield");
         let end_continuation = self.allocate_value("end");
 
-        let return_closure = self.allocate_value("");
-        let yield_closure = self.allocate_value("");
-        let end_closure = self.allocate_value("");
+        let return_closure = self.allocate_value("main.ret");
+        let yield_closure = self.allocate_value("main.yield");
+        let end_closure = self.allocate_value("main.end");
         self.trilogy_array_init_cap(return_closure, 0, "");
         self.trilogy_array_init_cap(yield_closure, 0, "");
         self.trilogy_array_init_cap(end_closure, 0, "");
@@ -547,7 +552,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_cancel_to_into(cancel_to, handler);
         self.trilogy_callable_closure_into(closure, handler, "");
 
-        let (continuation_function, resume_to) = self.close_current_continuation();
+        let (continuation_function, resume_to) = self.close_current_continuation("yield.resume");
         let args = &[
             self.builder
                 .build_load(self.value_type(), return_to, "")

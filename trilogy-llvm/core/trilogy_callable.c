@@ -205,7 +205,7 @@ void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity) {
 
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
     if (val->tag != CALLABLE_CONTINUATION)
-        internal_panic("invalid call of non-rule callable\n");
+        internal_panic("invalid continue-to of non-continuation callable\n");
     return (void*)val->function;
 }
 

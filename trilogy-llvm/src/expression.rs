@@ -103,7 +103,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let return_to = self.get_return("");
         let yield_to = self.get_return("");
-        let (cancel_to_function, cancel_to) = self.capture_current_continuation(&brancher);
+        let (cancel_to_function, cancel_to) = self.capture_current_continuation(&brancher, "when.cancel");
         let cancel_to_continuation_point = self.hold_continuation_point();
 
         // construct handler
@@ -220,17 +220,9 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_let(&self, decl: &ir::Let, name: &str) -> Option<PointerValue<'ctx>> {
         match &decl.query.value {
             QueryValue::Direct(unif) if decl.query.is_once() => {
-                let on_fail = self.context.append_basic_block(self.get_function(), "");
-                let cont = self.builder.get_insert_block().unwrap();
-                self.builder.position_at_end(on_fail);
-                _ = self.internal_panic(
-                    self.embed_c_string("unexpected end of execution (no match in declaration)\n"),
-                );
-                self.builder.position_at_end(cont);
-
-                let value = self.compile_expression(&unif.expression, "")?;
-                self.compile_pattern_match(&unif.pattern, value, self.get_end(""))?;
-                self.trilogy_value_destroy(value);
+                let value = self.compile_expression(&unif.expression, "let.expr")?;
+                self.compile_pattern_match(&unif.pattern, value, self.get_end("let.fail"))?;
+                self.trilogy_value_destroy(self.use_temporary(value).unwrap().ptr());
                 self.compile_expression(&decl.body, name)
             }
             _ => todo!("non-deterministic branching {:?}", decl.query.value),
