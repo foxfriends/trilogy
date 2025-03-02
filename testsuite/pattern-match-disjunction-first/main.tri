@@ -1,5 +1,4 @@
 proc main!() {
   let a:1 or 1:a = 2:1
-
   assert a == 2
 }
