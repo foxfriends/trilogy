@@ -135,34 +135,13 @@ impl Value {
             Self::Conjunction(inner) => inner.0.is_once() && inner.1.is_once(),
             Self::Implication(..) => false, // TODO: these ones might be once?
             Self::Alternative(..) => false, // TODO: these ones might be once?
-            Self::Direct(unif) => unif.pattern.value.is_once(),
+            Self::Direct(..) => true,
             Self::Pass => true,
             Self::Is(..) => true,
             Self::Lookup(..) => false,
             Self::End => true,
             Self::Not(inner) => inner.is_once(),
             Self::Element(..) => false,
-        }
-    }
-}
-
-impl expression::Value {
-    fn is_once(&self) -> bool {
-        match self {
-            Self::Disjunction(..) => false,
-            Self::Conjunction(conj) => conj.0.value.is_once() && conj.1.value.is_once(),
-            Self::Application(app) => match &app.function.value {
-                expression::Value::Application(..) => {
-                    app.function.value.is_once() && app.argument.value.is_once()
-                }
-                expression::Value::Builtin(Builtin::Cons) => app.argument.value.is_once(),
-                expression::Value::Builtin(Builtin::Construct) => app.argument.value.is_once(),
-                expression::Value::Builtin(Builtin::Typeof) => app.argument.value.is_once(),
-                expression::Value::Builtin(Builtin::Not) => app.argument.value.is_once(),
-                expression::Value::Builtin(Builtin::Negate) => app.argument.value.is_once(),
-                _ => false,
-            },
-            _ => true,
         }
     }
 }

@@ -30,7 +30,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Disjunction(conj) => {
                 // TODO: implement the branching here, right now it's just taking the first and ignoring the second
-                // e.g. `let a:_ or _:a = 1:2`
+                // e.g. `let a:1 or 1:a = 1:2`
                 let function = self.get_function();
                 let secondary = self.context.append_basic_block(function, "pm_disj_second");
                 let on_success = self.context.append_basic_block(function, "pm_disj_cont");
