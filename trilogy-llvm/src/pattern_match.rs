@@ -34,12 +34,10 @@ impl<'ctx> Codegen<'ctx> {
 
                 let brancher = self.end_continuation_point_as_branch();
                 let (first_function, go_to_first) = self.capture_current_continuation(&brancher);
-                self.resume_continuation_point(&brancher);
+                let secondary_cp = self.hold_continuation_point();
                 let (second_function, go_to_second) = self.close_current_continuation();
                 self.void_call_continuation(go_to_first);
 
-                // NOTE: we need to clone the continuation point into two distinct copies before here...
-                let duplicate = self.duplicate_continuation_point();
                 let primary_entry = self.context.append_basic_block(first_function, "entry");
                 self.transfer_debug_info(first_function);
                 self.builder.position_at_end(primary_entry);
@@ -49,7 +47,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
                 // NOTE: and then use the second copy here, so that variables can be declared in both branches.
-                self.become_continuation_point(duplicate);
+                self.become_continuation_point(secondary_cp);
                 let secondary_entry = self.context.append_basic_block(second_function, "entry");
                 self.transfer_debug_info(second_function);
                 self.builder.position_at_end(secondary_entry);
