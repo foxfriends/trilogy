@@ -1,13 +1,8 @@
-use crate::{
-    Codegen,
-    codegen::{Head, Merger, Variable},
-};
-use inkwell::{
-    debug_info::AsDIScope,
-    llvm_sys::debuginfo::LLVMDIFlagPublic,
-    module::Linkage,
-    values::{BasicValue, PointerValue},
-};
+use crate::codegen::{Codegen, Head, Merger, Variable};
+use inkwell::debug_info::AsDIScope;
+use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
+use inkwell::module::Linkage;
+use inkwell::values::{BasicValue, PointerValue};
 use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_parser::syntax;
