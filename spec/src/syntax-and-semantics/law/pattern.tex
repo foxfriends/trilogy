@@ -48,8 +48,9 @@ The \kw{and} pattern requires that both of its sub-patterns are satisfied.
 \end{prooftree}
 
 The \kw{or} pattern requires that only one of its sub-patterns are satisfied.
-In the case that both of the sub-patterns match (unlikely in practice, but there are
-some patterns where this is possible) then this pattern may cause a branch.
+In the case that both of the sub-patterns match the first one is taken, and the
+second ignored. We specifically avoid causing a branch within a single pattern,
+as this is often unexpected.
 
 One special requirement of this pattern not reflected in the syntax or
 semantics is that both sides of the \kw{or} pattern must bind the same
