@@ -29,6 +29,14 @@ pub(super) enum Exit<'ctx> {
     Capture(Parent<'ctx>),
 }
 
+impl<'ctx> Exit<'ctx> {
+    fn parent(&self) -> &Parent<'ctx> {
+        match self {
+            Self::Close(parent) | Self::Clean(parent) | Self::Capture(parent) => parent,
+        }
+    }
+}
+
 /// A `Brancher` is created when a continuation point will end in more than one place (i.e. it branches).
 ///
 /// At each place this continuation point might end, an `add_branch_end_` function should be called
@@ -291,6 +299,30 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn merge_branch(&self, branch: Brancher<'ctx>, merger: Merger<'ctx>) {
         let mut cps = self.continuation_points.borrow_mut();
         let mut cp = branch.0.chain();
+        cp.parents = merger.0;
+        cps.push(Rc::new(cp))
+    }
+
+    /// Ties a Merger's collected exits to a new continuation point with visibility to
+    /// the values of one of the branches, arbitrarily.
+    ///
+    /// Technically, since valid variable references have already been resolved at the
+    /// IR level, this additional visibility is not of danger, so we could use this
+    /// always instead of `merge_branch`, but... merge branch is a bit more intuitive.
+    ///
+    /// There should not be a current implicit continuation point when calling this. A
+    /// new one is set afterwards.
+    pub(crate) fn merge_without_branch(&self, merger: Merger<'ctx>) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let mut cp = merger
+            .0
+            .first()
+            .unwrap()
+            .parent()
+            .parent
+            .upgrade()
+            .unwrap()
+            .chain();
         cp.parents = merger.0;
         cps.push(Rc::new(cp))
     }

@@ -15,6 +15,8 @@ impl<'ctx> Codegen<'ctx> {
         on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
         let prev = self.set_span(pattern.span);
+        self.bind_temporary(value);
+        self.bind_temporary(on_fail);
 
         match &pattern.value {
             Value::Reference(id) => {
@@ -22,36 +24,40 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_clone_into(variable, value);
             }
             Value::Conjunction(conj) => {
-                self.bind_temporary(value);
                 self.compile_pattern_match(&conj.0, value, on_fail)?;
                 let value = self.use_temporary(value).unwrap().ptr();
                 self.compile_pattern_match(&conj.1, value, on_fail)?;
             }
-            Value::Disjunction(conj) => {
+            Value::Disjunction(disj) => {
                 let on_success_function = self.add_continuation("pm.cont");
                 let mut merger = Merger::default();
 
-                self.bind_temporary(value);
                 let brancher = self.end_continuation_point_as_branch();
-                let (second_function, go_to_second) = self.capture_current_continuation(&brancher);
+                let (first_function, go_to_first) = self.capture_current_continuation(&brancher);
                 self.resume_continuation_point(&brancher);
+                let (second_function, go_to_second) = self.close_current_continuation();
+                self.void_call_continuation(go_to_first);
 
-                self.compile_pattern_match(&conj.0, value, go_to_second)?;
+                let primary_entry = self.context.append_basic_block(first_function, "entry");
+                self.transfer_debug_info(first_function);
+                self.builder.position_at_end(primary_entry);
+                let value = self.use_temporary(value).unwrap().ptr();
+                self.compile_pattern_match(&disj.0, value, go_to_second)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
-                let secondary = self.context.append_basic_block(second_function, "entry");
+                let secondary_entry = self.context.append_basic_block(second_function, "entry");
                 self.transfer_debug_info(second_function);
-                self.builder.position_at_end(secondary);
+                self.builder.position_at_end(secondary_entry);
                 let value = self.use_temporary(value).unwrap().ptr();
-                self.compile_pattern_match(&conj.1, value, on_fail)?;
+                self.compile_pattern_match(&disj.1, value, on_fail)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
                 let on_success = self
                     .context
                     .append_basic_block(on_success_function, "entry");
-                self.merge_branch(brancher, merger);
+                self.merge_without_branch(merger);
                 self.transfer_debug_info(on_success_function);
                 self.builder.position_at_end(on_success);
             }
@@ -123,6 +129,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_conditional_branch(cond, cont, fail)
             .unwrap();
         self.builder.position_at_end(fail);
+        let on_fail = self.use_temporary(on_fail).unwrap().ptr();
         self.void_call_continuation(on_fail);
 
         self.builder.position_at_end(cont);
@@ -216,6 +223,7 @@ impl<'ctx> Codegen<'ctx> {
                 // TODO: we should restrict the expressions in this thing to be pins or constants... otherwise we do have to
                 // handle branching...
                 let expected_type = self.compile_expression(expression, "")?;
+                let value = self.use_temporary(value).unwrap().ptr();
                 let tag = self.get_tag(value, "");
                 let atom = self
                     .builder

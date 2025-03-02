@@ -44,7 +44,6 @@ impl Hash for Id {
 
 #[derive(Clone, Debug)]
 pub(crate) struct Symbol {
-    #[allow(dead_code)]
     pub declaration_span: Span,
     pub id: Id,
     pub is_mutable: bool,
