@@ -1,0 +1,4 @@
+proc main!() {
+  let a:1 or 1:a = 1:2
+  assert a == 2
+}

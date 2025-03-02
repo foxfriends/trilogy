@@ -1,12 +1,8 @@
-use crate::{
-    Codegen,
-    types::{TAG_STRUCT, TAG_TUPLE},
-};
-use inkwell::{
-    IntPredicate,
-    basic_block::BasicBlock,
-    values::{IntValue, PointerValue},
-};
+use crate::codegen::{Codegen, Merger};
+use crate::types::{TAG_STRUCT, TAG_TUPLE};
+use inkwell::IntPredicate;
+use inkwell::basic_block::BasicBlock;
+use inkwell::values::{IntValue, PointerValue};
 use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, Value};
 
@@ -26,22 +22,37 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_clone_into(variable, value);
             }
             Value::Conjunction(conj) => {
+                self.bind_temporary(value);
                 self.compile_pattern_match(&conj.0, value, on_fail)?;
+                let value = self.use_temporary(value).unwrap().ptr();
                 self.compile_pattern_match(&conj.1, value, on_fail)?;
             }
             Value::Disjunction(conj) => {
-                // TODO: finish disjunctions with taking the second case on first one failing
-                // e.g. `let a:1 or 1:a = 1:2`
-                let function = self.get_function();
-                let secondary = self.context.append_basic_block(function, "pm_disj_second");
-                let on_success = self.context.append_basic_block(function, "pm_disj_cont");
-                self.compile_pattern_match(&conj.0, value, on_fail)?;
-                self.builder.build_unconditional_branch(on_success).unwrap();
+                let on_success_function = self.add_continuation("pm.cont");
+                let mut merger = Merger::default();
 
+                self.bind_temporary(value);
+                let brancher = self.end_continuation_point_as_branch();
+                let (second_function, go_to_second) = self.capture_current_continuation(&brancher);
+                self.resume_continuation_point(&brancher);
+
+                self.compile_pattern_match(&conj.0, value, go_to_second)?;
+                let closure = self.void_continue_in_scope(on_success_function);
+                self.end_continuation_point_as_merge(&mut merger, closure);
+
+                let secondary = self.context.append_basic_block(second_function, "entry");
+                self.transfer_debug_info(second_function);
                 self.builder.position_at_end(secondary);
+                let value = self.use_temporary(value).unwrap().ptr();
                 self.compile_pattern_match(&conj.1, value, on_fail)?;
-                self.builder.build_unconditional_branch(on_success).unwrap();
+                let closure = self.void_continue_in_scope(on_success_function);
+                self.end_continuation_point_as_merge(&mut merger, closure);
 
+                let on_success = self
+                    .context
+                    .append_basic_block(on_success_function, "entry");
+                self.merge_branch(brancher, merger);
+                self.transfer_debug_info(on_success_function);
                 self.builder.position_at_end(on_success);
             }
             Value::Unit => {
@@ -112,7 +123,6 @@ impl<'ctx> Codegen<'ctx> {
             .build_conditional_branch(cond, cont, fail)
             .unwrap();
         self.builder.position_at_end(fail);
-
         self.void_call_continuation(on_fail);
 
         self.builder.position_at_end(cont);
@@ -143,14 +153,24 @@ impl<'ctx> Codegen<'ctx> {
                         )
                         .unwrap();
                     self.pm_cont_if(is_tuple, on_fail);
+
                     let tuple = self.trilogy_tuple_assume(value, "");
-                    let part = self.allocate_value("");
-                    self.trilogy_tuple_left(part, tuple);
-                    self.compile_pattern_match(&app.argument, part, on_fail)?;
-                    self.trilogy_value_destroy(part);
-                    self.trilogy_tuple_right(part, tuple);
-                    self.compile_pattern_match(&application.argument, part, on_fail)?;
-                    self.trilogy_value_destroy(part);
+                    self.bind_temporary(tuple);
+                    let left = self.allocate_value("");
+                    self.bind_temporary(left);
+                    self.trilogy_tuple_left(left, tuple);
+                    self.compile_pattern_match(&app.argument, left, on_fail)?;
+
+                    let left = self.use_temporary(left).unwrap().ptr();
+                    let tuple = self.use_temporary(tuple).unwrap().ptr();
+                    self.trilogy_value_destroy(left);
+
+                    let right = self.allocate_value("");
+                    self.bind_temporary(right);
+                    self.trilogy_tuple_right(right, tuple);
+                    self.compile_pattern_match(&application.argument, right, on_fail)?;
+                    let right = self.use_temporary(right).unwrap().ptr();
+                    self.trilogy_value_destroy(right);
                     Some(())
                 }
                 Value::Builtin(Builtin::Construct) => {
@@ -193,6 +213,8 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<()> {
         match builtin {
             Builtin::Typeof => {
+                // TODO: we should restrict the expressions in this thing to be pins or constants... otherwise we do have to
+                // handle branching...
                 let expected_type = self.compile_expression(expression, "")?;
                 let tag = self.get_tag(value, "");
                 let atom = self
@@ -206,6 +228,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.pm_cont_if(cmp, on_fail);
             }
             Builtin::Pin => {
+                // Because only identifiers can be pinned, we don't have to worry about handling branching mess here
                 let pinned = self.compile_expression(expression, "pin")?;
                 let cmp = self.trilogy_value_structural_eq(value, pinned, "");
                 self.trilogy_value_destroy(pinned);

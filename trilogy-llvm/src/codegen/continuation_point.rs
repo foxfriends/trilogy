@@ -273,12 +273,12 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn end_continuation_point_as_merge(
         &self,
         merger: &mut Merger<'ctx>,
-        instruction: InstructionValue<'ctx>,
+        closure_allocation: InstructionValue<'ctx>,
     ) {
         let cps = self.continuation_points.borrow();
         merger.close_from(
             cps.last().unwrap(),
-            instruction,
+            closure_allocation,
             self.builder.get_current_debug_location().unwrap(),
         );
     }
