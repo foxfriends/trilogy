@@ -229,7 +229,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.builder.position_at_end(cont);
 
                 let value = self.compile_expression(&unif.expression, "")?;
-                self.compile_pattern_match(&unif.pattern, value)?;
+                self.compile_pattern_match(&unif.pattern, value, self.get_end(""))?;
                 self.trilogy_value_destroy(value);
                 self.compile_expression(&decl.body, name)
             }

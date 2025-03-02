@@ -1,0 +1,8 @@
+proc strings_only!(val and typeof 'string) {
+  exit 0
+}
+
+proc main!() {
+  strings_only!(3)
+  exit 1
+}

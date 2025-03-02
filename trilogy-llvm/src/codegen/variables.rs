@@ -173,9 +173,11 @@ impl<'ctx> Codegen<'ctx> {
     /// closure, if necessary.
     pub(crate) fn bind_temporary(&self, temporary: PointerValue<'ctx>) {
         let cp = self.current_continuation_point();
-        cp.variables
-            .borrow_mut()
-            .insert(Closed::Temporary(temporary), Variable::Owned(temporary));
+        if !cp.parent_variables.contains(&Closed::Temporary(temporary)) {
+            cp.variables
+                .borrow_mut()
+                .insert(Closed::Temporary(temporary), Variable::Owned(temporary));
+        }
     }
 
     /// Uses a previously bound temporary value. If the value was not previously bound with

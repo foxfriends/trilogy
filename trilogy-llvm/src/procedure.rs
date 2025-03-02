@@ -135,7 +135,10 @@ impl<'ctx> Codegen<'ctx> {
                     .build_alloca(self.value_type(), "param")
                     .unwrap();
                 self.builder.build_store(value_param, value).unwrap();
-                if self.compile_pattern_match(param, value_param).is_none() {
+                if self
+                    .compile_pattern_match(param, value_param, self.get_end(""))
+                    .is_none()
+                {
                     break 'body;
                 }
             }
