@@ -46,7 +46,6 @@ impl<'ctx> Codegen<'ctx> {
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
-                // NOTE: and then use the second copy here, so that variables can be declared in both branches.
                 self.become_continuation_point(secondary_cp);
                 let secondary_entry = self.context.append_basic_block(second_function, "entry");
                 self.transfer_debug_info(second_function);
