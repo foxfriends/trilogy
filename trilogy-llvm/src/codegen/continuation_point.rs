@@ -73,7 +73,7 @@ impl<'ctx> Merger<'ctx> {
 /// program, as well as a control-flow graph based on the semantic structure of the program.
 /// These two structures do not have to align perfectly: a closure is semantically disconnected
 /// but lexically connected, while a merge is lexically disconnected but semantically connected.
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 pub(crate) struct ContinuationPoint<'ctx> {
     /// Pointers to variables available at this point in the continuation.
     /// These pointers may be to values on stack, or to locations in the closure.
@@ -208,6 +208,15 @@ impl<'ctx> Codegen<'ctx> {
     /// Add it back later with `become_continuation_point` when it is ready to be written to.
     pub(crate) fn hold_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
         self.continuation_points.borrow_mut().pop().unwrap()
+    }
+
+    /// Duplicates the current continuation point so that we can go "back in time" to it later.
+    ///
+    /// The returned Rc has only one reference, and the ref count of the current continuation point is
+    /// not increased.
+    pub(crate) fn duplicate_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
+        let cp = (**self.continuation_points.borrow_mut().last().unwrap()).clone();
+        Rc::new(cp)
     }
 
     /// Reinstates a previously held continuation point.
