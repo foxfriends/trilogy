@@ -1,0 +1,10 @@
+proc inner!() {
+  yield 'eff
+}
+
+proc main!() {
+  let x = with inner!()
+    when 'eff cancel 2
+    else yield
+  assert x == 2
+}

@@ -1,0 +1,10 @@
+proc inner!() {
+  exit yield 'eff
+}
+
+proc main!() {
+  with inner!()
+    when 'eff resume 1
+    else yield
+  assert "Unreachable" as false
+}

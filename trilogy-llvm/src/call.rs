@@ -538,8 +538,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn call_resume(&self, effect: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let handler_value = self.get_resume("");
-        let handler = self.trilogy_callable_untag(handler_value, "");
+        let resume_value = self.get_resume("");
+        let resume = self.trilogy_callable_untag(resume_value, "");
 
         let end_to = self.get_end("");
         let resume_to = self.get_resume("");
@@ -547,9 +547,9 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
         let closure = self.allocate_value("");
-        self.trilogy_callable_return_to_into(return_to, handler);
-        self.trilogy_callable_yield_to_into(yield_to, handler);
-        self.trilogy_callable_closure_into(closure, handler, "");
+        self.trilogy_callable_return_to_into(return_to, resume);
+        self.trilogy_callable_yield_to_into(yield_to, resume);
+        self.trilogy_callable_closure_into(closure, resume, "");
 
         let (continuation_function, cancel_to) = self.close_current_continuation("when.cancel");
         let args = &[
@@ -582,9 +582,9 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap()
                 .into(),
         ];
-        let handler_continuation = self.trilogy_continuation_untag(handler, "");
+        let resume_continuation = self.trilogy_continuation_untag(resume, "");
         self.builder
-            .build_indirect_call(self.continuation_type(), handler_continuation, args, name)
+            .build_indirect_call(self.continuation_type(), resume_continuation, args, name)
             .unwrap();
         self.builder.build_unreachable().unwrap();
 

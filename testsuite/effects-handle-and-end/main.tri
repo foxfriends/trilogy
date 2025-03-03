@@ -1,0 +1,7 @@
+proc body!() {
+  yield 'eff
+}
+
+proc main!() {
+  with body!() when 'eff then {} else yield
+}
