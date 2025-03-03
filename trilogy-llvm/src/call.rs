@@ -349,7 +349,6 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         let args = &[
             self.builder
                 .build_load(self.value_type(), return_to, "")
@@ -370,6 +369,7 @@ impl<'ctx> Codegen<'ctx> {
                 .into(),
         ];
 
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         let call = self.builder.build_direct_call(function, args, "").unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);

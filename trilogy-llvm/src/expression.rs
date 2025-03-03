@@ -103,7 +103,8 @@ impl<'ctx> Codegen<'ctx> {
 
         let return_to = self.get_return("");
         let yield_to = self.get_return("");
-        let (cancel_to_function, cancel_to) = self.capture_current_continuation(&brancher, "when.cancel");
+        let (cancel_to_function, cancel_to) =
+            self.capture_current_continuation(&brancher, "when.cancel");
         let cancel_to_continuation_point = self.hold_continuation_point();
 
         // construct handler
@@ -114,11 +115,13 @@ impl<'ctx> Codegen<'ctx> {
         self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
         let handler_continuation_point = self.hold_continuation_point();
         let handler = self.allocate_value("yield");
+        let cancel_to_clone = self.allocate_value("");
+        self.trilogy_value_clone_into(cancel_to_clone, cancel_to);
         self.trilogy_callable_init_handler(
             handler,
             return_to,
             yield_to,
-            cancel_to,
+            cancel_to_clone,
             closure,
             handler_function,
         );

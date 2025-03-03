@@ -89,7 +89,7 @@ for dir in $(ls); do
             popd > /dev/null
             continue
         fi
-        ./a.out > stdout 2> stderr
+        valgrind --log-file=memcheck --error-exitcode=97 -- ./a.out > stdout 2> stderr
         exit=$?
         output=$(<stdout)
         error=$(<stderr)

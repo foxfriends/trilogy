@@ -4,3 +4,4 @@ a.out
 main.ll
 stderr
 stdout
+memcheck

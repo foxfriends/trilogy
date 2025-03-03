@@ -134,6 +134,7 @@ void trilogy_callable_init_handler(
 }
 
 void trilogy_callable_destroy(trilogy_callable_value* val) {
+    assert(val->rc > 0);
     if (--val->rc == 0) {
         if (val->closure != NO_CLOSURE) trilogy_array_destroy(val->closure);
         // NOTE: even a continuation may have return_to and yield_to as NULL, as
