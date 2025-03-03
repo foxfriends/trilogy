@@ -278,6 +278,7 @@ impl<'ctx> Codegen<'ctx> {
             // Function application
             _ => {
                 let argument = self.compile_expression(&application.argument, "")?;
+                let function = self.use_temporary(function).unwrap().ptr();
                 Some(self.apply_function(function, argument, name))
             }
         }
@@ -326,6 +327,8 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Typeof => {
                 let argument = self.compile_expression(expression, "")?;
                 let out = self.allocate_value(name);
+                // The atom table is specifically defined so that a value's tag
+                // lines up with it's typeof atom
                 let tag = self.get_tag(argument, "");
                 let raw_atom = self
                     .builder
