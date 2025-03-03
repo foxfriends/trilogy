@@ -29,13 +29,18 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_pattern_match(&conj.1, value, on_fail)?;
             }
             Value::Disjunction(disj) => {
+                // NOTE: somehow... it seems that due to this process we end up corrupting the `return_to` pointer,
+                // so that if we exit from the second case and call return, it has already been freed or something,
+                // and is full of garbage?
                 let on_success_function = self.add_continuation("pm.cont");
                 let mut merger = Merger::default();
 
                 let brancher = self.end_continuation_point_as_branch();
-                let (second_function, go_to_second) = self.capture_current_continuation(&brancher, "disj.snd");
+                let (second_function, go_to_second) =
+                    self.capture_current_continuation(&brancher, "disj.snd");
                 let secondary_cp = self.hold_continuation_point();
-                let (first_function, go_to_first) = self.close_current_continuation("disj.fst");
+                let (first_function, go_to_first) =
+                    self.capture_current_continuation(&brancher, "disj.fst");
                 let primary_cp = self.hold_continuation_point();
                 self.void_call_continuation(go_to_first);
 
