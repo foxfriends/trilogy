@@ -19,7 +19,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install LLVM
-        run: sudo apt-get install llvm libpolly-18-dev
+        run: sudo apt-get install llvm libpolly-18-dev valgrind
       - name: Install Rust
         run: |
           rustup install stable
