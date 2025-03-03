@@ -502,28 +502,6 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    /// Untags a handler. The value should be a `trilogy_callable_value` and the return pointer will be
-    /// a bare function pointer.
-    pub(crate) fn trilogy_handler_untag(
-        &self,
-        value: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let f = self.declare_bare(
-            "trilogy_handler_untag",
-            self.context.ptr_type(AddressSpace::default()).fn_type(
-                &[self.context.ptr_type(AddressSpace::default()).into()],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(f, &[value.into()], name)
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_pointer_value()
-    }
-
     /// Untags a function. The value should be a `trilogy_callable_value` and the return pointer will be
     /// a bare function pointer.
     pub(crate) fn trilogy_function_untag(
@@ -787,6 +765,8 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
+        // resume_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
     ) {
@@ -798,43 +778,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                ],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(
-                f,
-                &[
-                    t.into(),
-                    return_to.into(),
-                    yield_to.into(),
-                    closure.into(),
-                    function.as_global_value().as_pointer_value().into(),
-                ],
-                "",
-            )
-            .unwrap();
-    }
-
-    pub(crate) fn trilogy_callable_init_handler(
-        &self,
-        t: PointerValue<'ctx>,
-        return_to: PointerValue<'ctx>,
-        yield_to: PointerValue<'ctx>,
-        cancel_to: PointerValue<'ctx>,
-        closure: PointerValue<'ctx>,
-        function: FunctionValue<'ctx>,
-    ) {
-        let f = self.declare_bare(
-            "trilogy_callable_init_handler",
-            self.context.void_type().fn_type(
-                &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
+                    // self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
@@ -849,6 +793,7 @@ impl<'ctx> Codegen<'ctx> {
                     return_to.into(),
                     yield_to.into(),
                     cancel_to.into(),
+                    // resume_to.into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
                 ],

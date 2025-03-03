@@ -24,7 +24,6 @@ pub(crate) struct DebugInfo<'ctx> {
     value_type: DICompositeType<'ctx>,
     value_pointer_type: DIDerivedType<'ctx>,
     continuation_type: DISubroutineType<'ctx>,
-    handler_type: DISubroutineType<'ctx>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -109,13 +108,6 @@ impl<'ctx> DebugInfo<'ctx> {
         let continuation_type = builder.create_subroutine_type(
             unit.get_file(),
             None,
-            &[value_pointer_type.as_type(); 5],
-            LLVMDIFlagPublic,
-        );
-
-        let handler_type = builder.create_subroutine_type(
-            unit.get_file(),
-            None,
             &[value_pointer_type.as_type(); 7],
             LLVMDIFlagPublic,
         );
@@ -127,7 +119,6 @@ impl<'ctx> DebugInfo<'ctx> {
             value_type,
             value_pointer_type,
             continuation_type,
-            handler_type,
         }
     }
 
@@ -163,17 +154,13 @@ impl<'ctx> DebugInfo<'ctx> {
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             None,
-            &vec![self.value_pointer_type.as_type(); arity + 3],
+            &vec![self.value_pointer_type.as_type(); arity + 5],
             LLVMDIFlagPublic,
         )
     }
 
     pub(crate) fn continuation_di_type(&self) -> DISubroutineType<'ctx> {
         self.continuation_type
-    }
-
-    pub(crate) fn handler_di_type(&self) -> DISubroutineType<'ctx> {
-        self.handler_type
     }
 
     pub(crate) fn closure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {

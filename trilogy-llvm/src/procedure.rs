@@ -46,7 +46,7 @@ impl<'ctx> Codegen<'ctx> {
         self.set_current_definition(wrapper_name.to_owned(), span);
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
-        params.extend(wrapper_function.get_param_iter().skip(3).map(|val| {
+        params.extend(wrapper_function.get_param_iter().skip(5).map(|val| {
             let param = self
                 .builder
                 .build_alloca(self.value_type(), "param")
@@ -125,9 +125,9 @@ impl<'ctx> Codegen<'ctx> {
         'body: {
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
-                // NOTE: params start at 3, due to return, yield, and end
+                // NOTE: params start at 5, due to return, yield, end, cancel, and resume
                 let value = function
-                    .get_nth_param(n as u32 + 3)
+                    .get_nth_param(n as u32 + 5)
                     .unwrap()
                     .into_struct_value();
                 let value_param = self

@@ -96,7 +96,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
         let body_function = self.add_continuation("");
-        let handler_function = self.add_handler_function(name);
+        let handler_function = self.add_continuation(name);
         let brancher = self.end_continuation_point_as_branch();
 
         let return_to = self.get_return("");
@@ -115,7 +115,7 @@ impl<'ctx> Codegen<'ctx> {
         let handler = self.allocate_value("yield");
         let cancel_to_clone = self.allocate_value("");
         self.trilogy_value_clone_into(cancel_to_clone, cancel_to);
-        self.trilogy_callable_init_handler(
+        self.trilogy_callable_init_cont(
             handler,
             return_to,
             yield_to,
@@ -260,8 +260,8 @@ impl<'ctx> Codegen<'ctx> {
     fn reference_builtin(&self, builtin: Builtin, name: &str) -> PointerValue<'ctx> {
         match builtin {
             Builtin::Return => self.get_return(name),
-            Builtin::Cancel => self.use_cancel(),
-            Builtin::Resume => self.use_resume(),
+            Builtin::Cancel => self.get_cancel(name),
+            Builtin::Resume => self.get_resume(name),
             _ => todo!(),
         }
     }
@@ -453,9 +453,13 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Cancel => {
                 let value = self.compile_expression(expression, name)?;
-                let cancel = self.use_cancel();
+                let cancel = self.get_cancel("");
                 self.call_continuation(cancel, value);
                 None
+            }
+            Builtin::Resume => {
+                let value = self.compile_expression(expression, name)?;
+                Some(self.call_resume(value, name))
             }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, name)?;

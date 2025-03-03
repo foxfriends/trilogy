@@ -28,7 +28,6 @@ typedef enum trilogy_callable_tag : unsigned char {
     CALLABLE_PROCEDURE = 2,
     CALLABLE_RULE = 3,
     CALLABLE_CONTINUATION = 4,
-    CALLABLE_HANDLER = 5
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {
@@ -174,10 +173,6 @@ typedef struct trilogy_callable_value {
      **/
     struct trilogy_callable_value* return_to;
     struct trilogy_callable_value* yield_to;
-    /**
-     * For CALLABLE_HANDLER type callables only, the cancel_to pointer must be
-     *set to specify where the `cancel` keyword continues to.
-     **/
     struct trilogy_callable_value* cancel_to;
     /**
      * Context captured from the closure of this callable. This is an array of

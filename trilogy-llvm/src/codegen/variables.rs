@@ -103,8 +103,8 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
-    /// When in a continuation function, gets the value that was yielded to the continuation.
-    pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
+    /// When in a handler function, gets the cancel to pointer.
+    pub(crate) fn get_cancel(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
         let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
         self.builder
@@ -114,8 +114,8 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
-    /// When in a handler function, gets the cancel to pointer.
-    pub(crate) fn get_cancel(&self, name: &str) -> PointerValue<'ctx> {
+    /// When in a handler function, gets the resume to pointer.
+    pub(crate) fn get_resume(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
         let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
         self.builder
@@ -125,8 +125,8 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
-    /// When in a handler function, gets the resume to pointer.
-    pub(crate) fn get_resume(&self, name: &str) -> PointerValue<'ctx> {
+    /// When in a continuation function, gets the value that was yielded to the continuation.
+    pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
         let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
         self.builder

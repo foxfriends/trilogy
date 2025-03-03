@@ -19,11 +19,6 @@ void trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p);
 void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p);
 void trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to /* moved */,
-    trilogy_value* yield_to /* moved */, trilogy_value* closure /* moved */,
-    void* p
-);
-void trilogy_callable_init_handler(
-    trilogy_value* t, trilogy_value* return_to /* moved */,
     trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
     trilogy_value* closure /* moved */, void* p
 );
@@ -41,6 +36,9 @@ void trilogy_callable_yield_to_into(
 void trilogy_callable_cancel_to_into(
     trilogy_value*, trilogy_callable_value* orig
 );
+void trilogy_callable_resume_to_into(
+    trilogy_value*, trilogy_callable_value* orig
+);
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val);
 trilogy_callable_value* trilogy_callable_assume(trilogy_value* val);
@@ -49,4 +47,3 @@ void* trilogy_function_untag(trilogy_callable_value* val);
 void* trilogy_procedure_untag(trilogy_callable_value* val, unsigned int arity);
 void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity);
 void* trilogy_continuation_untag(trilogy_callable_value* val);
-void* trilogy_handler_untag(trilogy_callable_value* val);

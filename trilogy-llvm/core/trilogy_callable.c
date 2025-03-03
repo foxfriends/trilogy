@@ -90,7 +90,7 @@ void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
 
 void trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* closure, void* p
+    trilogy_value* cancel_to, trilogy_value* closure, void* p
 ) {
     assert(closure != NO_CLOSURE);
     assert(closure->tag == TAG_ARRAY);
@@ -99,28 +99,6 @@ void trilogy_callable_init_cont(
     callable->rc = 1;
     callable->tag = CALLABLE_CONTINUATION;
     callable->arity = 1;
-    callable->return_to =
-        return_to == NULL ? NULL : trilogy_callable_assume(return_to);
-    callable->yield_to =
-        yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
-    callable->cancel_to = NULL;
-    callable->closure =
-        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
-    callable->function = p;
-    trilogy_callable_init(t, callable);
-}
-
-void trilogy_callable_init_handler(
-    trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* cancel_to, trilogy_value* closure, void* p
-) {
-    assert(closure != NO_CLOSURE);
-    assert(closure->tag == TAG_ARRAY);
-    trilogy_callable_value* callable =
-        malloc_safe(sizeof(trilogy_callable_value));
-    callable->rc = 1;
-    callable->tag = CALLABLE_HANDLER;
-    callable->arity = 2;
     callable->return_to =
         return_to == NULL ? NULL : trilogy_callable_assume(return_to);
     callable->yield_to =
@@ -207,11 +185,5 @@ void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity) {
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
     if (val->tag != CALLABLE_CONTINUATION)
         internal_panic("invalid continue-to of non-continuation callable\n");
-    return (void*)val->function;
-}
-
-void* trilogy_handler_untag(trilogy_callable_value* val) {
-    if (val->tag != CALLABLE_HANDLER)
-        internal_panic("invalid yield to non-handler callable\n");
     return (void*)val->function;
 }
