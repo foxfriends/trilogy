@@ -56,7 +56,7 @@ cf=""
 lf=""
 
 for dir in $(ls); do
-            if [ -d "${dir}" ]; then
+    if [ -d "${dir}" ]; then
         pushd "${dir}" > /dev/null
 
         expect_output=""
@@ -89,7 +89,13 @@ for dir in $(ls); do
             popd > /dev/null
             continue
         fi
-        valgrind --log-file=memcheck --error-exitcode=97 -- ./a.out > stdout 2> stderr
+
+        if [ $(uname) != "Darwin" ]; then
+            valgrind --log-file=memcheck --error-exitcode=97 -- ./a.out > stdout 2> stderr
+        else
+            ./a.out > stdout 2> stderr
+        fi
+
         exit=$?
         output=$(<stdout)
         error=$(<stderr)
