@@ -135,6 +135,11 @@ impl Expression {
                 Self::builtin(ast.resume.span, Builtin::Resume),
                 Self::convert(converter, ast.expression),
             ),
+            Become(ast) => Self::builtin(ast.r#become.span, Builtin::Cancel).apply_to(
+                ast.span(),
+                Self::builtin(ast.r#become.span, Builtin::Resume)
+                    .apply_to(ast.span(), Self::convert(converter, ast.expression)),
+            ),
             Cancel(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.cancel.span, Builtin::Cancel),

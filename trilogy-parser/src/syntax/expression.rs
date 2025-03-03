@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Parser, Spanned, token_pattern::TokenPattern};
+use become_expression::BecomeExpression;
 use trilogy_scanner::TokenType::{self, *};
 
 /// The many kinds of expressions in a Trilogy program.
@@ -32,6 +33,7 @@ pub enum Expression {
     End(Box<EndExpression>),
     Exit(Box<ExitExpression>),
     Resume(Box<ResumeExpression>),
+    Become(Box<BecomeExpression>),
     Cancel(Box<CancelExpression>),
     Return(Box<ReturnExpression>),
     Break(Box<BreakExpression>),
@@ -204,7 +206,9 @@ impl Expression {
             // Unary operators and keywords are not permitted here. They must be parenthesized
             // to be considered an argument to an application. It messes with handler parsing
             // otherwise, while also being confusing in terms of precedence rules.
-            KwYield | KwResume | KwCancel | KwReturn | KwContinue | KwBreak => Ok(Done(lhs)),
+            KwYield | KwResume | KwCancel | KwReturn | KwContinue | KwBreak | KwBecome => {
+                Ok(Done(lhs))
+            }
 
             // A function application never spans across two lines. Furthermore,
             // the application requires a space, even when the parse would be
@@ -343,6 +347,7 @@ impl Expression {
             KwExit => Ok(Ok(Self::Exit(Box::new(ExitExpression::parse(parser)?)))),
             KwReturn => Ok(Ok(Self::Return(Box::new(ReturnExpression::parse(parser)?)))),
             KwResume => Ok(Ok(Self::Resume(Box::new(ResumeExpression::parse(parser)?)))),
+            KwBecome => Ok(Ok(Self::Become(Box::new(BecomeExpression::parse(parser)?)))),
             KwBreak => Ok(Ok(Self::Break(Box::new(BreakExpression::parse(parser)?)))),
             KwContinue => Ok(Ok(Self::Continue(Box::new(ContinueExpression::parse(
                 parser,
