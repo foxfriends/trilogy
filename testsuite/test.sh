@@ -18,6 +18,9 @@ while [ "$#" != "0" ]; do
         "-n" | "--nobuild")
             nobuild=true
             ;;
+        "-m" | "--memcheck")
+            memcheck=true
+            ;;
         *)
             printf "Unrecognized argument $1"
             exit 1
@@ -90,8 +93,8 @@ for dir in $(ls); do
             continue
         fi
 
-        if [ $(uname) != "Darwin" ]; then
-            valgrind --log-file=memcheck --error-exitcode=97 -- ./a.out > stdout 2> stderr
+        if [ $(uname) != "Darwin" -a -n "$memcheck" ]; then
+                valgrind --log-file=memcheck --error-exitcode=97 -- ./a.out > stdout 2> stderr
         else
             ./a.out > stdout 2> stderr
         fi
