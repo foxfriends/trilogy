@@ -192,6 +192,8 @@ impl Builtin {
                 | Builtin::Yield
                 | Builtin::Typeof
                 | Builtin::Return
+                | Builtin::Cancel
+                | Builtin::Resume
                 | Builtin::Exit
                 | Builtin::ToString,
         )

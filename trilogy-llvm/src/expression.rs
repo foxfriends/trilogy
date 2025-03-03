@@ -176,7 +176,7 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_value_destroy(guard_bool);
             let body_block = self.context.append_basic_block(self.get_function(), "body");
             let next_block = self.context.append_basic_block(self.get_function(), "next");
-            let brancher = self.end_continuation_point_as_branch();
+            let inner_brancher = self.end_continuation_point_as_branch();
             self.builder
                 .build_conditional_branch(guard_flag, body_block, next_block)
                 .unwrap();
@@ -186,8 +186,8 @@ impl<'ctx> Codegen<'ctx> {
             self.void_call_continuation(go_next);
 
             self.builder.position_at_end(body_block);
-            self.resume_continuation_point(&brancher);
-            if let Some(result) = self.compile_expression(&handler.body, "") {
+            self.resume_continuation_point(&inner_brancher);
+            if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
                 self.trilogy_value_destroy(result);
                 self.void_call_continuation(self.get_end(""));
             }
