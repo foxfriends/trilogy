@@ -65,7 +65,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::While(..) => todo!(),
             Value::For(..) => todo!(),
             Value::Let(expr) => self.compile_let(expr, name),
-            Value::Match(..) => todo!(),
+            Value::Match(expr) => self.compile_match(expr, name),
             Value::Assert(assertion) => self.compile_assertion(assertion, name),
             Value::Fn(..) => todo!(),
             Value::Do(closure) => Some(self.compile_do(closure, name)),
@@ -230,6 +230,56 @@ impl<'ctx> Codegen<'ctx> {
             }
             _ => todo!("non-deterministic branching {:?}", decl.query.value),
         }
+    }
+
+    fn compile_match(&self, expr: &ir::Match, name: &str) -> Option<PointerValue<'ctx>> {
+        let discriminant = self.compile_expression(&expr.expression, "match.discriminant")?;
+        self.bind_temporary(discriminant);
+
+        let continuation = self.add_continuation("");
+        let brancher = self.end_continuation_point_as_branch();
+        let mut merger = Merger::default();
+        for case in &expr.cases {
+            let (next_case_function, go_to_next_case) =
+                self.capture_current_continuation(&brancher, "match.next");
+            let next_case_cp = self.hold_continuation_point();
+            let discriminant = self.use_temporary(discriminant).unwrap().ptr();
+            self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
+            let guard_bool = self.compile_expression(&case.guard, "match.guard")?;
+            let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
+            // NOTE: bool doesn't really need to be destroyed... but do it anyway
+            self.trilogy_value_destroy(guard_bool);
+            let body_block = self.context.append_basic_block(self.get_function(), "body");
+            let next_block = self.context.append_basic_block(self.get_function(), "next");
+            let brancher = self.end_continuation_point_as_branch();
+            self.builder
+                .build_conditional_branch(guard_flag, body_block, next_block)
+                .unwrap();
+
+            self.builder.position_at_end(next_block);
+            let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
+            self.void_call_continuation(go_next);
+
+            self.builder.position_at_end(body_block);
+            self.resume_continuation_point(&brancher);
+            if let Some(result) = self.compile_expression(&case.body, name) {
+                let closure_allocation = self.continue_in_scope(continuation, result);
+                self.end_continuation_point_as_merge(&mut merger, closure_allocation);
+            }
+
+            let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
+            self.transfer_debug_info(next_case_function);
+            self.builder.position_at_end(next_case_entry);
+            self.become_continuation_point(next_case_cp);
+        }
+
+        self.builder.build_unreachable().unwrap();
+
+        let after = self.context.append_basic_block(continuation, "entry");
+        self.merge_without_branch(merger);
+        self.transfer_debug_info(continuation);
+        self.builder.position_at_end(after);
+        Some(self.get_continuation(name))
     }
 
     fn compile_application(

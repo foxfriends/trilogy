@@ -1,0 +1,8 @@
+proc main!() {
+  let val = match 'c
+    case 'a(n) if n > 3 then 1
+    case 'a(n) if n < 3 then 2
+    else val then val
+
+  assert val == 'c
+}
