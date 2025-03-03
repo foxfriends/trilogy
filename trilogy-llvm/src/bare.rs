@@ -766,7 +766,6 @@ impl<'ctx> Codegen<'ctx> {
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
-        // resume_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
     ) {
@@ -778,7 +777,6 @@ impl<'ctx> Codegen<'ctx> {
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    // self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
@@ -793,7 +791,6 @@ impl<'ctx> Codegen<'ctx> {
                     return_to.into(),
                     yield_to.into(),
                     cancel_to.into(),
-                    // resume_to.into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
                 ],
