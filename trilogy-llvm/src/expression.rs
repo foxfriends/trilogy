@@ -124,7 +124,7 @@ impl<'ctx> Codegen<'ctx> {
             handler_function,
         );
 
-        let body_closure = self.continue_in_scope_handled(body_function, handler);
+        let body_closure = self.continue_in_scope_handled(body_function, handler, cancel_to);
         self.add_branch_end_as_close(&brancher, body_closure);
 
         let body_entry = self.context.append_basic_block(body_function, "entry");
@@ -132,16 +132,7 @@ impl<'ctx> Codegen<'ctx> {
         self.transfer_debug_info(body_function);
         let result = self.compile_expression(&handled.expression, name)?;
 
-        // NOTE: this does not work as written, but it gets the idea across...
-        // we need to call the cancel_to function or equivalent at the end of the body,
-        // mainly just to set the context back to the previous yield_to value, while
-        // continuing into the cancel_to function.
-        //
-        // This could be done by always carrying around a cancel_to pointer, like we
-        // carry the yield_to pointer, or maybe we can just use the fact that the yield_to
-        // pointer is already containing the parent yield_to inside of it somewhere, so we
-        // can just go back that way without having to carry any more.
-        let cancel_to = self.use_temporary(cancel_to).unwrap().ptr();
+        let cancel_to = self.get_cancel("");
         self.call_continuation(cancel_to, result);
 
         self.become_continuation_point(handler_continuation_point);

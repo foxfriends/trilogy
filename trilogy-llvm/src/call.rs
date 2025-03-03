@@ -351,15 +351,73 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
     }
 
+    /// Continues to a point in the same lexical scope directly, without any runtime
+    /// continuation object. This is typically used within an expression that spans
+    /// multiple continuations, such as an `if-else` expression.
+    ///
+    /// The current basic block is terminated. The current continuation point must be
+    /// closed; the instruction from which to terminate it is returned, and should
+    /// be passed to some `end_continuation_` function that will close closure pointer
+    /// returned.
+    #[must_use = "continuation point must be closed"]
+    pub(crate) fn continue_in_scope(
+        &self,
+        function: FunctionValue<'ctx>,
+        argument: PointerValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        self.continue_in_scope_inner(
+            function,
+            self.get_yield(""),
+            self.get_cancel(""),
+            self.builder
+                .build_load(self.value_type(), argument, "")
+                .unwrap()
+                .into(),
+        )
+    }
+
+    /// See `continue_in_scope`; this does that, but passes an `undefined` value as the
+    /// parameter, assuming that the continuation we are entering does not refer to the
+    /// value at all.
+    #[must_use = "continuation point must be closed"]
+    pub(crate) fn void_continue_in_scope(
+        &self,
+        function: FunctionValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        self.continue_in_scope_inner(
+            function,
+            self.get_yield(""),
+            self.get_cancel(""),
+            self.value_type().const_zero().into(),
+        )
+    }
+
+    /// See `void_continue_in_scope`; this does that, but allows a different `yield_to`
+    /// pointer to be passed, setting that as the handler for the continued scope.
+    #[must_use = "continuation point must be closed"]
+    pub(crate) fn continue_in_scope_handled(
+        &self,
+        function: FunctionValue<'ctx>,
+        yield_to: PointerValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        self.continue_in_scope_inner(
+            function,
+            yield_to,
+            cancel_to,
+            self.value_type().const_zero().into(),
+        )
+    }
+
     fn continue_in_scope_inner(
         &self,
         function: FunctionValue<'ctx>,
         yield_to: PointerValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
     ) -> InstructionValue<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
-        let cancel_to = self.get_cancel("");
         let resume_to = self.get_resume("");
 
         let parent_closure = self
@@ -402,182 +460,6 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
         parent_closure.as_instruction_value().unwrap()
     }
-
-    /// Continues to a point in the same lexical scope directly, without any runtime
-    /// continuation object. This is typically used within an expression that spans
-    /// multiple continuations, such as an `if-else` expression.
-    ///
-    /// The current basic block is terminated. The current continuation point must be
-    /// closed; the instruction from which to terminate it is returned, and should
-    /// be passed to some `end_continuation_` function that will close closure pointer
-    /// returned.
-    #[must_use = "continuation point must be closed"]
-    pub(crate) fn continue_in_scope(
-        &self,
-        function: FunctionValue<'ctx>,
-        argument: PointerValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            self.get_yield(""),
-            self.builder
-                .build_load(self.value_type(), argument, "")
-                .unwrap()
-                .into(),
-        )
-    }
-
-    /// See `continue_in_scope`; this does that, but passes an `undefined` value as the
-    /// parameter, assuming that the continuation we are entering does not refer to the
-    /// value at all.
-    #[must_use = "continuation point must be closed"]
-    pub(crate) fn void_continue_in_scope(
-        &self,
-        function: FunctionValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            self.get_yield(""),
-            self.value_type().const_zero().into(),
-        )
-    }
-
-    /// See `void_continue_in_scope`; this does that, but allows a different `yield_to`
-    /// pointer to be passed, setting that as the handler for the continued scope.
-    #[must_use = "continuation point must be closed"]
-    pub(crate) fn continue_in_scope_handled(
-        &self,
-        function: FunctionValue<'ctx>,
-        yield_to: PointerValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(function, yield_to, self.value_type().const_zero().into())
-    }
-
-    /// Calls the `main` function as the Trilogy program entrypoint.
-    ///
-    /// This is similar to a standard procedure call, but because this is the first call
-    /// in a program, we have to create the initial `return_to`, `yield_to`, and `end_to`
-    /// continuations from scratch.
-    pub(crate) fn call_main(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        let chain_function = self.module.add_function(
-            "main.return",
-            self.continuation_type(),
-            Some(Linkage::Private),
-        );
-
-        let yield_function = self.module.add_function(
-            "main.unhandled_effect",
-            self.continuation_type(),
-            Some(Linkage::Private),
-        );
-
-        let end_function =
-            self.module
-                .add_function("main.end", self.continuation_type(), Some(Linkage::Private));
-
-        let callable = self.trilogy_callable_untag(value, "");
-        let function = self.trilogy_procedure_untag(callable, 0, "");
-        let return_continuation = self.allocate_value("return");
-        let yield_continuation = self.allocate_value("yield");
-        let end_continuation = self.allocate_value("end");
-        let cancel_continuation = self.allocate_value("cancel");
-        let resume_continuation = self.allocate_value("resume");
-
-        let return_closure = self.allocate_value("main.ret");
-        let yield_closure = self.allocate_value("main.yield");
-        let end_closure = self.allocate_value("main.end");
-        let cancel_closure = self.allocate_value("main.cancel");
-        let resume_closure = self.allocate_value("main.resume");
-        self.trilogy_array_init_cap(return_closure, 0, "");
-        self.trilogy_array_init_cap(yield_closure, 0, "");
-        self.trilogy_array_init_cap(end_closure, 0, "");
-        self.trilogy_array_init_cap(cancel_closure, 0, "");
-        self.trilogy_array_init_cap(resume_closure, 0, "");
-        self.trilogy_callable_init_cont(
-            return_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            return_closure,
-            chain_function,
-        );
-        self.trilogy_callable_init_cont(
-            yield_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            yield_closure,
-            yield_function,
-        );
-        self.trilogy_callable_init_cont(
-            end_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            end_closure,
-            end_function,
-        );
-        self.trilogy_callable_init_cont(
-            cancel_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            cancel_closure,
-            end_function,
-        );
-        self.trilogy_callable_init_cont(
-            resume_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            resume_closure,
-            end_function,
-        );
-
-        let args = &[
-            self.builder
-                .build_load(self.value_type(), return_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_continuation, "")
-                .unwrap()
-                .into(),
-        ];
-        self.trilogy_value_destroy(value);
-        let call = self
-            .builder
-            .build_indirect_call(self.procedure_type(0, false), function, args, "")
-            .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
-        self.builder.build_return(None).unwrap();
-
-        let entry = self.context.append_basic_block(yield_function, "entry");
-        self.builder.position_at_end(entry);
-        let effect = self.get_continuation("");
-        _ = self.trilogy_unhandled_effect(effect);
-
-        let entry = self.context.append_basic_block(end_function, "entry");
-        self.builder.position_at_end(entry);
-        _ = self.trilogy_execution_ended();
-
-        let entry = self.context.append_basic_block(chain_function, "entry");
-        self.builder.position_at_end(entry);
-        self.get_continuation("")
-    }
-
     /// An internal function in this case is one that follows the convention of
     /// the first parameter being the output parameter, and all values being
     /// TrilogyValue pointers.
@@ -712,5 +594,130 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(entry);
         self.transfer_debug_info(continuation_function);
         self.get_continuation(name)
+    }
+
+    /// Calls the `main` function as the Trilogy program entrypoint.
+    ///
+    /// This is similar to a standard procedure call, but because this is the first call
+    /// in a program, we have to create the initial `return_to`, `yield_to`, and `end_to`
+    /// continuations from scratch.
+    pub(crate) fn call_main(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
+        let chain_function = self.module.add_function(
+            "main.return",
+            self.continuation_type(),
+            Some(Linkage::Private),
+        );
+
+        let yield_function = self.module.add_function(
+            "main.unhandled_effect",
+            self.continuation_type(),
+            Some(Linkage::Private),
+        );
+
+        let end_function =
+            self.module
+                .add_function("main.end", self.continuation_type(), Some(Linkage::Private));
+
+        let callable = self.trilogy_callable_untag(value, "");
+        let function = self.trilogy_procedure_untag(callable, 0, "");
+        let return_continuation = self.allocate_value("return");
+        let yield_continuation = self.allocate_value("yield");
+        let end_continuation = self.allocate_value("end");
+        let cancel_continuation = self.allocate_value("cancel");
+        let resume_continuation = self.allocate_value("resume");
+
+        let return_closure = self.allocate_value("main.ret");
+        let yield_closure = self.allocate_value("main.yield");
+        let end_closure = self.allocate_value("main.end");
+        let cancel_closure = self.allocate_value("main.cancel");
+        let resume_closure = self.allocate_value("main.resume");
+        self.trilogy_array_init_cap(return_closure, 0, "");
+        self.trilogy_array_init_cap(yield_closure, 0, "");
+        self.trilogy_array_init_cap(end_closure, 0, "");
+        self.trilogy_array_init_cap(cancel_closure, 0, "");
+        self.trilogy_array_init_cap(resume_closure, 0, "");
+        self.trilogy_callable_init_cont(
+            return_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            return_closure,
+            chain_function,
+        );
+        self.trilogy_callable_init_cont(
+            yield_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            yield_closure,
+            yield_function,
+        );
+        self.trilogy_callable_init_cont(
+            end_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            end_closure,
+            end_function,
+        );
+        self.trilogy_callable_init_cont(
+            cancel_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            cancel_closure,
+            end_function,
+        );
+        self.trilogy_callable_init_cont(
+            resume_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            resume_closure,
+            end_function,
+        );
+
+        let args = &[
+            self.builder
+                .build_load(self.value_type(), return_continuation, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), yield_continuation, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), end_continuation, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), cancel_continuation, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), resume_continuation, "")
+                .unwrap()
+                .into(),
+        ];
+        self.trilogy_value_destroy(value);
+        let call = self
+            .builder
+            .build_indirect_call(self.procedure_type(0, false), function, args, "")
+            .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        self.builder.build_return(None).unwrap();
+
+        let entry = self.context.append_basic_block(yield_function, "entry");
+        self.builder.position_at_end(entry);
+        let effect = self.get_continuation("");
+        _ = self.trilogy_unhandled_effect(effect);
+
+        let entry = self.context.append_basic_block(end_function, "entry");
+        self.builder.position_at_end(entry);
+        _ = self.trilogy_execution_ended();
+
+        let entry = self.context.append_basic_block(chain_function, "entry");
+        self.builder.position_at_end(entry);
+        self.get_continuation("")
     }
 }
