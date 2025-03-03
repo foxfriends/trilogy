@@ -71,7 +71,7 @@ impl<'ctx> Codegen<'ctx> {
         function.set_subprogram(self.di.create_function(
             &name,
             function.get_name().to_str().unwrap(),
-            self.di.continuation_di_type(),
+            self.di.handler_di_type(),
             span,
             true,
             true,

@@ -91,9 +91,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_end(&self) {
-        let end = self.get_end("");
-        let alloca = self.allocate_value("");
-        self.call_continuation(end, alloca);
+        self.void_call_continuation(self.get_end(""));
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
@@ -159,9 +157,57 @@ impl<'ctx> Codegen<'ctx> {
         Some(self.get_continuation(name))
     }
 
-    fn compile_handlers(&self, _handlers: &[ir::Handler]) {
-        let end = self.builder.build_unreachable().unwrap();
-        self.end_continuation_point_as_clean(end);
+    fn compile_handlers(&self, handlers: &[ir::Handler]) {
+        let effect = self.get_continuation("effect");
+        self.bind_temporary(effect);
+
+        let brancher = self.end_continuation_point_as_branch();
+        for handler in handlers {
+            let (next_case_function, go_to_next_case) =
+                self.capture_current_continuation(&brancher, "when.next");
+            let next_case_cp = self.hold_continuation_point();
+            let effect = self.use_temporary(effect).unwrap().ptr();
+            if self
+                .compile_pattern_match(&handler.pattern, effect, go_to_next_case)
+                .is_none()
+            {
+                break;
+            }
+            let Some(guard_bool) = self.compile_expression(&handler.guard, "when.guard") else {
+                let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
+                self.transfer_debug_info(next_case_function);
+                self.builder.position_at_end(next_case_entry);
+                self.become_continuation_point(next_case_cp);
+                continue;
+            };
+            let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
+            // NOTE: bool doesn't really need to be destroyed... but do it anyway
+            self.trilogy_value_destroy(guard_bool);
+            let body_block = self.context.append_basic_block(self.get_function(), "body");
+            let next_block = self.context.append_basic_block(self.get_function(), "next");
+            let brancher = self.end_continuation_point_as_branch();
+            self.builder
+                .build_conditional_branch(guard_flag, body_block, next_block)
+                .unwrap();
+
+            self.builder.position_at_end(next_block);
+            let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
+            self.void_call_continuation(go_next);
+
+            self.builder.position_at_end(body_block);
+            self.resume_continuation_point(&brancher);
+            if let Some(result) = self.compile_expression(&handler.body, "") {
+                self.trilogy_value_destroy(result);
+                self.void_call_continuation(self.get_end(""));
+            }
+
+            let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
+            self.transfer_debug_info(next_case_function);
+            self.builder.position_at_end(next_case_entry);
+            self.become_continuation_point(next_case_cp);
+        }
+
+        self.builder.build_unreachable().unwrap();
     }
 
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
@@ -214,8 +260,8 @@ impl<'ctx> Codegen<'ctx> {
     fn reference_builtin(&self, builtin: Builtin, name: &str) -> PointerValue<'ctx> {
         match builtin {
             Builtin::Return => self.get_return(name),
-            Builtin::Cancel => self.get_cancel(name),
-            Builtin::Resume => self.get_resume(name),
+            Builtin::Cancel => self.use_cancel(),
+            Builtin::Resume => self.use_resume(),
             _ => todo!(),
         }
     }
@@ -245,7 +291,13 @@ impl<'ctx> Codegen<'ctx> {
             let next_case_cp = self.hold_continuation_point();
             let discriminant = self.use_temporary(discriminant).unwrap().ptr();
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
-            let guard_bool = self.compile_expression(&case.guard, "match.guard")?;
+            let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
+                let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
+                self.transfer_debug_info(next_case_function);
+                self.builder.position_at_end(next_case_entry);
+                self.become_continuation_point(next_case_cp);
+                continue;
+            };
             let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
             // NOTE: bool doesn't really need to be destroyed... but do it anyway
             self.trilogy_value_destroy(guard_bool);
@@ -401,7 +453,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Cancel => {
                 let value = self.compile_expression(expression, name)?;
-                let cancel = self.get_cancel("");
+                let cancel = self.use_cancel();
                 self.call_continuation(cancel, value);
                 None
             }
