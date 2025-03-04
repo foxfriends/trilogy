@@ -360,6 +360,27 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    /// Untags a callable value. The returned PointerValue points to a `trilogy_callable_value`.
+    pub(crate) fn trilogy_continuation_is_resume(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_continuation_is_resume",
+            self.context.bool_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
     pub(crate) fn trilogy_callable_closure_into(
         &self,
         target: PointerValue<'ctx>,
@@ -612,7 +633,7 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_proc",
-            self.context.void_type().fn_type(
+            self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
@@ -733,7 +754,7 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_do",
-            self.context.void_type().fn_type(
+            self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
@@ -771,7 +792,46 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_cont",
-            self.context.void_type().fn_type(
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    t.into(),
+                    return_to.into(),
+                    yield_to.into(),
+                    cancel_to.into(),
+                    closure.into(),
+                    function.as_global_value().as_pointer_value().into(),
+                ],
+                "",
+            )
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_callable_init_resume(
+        &self,
+        t: PointerValue<'ctx>,
+        return_to: PointerValue<'ctx>,
+        yield_to: PointerValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
+        closure: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_init_resume",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),

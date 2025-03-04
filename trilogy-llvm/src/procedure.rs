@@ -57,7 +57,9 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_direct_call(original_function, &params, "")
             .unwrap();
-        self.call_continuation(self.get_return(""), ret_val);
+        self.call_continuation(self.get_return(""), ret_val, "");
+        self.builder.build_unreachable().unwrap();
+
         self.close_continuation();
         self.end_function();
 
@@ -149,7 +151,8 @@ impl<'ctx> Codegen<'ctx> {
                 // in which case we never reach this point
                 self.trilogy_value_destroy(value);
                 let ret = self.get_return("");
-                self.call_continuation(ret, self.allocate_const(self.unit_const(), ""));
+                self.call_continuation(ret, self.allocate_const(self.unit_const(), ""), "");
+                self.builder.build_unreachable().unwrap();
             }
         }
         self.end_function();

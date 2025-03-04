@@ -1,23 +1,29 @@
 #pragma once
 #include "types.h"
+#include <stdbool.h>
 
 #define NO_CLOSURE 0
 
-void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload);
-void trilogy_callable_init_fn(
+trilogy_callable_value* trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload);
+trilogy_callable_value* trilogy_callable_init_fn(
     trilogy_value* t, trilogy_value* closure, void* p
 );
-void trilogy_callable_init_do(
+trilogy_callable_value* trilogy_callable_init_do(
     trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
 );
-void trilogy_callable_init_qy(
+trilogy_callable_value* trilogy_callable_init_qy(
     trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
 );
 
-void trilogy_callable_init_func(trilogy_value* t, void* p);
-void trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p);
-void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p);
-void trilogy_callable_init_cont(
+trilogy_callable_value* trilogy_callable_init_func(trilogy_value* t, void* p);
+trilogy_callable_value* trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p);
+trilogy_callable_value* trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p);
+trilogy_callable_value* trilogy_callable_init_cont(
+    trilogy_value* t, trilogy_value* return_to /* moved */,
+    trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
+    trilogy_value* closure /* moved */, void* p
+);
+trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_value* t, trilogy_value* return_to /* moved */,
     trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
     trilogy_value* closure /* moved */, void* p
@@ -47,3 +53,4 @@ void* trilogy_function_untag(trilogy_callable_value* val);
 void* trilogy_procedure_untag(trilogy_callable_value* val, unsigned int arity);
 void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity);
 void* trilogy_continuation_untag(trilogy_callable_value* val);
+bool trilogy_continuation_is_resume(trilogy_callable_value* val);

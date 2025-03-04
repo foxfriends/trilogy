@@ -8,7 +8,7 @@ trilogy_value* prepare_closure(unsigned int closure_size) {
     return calloc_safe(closure_size, sizeof(trilogy_value));
 }
 
-void trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
+trilogy_callable_value* trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
     assert(t->tag == TAG_UNDEFINED);
     t->tag = TAG_CALLABLE;
     t->payload = (unsigned long)payload;
@@ -22,7 +22,7 @@ void trilogy_callable_clone_into(
     trilogy_callable_init(t, orig);
 }
 
-void trilogy_callable_init_fn(
+trilogy_callable_value* trilogy_callable_init_fn(
     trilogy_value* t, trilogy_value* closure, void* p
 ) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
@@ -37,10 +37,10 @@ void trilogy_callable_init_fn(
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
-    trilogy_callable_init(t, callable);
+    return trilogy_callable_init(t, callable);
 }
 
-void trilogy_callable_init_do(
+trilogy_callable_value* trilogy_callable_init_do(
     trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
 ) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
@@ -55,10 +55,10 @@ void trilogy_callable_init_do(
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
-    trilogy_callable_init(t, callable);
+    return trilogy_callable_init(t, callable);
 }
 
-void trilogy_callable_init_qy(
+trilogy_callable_value* trilogy_callable_init_qy(
     trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
 ) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
@@ -73,22 +73,22 @@ void trilogy_callable_init_qy(
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
-    trilogy_callable_init(t, callable);
+    return trilogy_callable_init(t, callable);
 }
 
-void trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p) {
-    trilogy_callable_init_do(t, arity, NO_CLOSURE, p);
+trilogy_callable_value* trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p) {
+    return trilogy_callable_init_do(t, arity, NO_CLOSURE, p);
 }
 
-void trilogy_callable_init_func(trilogy_value* t, void* p) {
-    trilogy_callable_init_fn(t, NO_CLOSURE, p);
+trilogy_callable_value* trilogy_callable_init_func(trilogy_value* t, void* p) {
+    return trilogy_callable_init_fn(t, NO_CLOSURE, p);
 }
 
-void trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
-    trilogy_callable_init_qy(t, arity, NO_CLOSURE, p);
+trilogy_callable_value* trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
+    return trilogy_callable_init_qy(t, arity, NO_CLOSURE, p);
 }
 
-void trilogy_callable_init_cont(
+trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
     trilogy_value* cancel_to, trilogy_value* closure, void* p
 ) {
@@ -108,7 +108,16 @@ void trilogy_callable_init_cont(
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
-    trilogy_callable_init(t, callable);
+    return trilogy_callable_init(t, callable);
+}
+
+trilogy_callable_value* trilogy_callable_init_resume(
+    trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
+    trilogy_value* cancel_to, trilogy_value* closure, void* p
+) {
+    trilogy_callable_value* callable = trilogy_callable_init_cont(t, return_to, yield_to, cancel_to, closure, p);
+    callable->tag = CALLABLE_RESUME;
+    return callable;
 }
 
 void trilogy_callable_destroy(trilogy_callable_value* val) {
@@ -183,7 +192,11 @@ void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity) {
 }
 
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
-    if (val->tag != CALLABLE_CONTINUATION)
+    if (val->tag != CALLABLE_CONTINUATION && val->tag != CALLABLE_RESUME)
         internal_panic("invalid continue-to of non-continuation callable\n");
     return (void*)val->function;
+}
+
+bool trilogy_continuation_is_resume(trilogy_callable_value* val) {
+    return val->tag == CALLABLE_RESUME;
 }

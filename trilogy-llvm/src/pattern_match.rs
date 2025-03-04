@@ -36,13 +36,16 @@ impl<'ctx> Codegen<'ctx> {
                 let mut merger = Merger::default();
 
                 let brancher = self.end_continuation_point_as_branch();
-                let (second_function, go_to_second) =
-                    self.capture_current_continuation(&brancher, "disj.snd");
+                let second_function = self.add_continuation("disj.snd");
+                let go_to_second =
+                    self.capture_current_continuation(second_function, &brancher, "disj.snd");
                 let secondary_cp = self.hold_continuation_point();
-                let (first_function, go_to_first) =
-                    self.capture_current_continuation(&brancher, "disj.fst");
+                let first_function = self.add_continuation("disj.fst");
+                let go_to_first =
+                    self.capture_current_continuation(first_function, &brancher, "disj.fst");
                 let primary_cp = self.hold_continuation_point();
-                self.void_call_continuation(go_to_first);
+                self.void_call_continuation(go_to_first, "");
+                self.builder.build_unreachable().unwrap();
 
                 let primary_entry = self.context.append_basic_block(first_function, "entry");
                 self.transfer_debug_info(first_function);
@@ -138,9 +141,11 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.builder.position_at_end(fail);
         let on_fail = self.use_temporary(on_fail).unwrap().ptr();
-        self.void_call_continuation(on_fail);
+        self.void_call_continuation(on_fail, "");
+        self.builder.build_unreachable().unwrap();
 
         self.builder.position_at_end(cont);
+        self.transfer_debug_info(self.get_function());
         self.resume_continuation_point(&brancher);
         cont
     }

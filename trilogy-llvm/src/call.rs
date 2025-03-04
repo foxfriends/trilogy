@@ -1,14 +1,12 @@
 use crate::codegen::{Brancher, Codegen};
 use crate::types::CALLABLE_CONTINUATION;
-use inkwell::{
-    AddressSpace, IntPredicate,
-    llvm_sys::LLVMCallConv,
-    module::Linkage,
-    values::{
-        BasicMetadataValueEnum, BasicValue, FunctionValue, InstructionValue, IntValue,
-        LLVMTailCallKind, PointerValue,
-    },
+use inkwell::llvm_sys::LLVMCallConv;
+use inkwell::module::Linkage;
+use inkwell::values::{
+    BasicMetadataValueEnum, BasicValue, FunctionValue, InstructionValue, IntValue,
+    LLVMTailCallKind, PointerValue,
 };
+use inkwell::{AddressSpace, IntPredicate};
 
 impl<'ctx> Codegen<'ctx> {
     /// Checks whether a value that is supposedly a closure is actually a closure, or if it is
@@ -45,10 +43,11 @@ impl<'ctx> Codegen<'ctx> {
     /// This does not end the branch, only adds a capture point to it.
     pub(crate) fn capture_current_continuation(
         &self,
+        continuation_function: FunctionValue<'ctx>,
         branch: &Brancher<'ctx>,
         name: &str,
-    ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
-        self.construct_current_continuation(Some(branch), name)
+    ) -> PointerValue<'ctx> {
+        self.construct_current_continuation(continuation_function, Some(branch), false, name)
     }
 
     /// Constructs a TrilogyValue that represents the current continuation.
@@ -57,9 +56,22 @@ impl<'ctx> Codegen<'ctx> {
     /// so may not be referenced.
     pub(crate) fn close_current_continuation(
         &self,
+        continuation_function: FunctionValue<'ctx>,
         name: &str,
-    ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
-        self.construct_current_continuation(None, name)
+    ) -> PointerValue<'ctx> {
+        self.construct_current_continuation(continuation_function, None, false, name)
+    }
+
+    /// Constructs a TrilogyValue that represents the current continuation.
+    ///
+    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
+    /// so may not be referenced.
+    pub(crate) fn close_current_continuation_as_resume(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        self.construct_current_continuation(continuation_function, None, true, name)
     }
 
     /// Constructs a TrilogyValue that represents the current continuation.
@@ -68,10 +80,11 @@ impl<'ctx> Codegen<'ctx> {
     /// so may not be referenced.
     fn construct_current_continuation(
         &self,
+        continuation_function: FunctionValue<'ctx>,
         branch: Option<&Brancher<'ctx>>,
+        as_resume: bool,
         name: &str,
-    ) -> (FunctionValue<'ctx>, PointerValue<'ctx>) {
-        let continuation_function = self.add_continuation(name);
+    ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
@@ -89,16 +102,27 @@ impl<'ctx> Codegen<'ctx> {
             // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
             self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
         }
-        self.trilogy_callable_init_cont(
-            continuation,
-            return_to,
-            yield_to,
-            cancel_to,
-            closure,
-            continuation_function,
-        );
+        if as_resume {
+            self.trilogy_callable_init_resume(
+                continuation,
+                return_to,
+                yield_to,
+                cancel_to,
+                closure,
+                continuation_function,
+            );
+        } else {
+            self.trilogy_callable_init_cont(
+                continuation,
+                return_to,
+                yield_to,
+                cancel_to,
+                closure,
+                continuation_function,
+            );
+        }
 
-        (continuation_function, continuation)
+        continuation
     }
 
     /// Makes a function or procedure call, following standard calling convention.
@@ -147,6 +171,7 @@ impl<'ctx> Codegen<'ctx> {
     /// arguments are moved into the call.
     fn call_callable(
         &self,
+        continuation_function: FunctionValue<'ctx>,
         value: PointerValue<'ctx>,
         callable: PointerValue<'ctx>,
         function_ptr: PointerValue<'ctx>,
@@ -163,7 +188,7 @@ impl<'ctx> Codegen<'ctx> {
         let resume_to = self.get_resume("");
 
         // All variables and values are invalid after this point.
-        let (continuation_function, current_continuation) = self.close_current_continuation("cc");
+        let current_continuation = self.close_current_continuation(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + 6);
@@ -208,7 +233,15 @@ impl<'ctx> Codegen<'ctx> {
         let callable = self.trilogy_callable_untag(procedure, "");
         let arity = arguments.len();
         let function = self.trilogy_procedure_untag(callable, arity, "");
-        self.call_callable(procedure, callable, function, arguments, name)
+        let continuation_function = self.add_continuation("cc");
+        self.call_callable(
+            continuation_function,
+            procedure,
+            callable,
+            function,
+            arguments,
+            name,
+        )
     }
 
     /// Applies a function value to the provided argument. This may also be used to call
@@ -244,12 +277,28 @@ impl<'ctx> Codegen<'ctx> {
             .build_conditional_branch(is_continuation, call_continuation, call_function)
             .unwrap();
 
+        let continuation_function = self.add_continuation("cc");
+
         self.builder.position_at_end(call_continuation);
-        self.call_continuation(function, argument);
+        self.call_continuation_inner(
+            continuation_function,
+            function,
+            self.builder
+                .build_load(self.value_type(), argument, "")
+                .unwrap()
+                .into(),
+        );
 
         self.builder.position_at_end(call_function);
         let function = self.trilogy_function_untag(callable, "");
-        self.call_callable(function, callable, function, &[argument], name)
+        self.call_callable(
+            continuation_function,
+            function,
+            callable,
+            function,
+            &[argument],
+            name,
+        )
     }
 
     /// Applies a continuation value to the provided argument.
@@ -271,29 +320,75 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         function: PointerValue<'ctx>,
         argument: PointerValue<'ctx>,
-    ) {
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let continuation_function = self.add_continuation("");
         self.call_continuation_inner(
+            continuation_function,
             function,
             self.builder
                 .build_load(self.value_type(), argument, "")
                 .unwrap()
                 .into(),
-        )
+        );
+
+        let entry = self
+            .context
+            .append_basic_block(continuation_function, "entry");
+        self.builder.position_at_end(entry);
+        self.transfer_debug_info(continuation_function);
+        self.get_continuation(name)
     }
 
     /// Applies a continuation value, passing void as its argument. The called continuation must
     /// not refer to the value. See `call_continuation` for more info.
-    pub(crate) fn void_call_continuation(&self, function: PointerValue<'ctx>) {
-        self.call_continuation_inner(function, self.value_type().const_zero().into())
+    pub(crate) fn void_call_continuation(
+        &self,
+        function: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let continuation_function = self.add_continuation("");
+        self.call_continuation_inner(
+            continuation_function,
+            function,
+            self.value_type().const_zero().into(),
+        );
+        let entry = self
+            .context
+            .append_basic_block(continuation_function, "entry");
+        self.builder.position_at_end(entry);
+        self.transfer_debug_info(continuation_function);
+        self.get_continuation(name)
     }
 
     fn call_continuation_inner(
         &self,
+        continuation_function: FunctionValue<'ctx>,
         function: PointerValue<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
     ) {
         let callable = self.trilogy_callable_untag(function, "");
         let continuation = self.trilogy_continuation_untag(callable, "");
+        let is_resume = self.trilogy_continuation_is_resume(continuation, "");
+
+        let resume_branch = self
+            .context
+            .append_basic_block(self.get_function(), "call.resume");
+        let regular_branch = self
+            .context
+            .append_basic_block(self.get_function(), "call.cont");
+
+        let brancher = self.end_continuation_point_as_branch();
+
+        self.builder
+            .build_conditional_branch(is_resume, resume_branch, regular_branch)
+            .unwrap();
+
+        self.builder.position_at_end(resume_branch);
+        self.call_resume_inner(continuation_function, callable, argument, "");
+
+        self.builder.position_at_end(regular_branch);
+        self.resume_continuation_point(&brancher);
 
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
@@ -303,7 +398,6 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_return_to_into(return_to, callable);
         self.trilogy_callable_yield_to_into(yield_to, callable);
         self.trilogy_callable_cancel_to_into(cancel_to, callable);
-        // TODO[effects]: self.trilogy_callable_resume_to_into(resume_to, callable);
         let closure = self.get_callable_closure(callable);
 
         let args = &[
@@ -492,7 +586,10 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_cancel_to_into(cancel_to, handler);
         self.trilogy_callable_closure_into(closure, handler, "");
 
-        let (continuation_function, resume_to) = self.close_current_continuation("yield.resume");
+        let continuation_function = self.add_continuation("yield.resume");
+
+        let resume_to =
+            self.close_current_continuation_as_resume(continuation_function, "yield.resume");
         let args = &[
             self.builder
                 .build_load(self.value_type(), return_to, "")
@@ -537,9 +634,33 @@ impl<'ctx> Codegen<'ctx> {
         self.get_continuation(name)
     }
 
-    pub(crate) fn call_resume(&self, effect: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn call_resume(
+        &self,
+        value: BasicMetadataValueEnum<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
         let resume_value = self.get_resume("");
+        let continuation_function = self.add_continuation("resume.back");
+
+        self.call_resume_inner(continuation_function, resume_value, value, name);
+
+        let entry = self
+            .context
+            .append_basic_block(continuation_function, "entry");
+        self.builder.position_at_end(entry);
+        self.transfer_debug_info(continuation_function);
+        self.get_continuation(name)
+    }
+
+    fn call_resume_inner(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        resume_value: PointerValue<'ctx>,
+        value: BasicMetadataValueEnum<'ctx>,
+        name: &str,
+    ) {
         let resume = self.trilogy_callable_untag(resume_value, "");
+        let resume_continuation = self.trilogy_continuation_untag(resume, "");
 
         let end_to = self.get_end("");
         let resume_to = self.get_resume("");
@@ -551,7 +672,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_yield_to_into(yield_to, resume);
         self.trilogy_callable_closure_into(closure, resume, "");
 
-        let (continuation_function, cancel_to) = self.close_current_continuation("when.cancel");
+        let cancel_to = self.close_current_continuation(continuation_function, "when.cancel");
         let args = &[
             self.builder
                 .build_load(self.value_type(), return_to, "")
@@ -573,27 +694,16 @@ impl<'ctx> Codegen<'ctx> {
                 .build_load(self.value_type(), resume_to, "")
                 .unwrap()
                 .into(),
-            self.builder
-                .build_load(self.value_type(), effect, "")
-                .unwrap()
-                .into(),
+            value,
             self.builder
                 .build_load(self.value_type(), closure, "")
                 .unwrap()
                 .into(),
         ];
-        let resume_continuation = self.trilogy_continuation_untag(resume, "");
         self.builder
             .build_indirect_call(self.continuation_type(), resume_continuation, args, name)
             .unwrap();
-        self.builder.build_unreachable().unwrap();
-
-        let entry = self
-            .context
-            .append_basic_block(continuation_function, "entry");
-        self.builder.position_at_end(entry);
-        self.transfer_debug_info(continuation_function);
-        self.get_continuation(name)
+        self.builder.build_return(None).unwrap();
     }
 
     /// Calls the `main` function as the Trilogy program entrypoint.

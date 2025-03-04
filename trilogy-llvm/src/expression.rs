@@ -91,7 +91,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_end(&self) {
-        self.void_call_continuation(self.get_end(""));
+        self.void_call_continuation(self.get_end(""), "");
+        self.builder.build_unreachable().unwrap();
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
@@ -101,8 +102,9 @@ impl<'ctx> Codegen<'ctx> {
 
         let return_to = self.get_return("");
         let yield_to = self.get_return("");
-        let (cancel_to_function, cancel_to) =
-            self.capture_current_continuation(&brancher, "when.cancel");
+        let cancel_to_function = self.add_continuation("when.cancel");
+        let cancel_to =
+            self.capture_current_continuation(cancel_to_function, &brancher, "when.cancel");
         let cancel_to_continuation_point = self.hold_continuation_point();
 
         // construct handler
@@ -133,7 +135,8 @@ impl<'ctx> Codegen<'ctx> {
         let result = self.compile_expression(&handled.expression, name)?;
 
         let cancel_to = self.get_cancel("");
-        self.call_continuation(cancel_to, result);
+        self.call_continuation(cancel_to, result, "");
+        self.builder.build_unreachable().unwrap();
 
         self.become_continuation_point(handler_continuation_point);
         let handler_entry = self.context.append_basic_block(handler_function, "entry");
@@ -154,8 +157,9 @@ impl<'ctx> Codegen<'ctx> {
 
         let brancher = self.end_continuation_point_as_branch();
         for handler in handlers {
-            let (next_case_function, go_to_next_case) =
-                self.capture_current_continuation(&brancher, "when.next");
+            let next_case_function = self.add_continuation("");
+            let go_to_next_case =
+                self.capture_current_continuation(next_case_function, &brancher, "when.next");
             let next_case_cp = self.hold_continuation_point();
             let effect = self.use_temporary(effect).unwrap().ptr();
             if self
@@ -166,8 +170,8 @@ impl<'ctx> Codegen<'ctx> {
             }
             let Some(guard_bool) = self.compile_expression(&handler.guard, "when.guard") else {
                 let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-                self.transfer_debug_info(next_case_function);
                 self.builder.position_at_end(next_case_entry);
+                self.transfer_debug_info(next_case_function);
                 self.become_continuation_point(next_case_cp);
                 continue;
             };
@@ -183,22 +187,26 @@ impl<'ctx> Codegen<'ctx> {
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
-            self.void_call_continuation(go_next);
+            self.void_call_continuation(go_next, "");
+            self.builder.build_unreachable().unwrap();
 
             self.builder.position_at_end(body_block);
+            self.transfer_debug_info(self.get_function());
             self.resume_continuation_point(&inner_brancher);
             if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
                 self.trilogy_value_destroy(result);
-                self.void_call_continuation(self.get_end(""));
+                self.void_call_continuation(self.get_end(""), "");
+                self.builder.build_unreachable().unwrap();
             }
 
             let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-            self.transfer_debug_info(next_case_function);
             self.builder.position_at_end(next_case_entry);
+            self.transfer_debug_info(next_case_function);
             self.become_continuation_point(next_case_cp);
         }
 
-        self.builder.build_unreachable().unwrap();
+        let unreachable = self.builder.build_unreachable().unwrap();
+        self.end_continuation_point_as_clean(unreachable);
     }
 
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
@@ -221,6 +229,7 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         self.builder.position_at_end(pass);
+        self.transfer_debug_info(self.get_function());
         Some(expression)
     }
 
@@ -280,15 +289,16 @@ impl<'ctx> Codegen<'ctx> {
         let brancher = self.end_continuation_point_as_branch();
         let mut merger = Merger::default();
         for case in &expr.cases {
-            let (next_case_function, go_to_next_case) =
-                self.capture_current_continuation(&brancher, "match.next");
+            let next_case_function = self.add_continuation("match.next");
+            let go_to_next_case =
+                self.capture_current_continuation(next_case_function, &brancher, "match.next");
             let next_case_cp = self.hold_continuation_point();
             let discriminant = self.use_temporary(discriminant).unwrap().ptr();
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
             let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
                 let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-                self.transfer_debug_info(next_case_function);
                 self.builder.position_at_end(next_case_entry);
+                self.transfer_debug_info(next_case_function);
                 self.become_continuation_point(next_case_cp);
                 continue;
             };
@@ -304,9 +314,11 @@ impl<'ctx> Codegen<'ctx> {
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
-            self.void_call_continuation(go_next);
+            self.void_call_continuation(go_next, "");
+            self.builder.build_unreachable().unwrap();
 
             self.builder.position_at_end(body_block);
+            self.transfer_debug_info(self.get_function());
             self.resume_continuation_point(&brancher);
             if let Some(result) = self.compile_expression(&case.body, name) {
                 let closure_allocation = self.continue_in_scope(continuation, result);
@@ -314,8 +326,8 @@ impl<'ctx> Codegen<'ctx> {
             }
 
             let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-            self.transfer_debug_info(next_case_function);
             self.builder.position_at_end(next_case_entry);
+            self.transfer_debug_info(next_case_function);
             self.become_continuation_point(next_case_cp);
         }
 
@@ -323,8 +335,8 @@ impl<'ctx> Codegen<'ctx> {
 
         let after = self.context.append_basic_block(continuation, "entry");
         self.merge_without_branch(merger);
-        self.transfer_debug_info(continuation);
         self.builder.position_at_end(after);
+        self.transfer_debug_info(continuation);
         Some(self.get_continuation(name))
     }
 
@@ -412,7 +424,8 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Return => {
                 let result = self.compile_expression(expression, name)?;
                 let return_cont = self.get_return("");
-                self.call_continuation(return_cont, result);
+                self.call_continuation(return_cont, result, "");
+                self.builder.build_unreachable().unwrap();
                 None
             }
             Builtin::Exit => {
@@ -448,12 +461,17 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Cancel => {
                 let value = self.compile_expression(expression, name)?;
                 let cancel = self.get_cancel("");
-                self.call_continuation(cancel, value);
+                self.call_continuation(cancel, value, "");
+                self.builder.build_unreachable().unwrap();
                 None
             }
             Builtin::Resume => {
                 let value = self.compile_expression(expression, name)?;
-                Some(self.call_resume(value, name))
+                let value = self
+                    .builder
+                    .build_load(self.value_type(), value, "")
+                    .unwrap();
+                Some(self.call_resume(value.into(), name))
             }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, name)?;
