@@ -394,7 +394,7 @@ impl<'ctx> Codegen<'ctx> {
         let yield_to = self.allocate_value("");
         let end_to = self.get_end("");
         let cancel_to = self.allocate_value("");
-        let resume_to = self.get_end("");
+        let resume_to = self.get_resume("");
         self.trilogy_callable_return_to_into(return_to, callable);
         self.trilogy_callable_yield_to_into(yield_to, callable);
         self.trilogy_callable_cancel_to_into(cancel_to, callable);

@@ -1,0 +1,8 @@
+proc body!() {
+  yield 'unhandled
+}
+
+proc main!() {
+  with body!() else yield
+  exit 1
+}
