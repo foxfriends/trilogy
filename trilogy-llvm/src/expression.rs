@@ -211,6 +211,8 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
         let expression = self.compile_expression(&assertion.assertion, name)?;
+
+        let brancher = self.end_continuation_point_as_branch();
         let cond = self.trilogy_boolean_untag(expression, "");
         let pass = self
             .context
@@ -224,11 +226,13 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(fail);
         if let Some(msg) = self.compile_expression(&assertion.message, "assert.msg") {
-            self.panic(msg);
+            let panic = self.panic(msg);
             self.builder.build_unreachable().unwrap();
+            self.add_branch_end_as_clean(&brancher, panic);
         }
 
         self.builder.position_at_end(pass);
+        self.resume_continuation_point(&brancher);
         self.transfer_debug_info(self.get_function());
         Some(expression)
     }

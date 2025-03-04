@@ -17,5 +17,5 @@ proc main!() {
     }
     when 'out cancel false
     else yield
-  assert "final result should be 2" as x == 2
+  assert $"final result should be 2 but it was ${x}" as x == 2
 }

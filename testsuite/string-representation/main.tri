@@ -5,4 +5,9 @@ proc main!() {
   io::println!($"${true}")
   io::println!($"${false}")
   io::println!($"${3}")
+  io::println!($"${'hello}")
+  io::println!($"${"hi"}")
+  io::println!($"${0bb01}")
+  io::println!($"${1:'b}")
+  io::println!($"${'hello('world)}")
 }

@@ -1,0 +1,3 @@
+proc main!() {
+  assert $"the x is ${x}" as x == 3
+}

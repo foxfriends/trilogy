@@ -554,6 +554,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
         parent_closure.as_instruction_value().unwrap()
     }
+
     /// An internal function in this case is one that follows the convention of
     /// the first parameter being the output parameter, and all values being
     /// TrilogyValue pointers.
@@ -565,11 +566,14 @@ impl<'ctx> Codegen<'ctx> {
         target: PointerValue<'ctx>,
         procedure: FunctionValue<'ctx>,
         arguments: &[BasicMetadataValueEnum<'ctx>],
-    ) {
+    ) -> InstructionValue<'ctx> {
         let mut args = vec![target.into()];
         args.extend_from_slice(arguments);
         let call = self.builder.build_call(procedure, &args, "").unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.try_as_basic_value()
+            .either(|l| l.as_instruction_value(), Some)
+            .unwrap()
     }
 
     pub(crate) fn call_yield(&self, effect: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {

@@ -1,7 +1,7 @@
 use inkwell::{
     AddressSpace,
     module::Linkage,
-    values::{FunctionValue, PointerValue},
+    values::{FunctionValue, InstructionValue, PointerValue},
 };
 
 use crate::codegen::Codegen;
@@ -134,13 +134,13 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, f, &[value.into()]);
     }
 
-    pub(crate) fn panic(&self, msg: PointerValue<'ctx>) {
+    pub(crate) fn panic(&self, msg: PointerValue<'ctx>) -> InstructionValue<'ctx> {
         let f = self.declare_core("panic", 1);
         self.call_internal(
             self.context.ptr_type(AddressSpace::default()).const_null(),
             f,
             &[msg.into()],
-        );
+        )
     }
 
     pub(crate) fn to_string(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
