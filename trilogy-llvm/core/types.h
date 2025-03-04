@@ -28,8 +28,9 @@ typedef enum trilogy_callable_tag : unsigned char {
     CALLABLE_PROCEDURE = 2,
     CALLABLE_RULE = 3,
     CALLABLE_CONTINUATION = 4,
-    // Resume is generally treated like a continuation, BUT it has a slightly different
-    // calling convention. We're just hacking that in so it happens invisibly to end users...
+    // Resume is generally treated like a continuation, BUT it has a slightly
+    // different calling convention. We're just hacking that in so it happens
+    // invisibly to end users...
     CALLABLE_RESUME = 5,
 } trilogy_callable_tag;
 
