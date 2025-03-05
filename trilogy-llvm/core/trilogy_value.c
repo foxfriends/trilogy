@@ -274,7 +274,7 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
         for (unsigned long i = 0; i < bits->len; ++i) {
             buf[i] = trilogy_bits_at(bits, i) ? '1' : '0';
         }
-        trilogy_string_init_from_c(rv, buf);
+        trilogy_string_init_new(rv, bits->len, buf);
         free(buf);
         break;
     }

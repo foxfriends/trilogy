@@ -1,3 +1,4 @@
 proc main!() {
+  let x = 4
   assert $"the x is ${x}" as x == 3
 }

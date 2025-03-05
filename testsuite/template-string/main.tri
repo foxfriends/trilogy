@@ -1,0 +1,6 @@
+proc main!() {
+  let greet = "hello"
+  let name = "world"
+  let string = $"${greet} ${name}"
+  assert string == "hello world"
+}
