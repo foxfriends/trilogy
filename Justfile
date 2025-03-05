@@ -27,6 +27,10 @@ test-rust:
     cargo test
 
 [working-directory: "testsuite"]
+memcheck:
+    ./test.sh -r -m
+
+[working-directory: "testsuite"]
 test-tri:
     ./test.sh -r
 
