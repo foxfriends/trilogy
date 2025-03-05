@@ -1,4 +1,11 @@
 //! Generation of LLVM IR from Trilogy IR.
+//!
+//! Requires that the caller has provided all required source modules, including "trilogy:core".
+//! In particular the existence of `core::to_string` is assumed.
+//!
+//! I guess in theory this means we can swap out the core library, but that's kind of weird. It
+//! would probably be more reliable to include the core module from the trilogy-llvm crate directly,
+//! but this is not convenient due to the compilation requirements, so it is not done.
 use codegen::Codegen;
 use inkwell::context::Context;
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
