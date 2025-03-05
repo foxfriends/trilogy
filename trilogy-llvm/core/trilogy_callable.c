@@ -1,6 +1,7 @@
 #include "trilogy_callable.h"
 #include "internal.h"
 #include "trilogy_array.h"
+#include "trilogy_value.h"
 #include <assert.h>
 #include <stdlib.h>
 
@@ -164,6 +165,26 @@ void trilogy_callable_cancel_to_into(
 ) {
     if (cal->cancel_to == NULL) return;
     trilogy_callable_clone_into(val, cal->cancel_to);
+}
+
+void trilogy_callable_yield_to_shift(
+    trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
+) {
+    assert(cal->yield_to != NULL);
+    trilogy_value return_to = trilogy_undefined;
+    trilogy_value yield_to = trilogy_undefined;
+    trilogy_value closure = trilogy_undefined;
+    trilogy_callable_return_to_into(&return_to, cal->yield_to);
+    trilogy_callable_yield_to_into(&yield_to, cal->yield_to);
+    trilogy_callable_closure_into(&closure, cal->yield_to);
+    trilogy_callable_init_cont(
+        val,
+        &return_to,
+        &yield_to,
+        cancel_to,
+        &closure,
+        cal->yield_to->function
+    );
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
