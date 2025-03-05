@@ -171,6 +171,23 @@ pub(super) fn load<C: Cache>(
 
     let mut module_queue = VecDeque::with_capacity(8);
 
+    // HACK: always force core to be imported.
+    let core_location = Location::library("core").unwrap();
+    let source = match loader.load_source(&core_location) {
+        Ok(Some(source)) => source,
+        Ok(None) => unreachable!(),
+        Err(error) => {
+            report.error(error.into_cause().unwrap().into());
+            return vec![];
+        }
+    };
+    let core_module = Module::new(&source);
+    for import in core_module.imported_modules() {
+        module_queue.push_back((core_location.clone(), import));
+    }
+    modules.insert(core_location, core_module);
+
+    // And then we have to prime the queues with the entrypoint of the program.
     let source = match loader.load_source(entrypoint) {
         Ok(Some(source)) => source,
         Ok(None) => unreachable!(),
@@ -184,6 +201,7 @@ pub(super) fn load<C: Cache>(
         module_queue.push_back((entrypoint.clone(), import));
     }
     modules.insert(entrypoint.clone(), entrymodule);
+
     while let Some((from_location, locator)) = module_queue.pop_front() {
         let span = locator.span();
         let location = from_location.relative(locator.as_ref());
