@@ -237,23 +237,6 @@ impl<'ctx> Codegen<'ctx> {
         cps.push(Rc::new(next));
     }
 
-    /// Adds an ending to the previously branched continuation point. There should be no
-    /// existing implicit continuation point, and no new implicit continuation point is started.
-    pub(crate) fn add_branch_end_as_clean(
-        &self,
-        brancher: &Brancher<'ctx>,
-        exit_instruction: InstructionValue<'ctx>,
-    ) {
-        let mut cps = self.continuation_points.borrow_mut();
-        let mut next = brancher.0.chain();
-        next.clean_from(
-            &brancher.0,
-            exit_instruction,
-            self.builder.get_current_debug_location().unwrap(),
-        );
-        cps.push(Rc::new(next));
-    }
-
     /// Resumes a continuation point that was previously held for a branch, which was used
     /// only for non-ending captures, and not actually ended. The previously branched from
     /// continuation point becomes the implicit continuation point again.

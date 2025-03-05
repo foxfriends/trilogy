@@ -228,7 +228,7 @@ impl<'ctx> Codegen<'ctx> {
         if let Some(msg) = self.compile_expression(&assertion.message, "assert.msg") {
             let panic = self.panic(msg);
             self.builder.build_unreachable().unwrap();
-            self.add_branch_end_as_clean(&brancher, panic);
+            self.end_continuation_point_as_clean(panic);
         }
 
         self.builder.position_at_end(pass);
