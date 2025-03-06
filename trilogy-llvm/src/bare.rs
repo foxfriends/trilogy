@@ -467,6 +467,28 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_callable_return_to_shift(
+        &self,
+        target: PointerValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_return_to_shift",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), cancel_to.into(), callable.into()], "")
+            .unwrap();
+    }
+
     pub(crate) fn trilogy_callable_cancel_to_into(
         &self,
         target: PointerValue<'ctx>,

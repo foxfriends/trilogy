@@ -182,6 +182,21 @@ void trilogy_callable_yield_to_shift(
     );
 }
 
+void trilogy_callable_return_to_shift(
+    trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
+) {
+    assert(cal->return_to != NULL);
+    trilogy_value return_to = trilogy_undefined;
+    trilogy_value yield_to = trilogy_undefined;
+    trilogy_value closure = trilogy_undefined;
+    trilogy_callable_return_to_into(&return_to, cal->return_to);
+    trilogy_callable_yield_to_into(&yield_to, cal->return_to);
+    trilogy_callable_closure_into(&closure, cal->return_to);
+    trilogy_callable_init_cont(
+        val, &return_to, &yield_to, cancel_to, &closure, cal->return_to->function
+    );
+}
+
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
     if (val->tag != TAG_CALLABLE) rte("callable", val->tag);
     return trilogy_callable_assume(val);

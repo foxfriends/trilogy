@@ -651,11 +651,10 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
         let closure = self.allocate_value("");
-        self.trilogy_callable_return_to_into(return_to, resume);
-        self.trilogy_callable_closure_into(closure, resume, "");
-
         let cancel_to = self.close_current_continuation(continuation_function, "when.cancel");
+        self.trilogy_callable_return_to_shift(return_to, cancel_to, resume);
         self.trilogy_callable_yield_to_shift(yield_to, cancel_to, resume);
+        self.trilogy_callable_closure_into(closure, resume, "");
 
         let args = &[
             self.builder
