@@ -803,7 +803,10 @@ impl<'ctx> Codegen<'ctx> {
 
         let entry = self.context.append_basic_block(yield_function, "entry");
         self.builder.position_at_end(entry);
-        let effect = self.get_continuation("");
+        let effect = self.allocate_value("effect");
+        self.builder
+            .build_store(effect, self.get_function().get_nth_param(5).unwrap())
+            .unwrap();
         _ = self.trilogy_unhandled_effect(effect);
 
         let entry = self.context.append_basic_block(end_function, "entry");
@@ -812,6 +815,10 @@ impl<'ctx> Codegen<'ctx> {
 
         let entry = self.context.append_basic_block(chain_function, "entry");
         self.builder.position_at_end(entry);
-        self.get_continuation("")
+        let result = self.allocate_value("result");
+        self.builder
+            .build_store(result, self.get_function().get_nth_param(5).unwrap())
+            .unwrap();
+        result
     }
 }

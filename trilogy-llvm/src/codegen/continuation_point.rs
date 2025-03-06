@@ -1,6 +1,6 @@
 //! Functions for managing context and scope across continuation points.
 
-use super::{Closed, Codegen, Variable};
+use super::{Closed, Codegen, Snapshot, Variable};
 use inkwell::debug_info::DILocation;
 use inkwell::values::{InstructionValue, PointerValue};
 use std::cell::RefCell;
@@ -15,8 +15,8 @@ pub(super) struct Parent<'ctx> {
     /// interpretation of this instruction depends on the variant of `Exit` this is
     /// contained in.
     pub instruction: InstructionValue<'ctx>,
-    /// The debug location to be set when writing cleanup instructions.
-    pub debug_location: DILocation<'ctx>,
+    /// The function context snapshot to be set when writing cleanup instructions.
+    pub snapshot: Snapshot<'ctx>,
 }
 
 /// During the reverse continuation phase, when closing this continuation block,
@@ -54,12 +54,12 @@ impl<'ctx> Merger<'ctx> {
         &mut self,
         parent: &Rc<ContinuationPoint<'ctx>>,
         instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
+        snapshot: Snapshot<'ctx>,
     ) {
         self.0.push(Exit::Close(Parent {
             parent: Rc::downgrade(parent),
             instruction,
-            debug_location,
+            snapshot,
         }));
     }
 }
@@ -123,12 +123,12 @@ impl<'ctx> ContinuationPoint<'ctx> {
         &mut self,
         parent: &Rc<ContinuationPoint<'ctx>>,
         instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
+        snapshot: Snapshot<'ctx>,
     ) {
         self.parents.push(Exit::Close(Parent {
             parent: Rc::downgrade(parent),
             instruction,
-            debug_location,
+            snapshot,
         }));
     }
 
@@ -136,12 +136,12 @@ impl<'ctx> ContinuationPoint<'ctx> {
         &mut self,
         parent: &Rc<ContinuationPoint<'ctx>>,
         instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
+        snapshot: Snapshot<'ctx>,
     ) {
         self.parents.push(Exit::Clean(Parent {
             parent: Rc::downgrade(parent),
             instruction,
-            debug_location,
+            snapshot,
         }));
     }
 
@@ -149,12 +149,12 @@ impl<'ctx> ContinuationPoint<'ctx> {
         &mut self,
         parent: &Rc<ContinuationPoint<'ctx>>,
         instruction: InstructionValue<'ctx>,
-        debug_location: DILocation<'ctx>,
+        snapshot: Snapshot<'ctx>,
     ) {
         self.parents.push(Exit::Capture(Parent {
             parent: Rc::downgrade(parent),
             instruction,
-            debug_location,
+            snapshot,
         }));
     }
 }
@@ -178,11 +178,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut cps = self.continuation_points.borrow_mut();
         let last = cps.last().unwrap();
         let mut next = last.chain();
-        next.close_from(
-            last,
-            closure_allocation,
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        next.close_from(last, closure_allocation, self.snapshot_function_context());
         cps.push(Rc::new(next));
     }
 
@@ -196,11 +192,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut cps = self.continuation_points.borrow_mut();
         let last = cps.last().unwrap();
         let mut next = last.chain();
-        next.clean_from(
-            last,
-            call_instruction,
-            self.builder.get_current_debug_location().unwrap(),
-        );
+        next.clean_from(last, call_instruction, self.snapshot_function_context());
         cps.push(Rc::new(next));
     }
 
@@ -232,7 +224,7 @@ impl<'ctx> Codegen<'ctx> {
         next.close_from(
             &brancher.0,
             closure_allocation,
-            self.builder.get_current_debug_location().unwrap(),
+            self.snapshot_function_context(),
         );
         cps.push(Rc::new(next));
     }
@@ -263,7 +255,7 @@ impl<'ctx> Codegen<'ctx> {
         next.capture_from(
             &brancher.0,
             closure_allocation,
-            self.builder.get_current_debug_location().unwrap(),
+            self.snapshot_function_context(),
         );
         cps.push(Rc::new(next));
     }
@@ -287,7 +279,7 @@ impl<'ctx> Codegen<'ctx> {
         merger.close_from(
             cps.last().unwrap(),
             closure_allocation,
-            self.builder.get_current_debug_location().unwrap(),
+            self.snapshot_function_context(),
         );
     }
 

@@ -73,66 +73,42 @@ impl<'ctx> Codegen<'ctx> {
     /// Gets the `return_to` pointer from the current function context.
     pub(crate) fn get_return(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
-        self.builder
-            .build_store(temp, self.get_function().get_nth_param(0).unwrap())
-            .unwrap();
-        self.trilogy_value_clone_into(container, temp);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[0]);
         container
     }
 
     /// Gets the `yield_to` pointer from the current function context.
     pub(crate) fn get_yield(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
-        self.builder
-            .build_store(temp, self.get_function().get_nth_param(1).unwrap())
-            .unwrap();
-        self.trilogy_value_clone_into(container, temp);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[1]);
         container
     }
 
     /// Gets the `end_to` pointer from the current function context.
     pub(crate) fn get_end(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
-        self.builder
-            .build_store(temp, self.get_function().get_nth_param(2).unwrap())
-            .unwrap();
-        self.trilogy_value_clone_into(container, temp);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[2]);
         container
     }
 
     /// When in a handler function, gets the cancel to pointer.
     pub(crate) fn get_cancel(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
-        self.builder
-            .build_store(temp, self.get_function().get_nth_param(3).unwrap())
-            .unwrap();
-        self.trilogy_value_clone_into(container, temp);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[3]);
         container
     }
 
     /// When in a handler function, gets the resume to pointer.
     pub(crate) fn get_resume(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
-        self.builder
-            .build_store(temp, self.get_function().get_nth_param(4).unwrap())
-            .unwrap();
-        self.trilogy_value_clone_into(container, temp);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[4]);
         container
     }
 
     /// When in a continuation function, gets the value that was yielded to the continuation.
     pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
-        self.builder
-            .build_store(temp, self.get_function().get_nth_param(5).unwrap())
-            .unwrap();
-        self.trilogy_value_clone_into(container, temp);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
         container
     }
 

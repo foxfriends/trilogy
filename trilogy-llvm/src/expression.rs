@@ -746,6 +746,7 @@ impl<'ctx> Codegen<'ctx> {
         let brancher = self.end_continuation_point_as_branch();
         self.trilogy_callable_init_do(target, arity, closure, function);
         let here = self.builder.get_insert_block().unwrap();
+        let snapshot = self.snapshot_function_context();
 
         self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
         let procedure_scope = self.di.builder.create_function(
@@ -765,6 +766,7 @@ impl<'ctx> Codegen<'ctx> {
         self.compile_procedure_body(function, procedure);
 
         self.builder.position_at_end(here);
+        self.restore_function_context(snapshot);
         self.resume_continuation_point(&brancher);
         target
     }

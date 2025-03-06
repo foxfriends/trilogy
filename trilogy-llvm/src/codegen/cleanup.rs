@@ -30,11 +30,11 @@ impl<'ctx> Codegen<'ctx> {
                     Exit::Close(Parent {
                         parent,
                         instruction,
-                        debug_location,
+                        snapshot,
                     }) => {
                         self.builder
                             .position_at(instruction.get_parent().unwrap(), instruction);
-                        self.builder.set_current_debug_location(*debug_location);
+                        self.restore_function_context(snapshot.clone());
                         let parent = parent.upgrade().unwrap();
                         let closure = self.build_closure(&parent, &point);
                         self.clean_and_close_scope(&parent);
@@ -44,21 +44,21 @@ impl<'ctx> Codegen<'ctx> {
                     Exit::Clean(Parent {
                         parent,
                         instruction,
-                        debug_location,
+                        snapshot,
                     }) => {
                         self.builder.position_before(instruction);
-                        self.builder.set_current_debug_location(*debug_location);
+                        self.restore_function_context(snapshot.clone());
                         let parent = parent.upgrade().unwrap();
                         self.clean_and_close_scope(&parent);
                     }
                     Exit::Capture(Parent {
                         parent,
                         instruction,
-                        debug_location,
+                        snapshot,
                     }) => {
                         self.builder
                             .position_at(instruction.get_parent().unwrap(), instruction);
-                        self.builder.set_current_debug_location(*debug_location);
+                        self.restore_function_context(snapshot.clone());
                         let closure = self.build_closure(&parent.upgrade().unwrap(), &point);
                         instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         instruction.erase_from_basic_block();
@@ -90,13 +90,8 @@ impl<'ctx> Codegen<'ctx> {
                 _ => {}
             }
         }
-        for param in self.get_function().get_param_iter() {
-            let param_ptr = self
-                .builder
-                .build_alloca(self.value_type(), "param")
-                .unwrap();
-            self.builder.build_store(param_ptr, param).unwrap();
-            self.trilogy_value_destroy(param_ptr);
+        for param in self.function_params.borrow().iter() {
+            self.trilogy_value_destroy(*param);
         }
     }
 

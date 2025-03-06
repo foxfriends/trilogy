@@ -46,7 +46,7 @@ pub(crate) struct Codegen<'ctx> {
     /// contained `capture_from` lists.
     continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
     current_definition: RefCell<(String, Span)>,
-    function_params: RefCell<Vec<PointerValue<'ctx>>>,
+    pub(crate) function_params: RefCell<Vec<PointerValue<'ctx>>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -149,14 +149,35 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn begin_function(&self, function: FunctionValue<'ctx>, span: Span) {
         self.di.push_subprogram(function.get_subprogram().unwrap());
         self.di.push_block_scope(span);
+        self.set_span(span);
         let entry = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(entry);
+        *self.function_params.borrow_mut() = function
+            .get_param_iter()
+            .map(|param| {
+                let container =
+                    self.allocate_value(&format!("{}.value", param.get_name().to_string_lossy()));
+                let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
+                self.builder.build_store(temp, param).unwrap();
+                self.trilogy_value_clone_into(container, temp);
+                container
+            })
+            .collect();
     }
 
     pub(crate) fn begin_next_function(&self, function: FunctionValue<'ctx>) {
         let entry = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(entry);
         self.transfer_debug_info();
+        *self.function_params.borrow_mut() = function
+            .get_param_iter()
+            .map(|param| {
+                let container =
+                    self.allocate_value(&format!("{}.value", param.get_name().to_string_lossy()));
+                self.builder.build_store(container, param).unwrap();
+                container
+            })
+            .collect();
     }
 
     pub(crate) fn end_function(&self) {

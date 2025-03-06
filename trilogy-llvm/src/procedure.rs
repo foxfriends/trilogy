@@ -46,14 +46,13 @@ impl<'ctx> Codegen<'ctx> {
         self.set_current_definition(wrapper_name.to_owned(), span);
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
-        params.extend(wrapper_function.get_param_iter().skip(5).map(|val| {
-            let param = self
-                .builder
-                .build_alloca(self.value_type(), "param")
-                .unwrap();
-            self.builder.build_store(param, val).unwrap();
-            BasicMetadataValueEnum::<'ctx>::from(param)
-        }));
+        params.extend(
+            self.function_params
+                .borrow()
+                .iter()
+                .skip(5)
+                .map(|val| BasicMetadataValueEnum::<'ctx>::from(*val)),
+        );
         self.builder
             .build_direct_call(original_function, &params, "")
             .unwrap();
@@ -128,17 +127,9 @@ impl<'ctx> Codegen<'ctx> {
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
                 // NOTE: params start at 5, due to return, yield, end, cancel, and resume
-                let value = function
-                    .get_nth_param(n as u32 + 5)
-                    .unwrap()
-                    .into_struct_value();
-                let value_param = self
-                    .builder
-                    .build_alloca(self.value_type(), "param")
-                    .unwrap();
-                self.builder.build_store(value_param, value).unwrap();
+                let value = self.function_params.borrow()[n + 5];
                 if self
-                    .compile_pattern_match(param, value_param, self.get_end(""))
+                    .compile_pattern_match(param, value, self.get_end(""))
                     .is_none()
                 {
                     break 'body;
