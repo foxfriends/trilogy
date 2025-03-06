@@ -213,11 +213,7 @@ impl<'ctx> Codegen<'ctx> {
         args.push(bound_closure);
         self.make_call(function_ptr, &args, arity, true);
 
-        let entry = self
-            .context
-            .append_basic_block(continuation_function, "entry");
-        self.builder.position_at_end(entry);
-        self.transfer_debug_info(continuation_function);
+        self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
 
@@ -332,11 +328,7 @@ impl<'ctx> Codegen<'ctx> {
                 .into(),
         );
 
-        let entry = self
-            .context
-            .append_basic_block(continuation_function, "entry");
-        self.builder.position_at_end(entry);
-        self.transfer_debug_info(continuation_function);
+        self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
 
@@ -353,11 +345,7 @@ impl<'ctx> Codegen<'ctx> {
             function,
             self.value_type().const_zero().into(),
         );
-        let entry = self
-            .context
-            .append_basic_block(continuation_function, "entry");
-        self.builder.position_at_end(entry);
-        self.transfer_debug_info(continuation_function);
+        self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
 
@@ -630,11 +618,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.builder.build_unreachable().unwrap();
 
-        let entry = self
-            .context
-            .append_basic_block(continuation_function, "entry");
-        self.builder.position_at_end(entry);
-        self.transfer_debug_info(continuation_function);
+        self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
 
@@ -647,12 +631,7 @@ impl<'ctx> Codegen<'ctx> {
         let continuation_function = self.add_continuation("resume.back");
 
         self.call_resume_inner(continuation_function, resume_value, value, name);
-
-        let entry = self
-            .context
-            .append_basic_block(continuation_function, "entry");
-        self.builder.position_at_end(entry);
-        self.transfer_debug_info(continuation_function);
+        self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
 

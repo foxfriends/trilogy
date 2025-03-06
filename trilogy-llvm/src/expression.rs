@@ -129,25 +129,19 @@ impl<'ctx> Codegen<'ctx> {
         let body_closure = self.continue_in_scope_handled(body_function, handler, cancel_to);
         self.add_branch_end_as_close(&brancher, body_closure);
 
-        let body_entry = self.context.append_basic_block(body_function, "entry");
-        self.builder.position_at_end(body_entry);
-        self.transfer_debug_info(body_function);
+        self.begin_next_function(body_function);
         let result = self.compile_expression(&handled.expression, name)?;
 
-        let cancel_to = self.get_cancel("");
+        let cancel_to = self.get_cancel("when.runoff");
         self.call_continuation(cancel_to, result, "");
         self.builder.build_unreachable().unwrap();
 
         self.become_continuation_point(handler_continuation_point);
-        let handler_entry = self.context.append_basic_block(handler_function, "entry");
-        self.builder.position_at_end(handler_entry);
-        self.transfer_debug_info(handler_function);
+        self.begin_next_function(handler_function);
         self.compile_handlers(&handled.handlers);
 
         self.become_continuation_point(cancel_to_continuation_point);
-        let entry = self.context.append_basic_block(cancel_to_function, "entry");
-        self.builder.position_at_end(entry);
-        self.transfer_debug_info(cancel_to_function);
+        self.begin_next_function(cancel_to_function);
         Some(self.get_continuation(name))
     }
 
@@ -169,10 +163,8 @@ impl<'ctx> Codegen<'ctx> {
                 break;
             }
             let Some(guard_bool) = self.compile_expression(&handler.guard, "when.guard") else {
-                let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-                self.builder.position_at_end(next_case_entry);
-                self.transfer_debug_info(next_case_function);
                 self.become_continuation_point(next_case_cp);
+                self.begin_next_function(next_case_function);
                 continue;
             };
             let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
@@ -191,18 +183,16 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.build_unreachable().unwrap();
 
             self.builder.position_at_end(body_block);
-            self.transfer_debug_info(self.get_function());
             self.resume_continuation_point(&inner_brancher);
+            self.transfer_debug_info();
             if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
                 self.trilogy_value_destroy(result);
                 self.void_call_continuation(self.get_end(""), "");
                 self.builder.build_unreachable().unwrap();
             }
 
-            let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-            self.builder.position_at_end(next_case_entry);
-            self.transfer_debug_info(next_case_function);
             self.become_continuation_point(next_case_cp);
+            self.begin_next_function(next_case_function);
         }
 
         let unreachable = self.builder.build_unreachable().unwrap();
@@ -233,7 +223,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(pass);
         self.resume_continuation_point(&brancher);
-        self.transfer_debug_info(self.get_function());
+        self.transfer_debug_info();
         Some(expression)
     }
 
@@ -300,10 +290,8 @@ impl<'ctx> Codegen<'ctx> {
             let discriminant = self.use_temporary(discriminant).unwrap().ptr();
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
             let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
-                let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-                self.builder.position_at_end(next_case_entry);
-                self.transfer_debug_info(next_case_function);
                 self.become_continuation_point(next_case_cp);
+                self.begin_next_function(next_case_function);
                 continue;
             };
             let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
@@ -322,25 +310,21 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.build_unreachable().unwrap();
 
             self.builder.position_at_end(body_block);
-            self.transfer_debug_info(self.get_function());
+            self.transfer_debug_info();
             self.resume_continuation_point(&brancher);
             if let Some(result) = self.compile_expression(&case.body, name) {
                 let closure_allocation = self.continue_in_scope(continuation, result);
                 self.end_continuation_point_as_merge(&mut merger, closure_allocation);
             }
 
-            let next_case_entry = self.context.append_basic_block(next_case_function, "entry");
-            self.builder.position_at_end(next_case_entry);
-            self.transfer_debug_info(next_case_function);
             self.become_continuation_point(next_case_cp);
+            self.begin_next_function(next_case_function);
         }
 
         self.builder.build_unreachable().unwrap();
 
-        let after = self.context.append_basic_block(continuation, "entry");
         self.merge_without_branch(merger);
-        self.builder.position_at_end(after);
-        self.transfer_debug_info(continuation);
+        self.begin_next_function(continuation);
         Some(self.get_continuation(name))
     }
 
@@ -709,9 +693,7 @@ impl<'ctx> Codegen<'ctx> {
         let if_true_closure = self.void_continue_in_scope(if_true_function);
         self.add_branch_end_as_close(&brancher, if_true_closure);
 
-        let if_true_entry = self.context.append_basic_block(if_true_function, "entry");
-        self.builder.position_at_end(if_true_entry);
-        self.transfer_debug_info(if_true_function);
+        self.begin_next_function(if_true_function);
         let when_true = self.compile_expression(&if_else.when_true, name);
 
         if let Some(value) = when_true {
@@ -727,13 +709,11 @@ impl<'ctx> Codegen<'ctx> {
         // instead of like now (when it's doing the then clause's function in between the branches),
         // or if we could just save the exact debug hierarchy and restore it rather than replicate it.
         self.builder.position_at_end(if_false_block);
-        self.transfer_debug_info(original_function_scope);
+        self.transfer_debug_info();
         let if_false_closure = self.void_continue_in_scope(if_false_function);
         self.add_branch_end_as_close(&brancher, if_false_closure);
 
-        let if_false_entry = self.context.append_basic_block(if_false_function, "entry");
-        self.builder.position_at_end(if_false_entry);
-        self.transfer_debug_info(if_false_function);
+        self.begin_next_function(if_false_function);
         let when_false = self.compile_expression(&if_else.when_false, name);
 
         if let Some(value) = when_false {
@@ -743,9 +723,7 @@ impl<'ctx> Codegen<'ctx> {
 
         if when_true.is_some() || when_false.is_some() {
             self.merge_branch(brancher, merger);
-            let entry = self.context.append_basic_block(merge_to_function, "entry");
-            self.builder.position_at_end(entry);
-            self.transfer_debug_info(merge_to_function);
+            self.begin_next_function(merge_to_function);
             Some(self.get_continuation(name))
         } else {
             None

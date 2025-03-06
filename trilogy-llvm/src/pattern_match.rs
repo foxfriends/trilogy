@@ -47,30 +47,22 @@ impl<'ctx> Codegen<'ctx> {
                 self.void_call_continuation(go_to_first, "");
                 self.builder.build_unreachable().unwrap();
 
-                let primary_entry = self.context.append_basic_block(first_function, "entry");
-                self.transfer_debug_info(first_function);
-                self.builder.position_at_end(primary_entry);
+                self.begin_next_function(first_function);
                 self.become_continuation_point(primary_cp);
                 let value_ref = self.use_temporary(value).unwrap().ptr();
                 self.compile_pattern_match(&disj.0, value_ref, go_to_second)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
-                let secondary_entry = self.context.append_basic_block(second_function, "entry");
-                self.transfer_debug_info(second_function);
-                self.builder.position_at_end(secondary_entry);
+                self.begin_next_function(second_function);
                 self.become_continuation_point(secondary_cp);
                 let value_ref = self.use_temporary(value).unwrap().ptr();
                 self.compile_pattern_match(&disj.1, value_ref, on_fail)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
-                let on_success = self
-                    .context
-                    .append_basic_block(on_success_function, "entry");
                 self.merge_without_branch(merger);
-                self.transfer_debug_info(on_success_function);
-                self.builder.position_at_end(on_success);
+                self.begin_next_function(on_success_function);
             }
             Value::Unit => {
                 let constant = self.allocate_const(self.unit_const(), "");
@@ -145,7 +137,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unreachable().unwrap();
 
         self.builder.position_at_end(cont);
-        self.transfer_debug_info(self.get_function());
+        self.transfer_debug_info();
         self.resume_continuation_point(&brancher);
         cont
     }

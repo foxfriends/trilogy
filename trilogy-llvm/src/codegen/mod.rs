@@ -149,6 +149,12 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(entry);
     }
 
+    pub(crate) fn begin_next_function(&self, function: FunctionValue<'ctx>) {
+        let entry = self.context.append_basic_block(function, "entry");
+        self.builder.position_at_end(entry);
+        self.transfer_debug_info();
+    }
+
     pub(crate) fn end_function(&self) {
         self.di.pop_scope();
         self.di.pop_scope();

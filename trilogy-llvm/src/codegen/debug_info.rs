@@ -1,15 +1,12 @@
-use inkwell::{
-    AddressSpace,
-    builder::Builder,
-    debug_info::{
-        AsDIScope, DICompileUnit, DICompositeType, DIDerivedType, DILexicalBlock, DILocation,
-        DIScope, DISubprogram, DISubroutineType, DWARFEmissionKind, DWARFSourceLanguage,
-        DebugInfoBuilder,
-    },
-    llvm_sys::debuginfo::LLVMDIFlagPublic,
-    module::Module,
-    values::{FunctionValue, PointerValue},
+use inkwell::AddressSpace;
+use inkwell::builder::Builder;
+use inkwell::debug_info::{
+    AsDIScope, DICompileUnit, DICompositeType, DIDerivedType, DILexicalBlock, DILocation, DIScope,
+    DISubprogram, DISubroutineType, DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
 };
+use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
+use inkwell::module::Module;
+use inkwell::values::PointerValue;
 use source_span::Span;
 use std::{cell::RefCell, path::PathBuf, rc::Rc};
 use url::Url;
@@ -272,7 +269,8 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn transfer_debug_info(&self, function: FunctionValue<'ctx>) {
+    pub(crate) fn transfer_debug_info(&self) {
+        let function = self.get_function();
         let mut scope_stacks = self.di.debug_scopes.borrow_mut();
         let scopes = scope_stacks.last_mut().unwrap();
         let mut new_scopes = Vec::with_capacity(scopes.len());
