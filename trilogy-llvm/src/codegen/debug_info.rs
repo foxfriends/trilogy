@@ -16,7 +16,7 @@ use crate::codegen::Codegen;
 pub(crate) struct DebugInfo<'ctx> {
     pub(crate) builder: DebugInfoBuilder<'ctx>,
     pub(crate) unit: DICompileUnit<'ctx>,
-    pub(super) debug_scopes: Rc<RefCell<Vec<Vec<DebugScope<'ctx>>>>>,
+    pub(super) debug_scopes: Rc<RefCell<Vec<DebugScope<'ctx>>>>,
 
     value_type: DICompositeType<'ctx>,
     value_pointer_type: DIDerivedType<'ctx>,
@@ -166,10 +166,7 @@ impl<'ctx> DebugInfo<'ctx> {
 
     pub(crate) fn push_subprogram(&self, scope: DISubprogram<'ctx>) {
         let mut scopes = self.debug_scopes.borrow_mut();
-        scopes.push(vec![
-            DebugScope::Unit(self.unit),
-            DebugScope::Subprogram(scope),
-        ]);
+        *scopes = vec![DebugScope::Unit(self.unit), DebugScope::Subprogram(scope)];
     }
 
     pub(crate) fn push_block_scope(&self, span: Span) {
@@ -180,27 +177,19 @@ impl<'ctx> DebugInfo<'ctx> {
             .builder
             .create_lexical_block(scope, self.unit.get_file(), line, column);
         let mut scopes = self.debug_scopes.borrow_mut();
-        scopes
-            .last_mut()
-            .unwrap()
-            .push(DebugScope::LexicalBlock(block, line, column));
+        scopes.push(DebugScope::LexicalBlock(block, line, column));
     }
 
     pub(crate) fn pop_scope(&self) {
-        let mut scope_stacks = self.debug_scopes.borrow_mut();
-        if matches!(
-            scope_stacks.last_mut().unwrap().pop().unwrap(),
-            DebugScope::Subprogram(..)
-        ) {
-            scope_stacks.pop();
-        }
+        self.debug_scopes
+            .borrow_mut()
+            .pop()
+            .expect("pop scope called too many times");
     }
 
     pub(crate) fn get_debug_scope(&self) -> DIScope<'ctx> {
         self.debug_scopes
             .borrow()
-            .last()
-            .unwrap()
             .last()
             .unwrap()
             .as_debug_info_scope()
@@ -271,8 +260,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn transfer_debug_info(&self) {
         let function = self.get_function();
-        let mut scope_stacks = self.di.debug_scopes.borrow_mut();
-        let scopes = scope_stacks.last_mut().unwrap();
+        let mut scopes = self.di.debug_scopes.borrow_mut();
         let mut new_scopes = Vec::with_capacity(scopes.len());
         assert!(matches!(scopes[0], DebugScope::Unit(..)));
         assert!(matches!(scopes[1], DebugScope::Subprogram(..)));
