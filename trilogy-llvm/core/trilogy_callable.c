@@ -193,7 +193,8 @@ void trilogy_callable_return_to_shift(
     trilogy_callable_yield_to_into(&yield_to, cal->return_to);
     trilogy_callable_closure_into(&closure, cal->return_to);
     trilogy_callable_init_cont(
-        val, &return_to, &yield_to, cancel_to, &closure, cal->return_to->function
+        val, &return_to, &yield_to, cancel_to, &closure,
+        cal->return_to->function
     );
 }
 
