@@ -616,7 +616,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_indirect_call(self.continuation_type(), handler_continuation, args, name)
             .unwrap();
-        self.builder.build_unreachable().unwrap();
+        self.builder.build_return(None).unwrap();
 
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
