@@ -2,6 +2,7 @@
 use crate::types;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
+use inkwell::debug_info::DILocation;
 use inkwell::execution_engine::ExecutionEngine;
 use inkwell::module::Module;
 use inkwell::values::PointerValue;
@@ -20,7 +21,7 @@ mod variables;
 
 pub(crate) use continuation_point::{Brancher, Merger};
 use continuation_point::{ContinuationPoint, Exit, Parent};
-use debug_info::DebugInfo;
+use debug_info::{DebugInfo, DebugScope};
 use variables::Closed;
 pub(crate) use variables::{Head, Variable};
 
@@ -45,6 +46,7 @@ pub(crate) struct Codegen<'ctx> {
     /// contained `capture_from` lists.
     continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
     current_definition: RefCell<(String, Span)>,
+    function_params: RefCell<Vec<PointerValue<'ctx>>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -90,6 +92,7 @@ impl<'ctx> Codegen<'ctx> {
             location: "trilogy:runtime".to_owned(),
             continuation_points: RefCell::default(),
             current_definition: RefCell::default(),
+            function_params: RefCell::default(),
         };
 
         codegen
@@ -114,6 +117,7 @@ impl<'ctx> Codegen<'ctx> {
             location: name.to_owned(),
             continuation_points: RefCell::default(),
             current_definition: RefCell::default(),
+            function_params: RefCell::default(),
         }
     }
 
@@ -159,4 +163,26 @@ impl<'ctx> Codegen<'ctx> {
         self.di.pop_scope();
         self.di.pop_scope();
     }
+
+    pub(crate) fn snapshot_function_context(&self) -> Snapshot<'ctx> {
+        Snapshot {
+            params: self.function_params.borrow().clone(),
+            debug_stack: self.di.debug_scopes.borrow().clone(),
+            debug_location: self.builder.get_current_debug_location().unwrap(),
+        }
+    }
+
+    pub(crate) fn restore_function_context(&self, snapshot: Snapshot<'ctx>) {
+        *self.function_params.borrow_mut() = snapshot.params;
+        *self.di.debug_scopes.borrow_mut() = snapshot.debug_stack;
+        self.builder
+            .set_current_debug_location(snapshot.debug_location);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct Snapshot<'ctx> {
+    params: Vec<PointerValue<'ctx>>,
+    debug_stack: Vec<Vec<DebugScope<'ctx>>>,
+    debug_location: DILocation<'ctx>,
 }

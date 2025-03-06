@@ -176,6 +176,7 @@ impl<'ctx> Codegen<'ctx> {
             self.builder
                 .build_conditional_branch(guard_flag, body_block, next_block)
                 .unwrap();
+            let snapshot = self.snapshot_function_context();
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
@@ -183,8 +184,8 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.build_unreachable().unwrap();
 
             self.builder.position_at_end(body_block);
+            self.restore_function_context(snapshot);
             self.resume_continuation_point(&inner_brancher);
-            self.transfer_debug_info();
             if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
                 self.trilogy_value_destroy(result);
                 self.void_call_continuation(self.get_end(""), "");
@@ -213,6 +214,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(cond, pass, fail)
             .unwrap();
+        let snapshot = self.snapshot_function_context();
 
         self.builder.position_at_end(fail);
         if let Some(msg) = self.compile_expression(&assertion.message, "assert.msg") {
@@ -223,7 +225,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(pass);
         self.resume_continuation_point(&brancher);
-        self.transfer_debug_info();
+        self.restore_function_context(snapshot);
         Some(expression)
     }
 
@@ -303,6 +305,7 @@ impl<'ctx> Codegen<'ctx> {
             self.builder
                 .build_conditional_branch(guard_flag, body_block, next_block)
                 .unwrap();
+            let snapshot = self.snapshot_function_context();
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
@@ -310,7 +313,7 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.build_unreachable().unwrap();
 
             self.builder.position_at_end(body_block);
-            self.transfer_debug_info();
+            self.restore_function_context(snapshot);
             self.resume_continuation_point(&brancher);
             if let Some(result) = self.compile_expression(&case.body, name) {
                 let closure_allocation = self.continue_in_scope(continuation, result);
@@ -669,15 +672,16 @@ impl<'ctx> Codegen<'ctx> {
 
         // Then save the current context: this is the place from which we are branching.
         let original_function_scope = self.get_function();
+        let snapshot = self.snapshot_function_context();
         let if_true_block = self
             .context
             .append_basic_block(original_function_scope, "if.true");
         let if_false_block = self
             .context
             .append_basic_block(original_function_scope, "if.false");
+
         let if_true_function = self.add_continuation("if.true");
         let if_false_function = self.add_continuation("if.false");
-
         let merge_to_function = self.add_continuation("if.cont");
         let mut merger = Merger::default();
 
@@ -686,7 +690,6 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(cond_bool, if_true_block, if_false_block)
             .unwrap();
-
         let brancher = self.end_continuation_point_as_branch();
 
         self.builder.position_at_end(if_true_block);
@@ -702,14 +705,8 @@ impl<'ctx> Codegen<'ctx> {
             self.end_continuation_point_as_merge(&mut merger, after_true_closure);
         }
 
-        // NOTE: This is a bit unfortunate, as in moving back to the original function scope,
-        // we must create another copy of the same debug info block hierarchy up to this point.
-        //
-        // It would be nice if I could compile the branches, then the functions of those branches,
-        // instead of like now (when it's doing the then clause's function in between the branches),
-        // or if we could just save the exact debug hierarchy and restore it rather than replicate it.
         self.builder.position_at_end(if_false_block);
-        self.transfer_debug_info();
+        self.restore_function_context(snapshot);
         let if_false_closure = self.void_continue_in_scope(if_false_function);
         self.add_branch_end_as_close(&brancher, if_false_closure);
 

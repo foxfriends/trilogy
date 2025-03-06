@@ -62,16 +62,11 @@ extern proc primitive_to_string!(val)
 
 export to_string
 proc to_string!(val) {
-  if typeof val == 'tuple {
-    let lhs = to_string!(val.'left)
-    let rhs = to_string!(val.'right)
-    return $"${lhs}:${rhs}"
-  }
-  if typeof val == 'struct {
-    let tuple = destruct!(val)
-    let lhs = to_string!(tuple.'left)
-    let rhs = to_string!(tuple.'right)
-    return $"${lhs}(${rhs})"
-  }
-  return primitive_to_string!(val)
+  return match val
+    case lhs:rhs then $"${lhs}:${rhs}"
+    case typeof 'struct {
+      let lhs:rhs = destruct!(val)
+      $"${lhs}(${rhs})"
+    }
+    else then primitive_to_string!(val)
 }

@@ -131,13 +131,14 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(cond, cont, fail)
             .unwrap();
+        let snapshot = self.snapshot_function_context();
         self.builder.position_at_end(fail);
         let on_fail = self.use_temporary(on_fail).unwrap().ptr();
         self.void_call_continuation(on_fail, "");
         self.builder.build_unreachable().unwrap();
 
         self.builder.position_at_end(cont);
-        self.transfer_debug_info();
+        self.restore_function_context(snapshot);
         self.resume_continuation_point(&brancher);
         cont
     }

@@ -16,7 +16,7 @@ use crate::codegen::Codegen;
 pub(crate) struct DebugInfo<'ctx> {
     pub(crate) builder: DebugInfoBuilder<'ctx>,
     pub(crate) unit: DICompileUnit<'ctx>,
-    debug_scopes: Rc<RefCell<Vec<Vec<DebugScope<'ctx>>>>>,
+    pub(super) debug_scopes: Rc<RefCell<Vec<Vec<DebugScope<'ctx>>>>>,
 
     value_type: DICompositeType<'ctx>,
     value_pointer_type: DIDerivedType<'ctx>,
@@ -24,7 +24,7 @@ pub(crate) struct DebugInfo<'ctx> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum DebugScope<'ctx> {
+pub(super) enum DebugScope<'ctx> {
     Unit(DICompileUnit<'ctx>),
     Subprogram(DISubprogram<'ctx>),
     LexicalBlock(DILexicalBlock<'ctx>, u32, u32),
