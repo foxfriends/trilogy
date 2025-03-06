@@ -1,0 +1,14 @@
+proc check!(param) {}
+
+proc inner!() {
+  check!(yield 'a)
+}
+
+proc main!() {
+  with inner!()
+    when 'a then {
+      resume 1
+      become 2
+    }
+    else yield
+}
