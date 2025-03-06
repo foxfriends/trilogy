@@ -125,7 +125,7 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
     ) {
-        let f = self.declare_core("gte", 2);
+        let f = self.declare_core("lte", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
