@@ -1,5 +1,6 @@
 #include "trilogy_value.h"
 #include "internal.h"
+#include "trace.h"
 #include "trilogy_array.h"
 #include "trilogy_atom.h"
 #include "trilogy_bits.h"
@@ -74,6 +75,7 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
 
 void trilogy_value_destroy(trilogy_value* value) {
     assert(value != NULL);
+    TRACE("Destroying value (%2d): %p\n", value->tag, value);
     switch (value->tag) {
     case TAG_STRING: {
         trilogy_string_value* p = trilogy_string_assume(value);

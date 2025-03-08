@@ -155,7 +155,7 @@ impl<'ctx> Codegen<'ctx> {
             let go_to_next_case =
                 self.capture_current_continuation(next_case_function, &brancher, "when.next");
             let next_case_cp = self.hold_continuation_point();
-            let effect = self.use_temporary(effect).unwrap().ptr();
+            let effect = self.use_temporary(effect).unwrap();
             if self
                 .compile_pattern_match(&handler.pattern, effect, go_to_next_case)
                 .is_none()
@@ -179,7 +179,7 @@ impl<'ctx> Codegen<'ctx> {
             let snapshot = self.snapshot_function_context();
 
             self.builder.position_at_end(next_block);
-            let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
+            let go_next = self.use_temporary(go_to_next_case).unwrap();
             self.void_call_continuation(go_next, "");
             self.builder.build_unreachable().unwrap();
 
@@ -270,7 +270,7 @@ impl<'ctx> Codegen<'ctx> {
             QueryValue::Direct(unif) if decl.query.is_once() => {
                 let value = self.compile_expression(&unif.expression, "let.expr")?;
                 self.compile_pattern_match(&unif.pattern, value, self.get_end("let.fail"))?;
-                self.trilogy_value_destroy(self.use_temporary(value).unwrap().ptr());
+                self.trilogy_value_destroy(self.use_temporary(value).unwrap());
                 self.compile_expression(&decl.body, name)
             }
             _ => todo!("non-deterministic branching {:?}", decl.query.value),
@@ -289,7 +289,7 @@ impl<'ctx> Codegen<'ctx> {
             let go_to_next_case =
                 self.capture_current_continuation(next_case_function, &brancher, "match.next");
             let next_case_cp = self.hold_continuation_point();
-            let discriminant = self.use_temporary(discriminant).unwrap().ptr();
+            let discriminant = self.use_temporary(discriminant).unwrap();
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
             let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
                 self.become_continuation_point(next_case_cp);
@@ -308,7 +308,7 @@ impl<'ctx> Codegen<'ctx> {
             let snapshot = self.snapshot_function_context();
 
             self.builder.position_at_end(next_block);
-            let go_next = self.use_temporary(go_to_next_case).unwrap().ptr();
+            let go_next = self.use_temporary(go_to_next_case).unwrap();
             self.void_call_continuation(go_next, "");
             self.builder.build_unreachable().unwrap();
 
@@ -368,16 +368,16 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(param);
                     arguments.push(param);
                 }
-                let function = self.use_temporary(function).unwrap().ptr();
+                let function = self.use_temporary(function).unwrap();
                 for arg in arguments.iter_mut() {
-                    *arg = self.use_temporary(*arg).unwrap().ptr();
+                    *arg = self.use_temporary(*arg).unwrap();
                 }
                 Some(self.call_procedure(function, &arguments, name))
             }
             // Function application
             _ => {
                 let argument = self.compile_expression(&application.argument, "")?;
-                let function = self.use_temporary(function).unwrap().ptr();
+                let function = self.use_temporary(function).unwrap();
                 Some(self.apply_function(function, argument, name))
             }
         }
@@ -485,7 +485,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "seq.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "seq.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.structural_eq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -496,7 +496,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "sne.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "sne.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.structural_neq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -507,7 +507,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "req.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "req.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.referential_eq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -518,7 +518,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "rne.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rne.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.referential_neq(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -529,7 +529,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "acc.c")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "acc.i")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.member_access(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -540,7 +540,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "cons.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "cons.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.trilogy_tuple_init_new(out, lhs, rhs);
                 Some(out)
@@ -549,7 +549,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "struct.val")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let tag = self.trilogy_atom_untag(rhs, "struct.tag");
                 self.trilogy_value_destroy(rhs);
                 let out = self.allocate_value(name);
@@ -560,7 +560,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "glue.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "glue.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.glue(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -571,7 +571,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "lt.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lt.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.lt(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -582,7 +582,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "gt.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "gt.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.gt(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -593,7 +593,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "lte.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lte.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.lte(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
@@ -604,7 +604,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "gte.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "gte.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap().ptr();
+                let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.gte(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);

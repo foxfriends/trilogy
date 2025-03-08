@@ -22,6 +22,14 @@ fn main() {
         .parse::<PathBuf>()
         .unwrap()
         .join("core");
+    println!("cargo::rerun-if-env-changed=TRILOGY_CORE_DEFINES");
+    let defines = std::env::var("TRILOGY_CORE_DEFINES")
+        .map(|s| {
+            s.split(",")
+                .map(|def| format!("-D{def}"))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
 
     let mut sources = vec![];
     for file in fs::read_dir(&core).unwrap() {
@@ -44,6 +52,7 @@ fn main() {
     try_command(
         Command::new(llvm_prefix.join("clang"))
             .args(["-g", "-S", "-emit-llvm", "-Wall"])
+            .args(&defines)
             .args(&sources)
             .current_dir(&core),
     );

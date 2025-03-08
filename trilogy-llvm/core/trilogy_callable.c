@@ -1,5 +1,6 @@
 #include "trilogy_callable.h"
 #include "internal.h"
+#include "trace.h"
 #include "trilogy_array.h"
 #include "trilogy_value.h"
 #include <assert.h>
@@ -21,6 +22,7 @@ void trilogy_callable_clone_into(
     trilogy_value* t, trilogy_callable_value* orig
 ) {
     assert(orig->rc != 0);
+    TRACE("Cloning callable    (%d): %p (%lu -> %lu)\n", orig->tag, orig, orig->rc, orig->rc + 1);
     orig->rc++;
     trilogy_callable_init(t, orig);
 }
@@ -39,6 +41,7 @@ trilogy_callable_init_fn(trilogy_value* t, trilogy_value* closure, void* p) {
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
+    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
     return trilogy_callable_init(t, callable);
 }
 
@@ -57,6 +60,7 @@ trilogy_callable_value* trilogy_callable_init_do(
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
+    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
     return trilogy_callable_init(t, callable);
 }
 
@@ -75,6 +79,7 @@ trilogy_callable_value* trilogy_callable_init_qy(
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
+    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
     return trilogy_callable_init(t, callable);
 }
 
@@ -112,6 +117,7 @@ trilogy_callable_value* trilogy_callable_init_cont(
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
+    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
     return trilogy_callable_init(t, callable);
 }
 
@@ -128,7 +134,9 @@ trilogy_callable_value* trilogy_callable_init_resume(
 
 void trilogy_callable_destroy(trilogy_callable_value* val) {
     assert(val->rc > 0);
+    TRACE("Destroying callable (%d): %p (%lu -> %lu)\n", val->tag, val, val->rc, val->rc - 1);
     if (--val->rc == 0) {
+        TRACE("\tDeallocating!\n");
         if (val->closure != NO_CLOSURE) trilogy_array_destroy(val->closure);
         // NOTE: even a continuation may have return_to and yield_to as NULL, as
         // is the case in the wrapper of main.
@@ -136,6 +144,7 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         if (val->yield_to != NULL) trilogy_callable_destroy(val->yield_to);
         if (val->cancel_to != NULL) trilogy_callable_destroy(val->cancel_to);
         free(val);
+        TRACE("\tDeallocated!\n");
     }
 }
 
@@ -199,6 +208,7 @@ void trilogy_callable_return_to_shift(
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
+    TRACE("Expect callable: %p\n", val);
     if (val->tag != TAG_CALLABLE) rte("callable", val->tag);
     return trilogy_callable_assume(val);
 }

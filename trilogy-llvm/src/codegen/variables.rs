@@ -158,11 +158,21 @@ impl<'ctx> Codegen<'ctx> {
 
     /// Uses a previously bound temporary value. If the value was not previously bound with
     /// `bind_temporary`, this will return `None`.
-    pub(crate) fn use_temporary(&self, temporary: PointerValue<'ctx>) -> Option<Variable<'ctx>> {
-        self.reference_from_scope(
+    pub(crate) fn use_temporary(
+        &self,
+        temporary: PointerValue<'ctx>,
+    ) -> Option<PointerValue<'ctx>> {
+        match self.reference_from_scope(
             &self.current_continuation_point(),
             &Closed::Temporary(temporary),
-        )
+        )? {
+            Variable::Owned(pointer) => Some(pointer),
+            Variable::Closed { location, .. } => {
+                let var = self.allocate_value("");
+                self.trilogy_value_clone_into(var, location);
+                Some(var)
+            }
+        }
     }
 
     /// Gets a variable from the current scope. Any variable that is defined in the current continuation point

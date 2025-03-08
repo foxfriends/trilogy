@@ -39,6 +39,11 @@ run file="main.tri":
     clang main.ll -g -O0 -rdynamic
     ./a.out
 
+trace file="main.tri":
+    TRILOGY_CORE_DEFINES=TRILOGY_CORE_TRACE cargo run -- compile {{file}} > main.ll
+    clang main.ll -g -O0 -rdynamic
+    ./a.out
+
 clean:
     cargo clean > /dev/null 2>&1
     -rm -f a.out main.ll

@@ -25,7 +25,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Conjunction(conj) => {
                 self.compile_pattern_match(&conj.0, value, on_fail)?;
-                let value = self.use_temporary(value).unwrap().ptr();
+                let value = self.use_temporary(value).unwrap();
                 self.compile_pattern_match(&conj.1, value, on_fail)?;
             }
             Value::Disjunction(disj) => {
@@ -49,14 +49,14 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.begin_next_function(first_function);
                 self.become_continuation_point(primary_cp);
-                let value_ref = self.use_temporary(value).unwrap().ptr();
+                let value_ref = self.use_temporary(value).unwrap();
                 self.compile_pattern_match(&disj.0, value_ref, go_to_second)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
                 self.begin_next_function(second_function);
                 self.become_continuation_point(secondary_cp);
-                let value_ref = self.use_temporary(value).unwrap().ptr();
+                let value_ref = self.use_temporary(value).unwrap();
                 self.compile_pattern_match(&disj.1, value_ref, on_fail)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
@@ -133,7 +133,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         let snapshot = self.snapshot_function_context();
         self.builder.position_at_end(fail);
-        let on_fail = self.use_temporary(on_fail).unwrap().ptr();
+        let on_fail = self.use_temporary(on_fail).unwrap();
         self.void_call_continuation(on_fail, "");
         self.builder.build_unreachable().unwrap();
 
@@ -174,15 +174,15 @@ impl<'ctx> Codegen<'ctx> {
                     self.trilogy_tuple_left(left, tuple);
                     self.compile_pattern_match(&app.argument, left, on_fail)?;
 
-                    let left = self.use_temporary(left).unwrap().ptr();
-                    let tuple = self.use_temporary(tuple).unwrap().ptr();
+                    let left = self.use_temporary(left).unwrap();
+                    let tuple = self.use_temporary(tuple).unwrap();
                     self.trilogy_value_destroy(left);
 
                     let right = self.allocate_value("");
                     self.bind_temporary(right);
                     self.trilogy_tuple_right(right, tuple);
                     self.compile_pattern_match(&application.argument, right, on_fail)?;
-                    let right = self.use_temporary(right).unwrap().ptr();
+                    let right = self.use_temporary(right).unwrap();
                     self.trilogy_value_destroy(right);
                     Some(())
                 }
@@ -229,7 +229,7 @@ impl<'ctx> Codegen<'ctx> {
                 // TODO: we should restrict the expressions in this thing to be pins or constants... otherwise we do have to
                 // handle branching...
                 let expected_type = self.compile_expression(expression, "")?;
-                let value = self.use_temporary(value).unwrap().ptr();
+                let value = self.use_temporary(value).unwrap();
                 let tag = self.get_tag(value, "");
                 let atom = self
                     .builder
