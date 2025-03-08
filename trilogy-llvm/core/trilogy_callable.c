@@ -22,7 +22,10 @@ void trilogy_callable_clone_into(
     trilogy_value* t, trilogy_callable_value* orig
 ) {
     assert(orig->rc != 0);
-    TRACE("Cloning callable    (%d): %p (%lu -> %lu)\n", orig->tag, orig, orig->rc, orig->rc + 1);
+    TRACE(
+        "Cloning callable    (%d): %p (%lu -> %lu)\n", orig->tag, orig,
+        orig->rc, orig->rc + 1
+    );
     orig->rc++;
     trilogy_callable_init(t, orig);
 }
@@ -134,7 +137,10 @@ trilogy_callable_value* trilogy_callable_init_resume(
 
 void trilogy_callable_destroy(trilogy_callable_value* val) {
     assert(val->rc > 0);
-    TRACE("Destroying callable (%d): %p (%lu -> %lu)\n", val->tag, val, val->rc, val->rc - 1);
+    TRACE(
+        "Destroying callable (%d): %p (%lu -> %lu)\n", val->tag, val, val->rc,
+        val->rc - 1
+    );
     if (--val->rc == 0) {
         TRACE("\tDeallocating!\n");
         if (val->closure != NO_CLOSURE) trilogy_array_destroy(val->closure);
