@@ -116,10 +116,7 @@ bool bigint_sub(bigint* lhs, const bigint* rhs) {
     return false;
 }
 
-void bigint_mul(bigint* lhs, const bigint* rhs) {
-    lhs
-}
-
+void bigint_mul(bigint* lhs, const bigint* rhs); 
 void bigint_div(bigint* lhs, const bigint* rhs);
 void bigint_rem(bigint* lhs, const bigint* rhs);
 void bigint_pow(bigint* lhs, const bigint* rhs);
