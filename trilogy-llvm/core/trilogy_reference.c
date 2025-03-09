@@ -1,13 +1,14 @@
 #include "trilogy_reference.h"
 #include "trilogy_value.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 trilogy_reference*
 trilogy_reference_init(trilogy_value* tv, trilogy_reference* ref) {
     assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_REFERENCE;
-    tv->payload = (unsigned long)ref;
+    tv->payload = (uint64_t)ref;
     return ref;
 }
 

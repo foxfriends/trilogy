@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <execinfo.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,12 +67,12 @@ void structural_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
 void length(trilogy_value* rv, trilogy_value* val) {
     switch (val->tag) {
     case TAG_STRING:
-        trilogy_number_init_ulong(
+        trilogy_number_init_u64(
             rv, trilogy_string_len(trilogy_string_assume(val))
         );
         break;
     case TAG_ARRAY:
-        trilogy_number_init_ulong(
+        trilogy_number_init_u64(
             rv, trilogy_array_len(trilogy_array_assume(val))
         );
         break;
@@ -144,20 +145,20 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     switch (c->tag) {
     case TAG_STRING: {
         trilogy_number_value* number = trilogy_number_untag(index);
-        unsigned long i = trilogy_number_to_ulong(number);
-        unsigned int ch = trilogy_string_at(trilogy_string_assume(c), i);
+        uint64_t i = trilogy_number_to_u64(number);
+        uint32_t ch = trilogy_string_at(trilogy_string_assume(c), i);
         trilogy_character_init(rv, ch);
         break;
     }
     case TAG_BITS: {
         trilogy_number_value* number = trilogy_number_untag(index);
-        unsigned long i = trilogy_number_to_ulong(number);
+        uint64_t i = trilogy_number_to_u64(number);
         bool b = trilogy_bits_at(trilogy_bits_assume(c), i);
         trilogy_boolean_init(rv, b);
         break;
     }
     case TAG_TUPLE: {
-        unsigned long i = trilogy_atom_untag(index);
+        uint64_t i = trilogy_atom_untag(index);
         switch (i) {
         case ATOM_LEFT:
             trilogy_tuple_left(rv, trilogy_tuple_assume(c));
@@ -172,7 +173,7 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     }
     case TAG_ARRAY: {
         trilogy_number_value* number = trilogy_number_untag(index);
-        unsigned long i = trilogy_number_to_ulong(number);
+        uint64_t i = trilogy_number_to_u64(number);
         trilogy_array_at(rv, trilogy_array_assume(c), i);
         break;
     }
@@ -194,7 +195,7 @@ void primitive_to_string(trilogy_value* rv, trilogy_value* val) {
 }
 
 void lookup_atom(trilogy_value* rv, trilogy_value* atom) {
-    unsigned long atom_id = trilogy_atom_untag(atom);
+    uint64_t atom_id = trilogy_atom_untag(atom);
     const trilogy_string_value* repr = trilogy_atom_repr(atom_id);
     if (repr != NULL) {
         trilogy_string_clone_into(rv, repr);
@@ -204,7 +205,7 @@ void lookup_atom(trilogy_value* rv, trilogy_value* atom) {
 }
 
 void construct(trilogy_value* rv, trilogy_value* atom, trilogy_value* value) {
-    unsigned long atom_id = trilogy_atom_untag(atom);
+    uint64_t atom_id = trilogy_atom_untag(atom);
     trilogy_value value_clone = trilogy_undefined;
     trilogy_value_clone_into(&value_clone, value);
     trilogy_struct_init_new(rv, atom_id, &value_clone);

@@ -35,7 +35,7 @@ void print_trace() {
     case TAG_UNIT:
         exit(0);
     case TAG_NUMBER:
-        exit(trilogy_number_to_ulong(trilogy_number_assume(val)));
+        exit(trilogy_number_to_u64(trilogy_number_assume(val)));
     default:
         rte("number", val->tag);
     }

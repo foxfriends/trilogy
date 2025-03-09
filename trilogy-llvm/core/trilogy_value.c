@@ -16,6 +16,7 @@
 #include "trilogy_tuple.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -203,7 +204,7 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
         trilogy_array_value* lhs_arr = trilogy_array_assume(lhs);
         trilogy_array_value* rhs_arr = trilogy_array_assume(rhs);
         if (lhs_arr->len != rhs_arr->len) return false;
-        for (unsigned long i = 0; i < lhs_arr->len; ++i) {
+        for (uint64_t i = 0; i < lhs_arr->len; ++i) {
             if (!trilogy_value_structural_eq(
                     &lhs_arr->contents[i], &rhs_arr->contents[i]
                 ))
@@ -272,7 +273,7 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
     }
     case TAG_NUMBER: {
         trilogy_number_value* number = trilogy_number_assume(val);
-        unsigned long i = trilogy_number_to_ulong(number);
+        uint64_t i = trilogy_number_to_u64(number);
         int len = snprintf(NULL, (size_t)0, "%ld", i);
         char* buf = malloc_safe(sizeof(char) * len + 1);
         snprintf(buf, (size_t)len + 1, "%ld", i);
@@ -286,7 +287,7 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
     case TAG_BITS: {
         trilogy_bits_value* bits = trilogy_bits_assume(val);
         char* buf = malloc_safe(sizeof(char) * bits->len);
-        for (unsigned long i = 0; i < bits->len; ++i) {
+        for (uint64_t i = 0; i < bits->len; ++i) {
             buf[i] = trilogy_bits_at(bits, i) ? '1' : '0';
         }
         trilogy_string_init_new(rv, bits->len, buf);

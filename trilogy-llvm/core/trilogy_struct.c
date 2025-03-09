@@ -8,13 +8,12 @@ trilogy_struct_value*
 trilogy_struct_init(trilogy_value* tv, trilogy_struct_value* st) {
     assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_STRUCT;
-    tv->payload = (unsigned long)st;
+    tv->payload = (uint64_t)st;
     return st;
 }
 
-trilogy_struct_value* trilogy_struct_init_new(
-    trilogy_value* tv, unsigned long i, trilogy_value* val
-) {
+trilogy_struct_value*
+trilogy_struct_init_new(trilogy_value* tv, uint64_t i, trilogy_value* val) {
     trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
     st->atom = i;
     st->contents = *val;

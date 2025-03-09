@@ -2,12 +2,13 @@
 #include "internal.h"
 #include "trilogy_value.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 trilogy_set_value* trilogy_set_init(trilogy_value* tv, trilogy_set_value* set) {
     assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_SET;
-    tv->payload = (unsigned long)set;
+    tv->payload = (uint64_t)set;
     return set;
 }
 
@@ -40,7 +41,7 @@ trilogy_set_value* trilogy_set_assume(trilogy_value* val) {
 void trilogy_set_destroy(trilogy_set_value* set) {
     if (--set->rc == 0) {
         if (set->contents == NULL) return;
-        for (unsigned long i = 0; i < set->len; ++i) {
+        for (uint64_t i = 0; i < set->len; ++i) {
             trilogy_value_destroy(&set->contents[i]);
         }
         free(set->contents);

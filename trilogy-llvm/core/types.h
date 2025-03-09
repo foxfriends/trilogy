@@ -1,8 +1,9 @@
 #pragma once
 #include "bigint.h"
 #include <stdbool.h>
+#include <stdint.h>
 
-typedef enum trilogy_value_tag : unsigned char {
+typedef enum trilogy_value_tag : uint8_t {
     TAG_UNDEFINED = 0,
     TAG_UNIT = 1,
     TAG_BOOL = 2,
@@ -25,7 +26,7 @@ typedef enum trilogy_value_tag : unsigned char {
     TAG_REFERENCE = 14
 } trilogy_value_tag;
 
-typedef enum trilogy_callable_tag : unsigned char {
+typedef enum trilogy_callable_tag : uint8_t {
     CALLABLE_FUNCTION = 1,
     CALLABLE_PROCEDURE = 2,
     CALLABLE_RULE = 3,
@@ -39,14 +40,14 @@ typedef enum trilogy_callable_tag : unsigned char {
 typedef struct trilogy_value {
     trilogy_value_tag tag;
     /**
-     * The payload is held in `unsigned long` to be a 64 bit container for
+     * The payload is held in `uint64_t` to be a 64 bit container for
      * anything. The actual value type of the payload depends on the tag.
      *
      * We do not use a union because the field should be left-padded, which
      * would not be the default in a union, but does happen correctly if we cast
      * the payload around manually.
      */
-    unsigned long payload;
+    uint64_t payload;
 } trilogy_value;
 
 typedef struct trilogy_number_value {
@@ -60,7 +61,7 @@ typedef struct trilogy_string_value {
     /**
      * The number of bytes in the string.
      */
-    unsigned long len;
+    uint64_t len;
     /**
      * The raw byte contents of this string. This data is ASSUMED to be UTF-8,
      * and is not null terminated.
@@ -72,21 +73,21 @@ typedef struct trilogy_bits_value {
     /**
      * The number of relevant bits in this value.
      */
-    unsigned long len;
+    uint64_t len;
     /**
      * The raw bytes of the bits value.
      *
      * This is a bytearray of `len/8` bytes. The value of any excess padding
      * bits is undefined.
      */
-    unsigned char* contents;
+    uint8_t* contents;
 } trilogy_bits_value;
 
 typedef struct trilogy_struct_value {
     /**
      * The unwrapped atom ID that tags this struct.
      */
-    unsigned long atom;
+    uint64_t atom;
     /**
      * The value of this struct.
      */
@@ -108,16 +109,16 @@ typedef struct trilogy_array_value {
     /**
      * The reference count for this array.
      */
-    unsigned int rc;
+    uint32_t rc;
     /**
      * The number of elements in this array.
      */
-    unsigned long len;
+    uint64_t len;
     /**
      * The capacity of this array; values in cells past the len contain
      * unspecified data.
      */
-    unsigned long cap;
+    uint64_t cap;
     /**
      * An array of length `cap` containing the values of this array.
      */
@@ -128,16 +129,16 @@ typedef struct trilogy_set_value {
     /**
      * The reference count for this set.
      */
-    unsigned int rc;
+    uint32_t rc;
     /**
      * The number of elements in this set.
      */
-    unsigned long len;
+    uint64_t len;
     /**
      * The capacity of this set; values in cells past the len contain
      * unspecified data.
      */
-    unsigned long cap;
+    uint64_t cap;
     /**
      * An array of length `cap` containing the values of this set.
      */
@@ -148,16 +149,16 @@ typedef struct trilogy_record_value {
     /**
      * The reference count for this record.
      */
-    unsigned int rc;
+    uint32_t rc;
     /**
      * The number of elements in this record.
      */
-    unsigned long len;
+    uint64_t len;
     /**
      * The capacity of this record; values in cells past the len contain
      * unspecified data.
      */
-    unsigned long cap;
+    uint64_t cap;
     /**
      * An array of length `cap` containing the key-value pairs of this record.
      */
@@ -168,7 +169,7 @@ typedef struct trilogy_callable_value {
     /**
      * The reference count for this callable.
      */
-    unsigned int rc;
+    uint32_t rc;
     /**
      * Determines which type of call this callable requires
      */
@@ -177,7 +178,7 @@ typedef struct trilogy_callable_value {
      * The number of parameters to this callable. Functions must have arity 1.
      * Handlers have arity 2. Other types may have any arity.
      */
-    unsigned int arity;
+    uint32_t arity;
     /**
      * For captured continuations, the return and yield points are stored rather
      * than provided. (The `end` pointer is still provided)
@@ -209,7 +210,7 @@ typedef struct trilogy_reference {
     /**
      * The reference count for this reference.
      */
-    unsigned int rc;
+    uint32_t rc;
     /**
      * Pointer to the location of the variable. Will be pointing to the value
      * field if the referenced value has been moved to the heap, or to the

@@ -2,13 +2,14 @@
 #include "internal.h"
 #include "trilogy_tuple.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 trilogy_record_value*
 trilogy_record_init(trilogy_value* tv, trilogy_record_value* rec) {
     assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_RECORD;
-    tv->payload = (unsigned long)rec;
+    tv->payload = (uint64_t)rec;
     return rec;
 }
 
@@ -41,7 +42,7 @@ trilogy_record_value* trilogy_record_assume(trilogy_value* val) {
 void trilogy_record_destroy(trilogy_record_value* record) {
     if (--record->rc == 0) {
         if (record->contents == NULL) return;
-        for (unsigned long i = 0; i < record->len; ++i) {
+        for (uint64_t i = 0; i < record->len; ++i) {
             trilogy_tuple_destroy(&record->contents[i]);
         }
         free(record->contents);

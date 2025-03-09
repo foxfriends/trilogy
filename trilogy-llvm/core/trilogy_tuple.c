@@ -2,12 +2,13 @@
 #include "internal.h"
 #include "trilogy_value.h"
 #include <assert.h>
+#include <stdint.h>
 
 trilogy_tuple_value*
 trilogy_tuple_init(trilogy_value* tv, trilogy_tuple_value* tup) {
     assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_TUPLE;
-    tv->payload = (unsigned long)tup;
+    tv->payload = (uint64_t)tup;
     return tup;
 }
 

@@ -31,18 +31,18 @@ trilogy_number_init_bigint(trilogy_value* tv, bool is_negative, bigint* num) {
     value->is_negative = is_negative;
     value->re = *num;
     value->im = bigint_zero;
-    bigint_init_from_ulong(&value->im, 0);
+    bigint_init_from_u64(&value->im, 0);
     return trilogy_number_init(tv, value);
 }
 
 trilogy_number_value*
-trilogy_number_init_ulong(trilogy_value* tv, unsigned long num) {
+trilogy_number_init_u64(trilogy_value* tv, unsigned long num) {
     trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->is_negative = false;
     value->re = bigint_zero;
     value->im = bigint_zero;
-    bigint_init_from_ulong(&value->re, num);
-    bigint_init_from_ulong(&value->im, 0);
+    bigint_init_from_u64(&value->re, num);
+    bigint_init_from_u64(&value->im, 0);
     return trilogy_number_init(tv, value);
 }
 
@@ -57,10 +57,10 @@ trilogy_number_clone_into(trilogy_value* tv, trilogy_number_value* num) {
     return trilogy_number_init(tv, clone);
 }
 
-unsigned long trilogy_number_to_ulong(trilogy_number_value* val) {
+unsigned long trilogy_number_to_u64(trilogy_number_value* val) {
     if (!bigint_is_zero(&val->im))
         internal_panic("expected unsigned long, but number is complex");
-    return bigint_to_ulong(&val->re);
+    return bigint_to_u64(&val->re);
 }
 
 trilogy_number_value* trilogy_number_untag(trilogy_value* val) {

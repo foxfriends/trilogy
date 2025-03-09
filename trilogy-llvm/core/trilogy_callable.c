@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-trilogy_value* prepare_closure(unsigned int closure_size) {
+trilogy_value* prepare_closure(uint32_t closure_size) {
     return calloc_safe(closure_size, sizeof(trilogy_value));
 }
 
@@ -14,7 +14,7 @@ trilogy_callable_value*
 trilogy_callable_init(trilogy_value* t, trilogy_callable_value* payload) {
     assert(t->tag == TAG_UNDEFINED);
     t->tag = TAG_CALLABLE;
-    t->payload = (unsigned long)payload;
+    t->payload = (uint64_t)payload;
     return payload;
 }
 
@@ -49,7 +49,7 @@ trilogy_callable_init_fn(trilogy_value* t, trilogy_value* closure, void* p) {
 }
 
 trilogy_callable_value* trilogy_callable_init_do(
-    trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
+    trilogy_value* t, uint32_t arity, trilogy_value* closure, void* p
 ) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
@@ -68,7 +68,7 @@ trilogy_callable_value* trilogy_callable_init_do(
 }
 
 trilogy_callable_value* trilogy_callable_init_qy(
-    trilogy_value* t, unsigned int arity, trilogy_value* closure, void* p
+    trilogy_value* t, uint32_t arity, trilogy_value* closure, void* p
 ) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
@@ -87,7 +87,7 @@ trilogy_callable_value* trilogy_callable_init_qy(
 }
 
 trilogy_callable_value*
-trilogy_callable_init_proc(trilogy_value* t, unsigned int arity, void* p) {
+trilogy_callable_init_proc(trilogy_value* t, uint32_t arity, void* p) {
     return trilogy_callable_init_do(t, arity, NO_CLOSURE, p);
 }
 
@@ -96,7 +96,7 @@ trilogy_callable_value* trilogy_callable_init_func(trilogy_value* t, void* p) {
 }
 
 trilogy_callable_value*
-trilogy_callable_init_rule(trilogy_value* t, unsigned int arity, void* p) {
+trilogy_callable_init_rule(trilogy_value* t, uint32_t arity, void* p) {
     return trilogy_callable_init_qy(t, arity, NO_CLOSURE, p);
 }
 
@@ -230,14 +230,14 @@ void* trilogy_function_untag(trilogy_callable_value* val) {
     return (void*)val->function;
 }
 
-void* trilogy_procedure_untag(trilogy_callable_value* val, unsigned int arity) {
+void* trilogy_procedure_untag(trilogy_callable_value* val, uint32_t arity) {
     if (val->tag != CALLABLE_PROCEDURE)
         internal_panic("invalid call of non-procedure callable\n");
     if (val->arity != arity) internal_panic("procedure call arity mismatch\n");
     return (void*)val->function;
 }
 
-void* trilogy_rule_untag(trilogy_callable_value* val, unsigned int arity) {
+void* trilogy_rule_untag(trilogy_callable_value* val, uint32_t arity) {
     if (val->tag != CALLABLE_RULE)
         internal_panic("invalid call of non-rule callable\n");
     if (val->arity != arity) internal_panic("rule call arity mismatch\n");
