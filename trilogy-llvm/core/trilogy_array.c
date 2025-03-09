@@ -61,7 +61,7 @@ uint64_t trilogy_array_resize(trilogy_array_value* arr, uint64_t cap) {
 uint64_t trilogy_array_reserve(trilogy_array_value* arr, uint64_t to_reserve) {
     uint64_t space = arr->cap - arr->len;
     if (space >= to_reserve) return arr->cap;
-    uint64_t max_claimable = ULONG_MAX - arr->cap;
+    uint64_t max_claimable = UINT64_MAX - arr->cap;
     if (to_reserve > max_claimable) internal_panic("array capacity limit\n");
     if (to_reserve < arr->cap) to_reserve = arr->cap;
     if (to_reserve > max_claimable) to_reserve = max_claimable;

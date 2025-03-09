@@ -79,7 +79,7 @@ trilogy_string_value* trilogy_string_assume(trilogy_value* val) {
 trilogy_string_value* trilogy_string_concat(
     trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
 ) {
-    uint64_t room = ULONG_MAX - lhs->len;
+    uint64_t room = UINT64_MAX - lhs->len;
     if (rhs->len > room) internal_panic("string length limit\n");
     uint64_t len = lhs->len + rhs->len;
     char* ptr = malloc_safe(sizeof(char) * len);

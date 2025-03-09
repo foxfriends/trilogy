@@ -51,12 +51,12 @@ void bigint_destroy(bigint* v) {
 }
 
 bool add_digit(uint64_t* lhs, uint64_t rhs, bool carry) {
-    uint64_t space = ULONG_MAX - *lhs;
+    uint64_t space = UINT64_MAX - *lhs;
     if (space > rhs) {
         *lhs = *lhs + rhs + carry;
         return false;
     } else if (space == rhs) {
-        *lhs = carry ? 0 : ULONG_MAX;
+        *lhs = carry ? 0 : UINT64_MAX;
         return carry;
     } else {
         *lhs = rhs - space;
@@ -89,10 +89,10 @@ bigint_sub_from(uint64_t* out, const bigint* lhs, const bigint* rhs) {
             out[i] = lhs->digits[i] - rhs->digits[i] - borrow;
             borrow = false;
         } else if (lhs->digits[i] == rhs->digits[i]) {
-            out[i] = borrow ? ULONG_MAX : 0;
+            out[i] = borrow ? UINT64_MAX : 0;
         } else {
             uint64_t absdiff = rhs->digits[i] - lhs->digits[i];
-            out[i] = ULONG_MAX - absdiff + 1;
+            out[i] = UINT64_MAX - absdiff + 1;
             borrow = true;
         }
     }
@@ -116,7 +116,10 @@ bool bigint_sub(bigint* lhs, const bigint* rhs) {
     return false;
 }
 
-void bigint_mul(bigint* lhs, const bigint* rhs);
+void bigint_mul(bigint* lhs, const bigint* rhs) {
+    lhs
+}
+
 void bigint_div(bigint* lhs, const bigint* rhs);
 void bigint_rem(bigint* lhs, const bigint* rhs);
 void bigint_pow(bigint* lhs, const bigint* rhs);
