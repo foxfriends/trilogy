@@ -66,10 +66,14 @@ void structural_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
 void length(trilogy_value* rv, trilogy_value* val) {
     switch (val->tag) {
     case TAG_STRING:
-        trilogy_number_init(rv, trilogy_string_len(trilogy_string_assume(val)));
+        trilogy_number_init_ulong(
+            rv, trilogy_string_len(trilogy_string_assume(val))
+        );
         break;
     case TAG_ARRAY:
-        trilogy_number_init(rv, trilogy_array_len(trilogy_array_assume(val)));
+        trilogy_number_init_ulong(
+            rv, trilogy_array_len(trilogy_array_assume(val))
+        );
         break;
     default:
         rte("string, bits, array, set, or record", val->tag);
@@ -139,13 +143,15 @@ void not(trilogy_value * rv, trilogy_value* v) { trilogy_boolean_not(rv, v); }
 void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     switch (c->tag) {
     case TAG_STRING: {
-        unsigned long i = trilogy_number_untag(index);
+        trilogy_number_value* number = trilogy_number_untag(index);
+        unsigned long i = trilogy_number_to_ulong(number);
         unsigned int ch = trilogy_string_at(trilogy_string_assume(c), i);
         trilogy_character_init(rv, ch);
         break;
     }
     case TAG_BITS: {
-        unsigned int i = trilogy_number_untag(index);
+        trilogy_number_value* number = trilogy_number_untag(index);
+        unsigned long i = trilogy_number_to_ulong(number);
         bool b = trilogy_bits_at(trilogy_bits_assume(c), i);
         trilogy_boolean_init(rv, b);
         break;
@@ -165,7 +171,8 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
         break;
     }
     case TAG_ARRAY: {
-        unsigned long i = trilogy_number_untag(index);
+        trilogy_number_value* number = trilogy_number_untag(index);
+        unsigned long i = trilogy_number_to_ulong(number);
         trilogy_array_at(rv, trilogy_array_assume(c), i);
         break;
     }

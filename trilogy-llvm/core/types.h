@@ -1,4 +1,6 @@
 #pragma once
+#include <stdbool.h>
+#include "bigint.h"
 
 typedef enum trilogy_value_tag : unsigned char {
     TAG_UNDEFINED = 0,
@@ -47,7 +49,12 @@ typedef struct trilogy_value {
     unsigned long payload;
 } trilogy_value;
 
-typedef long trilogy_number_value;
+typedef struct trilogy_number_value {
+    // TODO: upgrade these to rationals...
+    bool is_negative;
+    bigint re;
+    bigint im;
+} trilogy_number_value;
 
 typedef struct trilogy_string_value {
     /**

@@ -33,13 +33,16 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
     assert(from != NULL);
     assert(into->tag == TAG_UNDEFINED);
     assert(from->tag != TAG_UNDEFINED);
+    TRACE("Cloning value    (%2d): %p\n", from->tag, from);
     switch (from->tag) {
     case TAG_UNIT:
     case TAG_BOOL:
     case TAG_ATOM:
     case TAG_CHAR:
-    case TAG_NUMBER:
         *into = *from;
+        break;
+    case TAG_NUMBER:
+        trilogy_number_clone_into(into, trilogy_number_assume(from));
         break;
     case TAG_STRING:
         trilogy_string_clone_into(into, trilogy_string_assume(from));
@@ -77,6 +80,12 @@ void trilogy_value_destroy(trilogy_value* value) {
     assert(value != NULL);
     TRACE("Destroying value (%2d): %p\n", value->tag, value);
     switch (value->tag) {
+    case TAG_NUMBER: {
+        trilogy_number_value* p = trilogy_number_assume(value);
+        trilogy_number_destroy(p);
+        free(p);
+        break;
+    }
     case TAG_STRING: {
         trilogy_string_value* p = trilogy_string_assume(value);
         trilogy_string_destroy(p);
@@ -142,8 +151,12 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_BOOL:
     case TAG_ATOM:
     case TAG_CHAR:
-    case TAG_NUMBER:
         return lhs->payload == rhs->payload;
+    case TAG_NUMBER: {
+        trilogy_number_value* lhs_num = trilogy_number_assume(lhs);
+        trilogy_number_value* rhs_num = trilogy_number_assume(rhs);
+        return trilogy_number_eq(lhs_num, rhs_num);
+    }
     case TAG_CALLABLE: {
         // Closures can only be reference equal, but closure-less functions
         // should be treated all the same no matter how they got cloned up
@@ -156,14 +169,14 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
         }
     }
     case TAG_STRING: {
-        trilogy_string_value* lhs_str = (trilogy_string_value*)lhs->payload;
-        trilogy_string_value* rhs_str = (trilogy_string_value*)rhs->payload;
+        trilogy_string_value* lhs_str = trilogy_string_assume(lhs);
+        trilogy_string_value* rhs_str = trilogy_string_assume(rhs);
         if (lhs_str->len != rhs_str->len) return false;
         return strncmp(lhs_str->contents, rhs_str->contents, lhs_str->len) == 0;
     }
     case TAG_BITS: {
-        trilogy_bits_value* lhs_bits = (trilogy_bits_value*)lhs->payload;
-        trilogy_bits_value* rhs_bits = (trilogy_bits_value*)rhs->payload;
+        trilogy_bits_value* lhs_bits = trilogy_bits_assume(lhs);
+        trilogy_bits_value* rhs_bits = trilogy_bits_assume(rhs);
         if (lhs_bits->len != rhs_bits->len) return false;
         if (lhs_bits->len == 0) return true;
         return memcmp(
@@ -172,8 +185,8 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
                ) == 0;
     }
     case TAG_STRUCT: {
-        trilogy_struct_value* lhs_st = (trilogy_struct_value*)lhs->payload;
-        trilogy_struct_value* rhs_st = (trilogy_struct_value*)rhs->payload;
+        trilogy_struct_value* lhs_st = trilogy_struct_assume(lhs);
+        trilogy_struct_value* rhs_st = trilogy_struct_assume(rhs);
         return lhs_st->atom == rhs_st->atom &&
                trilogy_value_structural_eq(
                    &lhs_st->contents, &rhs_st->contents
@@ -181,14 +194,14 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
         break;
     }
     case TAG_TUPLE: {
-        trilogy_tuple_value* lhs_tup = (trilogy_tuple_value*)lhs->payload;
-        trilogy_tuple_value* rhs_tup = (trilogy_tuple_value*)rhs->payload;
+        trilogy_tuple_value* lhs_tup = trilogy_tuple_assume(lhs);
+        trilogy_tuple_value* rhs_tup = trilogy_tuple_assume(rhs);
         return trilogy_value_structural_eq(&lhs_tup->fst, &rhs_tup->fst) &&
                trilogy_value_structural_eq(&lhs_tup->snd, &rhs_tup->snd);
     }
     case TAG_ARRAY: {
-        trilogy_array_value* lhs_arr = (trilogy_array_value*)lhs->payload;
-        trilogy_array_value* rhs_arr = (trilogy_array_value*)rhs->payload;
+        trilogy_array_value* lhs_arr = trilogy_array_assume(lhs);
+        trilogy_array_value* rhs_arr = trilogy_array_assume(rhs);
         if (lhs_arr->len != rhs_arr->len) return false;
         for (unsigned long i = 0; i < lhs_arr->len; ++i) {
             if (!trilogy_value_structural_eq(
@@ -253,13 +266,13 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
         break;
     }
     case TAG_CHAR: {
-        // TODO: proper Unicode support
         char ch = (char)trilogy_character_assume(val);
         trilogy_string_init_new(rv, 1, &ch);
         break;
     }
     case TAG_NUMBER: {
-        long i = trilogy_number_assume(val);
+        trilogy_number_value* number = trilogy_number_assume(val);
+        unsigned long i = trilogy_number_to_ulong(number);
         int len = snprintf(NULL, (size_t)0, "%ld", i);
         char* buf = malloc_safe(sizeof(char) * len + 1);
         snprintf(buf, (size_t)len + 1, "%ld", i);

@@ -1,12 +1,9 @@
-use inkwell::{
-    AddressSpace,
-    builder::Builder,
-    module::Linkage,
-    types::FunctionType,
-    values::{BasicValue, FunctionValue, InstructionValue, IntValue, PointerValue},
-};
-
 use crate::codegen::{Codegen, NeverValue};
+use inkwell::AddressSpace;
+use inkwell::builder::Builder;
+use inkwell::module::Linkage;
+use inkwell::types::FunctionType;
+use inkwell::values::{BasicValue, FunctionValue, InstructionValue, IntValue, PointerValue};
 
 impl<'ctx> Codegen<'ctx> {
     /// Bare functions do not satisfy any particular calling convention, and are intended
@@ -79,6 +76,65 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder
             .build_call(f, &[value.into(), len.into(), string.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    #[expect(clippy::too_many_arguments, reason = "this is a crazy C function sorry")]
+    pub(crate) fn trilogy_number_init_new(
+        &self,
+        value: PointerValue<'ctx>,
+        re_is_negative: IntValue<'ctx>,
+        re_numer_length: IntValue<'ctx>,
+        re_numer: PointerValue<'ctx>,
+        re_denom_length: IntValue<'ctx>,
+        re_denom: PointerValue<'ctx>,
+        im_is_negative: IntValue<'ctx>,
+        im_numer_length: IntValue<'ctx>,
+        im_numer: PointerValue<'ctx>,
+        im_denom_length: IntValue<'ctx>,
+        im_denom: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_number_init_new",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.bool_type().into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.bool_type().into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    value.into(),
+                    re_is_negative.into(),
+                    re_numer_length.into(),
+                    re_numer.into(),
+                    re_denom_length.into(),
+                    re_denom.into(),
+                    im_is_negative.into(),
+                    im_numer_length.into(),
+                    im_numer.into(),
+                    im_denom_length.into(),
+                    im_denom.into(),
+                ],
+                name,
+            )
             .unwrap()
             .try_as_basic_value()
             .unwrap_left()

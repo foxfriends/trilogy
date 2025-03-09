@@ -3,7 +3,6 @@ use crate::types::{TAG_STRUCT, TAG_TUPLE};
 use inkwell::IntPredicate;
 use inkwell::basic_block::BasicBlock;
 use inkwell::values::{IntValue, PointerValue};
-use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, Value};
 
 impl<'ctx> Codegen<'ctx> {
@@ -84,14 +83,12 @@ impl<'ctx> Codegen<'ctx> {
                 let is_match = self.trilogy_value_structural_eq(value, constant, "");
                 self.pm_cont_if(is_match, on_fail);
             }
-            Value::Number(num) if num.value().im.is_zero() && num.value().re.is_integer() => {
-                if let Some(int) = num.value().re.to_i64() {
-                    let constant = self.allocate_const(self.int_const(int), "");
-                    let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                    self.pm_cont_if(is_match, on_fail);
-                } else {
-                    todo!("Support non-integers and large integers")
-                }
+            Value::Number(num) => {
+                let constant = self.allocate_value("");
+                self.number_const(constant, num);
+                let is_match = self.trilogy_value_structural_eq(value, constant, "");
+                self.trilogy_value_destroy(constant);
+                self.pm_cont_if(is_match, on_fail);
             }
             Value::Bits(bits) => {
                 let constant = self.allocate_value("");

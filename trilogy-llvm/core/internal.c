@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "trilogy_number.h"
 #include "types.h"
 #include <execinfo.h>
 #include <stdio.h>
@@ -34,20 +35,32 @@ void print_trace() {
     case TAG_UNIT:
         exit(0);
     case TAG_NUMBER:
-        exit(val->payload);
+        exit(trilogy_number_to_ulong(trilogy_number_assume(val)));
     default:
         rte("number", val->tag);
     }
 }
 
 void* malloc_safe(size_t size) {
+    if (size == 0) return NULL;
     void* ptr = malloc(size);
     if (ptr == NULL) internal_panic("out of memory\n");
     return ptr;
 }
 
 void* calloc_safe(size_t num, size_t size) {
+    if (num == 0 || size == 0) return NULL;
     void* ptr = calloc(num, size);
+    if (ptr == NULL) internal_panic("out of memory\n");
+    return ptr;
+}
+
+void* realloc_safe(void* ptr, size_t size) {
+    if (size == 0) {
+        free(ptr);
+        return NULL;
+    }
+    ptr = realloc(ptr, size);
     if (ptr == NULL) internal_panic("out of memory\n");
     return ptr;
 }

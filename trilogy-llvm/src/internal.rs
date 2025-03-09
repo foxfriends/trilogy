@@ -1,12 +1,9 @@
-use inkwell::{
-    AddressSpace,
-    builder::Builder,
-    module::Linkage,
-    types::FunctionType,
-    values::{BasicValue, FunctionValue, InstructionValue, IntValue, PointerValue},
-};
-
 use crate::codegen::{Codegen, NeverValue};
+use inkwell::AddressSpace;
+use inkwell::builder::Builder;
+use inkwell::module::Linkage;
+use inkwell::types::FunctionType;
+use inkwell::values::{BasicValue, FunctionValue, InstructionValue, IntValue, PointerValue};
 
 impl<'ctx> Codegen<'ctx> {
     /// Bare functions do not satisfy any particular calling convention, and are intended

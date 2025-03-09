@@ -3,7 +3,6 @@ use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
 use inkwell::values::{BasicValue, PointerValue};
-use num::{ToPrimitive, Zero};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_parser::syntax;
 
@@ -27,15 +26,9 @@ impl<'ctx> Codegen<'ctx> {
                 Some(val)
             }
             Value::Number(num) => {
-                if num.value().im.is_zero() && num.value().re.is_integer() {
-                    if let Some(int) = num.value().re.to_i64() {
-                        Some(self.allocate_const(self.int_const(int), name))
-                    } else {
-                        todo!("Support large integers")
-                    }
-                } else {
-                    todo!("Support non-integers")
-                }
+                let val = self.allocate_value(name);
+                self.number_const(val, num);
+                Some(val)
             }
             Value::Bits(b) => {
                 let val = self.allocate_value(name);
