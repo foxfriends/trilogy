@@ -75,7 +75,6 @@ impl<'ctx> Codegen<'ctx> {
                     if let Some(pointer) = cp.upvalues.borrow().get(id) {
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
-                        self.trilogy_value_destroy(*pointer);
                     } else {
                         let instruction = self.trilogy_value_destroy(*pointer);
                         cp.unclosed.borrow_mut().entry(*pointer).or_default().push((
@@ -158,6 +157,7 @@ impl<'ctx> Codegen<'ctx> {
                                 builder.position_before(&instruction);
                                 builder.set_current_debug_location(di_location);
                                 self.trilogy_reference_close_in(&builder, upvalue_internal);
+                                instruction.remove_from_basic_block();
                             }
                             self.builder.set_current_debug_location(debug_location);
                         }
