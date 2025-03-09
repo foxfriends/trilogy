@@ -175,6 +175,22 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
+    /// Uses a previously bound temporary value, only if it is not captured. Often temporaries need
+    /// to be destroyed but only if they are not in the closure, as the closure will handle destruction
+    /// of its internal values.
+    pub(crate) fn use_owned_temporary(
+        &self,
+        temporary: PointerValue<'ctx>,
+    ) -> Option<PointerValue<'ctx>> {
+        match self.reference_from_scope(
+            &self.current_continuation_point(),
+            &Closed::Temporary(temporary),
+        )? {
+            Variable::Owned(pointer) => Some(pointer),
+            Variable::Closed { .. } => None,
+        }
+    }
+
     /// Gets a variable from the current scope. Any variable that is defined in the current continuation point
     /// or is visible from the parent continuation point can be referenced in this way.
     pub(crate) fn get_variable(&self, id: &Id) -> Option<Variable<'ctx>> {

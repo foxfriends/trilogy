@@ -28,9 +28,6 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_pattern_match(&conj.1, value, on_fail)?;
             }
             Value::Disjunction(disj) => {
-                // NOTE: somehow... it seems that due to this process we end up corrupting the `return_to` pointer,
-                // so that if we exit from the second case and call return, it has already been freed or something,
-                // and is full of garbage?
                 let on_success_function = self.add_continuation("pm.cont");
                 let mut merger = Merger::default();
 
@@ -50,6 +47,9 @@ impl<'ctx> Codegen<'ctx> {
                 self.become_continuation_point(primary_cp);
                 let value_ref = self.use_temporary(value).unwrap();
                 self.compile_pattern_match(&disj.0, value_ref, go_to_second)?;
+                if let Some(temp) = self.use_owned_temporary(go_to_second) {
+                    self.trilogy_value_destroy(temp);
+                }
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
@@ -165,16 +165,16 @@ impl<'ctx> Codegen<'ctx> {
                     self.pm_cont_if(is_tuple, on_fail);
 
                     let tuple = self.trilogy_tuple_assume(value, "");
-                    self.bind_temporary(tuple);
                     let left = self.allocate_value("");
                     self.bind_temporary(left);
                     self.trilogy_tuple_left(left, tuple);
                     self.compile_pattern_match(&app.argument, left, on_fail)?;
+                    if let Some(left) = self.use_owned_temporary(left) {
+                        self.trilogy_value_destroy(left);
+                    }
 
-                    let left = self.use_temporary(left).unwrap();
-                    let tuple = self.use_temporary(tuple).unwrap();
-                    self.trilogy_value_destroy(left);
-
+                    let value_ref = self.use_temporary(value).unwrap();
+                    let tuple = self.trilogy_tuple_assume(value_ref, "");
                     let right = self.allocate_value("");
                     self.bind_temporary(right);
                     self.trilogy_tuple_right(right, tuple);
@@ -196,16 +196,22 @@ impl<'ctx> Codegen<'ctx> {
                         .unwrap();
                     self.pm_cont_if(is_struct, on_fail);
                     let destructed = self.allocate_value("");
+                    self.bind_temporary(destructed);
                     self.destruct(destructed, value);
                     let tuple = self.trilogy_tuple_assume(destructed, "");
                     let part = self.allocate_value("");
-                    self.trilogy_tuple_right(part, tuple);
-                    self.compile_pattern_match(&app.argument, part, on_fail)?;
-                    self.trilogy_value_destroy(part);
+                    self.bind_temporary(part);
                     self.trilogy_tuple_left(part, tuple);
                     self.compile_pattern_match(&application.argument, part, on_fail)?;
                     self.trilogy_value_destroy(part);
-                    self.trilogy_value_destroy(destructed);
+                    self.trilogy_tuple_right(part, tuple);
+                    self.compile_pattern_match(&app.argument, part, on_fail)?;
+                    if let Some(temp) = self.use_owned_temporary(part) {
+                        self.trilogy_value_destroy(temp);
+                    }
+                    if let Some(temp) = self.use_owned_temporary(destructed) {
+                        self.trilogy_value_destroy(temp);
+                    }
                     Some(())
                 }
                 _ => panic!("only builtins can be applied in pattern matching context"),

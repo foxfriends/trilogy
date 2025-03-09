@@ -262,8 +262,14 @@ impl<'ctx> Codegen<'ctx> {
         match &decl.query.value {
             QueryValue::Direct(unif) if decl.query.is_once() => {
                 let value = self.compile_expression(&unif.expression, "let.expr")?;
-                self.compile_pattern_match(&unif.pattern, value, self.get_end("let.fail"))?;
-                self.trilogy_value_destroy(self.use_temporary(value).unwrap());
+                let on_fail = self.get_end("let.fail");
+                self.compile_pattern_match(&unif.pattern, value, on_fail)?;
+                if let Some(temp) = self.use_owned_temporary(value) {
+                    self.trilogy_value_destroy(temp);
+                }
+                if let Some(temp) = self.use_owned_temporary(on_fail) {
+                    self.trilogy_value_destroy(temp);
+                }
                 self.compile_expression(&decl.body, name)
             }
             _ => todo!("non-deterministic branching {:?}", decl.query.value),
@@ -283,6 +289,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.capture_current_continuation(next_case_function, &brancher, "match.next");
             let next_case_cp = self.hold_continuation_point();
             let discriminant = self.use_temporary(discriminant).unwrap();
+            // TODO: I think we're leaking discriminant here sometimes
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
             let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
                 self.become_continuation_point(next_case_cp);
