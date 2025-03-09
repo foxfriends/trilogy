@@ -129,7 +129,7 @@ int bigint_cmp(const bigint* lhs, const bigint* rhs) {
     if (rhs->length > lhs->length) return -1;
     if (lhs->length == 0) return 0;
     size_t i = lhs->length;
-    while (i --> 0) {
+    while (i-- > 0) {
         if (lhs->digits[i] > rhs->digits[i]) return 1;
         if (rhs->digits[i] > lhs->digits[i]) return -1;
     }
@@ -140,9 +140,7 @@ bool bigint_eq(const bigint* lhs, const bigint* rhs) {
     return bigint_cmp(lhs, rhs) == 0;
 }
 
-bool bigint_is_zero(const bigint* val) {
-    return val->length == 0;
-}
+bool bigint_is_zero(const bigint* val) { return val->length == 0; }
 
 char* bigint_to_string(const bigint* val);
 
