@@ -31,6 +31,7 @@ trilogy_reference_clone_into(trilogy_value* tv, trilogy_reference* ref) {
 void trilogy_reference_close(trilogy_reference* ref) {
     assert(ref->location != &ref->closed);
     ref->closed = *ref->location;
+    *ref->location = trilogy_undefined;
     ref->location = &ref->closed;
 }
 
