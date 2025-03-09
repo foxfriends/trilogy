@@ -16,8 +16,10 @@ trilogy_number_value* trilogy_number_init_new(
     bool im_is_negative, size_t im_numer_length, unsigned long* im_numer,
     size_t im_denom_length, unsigned long* im_denom
 ) {
-    trilogy_number_value* value = calloc_safe(1, sizeof(trilogy_number_value));
+    trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->is_negative = re_is_negative;
+    value->re = bigint_zero;
+    value->im = bigint_zero;
     bigint_init_const(&value->re, re_numer_length, re_numer);
     bigint_init_const(&value->im, im_numer_length, im_numer);
     return trilogy_number_init(tv, value);
@@ -25,17 +27,20 @@ trilogy_number_value* trilogy_number_init_new(
 
 trilogy_number_value*
 trilogy_number_init_bigint(trilogy_value* tv, bool is_negative, bigint* num) {
-    trilogy_number_value* value = calloc_safe(1, sizeof(trilogy_number_value));
+    trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->is_negative = is_negative;
     value->re = *num;
+    value->im = bigint_zero;
     bigint_init_from_ulong(&value->im, 0);
     return trilogy_number_init(tv, value);
 }
 
 trilogy_number_value*
 trilogy_number_init_ulong(trilogy_value* tv, unsigned long num) {
-    trilogy_number_value* value = calloc_safe(1, sizeof(trilogy_number_value));
+    trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->is_negative = false;
+    value->re = bigint_zero;
+    value->im = bigint_zero;
     bigint_init_from_ulong(&value->re, num);
     bigint_init_from_ulong(&value->im, 0);
     return trilogy_number_init(tv, value);
@@ -43,8 +48,10 @@ trilogy_number_init_ulong(trilogy_value* tv, unsigned long num) {
 
 trilogy_number_value*
 trilogy_number_clone_into(trilogy_value* tv, trilogy_number_value* num) {
-    trilogy_number_value* clone = calloc_safe(1, sizeof(trilogy_number_value));
+    trilogy_number_value* clone = malloc_safe(sizeof(trilogy_number_value));
     clone->is_negative = num->is_negative;
+    clone->re = bigint_zero;
+    clone->im = bigint_zero;
     bigint_clone(&clone->re, &num->re);
     bigint_clone(&clone->im, &num->im);
     return trilogy_number_init(tv, clone);

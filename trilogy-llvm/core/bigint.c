@@ -3,7 +3,9 @@
 #include <limits.h>
 #include <string.h>
 
-size_t max(size_t lhs, size_t rhs) { return lhs > rhs ? lhs : rhs; }
+static size_t max(size_t lhs, size_t rhs) { return lhs > rhs ? lhs : rhs; }
+
+bigint bigint_zero = {.capacity = 0, .length = 0, .digits = NULL};
 
 void bigint_init(bigint* val, size_t length, unsigned long* digits) {
     val->capacity = length;
@@ -47,6 +49,8 @@ void bigint_clone(bigint* clone, const bigint* value) {
 
 void bigint_destroy(bigint* v) {
     if (v->digits != NULL) free(v->digits);
+    v->capacity = 0;
+    v->digits = NULL;
 }
 
 bool add_digit(unsigned long* lhs, unsigned long rhs, bool carry) {
@@ -77,7 +81,7 @@ void bigint_add(bigint* lhs, const bigint* rhs) {
         }
         carry = add_digit(&lhs->digits[i], r, carry);
     }
-    lhs->length = lhs->digits[capacity - 1] == 0 ? capacity : capacity - 1;
+    lhs->length = lhs->digits[capacity - 1] == 0 ? capacity - 1 : capacity;
 }
 
 static size_t
@@ -124,14 +128,12 @@ int bigint_cmp(const bigint* lhs, const bigint* rhs) {
     if (lhs->length > rhs->length) return 1;
     if (rhs->length > lhs->length) return -1;
     if (lhs->length == 0) return 0;
-    for (size_t i = lhs->length - 1; i >= 0; --i) {
+    size_t i = lhs->length;
+    while (i --> 0) {
         if (lhs->digits[i] > rhs->digits[i]) return 1;
         if (rhs->digits[i] > lhs->digits[i]) return -1;
-        // Due to underflow, we have to check zero explicitly here before
-        // looping again.
-        if (i == 0) return 0;
     }
-    return 0; // should be unreachable
+    return 0;
 }
 
 bool bigint_eq(const bigint* lhs, const bigint* rhs) {
@@ -139,7 +141,7 @@ bool bigint_eq(const bigint* lhs, const bigint* rhs) {
 }
 
 bool bigint_is_zero(const bigint* val) {
-    return val->length == 0 || (val->length == 1 && val->digits[0] == 0);
+    return val->length == 0;
 }
 
 char* bigint_to_string(const bigint* val);

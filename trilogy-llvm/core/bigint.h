@@ -9,7 +9,8 @@ typedef struct bigint {
      */
     size_t capacity;
     /**
-     * The number of significant digits in the digits array.
+     * The number of significant digits in the digits array. Length is 0 iff the
+     * value is 0.
      */
     size_t length;
     /**
@@ -18,6 +19,8 @@ typedef struct bigint {
      */
     unsigned long* digits;
 } bigint;
+
+extern bigint bigint_zero;
 
 void bigint_init(bigint* v, size_t digit_length, unsigned long* digits);
 void bigint_init_const(
