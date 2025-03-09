@@ -82,7 +82,10 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    #[expect(clippy::too_many_arguments, reason = "this is a crazy C function sorry")]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "this is a crazy C function sorry"
+    )]
     pub(crate) fn trilogy_number_init_new(
         &self,
         value: PointerValue<'ctx>,

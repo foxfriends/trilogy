@@ -1,6 +1,6 @@
 #pragma once
-#include <stdbool.h>
 #include "bigint.h"
+#include <stdbool.h>
 
 typedef enum trilogy_value_tag : unsigned char {
     TAG_UNDEFINED = 0,

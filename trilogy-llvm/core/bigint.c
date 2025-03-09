@@ -127,7 +127,8 @@ int bigint_cmp(const bigint* lhs, const bigint* rhs) {
     for (size_t i = lhs->length - 1; i >= 0; --i) {
         if (lhs->digits[i] > rhs->digits[i]) return 1;
         if (rhs->digits[i] > lhs->digits[i]) return -1;
-        // Due to underflow, we have to check zero explicitly here before looping again.
+        // Due to underflow, we have to check zero explicitly here before
+        // looping again.
         if (i == 0) return 0;
     }
     return 0; // should be unreachable

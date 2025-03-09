@@ -1,8 +1,8 @@
 #pragma once
-#include "types.h"
 #include "bigint.h"
-#include <stddef.h>
+#include "types.h"
 #include <stdbool.h>
+#include <stddef.h>
 
 trilogy_number_value*
 trilogy_number_init(trilogy_value* tv, trilogy_number_value* n);
