@@ -1,7 +1,6 @@
 #include "trilogy_string.h"
 #include "internal.h"
 #include <assert.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 

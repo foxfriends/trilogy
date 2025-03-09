@@ -1,6 +1,5 @@
 #include "bigint.h"
 #include "internal.h"
-#include <limits.h>
 #include <string.h>
 
 static size_t max(size_t lhs, size_t rhs) { return lhs > rhs ? lhs : rhs; }
@@ -116,7 +115,7 @@ bool bigint_sub(bigint* lhs, const bigint* rhs) {
     return false;
 }
 
-void bigint_mul(bigint* lhs, const bigint* rhs); 
+void bigint_mul(bigint* lhs, const bigint* rhs);
 void bigint_div(bigint* lhs, const bigint* rhs);
 void bigint_rem(bigint* lhs, const bigint* rhs);
 void bigint_pow(bigint* lhs, const bigint* rhs);
