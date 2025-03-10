@@ -103,7 +103,7 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// This function is called `sub` as in `submodule` incorrectly; it is not for creating
     /// a `Codegen` for a Trilogy module's submodule.
-    pub(crate) fn sub(&self, name: &str) -> Codegen<'ctx> {
+    pub(crate) fn for_submodule(&self, name: &str) -> Codegen<'ctx> {
         let module = self.context.create_module(name);
         let di = DebugInfo::new(&module, name);
         Codegen {

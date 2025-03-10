@@ -7,10 +7,13 @@ void print(trilogy_value* rv, trilogy_value* str);
 
 void not(trilogy_value * rv, trilogy_value* v);
 
-void structural_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
-void structural_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void referential_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void referential_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void structural_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void structural_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+
+void add(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void sub(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 
 void length(trilogy_value* rv, trilogy_value* arr);
 void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val);

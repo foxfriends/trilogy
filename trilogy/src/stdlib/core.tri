@@ -58,6 +58,12 @@ export gt
 extern proc gte!(lhs, rhs)
 export gte
 
+extern proc add!(lhs, rhs)
+export add
+
+extern proc sub!(lhs, rhs)
+export sub
+
 extern proc primitive_to_string!(val)
 
 export to_string

@@ -92,6 +92,14 @@ bool trilogy_number_eq(trilogy_number_value* lhs, trilogy_number_value* rhs) {
     return bigint_eq(&lhs->re, &rhs->re);
 }
 
-int trilogy_number_add(trilogy_number_value lhs, trilogy_number_value rhs) {
-    return 0;
+void trilogy_number_add(trilogy_value* tv, const trilogy_number_value* lhs, const trilogy_number_value* rhs) {
+    // TODO: this is intentionally not supporting negative at this time
+    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
+    bigint_add(&lhs_mut->re, &rhs->re);
+}
+
+void trilogy_number_sub(trilogy_value* tv, const trilogy_number_value* lhs, const trilogy_number_value* rhs) {
+    // TODO: this is intentionally not supporting negative at this time
+    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
+    bigint_sub(&lhs_mut->re, &rhs->re);
 }

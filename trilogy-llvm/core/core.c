@@ -64,6 +64,18 @@ void structural_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_boolean_init(rv, !trilogy_value_structural_eq(lhs, rhs));
 }
 
+void add(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_number_value* lnum = trilogy_number_untag(lhs);
+    trilogy_number_value* rnum = trilogy_number_untag(rhs);
+    trilogy_number_add(rv, lnum, rnum);
+}
+
+void sub(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_number_value* lnum = trilogy_number_untag(lhs);
+    trilogy_number_value* rnum = trilogy_number_untag(rhs);
+    trilogy_number_sub(rv, lnum, rnum);
+}
+
 void length(trilogy_value* rv, trilogy_value* val) {
     switch (val->tag) {
     case TAG_STRING:

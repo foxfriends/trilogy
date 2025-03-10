@@ -1,0 +1,16 @@
+module io at "trilogy:io"
+
+proc checkpoint!() {
+  let ret = (return)
+  let retry = do() ret retry
+  return retry
+}
+
+proc main!() {
+  let mut tries = 0
+  let retry = checkpoint!()
+  io::println!($"Tries: ${tries}")
+  tries = tries + 1
+  if tries == 5 then exit 0 else retry!()
+  exit 1
+}

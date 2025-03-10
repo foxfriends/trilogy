@@ -611,6 +611,28 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::Add => {
+                let lhs = self.compile_expression(lhs, "add.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "add.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.add(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::Subtract => {
+                let lhs = self.compile_expression(lhs, "sub.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "sub.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.sub(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             _ => todo!("{builtin:?}"),
         }
     }

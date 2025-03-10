@@ -4,7 +4,7 @@ use trilogy_ir::ir::{self, DefinitionItem};
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
-        let mut subcontext = self.sub(file);
+        let mut subcontext = self.for_submodule(file);
 
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.

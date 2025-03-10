@@ -31,3 +31,6 @@ int trilogy_number_compare(
     trilogy_number_value* lhs, trilogy_number_value* rhs
 );
 bool trilogy_number_eq(trilogy_number_value* lhs, trilogy_number_value* rhs);
+
+void trilogy_number_add(trilogy_value* tv, const trilogy_number_value* lhs, const trilogy_number_value* rhs);
+void trilogy_number_sub(trilogy_value* tv, const trilogy_number_value* lhs, const trilogy_number_value* rhs);

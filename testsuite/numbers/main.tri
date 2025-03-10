@@ -1,0 +1,4 @@
+proc main!() {
+  assert 1 + 2 == 3
+  assert 8 - 2 == 6
+}
