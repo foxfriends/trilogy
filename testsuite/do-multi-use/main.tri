@@ -1,0 +1,5 @@
+proc main!() {
+  let x = do(n) 'wrap(n)
+  let 'wrap(1) = x!(1)
+  let 'wrap(2) = x!(2)
+}
