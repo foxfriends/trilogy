@@ -105,7 +105,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.string_const(constant, string);
                 self.match_constant(value, constant, on_fail);
             }
-            Value::Application(app) => self.compile_match_application(value, app, on_fail)?,
+            Value::Application(app) => self.compile_match_application(app, value, on_fail)?,
             Value::Wildcard => {}
             _ => todo!(),
         }
@@ -154,13 +154,13 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_match_application(
         &self,
-        value: PointerValue<'ctx>,
         application: &ir::Application,
+        value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
         match &application.function.value {
             Value::Builtin(builtin) => {
-                self.compile_match_apply_builtin(value, *builtin, &application.argument, on_fail)
+                self.compile_match_apply_builtin(*builtin, &application.argument, value, on_fail)
             }
             Value::Application(app) => match &app.function.value {
                 Value::Builtin(Builtin::Cons) => {
@@ -239,9 +239,9 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_match_apply_builtin(
         &self,
-        value: PointerValue<'ctx>,
         builtin: Builtin,
         expression: &ir::Expression,
+        value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
         match builtin {
