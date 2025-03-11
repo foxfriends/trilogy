@@ -250,11 +250,8 @@ impl<'ctx> Codegen<'ctx> {
         match builtin {
             Builtin::Return => self.get_return(name),
             Builtin::Cancel => self.get_cancel(name),
-            // TODO: captured resume won't work, because resume needs to be called differently than
-            // a regular continuation. this probably means either the continuation struct format is
-            // wrong, or we do need a separate type for resume (unpleasant)
             Builtin::Resume => self.get_resume(name),
-            _ => todo!(),
+            _ => todo!("builtin: {builtin:?}"),
         }
     }
 

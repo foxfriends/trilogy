@@ -13,19 +13,28 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
-        let prev = self.set_span(pattern.span);
         self.bind_temporary(value);
         self.bind_temporary(on_fail);
+        self.match_pattern(pattern, value, on_fail)
+    }
+
+    fn match_pattern(
+        &self,
+        pattern: &ir::Expression,
+        value: PointerValue<'ctx>,
+        on_fail: PointerValue<'ctx>,
+    ) -> Option<()> {
+        let prev = self.set_span(pattern.span);
 
         match &pattern.value {
             Value::Reference(id) => {
                 let variable = self.variable(id);
-                self.trilogy_value_clone_into(variable, value);
+                let value_ref = self.use_temporary(value).unwrap();
+                self.trilogy_value_clone_into(variable, value_ref);
             }
             Value::Conjunction(conj) => {
-                self.compile_pattern_match(&conj.0, value, on_fail)?;
-                let value = self.use_temporary(value).unwrap();
-                self.compile_pattern_match(&conj.1, value, on_fail)?;
+                self.match_pattern(&conj.0, value, on_fail)?;
+                self.match_pattern(&conj.1, value, on_fail)?;
             }
             Value::Disjunction(disj) => {
                 let on_success_function = self.add_continuation("pm.cont");
@@ -45,8 +54,7 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.begin_next_function(first_function);
                 self.become_continuation_point(primary_cp);
-                let value_ref = self.use_temporary(value).unwrap();
-                self.compile_pattern_match(&disj.0, value_ref, go_to_second)?;
+                self.match_pattern(&disj.0, value, go_to_second)?;
                 if let Some(temp) = self.use_owned_temporary(go_to_second) {
                     self.trilogy_value_destroy(temp);
                 }
@@ -55,8 +63,7 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.begin_next_function(second_function);
                 self.become_continuation_point(secondary_cp);
-                let value_ref = self.use_temporary(value).unwrap();
-                self.compile_pattern_match(&disj.1, value_ref, on_fail)?;
+                self.match_pattern(&disj.1, value, on_fail)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
@@ -65,44 +72,34 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Unit => {
                 let constant = self.allocate_const(self.unit_const(), "");
-                let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                self.pm_cont_if(is_match, on_fail);
+                self.match_constant(value, constant, on_fail);
             }
             Value::Boolean(val) => {
                 let constant = self.allocate_const(self.bool_const(*val), "");
-                let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                self.pm_cont_if(is_match, on_fail);
+                self.match_constant(value, constant, on_fail);
             }
             Value::Atom(val) => {
                 let constant = self.allocate_const(self.atom_const(val.to_owned()), "");
-                let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                self.pm_cont_if(is_match, on_fail);
+                self.match_constant(value, constant, on_fail);
             }
             Value::Character(val) => {
                 let constant = self.allocate_const(self.char_const(*val), "");
-                let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                self.pm_cont_if(is_match, on_fail);
+                self.match_constant(value, constant, on_fail);
             }
             Value::Number(num) => {
                 let constant = self.allocate_value("");
                 self.number_const(constant, num);
-                let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                self.trilogy_value_destroy(constant);
-                self.pm_cont_if(is_match, on_fail);
+                self.match_constant(value, constant, on_fail);
             }
             Value::Bits(bits) => {
                 let constant = self.allocate_value("");
                 self.bits_const(constant, bits);
-                let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                self.trilogy_value_destroy(constant);
-                self.pm_cont_if(is_match, on_fail);
+                self.match_constant(value, constant, on_fail);
             }
             Value::String(string) => {
                 let constant = self.allocate_value("");
                 self.string_const(constant, string);
-                let is_match = self.trilogy_value_structural_eq(value, constant, "");
-                self.trilogy_value_destroy(constant);
-                self.pm_cont_if(is_match, on_fail);
+                self.match_constant(value, constant, on_fail);
             }
             Value::Application(app) => self.compile_match_application(value, app, on_fail)?,
             Value::Wildcard => {}
@@ -114,6 +111,17 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         Some(())
+    }
+
+    fn match_constant(
+        &self,
+        value: PointerValue<'ctx>,
+        constant: PointerValue<'ctx>,
+        on_fail: PointerValue<'ctx>,
+    ) {
+        let value_ref = self.use_temporary(value).unwrap();
+        let is_match = self.trilogy_value_structural_eq(value_ref, constant, "");
+        self.pm_cont_if(is_match, on_fail);
     }
 
     fn pm_cont_if(&self, cond: IntValue<'ctx>, on_fail: PointerValue<'ctx>) -> BasicBlock<'ctx> {
@@ -152,7 +160,8 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Application(app) => match &app.function.value {
                 Value::Builtin(Builtin::Cons) => {
-                    let tag = self.get_tag(value, "");
+                    let value_ref = self.use_temporary(value).unwrap();
+                    let tag = self.get_tag(value_ref, "");
                     let is_tuple = self
                         .builder
                         .build_int_compare(
@@ -164,11 +173,11 @@ impl<'ctx> Codegen<'ctx> {
                         .unwrap();
                     self.pm_cont_if(is_tuple, on_fail);
 
-                    let tuple = self.trilogy_tuple_assume(value, "");
+                    let tuple = self.trilogy_tuple_assume(value_ref, "");
                     let left = self.allocate_value("");
                     self.bind_temporary(left);
                     self.trilogy_tuple_left(left, tuple);
-                    self.compile_pattern_match(&app.argument, left, on_fail)?;
+                    self.match_pattern(&app.argument, left, on_fail)?;
                     if let Some(left) = self.use_owned_temporary(left) {
                         self.trilogy_value_destroy(left);
                     }
@@ -178,13 +187,15 @@ impl<'ctx> Codegen<'ctx> {
                     let right = self.allocate_value("");
                     self.bind_temporary(right);
                     self.trilogy_tuple_right(right, tuple);
-                    self.compile_pattern_match(&application.argument, right, on_fail)?;
-                    let right = self.use_temporary(right).unwrap();
-                    self.trilogy_value_destroy(right);
+                    self.match_pattern(&application.argument, right, on_fail)?;
+                    if let Some(right) = self.use_owned_temporary(right) {
+                        self.trilogy_value_destroy(right);
+                    }
                     Some(())
                 }
                 Value::Builtin(Builtin::Construct) => {
-                    let tag = self.get_tag(value, "");
+                    let value_ref = self.use_temporary(value).unwrap();
+                    let tag = self.get_tag(value_ref, "");
                     let is_struct = self
                         .builder
                         .build_int_compare(
@@ -197,15 +208,17 @@ impl<'ctx> Codegen<'ctx> {
                     self.pm_cont_if(is_struct, on_fail);
                     let destructed = self.allocate_value("");
                     self.bind_temporary(destructed);
-                    self.destruct(destructed, value);
+                    self.destruct(destructed, value_ref);
                     let tuple = self.trilogy_tuple_assume(destructed, "");
                     let part = self.allocate_value("");
                     self.bind_temporary(part);
                     self.trilogy_tuple_left(part, tuple);
-                    self.compile_pattern_match(&application.argument, part, on_fail)?;
+                    // We can be sure that the argument is just an atom constant, so won't invalidate
+                    // the tuple reference
+                    self.match_pattern(&application.argument, part, on_fail)?;
                     self.trilogy_value_destroy(part);
                     self.trilogy_tuple_right(part, tuple);
-                    self.compile_pattern_match(&app.argument, part, on_fail)?;
+                    self.match_pattern(&app.argument, part, on_fail)?;
                     if let Some(temp) = self.use_owned_temporary(part) {
                         self.trilogy_value_destroy(temp);
                     }
@@ -247,9 +260,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Pin => {
                 // Because only identifiers can be pinned, we don't have to worry about handling branching mess here
                 let pinned = self.compile_expression(expression, "pin")?;
-                let cmp = self.trilogy_value_structural_eq(value, pinned, "");
-                self.trilogy_value_destroy(pinned);
-                self.pm_cont_if(cmp, on_fail);
+                self.match_constant(value, pinned, on_fail);
             }
             _ => todo!(),
         }
