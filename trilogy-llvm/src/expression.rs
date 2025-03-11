@@ -4,6 +4,7 @@ use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
 use inkwell::values::{BasicValue, PointerValue};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
+use trilogy_ir::visitor::Bindings;
 use trilogy_parser::syntax;
 
 impl<'ctx> Codegen<'ctx> {
@@ -258,8 +259,29 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_let(&self, decl: &ir::Let, name: &str) -> Option<PointerValue<'ctx>> {
         match &decl.query.value {
             QueryValue::Direct(unif) if decl.query.is_once() => {
+                // These variables are tricky... if they are invented only when initialized, they
+                // are trivially cleared before revisiting them due to a continuation, but they we
+                // are not able to define recursive closures.
+                //
+                // Meanwhile, having moved the bindings out to here, we can easily self-reference,
+                // but we are also sharing a reference incorrectly across continuations that have
+                // been left from.
+                //
+                // We just have to explicitly clear these variables when re-entering a continuation
+                // in which the variables are declared but not initialized.
+                //
+                // However, variables that actually ARE from the scope do need to be shared. It's
+                // only THESE variables if the continuation is from within the expression.
+                for id in Bindings::of(&unif.pattern) {
+                    let var = self.variable(&id);
+                    self.bind_temporary(var);
+                }
                 let value = self.compile_expression(&unif.expression, "let.expr")?;
                 let on_fail = self.get_end("let.fail");
+                for id in Bindings::of(&unif.pattern) {
+                    let var = self.get_variable(&id).unwrap().ptr();
+                    self.trilogy_value_destroy(var);
+                }
                 self.compile_pattern_match(&unif.pattern, value, on_fail)?;
                 if let Some(temp) = self.use_owned_temporary(value) {
                     self.trilogy_value_destroy(temp);
@@ -669,7 +691,7 @@ impl<'ctx> Codegen<'ctx> {
                 match self
                     .globals
                     .get(&identifier.id)
-                    .expect("Unresolved variable")
+                    .expect("unresolved variable")
                 {
                     Head::Constant | Head::Procedure => {
                         let target = self.allocate_value(name);

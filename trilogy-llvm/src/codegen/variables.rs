@@ -5,7 +5,7 @@ use super::{Codegen, ContinuationPoint};
 use inkwell::AddressSpace;
 use inkwell::builder::Builder;
 use inkwell::values::{FunctionValue, PointerValue};
-use trilogy_ir::{Id, ir};
+use trilogy_ir::Id;
 
 /// Represents a referenced variable, which may either be owned by the current scope, or
 /// previously closed over and now being read from the closure.
@@ -275,9 +275,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// References a variable, if it is already available, or defines a it in the current scope otherwise.
-    pub(crate) fn variable(&self, id: &ir::Identifier) -> PointerValue<'ctx> {
+    pub(crate) fn variable(&self, id: &Id) -> PointerValue<'ctx> {
         // If the variable is already available, just return the existing reference.
-        if let Some(variable) = self.get_variable(&id.id) {
+        if let Some(variable) = self.get_variable(&id) {
             return variable.ptr();
         }
 
@@ -300,11 +300,11 @@ impl<'ctx> Codegen<'ctx> {
         self.current_continuation_point()
             .variables
             .borrow_mut()
-            .insert(Closed::Variable(id.id.clone()), Variable::Owned(variable));
+            .insert(Closed::Variable(id.clone()), Variable::Owned(variable));
 
         self.di.describe_variable(
             variable,
-            id.id.name(),
+            id.name(),
             id.declaration_span,
             &builder,
             self.get_function().get_subprogram().unwrap(),

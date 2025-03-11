@@ -28,7 +28,7 @@ impl<'ctx> Codegen<'ctx> {
 
         match &pattern.value {
             Value::Reference(id) => {
-                let variable = self.variable(id);
+                let variable = self.variable(&id.id);
                 let value_ref = self.use_temporary(value).unwrap();
                 self.trilogy_value_clone_into(variable, value_ref);
             }
@@ -63,6 +63,10 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.begin_next_function(second_function);
                 self.become_continuation_point(secondary_cp);
+                // TODO: need to unbind any variables that were in the left pattern and not
+                // in the parent pattern. That requires carrying the list of vars bound in
+                // the parent and then doing the destroys of any variables from left but not
+                // parent  here.
                 self.match_pattern(&disj.1, value, on_fail)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
