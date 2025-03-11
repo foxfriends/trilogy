@@ -12,12 +12,7 @@ pub(super) fn validate_main<E: std::error::Error>(
         .unwrap()
         .definitions_mut()
         .iter_mut()
-        .find(|def| {
-            def.name()
-                .and_then(|id| id.name())
-                .map(|name| name == "main")
-                .unwrap_or(false)
-        });
+        .find(|def| def.name().map(|id| id.name() == "main").unwrap_or(false));
     match main {
         None => report.error(Error::analysis(
             entrypoint.clone(),

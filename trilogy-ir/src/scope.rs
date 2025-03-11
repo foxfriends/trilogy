@@ -1,4 +1,4 @@
-use crate::symbol::{Id, Symbol, SymbolTable};
+use crate::symbol::{Id, SymbolTable};
 use source_span::Span;
 
 #[derive(Default, Debug)]
@@ -26,7 +26,7 @@ impl Scope {
         *self = *self.parent.take().unwrap();
     }
 
-    pub fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> Symbol {
+    pub fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> Id {
         if self.pseudo {
             if let Some(declared) = self.declared_pseudo(&name) {
                 return declared.clone();
@@ -35,17 +35,17 @@ impl Scope {
         self.symbols.reusable(name, is_mutable, span).clone()
     }
 
-    pub fn invent(&mut self) -> Id {
-        self.symbols.invent()
+    pub fn invent(&mut self, span: Span) -> Id {
+        self.symbols.invent(span)
     }
 
-    pub fn declared(&self, name: &str) -> Option<&Symbol> {
+    pub fn declared(&self, name: &str) -> Option<&Id> {
         self.symbols
             .reuse(name)
             .or_else(|| self.parent.as_ref()?.declared(name))
     }
 
-    fn declared_pseudo(&self, name: &str) -> Option<&Symbol> {
+    fn declared_pseudo(&self, name: &str) -> Option<&Id> {
         self.symbols.reuse(name).or_else(|| {
             if self.pseudo {
                 self.parent.as_ref()?.declared_pseudo(name)
@@ -55,7 +55,7 @@ impl Scope {
         })
     }
 
-    pub fn declared_no_shadow(&self, name: &str) -> Option<&Symbol> {
+    pub fn declared_no_shadow(&self, name: &str) -> Option<&Id> {
         self.symbols.reuse(name)
     }
 }

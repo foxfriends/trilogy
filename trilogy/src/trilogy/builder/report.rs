@@ -157,7 +157,7 @@ impl<E: std::error::Error> Error<E> {
                         ariadne::Report::build(kind, location, span.1.start)
                             .with_message(format!(
                                 "declaration of `{}` references itself in its own initializer",
-                                name.id.name().unwrap().fg(primary),
+                                name.id.name().fg(primary),
                             ))
                             .with_label(
                                 Label::new(declaration_span)
@@ -179,7 +179,7 @@ impl<E: std::error::Error> Error<E> {
                         ariadne::Report::build(kind, location, span.1.start)
                             .with_message(format!(
                                 "cannot reassign immutable variable `{}`",
-                                name.id.name().unwrap().fg(primary)
+                                name.id.name().fg(primary)
                             ))
                             .with_label(
                                 Label::new(declaration_span)
@@ -195,7 +195,7 @@ impl<E: std::error::Error> Error<E> {
                             )
                             .with_help(format!(
                                 "consider making this binding mutable: `mut {}`",
-                                name.id.name().unwrap(),
+                                name.id.name(),
                             ))
                     }
                     GluePatternMissingLiteral { lhs, glue, rhs } => {

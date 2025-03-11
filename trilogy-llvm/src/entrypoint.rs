@@ -18,7 +18,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
             .definitions()
             .iter()
-            .find(|def| def.name().and_then(|id| id.name()) == Some(entrypoint))
+            .find(|def| def.name().map(|id| id.name()) == Some(entrypoint))
             .map(|def| def.span)
             .unwrap_or_default();
 

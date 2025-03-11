@@ -304,7 +304,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.di.describe_variable(
             variable,
-            id.id.name().unwrap(),
+            id.id.name(),
             id.declaration_span,
             &builder,
             self.get_function().get_subprogram().unwrap(),

@@ -1,6 +1,5 @@
 use crate::ir::Module;
 use crate::scope::Scope;
-use crate::symbol::Symbol;
 use crate::{Error, Id};
 use source_span::Span;
 use trilogy_parser::syntax;
@@ -48,19 +47,19 @@ impl<'a> Converter<'a> {
         self.scope.pop();
     }
 
-    pub(crate) fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> Symbol {
+    pub(crate) fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> Id {
         self.scope.declare(name, is_mutable, span)
     }
 
-    pub(crate) fn temporary(&mut self) -> Id {
-        self.scope.invent()
+    pub(crate) fn temporary(&mut self, span: Span) -> Id {
+        self.scope.invent(span)
     }
 
-    pub(crate) fn declared(&mut self, name: &str) -> Option<&Symbol> {
+    pub(crate) fn declared(&mut self, name: &str) -> Option<&Id> {
         self.scope.declared(name)
     }
 
-    pub(crate) fn declared_no_shadow(&mut self, name: &str) -> Option<&Symbol> {
+    pub(crate) fn declared_no_shadow(&mut self, name: &str) -> Option<&Id> {
         self.scope.declared_no_shadow(name)
     }
 

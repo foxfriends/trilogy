@@ -665,7 +665,7 @@ impl<'ctx> Codegen<'ctx> {
                 target
             }
             None => {
-                let ident = identifier.id.name().unwrap();
+                let ident = identifier.id.name();
                 match self
                     .globals
                     .get(&identifier.id)

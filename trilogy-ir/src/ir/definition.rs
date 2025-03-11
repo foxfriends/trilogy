@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Converter, Error, Id, symbol::Symbol};
+use crate::{Converter, Error, Id};
 use source_span::Span;
 use std::sync::Arc;
 use trilogy_parser::{Spanned, syntax};
@@ -35,7 +35,7 @@ impl Definition {
             syntax::DefinitionItem::Export(ast) => {
                 for name in ast.names {
                     match converter.declared(name.as_ref()) {
-                        Some(Symbol { id, .. }) => {
+                        Some(id) => {
                             let def = definitions.get_mut(id).unwrap();
                             if def.is_exported {
                                 converter.error(Error::DuplicateExport {
@@ -54,7 +54,7 @@ impl Definition {
             }
             syntax::DefinitionItem::Constant(ast) => {
                 let symbol = converter.declared(ast.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol.id).unwrap();
+                let definition = definitions.get_mut(&symbol).unwrap();
                 let DefinitionItem::Constant(constant) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
@@ -67,7 +67,7 @@ impl Definition {
             }
             syntax::DefinitionItem::Function(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol.id).unwrap();
+                let definition = definitions.get_mut(&symbol).unwrap();
                 let DefinitionItem::Function(function) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
@@ -82,7 +82,7 @@ impl Definition {
                 if let Some(module_use) = ast.module_use {
                     let module_symbol = converter.declared(ast.head.name.as_ref()).unwrap().clone();
                     let module_ident = Identifier::declared(converter, &ast.head.name).unwrap();
-                    let module_definition = definitions.get_mut(&module_symbol.id).unwrap();
+                    let module_definition = definitions.get_mut(&module_symbol).unwrap();
                     let DefinitionItem::Module(..) = &mut module_definition.item else {
                         let error = Error::DuplicateDefinition {
                             original: module_symbol.declaration_span,
@@ -94,7 +94,7 @@ impl Definition {
 
                     for name in module_use.names {
                         let symbol = converter.declared(name.as_ref()).unwrap().clone();
-                        let definition = definitions.get_mut(&symbol.id).unwrap();
+                        let definition = definitions.get_mut(&symbol).unwrap();
                         let DefinitionItem::Constant(constant) = &mut definition.item else {
                             let error = Error::DuplicateDefinition {
                                 original: symbol.declaration_span,
@@ -121,7 +121,7 @@ impl Definition {
                     let module_ident = Identifier::declared(converter, &ast.head.name).unwrap();
                     for name in &module_use.names {
                         let symbol = converter.declared(name.as_ref()).unwrap().clone();
-                        let definition = definitions.get_mut(&symbol.id).unwrap();
+                        let definition = definitions.get_mut(&symbol).unwrap();
                         let DefinitionItem::Constant(constant) = &mut definition.item else {
                             let error = Error::DuplicateDefinition {
                                 original: symbol.declaration_span,
@@ -141,7 +141,7 @@ impl Definition {
                     }
                 }
 
-                let module_definition = definitions.get_mut(&module_symbol.id).unwrap();
+                let module_definition = definitions.get_mut(&module_symbol).unwrap();
                 let DefinitionItem::Module(module) = &mut module_definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: module_symbol.declaration_span,
@@ -155,7 +155,7 @@ impl Definition {
             }
             syntax::DefinitionItem::Procedure(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol.id).unwrap();
+                let definition = definitions.get_mut(&symbol).unwrap();
                 let DefinitionItem::Procedure(procedure) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
@@ -171,7 +171,7 @@ impl Definition {
             syntax::DefinitionItem::ExternalProcedure(..) => {}
             syntax::DefinitionItem::Rule(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol.id).unwrap();
+                let definition = definitions.get_mut(&symbol).unwrap();
                 let DefinitionItem::Rule(rule) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,

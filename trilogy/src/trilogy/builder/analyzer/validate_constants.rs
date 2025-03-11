@@ -39,7 +39,7 @@ pub(super) fn validate_constants<E: std::error::Error>(
                 exports.insert(
                     (
                         location.clone(),
-                        def.name().unwrap().name().unwrap().to_owned(),
+                        def.name().unwrap().name().to_owned(),
                     ),
                     def.name().unwrap().clone(),
                 );

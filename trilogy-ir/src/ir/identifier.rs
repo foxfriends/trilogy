@@ -1,4 +1,4 @@
-use crate::{Converter, Id, symbol::Symbol};
+use crate::{Converter, Id};
 use source_span::Span;
 use std::fmt::Display;
 use trilogy_parser::{Spanned, syntax};
@@ -13,7 +13,7 @@ pub struct Identifier {
 
 impl Identifier {
     pub(super) fn temporary(converter: &mut Converter, span: Span) -> Self {
-        let id = converter.temporary();
+        let id = converter.temporary(span);
         Self {
             declaration_span: span,
             span,
@@ -28,10 +28,8 @@ impl Identifier {
     ) -> Identifier {
         let span = binding.span();
         let is_mutable = binding.is_mutable();
-        let Symbol {
-            id,
-            declaration_span,
-            ..
+        let id @ Id {
+            declaration_span, ..
         } = converter
             .declare(binding.identifier.into(), is_mutable, span)
             .clone();
@@ -45,10 +43,10 @@ impl Identifier {
 
     pub(crate) fn declare(converter: &mut Converter, identifier: syntax::Identifier) -> Identifier {
         let span = identifier.span();
-        let Symbol {
-            id,
+        let id @ Id {
             is_mutable,
             declaration_span,
+            ..
         } = converter.declare(identifier.into(), false, span).clone();
         Self {
             span,
@@ -71,8 +69,7 @@ impl Identifier {
         identifier: &syntax::Identifier,
     ) -> Option<Identifier> {
         let span = identifier.span();
-        let Symbol {
-            id,
+        let id @ Id {
             declaration_span,
             is_mutable,
             ..
