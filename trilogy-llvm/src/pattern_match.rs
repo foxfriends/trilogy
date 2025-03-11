@@ -3,6 +3,7 @@ use crate::types::{TAG_STRUCT, TAG_TUPLE};
 use inkwell::IntPredicate;
 use inkwell::basic_block::BasicBlock;
 use inkwell::values::{IntValue, PointerValue};
+use trilogy_ir::Id;
 use trilogy_ir::ir::{self, Builtin, Value};
 
 impl<'ctx> Codegen<'ctx> {
@@ -13,9 +14,10 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
     ) -> Option<()> {
+        let mut bound_ids = Vec::default();
         self.bind_temporary(value);
         self.bind_temporary(on_fail);
-        self.match_pattern(pattern, value, on_fail)
+        self.match_pattern(pattern, value, on_fail, &mut bound_ids)
     }
 
     fn match_pattern(
@@ -23,18 +25,20 @@ impl<'ctx> Codegen<'ctx> {
         pattern: &ir::Expression,
         value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
         let prev = self.set_span(pattern.span);
 
         match &pattern.value {
             Value::Reference(id) => {
+                bound_ids.push(id.id.clone());
                 let variable = self.variable(&id.id);
                 let value_ref = self.use_temporary(value).unwrap();
                 self.trilogy_value_clone_into(variable, value_ref);
             }
             Value::Conjunction(conj) => {
-                self.match_pattern(&conj.0, value, on_fail)?;
-                self.match_pattern(&conj.1, value, on_fail)?;
+                self.match_pattern(&conj.0, value, on_fail, bound_ids)?;
+                self.match_pattern(&conj.1, value, on_fail, bound_ids)?;
             }
             Value::Disjunction(disj) => {
                 let on_success_function = self.add_continuation("pm.cont");
@@ -54,7 +58,8 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.begin_next_function(first_function);
                 self.become_continuation_point(primary_cp);
-                self.match_pattern(&disj.0, value, go_to_second)?;
+                let bound_before_first_pattern = bound_ids.len();
+                self.match_pattern(&disj.0, value, go_to_second, bound_ids)?;
                 if let Some(temp) = self.use_owned_temporary(go_to_second) {
                     self.trilogy_value_destroy(temp);
                 }
@@ -63,11 +68,15 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.begin_next_function(second_function);
                 self.become_continuation_point(secondary_cp);
-                // TODO: need to unbind any variables that were in the left pattern and not
-                // in the parent pattern. That requires carrying the list of vars bound in
-                // the parent and then doing the destroys of any variables from left but not
-                // parent  here.
-                self.match_pattern(&disj.1, value, on_fail)?;
+                for id in bound_ids
+                    .split_off(bound_before_first_pattern)
+                    .into_iter()
+                    .filter(|id| !bound_ids.contains(id))
+                {
+                    let var = self.get_variable(&id).unwrap().ptr();
+                    self.trilogy_value_destroy(var);
+                }
+                self.match_pattern(&disj.1, value, on_fail, bound_ids)?;
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
@@ -105,7 +114,9 @@ impl<'ctx> Codegen<'ctx> {
                 self.string_const(constant, string);
                 self.match_constant(value, constant, on_fail);
             }
-            Value::Application(app) => self.compile_match_application(app, value, on_fail)?,
+            Value::Application(app) => {
+                self.compile_match_application(app, value, on_fail, bound_ids)?
+            }
             Value::Wildcard => {}
             _ => todo!(),
         }
@@ -157,6 +168,7 @@ impl<'ctx> Codegen<'ctx> {
         application: &ir::Application,
         value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
         match &application.function.value {
             Value::Builtin(builtin) => {
@@ -181,7 +193,7 @@ impl<'ctx> Codegen<'ctx> {
                     let left = self.allocate_value("");
                     self.bind_temporary(left);
                     self.trilogy_tuple_left(left, tuple);
-                    self.match_pattern(&app.argument, left, on_fail)?;
+                    self.match_pattern(&app.argument, left, on_fail, bound_ids)?;
                     if let Some(left) = self.use_owned_temporary(left) {
                         self.trilogy_value_destroy(left);
                     }
@@ -191,7 +203,7 @@ impl<'ctx> Codegen<'ctx> {
                     let right = self.allocate_value("");
                     self.bind_temporary(right);
                     self.trilogy_tuple_right(right, tuple);
-                    self.match_pattern(&application.argument, right, on_fail)?;
+                    self.match_pattern(&application.argument, right, on_fail, bound_ids)?;
                     if let Some(right) = self.use_owned_temporary(right) {
                         self.trilogy_value_destroy(right);
                     }
@@ -219,10 +231,10 @@ impl<'ctx> Codegen<'ctx> {
                     self.trilogy_tuple_left(part, tuple);
                     // We can be sure that the argument is just an atom constant, so won't invalidate
                     // the tuple reference
-                    self.match_pattern(&application.argument, part, on_fail)?;
+                    self.match_pattern(&application.argument, part, on_fail, bound_ids)?;
                     self.trilogy_value_destroy(part);
                     self.trilogy_tuple_right(part, tuple);
-                    self.match_pattern(&app.argument, part, on_fail)?;
+                    self.match_pattern(&app.argument, part, on_fail, bound_ids)?;
                     if let Some(temp) = self.use_owned_temporary(part) {
                         self.trilogy_value_destroy(temp);
                     }
