@@ -98,14 +98,14 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         value: PointerValue<'ctx>,
         re_is_negative: IntValue<'ctx>,
-        re_numer_length: IntValue<'ctx>,
+        re_numer_length: usize,
         re_numer: PointerValue<'ctx>,
-        re_denom_length: IntValue<'ctx>,
+        re_denom_length: usize,
         re_denom: PointerValue<'ctx>,
         im_is_negative: IntValue<'ctx>,
-        im_numer_length: IntValue<'ctx>,
+        im_numer_length: usize,
         im_numer: PointerValue<'ctx>,
-        im_denom_length: IntValue<'ctx>,
+        im_denom_length: usize,
         im_denom: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
@@ -115,14 +115,14 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.bool_type().into(),
-                    self.context.i64_type().into(),
+                    self.usize_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.i64_type().into(),
+                    self.usize_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.bool_type().into(),
-                    self.context.i64_type().into(),
+                    self.usize_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.i64_type().into(),
+                    self.usize_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
@@ -134,14 +134,22 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     value.into(),
                     re_is_negative.into(),
-                    re_numer_length.into(),
+                    self.usize_type()
+                        .const_int(re_numer_length as u64, false)
+                        .into(),
                     re_numer.into(),
-                    re_denom_length.into(),
+                    self.usize_type()
+                        .const_int(re_denom_length as u64, false)
+                        .into(),
                     re_denom.into(),
                     im_is_negative.into(),
-                    im_numer_length.into(),
+                    self.usize_type()
+                        .const_int(im_numer_length as u64, false)
+                        .into(),
                     im_numer.into(),
-                    im_denom_length.into(),
+                    self.usize_type()
+                        .const_int(im_denom_length as u64, false)
+                        .into(),
                     im_denom.into(),
                 ],
                 name,

@@ -178,17 +178,17 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
-    fn make_global_u64_array(&self, digits: &[u64]) -> GlobalValue<'ctx> {
+    fn make_global_u32_array(&self, digits: &[u32]) -> GlobalValue<'ctx> {
         let global = self.module.add_global(
-            self.context.i64_type().array_type(digits.len() as u32),
+            self.context.i32_type().array_type(digits.len() as u32),
             None,
             "",
         );
         global.set_initializer(
-            &self.context.i64_type().const_array(
+            &self.context.i32_type().const_array(
                 &digits
                     .iter()
-                    .map(|digit| self.context.i64_type().const_int(*digit, false))
+                    .map(|digit| self.context.i32_type().const_int(*digit as u64, false))
                     .collect::<Vec<_>>(),
             ),
         );
@@ -197,32 +197,32 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn number_const(&self, into: PointerValue<'ctx>, value: &Number) {
-        let (re_numer_sign, re_numer) = value.value().re.numer().to_u64_digits();
-        let (re_denom_sign, re_denom) = value.value().re.denom().to_u64_digits();
+        let (re_numer_sign, re_numer) = value.value().re.numer().to_u32_digits();
+        let (re_denom_sign, re_denom) = value.value().re.denom().to_u32_digits();
         assert_eq!(re_denom_sign, Sign::Plus);
-        let (im_numer_sign, im_numer) = value.value().im.numer().to_u64_digits();
-        let (im_denom_sign, im_denom) = value.value().im.denom().to_u64_digits();
+        let (im_numer_sign, im_numer) = value.value().im.numer().to_u32_digits();
+        let (im_denom_sign, im_denom) = value.value().im.denom().to_u32_digits();
         assert_eq!(im_denom_sign, Sign::Plus);
 
-        let re_numer_global = self.make_global_u64_array(&re_numer);
-        let re_denom_global = self.make_global_u64_array(&re_denom);
-        let im_numer_global = self.make_global_u64_array(&im_numer);
-        let im_denom_global = self.make_global_u64_array(&im_denom);
+        let re_numer_global = self.make_global_u32_array(&re_numer);
+        let re_denom_global = self.make_global_u32_array(&re_denom);
+        let im_numer_global = self.make_global_u32_array(&im_numer);
+        let im_denom_global = self.make_global_u32_array(&im_denom);
         self.trilogy_number_init_new(
             into,
             self.context
                 .bool_type()
                 .const_int(if re_numer_sign == Sign::Minus { 1 } else { 0 }, false),
-            self.usize_type().const_int(re_numer.len() as u64, false),
+            re_numer.len(),
             re_numer_global.as_pointer_value(),
-            self.usize_type().const_int(re_denom.len() as u64, false),
+            re_denom.len(),
             re_denom_global.as_pointer_value(),
             self.context
                 .bool_type()
                 .const_int(if im_numer_sign == Sign::Minus { 1 } else { 0 }, false),
-            self.usize_type().const_int(im_numer.len() as u64, false),
+            im_numer.len(),
             im_numer_global.as_pointer_value(),
-            self.usize_type().const_int(im_denom.len() as u64, false),
+            im_denom.len(),
             im_denom_global.as_pointer_value(),
             "",
         );

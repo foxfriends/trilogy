@@ -6,15 +6,15 @@ trilogy_number_value*
 trilogy_number_init(trilogy_value* tv, trilogy_number_value* n) {
     assert(tv->tag == TAG_UNDEFINED);
     tv->tag = TAG_NUMBER;
-    tv->payload = (unsigned long)n;
+    tv->payload = (uint64_t)n;
     return n;
 }
 
 trilogy_number_value* trilogy_number_init_new(
     trilogy_value* tv, bool re_is_negative, size_t re_numer_length,
-    unsigned long* re_numer, size_t re_denom_length, unsigned long* re_denom,
-    bool im_is_negative, size_t im_numer_length, unsigned long* im_numer,
-    size_t im_denom_length, unsigned long* im_denom
+    digit_t* re_numer, size_t re_denom_length, digit_t* re_denom,
+    bool im_is_negative, size_t im_numer_length, digit_t* im_numer,
+    size_t im_denom_length, digit_t* im_denom
 ) {
     trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->is_negative = re_is_negative;
@@ -36,7 +36,7 @@ trilogy_number_init_bigint(trilogy_value* tv, bool is_negative, bigint* num) {
 }
 
 trilogy_number_value*
-trilogy_number_init_u64(trilogy_value* tv, unsigned long num) {
+trilogy_number_init_u64(trilogy_value* tv, uint64_t num) {
     trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->is_negative = false;
     value->re = bigint_zero;
@@ -47,7 +47,7 @@ trilogy_number_init_u64(trilogy_value* tv, unsigned long num) {
 }
 
 trilogy_number_value*
-trilogy_number_clone_into(trilogy_value* tv, trilogy_number_value* num) {
+trilogy_number_clone_into(trilogy_value* tv, const trilogy_number_value* num) {
     trilogy_number_value* clone = malloc_safe(sizeof(trilogy_number_value));
     clone->is_negative = num->is_negative;
     clone->re = bigint_zero;
@@ -57,9 +57,9 @@ trilogy_number_clone_into(trilogy_value* tv, trilogy_number_value* num) {
     return trilogy_number_init(tv, clone);
 }
 
-unsigned long trilogy_number_to_u64(trilogy_number_value* val) {
+uint64_t trilogy_number_to_u64(trilogy_number_value* val) {
     if (!bigint_is_zero(&val->im))
-        internal_panic("expected unsigned long, but number is complex");
+        internal_panic("expected uint64_t, but number is complex");
     return bigint_to_u64(&val->re);
 }
 

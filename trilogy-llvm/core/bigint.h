@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+typedef uint32_t digit_t;
+extern const digit_t DIGIT_MAX;
+
 typedef struct bigint {
     /**
      * The amount of space available in the digits array. The value of an unused
@@ -18,13 +21,13 @@ typedef struct bigint {
      * Though I don't like it, I admit that in this case it makes sense: these
      * are the base (2^64-1) digits of the number in little endian order.
      */
-    uint64_t* digits;
+    digit_t* digits;
 } bigint;
 
 extern bigint bigint_zero;
 
-void bigint_init(bigint* v, size_t digit_length, uint64_t* digits);
-void bigint_init_const(bigint* v, size_t digit_length, const uint64_t* digits);
+void bigint_init(bigint* v, size_t digit_length, digit_t* digits);
+void bigint_init_const(bigint* v, size_t digit_length, const digit_t* digits);
 void bigint_init_from_u64(bigint* v, uint64_t u64);
 void bigint_destroy(bigint* v);
 void bigint_clone(bigint* clone, const bigint* value);
