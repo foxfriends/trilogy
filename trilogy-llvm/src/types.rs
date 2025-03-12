@@ -237,11 +237,7 @@ impl<'ctx> Codegen<'ctx> {
         );
         string.set_initializer(&self.context.const_string(bytes, false));
         string.set_constant(true);
-        self.trilogy_string_init_new(
-            into,
-            self.context.i64_type().const_int(value.len() as u64, false),
-            string.as_pointer_value(),
-        );
+        self.trilogy_string_init_new(into, value.len(), string.as_pointer_value());
     }
 
     pub(crate) fn bits_const(&self, into: PointerValue<'ctx>, value: &Bits) {

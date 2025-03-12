@@ -135,12 +135,7 @@ impl<'ctx> Codegen<'ctx> {
         builder
             .build_store(upvalue, self.value_type().const_zero())
             .unwrap();
-        self.trilogy_array_at_in(
-            builder,
-            upvalue,
-            closure_array,
-            self.context.i64_type().const_int(index as u64, false),
-        );
+        self.trilogy_array_at_in(builder, upvalue, closure_array, index);
         upvalue
     }
 

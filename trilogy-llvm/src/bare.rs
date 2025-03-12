@@ -60,7 +60,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn trilogy_string_init_new(
         &self,
         value: PointerValue<'ctx>,
-        len: IntValue<'ctx>,
+        len: usize,
         string: PointerValue<'ctx>,
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
@@ -68,14 +68,22 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.i64_type().into(),
+                    self.usize_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
             ),
         );
         self.builder
-            .build_call(f, &[value.into(), len.into(), string.into()], "")
+            .build_call(
+                f,
+                &[
+                    value.into(),
+                    self.usize_type().const_int(len as u64, false).into(),
+                    string.into(),
+                ],
+                "",
+            )
             .unwrap()
             .try_as_basic_value()
             .unwrap_left()
@@ -299,7 +307,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.i64_type().into(),
+                    self.usize_type().into(),
                 ],
                 false,
             ),
@@ -309,7 +317,7 @@ impl<'ctx> Codegen<'ctx> {
                 f,
                 &[
                     value.into(),
-                    self.context.i64_type().const_int(cap as u64, false).into(),
+                    self.usize_type().const_int(cap as u64, false).into(),
                 ],
                 name,
             )
@@ -380,7 +388,7 @@ impl<'ctx> Codegen<'ctx> {
         builder: &Builder<'ctx>,
         output: PointerValue<'ctx>,
         array: PointerValue<'ctx>,
-        index: IntValue<'ctx>,
+        index: usize,
     ) {
         let f = self.declare_bare(
             "trilogy_array_at",
@@ -388,13 +396,21 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.i64_type().into(),
+                    self.usize_type().into(),
                 ],
                 false,
             ),
         );
         builder
-            .build_call(f, &[output.into(), array.into(), index.into()], "")
+            .build_call(
+                f,
+                &[
+                    output.into(),
+                    array.into(),
+                    self.usize_type().const_int(index as u64, false).into(),
+                ],
+                "",
+            )
             .unwrap();
     }
 
