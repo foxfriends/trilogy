@@ -1,7 +1,6 @@
 #include "bigint.h"
 #include "internal.h"
 #include <string.h>
-#include <stdio.h>
 
 const digit_t DIGIT_MAX = UINT32_MAX;
 
@@ -45,7 +44,7 @@ void bigint_clone(bigint* clone, const bigint* value) {
     }
     clone->length = value->length;
     if (value->length > 0) {
-        memcpy( clone->digits, value->digits, value->length * sizeof(digit_t) );
+        memcpy(clone->digits, value->digits, value->length * sizeof(digit_t));
     }
 }
 
@@ -71,7 +70,9 @@ bool add_digit(digit_t* lhs, digit_t rhs, bool carry) {
 
 void bigint_add(bigint* lhs, const bigint* rhs) {
     size_t capacity = max(lhs->length, rhs->length);
-    if (capacity == SIZE_MAX) { internal_panic("bigint capacity limit\n"); }
+    if (capacity == SIZE_MAX) {
+        internal_panic("bigint capacity limit\n");
+    }
     capacity += 1;
     if (lhs->capacity < capacity) {
         lhs->digits = realloc_safe(lhs->digits, sizeof(digit_t) * capacity);
@@ -125,14 +126,17 @@ bool bigint_sub(bigint* lhs, const bigint* rhs) {
 
 void bigint_mul(bigint* lhs, const bigint* rhs) {
     size_t available = SIZE_MAX - lhs->length;
-    if (available < rhs->length) { internal_panic("bigint capacity limit\n"); }
+    if (available < rhs->length) {
+        internal_panic("bigint capacity limit\n");
+    }
     size_t capacity = lhs->length + rhs->length;
     digit_t* output = malloc_safe(sizeof(digit_t) * capacity);
     memset(output, 0, sizeof(digit_t) * capacity);
     for (size_t i = 0; i < lhs->length; i++) {
         uint64_t carry = 0;
         for (size_t j = 0; j < rhs->length; j++) {
-            uint64_t product = (uint64_t)lhs->digits[i] * (uint64_t)rhs->digits[j];
+            uint64_t product =
+                (uint64_t)lhs->digits[i] * (uint64_t)rhs->digits[j];
             uint64_t sum = (uint64_t)output[i + j] + carry + product;
             output[i + j] = (digit_t)sum;
             carry = product >> 32;
@@ -174,9 +178,13 @@ char* bigint_to_string(const bigint* val);
 
 uint64_t bigint_to_u64(const bigint* val) {
     switch (val->length) {
-        case 0: return 0;
-        case 1: return (uint64_t)val->digits[0];
-        case 2: return (uint64_t)val->digits[0] + ((uint64_t)val->digits[1] << 32);
-        default: internal_panic("expected u64, but number is too large");
+    case 0:
+        return 0;
+    case 1:
+        return (uint64_t)val->digits[0];
+    case 2:
+        return (uint64_t)val->digits[0] + ((uint64_t)val->digits[1] << 32);
+    default:
+        internal_panic("expected u64, but number is too large");
     }
 }

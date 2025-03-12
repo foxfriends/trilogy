@@ -1,6 +1,6 @@
 #pragma once
 #include "types.h"
-#include <stdint.h>
+#include <stddef.h>
 
 trilogy_array_value*
 trilogy_array_init(trilogy_value* tv, trilogy_array_value* arr);

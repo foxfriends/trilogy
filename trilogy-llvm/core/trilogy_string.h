@@ -1,5 +1,6 @@
 #pragma once
 #include "types.h"
+#include <stddef.h>
 #include <stdint.h>
 
 trilogy_string_value*

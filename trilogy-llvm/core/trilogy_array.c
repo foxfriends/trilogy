@@ -2,7 +2,7 @@
 #include "internal.h"
 #include "trilogy_value.h"
 #include <assert.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 

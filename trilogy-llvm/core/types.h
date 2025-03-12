@@ -1,6 +1,7 @@
 #pragma once
 #include "bigint.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 typedef enum trilogy_value_tag : uint8_t {

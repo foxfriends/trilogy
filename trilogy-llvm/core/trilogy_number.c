@@ -35,8 +35,7 @@ trilogy_number_init_bigint(trilogy_value* tv, bool is_negative, bigint* num) {
     return trilogy_number_init(tv, value);
 }
 
-trilogy_number_value*
-trilogy_number_init_u64(trilogy_value* tv, uint64_t num) {
+trilogy_number_value* trilogy_number_init_u64(trilogy_value* tv, uint64_t num) {
     trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->is_negative = false;
     value->re = bigint_zero;
@@ -92,19 +91,28 @@ bool trilogy_number_eq(trilogy_number_value* lhs, trilogy_number_value* rhs) {
     return bigint_eq(&lhs->re, &rhs->re);
 }
 
-void trilogy_number_add(trilogy_value* tv, const trilogy_number_value* lhs, const trilogy_number_value* rhs) {
+void trilogy_number_add(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+) {
     // TODO: this is intentionally not supporting negative at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
     bigint_add(&lhs_mut->re, &rhs->re);
 }
 
-void trilogy_number_sub(trilogy_value* tv, const trilogy_number_value* lhs, const trilogy_number_value* rhs) {
+void trilogy_number_sub(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+) {
     // TODO: this is intentionally not supporting negative at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
     bigint_sub(&lhs_mut->re, &rhs->re);
 }
 
-void trilogy_number_mul(trilogy_value* tv, const trilogy_number_value* lhs, const trilogy_number_value* rhs) {
+void trilogy_number_mul(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+) {
     // TODO: this is intentionally not supporting negative at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
     bigint_mul(&lhs_mut->re, &rhs->re);

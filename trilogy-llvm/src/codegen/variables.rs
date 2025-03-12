@@ -272,7 +272,7 @@ impl<'ctx> Codegen<'ctx> {
     /// References a variable, if it is already available, or defines a it in the current scope otherwise.
     pub(crate) fn variable(&self, id: &Id) -> PointerValue<'ctx> {
         // If the variable is already available, just return the existing reference.
-        if let Some(variable) = self.get_variable(&id) {
+        if let Some(variable) = self.get_variable(id) {
             return variable.ptr();
         }
 

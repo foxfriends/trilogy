@@ -37,10 +37,7 @@ pub(super) fn validate_constants<E: std::error::Error>(
             use ir::DefinitionItem::*;
             if def.is_exported {
                 exports.insert(
-                    (
-                        location.clone(),
-                        def.name().unwrap().name().to_owned(),
-                    ),
+                    (location.clone(), def.name().unwrap().name().to_owned()),
                     def.name().unwrap().clone(),
                 );
             }

@@ -54,7 +54,7 @@ impl Definition {
             }
             syntax::DefinitionItem::Constant(ast) => {
                 let symbol = converter.declared(ast.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol).unwrap();
+                let definition = definitions.get_mut(symbol).unwrap();
                 let DefinitionItem::Constant(constant) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
@@ -67,7 +67,7 @@ impl Definition {
             }
             syntax::DefinitionItem::Function(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol).unwrap();
+                let definition = definitions.get_mut(symbol).unwrap();
                 let DefinitionItem::Function(function) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
@@ -155,7 +155,7 @@ impl Definition {
             }
             syntax::DefinitionItem::Procedure(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol).unwrap();
+                let definition = definitions.get_mut(symbol).unwrap();
                 let DefinitionItem::Procedure(procedure) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
@@ -171,7 +171,7 @@ impl Definition {
             syntax::DefinitionItem::ExternalProcedure(..) => {}
             syntax::DefinitionItem::Rule(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();
-                let definition = definitions.get_mut(&symbol).unwrap();
+                let definition = definitions.get_mut(symbol).unwrap();
                 let DefinitionItem::Rule(rule) = &mut definition.item else {
                     let error = Error::DuplicateDefinition {
                         original: symbol.declaration_span,
