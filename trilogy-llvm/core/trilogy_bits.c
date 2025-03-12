@@ -13,7 +13,7 @@ trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
 }
 
 trilogy_bits_value*
-trilogy_bits_init_new(trilogy_value* tv, uint64_t len, uint8_t* b) {
+trilogy_bits_init_new(trilogy_value* tv, size_t len, uint8_t* b) {
     trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
     bits->len = len;
     bits->contents = malloc_safe(sizeof(uint8_t) * len);
@@ -35,22 +35,22 @@ trilogy_bits_value* trilogy_bits_untag(trilogy_value* val) {
     return trilogy_bits_assume(val);
 }
 
-bool trilogy_bits_at(trilogy_bits_value* b, uint64_t index) {
+bool trilogy_bits_at(trilogy_bits_value* b, size_t index) {
     assert(index <= b->len);
     uint8_t byte = b->contents[index >> 3];
     return (bool)(1 & (byte >> (7 - (index & 7))));
 }
 
-uint64_t trilogy_bits_bytelen(trilogy_bits_value* val) {
-    uint64_t len = val->len / 8;
+size_t trilogy_bits_bytelen(trilogy_bits_value* val) {
+    size_t len = val->len / 8;
     if (len & 7) len++;
     return len;
 }
 
 int trilogy_bits_compare(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
-    uint64_t lhs_len = trilogy_bits_bytelen(lhs);
-    uint64_t rhs_len = trilogy_bits_bytelen(rhs);
-    uint64_t len = lhs_len < rhs_len ? lhs_len : rhs_len;
+    size_t lhs_len = trilogy_bits_bytelen(lhs);
+    size_t rhs_len = trilogy_bits_bytelen(rhs);
+    size_t len = lhs_len < rhs_len ? lhs_len : rhs_len;
     int cmp = memcmp(lhs->contents, rhs->contents, len);
     if (cmp != 0) return cmp;
     if (lhs->len < rhs->len) return -1;

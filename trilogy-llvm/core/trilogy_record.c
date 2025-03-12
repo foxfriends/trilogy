@@ -42,7 +42,7 @@ trilogy_record_value* trilogy_record_assume(trilogy_value* val) {
 void trilogy_record_destroy(trilogy_record_value* record) {
     if (--record->rc == 0) {
         if (record->contents == NULL) return;
-        for (uint64_t i = 0; i < record->len; ++i) {
+        for (size_t i = 0; i < record->len; ++i) {
             trilogy_tuple_destroy(&record->contents[i]);
         }
         free(record->contents);

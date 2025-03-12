@@ -61,7 +61,7 @@ typedef struct trilogy_string_value {
     /**
      * The number of bytes in the string.
      */
-    uint64_t len;
+    size_t len;
     /**
      * The raw byte contents of this string. This data is ASSUMED to be UTF-8,
      * and is not null terminated.
@@ -73,7 +73,7 @@ typedef struct trilogy_bits_value {
     /**
      * The number of relevant bits in this value.
      */
-    uint64_t len;
+    size_t len;
     /**
      * The raw bytes of the bits value.
      *
@@ -113,12 +113,12 @@ typedef struct trilogy_array_value {
     /**
      * The number of elements in this array.
      */
-    uint64_t len;
+    size_t len;
     /**
      * The capacity of this array; values in cells past the len contain
      * unspecified data.
      */
-    uint64_t cap;
+    size_t cap;
     /**
      * An array of length `cap` containing the values of this array.
      */
@@ -133,12 +133,12 @@ typedef struct trilogy_set_value {
     /**
      * The number of elements in this set.
      */
-    uint64_t len;
+    size_t len;
     /**
      * The capacity of this set; values in cells past the len contain
      * unspecified data.
      */
-    uint64_t cap;
+    size_t cap;
     /**
      * An array of length `cap` containing the values of this set.
      */
@@ -153,12 +153,12 @@ typedef struct trilogy_record_value {
     /**
      * The number of elements in this record.
      */
-    uint64_t len;
+    size_t len;
     /**
      * The capacity of this record; values in cells past the len contain
      * unspecified data.
      */
-    uint64_t cap;
+    size_t cap;
     /**
      * An array of length `cap` containing the key-value pairs of this record.
      */

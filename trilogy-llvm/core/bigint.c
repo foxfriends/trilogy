@@ -64,7 +64,9 @@ bool add_digit(uint64_t* lhs, uint64_t rhs, bool carry) {
 }
 
 void bigint_add(bigint* lhs, const bigint* rhs) {
-    size_t capacity = max(lhs->length, rhs->length) + 1;
+    size_t capacity = max(lhs->length, rhs->length);
+    if (capacity == SIZE_MAX) { internal_panic("bigint capacity limit\n"); }
+    capacity += 1;
     if (lhs->capacity < capacity) {
         lhs->digits = realloc_safe(lhs->digits, sizeof(uint64_t) * capacity);
         lhs->capacity = capacity;
@@ -115,7 +117,10 @@ bool bigint_sub(bigint* lhs, const bigint* rhs) {
     return false;
 }
 
-void bigint_mul(bigint* lhs, const bigint* rhs);
+void bigint_mul(bigint* lhs, const bigint* rhs) {
+    size_t capacity = SIZE_MAX;
+}
+
 void bigint_div(bigint* lhs, const bigint* rhs);
 void bigint_rem(bigint* lhs, const bigint* rhs);
 void bigint_pow(bigint* lhs, const bigint* rhs);
