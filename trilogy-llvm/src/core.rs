@@ -149,6 +149,16 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn mul(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("mul", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
     pub(crate) fn destruct(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {
         let f = self.declare_core("destruct", 1);
         self.call_internal(target, f, &[value.into()]);

@@ -31,8 +31,8 @@ void bigint_init_from_u64(bigint* val, uint64_t u64) {
         bigint_init(val, 1, digits);
     } else {
         digit_t* digits = malloc_safe(2 * sizeof(digit_t));
-        digits[0] = (digit_t)(u64 & 0x00000000FFFFFFFF);
-        digits[1] = (digit_t)((u64 & 0xFFFFFFFF00000000) >> 32);
+        digits[0] = (digit_t)u64;
+        digits[1] = (digit_t)(u64 >> 32);
         bigint_init(val, 2, digits);
     }
 }
@@ -127,9 +127,24 @@ void bigint_mul(bigint* lhs, const bigint* rhs) {
     size_t available = SIZE_MAX - lhs->length;
     if (available < rhs->length) { internal_panic("bigint capacity limit\n"); }
     size_t capacity = lhs->length + rhs->length;
-    if (lhs->capacity < capacity) {
-        lhs->digits = realloc_safe(lhs->digits, sizeof(digit_t) * capacity);
-        lhs->capacity = capacity;
+    digit_t* output = malloc_safe(sizeof(digit_t) * capacity);
+    memset(output, 0, sizeof(digit_t) * capacity);
+    for (size_t i = 0; i < lhs->length; i++) {
+        uint64_t carry = 0;
+        for (size_t j = 0; j < rhs->length; j++) {
+            uint64_t product = (uint64_t)lhs->digits[i] * (uint64_t)rhs->digits[j];
+            uint64_t sum = (uint64_t)output[i + j] + carry + product;
+            output[i + j] = (digit_t)sum;
+            carry = product >> 32;
+        }
+        output[rhs->length + i] = (digit_t)carry;
+    }
+    free(lhs->digits);
+    lhs->digits = output;
+    lhs->capacity = capacity;
+    lhs->length = capacity;
+    while (lhs->length > 0 && lhs->digits[lhs->length - 1] == 0) {
+        --lhs->length;
     }
 }
 

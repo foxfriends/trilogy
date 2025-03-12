@@ -652,6 +652,17 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::Multiply => {
+                let lhs = self.compile_expression(lhs, "mul.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "mul.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.mul(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             _ => todo!("{builtin:?}"),
         }
     }

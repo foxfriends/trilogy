@@ -1,4 +1,8 @@
 proc main!() {
   assert 1 + 2 == 3
   assert 8 - 2 == 6
+  assert 7 * 3 == 21
+
+  # assert "bigadd" as 4294967295 + 4294967295 == 8589934590
+  # assert "bigmul" as 4294967295 * 4294967295 == 18446744065119617025
 }
