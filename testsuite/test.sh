@@ -94,7 +94,7 @@ for dir in $(ls); do
         fi
 
         if [ $(uname) != "Darwin" -a -n "$memcheck" ]; then
-                valgrind --log-file=memcheck --error-exitcode=97 -- ./a.out > stdout 2> stderr
+            valgrind --log-file=memcheck --error-exitcode=97 --errors-for-leak-kinds=definite,possible --show-leak-kinds=all -- ./a.out > stdout 2> stderr
         else
             ./a.out > stdout 2> stderr
         fi

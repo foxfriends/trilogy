@@ -32,8 +32,8 @@ void bigint_init_from_u64(bigint* val, uint64_t u64) {
 void bigint_clone(bigint* clone, const bigint* value) {
     if (clone->capacity < value->length) {
         bigint_destroy(clone);
-        clone->capacity = value->capacity;
         clone->digits = calloc_safe(value->length, sizeof(uint64_t));
+        clone->capacity = value->length;
     }
     clone->length = value->length;
     if (value->length > 0) {
@@ -66,7 +66,7 @@ bool add_digit(uint64_t* lhs, uint64_t rhs, bool carry) {
 void bigint_add(bigint* lhs, const bigint* rhs) {
     size_t capacity = max(lhs->length, rhs->length) + 1;
     if (lhs->capacity < capacity) {
-        lhs->digits = realloc_safe(lhs->digits, capacity);
+        lhs->digits = realloc_safe(lhs->digits, sizeof(uint64_t) * capacity);
         lhs->capacity = capacity;
     }
     bool carry = false;
