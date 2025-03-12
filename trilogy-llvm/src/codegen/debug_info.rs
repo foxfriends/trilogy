@@ -63,10 +63,10 @@ impl<'ctx> DebugInfo<'ctx> {
         };
         let (builder, unit) = module.create_debug_info_builder(
             true,
-            DWARFSourceLanguage::C,
+            DWARFSourceLanguage::C11,
             &filename,
             &directory,
-            "trilogy",
+            concat!("trilogy ", env!("CARGO_PKG_VERSION")),
             false,
             "",
             0,
@@ -88,7 +88,18 @@ impl<'ctx> DebugInfo<'ctx> {
             0,
             LLVMDIFlagPublic,
             None,
-            &[],
+            &[
+                builder
+                    // Unsigned char
+                    .create_basic_type("trilogy_value_tag", 8, 0x8, LLVMDIFlagPublic)
+                    .unwrap()
+                    .as_type(),
+                builder
+                    // Unsigned (u64)
+                    .create_basic_type("trilogy_value_tag", 64, 0x07, LLVMDIFlagPublic)
+                    .unwrap()
+                    .as_type(),
+            ],
             0,
             None,
             "",
