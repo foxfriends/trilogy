@@ -61,8 +61,14 @@ export gte
 extern proc add!(lhs, rhs)
 export add
 
-extern proc sub!(lhs, rhs)
-export sub
+extern proc subtract!(lhs, rhs)
+export subtract
+
+extern proc multiply!(lhs, rhs)
+export multiply
+
+extern proc divide!(lhs, rhs)
+export divide
 
 extern proc primitive_to_string!(val)
 

@@ -70,16 +70,22 @@ void add(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_add(rv, lnum, rnum);
 }
 
-void sub(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+void subtract(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_value* lnum = trilogy_number_untag(lhs);
     trilogy_number_value* rnum = trilogy_number_untag(rhs);
     trilogy_number_sub(rv, lnum, rnum);
 }
 
-void mul(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+void multiply(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_value* lnum = trilogy_number_untag(lhs);
     trilogy_number_value* rnum = trilogy_number_untag(rhs);
     trilogy_number_mul(rv, lnum, rnum);
+}
+
+void divide(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_number_value* lnum = trilogy_number_untag(lhs);
+    trilogy_number_value* rnum = trilogy_number_untag(rhs);
+    trilogy_number_div(rv, lnum, rnum);
 }
 
 void length(trilogy_value* rv, trilogy_value* val) {

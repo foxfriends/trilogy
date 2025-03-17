@@ -663,6 +663,17 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::Divide => {
+                let lhs = self.compile_expression(lhs, "div.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "div.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.div(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             _ => todo!("{builtin:?}"),
         }
     }

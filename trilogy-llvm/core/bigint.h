@@ -24,7 +24,7 @@ typedef struct bigint {
     digit_t* digits;
 } bigint;
 
-extern bigint bigint_zero;
+extern const bigint bigint_zero;
 
 void bigint_init(bigint* v, size_t digit_length, digit_t* digits);
 void bigint_init_const(bigint* v, size_t digit_length, const digit_t* digits);

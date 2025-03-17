@@ -145,7 +145,7 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
     ) {
-        let f = self.declare_core("sub", 2);
+        let f = self.declare_core("subtract", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
@@ -155,7 +155,17 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
     ) {
-        let f = self.declare_core("mul", 2);
+        let f = self.declare_core("multiply", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn div(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("divide", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
