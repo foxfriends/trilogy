@@ -1,18 +1,21 @@
 proc main!() {
   assert "add" as 1 + 2 == 3
+  assert "big add" as 4294967296 + 2 == 4294967298
+  assert "add big" as 2 + 4294967296 == 4294967298
+  assert "add to big" as 4294967295 + 1 == 4294967296
+  assert "add to big 2" as 4294967295 + 2 == 4294967297
+  assert "big add big" as 4294967295 + 4294967295 == 8589934590
+
   assert "sub" as 8 - 2 == 6
   assert "mul" as 7 * 3 == 21
   assert "div" as 24 / 3 == 8
 
-  assert "bigadd" as 4294967295 + 2 == 4294967297
   assert "bigsub" as 4294967298 - 2 == 4294967296
   assert "bigmul" as 4294967295 * 3 == 12884901885
   assert "bigdiv" as 17179869180 / 4 == 4294967295
 
-  assert "upadd" as 4294967294 + 2 == 4294967296
   assert "downsub" as 4294967296 - 2 == 4294967294
 
-  assert "bigbigadd" as 4294967295 + 4294967295 == 8589934590
   assert "bigbigsub" as 18446744065119617025 - 4294967295 == 18446744060824649730
   assert "bigbigmul" as 4294967295 * 4294967295 == 18446744065119617025
   assert "bigbigdiv" as 18446744065119617025 / 858993459 == 21474836475

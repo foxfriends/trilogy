@@ -204,6 +204,8 @@ impl<'ctx> Codegen<'ctx> {
         let (im_denom_sign, im_denom) = value.value().im.denom().to_u32_digits();
         assert_eq!(im_denom_sign, Sign::Plus);
 
+        eprintln!("{:?} -> {:?}", value, re_numer);
+
         let re_numer_global = self.make_global_u32_array(&re_numer);
         let re_denom_global = self.make_global_u32_array(&re_denom);
         let im_numer_global = self.make_global_u32_array(&im_numer);

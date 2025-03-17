@@ -2,6 +2,7 @@
 #include "internal.h"
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 const bigint bigint_zero = {.capacity = 0, .length = 0, .digits = NULL};
 const digit_t DIGIT_MAX = UINT32_MAX;
@@ -71,7 +72,7 @@ bool add_digit(digit_t* out, digit_t lhs, digit_t rhs, bool carry) {
         *out = carry ? 0 : DIGIT_MAX;
         return carry;
     } else {
-        *out = rhs - space;
+        *out = rhs - space - 1;
         return true;
     }
 }
@@ -283,6 +284,18 @@ void bigint_rem(bigint* lhs, const bigint* rhs);
 void bigint_pow(bigint* lhs, const bigint* rhs);
 
 int bigint_cmp(const bigint* lhs, const bigint* rhs) {
+    fprintf(stderr, "LHS %d %d: ", lhs->capacity, lhs->length);
+    for (int i = 0; i < lhs->length; ++i) {
+        fprintf(stderr, "%d ", lhs->digits[i]);
+    }
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "RHS %d %d: ", rhs->capacity, rhs->length);
+    for (int i = 0; i < rhs->length; ++i) {
+        fprintf(stderr, "%d ", rhs->digits[i]);
+    }
+    fprintf(stderr, "\n");
+
     if (lhs->length > rhs->length) return 1;
     if (rhs->length > lhs->length) return -1;
     if (lhs->length == 0) return 0;
