@@ -7,16 +7,19 @@ proc main!() {
   assert "big add big" as 4294967295 + 4294967295 == 8589934590
 
   assert "sub" as 8 - 2 == 6
+  assert "big sub big to small" as 4294967299 - 4294967296 == 3
+  assert "big sub" as 4294967299 - 2 == 4294967297
+  assert "sub to small" as 4294967297 - 2 == 4294967295
+  assert "big sub big to big" as 18446744065119617025 - 4294967295 == 18446744060824649730
+
   assert "mul" as 7 * 3 == 21
+  assert "big mul" as 4294967296 * 3 == 12884901888
+  assert "mul big" as 3 * 4294967296 == 12884901888
+  assert "big mul big" as 4294967298 * 4294967298 == 18446744090889420804
+
   assert "div" as 24 / 3 == 8
-
-  assert "bigsub" as 4294967298 - 2 == 4294967296
-  assert "bigmul" as 4294967295 * 3 == 12884901885
-  assert "bigdiv" as 17179869180 / 4 == 4294967295
-
-  assert "downsub" as 4294967296 - 2 == 4294967294
-
-  assert "bigbigsub" as 18446744065119617025 - 4294967295 == 18446744060824649730
-  assert "bigbigmul" as 4294967295 * 4294967295 == 18446744065119617025
-  assert "bigbigdiv" as 18446744065119617025 / 858993459 == 21474836475
+  assert "big div" as 17179869192 / 4 == 4294967298
+  assert "big div to small" as 4294967298 / 2 == 2147483649
+  assert "big div big to small" as 17179869180 / 8589934590 == 2
+  assert "big div big to big" as 18446744090889420804 / 4294967298 == 4294967298
 }

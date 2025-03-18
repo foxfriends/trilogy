@@ -2,7 +2,6 @@
 #include "internal.h"
 #include <assert.h>
 #include <string.h>
-#include <stdio.h>
 
 const bigint bigint_zero = {.capacity = 0, .length = 0, .digits = NULL};
 const digit_t DIGIT_MAX = UINT32_MAX;
@@ -115,14 +114,19 @@ static bool sub_digit(digit_t* out, digit_t lhs, digit_t rhs, bool borrow) {
     }
 }
 
+// 3 1
+// 2
+
 static size_t
 bigint_sub_into(digit_t* out, const bigint* lhs, const bigint* rhs) {
     bool borrow = false;
     for (size_t i = 0; i < rhs->length; ++i) {
         borrow = sub_digit(&out[i], lhs->digits[i], rhs->digits[i], borrow);
     }
-    assert(!borrow);
-    for (size_t i = rhs->length; i > 0; --i) {
+    if (borrow) {
+        sub_digit(&out[rhs->length], lhs->digits[rhs->length], 0, borrow);
+    }
+    for (size_t i = lhs->length; i > 0; --i) {
         if (out[i - 1] != 0) return i;
     }
     return 0;
@@ -142,7 +146,8 @@ bool bigint_sub(bigint* lhs, const bigint* rhs) {
     return false;
 }
 
-static void digits_mul_by(digit_t* output, const digit_t* lhs, digit_t rhs, size_t len) {
+static void
+digits_mul_by(digit_t* output, const digit_t* lhs, digit_t rhs, size_t len) {
     uint64_t carry = 0;
     for (size_t j = 0; j < len; j++) {
         uint64_t product = rhs * (uint64_t)lhs[j];
@@ -197,13 +202,16 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
 
     if (rhs->length == 1) {
         const uint64_t v = rhs->digits[0];
-        uint64_t r = 0; 
+        uint64_t r = 0;
         size_t j = lhs->length - 1;
         do {
-            lhs->digits[j] = (digit_t)((r * BASE + lhs->digits[j]) / v);
-            r = (r * BASE + lhs->digits[j]) % v;
+            uint64_t u = lhs->digits[j];
+            lhs->digits[j] = (digit_t)((r * BASE + u) / v);
+            r = (r * BASE + u) % v;
         } while (j-- > 0);
-        while (lhs->digits[lhs->length - 1] == 0) --lhs->length;
+        while (lhs->digits[lhs->length - 1] == 0) {
+            --lhs->length;
+        }
         return;
     }
 
@@ -225,18 +233,19 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
     memcpy(v, rhs->digits, n * sizeof(digit_t));
     digits_lsh(n, v, offset);
 
-    digit_t* q = malloc_safe(m * sizeof(digit_t));
-    memset(q, 0, m * sizeof(digit_t));
+    digit_t* q = malloc_safe((m + 1) * sizeof(digit_t));
+    memset(q, 0, (m + 1) * sizeof(digit_t));
 
-    digit_t* qv = malloc_safe(n + 1 * sizeof(digit_t));
+    digit_t* qv = malloc_safe((n + 1) * sizeof(digit_t));
 
     // Initialize j
     size_t j = m;
     do {
         // Calculate q^
-        uint64_t u_head = (((uint64_t)u[n + j] * BASE) + (uint64_t)u[n + j - 1]);
-        uint64_t q_guess = u_head / v[n - 1];
-        uint64_t r_guess = u_head - q_guess * v[n - 1];
+        uint64_t u_head =
+            (((uint64_t)u[n + j] * BASE) + (uint64_t)u[n + j - 1]);
+        digit_t q_guess = u_head / v[n - 1];
+        digit_t r_guess = u_head - q_guess * v[n - 1];
         while (q_guess >= BASE ||
                q_guess * v[n - 2] > BASE * r_guess + u[j + n - 2]) {
             q_guess -= 1;
@@ -246,7 +255,7 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
 
         // Multiply
         memset(qv, 0, (n + 1) * sizeof(digit_t));
-        digits_mul_by(qv, v, (digit_t)q_guess, n + 1);
+        digits_mul_by(qv, v, q_guess, n);
 
         // Test remainder
         int cmp = digit_cmp(u + j, qv, n + 1);
@@ -254,7 +263,7 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
             // Add back
             q_guess -= 1;
             memset(qv, 0, (n + 1) * sizeof(digit_t));
-            digits_mul_by(qv, v, (digit_t)q_guess, n + 1);
+            digits_mul_by(qv, v, q_guess, n);
             assert(digit_cmp(u + j, qv, n + 1) != -1);
         }
 
@@ -275,27 +284,17 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
     free(u);
     free(lhs->digits);
     lhs->digits = q;
-    lhs->capacity = m;
-    lhs->length = m;
-    while (lhs->length > 0 && lhs->digits[lhs->length - 1] == 0) --lhs->length;
+    lhs->capacity = m + 1;
+    lhs->length = m + 1;
+    while (lhs->length > 0 && lhs->digits[lhs->length - 1] == 0) {
+        --lhs->length;
+    }
 }
 
 void bigint_rem(bigint* lhs, const bigint* rhs);
 void bigint_pow(bigint* lhs, const bigint* rhs);
 
 int bigint_cmp(const bigint* lhs, const bigint* rhs) {
-    fprintf(stderr, "LHS %d %d: ", lhs->capacity, lhs->length);
-    for (int i = 0; i < lhs->length; ++i) {
-        fprintf(stderr, "%d ", lhs->digits[i]);
-    }
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "RHS %d %d: ", rhs->capacity, rhs->length);
-    for (int i = 0; i < rhs->length; ++i) {
-        fprintf(stderr, "%d ", rhs->digits[i]);
-    }
-    fprintf(stderr, "\n");
-
     if (lhs->length > rhs->length) return 1;
     if (rhs->length > lhs->length) return -1;
     if (lhs->length == 0) return 0;
