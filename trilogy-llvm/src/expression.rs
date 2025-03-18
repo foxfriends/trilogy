@@ -56,7 +56,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::IfElse(if_else) => self.compile_if_else(if_else, name),
             Value::Assignment(assign) => self.compile_assignment(assign, name),
-            Value::While(..) => todo!(),
+            Value::While(expr) => self.compile_while(expr, name),
             Value::For(..) => todo!(),
             Value::Let(expr) => self.compile_let(expr, name),
             Value::Match(expr) => self.compile_match(expr, name),
@@ -87,6 +87,67 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_end(&self) {
         self.void_call_continuation(self.get_end(""), "");
         self.builder.build_unreachable().unwrap();
+    }
+
+    fn compile_while(&self, expr: &ir::While, name: &str) -> Option<PointerValue<'ctx>> {
+        let continue_function = self.add_continuation("while");
+        let break_function = self.add_continuation("while.done");
+        let brancher = self.end_continuation_point_as_branch();
+
+        let break_continuation = self.capture_current_continuation(break_function, &brancher, "");
+        let break_continuation_point = self.hold_continuation_point();
+
+        let continue_continuation =
+            self.capture_current_continuation(continue_function, &brancher, "");
+        let continue_continuation_point = self.hold_continuation_point();
+
+        let body_closure = self.continue_in_scope_loop(
+            continue_function,
+            break_continuation,
+            continue_continuation,
+        );
+        self.add_branch_end_as_close(&brancher, body_closure);
+        self.begin_next_function(continue_function);
+        self.become_continuation_point(continue_continuation_point);
+        // TODO: within the condition of a loop, `break` keyword should refer to the parent scope's break,
+        // but here it refers to the child.
+        //
+        // Maybe solve this just by disallowing break keyword in loop condition entirely, and require
+        // explicit usage of a bound break variable?
+        let condition = self.compile_expression(&expr.condition, "")?;
+        let bool_value = self.trilogy_boolean_untag(condition, name);
+        self.trilogy_value_destroy(condition);
+
+        let then_block = self
+            .context
+            .append_basic_block(self.get_function(), "while.then");
+        let else_block = self
+            .context
+            .append_basic_block(self.get_function(), "while.else");
+        self.builder
+            .build_conditional_branch(bool_value, then_block, else_block)
+            .unwrap();
+        let brancher = self.end_continuation_point_as_branch();
+        let snapshot = self.snapshot_function_context();
+
+        self.builder.position_at_end(else_block);
+        let break_continuation = self.get_break("break");
+        self.call_continuation(
+            break_continuation,
+            self.allocate_const(self.unit_const(), ""),
+            "",
+        );
+
+        self.builder.position_at_end(then_block);
+        self.restore_function_context(snapshot);
+        self.resume_continuation_point(&brancher);
+        let result = self.compile_expression(&expr.body, "")?;
+        let continue_continuation = self.get_continue("continue");
+        self.call_continue(continue_continuation, result.into(), "");
+
+        self.become_continuation_point(break_continuation_point);
+        self.begin_next_function(break_function);
+        Some(self.get_continuation(name))
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {

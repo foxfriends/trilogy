@@ -491,6 +491,23 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    /// See `continue_in_scope_void`; this does that, but sets a new `break_to` and `continue_to`.
+    #[must_use = "continuation point must be closed"]
+    pub(crate) fn continue_in_scope_loop(
+        &self,
+        function: FunctionValue<'ctx>,
+        _continue_to: PointerValue<'ctx>,
+        _break_to: PointerValue<'ctx>,
+    ) -> InstructionValue<'ctx> {
+        // TODO: implement this properly
+        self.continue_in_scope_inner(
+            function,
+            self.get_yield(""),
+            self.get_cancel(""),
+            self.value_type().const_zero().into(),
+        )
+    }
+
     fn continue_in_scope_inner(
         &self,
         function: FunctionValue<'ctx>,
@@ -579,9 +596,9 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(closure, handler, "");
 
         let continuation_function = self.add_continuation("yield.resume");
-
         let resume_to =
             self.close_current_continuation_as_resume(continuation_function, "yield.resume");
+
         let args = &[
             self.builder
                 .build_load(self.value_type(), return_to, "")
@@ -629,7 +646,6 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let resume_value = self.get_resume("");
         let continuation_function = self.add_continuation("resume.back");
-
         self.call_resume_inner(continuation_function, resume_value, value, name);
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
@@ -691,6 +707,15 @@ impl<'ctx> Codegen<'ctx> {
             .build_indirect_call(self.continuation_type(), resume_continuation, args, name)
             .unwrap();
         self.builder.build_return(None).unwrap();
+    }
+
+    pub(crate) fn call_continue(
+        &self,
+        _continue_function: PointerValue<'ctx>,
+        _value: BasicMetadataValueEnum<'ctx>,
+        _name: &str,
+    ) -> PointerValue<'ctx> {
+        todo!()
     }
 
     /// Calls the `main` function as the Trilogy program entrypoint.

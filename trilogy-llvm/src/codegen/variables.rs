@@ -105,9 +105,24 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    /// Gets the current `break` continuation, valid only when in a loop.
+    pub(crate) fn get_break(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
+        container
+    }
+
+    /// Gets the current `continue` continuation, valid only when in a loop.
+    pub(crate) fn get_continue(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[6]);
+        container
+    }
+
     /// When in a continuation function, gets the value that was yielded to the continuation.
     pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
+        // TODO: upgrade number
         self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
         container
     }
