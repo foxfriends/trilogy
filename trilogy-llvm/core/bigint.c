@@ -1,6 +1,7 @@
 #include "bigint.h"
 #include "internal.h"
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 
 const bigint bigint_zero = {.capacity = 0, .length = 0, .digits = NULL};
@@ -194,6 +195,17 @@ static void digits_rsh(size_t length, digit_t* digits, unsigned int offset) {
     }
 }
 
+static digit_t digits_div(digit_t* out, digit_t* lhs, digit_t rhs, size_t len) {
+    uint64_t r = 0;
+    size_t j = len - 1;
+    do {
+        uint64_t u = lhs[j];
+        out[j] = (digit_t)((r * BASE + u) / rhs);
+        r = (r * BASE + u) % rhs;
+    } while (j-- > 0);
+    return r;
+}
+
 void bigint_div(bigint* lhs, const bigint* rhs) {
     // REF: The Art of Computer Programming, Volume 2, Section 4.3.1, Algorithm
     // D (page 272)
@@ -201,15 +213,8 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
     assert(rhs->length != 0);
 
     if (rhs->length == 1) {
-        const uint64_t v = rhs->digits[0];
-        uint64_t r = 0;
-        size_t j = lhs->length - 1;
-        do {
-            uint64_t u = lhs->digits[j];
-            lhs->digits[j] = (digit_t)((r * BASE + u) / v);
-            r = (r * BASE + u) % v;
-        } while (j-- > 0);
-        while (lhs->digits[lhs->length - 1] == 0) {
+        digits_div(lhs->digits, lhs->digits, rhs->digits[0], lhs->length);
+        while (lhs->length > 0 && lhs->digits[lhs->length - 1] == 0) {
             --lhs->length;
         }
         return;
@@ -309,9 +314,40 @@ bool bigint_is_zero(const bigint* val) { return val->length == 0; }
 
 char* bigint_to_string(const bigint* val) {
     if (val->length == 0) {
-        return "0";
+        char* str = malloc_safe(2 * sizeof(char));
+        str[0] = '0';
+        str[1] = '\0';
+        return str;
     }
-    return "(>0)";
+    if (val->length == 1) {
+        int len = snprintf(NULL, 0, "%u", val->digits[0]);
+        char* str = malloc_safe((len + 1) * sizeof(char) + 1);
+        snprintf(str, len + 1, "%u", val->digits[0]);
+        return str;
+    }
+
+    bigint n = bigint_zero;
+    bigint_clone(&n, val);
+
+    size_t len = 0;
+    char* str = malloc_safe(20 * val->length * sizeof(char));
+
+    while (!bigint_is_zero(&n)) {
+        digit_t digit = digits_div(n.digits, n.digits, 10, n.length);
+        str[len++] = '0' + digit;
+        while (n.length > 0 && n.digits[n.length - 1] == 0) {
+            --n.length;
+        }
+    }
+    str[len] = '\0';
+    bigint_destroy(&n);
+    str = realloc_safe(str, (len + 1) * sizeof(char));
+    for (size_t i = 0; i < len / 2; ++i) {
+        char t = str[i];
+        str[i] = str[len - i - 1];
+        str[len - i - 1] = t;
+    }
+    return str;
 }
 
 uint64_t bigint_to_u64(const bigint* val) {

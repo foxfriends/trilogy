@@ -273,12 +273,9 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
     }
     case TAG_NUMBER: {
         trilogy_number_value* number = trilogy_number_assume(val);
-        uint64_t i = trilogy_number_to_u64(number);
-        int len = snprintf(NULL, (size_t)0, "%ld", i);
-        char* buf = malloc_safe(sizeof(char) * len + 1);
-        snprintf(buf, (size_t)len + 1, "%ld", i);
-        trilogy_string_init_from_c(rv, buf);
-        free(buf);
+        char* str = trilogy_number_to_string(number);
+        trilogy_string_init_from_c(rv, str);
+        free(str);
         break;
     }
     case TAG_STRING:

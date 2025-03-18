@@ -48,3 +48,5 @@ void trilogy_number_div(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 );
+
+char* trilogy_number_to_string(const trilogy_number_value* tv);

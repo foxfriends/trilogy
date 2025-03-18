@@ -126,3 +126,8 @@ void trilogy_number_div(
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
     bigint_div(&lhs_mut->re, &rhs->re);
 }
+
+char* trilogy_number_to_string(const trilogy_number_value* lhs) {
+    // TODO: this is intentionally not supporting negative at this time
+    return bigint_to_string(&lhs->re);
+}
