@@ -187,6 +187,8 @@ typedef struct trilogy_callable_value {
     struct trilogy_callable_value* return_to;
     struct trilogy_callable_value* yield_to;
     struct trilogy_callable_value* cancel_to;
+    struct trilogy_callable_value* break_to;
+    struct trilogy_callable_value* continue_to;
     /**
      * Context captured from the closure of this callable. This is an array of
      * trilogy values (all of which would should be references?). The array is

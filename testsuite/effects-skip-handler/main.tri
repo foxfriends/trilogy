@@ -1,0 +1,15 @@
+proc inner!() {
+  yield 'done
+  return 4
+}
+
+proc outer!() {
+  return with inner!()
+    when 'done then { return 3 }
+    else yield
+}
+
+proc main!() {
+  let x = outer!()
+  assert x == 3
+}

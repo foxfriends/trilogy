@@ -41,6 +41,8 @@ trilogy_callable_init_fn(trilogy_value* t, trilogy_value* closure, void* p) {
     callable->return_to = NULL;
     callable->yield_to = NULL;
     callable->cancel_to = NULL;
+    callable->break_to = NULL;
+    callable->continue_to = NULL;
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -60,6 +62,8 @@ trilogy_callable_value* trilogy_callable_init_do(
     callable->return_to = NULL;
     callable->yield_to = NULL;
     callable->cancel_to = NULL;
+    callable->break_to = NULL;
+    callable->continue_to = NULL;
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -79,6 +83,8 @@ trilogy_callable_value* trilogy_callable_init_qy(
     callable->return_to = NULL;
     callable->yield_to = NULL;
     callable->cancel_to = NULL;
+    callable->break_to = NULL;
+    callable->continue_to = NULL;
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -102,7 +108,8 @@ trilogy_callable_init_rule(trilogy_value* t, uint32_t arity, void* p) {
 
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* cancel_to, trilogy_value* closure, void* p
+    trilogy_value* cancel_to, trilogy_value* break_to,
+    trilogy_value* continue_to, trilogy_value* closure, void* p
 ) {
     assert(closure != NO_CLOSURE);
     assert(closure->tag == TAG_ARRAY);
@@ -117,6 +124,10 @@ trilogy_callable_value* trilogy_callable_init_cont(
         yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
     callable->cancel_to =
         cancel_to == NULL ? NULL : trilogy_callable_assume(cancel_to);
+    callable->break_to =
+        break_to == NULL ? NULL : trilogy_callable_assume(break_to);
+    callable->continue_to =
+        continue_to == NULL ? NULL : trilogy_callable_assume(continue_to);
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
@@ -126,10 +137,11 @@ trilogy_callable_value* trilogy_callable_init_cont(
 
 trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* cancel_to, trilogy_value* closure, void* p
+    trilogy_value* cancel_to, trilogy_value* break_to,
+    trilogy_value* continue_to, trilogy_value* closure, void* p
 ) {
     trilogy_callable_value* callable = trilogy_callable_init_cont(
-        t, return_to, yield_to, cancel_to, closure, p
+        t, return_to, yield_to, cancel_to, break_to, continue_to, closure, p
     );
     callable->tag = CALLABLE_RESUME;
     return callable;
@@ -149,6 +161,8 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         if (val->return_to != NULL) trilogy_callable_destroy(val->return_to);
         if (val->yield_to != NULL) trilogy_callable_destroy(val->yield_to);
         if (val->cancel_to != NULL) trilogy_callable_destroy(val->cancel_to);
+        if (val->break_to != NULL) trilogy_callable_destroy(val->break_to);
+        if (val->continue_to != NULL) trilogy_callable_destroy(val->continue_to);
         free(val);
         TRACE("\tDeallocated!\n");
     }
@@ -182,18 +196,36 @@ void trilogy_callable_cancel_to_into(
     trilogy_callable_clone_into(val, cal->cancel_to);
 }
 
+void trilogy_callable_break_to_into(
+    trilogy_value* val, trilogy_callable_value* cal
+) {
+    if (cal->break_to == NULL) return;
+    trilogy_callable_clone_into(val, cal->break_to);
+}
+
+void trilogy_callable_continue_to_into(
+    trilogy_value* val, trilogy_callable_value* cal
+) {
+    if (cal->continue_to == NULL) return;
+    trilogy_callable_clone_into(val, cal->continue_to);
+}
+
 void trilogy_callable_yield_to_shift(
     trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
 ) {
     assert(cal->yield_to != NULL);
     trilogy_value return_to = trilogy_undefined;
     trilogy_value yield_to = trilogy_undefined;
+    trilogy_value break_to = trilogy_undefined;
+    trilogy_value continue_to = trilogy_undefined;
     trilogy_value closure = trilogy_undefined;
     trilogy_callable_return_to_into(&return_to, cal->yield_to);
     trilogy_callable_yield_to_into(&yield_to, cal->yield_to);
+    trilogy_callable_break_to_into(&break_to, cal->yield_to);
+    trilogy_callable_continue_to_into(&continue_to, cal->yield_to);
     trilogy_callable_closure_into(&closure, cal->yield_to);
     trilogy_callable_init_cont(
-        val, &return_to, &yield_to, cancel_to, &closure, cal->yield_to->function
+        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to, &closure, cal->yield_to->function
     );
 }
 
@@ -203,12 +235,16 @@ void trilogy_callable_return_to_shift(
     assert(cal->return_to != NULL);
     trilogy_value return_to = trilogy_undefined;
     trilogy_value yield_to = trilogy_undefined;
+    trilogy_value break_to = trilogy_undefined;
+    trilogy_value continue_to = trilogy_undefined;
     trilogy_value closure = trilogy_undefined;
     trilogy_callable_return_to_into(&return_to, cal->return_to);
     trilogy_callable_yield_to_into(&yield_to, cal->return_to);
+    trilogy_callable_break_to_into(&break_to, cal->return_to);
+    trilogy_callable_continue_to_into(&continue_to, cal->return_to);
     trilogy_callable_closure_into(&closure, cal->return_to);
     trilogy_callable_init_cont(
-        val, &return_to, &yield_to, cancel_to, &closure,
+        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to, &closure,
         cal->return_to->function
     );
 }

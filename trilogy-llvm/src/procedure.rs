@@ -8,6 +8,8 @@ use source_span::Span;
 use trilogy_ir::ir;
 
 const MAIN_NAME: &str = "trilogy:::main";
+// NOTE: params start at 7, due to return, yield, end, cancel, resume, break, and continue
+const PROCEDURE_IMPLICIT_PARAMS: usize = 7;
 
 impl<'ctx> Codegen<'ctx> {
     fn write_accessor(
@@ -50,7 +52,7 @@ impl<'ctx> Codegen<'ctx> {
             self.function_params
                 .borrow()
                 .iter()
-                .skip(5)
+                .skip(PROCEDURE_IMPLICIT_PARAMS)
                 .map(|val| BasicMetadataValueEnum::<'ctx>::from(*val)),
         );
         self.builder
@@ -126,8 +128,7 @@ impl<'ctx> Codegen<'ctx> {
         'body: {
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
-                // NOTE: params start at 5, due to return, yield, end, cancel, and resume
-                let value = self.function_params.borrow()[n + 5];
+                let value = self.function_params.borrow()[n + PROCEDURE_IMPLICIT_PARAMS];
                 if self
                     .compile_pattern_match(param, value, self.get_end(""))
                     .is_none()

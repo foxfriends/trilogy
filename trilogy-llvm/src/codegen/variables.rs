@@ -122,8 +122,7 @@ impl<'ctx> Codegen<'ctx> {
     /// When in a continuation function, gets the value that was yielded to the continuation.
     pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        // TODO: upgrade number
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[7]);
         container
     }
 

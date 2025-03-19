@@ -156,7 +156,9 @@ impl<'ctx> Codegen<'ctx> {
         let brancher = self.end_continuation_point_as_branch();
 
         let return_to = self.get_return("");
-        let yield_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
         let cancel_to_function = self.add_continuation("when.cancel");
         let cancel_to =
             self.capture_current_continuation(cancel_to_function, &brancher, "when.cancel");
@@ -176,6 +178,8 @@ impl<'ctx> Codegen<'ctx> {
             handler,
             return_to,
             yield_to,
+            break_to,
+            continue_to,
             cancel_to_clone,
             closure,
             handler_function,
@@ -313,6 +317,8 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Return => self.get_return(name),
             Builtin::Cancel => self.get_cancel(name),
             Builtin::Resume => self.get_resume(name),
+            Builtin::Break => self.get_break(name),
+            Builtin::Continue => self.get_continue(name),
             _ => todo!("builtin: {builtin:?}"),
         }
     }
@@ -543,6 +549,20 @@ impl<'ctx> Codegen<'ctx> {
                     .build_load(self.value_type(), value, "")
                     .unwrap();
                 Some(self.call_resume(value.into(), name))
+            }
+            Builtin::Break => {
+                let result = self.compile_expression(expression, name)?;
+                let break_cont = self.get_break("");
+                self.call_continuation(break_cont, result, "");
+                self.builder.build_unreachable().unwrap();
+                None
+            }
+            Builtin::Continue => {
+                let result = self.compile_expression(expression, name)?;
+                let continue_cont = self.get_continue("");
+                self.call_continue(continue_cont, result.into(), "");
+                self.builder.build_unreachable().unwrap();
+                None
             }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, name)?;
