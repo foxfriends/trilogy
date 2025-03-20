@@ -1,0 +1,12 @@
+module debug at "trilogy:debug"
+
+proc main!() {
+  let mut i = 0
+  while true {
+    i += 1
+    debug::dbg!(i)
+    if i < 5 { continue unit }
+    if i > 3 { break unit }
+  }
+  assert i == 5
+}

@@ -1,0 +1,23 @@
+module debug at "trilogy:debug"
+
+proc the_loop!() {
+  let mut i = 0
+  while i < 3 {
+    let 'b(b) = yield 'a(i)
+    debug::dbg!('loop(b))
+    i += 1
+  }
+  return 'b(0)
+}
+
+proc main!() {
+  let mut x = 0
+  let result = with the_loop!()
+    when 'a(a) then {
+      let 'b(b) = resume 'b(a)
+      debug::dbg!('handler(b))
+      cancel 'b(b + 1)
+    }
+    else yield
+  assert result == 'b(3)
+}

@@ -1,0 +1,16 @@
+module debug at "trilogy:debug"
+
+proc main!() {
+  let mut i = 0
+  while i < 5 {
+    let break_outer = (break)
+    let mut j = 0
+    while j < 5 {
+      if j == 2 && i == 2 { break_outer unit }
+      j += 1
+      debug::dbg!(i:j)
+    }
+    i += 1
+  }
+  assert i == 2
+}

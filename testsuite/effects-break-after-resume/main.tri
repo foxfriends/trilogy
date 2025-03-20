@@ -1,0 +1,23 @@
+module debug at "trilogy:debug"
+
+proc thing!(a) {
+  let result = yield 'a(a)
+  debug::dbg!('loop(result))
+  assert result == a
+  return 'b(a)
+}
+
+proc main!() {
+  let mut x = 0
+  while x < 5 {
+    with thing!(x)
+      when 'a(a) if a > 2 then { break unit }
+      when 'a(a) then {
+        let 'b(b) = resume a
+        debug::dbg!('handler(b))
+      }
+      else yield
+    x += 1
+  }
+  assert x == 2
+}
