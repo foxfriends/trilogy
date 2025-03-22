@@ -31,8 +31,8 @@ memcheck:
     ./test.sh -r -m
 
 [working-directory: "testsuite"]
-test-tri:
-    ./test.sh -r
+test-tri flags="-r":
+    ./test.sh {{flags}}
 
 run file="main.tri":
     cargo run -- compile {{file}} > main.ll
