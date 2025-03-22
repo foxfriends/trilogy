@@ -94,11 +94,12 @@ impl<'ctx> Codegen<'ctx> {
         let break_function = self.add_continuation("while.done");
         let brancher = self.end_continuation_point_as_branch();
 
-        let break_continuation = self.capture_current_continuation(break_function, &brancher, "");
+        let break_continuation =
+            self.capture_current_continuation(break_function, &brancher, "while.end");
         let break_continuation_point = self.hold_continuation_point();
 
         let continue_continuation =
-            self.capture_current_continuation(continue_function, &brancher, "");
+            self.capture_current_continuation(continue_function, &brancher, "while.start");
         let continue_continuation_point = self.hold_continuation_point();
 
         let body_closure = self.continue_in_scope_loop(
@@ -114,7 +115,7 @@ impl<'ctx> Codegen<'ctx> {
         //
         // Maybe solve this just by disallowing break keyword in loop condition entirely, and require
         // explicit usage of a bound break variable?
-        let condition = self.compile_expression(&expr.condition, "")?;
+        let condition = self.compile_expression(&expr.condition, "while.condition")?;
         let bool_value = self.trilogy_boolean_untag(condition, name);
         self.trilogy_value_destroy(condition);
 
@@ -137,11 +138,12 @@ impl<'ctx> Codegen<'ctx> {
             self.allocate_const(self.unit_const(), ""),
             "",
         );
+        self.builder.build_unreachable().unwrap();
 
         self.builder.position_at_end(then_block);
         self.restore_function_context(snapshot);
         self.resume_continuation_point(&brancher);
-        let result = self.compile_expression(&expr.body, "")?;
+        let result = self.compile_expression(&expr.body, name)?;
         let continue_continuation = self.get_continue("continue");
         self.call_continue(continue_continuation, result.into(), "");
 
