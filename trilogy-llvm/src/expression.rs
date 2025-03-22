@@ -178,9 +178,9 @@ impl<'ctx> Codegen<'ctx> {
             handler,
             return_to,
             yield_to,
+            cancel_to_clone,
             break_to,
             continue_to,
-            cancel_to_clone,
             closure,
             handler_function,
         );

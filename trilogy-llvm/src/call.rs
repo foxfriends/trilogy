@@ -680,6 +680,7 @@ impl<'ctx> Codegen<'ctx> {
                 .into(),
         ];
         let handler_continuation = self.trilogy_continuation_untag(handler, "");
+        self.trilogy_value_destroy(handler_value);
         self.builder
             .build_indirect_call(self.continuation_type(), handler_continuation, args, name)
             .unwrap();
@@ -722,8 +723,8 @@ impl<'ctx> Codegen<'ctx> {
         let cancel_to = self.close_current_continuation(continuation_function, "when.cancel");
         let return_to_cancel = self.allocate_value("");
         let yield_to_cancel = self.allocate_value("");
-        self.trilogy_callable_break_to_into(break_to, cancel_to);
-        self.trilogy_callable_continue_to_into(continue_to, cancel_to);
+        self.trilogy_callable_break_to_into(break_to, resume);
+        self.trilogy_callable_continue_to_into(continue_to, resume);
         self.trilogy_value_clone_into(return_to_cancel, cancel_to);
         self.trilogy_value_clone_into(yield_to_cancel, cancel_to);
         self.trilogy_callable_return_to_shift(return_to, return_to_cancel, resume);
@@ -765,6 +766,7 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap()
                 .into(),
         ];
+        self.trilogy_value_destroy(resume_value);
         self.builder
             .build_indirect_call(self.continuation_type(), resume_continuation, args, name)
             .unwrap();
@@ -831,6 +833,7 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap()
                 .into(),
         ];
+        self.trilogy_value_destroy(continue_value);
         self.builder
             .build_indirect_call(self.continuation_type(), continue_continuation, args, name)
             .unwrap();
