@@ -551,7 +551,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Continue => {
                 let result = self.compile_expression(expression, name)?;
                 let continue_cont = self.get_continue("");
-                self.call_continue(continue_cont, result.into(), "");
+                self.call_continue(continue_cont, result, "");
                 self.builder.build_unreachable().unwrap();
                 None
             }

@@ -825,7 +825,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn call_continue(
         &self,
         continue_value: PointerValue<'ctx>,
-        value: BasicMetadataValueEnum<'ctx>,
+        value: PointerValue<'ctx>,
         name: &str,
     ) {
         let continue_callable = self.trilogy_callable_untag(continue_value, "");
@@ -874,7 +874,10 @@ impl<'ctx> Codegen<'ctx> {
                 .build_load(self.value_type(), continue_value, "")
                 .unwrap()
                 .into(),
-            value,
+            self.builder
+                .build_load(self.value_type(), value, "")
+                .unwrap()
+                .into(),
             self.builder
                 .build_load(self.value_type(), closure, "")
                 .unwrap()
