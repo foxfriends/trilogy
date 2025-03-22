@@ -880,10 +880,15 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap()
                 .into(),
         ];
-        self.builder
+        let call = self
+            .builder
             .build_indirect_call(self.continuation_type(), continue_continuation, args, name)
+            .unwrap()
+            .try_as_basic_value()
+            .either(|l| l.as_instruction_value(), Some)
             .unwrap();
         self.builder.build_return(None).unwrap();
+        self.end_continuation_point_as_clean(call);
     }
 
     /// Calls the `main` function as the Trilogy program entrypoint.
