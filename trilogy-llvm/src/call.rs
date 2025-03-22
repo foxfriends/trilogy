@@ -47,7 +47,13 @@ impl<'ctx> Codegen<'ctx> {
         branch: &Brancher<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        self.construct_current_continuation(continuation_function, Some(branch), false, name)
+        self.construct_current_continuation(
+            continuation_function,
+            Some(branch),
+            self.get_break(""),
+            false,
+            name,
+        )
     }
 
     /// Constructs a TrilogyValue that represents the current continuation.
@@ -59,10 +65,16 @@ impl<'ctx> Codegen<'ctx> {
         continuation_function: FunctionValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        self.construct_current_continuation(continuation_function, None, false, name)
+        self.construct_current_continuation(
+            continuation_function,
+            None,
+            self.get_break(""),
+            false,
+            name,
+        )
     }
 
-    /// Constructs a TrilogyValue that represents the current continuation.
+    /// Constructs a TrilogyValue that represents the current continuation, marked to be called using "resume" calling convention.
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,
     /// so may not be referenced.
@@ -71,7 +83,26 @@ impl<'ctx> Codegen<'ctx> {
         continuation_function: FunctionValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        self.construct_current_continuation(continuation_function, None, true, name)
+        self.construct_current_continuation(
+            continuation_function,
+            None,
+            self.get_break(""),
+            true,
+            name,
+        )
+    }
+
+    /// Constructs a TrilogyValue that represents the current continuation, marked to be called using "continue" calling convention.
+    ///
+    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
+    /// so may not be referenced.
+    pub(crate) fn close_current_continuation_as_continue(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        break_to: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        self.construct_current_continuation(continuation_function, None, break_to, true, name)
     }
 
     /// Constructs a TrilogyValue that represents the current continuation.
@@ -82,6 +113,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         continuation_function: FunctionValue<'ctx>,
         branch: Option<&Brancher<'ctx>>,
+        break_to: PointerValue<'ctx>,
         as_resume: bool,
         name: &str,
     ) -> PointerValue<'ctx> {
@@ -89,7 +121,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let cancel_to = self.get_cancel("");
-        let break_to = self.get_break("");
         let continue_to = self.get_continue("");
 
         self.bind_temporary(continuation);
@@ -536,7 +567,8 @@ impl<'ctx> Codegen<'ctx> {
         let cancel_to = self.get_cancel("");
         let resume_to = self.get_resume("");
 
-        let continue_to = self.close_current_continuation(continue_function, "while.start");
+        let continue_to =
+            self.close_current_continuation_as_continue(continue_function, break_to, "while.start");
         let continue_to_callable = self.trilogy_callable_assume(continue_to, "");
         let closure = self.get_callable_closure(continue_to_callable);
 
