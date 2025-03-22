@@ -200,7 +200,15 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + 6);
-        args.extend([current_continuation, yield_to, end_to, cancel_to, resume_to, break_to, continue_to]);
+        args.extend([
+            current_continuation,
+            yield_to,
+            end_to,
+            cancel_to,
+            resume_to,
+            break_to,
+            continue_to,
+        ]);
         args.extend_from_slice(arguments);
 
         let has_closure = self.is_closure(bound_closure);
@@ -517,23 +525,64 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
-    /// See `continue_in_scope_void`; this does that, but sets a new `break_to` and `continue_to`.
-    #[must_use = "continuation point must be closed"]
     pub(crate) fn continue_in_scope_loop(
         &self,
-        function: FunctionValue<'ctx>,
+        continue_function: FunctionValue<'ctx>,
         break_to: PointerValue<'ctx>,
-        continue_to: PointerValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        // TODO: implement this properly
-        self.continue_in_scope_inner(
-            function,
-            self.get_yield(""),
-            self.get_cancel(""),
-            break_to,
-            continue_to,
+    ) {
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        let end_to = self.get_end("");
+        let cancel_to = self.get_cancel("");
+        let resume_to = self.get_resume("");
+
+        let continue_to = self.close_current_continuation(continue_function, "while.start");
+        let continue_to_callable = self.trilogy_callable_assume(continue_to, "");
+        let closure = self.get_callable_closure(continue_to_callable);
+
+        let args = &[
+            self.builder
+                .build_load(self.value_type(), return_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), yield_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), end_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), cancel_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), resume_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), break_to, "")
+                .unwrap()
+                .into(),
+            self.builder
+                .build_load(self.value_type(), continue_to, "")
+                .unwrap()
+                .into(),
             self.value_type().const_zero().into(),
-        )
+            self.builder
+                .build_load(self.value_type(), closure, "")
+                .unwrap()
+                .into(),
+        ];
+
+        let call = self
+            .builder
+            .build_direct_call(continue_function, args, "")
+            .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        self.builder.build_return(None).unwrap();
     }
 
     fn continue_in_scope_inner(
@@ -789,13 +838,11 @@ impl<'ctx> Codegen<'ctx> {
         let yield_to = self.allocate_value("");
         let cancel_to = self.allocate_value("");
         let break_to = self.allocate_value("");
-        let continue_to = self.allocate_value("");
         let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, continue_callable);
         self.trilogy_callable_yield_to_into(yield_to, continue_callable);
         self.trilogy_callable_cancel_to_into(cancel_to, continue_callable);
         self.trilogy_callable_break_to_into(break_to, continue_callable);
-        self.trilogy_value_clone_into(continue_to, continue_value);
         self.trilogy_callable_closure_into(closure, continue_callable, "");
 
         let args = &[
@@ -824,7 +871,7 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap()
                 .into(),
             self.builder
-                .build_load(self.value_type(), continue_to, "")
+                .build_load(self.value_type(), continue_value, "")
                 .unwrap()
                 .into(),
             value,
@@ -833,7 +880,6 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap()
                 .into(),
         ];
-        self.trilogy_value_destroy(continue_value);
         self.builder
             .build_indirect_call(self.continuation_type(), continue_continuation, args, name)
             .unwrap();

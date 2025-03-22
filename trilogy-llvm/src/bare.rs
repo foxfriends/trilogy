@@ -443,6 +443,27 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    /// Assumes a callable value. The returned PointerValue points to a `trilogy_callable_value`.
+    pub(crate) fn trilogy_callable_assume(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_callable_assume",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
     /// Untags a callable value. The returned PointerValue points to a `trilogy_callable_value`.
     pub(crate) fn trilogy_continuation_is_resume(
         &self,

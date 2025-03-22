@@ -97,19 +97,8 @@ impl<'ctx> Codegen<'ctx> {
         let break_continuation =
             self.capture_current_continuation(break_function, &brancher, "while.end");
         let break_continuation_point = self.hold_continuation_point();
-
-        let continue_continuation =
-            self.capture_current_continuation(continue_function, &brancher, "while.start");
-        let continue_continuation_point = self.hold_continuation_point();
-
-        let body_closure = self.continue_in_scope_loop(
-            continue_function,
-            break_continuation,
-            continue_continuation,
-        );
-        self.add_branch_end_as_close(&brancher, body_closure);
+        self.continue_in_scope_loop(continue_function, break_continuation);
         self.begin_next_function(continue_function);
-        self.become_continuation_point(continue_continuation_point);
         // TODO: within the condition of a loop, `break` keyword should refer to the parent scope's break,
         // but here it refers to the child.
         //
