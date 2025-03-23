@@ -122,12 +122,10 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(else_block);
         let break_continuation = self.get_break("break");
-        self.call_continuation(
+        self.call_known_continuation(
             break_continuation,
             self.allocate_const(self.unit_const(), ""),
-            "",
         );
-        self.builder.build_unreachable().unwrap();
 
         self.builder.position_at_end(then_block);
         self.restore_function_context(snapshot);
@@ -183,7 +181,7 @@ impl<'ctx> Codegen<'ctx> {
         let result = self.compile_expression(&handled.expression, name)?;
 
         let cancel_to = self.get_cancel("when.runoff");
-        self.call_continuation(cancel_to, result, "");
+        self.call_known_continuation(cancel_to, result);
         self.builder.build_unreachable().unwrap();
 
         self.become_continuation_point(handler_continuation_point);
@@ -492,8 +490,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Return => {
                 let result = self.compile_expression(expression, name)?;
                 let return_cont = self.get_return("");
-                self.call_continuation(return_cont, result, "");
-                self.builder.build_unreachable().unwrap();
+                self.call_known_continuation(return_cont, result);
                 None
             }
             Builtin::Exit => {
@@ -529,8 +526,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Cancel => {
                 let value = self.compile_expression(expression, name)?;
                 let cancel = self.get_cancel("");
-                self.call_continuation(cancel, value, "");
-                self.builder.build_unreachable().unwrap();
+                self.call_known_continuation(cancel, value);
                 None
             }
             Builtin::Resume => {
@@ -544,8 +540,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Break => {
                 let result = self.compile_expression(expression, name)?;
                 let break_cont = self.get_break("");
-                self.call_continuation(break_cont, result, "");
-                self.builder.build_unreachable().unwrap();
+                self.call_known_continuation(break_cont, result);
                 None
             }
             Builtin::Continue => {
