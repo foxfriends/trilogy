@@ -194,6 +194,8 @@ impl Builtin {
                 | Builtin::Return
                 | Builtin::Cancel
                 | Builtin::Resume
+                | Builtin::Break
+                | Builtin::Continue
                 | Builtin::Exit
                 | Builtin::ToString,
         )
