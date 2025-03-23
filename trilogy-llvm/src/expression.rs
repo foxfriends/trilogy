@@ -130,9 +130,10 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(then_block);
         self.restore_function_context(snapshot);
         self.resume_continuation_point(&brancher);
-        let result = self.compile_expression(&expr.body, name)?;
-        let continue_continuation = self.get_continue("continue");
-        self.call_continue(continue_continuation, result.into(), "");
+        if let Some(result) = self.compile_expression(&expr.body, name) {
+            let continue_continuation = self.get_continue("continue");
+            self.call_continue(continue_continuation, result.into(), "");
+        }
 
         self.become_continuation_point(break_continuation_point);
         self.begin_next_function(break_function);
