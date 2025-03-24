@@ -1,0 +1,16 @@
+proc a!() { return false }
+proc b!() { return true }
+
+proc main!() {
+  let x = false
+  assert "first" as true || false
+  assert "second" as false || true
+  assert "both" as true || true
+  assert "neither" as !(false || false)
+  assert "shortcircuit" as true || end
+  assert "with call" as (a!() || b!())
+  assert "captured" as x || true
+  let y = false || x
+  let z = true || x
+  assert "assigned" as y || z
+}

@@ -741,6 +741,8 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::Or => self.compile_or(lhs, rhs, name),
+            Builtin::And => self.compile_and(lhs, rhs, name),
             _ => todo!("{builtin:?}"),
         }
     }
@@ -794,6 +796,108 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
         }
+    }
+
+    fn compile_or(
+        &self,
+        lhs: &ir::Expression,
+        rhs: &ir::Expression,
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
+        // Compile the condition first, in case it branches
+        let lhs_value = self.compile_expression(lhs, "or.lhs")?;
+
+        // Then save the current context: this is the place from which we are branching.
+        let original_function_scope = self.get_function();
+        let snapshot = self.snapshot_function_context();
+        let if_true_block = self
+            .context
+            .append_basic_block(original_function_scope, "or.true");
+        let if_false_block = self
+            .context
+            .append_basic_block(original_function_scope, "or.false");
+
+        let if_false_function = self.add_continuation("or.false");
+        let merge_to_function = self.add_continuation("or.cont");
+        let mut merger = Merger::default();
+
+        let cond_bool = self.trilogy_boolean_untag(lhs_value, "");
+        self.builder
+            .build_conditional_branch(cond_bool, if_true_block, if_false_block)
+            .unwrap();
+        let brancher = self.end_continuation_point_as_branch();
+
+        self.builder.position_at_end(if_true_block);
+        let if_true_closure = self.continue_in_scope(merge_to_function, lhs_value);
+        self.end_continuation_point_as_merge(&mut merger, if_true_closure);
+
+        self.builder.position_at_end(if_false_block);
+        self.restore_function_context(snapshot);
+        let if_false_closure = self.void_continue_in_scope(if_false_function);
+        self.add_branch_end_as_close(&brancher, if_false_closure);
+
+        self.begin_next_function(if_false_function);
+        let when_false = self.compile_expression(rhs, name);
+
+        if let Some(value) = when_false {
+            let continue_in_scope = self.continue_in_scope(merge_to_function, value);
+            self.end_continuation_point_as_merge(&mut merger, continue_in_scope);
+        }
+
+        self.merge_branch(brancher, merger);
+        self.begin_next_function(merge_to_function);
+        Some(self.get_continuation(name))
+    }
+
+    fn compile_and(
+        &self,
+        lhs: &ir::Expression,
+        rhs: &ir::Expression,
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
+        // Compile the condition first, in case it branches
+        let lhs_value = self.compile_expression(lhs, "and.lhs")?;
+
+        // Then save the current context: this is the place from which we are branching.
+        let original_function_scope = self.get_function();
+        let snapshot = self.snapshot_function_context();
+        let if_true_block = self
+            .context
+            .append_basic_block(original_function_scope, "and.true");
+        let if_false_block = self
+            .context
+            .append_basic_block(original_function_scope, "and.false");
+
+        let if_true_function = self.add_continuation("and.true");
+        let merge_to_function = self.add_continuation("and.cont");
+        let mut merger = Merger::default();
+
+        let cond_bool = self.trilogy_boolean_untag(lhs_value, "");
+        self.builder
+            .build_conditional_branch(cond_bool, if_true_block, if_false_block)
+            .unwrap();
+        let brancher = self.end_continuation_point_as_branch();
+
+        self.builder.position_at_end(if_false_block);
+        let if_false_closure = self.continue_in_scope(merge_to_function, lhs_value);
+        self.end_continuation_point_as_merge(&mut merger, if_false_closure);
+
+        self.builder.position_at_end(if_true_block);
+        self.restore_function_context(snapshot);
+        let if_true_closure = self.void_continue_in_scope(if_true_function);
+        self.add_branch_end_as_close(&brancher, if_true_closure);
+
+        self.begin_next_function(if_true_function);
+        let when_true = self.compile_expression(rhs, name);
+
+        if let Some(value) = when_true {
+            let continue_in_scope = self.continue_in_scope(merge_to_function, value);
+            self.end_continuation_point_as_merge(&mut merger, continue_in_scope);
+        }
+
+        self.merge_branch(brancher, merger);
+        self.begin_next_function(merge_to_function);
+        Some(self.get_continuation(name))
     }
 
     fn compile_if_else(&self, if_else: &ir::IfElse, name: &str) -> Option<PointerValue<'ctx>> {

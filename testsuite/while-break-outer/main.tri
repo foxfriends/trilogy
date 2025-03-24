@@ -7,8 +7,8 @@ proc main!() {
     let mut j = 0
     while j < 5 {
       if j == 2 && i == 2 { break_outer unit }
-      j += 1
       debug::dbg!(i:j)
+      j += 1
     }
     i += 1
   }

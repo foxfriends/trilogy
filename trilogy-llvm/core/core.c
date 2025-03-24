@@ -163,7 +163,9 @@ void gte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_boolean_init(rv, cmp == 1 || cmp == 0);
 }
 
-void not(trilogy_value * rv, trilogy_value* v) { trilogy_boolean_not(rv, v); }
+void not(trilogy_value* rv, trilogy_value* v) { trilogy_boolean_not(rv, v); }
+void and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) { trilogy_boolean_and(rv, lhs, rhs); }
+void or(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) { trilogy_boolean_or(rv, lhs, rhs); }
 
 void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
     switch (c->tag) {

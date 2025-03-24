@@ -69,6 +69,28 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, f, &[val.into()]);
     }
 
+    #[expect(dead_code)]
+    pub(crate) fn and(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("or", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    #[expect(dead_code)]
+    pub(crate) fn or(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("or", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
     pub(crate) fn member_access(
         &self,
         target: PointerValue<'ctx>,
