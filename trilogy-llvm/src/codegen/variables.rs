@@ -126,6 +126,33 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    fn get_closure_array(&self, builder: &Builder<'ctx>) -> PointerValue<'ctx> {
+        match self.closure_array.get() {
+            Some(array) => array,
+            None => {
+                let closure_ptr = self.function_params.borrow().last().copied().unwrap();
+                let instruction = closure_ptr.as_instruction().unwrap();
+                if let Some(instruction) = instruction
+                    .get_next_instruction()
+                    // <- this is where instruction points
+                    // %closure_ptr = alloca
+                    // store %closure, %closure_ptr
+                    // <- this is where we want to be
+                    .and_then(|ins| ins.get_next_instruction())
+                    .and_then(|ins| ins.get_next_instruction())
+                {
+                    builder.position_at(instruction.get_parent().unwrap(), &instruction);
+                } else {
+                    builder.position_at_end(instruction.get_parent().unwrap());
+                }
+                let closure_array =
+                    self.trilogy_array_assume_in(builder, closure_ptr, "closure_array");
+                self.closure_array.set(Some(closure_array));
+                closure_array
+            }
+        }
+    }
+
     /// When in a closure, retrieves an upvalue from the captured closure.
     ///
     /// The closure is always passed as the last parameter, and is a Trilogy array of Trilogy references.
@@ -140,11 +167,11 @@ impl<'ctx> Codegen<'ctx> {
         index: usize,
         name: &str,
     ) -> PointerValue<'ctx> {
-        let closure_ptr = builder.build_alloca(self.value_type(), "").unwrap();
-        builder
-            .build_store(closure_ptr, self.get_function().get_last_param().unwrap())
-            .unwrap();
-        let closure_array = self.trilogy_array_assume_in(builder, closure_ptr);
+        let closure_array = self.get_closure_array(builder);
+        let instruction = closure_array.as_instruction().unwrap();
+        if let Some(instruction) = instruction.get_next_instruction() {
+            builder.position_at(instruction.get_parent().unwrap(), &instruction);
+        }
         let upvalue = builder.build_alloca(self.value_type(), name).unwrap();
         builder
             .build_store(upvalue, self.value_type().const_zero())

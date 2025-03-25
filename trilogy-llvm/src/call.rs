@@ -230,7 +230,7 @@ impl<'ctx> Codegen<'ctx> {
         let current_continuation = self.close_current_continuation(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
-        let mut args = Vec::with_capacity(arity + 6);
+        let mut args = Vec::with_capacity(arity + 8);
         args.extend([
             current_continuation,
             yield_to,

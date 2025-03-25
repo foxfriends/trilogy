@@ -339,6 +339,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         builder: &Builder<'ctx>,
         t: PointerValue<'ctx>,
+        name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
             "trilogy_array_assume",
@@ -348,7 +349,7 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         builder
-            .build_call(f, &[t.into()], "")
+            .build_call(f, &[t.into()], name)
             .unwrap()
             .try_as_basic_value()
             .unwrap_left()

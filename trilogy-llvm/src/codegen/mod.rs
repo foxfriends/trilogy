@@ -7,7 +7,7 @@ use inkwell::module::Module;
 use inkwell::values::PointerValue;
 use inkwell::{OptimizationLevel, values::FunctionValue};
 use source_span::Span;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 use trilogy_ir::{Id, ir};
@@ -47,6 +47,7 @@ pub(crate) struct Codegen<'ctx> {
     /// contained `capture_from` lists.
     continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
     current_definition: RefCell<(String, Span)>,
+    closure_array: Cell<Option<PointerValue<'ctx>>>,
     pub(crate) function_params: RefCell<Vec<PointerValue<'ctx>>>,
 }
 
@@ -93,6 +94,7 @@ impl<'ctx> Codegen<'ctx> {
             location: "trilogy:runtime".to_owned(),
             continuation_points: RefCell::default(),
             current_definition: RefCell::default(),
+            closure_array: Cell::default(),
             function_params: RefCell::default(),
         };
 
@@ -118,6 +120,7 @@ impl<'ctx> Codegen<'ctx> {
             location: name.to_owned(),
             continuation_points: RefCell::default(),
             current_definition: RefCell::default(),
+            closure_array: Cell::default(),
             function_params: RefCell::default(),
         }
     }
@@ -153,14 +156,18 @@ impl<'ctx> Codegen<'ctx> {
         self.set_span(span);
         let entry = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(entry);
+        self.closure_array.set(None);
         *self.function_params.borrow_mut() = function
             .get_param_iter()
             .map(|param| {
-                let container =
-                    self.allocate_value(&format!("{}.value", param.get_name().to_string_lossy()));
-                let temp = self.builder.build_alloca(self.value_type(), "").unwrap();
-                self.builder.build_store(temp, param).unwrap();
-                self.trilogy_value_clone_into(container, temp);
+                let container = self
+                    .builder
+                    .build_alloca(
+                        self.value_type(),
+                        &format!("{}.value", param.get_name().to_string_lossy()),
+                    )
+                    .unwrap();
+                self.builder.build_store(container, param).unwrap();
                 container
             })
             .collect();
@@ -170,11 +177,17 @@ impl<'ctx> Codegen<'ctx> {
         let entry = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(entry);
         self.transfer_debug_info();
+        self.closure_array.set(None);
         *self.function_params.borrow_mut() = function
             .get_param_iter()
             .map(|param| {
-                let container =
-                    self.allocate_value(&format!("{}.value", param.get_name().to_string_lossy()));
+                let container = self
+                    .builder
+                    .build_alloca(
+                        self.value_type(),
+                        &format!("{}.value", param.get_name().to_string_lossy()),
+                    )
+                    .unwrap();
                 self.builder.build_store(container, param).unwrap();
                 container
             })
