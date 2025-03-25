@@ -16,6 +16,7 @@ mod call;
 mod codegen;
 mod constant;
 mod core;
+mod current_continuation;
 mod entrypoint;
 mod expression;
 mod module;
