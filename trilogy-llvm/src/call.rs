@@ -1,5 +1,5 @@
 use crate::codegen::{Brancher, Codegen};
-use crate::types::CALLABLE_CONTINUATION;
+use crate::types::{CALLABLE_CONTINUATION, CALLABLE_RESUME};
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::module::Linkage;
 use inkwell::values::{
@@ -294,38 +294,59 @@ impl<'ctx> Codegen<'ctx> {
     /// See `call_callable` for more information on the calling convention.
     pub(crate) fn apply_function(
         &self,
-        function: PointerValue<'ctx>,
+        callable_value: PointerValue<'ctx>,
         argument: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        let callable = self.trilogy_callable_untag(function, "");
+        let callable = self.trilogy_callable_untag(callable_value, "");
         let tag = self.get_callable_tag(callable, "");
-        let is_continuation = self
-            .builder
-            .build_int_compare(
-                IntPredicate::EQ,
-                tag,
-                self.tag_type().const_int(CALLABLE_CONTINUATION, false),
-                "",
-            )
-            .unwrap();
-
         let call_continuation = self
             .context
             .append_basic_block(self.get_function(), "ap.cont");
+        let call_resume = self
+            .context
+            .append_basic_block(self.get_function(), "ap.resume");
         let call_function = self
             .context
             .append_basic_block(self.get_function(), "ap.func");
+
         self.builder
-            .build_conditional_branch(is_continuation, call_continuation, call_function)
+            .build_switch(
+                tag,
+                call_function,
+                &[
+                    (
+                        self.tag_type().const_int(CALLABLE_CONTINUATION, false),
+                        call_continuation,
+                    ),
+                    (
+                        self.tag_type().const_int(CALLABLE_RESUME, false),
+                        call_continuation,
+                    ),
+                ],
+            )
             .unwrap();
 
-        let continuation_function = self.add_continuation("cc");
+        let brancher = self.end_continuation_point_as_branch();
 
         self.builder.position_at_end(call_continuation);
-        self.call_continuation_inner(
+        let continuation_pointer = self.trilogy_continuation_untag(callable, "");
+        self.call_regular_continuation(
+            callable_value,
+            callable,
+            continuation_pointer,
+            self.builder
+                .build_load(self.value_type(), argument, "")
+                .unwrap()
+                .into(),
+        );
+
+        let continuation_function = self.add_continuation("cc");
+        self.builder.position_at_end(call_resume);
+        self.resume_continuation_point(&brancher);
+        self.call_resume_inner(
             continuation_function,
-            function,
+            callable,
             self.builder
                 .build_load(self.value_type(), argument, "")
                 .unwrap()
@@ -334,6 +355,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(call_function);
         let function = self.trilogy_function_untag(callable, "");
+        self.resume_continuation_point(&brancher);
         self.call_callable(
             continuation_function,
             function,
@@ -379,54 +401,14 @@ impl<'ctx> Codegen<'ctx> {
 
     /// Applies a continuation value, passing void as its argument. The called continuation must
     /// not refer to the value. See `call_continuation` for more info.
-    pub(crate) fn void_call_continuation(
-        &self,
-        continuation_value: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let continuation_function = self.add_continuation("");
-        self.call_continuation_inner(
-            continuation_function,
-            continuation_value,
-            self.value_type().const_zero().into(),
-        );
-        self.begin_next_function(continuation_function);
-        self.get_continuation(name)
-    }
-
-    fn call_continuation_inner(
-        &self,
-        continuation_function: FunctionValue<'ctx>,
-        continuation_value: PointerValue<'ctx>,
-        argument: BasicMetadataValueEnum<'ctx>,
-    ) {
+    pub(crate) fn void_call_continuation(&self, continuation_value: PointerValue<'ctx>) {
         let callable = self.trilogy_callable_untag(continuation_value, "");
         let continuation_pointer = self.trilogy_continuation_untag(callable, "");
-        let is_resume = self.trilogy_continuation_is_resume(callable, "");
-
-        let resume_branch = self
-            .context
-            .append_basic_block(self.get_function(), "call.resume");
-        let regular_branch = self
-            .context
-            .append_basic_block(self.get_function(), "call.cont");
-
-        let brancher = self.end_continuation_point_as_branch();
-
-        self.builder
-            .build_conditional_branch(is_resume, resume_branch, regular_branch)
-            .unwrap();
-
-        self.builder.position_at_end(resume_branch);
-        self.call_resume_inner(continuation_function, callable, argument, "");
-
-        self.builder.position_at_end(regular_branch);
-        self.resume_continuation_point(&brancher);
         self.call_regular_continuation(
             continuation_value,
             callable,
             continuation_pointer,
-            argument,
+            self.value_type().const_zero().into(),
         );
     }
 
@@ -790,7 +772,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let resume_value = self.get_resume("");
         let continuation_function = self.add_continuation("resume.back");
-        self.call_resume_inner(continuation_function, resume_value, value, name);
+        self.call_resume_inner(continuation_function, resume_value, value);
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
@@ -800,7 +782,6 @@ impl<'ctx> Codegen<'ctx> {
         continuation_function: FunctionValue<'ctx>,
         resume_value: PointerValue<'ctx>,
         value: BasicMetadataValueEnum<'ctx>,
-        name: &str,
     ) {
         let resume = self.trilogy_callable_untag(resume_value, "");
         let resume_continuation = self.trilogy_continuation_untag(resume, "");
@@ -861,7 +842,7 @@ impl<'ctx> Codegen<'ctx> {
         ];
         self.trilogy_value_destroy(resume_value);
         self.builder
-            .build_indirect_call(self.continuation_type(), resume_continuation, args, name)
+            .build_indirect_call(self.continuation_type(), resume_continuation, args, "")
             .unwrap();
         self.builder.build_return(None).unwrap();
     }

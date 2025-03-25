@@ -53,8 +53,7 @@ impl<'ctx> Codegen<'ctx> {
                 let go_to_first =
                     self.capture_current_continuation(first_function, &brancher, "disj.fst");
                 let primary_cp = self.hold_continuation_point();
-                self.void_call_continuation(go_to_first, "");
-                self.builder.build_unreachable().unwrap();
+                self.void_call_continuation(go_to_first);
 
                 self.begin_next_function(first_function);
                 self.become_continuation_point(primary_cp);
@@ -154,8 +153,7 @@ impl<'ctx> Codegen<'ctx> {
         let snapshot = self.snapshot_function_context();
         self.builder.position_at_end(fail);
         let on_fail = self.use_temporary(on_fail).unwrap();
-        self.void_call_continuation(on_fail, "");
-        self.builder.build_unreachable().unwrap();
+        self.void_call_continuation(on_fail);
 
         self.builder.position_at_end(cont);
         self.restore_function_context(snapshot);

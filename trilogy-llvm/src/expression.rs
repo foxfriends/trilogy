@@ -85,8 +85,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_end(&self) {
-        self.void_call_continuation(self.get_end(""), "");
-        self.builder.build_unreachable().unwrap();
+        self.void_call_continuation(self.get_end(""));
     }
 
     fn compile_while(&self, expr: &ir::While, name: &str) -> Option<PointerValue<'ctx>> {
@@ -229,16 +228,14 @@ impl<'ctx> Codegen<'ctx> {
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary(go_to_next_case).unwrap();
-            self.void_call_continuation(go_next, "");
-            self.builder.build_unreachable().unwrap();
+            self.void_call_continuation(go_next);
 
             self.builder.position_at_end(body_block);
             self.restore_function_context(snapshot);
             self.resume_continuation_point(&inner_brancher);
             if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
                 self.trilogy_value_destroy(result);
-                self.void_call_continuation(self.get_end(""), "");
-                self.builder.build_unreachable().unwrap();
+                self.void_call_continuation(self.get_end(""));
             }
 
             self.become_continuation_point(next_case_cp);
@@ -385,8 +382,7 @@ impl<'ctx> Codegen<'ctx> {
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary(go_to_next_case).unwrap();
-            self.void_call_continuation(go_next, "");
-            self.builder.build_unreachable().unwrap();
+            self.void_call_continuation(go_next);
 
             self.builder.position_at_end(body_block);
             self.restore_function_context(snapshot);
