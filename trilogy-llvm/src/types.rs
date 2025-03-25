@@ -32,6 +32,7 @@ pub(crate) const CALLABLE_PROCEDURE: u64 = 2;
 pub(crate) const CALLABLE_RULE: u64 = 3;
 pub(crate) const CALLABLE_CONTINUATION: u64 = 4;
 pub(crate) const CALLABLE_RESUME: u64 = 5;
+pub(crate) const CALLABLE_CONTINUE: u64 = 6;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn allocate_const<V: BasicValue<'ctx>>(

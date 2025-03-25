@@ -33,6 +33,12 @@ trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_value* break_to /* moved */, trilogy_value* continue_to /* moved */,
     trilogy_value* closure /* moved */, void* p
 );
+trilogy_callable_value* trilogy_callable_init_continue(
+    trilogy_value* t, trilogy_value* return_to /* moved */,
+    trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
+    trilogy_value* break_to /* moved */, trilogy_value* continue_to /* moved */,
+    trilogy_value* closure /* moved */, void* p
+);
 void trilogy_callable_clone_into(trilogy_value*, trilogy_callable_value* orig);
 void trilogy_callable_destroy(trilogy_callable_value* val);
 
@@ -71,4 +77,3 @@ void* trilogy_function_untag(trilogy_callable_value* val);
 void* trilogy_procedure_untag(trilogy_callable_value* val, uint32_t arity);
 void* trilogy_rule_untag(trilogy_callable_value* val, uint32_t arity);
 void* trilogy_continuation_untag(trilogy_callable_value* val);
-bool trilogy_continuation_is_resume(trilogy_callable_value* val);

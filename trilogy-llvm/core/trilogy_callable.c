@@ -147,6 +147,18 @@ trilogy_callable_value* trilogy_callable_init_resume(
     return callable;
 }
 
+trilogy_callable_value* trilogy_callable_init_continue(
+    trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
+    trilogy_value* cancel_to, trilogy_value* break_to,
+    trilogy_value* continue_to, trilogy_value* closure, void* p
+) {
+    trilogy_callable_value* callable = trilogy_callable_init_cont(
+        t, return_to, yield_to, cancel_to, break_to, continue_to, closure, p
+    );
+    callable->tag = CALLABLE_CONTINUE;
+    return callable;
+}
+
 void trilogy_callable_destroy(trilogy_callable_value* val) {
     assert(val->rc > 0);
     TRACE(
@@ -281,11 +293,7 @@ void* trilogy_rule_untag(trilogy_callable_value* val, uint32_t arity) {
 }
 
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
-    if (val->tag != CALLABLE_CONTINUATION && val->tag != CALLABLE_RESUME)
+    if (val->tag != CALLABLE_CONTINUATION && val->tag != CALLABLE_RESUME && val->tag != CALLABLE_CONTINUE)
         internal_panic("invalid continue-to of non-continuation callable\n");
     return (void*)val->function;
-}
-
-bool trilogy_continuation_is_resume(trilogy_callable_value* val) {
-    return val->tag == CALLABLE_RESUME;
 }

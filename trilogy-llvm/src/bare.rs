@@ -1039,6 +1039,51 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_callable_init_continue(
+        &self,
+        t: PointerValue<'ctx>,
+        return_to: PointerValue<'ctx>,
+        yield_to: PointerValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
+        break_to: PointerValue<'ctx>,
+        continue_to: PointerValue<'ctx>,
+        closure: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_init_continue",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    t.into(),
+                    return_to.into(),
+                    yield_to.into(),
+                    cancel_to.into(),
+                    break_to.into(),
+                    continue_to.into(),
+                    closure.into(),
+                    function.as_global_value().as_pointer_value().into(),
+                ],
+                "",
+            )
+            .unwrap();
+    }
+
     pub(crate) fn trilogy_unhandled_effect(&self, effect: PointerValue<'ctx>) -> NeverValue {
         let f = self.declare_bare(
             "trilogy_unhandled_effect",

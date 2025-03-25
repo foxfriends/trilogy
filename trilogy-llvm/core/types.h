@@ -36,6 +36,8 @@ typedef enum trilogy_callable_tag : uint8_t {
     // different calling convention. We're just hacking that in so it happens
     // invisibly to end users...
     CALLABLE_RESUME = 5,
+    // Continue kinda the same deal, needs to be called specially.
+    CALLABLE_CONTINUE = 6,
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {
