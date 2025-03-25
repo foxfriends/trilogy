@@ -15,9 +15,10 @@ proc main!() {
       when 'a(a) then {
         let 'b(b) = resume a
         debug::dbg!('handler(b))
+        cancel unit
       }
       else yield
     x += 1
   }
-  assert x == 2
+  assert x == 3
 }
