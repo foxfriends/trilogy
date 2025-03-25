@@ -1,6 +1,5 @@
 #pragma once
 #include "types.h"
-#include <stdbool.h>
 #include <stdint.h>
 
 #define NO_CLOSURE 0

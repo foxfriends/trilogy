@@ -31,13 +31,17 @@ void trilogy_boolean_not(trilogy_value* rv, trilogy_value* v) {
     trilogy_boolean_init(rv, !trilogy_boolean_untag(v));
 }
 
-void trilogy_boolean_and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+void trilogy_boolean_and(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+) {
     bool l = trilogy_boolean_untag(lhs);
     bool r = trilogy_boolean_untag(rhs);
     trilogy_boolean_init(rv, l && r);
 }
 
-void trilogy_boolean_or(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+void trilogy_boolean_or(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+) {
     bool l = trilogy_boolean_untag(lhs);
     bool r = trilogy_boolean_untag(rhs);
     trilogy_boolean_init(rv, l || r);

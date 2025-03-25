@@ -174,7 +174,8 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         if (val->yield_to != NULL) trilogy_callable_destroy(val->yield_to);
         if (val->cancel_to != NULL) trilogy_callable_destroy(val->cancel_to);
         if (val->break_to != NULL) trilogy_callable_destroy(val->break_to);
-        if (val->continue_to != NULL) trilogy_callable_destroy(val->continue_to);
+        if (val->continue_to != NULL)
+            trilogy_callable_destroy(val->continue_to);
         free(val);
         TRACE("\tDeallocated!\n");
     }
@@ -237,7 +238,8 @@ void trilogy_callable_yield_to_shift(
     trilogy_callable_continue_to_into(&continue_to, cal->yield_to);
     trilogy_callable_closure_into(&closure, cal->yield_to);
     trilogy_callable_init_cont(
-        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to, &closure, cal->yield_to->function
+        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to,
+        &closure, cal->yield_to->function
     );
 }
 
@@ -256,8 +258,8 @@ void trilogy_callable_return_to_shift(
     trilogy_callable_continue_to_into(&continue_to, cal->return_to);
     trilogy_callable_closure_into(&closure, cal->return_to);
     trilogy_callable_init_cont(
-        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to, &closure,
-        cal->return_to->function
+        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to,
+        &closure, cal->return_to->function
     );
 }
 
@@ -293,7 +295,8 @@ void* trilogy_rule_untag(trilogy_callable_value* val, uint32_t arity) {
 }
 
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
-    if (val->tag != CALLABLE_CONTINUATION && val->tag != CALLABLE_RESUME && val->tag != CALLABLE_CONTINUE)
+    if (val->tag != CALLABLE_CONTINUATION && val->tag != CALLABLE_RESUME &&
+        val->tag != CALLABLE_CONTINUE)
         internal_panic("invalid continue-to of non-continuation callable\n");
     return (void*)val->function;
 }

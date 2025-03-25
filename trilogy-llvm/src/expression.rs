@@ -131,7 +131,7 @@ impl<'ctx> Codegen<'ctx> {
         self.resume_continuation_point(&brancher);
         if let Some(result) = self.compile_expression(&expr.body, name) {
             let continue_continuation = self.get_continue("continue");
-            let call = self.call_continue(continue_continuation, result.into(), "");
+            let call = self.call_continue(continue_continuation, result, "");
             self.end_continuation_point_as_clean(call);
         }
 

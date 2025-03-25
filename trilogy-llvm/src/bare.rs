@@ -949,6 +949,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn trilogy_callable_init_cont(
         &self,
         t: PointerValue<'ctx>,
@@ -994,6 +995,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn trilogy_callable_init_resume(
         &self,
         t: PointerValue<'ctx>,
@@ -1039,6 +1041,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn trilogy_callable_init_continue(
         &self,
         t: PointerValue<'ctx>,
