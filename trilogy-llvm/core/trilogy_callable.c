@@ -223,44 +223,37 @@ void trilogy_callable_continue_to_into(
     trilogy_callable_clone_into(val, cal->continue_to);
 }
 
-void trilogy_callable_yield_to_shift(
+static void shift(
     trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
 ) {
-    assert(cal->yield_to != NULL);
     trilogy_value return_to = trilogy_undefined;
     trilogy_value yield_to = trilogy_undefined;
     trilogy_value break_to = trilogy_undefined;
     trilogy_value continue_to = trilogy_undefined;
     trilogy_value closure = trilogy_undefined;
-    trilogy_callable_return_to_into(&return_to, cal->yield_to);
-    trilogy_callable_yield_to_into(&yield_to, cal->yield_to);
-    trilogy_callable_break_to_into(&break_to, cal->yield_to);
-    trilogy_callable_continue_to_into(&continue_to, cal->yield_to);
-    trilogy_callable_closure_into(&closure, cal->yield_to);
+    trilogy_callable_return_to_into(&return_to, cal);
+    trilogy_callable_yield_to_into(&yield_to, cal);
+    trilogy_callable_break_to_into(&break_to, cal);
+    trilogy_callable_continue_to_into(&continue_to, cal);
+    trilogy_callable_closure_into(&closure, cal);
     trilogy_callable_init_cont(
         val, &return_to, &yield_to, cancel_to, &break_to, &continue_to,
-        &closure, cal->yield_to->function
+        &closure, cal->function
     );
+}
+
+void trilogy_callable_yield_to_shift(
+    trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
+) {
+    assert(cal->yield_to != NULL);
+    shift(val, cancel_to, cal->yield_to);
 }
 
 void trilogy_callable_return_to_shift(
     trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
 ) {
     assert(cal->return_to != NULL);
-    trilogy_value return_to = trilogy_undefined;
-    trilogy_value yield_to = trilogy_undefined;
-    trilogy_value break_to = trilogy_undefined;
-    trilogy_value continue_to = trilogy_undefined;
-    trilogy_value closure = trilogy_undefined;
-    trilogy_callable_return_to_into(&return_to, cal->return_to);
-    trilogy_callable_yield_to_into(&yield_to, cal->return_to);
-    trilogy_callable_break_to_into(&break_to, cal->return_to);
-    trilogy_callable_continue_to_into(&continue_to, cal->return_to);
-    trilogy_callable_closure_into(&closure, cal->return_to);
-    trilogy_callable_init_cont(
-        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to,
-        &closure, cal->return_to->function
-    );
+    shift(val, cancel_to, cal->return_to);
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
