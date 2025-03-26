@@ -1,0 +1,20 @@
+proc both!(a, b) {
+  return yield a:b
+}
+
+proc inner!() {
+  match both!('a, 'b)
+    case 'a then return 1
+    case 'b then return 2
+}
+
+proc main!() {
+  let result = with inner!()
+    when a:b then {
+      let first = resume a
+      let second = resume b
+      cancel first:second
+    }
+    else yield
+  assert $"result is ${result}" as result == 1:2
+}

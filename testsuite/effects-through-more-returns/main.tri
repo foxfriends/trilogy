@@ -1,0 +1,23 @@
+module debug at "trilogy:debug"
+
+proc both!(a, b) {
+  return if yield 'both then a else b
+}
+
+proc process!() {
+  let a_or_b = both!('a, 'b)
+  let c_or_d = both!('c, 'd)
+  return a_or_b : c_or_d
+}
+
+proc main!() {
+  let x = with process!()
+    when 'both then {
+      let a = resume true
+      let b = resume false
+      cancel a:b
+    }
+    else yield
+  assert x == (('a:'c):('a:'d)):(('b:'c):('b:'d))
+  debug::dbg!(x)
+}
