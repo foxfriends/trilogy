@@ -6,3 +6,10 @@ proc dbg!(value) {
   core::print!($"${str}\n")
   return value
 }
+
+export trace
+proc trace!(label, value) {
+  let str = core::to_string!(value)
+  core::print!($"${label}: ${str}\n")
+  return value
+}
