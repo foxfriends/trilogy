@@ -30,65 +30,62 @@ void trilogy_callable_clone_into(
     trilogy_callable_init(t, orig);
 }
 
-trilogy_callable_value*
-trilogy_callable_init_fn(trilogy_value* t, trilogy_value* closure, void* p) {
+static trilogy_callable_value* trilogy_callable_value_init(
+    trilogy_callable_value* callable, trilogy_callable_tag tag, uint32_t arity,
+    trilogy_value* return_to, trilogy_value* yield_to, trilogy_value* cancel_to,
+    trilogy_value* break_to, trilogy_value* continue_to, trilogy_value* closure,
+    void* p
+) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
-    trilogy_callable_value* callable =
-        malloc_safe(sizeof(trilogy_callable_value));
     callable->rc = 1;
-    callable->tag = CALLABLE_FUNCTION;
-    callable->arity = 1;
-    callable->return_to = NULL;
-    callable->yield_to = NULL;
-    callable->cancel_to = NULL;
-    callable->break_to = NULL;
-    callable->continue_to = NULL;
+    callable->tag = tag;
+    callable->arity = arity;
+    callable->return_to =
+        return_to == NULL ? NULL : trilogy_callable_assume(return_to);
+    callable->yield_to =
+        yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
+    callable->cancel_to =
+        cancel_to == NULL ? NULL : trilogy_callable_assume(cancel_to);
+    callable->break_to =
+        break_to == NULL ? NULL : trilogy_callable_assume(break_to);
+    callable->continue_to =
+        continue_to == NULL ? NULL : trilogy_callable_assume(continue_to);
     callable->closure =
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
-    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
+    TRACE("Initialized callable   (%d): %p\n", callable->tag, callable);
+}
+
+trilogy_callable_value*
+trilogy_callable_init_fn(trilogy_value* t, trilogy_value* closure, void* p) {
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_value_init(
+        callable, CALLABLE_FUNCTION, 1, NULL, NULL, NULL, NULL, NULL, closure, p
+    );
     return trilogy_callable_init(t, callable);
 }
 
 trilogy_callable_value* trilogy_callable_init_do(
     trilogy_value* t, uint32_t arity, trilogy_value* closure, void* p
 ) {
-    assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
-    callable->rc = 1;
-    callable->tag = CALLABLE_PROCEDURE;
-    callable->arity = arity;
-    callable->return_to = NULL;
-    callable->yield_to = NULL;
-    callable->cancel_to = NULL;
-    callable->break_to = NULL;
-    callable->continue_to = NULL;
-    callable->closure =
-        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
-    callable->function = p;
-    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
+    trilogy_callable_value_init(
+        callable, CALLABLE_PROCEDURE, arity, NULL, NULL, NULL, NULL, NULL,
+        closure, p
+    );
     return trilogy_callable_init(t, callable);
 }
 
 trilogy_callable_value* trilogy_callable_init_qy(
     trilogy_value* t, uint32_t arity, trilogy_value* closure, void* p
 ) {
-    assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
-    callable->rc = 1;
-    callable->tag = CALLABLE_RULE;
-    callable->arity = arity;
-    callable->return_to = NULL;
-    callable->yield_to = NULL;
-    callable->cancel_to = NULL;
-    callable->break_to = NULL;
-    callable->continue_to = NULL;
-    callable->closure =
-        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
-    callable->function = p;
-    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
+    trilogy_callable_value_init(
+        callable, CALLABLE_RULE, arity, NULL, NULL, NULL, NULL, NULL, closure, p
+    );
     return trilogy_callable_init(t, callable);
 }
 
@@ -115,23 +112,10 @@ trilogy_callable_value* trilogy_callable_init_cont(
     assert(closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
-    callable->rc = 1;
-    callable->tag = CALLABLE_CONTINUATION;
-    callable->arity = 1;
-    callable->return_to =
-        return_to == NULL ? NULL : trilogy_callable_assume(return_to);
-    callable->yield_to =
-        yield_to == NULL ? NULL : trilogy_callable_assume(yield_to);
-    callable->cancel_to =
-        cancel_to == NULL ? NULL : trilogy_callable_assume(cancel_to);
-    callable->break_to =
-        break_to == NULL ? NULL : trilogy_callable_assume(break_to);
-    callable->continue_to =
-        continue_to == NULL ? NULL : trilogy_callable_assume(continue_to);
-    callable->closure =
-        closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
-    callable->function = p;
-    TRACE("Creating callable   (%d): %p\n", callable->tag, callable);
+    trilogy_callable_value_init(
+        callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, cancel_to,
+        break_to, continue_to, closure, p
+    );
     return trilogy_callable_init(t, callable);
 }
 
@@ -140,11 +124,15 @@ trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_value* cancel_to, trilogy_value* break_to,
     trilogy_value* continue_to, trilogy_value* closure, void* p
 ) {
-    trilogy_callable_value* callable = trilogy_callable_init_cont(
-        t, return_to, yield_to, cancel_to, break_to, continue_to, closure, p
+    assert(closure != NO_CLOSURE);
+    assert(closure->tag == TAG_ARRAY);
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_value_init(
+        callable, CALLABLE_RESUME, 1, return_to, yield_to, cancel_to, break_to,
+        continue_to, closure, p
     );
-    callable->tag = CALLABLE_RESUME;
-    return callable;
+    return trilogy_callable_init(t, callable);
 }
 
 trilogy_callable_value* trilogy_callable_init_continue(
@@ -152,11 +140,15 @@ trilogy_callable_value* trilogy_callable_init_continue(
     trilogy_value* cancel_to, trilogy_value* break_to,
     trilogy_value* continue_to, trilogy_value* closure, void* p
 ) {
-    trilogy_callable_value* callable = trilogy_callable_init_cont(
-        t, return_to, yield_to, cancel_to, break_to, continue_to, closure, p
+    assert(closure != NO_CLOSURE);
+    assert(closure->tag == TAG_ARRAY);
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_value_init(
+        callable, CALLABLE_CONTINUE, 1, return_to, yield_to, cancel_to,
+        break_to, continue_to, closure, p
     );
-    callable->tag = CALLABLE_CONTINUE;
-    return callable;
+    return trilogy_callable_init(t, callable);
 }
 
 void trilogy_callable_destroy(trilogy_callable_value* val) {
