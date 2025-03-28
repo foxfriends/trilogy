@@ -33,12 +33,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    fn get_callable_closure(&self, callable: PointerValue<'ctx>) -> PointerValue<'ctx> {
-        let bound_closure = self.allocate_value("");
-        self.trilogy_callable_closure_into(bound_closure, callable, "");
-        bound_closure
-    }
-
     /// Makes a function or procedure call, following standard calling convention.
     ///
     /// The current basic block is terminated, as Trilogy functions return by calling
@@ -90,13 +84,14 @@ impl<'ctx> Codegen<'ctx> {
         let arity = arguments.len();
 
         // Values must be extracted before they are invalidated
-        let bound_closure = self.get_callable_closure(callable);
         let end_to = self.get_end("");
         let yield_to = self.get_yield("");
         let cancel_to = self.get_cancel("");
         let resume_to = self.get_resume("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
+        let bound_closure = self.allocate_value("");
+        self.trilogy_callable_closure_into(bound_closure, callable, "");
 
         // All variables and values are invalid after this point.
         let return_to = self.close_current_continuation_as_return(continuation_function, "cc");
@@ -298,15 +293,16 @@ impl<'ctx> Codegen<'ctx> {
         let yield_to = self.allocate_value("");
         let end_to = self.get_end("");
         let cancel_to = self.allocate_value("");
-        let resume_to = self.get_resume("");
+        let resume_to = self.get_resume(""); // TODO: I can only assume resume is supposed to be captured the same
         let break_to = self.allocate_value("");
         let continue_to = self.allocate_value("");
+        let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, callable);
         self.trilogy_callable_yield_to_into(yield_to, callable);
         self.trilogy_callable_cancel_to_into(cancel_to, callable);
         self.trilogy_callable_break_to_into(break_to, callable);
         self.trilogy_callable_continue_to_into(continue_to, callable);
-        let closure = self.get_callable_closure(callable);
+        self.trilogy_callable_closure_into(closure, callable, "");
 
         let args = &[
             self.load_value(return_to, "").into(),
@@ -335,142 +331,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.end_continuation_point_as_clean(call);
         self.builder.build_return(None).unwrap();
-    }
-
-    /// Continues to a point in the same lexical scope directly, without any runtime
-    /// continuation object. This is typically used within an expression that spans
-    /// multiple continuations, such as an `if-else` expression.
-    ///
-    /// The current basic block is terminated. The current continuation point must be
-    /// closed; the instruction from which to terminate it is returned, and should
-    /// be passed to some `end_continuation_` function that will close closure pointer
-    /// returned.
-    #[must_use = "continuation point must be closed"]
-    pub(crate) fn continue_in_scope(
-        &self,
-        function: FunctionValue<'ctx>,
-        argument: PointerValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            self.get_yield(""),
-            self.get_cancel(""),
-            self.get_break(""),
-            self.get_continue(""),
-            self.load_value(argument, "").into(),
-        )
-    }
-
-    /// See `continue_in_scope`; this does that, but passes an `undefined` value as the
-    /// parameter, assuming that the continuation we are entering does not refer to the
-    /// value at all.
-    #[must_use = "continuation point must be closed"]
-    pub(crate) fn void_continue_in_scope(
-        &self,
-        function: FunctionValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            self.get_yield(""),
-            self.get_cancel(""),
-            self.get_break(""),
-            self.get_continue(""),
-            self.value_type().const_zero().into(),
-        )
-    }
-
-    /// See `void_continue_in_scope`; this does that, but allows a different `yield_to`
-    /// pointer to be passed, setting that as the handler for the continued scope.
-    #[must_use = "continuation point must be closed"]
-    pub(crate) fn continue_in_scope_handled(
-        &self,
-        function: FunctionValue<'ctx>,
-        yield_to: PointerValue<'ctx>,
-        cancel_to: PointerValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            yield_to,
-            cancel_to,
-            self.get_break(""),
-            self.get_continue(""),
-            self.value_type().const_zero().into(),
-        )
-    }
-
-    pub(crate) fn continue_in_scope_loop(
-        &self,
-        continue_function: FunctionValue<'ctx>,
-        break_to: PointerValue<'ctx>,
-    ) {
-        let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
-        let end_to = self.get_end("");
-        let cancel_to = self.get_cancel("");
-        let resume_to = self.get_resume("");
-
-        let continue_to =
-            self.close_current_continuation_as_continue(continue_function, break_to, "while.start");
-        let continue_to_callable = self.trilogy_callable_assume(continue_to, "");
-        let closure = self.get_callable_closure(continue_to_callable);
-
-        let args = &[
-            self.load_value(return_to, "").into(),
-            self.load_value(yield_to, "").into(),
-            self.load_value(end_to, "").into(),
-            self.load_value(cancel_to, "").into(),
-            self.load_value(resume_to, "").into(),
-            self.load_value(break_to, "").into(),
-            self.load_value(continue_to, "").into(),
-            self.value_type().const_zero().into(),
-            self.load_value(closure, "").into(),
-        ];
-
-        let call = self
-            .builder
-            .build_direct_call(continue_function, args, "")
-            .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        self.builder.build_return(None).unwrap();
-    }
-
-    fn continue_in_scope_inner(
-        &self,
-        function: FunctionValue<'ctx>,
-        yield_to: PointerValue<'ctx>,
-        cancel_to: PointerValue<'ctx>,
-        break_to: PointerValue<'ctx>,
-        continue_to: PointerValue<'ctx>,
-        argument: BasicMetadataValueEnum<'ctx>,
-    ) -> InstructionValue<'ctx> {
-        let return_to = self.get_return("");
-        let end_to = self.get_end("");
-        let resume_to = self.get_resume("");
-
-        let parent_closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_CLOSURE")
-            .unwrap();
-
-        let args = &[
-            self.load_value(return_to, "").into(),
-            self.load_value(yield_to, "").into(),
-            self.load_value(end_to, "").into(),
-            self.load_value(cancel_to, "").into(),
-            self.load_value(resume_to, "").into(),
-            self.load_value(break_to, "").into(),
-            self.load_value(continue_to, "").into(),
-            argument,
-            self.load_value(parent_closure, "").into(),
-        ];
-
-        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        let call = self.builder.build_direct_call(function, args, "").unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        self.builder.build_return(None).unwrap();
-        parent_closure.as_instruction_value().unwrap()
     }
 
     /// An internal function in this case is one that follows the convention of
