@@ -693,14 +693,13 @@ impl<'ctx> Codegen<'ctx> {
             ),
             None => self.close_current_continuation(continuation_function, "when.cancel"),
         };
-        let return_to_cancel = self.allocate_value("");
-        let yield_to_cancel = self.allocate_value("");
+        let cancel_clone = self.allocate_value("");
         self.trilogy_callable_break_to_into(break_to, resume);
         self.trilogy_callable_continue_to_into(continue_to, resume);
-        self.trilogy_value_clone_into(return_to_cancel, cancel_to);
-        self.trilogy_value_clone_into(yield_to_cancel, cancel_to);
-        self.trilogy_callable_return_to_shift(return_to, return_to_cancel, resume);
-        self.trilogy_callable_yield_to_shift(yield_to, yield_to_cancel, resume);
+        self.trilogy_value_clone_into(cancel_clone, cancel_to);
+        self.trilogy_callable_return_to_shift(return_to, cancel_clone, resume);
+        self.trilogy_value_clone_into(cancel_clone, cancel_to);
+        self.trilogy_callable_yield_to_shift(yield_to, cancel_clone, resume);
         self.trilogy_callable_closure_into(closure, resume, "");
 
         let args = &[

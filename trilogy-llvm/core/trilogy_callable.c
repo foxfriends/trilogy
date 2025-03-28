@@ -247,6 +247,7 @@ void trilogy_callable_yield_to_shift(
 ) {
     assert(cal->yield_to != NULL);
     shift(val, cancel_to, cal->yield_to);
+    *cancel_to = trilogy_undefined;
 }
 
 void trilogy_callable_return_to_shift(
@@ -254,6 +255,7 @@ void trilogy_callable_return_to_shift(
 ) {
     assert(cal->return_to != NULL);
     shift(val, cancel_to, cal->return_to);
+    *cancel_to = trilogy_undefined;
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
