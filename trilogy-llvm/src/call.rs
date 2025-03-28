@@ -52,12 +52,7 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let args_loaded: Vec<_> = args
             .iter()
-            .map(|arg| {
-                self.builder
-                    .build_load(self.value_type(), *arg, "")
-                    .unwrap()
-                    .into()
-            })
+            .map(|arg| self.load_value(*arg, "").into())
             .collect();
         let call = self
             .builder
@@ -219,10 +214,7 @@ impl<'ctx> Codegen<'ctx> {
             callable_value,
             callable,
             continuation_pointer,
-            self.builder
-                .build_load(self.value_type(), argument, "")
-                .unwrap()
-                .into(),
+            self.load_value(argument, "").into(),
         );
 
         self.builder.position_at_end(call_continue);
@@ -236,10 +228,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_resume_inner(
             continuation_function,
             callable,
-            self.builder
-                .build_load(self.value_type(), argument, "")
-                .unwrap()
-                .into(),
+            self.load_value(argument, "").into(),
             Some(&brancher),
         );
 
@@ -282,10 +271,7 @@ impl<'ctx> Codegen<'ctx> {
             continuation_value,
             callable,
             continuation_pointer,
-            self.builder
-                .build_load(self.value_type(), argument, "")
-                .unwrap()
-                .into(),
+            self.load_value(argument, "").into(),
         );
     }
 
@@ -324,39 +310,15 @@ impl<'ctx> Codegen<'ctx> {
         let closure = self.get_callable_closure(callable);
 
         let args = &[
-            self.builder
-                .build_load(self.value_type(), return_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), break_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), continue_to, "")
-                .unwrap()
-                .into(),
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_to, "").into(),
             argument,
-            self.builder
-                .build_load(self.value_type(), closure, "")
-                .unwrap()
-                .into(),
+            self.load_value(closure, "").into(),
         ];
 
         self.trilogy_value_destroy(continuation_value);
@@ -396,10 +358,7 @@ impl<'ctx> Codegen<'ctx> {
             self.get_cancel(""),
             self.get_break(""),
             self.get_continue(""),
-            self.builder
-                .build_load(self.value_type(), argument, "")
-                .unwrap()
-                .into(),
+            self.load_value(argument, "").into(),
         )
     }
 
@@ -457,39 +416,15 @@ impl<'ctx> Codegen<'ctx> {
         let closure = self.get_callable_closure(continue_to_callable);
 
         let args = &[
-            self.builder
-                .build_load(self.value_type(), return_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), break_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), continue_to, "")
-                .unwrap()
-                .into(),
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_to, "").into(),
             self.value_type().const_zero().into(),
-            self.builder
-                .build_load(self.value_type(), closure, "")
-                .unwrap()
-                .into(),
+            self.load_value(closure, "").into(),
         ];
 
         let call = self
@@ -520,39 +455,15 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
 
         let args = &[
-            self.builder
-                .build_load(self.value_type(), return_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), break_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), continue_to, "")
-                .unwrap()
-                .into(),
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_to, "").into(),
             argument,
-            self.builder
-                .build_load(self.value_type(), parent_closure, "")
-                .unwrap()
-                .into(),
+            self.load_value(parent_closure, "").into(),
         ];
 
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
@@ -584,9 +495,17 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
+    /// Calls the `yield` continuation.
+    ///
+    /// Calling `yield` is almost like calling a regular continuation, but we allocate a new
+    /// `resume_to` value that corresponds to the continuation after the `yield`.
+    ///
+    /// Since `yield` cannot be captured in Trilogy code at this time, we do not need to have
+    /// any special handling for calling yield elsewhere; we just special case it in the compiler.
     pub(crate) fn call_yield(&self, effect: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let handler_value = self.get_yield("");
         let handler = self.trilogy_callable_untag(handler_value, "");
+
         let end_to = self.get_end("");
 
         let return_to = self.allocate_value("");
@@ -607,42 +526,15 @@ impl<'ctx> Codegen<'ctx> {
             self.close_current_continuation_as_resume(continuation_function, "yield.resume");
 
         let args = &[
-            self.builder
-                .build_load(self.value_type(), return_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), break_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), continue_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), effect, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), closure, "")
-                .unwrap()
-                .into(),
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_to, "").into(),
+            self.load_value(effect, "").into(),
+            self.load_value(closure, "").into(),
         ];
         let handler_continuation = self.trilogy_continuation_untag(handler, "");
         self.trilogy_value_destroy(handler_value);
@@ -703,39 +595,15 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(closure, resume, "");
 
         let args = &[
-            self.builder
-                .build_load(self.value_type(), return_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), break_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), continue_to, "")
-                .unwrap()
-                .into(),
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_to, "").into(),
             value,
-            self.builder
-                .build_load(self.value_type(), closure, "")
-                .unwrap()
-                .into(),
+            self.load_value(closure, "").into(),
         ];
         self.trilogy_value_destroy(resume_value);
         self.builder
@@ -768,42 +636,15 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(closure, continue_callable, "");
 
         let args = &[
-            self.builder
-                .build_load(self.value_type(), return_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), break_to, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), continue_value, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), value, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), closure, "")
-                .unwrap()
-                .into(),
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_value, "").into(),
+            self.load_value(value, "").into(),
+            self.load_value(closure, "").into(),
         ];
         let call = self
             .builder
@@ -934,34 +775,13 @@ impl<'ctx> Codegen<'ctx> {
         );
 
         let args = &[
-            self.builder
-                .build_load(self.value_type(), return_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), yield_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), end_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), cancel_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), resume_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), break_continuation, "")
-                .unwrap()
-                .into(),
-            self.builder
-                .build_load(self.value_type(), continue_continuation, "")
-                .unwrap()
-                .into(),
+            self.load_value(return_continuation, "").into(),
+            self.load_value(yield_continuation, "").into(),
+            self.load_value(end_continuation, "").into(),
+            self.load_value(cancel_continuation, "").into(),
+            self.load_value(resume_continuation, "").into(),
+            self.load_value(break_continuation, "").into(),
+            self.load_value(continue_continuation, "").into(),
         ];
         self.trilogy_value_destroy(value);
         let call = self
