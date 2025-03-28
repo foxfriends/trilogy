@@ -219,7 +219,7 @@ impl<'ctx> Codegen<'ctx> {
         self.resume_continuation_point(&brancher);
         self.call_resume_inner(
             continuation_function,
-            callable,
+            callable_value,
             self.load_value(argument, "").into(),
             Some(&brancher),
         );
@@ -229,7 +229,7 @@ impl<'ctx> Codegen<'ctx> {
         self.resume_continuation_point(&brancher);
         self.call_callable(
             continuation_function,
-            function,
+            callable_value,
             callable,
             function,
             &[argument],
