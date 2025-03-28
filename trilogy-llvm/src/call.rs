@@ -204,11 +204,9 @@ impl<'ctx> Codegen<'ctx> {
         let brancher = self.end_continuation_point_as_branch();
 
         self.builder.position_at_end(call_continuation);
-        let continuation_pointer = self.trilogy_continuation_untag(callable, "");
         self.call_regular_continuation(
             callable_value,
             callable,
-            continuation_pointer,
             self.load_value(argument, "").into(),
         );
 
@@ -260,11 +258,9 @@ impl<'ctx> Codegen<'ctx> {
         argument: PointerValue<'ctx>,
     ) {
         let callable = self.trilogy_callable_untag(continuation_value, "");
-        let continuation_pointer = self.trilogy_continuation_untag(callable, "");
         self.call_regular_continuation(
             continuation_value,
             callable,
-            continuation_pointer,
             self.load_value(argument, "").into(),
         );
     }
@@ -273,11 +269,9 @@ impl<'ctx> Codegen<'ctx> {
     /// not refer to the value. See `call_continuation` for more info.
     pub(crate) fn void_call_continuation(&self, continuation_value: PointerValue<'ctx>) {
         let callable = self.trilogy_callable_untag(continuation_value, "");
-        let continuation_pointer = self.trilogy_continuation_untag(callable, "");
         self.call_regular_continuation(
             continuation_value,
             callable,
-            continuation_pointer,
             self.value_type().const_zero().into(),
         );
     }
@@ -286,9 +280,9 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         continuation_value: PointerValue<'ctx>,
         callable: PointerValue<'ctx>,
-        continuation_pointer: PointerValue<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
     ) {
+        let continuation_pointer = self.trilogy_continuation_untag(callable, "");
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
         let end_to = self.get_end("");
