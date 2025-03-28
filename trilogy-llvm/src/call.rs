@@ -72,7 +72,7 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// As per standard calling convention, it's basically `call/cc`:
     /// 1. The `return_to` is a newly constructed continuation, representing the current continuation ("returning" is done by `call_continuation`)
-    /// 2. The `yield_to` and `end_to` pointers are maintained from the calling context
+    /// 2. The rest of the pointers are maintained from the calling context
     /// 3. The arguments are provided
     /// 4. If the callable was a closure, the captures are pulled from the callable object.
     ///
@@ -219,8 +219,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(call_continue);
         self.resume_continuation_point(&brancher);
-        let call = self.call_continue(callable_value, argument, "");
-        self.end_continuation_point_as_clean(call);
+        self.call_continue_inner(callable_value, argument, "");
 
         let continuation_function = self.add_continuation("cc");
         self.builder.position_at_end(call_resume);
@@ -495,7 +494,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    /// Calls the `yield` continuation.
+    /// Calls the contextual `yield` continuation.
     ///
     /// Calling `yield` is almost like calling a regular continuation, but we allocate a new
     /// `resume_to` value that corresponds to the continuation after the `yield`.
@@ -547,14 +546,15 @@ impl<'ctx> Codegen<'ctx> {
         self.get_continuation(name)
     }
 
-    pub(crate) fn call_resume(
-        &self,
-        value: BasicMetadataValueEnum<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
+    /// Calls the contextual `resume` continuation.
+    ///
+    /// Calling `resume` causes a shift, as if a new handler was installed. This replaces the
+    /// contextual `cancel_to` value so that when the current delimited continuation (`when`)
+    /// is completed, we can go back into this handler.
+    pub(crate) fn call_resume(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let resume_value = self.get_resume("");
         let continuation_function = self.add_continuation("resume.back");
-        self.call_resume_inner(continuation_function, resume_value, value, None);
+        self.call_resume_inner(continuation_function, resume_value, value.into(), None);
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
@@ -606,13 +606,21 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
     }
 
-    #[must_use]
-    pub(crate) fn call_continue(
+    /// Calls the contextual `continue` continuation.
+    ///
+    /// Calling continue requires passing the same `continue_to` value to its own continuation,
+    /// so that it may also continue to the same place.
+    pub(crate) fn call_continue(&self, value: PointerValue<'ctx>, name: &str) {
+        let continue_to = self.get_continue("");
+        self.call_continue_inner(continue_to, value, name);
+    }
+
+    fn call_continue_inner(
         &self,
         continue_value: PointerValue<'ctx>,
         value: PointerValue<'ctx>,
         name: &str,
-    ) -> InstructionValue<'ctx> {
+    ) {
         let continue_callable = self.trilogy_callable_untag(continue_value, "");
         let continue_continuation = self.trilogy_continuation_untag(continue_callable, "");
 
@@ -648,7 +656,7 @@ impl<'ctx> Codegen<'ctx> {
             .either(|l| l.as_instruction_value(), Some)
             .unwrap();
         self.builder.build_return(None).unwrap();
-        call
+        self.end_continuation_point_as_clean(call);
     }
 
     /// Calls the `main` function as the Trilogy program entrypoint.

@@ -130,9 +130,7 @@ impl<'ctx> Codegen<'ctx> {
         self.restore_function_context(snapshot);
         self.resume_continuation_point(&brancher);
         if let Some(result) = self.compile_expression(&expr.body, name) {
-            let continue_continuation = self.get_continue("continue");
-            let call = self.call_continue(continue_continuation, result, "");
-            self.end_continuation_point_as_clean(call);
+            self.call_continue(result, "");
         }
 
         self.become_continuation_point(break_continuation_point);
@@ -529,11 +527,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Resume => {
                 let value = self.compile_expression(expression, name)?;
-                let value = self
-                    .builder
-                    .build_load(self.value_type(), value, "")
-                    .unwrap();
-                Some(self.call_resume(value.into(), name))
+                Some(self.call_resume(value, name))
             }
             Builtin::Break => {
                 let result = self.compile_expression(expression, name)?;
@@ -543,9 +537,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Continue => {
                 let result = self.compile_expression(expression, name)?;
-                let continue_cont = self.get_continue("");
-                let call = self.call_continue(continue_cont, result, "");
-                self.end_continuation_point_as_clean(call);
+                self.call_continue(result, "");
                 None
             }
             Builtin::ToString => {
