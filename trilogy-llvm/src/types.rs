@@ -2,7 +2,9 @@ use crate::codegen::Codegen;
 use bitvec::field::BitField;
 use inkwell::basic_block::BasicBlock;
 use inkwell::types::{FunctionType, IntType, StructType};
-use inkwell::values::{BasicValue, GlobalValue, IntValue, PointerValue, StructValue};
+use inkwell::values::{
+    BasicValue, BasicValueEnum, GlobalValue, IntValue, PointerValue, StructValue,
+};
 use inkwell::{AddressSpace, IntPredicate};
 use num::bigint::Sign;
 use trilogy_ir::ir::{Bits, Number};
@@ -326,5 +328,15 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(cmp, uninit_block, init_block)
             .unwrap();
+    }
+
+    pub(crate) fn load_value(
+        &self,
+        pointer: PointerValue<'ctx>,
+        name: &str,
+    ) -> BasicValueEnum<'ctx> {
+        self.builder
+            .build_load(self.value_type(), pointer, name)
+            .unwrap()
     }
 }
