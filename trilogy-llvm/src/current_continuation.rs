@@ -1,4 +1,5 @@
 use crate::codegen::{Brancher, Codegen};
+use inkwell::AddressSpace;
 use inkwell::values::{BasicValue, FunctionValue, PointerValue};
 
 enum EndType<'a, 'ctx> {
@@ -30,39 +31,58 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
-    /// Constructs a TrilogyValue that represents the current continuation.
+    /// Constructs a TrilogyValue that represents the current continuation to be used as `cancel`.
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,
     /// so may not be referenced.
-    pub(crate) fn close_current_continuation(
+    pub(crate) fn close_current_continuation_as_cancel(
         &self,
         continuation_function: FunctionValue<'ctx>,
+        branch: Option<&Brancher<'ctx>>,
         name: &str,
     ) -> PointerValue<'ctx> {
+        let end_type = match branch {
+            Some(branch) => EndType::CloseBranch(branch),
+            None => EndType::Close,
+        };
         self.construct_current_continuation(
             continuation_function,
-            EndType::Close,
+            end_type,
             ContinuationType::Continuation,
             name,
         )
     }
 
-    /// Constructs a TrilogyValue that represents the current continuation.
+    /// Constructs a TrilogyValue that represents the current continuation to be used as `return`.
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,
     /// so may not be referenced.
-    pub(crate) fn close_current_continuation_in_branch(
+    pub(crate) fn close_current_continuation_as_return(
         &self,
-        branch: &Brancher<'ctx>,
         continuation_function: FunctionValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        self.construct_current_continuation(
+        let continuation = self.allocate_value(name);
+        let return_to = self.get_return("");
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
+        self.bind_temporary(continuation);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_cont(
+            continuation,
+            return_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            break_to,
+            continue_to,
+            closure,
             continuation_function,
-            EndType::CloseBranch(branch),
-            ContinuationType::Continuation,
-            name,
-        )
+        );
+        continuation
     }
 
     /// Constructs a TrilogyValue that represents the current continuation, marked to be called using "resume" calling convention.
@@ -113,7 +133,6 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
         let cancel_to = self.get_cancel("");
         let break_to = match continuation_type {
             ContinuationType::Continue(break_to) => break_to,
@@ -145,7 +164,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_callable_init_resume(
                     continuation,
                     return_to,
-                    yield_to,
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
                     cancel_to,
                     break_to,
                     continue_to,
@@ -157,7 +176,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_callable_init_cont(
                     continuation,
                     return_to,
-                    yield_to,
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
                     cancel_to,
                     break_to,
                     continue_to,
@@ -169,7 +188,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_callable_init_continue(
                     continuation,
                     return_to,
-                    yield_to,
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
                     cancel_to,
                     break_to,
                     continue_to,

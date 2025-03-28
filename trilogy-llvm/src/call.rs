@@ -104,12 +104,12 @@ impl<'ctx> Codegen<'ctx> {
         let continue_to = self.get_continue("");
 
         // All variables and values are invalid after this point.
-        let current_continuation = self.close_current_continuation(continuation_function, "cc");
+        let return_to = self.close_current_continuation_as_return(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + 8);
         args.extend([
-            current_continuation,
+            return_to,
             yield_to,
             end_to,
             cancel_to,
@@ -685,14 +685,8 @@ impl<'ctx> Codegen<'ctx> {
         let break_to = self.allocate_value("");
         let continue_to = self.allocate_value("");
         let closure = self.allocate_value("");
-        let cancel_to = match branch {
-            Some(branch) => self.close_current_continuation_in_branch(
-                branch,
-                continuation_function,
-                "when.cancel",
-            ),
-            None => self.close_current_continuation(continuation_function, "when.cancel"),
-        };
+        let cancel_to =
+            self.close_current_continuation_as_cancel(continuation_function, branch, "when.cancel");
         let cancel_clone = self.allocate_value("");
         self.trilogy_callable_break_to_into(break_to, resume);
         self.trilogy_callable_continue_to_into(continue_to, resume);
