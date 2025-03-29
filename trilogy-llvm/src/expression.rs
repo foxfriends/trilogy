@@ -96,7 +96,7 @@ impl<'ctx> Codegen<'ctx> {
         let break_continuation =
             self.capture_current_continuation(break_function, &brancher, "while.end");
         let break_continuation_point = self.hold_continuation_point();
-        self.continue_in_scope_loop(continue_function, break_continuation);
+        self.continue_in_loop(continue_function, break_continuation);
         self.begin_next_function(continue_function);
         // TODO: within the condition of a loop, `break` keyword should refer to the parent scope's break,
         // but here it refers to the child.
@@ -141,39 +141,28 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
         let body_function = self.add_continuation("");
         let handler_function = self.add_continuation(name);
+
         let brancher = self.end_continuation_point_as_branch();
 
-        let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
-        let break_to = self.get_break("");
-        let continue_to = self.get_continue("");
+        // Prepare cancel continuation for after the handled section is complete.
         let cancel_to_function = self.add_continuation("when.cancel");
         let cancel_to =
-            self.capture_current_continuation(cancel_to_function, &brancher, "when.cancel");
+            self.capture_current_continuation_as_cancel(cancel_to_function, &brancher, "");
         let cancel_to_continuation_point = self.hold_continuation_point();
 
-        // construct handler
-        let closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
-            .unwrap();
-        self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
-        let handler_continuation_point = self.hold_continuation_point();
-        let handler = self.allocate_value("yield");
+        // Construct yield continuation that continues into the handler itself.
         let cancel_to_clone = self.allocate_value("");
         self.trilogy_value_clone_into(cancel_to_clone, cancel_to);
-        self.trilogy_callable_init_cont(
-            handler,
-            return_to,
-            yield_to,
-            cancel_to_clone,
-            break_to,
-            continue_to,
-            closure,
+        let handler = self.capture_current_continuation_as_yield(
             handler_function,
+            &brancher,
+            cancel_to_clone,
+            "",
         );
+        let handler_continuation_point = self.hold_continuation_point();
 
-        let body_closure = self.continue_in_scope_handled(body_function, handler, cancel_to);
+        // Then enter the handler, given the new yield and cancel to values`
+        let body_closure = self.continue_in_handler(body_function, handler, cancel_to);
         self.add_branch_end_as_close(&brancher, body_closure);
 
         self.begin_next_function(body_function);

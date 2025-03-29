@@ -53,6 +53,67 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn capture_current_continuation_as_cancel(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        brancher: &Brancher<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let continuation = self.allocate_value(name);
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        let cancel_to = self.get_cancel("");
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
+        self.bind_temporary(continuation);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        self.add_branch_capture(brancher, closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_cont(
+            continuation,
+            return_to,
+            yield_to,
+            cancel_to,
+            break_to,
+            continue_to,
+            closure,
+            continuation_function,
+        );
+        continuation
+    }
+
+    pub(crate) fn capture_current_continuation_as_yield(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        brancher: &Brancher<'ctx>,
+        cancel_to: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let handler = self.allocate_value(name);
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
+            .unwrap();
+        self.add_branch_capture(brancher, closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_cont(
+            handler,
+            return_to,
+            yield_to,
+            cancel_to,
+            break_to,
+            continue_to,
+            closure,
+            continuation_function,
+        );
+        handler
+    }
+
     /// Constructs a TrilogyValue that represents the current continuation to be used as `return`.
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,

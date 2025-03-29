@@ -54,6 +54,7 @@ static trilogy_callable_value* trilogy_callable_value_init(
         closure == NO_CLOSURE ? NO_CLOSURE : trilogy_array_assume(closure);
     callable->function = p;
     TRACE("Initialized callable   (%d): %p\n", callable->tag, callable);
+    return callable;
 }
 
 trilogy_callable_value*
@@ -234,20 +235,49 @@ static void shift(
     );
 }
 
-void trilogy_callable_yield_to_shift(
-    trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
+static void trilogy_callable_clone_inner(
+    trilogy_callable_value* clone, trilogy_callable_value* original
 ) {
-    assert(cal->yield_to != NULL);
-    shift(val, cancel_to, cal->yield_to);
-    *cancel_to = trilogy_undefined;
+    if (original->return_to != NULL) original->return_to->rc++;
+    if (original->yield_to != NULL) original->yield_to->rc++;
+    if (original->cancel_to != NULL) original->cancel_to->rc++;
+    if (original->break_to != NULL) original->break_to->rc++;
+    if (original->continue_to != NULL) original->continue_to->rc++;
+    if (original->closure != NO_CLOSURE) original->closure->rc++;
+    *clone = *original;
+    clone->rc = 1;
 }
 
-void trilogy_callable_return_to_shift(
-    trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
+void trilogy_callable_promote(
+    trilogy_value* tv, trilogy_callable_value* return_to,
+    trilogy_callable_value* yield_to, trilogy_callable_value* cancel_to,
+    trilogy_callable_value* break_to, trilogy_callable_value* continue_to
 ) {
-    assert(cal->return_to != NULL);
-    shift(val, cancel_to, cal->return_to);
-    *cancel_to = trilogy_undefined;
+    trilogy_callable_value* original = trilogy_callable_untag(tv);
+    trilogy_callable_value* clone = malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_clone_inner(clone, original);
+    if (return_to != NULL) {
+        if (clone->return_to != NULL) clone->return_to->rc--;
+        clone->return_to = return_to;
+    }
+    if (yield_to != NULL) {
+        if (clone->yield_to != NULL) clone->yield_to->rc--;
+        clone->yield_to = yield_to;
+    }
+    if (cancel_to != NULL) {
+        if (clone->cancel_to != NULL) clone->cancel_to->rc--;
+        clone->cancel_to = cancel_to;
+    }
+    if (break_to != NULL) {
+        if (clone->break_to != NULL) clone->break_to->rc--;
+        clone->break_to = break_to;
+    }
+    if (continue_to != NULL) {
+        if (clone->continue_to != NULL) clone->continue_to->rc--;
+        clone->continue_to = continue_to;
+    }
+    trilogy_value_destroy(tv);
+    trilogy_callable_init(tv, clone);
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {

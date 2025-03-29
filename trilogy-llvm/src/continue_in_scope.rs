@@ -1,4 +1,5 @@
 use crate::codegen::Codegen;
+use inkwell::AddressSpace;
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::values::{
     BasicMetadataValueEnum, BasicValue, FunctionValue, InstructionValue, LLVMTailCallKind,
@@ -51,23 +52,69 @@ impl<'ctx> Codegen<'ctx> {
     /// See `void_continue_in_scope`; this does that, but allows a different `yield_to`
     /// pointer to be passed, setting that as the handler for the continued scope.
     #[must_use = "continuation point must be closed"]
-    pub(crate) fn continue_in_scope_handled(
+    pub(crate) fn continue_in_handler(
         &self,
         function: FunctionValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
     ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            yield_to,
-            cancel_to,
-            self.get_break(""),
-            self.get_continue(""),
+        let return_to = self.get_return("");
+        let end_to = self.get_end("");
+        let resume_to = self.get_resume("");
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
+
+        self.trilogy_callable_promote(
+            return_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_yield(""),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+        );
+        self.trilogy_callable_promote(
+            break_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_yield(""),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+        );
+        self.trilogy_callable_promote(
+            continue_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_yield(""),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+        );
+
+        let parent_closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+
+        let args = &[
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_to, "").into(),
             self.value_type().const_zero().into(),
-        )
+            self.load_value(parent_closure, "").into(),
+        ];
+
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+        let call = self.builder.build_direct_call(function, args, "").unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        self.builder.build_return(None).unwrap();
+        parent_closure.as_instruction_value().unwrap()
     }
 
-    pub(crate) fn continue_in_scope_loop(
+    pub(crate) fn continue_in_loop(
         &self,
         continue_function: FunctionValue<'ctx>,
         break_to: PointerValue<'ctx>,

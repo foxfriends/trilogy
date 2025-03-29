@@ -62,11 +62,10 @@ void trilogy_callable_continue_to_into(
     trilogy_value*, trilogy_callable_value* orig
 );
 
-void trilogy_callable_return_to_shift(
-    trilogy_value*, trilogy_value* cancel_to, trilogy_callable_value* orig
-);
-void trilogy_callable_yield_to_shift(
-    trilogy_value*, trilogy_value* cancel_to, trilogy_callable_value* orig
+void trilogy_callable_promote(
+    trilogy_value* tv, trilogy_callable_value* return_to,
+    trilogy_callable_value* yield_to, trilogy_callable_value* cancel_to,
+    trilogy_callable_value* break_to, trilogy_callable_value* continue_to
 );
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val);

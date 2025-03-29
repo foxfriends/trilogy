@@ -276,6 +276,20 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
+    fn do_if<F: Fn()>(&self, bool_value: IntValue<'ctx>, body: F) {
+        let true_block = self.context.append_basic_block(self.get_function(), "");
+        let false_block = self.context.append_basic_block(self.get_function(), "");
+        self.builder
+            .build_conditional_branch(bool_value, true_block, false_block)
+            .unwrap();
+        self.builder.position_at_end(true_block);
+        body();
+        self.builder
+            .build_unconditional_branch(false_block)
+            .unwrap();
+        self.builder.position_at_end(false_block);
+    }
+
     fn call_regular_continuation(
         &self,
         continuation_value: PointerValue<'ctx>,
@@ -292,10 +306,25 @@ impl<'ctx> Codegen<'ctx> {
         let continue_to = self.allocate_value("");
         let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, callable);
+        self.do_if(self.is_undefined(return_to), || {
+            self.clone_return(return_to);
+        });
         self.trilogy_callable_yield_to_into(yield_to, callable);
+        self.do_if(self.is_undefined(yield_to), || {
+            self.clone_yield(yield_to);
+        });
         self.trilogy_callable_cancel_to_into(cancel_to, callable);
+        self.do_if(self.is_undefined(cancel_to), || {
+            self.clone_cancel(cancel_to);
+        });
         self.trilogy_callable_break_to_into(break_to, callable);
+        self.do_if(self.is_undefined(break_to), || {
+            self.clone_break(break_to);
+        });
         self.trilogy_callable_continue_to_into(continue_to, callable);
+        self.do_if(self.is_undefined(continue_to), || {
+            self.clone_continue(continue_to);
+        });
         self.trilogy_callable_closure_into(closure, callable, "");
 
         let args = &[
@@ -408,7 +437,12 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn call_resume(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let resume_value = self.get_resume("");
         let continuation_function = self.add_continuation("resume.back");
-        self.call_resume_inner(continuation_function, resume_value, value.into(), None);
+        self.call_resume_inner(
+            continuation_function,
+            resume_value,
+            self.load_value(value, "").into(),
+            None,
+        );
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
@@ -433,13 +467,10 @@ impl<'ctx> Codegen<'ctx> {
         let closure = self.allocate_value("");
         let cancel_to =
             self.close_current_continuation_as_cancel(continuation_function, branch, "when.cancel");
-        let cancel_clone = self.allocate_value("");
         self.trilogy_callable_break_to_into(break_to, resume);
         self.trilogy_callable_continue_to_into(continue_to, resume);
-        self.trilogy_value_clone_into(cancel_clone, cancel_to);
-        self.trilogy_callable_return_to_shift(return_to, cancel_clone, resume);
-        self.trilogy_value_clone_into(cancel_clone, cancel_to);
-        self.trilogy_callable_yield_to_shift(yield_to, cancel_clone, resume);
+        self.trilogy_callable_return_to_into(return_to, resume);
+        self.trilogy_callable_yield_to_into(yield_to, resume);
         self.trilogy_callable_closure_into(closure, resume, "");
 
         let args = &[

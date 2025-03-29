@@ -309,12 +309,7 @@ impl<'ctx> Codegen<'ctx> {
             .fn_type(&[self.value_type().into(); 9], false)
     }
 
-    pub(crate) fn branch_undefined(
-        &self,
-        value: PointerValue<'ctx>,
-        uninit_block: BasicBlock<'ctx>,
-        init_block: BasicBlock<'ctx>,
-    ) {
+    pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
         let tag = self.get_tag(value, "");
         let cmp = self
             .builder
@@ -322,9 +317,19 @@ impl<'ctx> Codegen<'ctx> {
                 IntPredicate::EQ,
                 tag,
                 self.context.i8_type().const_int(TAG_UNDEFINED, false),
-                "untag",
+                "is_undefined",
             )
             .unwrap();
+        cmp
+    }
+
+    pub(crate) fn branch_undefined(
+        &self,
+        value: PointerValue<'ctx>,
+        uninit_block: BasicBlock<'ctx>,
+        init_block: BasicBlock<'ctx>,
+    ) {
+        let cmp = self.is_undefined(value);
         self.builder
             .build_conditional_branch(cmp, uninit_block, init_block)
             .unwrap();
