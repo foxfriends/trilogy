@@ -15,6 +15,7 @@ mod bare;
 mod call;
 mod codegen;
 mod constant;
+mod continue_in_scope;
 mod core;
 mod current_continuation;
 mod entrypoint;

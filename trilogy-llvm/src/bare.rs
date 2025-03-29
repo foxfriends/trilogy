@@ -529,16 +529,22 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
-    pub(crate) fn trilogy_callable_yield_to_shift(
+    pub(crate) fn trilogy_callable_promote(
         &self,
         target: PointerValue<'ctx>,
+        return_to: PointerValue<'ctx>,
+        yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
-        callable: PointerValue<'ctx>,
+        break_to: PointerValue<'ctx>,
+        continue_to: PointerValue<'ctx>,
     ) {
         let f = self.declare_bare(
-            "trilogy_callable_yield_to_shift",
+            "trilogy_callable_promote",
             self.context.void_type().fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -547,29 +553,18 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         self.builder
-            .build_call(f, &[target.into(), cancel_to.into(), callable.into()], "")
-            .unwrap();
-    }
-
-    pub(crate) fn trilogy_callable_return_to_shift(
-        &self,
-        target: PointerValue<'ctx>,
-        cancel_to: PointerValue<'ctx>,
-        callable: PointerValue<'ctx>,
-    ) {
-        let f = self.declare_bare(
-            "trilogy_callable_return_to_shift",
-            self.context.void_type().fn_type(
+            .build_call(
+                f,
                 &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
+                    target.into(),
+                    return_to.into(),
+                    yield_to.into(),
+                    cancel_to.into(),
+                    break_to.into(),
+                    continue_to.into(),
                 ],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(f, &[target.into(), cancel_to.into(), callable.into()], "")
+                "",
+            )
             .unwrap();
     }
 
