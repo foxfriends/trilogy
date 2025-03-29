@@ -532,7 +532,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn trilogy_callable_promote(
         &self,
         target: PointerValue<'ctx>,
-        resume_to: PointerValue<'ctx>,
+        return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
         break_to: PointerValue<'ctx>,
@@ -557,7 +557,7 @@ impl<'ctx> Codegen<'ctx> {
                 f,
                 &[
                     target.into(),
-                    resume_to.into(),
+                    return_to.into(),
                     yield_to.into(),
                     cancel_to.into(),
                     break_to.into(),

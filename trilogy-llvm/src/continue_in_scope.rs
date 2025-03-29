@@ -107,7 +107,7 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_yield(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_cancel(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
         );
@@ -115,7 +115,7 @@ impl<'ctx> Codegen<'ctx> {
             break_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_yield(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_cancel(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
         );
@@ -123,7 +123,7 @@ impl<'ctx> Codegen<'ctx> {
             continue_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_yield(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_cancel(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
         );

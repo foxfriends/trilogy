@@ -216,25 +216,6 @@ void trilogy_callable_continue_to_into(
     trilogy_callable_clone_into(val, cal->continue_to);
 }
 
-static void shift(
-    trilogy_value* val, trilogy_value* cancel_to, trilogy_callable_value* cal
-) {
-    trilogy_value return_to = trilogy_undefined;
-    trilogy_value yield_to = trilogy_undefined;
-    trilogy_value break_to = trilogy_undefined;
-    trilogy_value continue_to = trilogy_undefined;
-    trilogy_value closure = trilogy_undefined;
-    trilogy_callable_return_to_into(&return_to, cal);
-    trilogy_callable_yield_to_into(&yield_to, cal);
-    trilogy_callable_break_to_into(&break_to, cal);
-    trilogy_callable_continue_to_into(&continue_to, cal);
-    trilogy_callable_closure_into(&closure, cal);
-    trilogy_callable_init_cont(
-        val, &return_to, &yield_to, cancel_to, &break_to, &continue_to,
-        &closure, cal->function
-    );
-}
-
 static void trilogy_callable_clone_inner(
     trilogy_callable_value* clone, trilogy_callable_value* original
 ) {

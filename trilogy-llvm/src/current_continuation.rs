@@ -218,7 +218,6 @@ impl<'ctx> Codegen<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
-        let cancel_to = self.get_cancel("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
         self.bind_temporary(continuation);
@@ -233,7 +232,7 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
-            cancel_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
             continue_to,
             closure,

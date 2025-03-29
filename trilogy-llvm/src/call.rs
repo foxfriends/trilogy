@@ -467,10 +467,23 @@ impl<'ctx> Codegen<'ctx> {
         let closure = self.allocate_value("");
         let cancel_to =
             self.close_current_continuation_as_cancel(continuation_function, branch, "when.cancel");
+
+        self.trilogy_callable_return_to_into(return_to, resume);
+
+        self.trilogy_callable_yield_to_into(yield_to, resume);
+        let cancel_clone = self.allocate_value("");
+        self.trilogy_value_clone_into(cancel_clone, cancel_to);
+        self.trilogy_callable_promote(
+            yield_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            cancel_clone,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+        );
+
         self.trilogy_callable_break_to_into(break_to, resume);
         self.trilogy_callable_continue_to_into(continue_to, resume);
-        self.trilogy_callable_return_to_into(return_to, resume);
-        self.trilogy_callable_yield_to_into(yield_to, resume);
         self.trilogy_callable_closure_into(closure, resume, "");
 
         let args = &[
