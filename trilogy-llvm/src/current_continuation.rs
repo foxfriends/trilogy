@@ -124,8 +124,6 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
-        let break_to = self.get_break("");
-        let continue_to = self.get_continue("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -135,6 +133,34 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_init_cont(
             continuation,
             return_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            closure,
+            continuation_function,
+        );
+        continuation
+    }
+
+    /// Constructs a TrilogyValue that represents the current continuation to be used as `break`.
+    pub(crate) fn capture_current_continuation_as_break(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        brancher: &Brancher<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let continuation = self.allocate_value(name);
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
+            .unwrap();
+        self.add_branch_capture(brancher, closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_cont(
+            continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
@@ -192,12 +218,24 @@ impl<'ctx> Codegen<'ctx> {
         break_to: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        self.construct_current_continuation(
+        let continuation = self.allocate_value(name);
+        self.bind_temporary(continuation);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_cont(
+            continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            break_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            closure,
             continuation_function,
-            EndType::Close,
-            ContinuationType::Continue(break_to),
-            name,
-        )
+        );
+        continuation
     }
 
     /// Constructs a TrilogyValue that represents the current continuation.

@@ -94,7 +94,7 @@ impl<'ctx> Codegen<'ctx> {
         let brancher = self.end_continuation_point_as_branch();
 
         let break_continuation =
-            self.capture_current_continuation(break_function, &brancher, "while.end");
+            self.capture_current_continuation_as_break(break_function, &brancher, "");
         let break_continuation_point = self.hold_continuation_point();
         self.continue_in_loop(continue_function, break_continuation);
         self.begin_next_function(continue_function);
