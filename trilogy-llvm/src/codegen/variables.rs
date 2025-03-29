@@ -1,6 +1,5 @@
 //! Functions for accessing variables and values. The availability of variables is highly
 //! dependent on the continuation point and its parents.
-
 use super::{Codegen, ContinuationPoint};
 use inkwell::AddressSpace;
 use inkwell::builder::Builder;
@@ -73,50 +72,85 @@ impl<'ctx> Codegen<'ctx> {
     /// Gets the `return_to` pointer from the current function context.
     pub(crate) fn get_return(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[0]);
+        self.clone_return(container);
         container
+    }
+
+    /// Gets the `return_to` pointer from the current function context.
+    pub(crate) fn clone_return(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[0]);
     }
 
     /// Gets the `yield_to` pointer from the current function context.
     pub(crate) fn get_yield(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[1]);
+        self.clone_yield(container);
         container
+    }
+
+    /// Gets the `yield_to` pointer from the current function context.
+    pub(crate) fn clone_yield(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[1]);
     }
 
     /// Gets the `end_to` pointer from the current function context.
     pub(crate) fn get_end(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[2]);
+        self.clone_end(container);
         container
+    }
+
+    /// Gets the `end_to` pointer from the current function context.
+    pub(crate) fn clone_end(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[2]);
     }
 
     /// When in a handler function, gets the cancel to pointer.
     pub(crate) fn get_cancel(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[3]);
+        self.clone_cancel(container);
         container
+    }
+
+    /// When in a handler function, gets the cancel to pointer.
+    pub(crate) fn clone_cancel(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[3]);
     }
 
     /// When in a handler function, gets the resume to pointer.
     pub(crate) fn get_resume(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[4]);
+        self.clone_resume(container);
         container
+    }
+
+    /// When in a handler function, gets the resume to pointer.
+    pub(crate) fn clone_resume(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[4]);
     }
 
     /// Gets the current `break` continuation, valid only when in a loop.
     pub(crate) fn get_break(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
+        self.clone_break(container);
         container
+    }
+
+    /// Gets the current `break` continuation, valid only when in a loop.
+    pub(crate) fn clone_break(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[5]);
     }
 
     /// Gets the current `continue` continuation, valid only when in a loop.
     pub(crate) fn get_continue(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[6]);
+        self.clone_continue(container);
         container
+    }
+
+    /// Gets the current `continue` continuation, valid only when in a loop.
+    pub(crate) fn clone_continue(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[6]);
     }
 
     /// When in a continuation function, gets the value that was yielded to the continuation.
