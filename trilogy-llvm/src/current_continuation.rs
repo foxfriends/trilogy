@@ -10,7 +10,6 @@ enum EndType<'a, 'ctx> {
 
 enum ContinuationType<'ctx> {
     Continuation,
-    Resume,
     Continue(PointerValue<'ctx>),
 }
 
@@ -155,12 +154,32 @@ impl<'ctx> Codegen<'ctx> {
         continuation_function: FunctionValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        self.construct_current_continuation(
+        let continuation = self.allocate_value(name);
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        let cancel_to = self.get_cancel("");
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
+        self.bind_temporary(continuation);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_resume(
+            continuation,
+            return_to,
+            yield_to,
+            cancel_to,
+            break_to,
+            continue_to,
+            closure,
             continuation_function,
-            EndType::Close,
-            ContinuationType::Resume,
-            name,
-        )
+        );
+
+        continuation
     }
 
     /// Constructs a TrilogyValue that represents the current continuation, marked to be called using "continue" calling convention.
@@ -221,18 +240,6 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
         match continuation_type {
-            ContinuationType::Resume => {
-                self.trilogy_callable_init_resume(
-                    continuation,
-                    return_to,
-                    self.context.ptr_type(AddressSpace::default()).const_null(),
-                    cancel_to,
-                    break_to,
-                    continue_to,
-                    closure,
-                    continuation_function,
-                );
-            }
             ContinuationType::Continuation => {
                 self.trilogy_callable_init_cont(
                     continuation,
