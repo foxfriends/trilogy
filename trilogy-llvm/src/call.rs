@@ -220,7 +220,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_resume_inner(
             continuation_function,
             callable_value,
-            self.load_value(argument, "").into(),
+            argument,
             Some(&brancher),
         );
 
@@ -437,12 +437,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn call_resume(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let resume_value = self.get_resume("");
         let continuation_function = self.add_continuation("resume.back");
-        self.call_resume_inner(
-            continuation_function,
-            resume_value,
-            self.load_value(value, "").into(),
-            None,
-        );
+        self.call_resume_inner(continuation_function, resume_value, value, None);
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
@@ -451,7 +446,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         continuation_function: FunctionValue<'ctx>,
         resume_value: PointerValue<'ctx>,
-        value: BasicMetadataValueEnum<'ctx>,
+        value: PointerValue<'ctx>,
         branch: Option<&Brancher<'ctx>>,
     ) {
         let resume = self.trilogy_callable_untag(resume_value, "");
@@ -494,7 +489,7 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(resume_to, "").into(),
             self.load_value(break_to, "").into(),
             self.load_value(continue_to, "").into(),
-            value,
+            self.load_value(value, "").into(),
             self.load_value(closure, "").into(),
         ];
         self.trilogy_value_destroy(resume_value);

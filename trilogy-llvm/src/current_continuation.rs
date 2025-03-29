@@ -12,11 +12,6 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
-        let return_to = self.get_return("");
-        let cancel_to = self.get_cancel("");
-        let break_to = self.get_break("");
-        let continue_to = self.get_continue("");
-
         self.bind_temporary(continuation);
 
         let closure = self
@@ -28,11 +23,11 @@ impl<'ctx> Codegen<'ctx> {
         self.add_branch_capture(branch, closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
             continuation,
-            return_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            cancel_to,
-            break_to,
-            continue_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );

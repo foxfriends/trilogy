@@ -235,36 +235,41 @@ void trilogy_callable_continue_to_into(
 }
 
 void trilogy_callable_promote(
-    trilogy_value* tv, trilogy_callable_value* return_to,
-    trilogy_callable_value* yield_to, trilogy_callable_value* cancel_to,
-    trilogy_callable_value* break_to, trilogy_callable_value* continue_to
+    trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to,
+    trilogy_value* cancel_to, trilogy_value* break_to,
+    trilogy_value* continue_to
 ) {
     trilogy_callable_value* original = trilogy_callable_untag(tv);
     trilogy_callable_value* clone = malloc_safe(sizeof(trilogy_callable_value));
     *clone = *original;
     clone->rc = 1;
     if (return_to != NULL) {
-        clone->return_to = return_to;
+        clone->return_to = trilogy_callable_assume(return_to);
+        *return_to = trilogy_undefined;
     } else if (clone->return_to != NULL) {
         clone->return_to->rc++;
     }
     if (yield_to != NULL) {
-        clone->yield_to = yield_to;
+        clone->yield_to = trilogy_callable_assume(yield_to);
+        *yield_to = trilogy_undefined;
     } else if (clone->yield_to != NULL) {
         clone->yield_to->rc++;
     }
     if (cancel_to != NULL) {
-        clone->cancel_to = cancel_to;
+        clone->cancel_to = trilogy_callable_assume(cancel_to);
+        *cancel_to = trilogy_undefined;
     } else if (clone->cancel_to != NULL) {
         clone->cancel_to->rc++;
     }
     if (break_to != NULL) {
-        clone->break_to = break_to;
+        clone->break_to = trilogy_callable_assume(break_to);
+        *break_to = trilogy_undefined;
     } else if (clone->break_to != NULL) {
         clone->break_to->rc++;
     }
     if (continue_to != NULL) {
-        clone->continue_to = continue_to;
+        clone->continue_to = trilogy_callable_assume(continue_to);
+        *continue_to = trilogy_undefined;
     } else if (clone->continue_to != NULL) {
         clone->continue_to->rc++;
     }

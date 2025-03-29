@@ -63,9 +63,9 @@ void trilogy_callable_continue_to_into(
 );
 
 void trilogy_callable_promote(
-    trilogy_value* tv, trilogy_callable_value* return_to,
-    trilogy_callable_value* yield_to, trilogy_callable_value* cancel_to,
-    trilogy_callable_value* break_to, trilogy_callable_value* continue_to
+    trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to,
+    trilogy_value* cancel_to, trilogy_value* break_to,
+    trilogy_value* continue_to
 );
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val);
