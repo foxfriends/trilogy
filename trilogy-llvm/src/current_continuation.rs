@@ -258,6 +258,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_continue(
             continuation,
