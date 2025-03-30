@@ -1,4 +1,5 @@
 use crate::codegen::{Codegen, Head, Merger, Variable};
+use inkwell::AddressSpace;
 use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
@@ -289,11 +290,47 @@ impl<'ctx> Codegen<'ctx> {
 
     fn reference_builtin(&self, builtin: Builtin, name: &str) -> PointerValue<'ctx> {
         match builtin {
-            Builtin::Return => self.get_return(name),
+            Builtin::Return => {
+                let return_to = self.get_return(name);
+                self.trilogy_callable_promote(
+                    return_to,
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
+                    self.get_yield(""),
+                    self.get_cancel(""),
+                    self.get_resume(""),
+                    self.get_break(""),
+                    self.get_continue(""),
+                );
+                return_to
+            }
             Builtin::Cancel => self.get_cancel(name),
             Builtin::Resume => self.get_resume(name),
-            Builtin::Break => self.get_break(name),
-            Builtin::Continue => self.get_continue(name),
+            Builtin::Break => {
+                let break_to = self.get_break(name);
+                self.trilogy_callable_promote(
+                    break_to,
+                    self.get_return(""),
+                    self.get_yield(""),
+                    self.get_cancel(""),
+                    self.get_resume(""),
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
+                );
+                break_to
+            }
+            Builtin::Continue => {
+                let continue_to = self.get_continue(name);
+                self.trilogy_callable_promote(
+                    continue_to,
+                    self.get_return(""),
+                    self.get_yield(""),
+                    self.get_cancel(""),
+                    self.get_resume(""),
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
+                );
+                continue_to
+            }
             _ => todo!("builtin: {builtin:?}"),
         }
     }
