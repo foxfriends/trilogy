@@ -1,0 +1,1 @@
+output = "loop(0)\nloop(1)\nloop(2)\nhandler(0)\nhandler(1)\nhandler(2)\n"

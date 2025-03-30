@@ -21,18 +21,8 @@ check-rust:
 check-c:
     ls *.{c,h} | xargs -I _ iwyu -Xiwyu --error _
 
-test: test-rust test-tri
-
-test-rust:
+test:
     cargo test
-
-[working-directory: "testsuite"]
-memcheck:
-    ./test.sh -r -m
-
-[working-directory: "testsuite"]
-test-tri flags="-r":
-    ./test.sh {{flags}}
 
 run file="main.tri":
     cargo run -- compile {{file}} > main.ll

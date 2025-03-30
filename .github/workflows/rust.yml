@@ -94,4 +94,4 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Run cargo test
-        run: cargo test
+        run: TRITEST_MEMCHECK=true cargo test
