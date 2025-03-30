@@ -3,7 +3,6 @@
 [![Spec](https://github.com/foxfriends/trilogy/actions/workflows/spec.yml/badge.svg)](https://github.com/foxfriends/trilogy/actions/workflows/spec.yml)
 [![Rust CI](https://github.com/foxfriends/trilogy/actions/workflows/rust.yml/badge.svg)](https://github.com/foxfriends/trilogy/actions/workflows/rust.yml)
 [![C CI](https://github.com/foxfriends/trilogy/actions/workflows/c.yml/badge.svg)](https://github.com/foxfriends/trilogy/actions/workflows/c.yml)
-[![Trilogy CI](https://github.com/foxfriends/trilogy/actions/workflows/trilogy.yml/badge.svg)](https://github.com/foxfriends/trilogy/actions/workflows/trilogy.yml)
 
 My (approximately) third attempt at building a programming language[^1][^2].
 
