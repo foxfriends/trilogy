@@ -182,7 +182,11 @@ impl Expression {
             OpAmp if precedence < Precedence::BitwiseAnd => Self::binary(parser, lhs),
             OpPipe if precedence < Precedence::BitwiseOr => Self::binary(parser, lhs),
             OpCaret if precedence < Precedence::BitwiseXor => Self::binary(parser, lhs),
-            OpShr | OpShl if precedence < Precedence::BitwiseShift => Self::binary(parser, lhs),
+            OpShr | OpShl | OpShrEx | OpShlEx | OpShrCon | OpShlCon
+                if precedence < Precedence::BitwiseShift =>
+            {
+                Self::binary(parser, lhs)
+            }
             OpColonColon if precedence < Precedence::Path => Ok(Continue(Self::ModuleAccess(
                 Box::new(ModuleAccess::parse(parser, lhs)?),
             ))),

@@ -57,6 +57,14 @@ pub enum Builtin {
     LeftShift,
     /// ~>
     RightShift,
+    /// <~~
+    LeftShiftExtend,
+    /// ~~>
+    RightShiftExtend,
+    /// <<~
+    LeftShiftContract,
+    /// ~>>
+    RightShiftContract,
     /// ;
     Sequence,
     /// :
@@ -114,6 +122,10 @@ impl Builtin {
             syntax::Keyword::BitwiseXor(..) => Self::BitwiseXor,
             syntax::Keyword::LeftShift(..) => Self::LeftShift,
             syntax::Keyword::RightShift(..) => Self::RightShift,
+            syntax::Keyword::LeftShiftExtend(..) => Self::LeftShiftExtend,
+            syntax::Keyword::RightShiftExtend(..) => Self::RightShiftExtend,
+            syntax::Keyword::LeftShiftContract(..) => Self::LeftShiftContract,
+            syntax::Keyword::RightShiftContract(..) => Self::RightShiftContract,
             syntax::Keyword::Sequence(..) => Self::Sequence,
             syntax::Keyword::Cons(..) => Self::Cons,
             syntax::Keyword::Glue(..) => Self::Glue,
@@ -160,6 +172,10 @@ impl Builtin {
             syntax::BinaryOperator::BitwiseXor(..) => Self::BitwiseXor,
             syntax::BinaryOperator::LeftShift(..) => Self::LeftShift,
             syntax::BinaryOperator::RightShift(..) => Self::RightShift,
+            syntax::BinaryOperator::LeftShiftExtend(..) => Self::LeftShiftExtend,
+            syntax::BinaryOperator::RightShiftExtend(..) => Self::RightShiftExtend,
+            syntax::BinaryOperator::LeftShiftContract(..) => Self::LeftShiftContract,
+            syntax::BinaryOperator::RightShiftContract(..) => Self::RightShiftContract,
             syntax::BinaryOperator::Sequence(..) => Self::Sequence,
             syntax::BinaryOperator::Cons(..) => Self::Cons,
             syntax::BinaryOperator::Glue(..) => Self::Glue,
@@ -228,6 +244,10 @@ impl Builtin {
                 | Self::BitwiseXor
                 | Self::LeftShift
                 | Self::RightShift
+                | Self::LeftShiftExtend
+                | Self::RightShiftExtend
+                | Self::LeftShiftContract
+                | Self::RightShiftContract
                 | Self::Sequence
                 | Self::Cons
                 | Self::Glue

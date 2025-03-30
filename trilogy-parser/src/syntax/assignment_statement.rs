@@ -28,7 +28,7 @@ impl Spanned for AssignmentStatement {
 }
 
 impl AssignmentStatement {
-    pub(crate) const ASSIGNMENT_OPERATOR: [TokenType; 20] = [
+    pub(crate) const ASSIGNMENT_OPERATOR: [TokenType; 24] = [
         OpEq,
         OpAmpAmpEq,
         OpPipePipeEq,
@@ -37,6 +37,10 @@ impl AssignmentStatement {
         OpCaretEq,
         OpShrEq,
         OpShlEq,
+        OpShrExEq,
+        OpShlExEq,
+        OpShrConEq,
+        OpShlConEq,
         OpGlueEq,
         OpPlusEq,
         OpMinusEq,
@@ -81,6 +85,10 @@ pub enum AssignmentStrategy {
     BitwiseXor(Token),
     LeftShift(Token),
     RightShift(Token),
+    LeftShiftExtend(Token),
+    RightShiftExtend(Token),
+    LeftShiftContract(Token),
+    RightShiftContract(Token),
     Glue(Token),
     Compose(Token),
     RCompose(Token),
@@ -104,6 +112,10 @@ impl AssignmentStrategy {
             OpCaretEq => Self::BitwiseXor(token),
             OpShlEq => Self::LeftShift(token),
             OpShrEq => Self::RightShift(token),
+            OpShlExEq => Self::LeftShiftExtend(token),
+            OpShrExEq => Self::RightShiftExtend(token),
+            OpShlConEq => Self::LeftShiftContract(token),
+            OpShrConEq => Self::RightShiftContract(token),
             OpGlueEq => Self::Glue(token),
             OpPlusEq => Self::Add(token),
             OpMinusEq => Self::Subtract(token),
@@ -140,6 +152,10 @@ mod test {
     test_parse!(assignment_bitwise_xor: "x ^= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::BitwiseXor _) _))");
     test_parse!(assignment_left_shift: "x <~= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::LeftShift _) _))");
     test_parse!(assignment_right_shift: "x ~>= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::RightShift _) _))");
+    test_parse!(assignment_left_shift_ex: "x <~~= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::LeftShiftExtend _) _))");
+    test_parse!(assignment_right_shift_ex: "x ~~>= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::RightShiftExtend _) _))");
+    test_parse!(assignment_left_shift_con: "x <<~= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::LeftShiftContract _) _))");
+    test_parse!(assignment_right_shift_con: "x ~>>= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::RightShiftContract _) _))");
     test_parse!(assignment_glue: "x <>= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Glue _) _))");
     test_parse!(assignment_compose: "x >>= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::Compose _) _))");
     test_parse!(assignment_rcompose: "x <<= 5" => Statement::parse => "(Statement::Assignment (AssignmentStatement _ (AssignmentStrategy::RCompose _) _))");
