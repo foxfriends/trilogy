@@ -1,0 +1,34 @@
+proc main!() {
+  assert "test 1" as 0bb0000 == 0bb0000
+  assert "test 2" as 0bb000 != 0bb0000
+
+  assert "test 3" as 0bb0000 | 0bb0101 == 0bb0101
+  assert "test 4" as 0bb1010 | 0bb0101 == 0bb1111
+  assert "test 5" as 0bb1010 | 0bb1110 == 0bb1110
+  assert "test 6" as 0bb00001111 | 0bb0000 == 0bb00001111
+  assert "test 7" as 0bb11110000 | 0bb0101 == 0bb11110000
+  assert "test 8" as 0bb00001110 | 0bb0101 == 0bb01011110
+  assert "test 9" as 0bb0000 | 0bb00001111 == 0bb00001111
+  assert "test 10" as 0bb0101 | 0bb00001111 == 0bb01011111
+  assert "test 11" as 0bb0101 | 0bb11110000 == 0bb11110000
+
+  assert "test 12" as 0bb0000 & 0bb0101 == 0bb0000
+  assert "test 13" as 0bb1010 & 0bb0101 == 0bb0000
+  assert "test 14" as 0bb1010 & 0bb1110 == 0bb1010
+  assert "test 15" as 0bb00001111 & 0bb0000 == 0bb00000000
+  assert "test 16" as 0bb11110000 & 0bb0101 == 0bb01010000
+  assert "test 17" as 0bb00001110 & 0bb0101 == 0bb00000000
+  assert "test 18" as 0bb0000 & 0bb00001111 == 0bb00000000
+  assert "test 19" as 0bb0101 & 0bb00001111 == 0bb00000000
+  assert "test 20" as 0bb0101 & 0bb11110000 == 0bb01010000
+
+  assert "test 21" as 0bb0000 ^ 0bb0101 == 0bb0101
+  assert "test 22" as 0bb1010 ^ 0bb0101 == 0bb1111
+  assert "test 23" as 0bb1010 ^ 0bb1110 == 0bb0100
+  assert "test 24" as 0bb00001111 ^ 0bb0000 == 0bb00001111
+  assert "test 25" as 0bb11110000 ^ 0bb0101 == 0bb10100000
+  assert "test 26" as 0bb00001110 ^ 0bb0101 == 0bb01011110
+  assert "test 27" as 0bb0000 ^ 0bb00001111 == 0bb00001111
+  assert "test 28" as 0bb0101 ^ 0bb00001111 == 0bb01011111
+  assert "test 29" as 0bb0101 ^ 0bb11110000 == 0bb10100000
+}

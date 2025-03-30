@@ -299,9 +299,39 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Remainder => todo!(),
             Builtin::Power => todo!(),
             Builtin::IntDivide => todo!(),
-            Builtin::BitwiseAnd => todo!(),
-            Builtin::BitwiseOr => todo!(),
-            Builtin::BitwiseXor => todo!(),
+            Builtin::BitwiseAnd => {
+                let lhs = self.compile_expression(lhs, "b_and.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "b_and.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.bitwise_and(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::BitwiseOr => {
+                let lhs = self.compile_expression(lhs, "b_or.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "b_or.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.bitwise_or(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::BitwiseXor => {
+                let lhs = self.compile_expression(lhs, "b_xor.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "b_xor.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.bitwise_xor(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             Builtin::LeftShift => todo!(),
             Builtin::RightShift => todo!(),
             Builtin::Compose => todo!(),

@@ -70,6 +70,24 @@ export multiply
 extern proc divide!(lhs, rhs)
 export divide
 
+extern proc boolean_and!(lhs, rhs)
+export boolean_and
+
+extern proc boolean_or!(lhs, rhs)
+export boolean_or
+
+extern proc boolean_not!(lhs, rhs)
+export boolean_not
+
+extern proc bitwise_and!(lhs, rhs)
+export bitwise_and
+
+extern proc bitwise_or!(lhs, rhs)
+export bitwise_or
+
+extern proc bitwise_xor!(lhs, rhs)
+export bitwise_xor
+
 extern proc primitive_to_string!(val)
 
 export to_string

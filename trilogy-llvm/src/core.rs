@@ -65,7 +65,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn not(&self, target: PointerValue<'ctx>, val: PointerValue<'ctx>) {
-        let f = self.declare_core("not", 1);
+        let f = self.declare_core("boolean_not", 1);
         self.call_internal(target, f, &[val.into()]);
     }
 
@@ -76,7 +76,7 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
     ) {
-        let f = self.declare_core("or", 2);
+        let f = self.declare_core("boolean_and", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
@@ -87,7 +87,37 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
     ) {
-        let f = self.declare_core("or", 2);
+        let f = self.declare_core("boolean_or", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn bitwise_or(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("bitwise_or", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn bitwise_and(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("bitwise_and", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn bitwise_xor(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("bitwise_xor", 2);
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 

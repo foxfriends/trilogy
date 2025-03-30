@@ -5,9 +5,13 @@ void trace(trilogy_value* rt);
 void panic(trilogy_value* rv, trilogy_value* message);
 void print(trilogy_value* rv, trilogy_value* str);
 
-void not(trilogy_value * rv, trilogy_value* v);
-void and (trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs);
-void or (trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs);
+void boolean_not(trilogy_value * rv, trilogy_value* v);
+void boolean_and(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs);
+void boolean_or(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs);
+
+void bitwise_and(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs);
+void bitwise_or(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs);
+void bitwise_xor(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs);
 
 void referential_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void referential_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
