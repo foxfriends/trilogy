@@ -48,7 +48,9 @@ impl Assignment {
             LeftShiftExtend(token) => Expression::builtin(token.span, Builtin::LeftShiftExtend),
             RightShiftExtend(token) => Expression::builtin(token.span, Builtin::RightShiftExtend),
             LeftShiftContract(token) => Expression::builtin(token.span, Builtin::LeftShiftContract),
-            RightShiftContract(token) => Expression::builtin(token.span, Builtin::RightShiftContract),
+            RightShiftContract(token) => {
+                Expression::builtin(token.span, Builtin::RightShiftContract)
+            }
             Glue(token) => Expression::builtin(token.span, Builtin::Glue),
             Compose(token) => Expression::builtin(token.span, Builtin::Compose),
             RCompose(token) => Expression::builtin(token.span, Builtin::RCompose),

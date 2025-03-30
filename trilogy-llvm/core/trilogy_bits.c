@@ -58,7 +58,8 @@ int trilogy_bits_compare(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
     return 0;
 }
 
-trilogy_bits_value* trilogy_bits_and(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
+trilogy_bits_value*
+trilogy_bits_and(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
     size_t lhs_len = trilogy_bits_bytelen(lhs);
     size_t rhs_len = trilogy_bits_bytelen(rhs);
     size_t bit_len = lhs->len > rhs->len ? lhs->len : rhs->len;
@@ -75,7 +76,8 @@ trilogy_bits_value* trilogy_bits_and(trilogy_bits_value* lhs, trilogy_bits_value
     return bits;
 }
 
-trilogy_bits_value* trilogy_bits_or(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
+trilogy_bits_value*
+trilogy_bits_or(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
     size_t lhs_len = trilogy_bits_bytelen(lhs);
     size_t rhs_len = trilogy_bits_bytelen(rhs);
     size_t bit_len = lhs->len > rhs->len ? lhs->len : rhs->len;
@@ -92,7 +94,8 @@ trilogy_bits_value* trilogy_bits_or(trilogy_bits_value* lhs, trilogy_bits_value*
     return bits;
 }
 
-trilogy_bits_value* trilogy_bits_xor(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
+trilogy_bits_value*
+trilogy_bits_xor(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
     size_t lhs_len = trilogy_bits_bytelen(lhs);
     size_t rhs_len = trilogy_bits_bytelen(rhs);
     size_t bit_len = lhs->len > rhs->len ? lhs->len : rhs->len;

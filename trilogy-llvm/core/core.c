@@ -163,29 +163,31 @@ void gte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_boolean_init(rv, cmp == 1 || cmp == 0);
 }
 
-void boolean_not(trilogy_value * rv, trilogy_value* v) { trilogy_boolean_not(rv, v); }
-void boolean_and(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs) {
+void boolean_not(trilogy_value* rv, trilogy_value* v) {
+    trilogy_boolean_not(rv, v);
+}
+void boolean_and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_boolean_and(rv, lhs, rhs);
 }
-void boolean_or(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs) {
+void boolean_or(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_boolean_or(rv, lhs, rhs);
 }
 
-void bitwise_or(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs) { 
+void bitwise_or(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_bits_value* rhs_bits = trilogy_bits_untag(rhs);
     trilogy_bits_value* out = trilogy_bits_or(lhs_bits, rhs_bits);
     trilogy_bits_init(rv, out);
 }
 
-void bitwise_and(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs) { 
+void bitwise_and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_bits_value* rhs_bits = trilogy_bits_untag(rhs);
     trilogy_bits_value* out = trilogy_bits_and(lhs_bits, rhs_bits);
     trilogy_bits_init(rv, out);
 }
 
-void bitwise_xor(trilogy_value * rv, trilogy_value* lhs, trilogy_value* rhs) { 
+void bitwise_xor(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_bits_value* rhs_bits = trilogy_bits_untag(rhs);
     trilogy_bits_value* out = trilogy_bits_xor(lhs_bits, rhs_bits);
