@@ -166,13 +166,12 @@ impl<'ctx> Codegen<'ctx> {
             None => {
                 let closure_ptr = self.function_params.borrow().last().copied().unwrap();
                 let instruction = closure_ptr.as_instruction().unwrap();
+                // <- this is where instruction points
+                // %closure_ptr = alloca
+                // store %closure, %closure_ptr
+                // <- this is where we want to be
                 if let Some(instruction) = instruction
                     .get_next_instruction()
-                    // <- this is where instruction points
-                    // %closure_ptr = alloca
-                    // store %closure, %closure_ptr
-                    // <- this is where we want to be
-                    .and_then(|ins| ins.get_next_instruction())
                     .and_then(|ins| ins.get_next_instruction())
                 {
                     builder.position_at(instruction.get_parent().unwrap(), &instruction);
