@@ -58,7 +58,7 @@ impl Report {
         let mut stdout = stdout().lock();
         writeln!(
             stdout,
-            "test {} ... {} ({:?}; {:?})",
+            "test {} ... {} ({:?} trilogy; {:?} clang; {:?} native)",
             self.name,
             if self.is_success() {
                 "ok".green()
@@ -66,6 +66,7 @@ impl Report {
                 "FAILED".red()
             },
             self.trilogy_compile_time,
+            self.clang_compile_time,
             self.program_time,
         )?;
         Ok(())
@@ -104,7 +105,17 @@ impl Report {
 
         let program_output = self.program_output.as_ref().unwrap();
 
-        writeln!(stdout, "{} generated invalid llvm ir", self.name)?;
+        if program_output.status.code().unwrap() != self.expected.exit {
+            writeln!(
+                stdout,
+                "{} exited {} (expected {})",
+                self.name,
+                program_output.status.code().unwrap(),
+                self.expected.exit,
+            )?;
+        } else {
+            writeln!(stdout, "{} output differs from expectation", self.name)?;
+        }
         let output = std::str::from_utf8(&program_output.stdout).unwrap_or("non UTF-8 output");
         if output != self.expected.output {
             writeln!(

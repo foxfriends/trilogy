@@ -24,6 +24,9 @@ check-c:
 test:
     cargo test
 
+testsuite:
+    cargo test --test testsuite
+
 run file="main.tri":
     cargo run -- compile {{file}} > main.ll
     clang main.ll -g -O0 -rdynamic
