@@ -42,3 +42,7 @@ clean:
     -rm -f a.out main.ll
     -count testsuite/*/{stdout,stderr,a.out,time.*,*.ll,a.out.dSYM} > /dev/null && rm -r testsuite/*/{stdout,stderr,a.out,time.*,*.ll,a.out.dSYM}
     -count trilogy-llvm/core/*.{ll,bc} > /dev/null && rm trilogy-llvm/core/*.{ll,bc}
+
+[working-directory: "spec"]
+spec:
+    tectonic -X build
