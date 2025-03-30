@@ -617,7 +617,9 @@ impl Iterator for Scanner<'_> {
 
             '<' if self.expect('-').is_some() => self.make_token(OpLeftArrow),
             '<' if self.expect('<').is_some() => {
-                if self.expect('=').is_some() {
+                if self.expect('~').is_some() {
+                    self.make_token(OpShlCon)
+                } else if self.expect('=').is_some() {
                     self.make_token(OpLtLtEq)
                 } else {
                     self.make_token(OpLtLt)
@@ -633,7 +635,9 @@ impl Iterator for Scanner<'_> {
             }
             '<' if self.expect('|').is_some() => self.make_token(OpLtPipe),
             '<' if self.expect('~').is_some() => {
-                if self.expect('=').is_some() {
+                if self.expect('~').is_some() {
+                    self.make_token(OpShlEx)
+                } else if self.expect('=').is_some() {
                     self.make_token(OpShlEq)
                 } else {
                     self.make_token(OpShl)
@@ -701,8 +705,15 @@ impl Iterator for Scanner<'_> {
             '|' => self.make_token(OpPipe),
 
             '~' if self.expect('=').is_some() => self.make_token(OpTildeEq),
+            '~' if self.peek() == Some('~') && self.predict('>') => {
+                self.consume();
+                self.consume();
+                self.make_token(OpShrEx)
+            }
             '~' if self.expect('>').is_some() => {
-                if self.expect('=').is_some() {
+                if self.expect('>').is_some() {
+                    self.make_token(OpShrCon)
+                } else if self.expect('=').is_some() {
                     self.make_token(OpShrEq)
                 } else {
                     self.make_token(OpShr)
