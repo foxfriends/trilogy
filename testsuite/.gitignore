@@ -1,7 +1,3 @@
-time.debug
-time.release
 a.out
 main.ll
-stderr
-stdout
 memcheck
