@@ -535,6 +535,7 @@ impl<'ctx> Codegen<'ctx> {
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
+        resume_to: PointerValue<'ctx>,
         break_to: PointerValue<'ctx>,
         continue_to: PointerValue<'ctx>,
     ) {
@@ -542,6 +543,7 @@ impl<'ctx> Codegen<'ctx> {
             "trilogy_callable_promote",
             self.context.void_type().fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -560,6 +562,7 @@ impl<'ctx> Codegen<'ctx> {
                     return_to.into(),
                     yield_to.into(),
                     cancel_to.into(),
+                    resume_to.into(),
                     break_to.into(),
                     continue_to.into(),
                 ],
@@ -575,6 +578,26 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let f = self.declare_bare(
             "trilogy_callable_cancel_to_into",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), callable.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_callable_resume_to_into(
+        &self,
+        target: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_resume_to_into",
             self.context.void_type().fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -951,6 +974,7 @@ impl<'ctx> Codegen<'ctx> {
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
+        resume_to: PointerValue<'ctx>,
         break_to: PointerValue<'ctx>,
         continue_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
@@ -968,6 +992,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
             ),
@@ -980,6 +1005,7 @@ impl<'ctx> Codegen<'ctx> {
                     return_to.into(),
                     yield_to.into(),
                     cancel_to.into(),
+                    resume_to.into(),
                     break_to.into(),
                     continue_to.into(),
                     closure.into(),
@@ -997,6 +1023,7 @@ impl<'ctx> Codegen<'ctx> {
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
+        resume_to: PointerValue<'ctx>,
         break_to: PointerValue<'ctx>,
         continue_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
@@ -1014,6 +1041,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
             ),
@@ -1026,6 +1054,7 @@ impl<'ctx> Codegen<'ctx> {
                     return_to.into(),
                     yield_to.into(),
                     cancel_to.into(),
+                    resume_to.into(),
                     break_to.into(),
                     continue_to.into(),
                     closure.into(),
@@ -1043,6 +1072,7 @@ impl<'ctx> Codegen<'ctx> {
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
+        resume_to: PointerValue<'ctx>,
         break_to: PointerValue<'ctx>,
         continue_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
@@ -1052,6 +1082,7 @@ impl<'ctx> Codegen<'ctx> {
             "trilogy_callable_init_continue",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -1072,6 +1103,7 @@ impl<'ctx> Codegen<'ctx> {
                     return_to.into(),
                     yield_to.into(),
                     cancel_to.into(),
+                    resume_to.into(),
                     break_to.into(),
                     continue_to.into(),
                     closure.into(),

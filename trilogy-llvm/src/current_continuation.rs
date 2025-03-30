@@ -28,6 +28,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -49,6 +50,7 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let cancel_to = self.get_cancel("");
+        let resume_to = self.get_resume("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
 
@@ -73,6 +75,7 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             yield_to,
             cancel_to,
+            resume_to,
             break_to,
             continue_to,
             closure,
@@ -92,6 +95,7 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let cancel_to = self.get_cancel("");
+        let resume_to = self.get_resume("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
         self.bind_temporary(continuation);
@@ -105,6 +109,7 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             yield_to,
             cancel_to,
+            resume_to,
             break_to,
             continue_to,
             closure,
@@ -135,6 +140,7 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             yield_to,
             cancel_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
             continue_to,
             closure,
@@ -167,6 +173,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -190,6 +197,7 @@ impl<'ctx> Codegen<'ctx> {
         self.add_branch_capture(brancher, closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
             continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -228,6 +236,7 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             yield_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
             continue_to,
             closure,
@@ -257,6 +266,7 @@ impl<'ctx> Codegen<'ctx> {
         self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_continue(
             continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),

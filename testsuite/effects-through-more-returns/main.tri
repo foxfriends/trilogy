@@ -19,5 +19,4 @@ proc main!() {
     }
     else yield
   assert x == (('a:'c):('a:'d)):(('b:'c):('b:'d))
-  debug::dbg!(x)
 }

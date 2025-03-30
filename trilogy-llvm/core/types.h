@@ -189,6 +189,7 @@ typedef struct trilogy_callable_value {
     struct trilogy_callable_value* return_to;
     struct trilogy_callable_value* yield_to;
     struct trilogy_callable_value* cancel_to;
+    struct trilogy_callable_value* resume_to;
     struct trilogy_callable_value* break_to;
     struct trilogy_callable_value* continue_to;
     /**

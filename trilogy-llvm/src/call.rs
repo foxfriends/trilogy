@@ -301,7 +301,7 @@ impl<'ctx> Codegen<'ctx> {
         let yield_to = self.allocate_value("");
         let end_to = self.get_end("");
         let cancel_to = self.allocate_value("");
-        let resume_to = self.get_resume(""); // TODO: I can only assume resume is supposed to be captured the same
+        let resume_to = self.allocate_value("");
         let break_to = self.allocate_value("");
         let continue_to = self.allocate_value("");
         let closure = self.allocate_value("");
@@ -316,6 +316,10 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_cancel_to_into(cancel_to, callable);
         self.do_if(self.is_undefined(cancel_to), || {
             self.clone_cancel(cancel_to);
+        });
+        self.trilogy_callable_resume_to_into(resume_to, callable);
+        self.do_if(self.is_undefined(resume_to), || {
+            self.clone_resume(resume_to);
         });
         self.trilogy_callable_break_to_into(break_to, callable);
         self.do_if(self.is_undefined(break_to), || {
@@ -468,17 +472,21 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_yield_to_into(yield_to, resume);
         let cancel_clone = self.allocate_value("");
         self.trilogy_value_clone_into(cancel_clone, cancel_to);
+        let resume_clone = self.allocate_value("");
+        self.trilogy_value_clone_into(resume_clone, resume_to);
         self.trilogy_callable_promote(
             yield_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             cancel_clone,
+            resume_clone,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
         );
 
         self.trilogy_callable_break_to_into(break_to, resume);
         self.trilogy_callable_continue_to_into(continue_to, resume);
+        self.trilogy_callable_resume_to_into(resume_to, resume);
         self.trilogy_callable_closure_into(closure, resume, "");
 
         let args = &[
@@ -518,10 +526,10 @@ impl<'ctx> Codegen<'ctx> {
         let continue_continuation = self.trilogy_continuation_untag(continue_callable, "");
 
         let end_to = self.get_end("");
-        let resume_to = self.get_resume("");
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
         let cancel_to = self.allocate_value("");
+        let resume_to = self.allocate_value("");
         let break_to = self.allocate_value("");
         let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, continue_callable);
@@ -535,6 +543,10 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_cancel_to_into(cancel_to, continue_callable);
         self.do_if(self.is_undefined(cancel_to), || {
             self.clone_cancel(cancel_to);
+        });
+        self.trilogy_callable_cancel_to_into(resume_to, continue_callable);
+        self.do_if(self.is_undefined(resume_to), || {
+            self.clone_resume(resume_to);
         });
         self.trilogy_callable_break_to_into(break_to, continue_callable);
         self.do_if(self.is_undefined(break_to), || {
@@ -617,11 +629,13 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             return_closure,
             chain_function,
         );
         self.trilogy_callable_init_cont(
             yield_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -637,11 +651,13 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             end_closure,
             end_function,
         );
         self.trilogy_callable_init_cont(
             cancel_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -657,6 +673,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             resume_closure,
             end_function,
         );
@@ -667,11 +684,13 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             break_closure,
             end_function,
         );
         self.trilogy_callable_init_cont(
             continue_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
