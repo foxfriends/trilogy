@@ -3,6 +3,8 @@ use serde::Deserialize;
 use std::env::var;
 use std::fs::{File, exists, read_dir, read_to_string};
 use std::io::{self, Read, Write, stdout};
+#[cfg(unix)]
+use std::os::unix::process::ExitStatusExt;
 use std::path::PathBuf;
 use std::process::{Command, Output, Stdio};
 use std::sync::mpsc::{Sender, channel};
@@ -43,7 +45,11 @@ impl Report {
                 .program_output
                 .as_ref()
                 .map(|output| {
-                    output.status.code().unwrap() == self.expected.exit
+                    output
+                        .status
+                        .code()
+                        .map(|code| code == self.expected.exit)
+                        .unwrap_or(false)
                         && output.stdout == self.expected.output.as_bytes()
                         && if self.expected.stderr {
                             !output.stderr.is_empty()
@@ -105,12 +111,42 @@ impl Report {
 
         let program_output = self.program_output.as_ref().unwrap();
 
-        if program_output.status.code().unwrap() != self.expected.exit {
+        if program_output
+            .status
+            .code()
+            .map(|code| code != self.expected.exit)
+            .unwrap_or(true)
+        {
             writeln!(
                 stdout,
-                "{} exited {} (expected {})",
+                "{} {} (expected {})",
                 self.name,
-                program_output.status.code().unwrap(),
+                program_output
+                    .status
+                    .code()
+                    .map(|code| { format!("exited {code}") })
+                    .unwrap_or_else(|| {
+                        #[cfg(unix)]
+                        {
+                            let signal = if let Some(sig) = program_output.status.signal() {
+                                format!("terminated by signal {}", sig)
+                            } else if let Some(sig) = program_output.status.stopped_signal() {
+                                format!("stopped by signal {}", sig)
+                            } else {
+                                "terminated unexpectedly".to_owned()
+                            };
+                            if program_output.status.core_dumped() {
+                                format!("{} (core dumped)", signal)
+                            } else {
+                                signal
+                            }
+                        }
+
+                        #[cfg(not(unix))]
+                        {
+                            "unknown exit code".to_owned()
+                        }
+                    }),
                 self.expected.exit,
             )?;
         } else {
