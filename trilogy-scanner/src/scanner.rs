@@ -618,7 +618,11 @@ impl Iterator for Scanner<'_> {
             '<' if self.expect('-').is_some() => self.make_token(OpLeftArrow),
             '<' if self.expect('<').is_some() => {
                 if self.expect('~').is_some() {
-                    self.make_token(OpShlCon)
+                    if self.expect('=').is_some() {
+                        self.make_token(OpShlConEq)
+                    } else {
+                        self.make_token(OpShlCon)
+                    }
                 } else if self.expect('=').is_some() {
                     self.make_token(OpLtLtEq)
                 } else {
@@ -636,7 +640,11 @@ impl Iterator for Scanner<'_> {
             '<' if self.expect('|').is_some() => self.make_token(OpLtPipe),
             '<' if self.expect('~').is_some() => {
                 if self.expect('~').is_some() {
-                    self.make_token(OpShlEx)
+                    if self.expect('=').is_some() {
+                        self.make_token(OpShlExEq)
+                    } else {
+                        self.make_token(OpShlEx)
+                    }
                 } else if self.expect('=').is_some() {
                     self.make_token(OpShlEq)
                 } else {
@@ -708,11 +716,19 @@ impl Iterator for Scanner<'_> {
             '~' if self.peek() == Some('~') && self.predict('>') => {
                 self.consume();
                 self.consume();
-                self.make_token(OpShrEx)
+                if self.expect('=').is_some() {
+                    self.make_token(OpShrExEq)
+                } else {
+                    self.make_token(OpShrEx)
+                }
             }
             '~' if self.expect('>').is_some() => {
                 if self.expect('>').is_some() {
-                    self.make_token(OpShrCon)
+                    if self.expect('=').is_some() {
+                        self.make_token(OpShrConEq)
+                    } else {
+                        self.make_token(OpShrCon)
+                    }
                 } else if self.expect('=').is_some() {
                     self.make_token(OpShrEq)
                 } else {

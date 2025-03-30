@@ -243,10 +243,18 @@ pub enum TokenType {
     OpShrEx,
     /// `<~~`
     OpShlEx,
+    /// `~~>=`
+    OpShrExEq,
+    /// `<~~=`
+    OpShlExEq,
     /// `~>>`
     OpShrCon,
     /// `<<~`
     OpShlCon,
+    /// `~>>=`
+    OpShrConEq,
+    /// `<<~=`
+    OpShlConEq,
     /// `!`
     OpBang,
     /// `!=`
