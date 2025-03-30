@@ -58,6 +58,14 @@ handled by the syntax tree but by another pass afterwards (\S\ref{sec:precedence
         \bnfor
         \bnfts{\op{\textasciitilde>}}
         \bnfor
+        \bnfts{\op{<<\textasciitilde}}
+        \bnfor
+        \bnfts{\op{\textasciitilde>>}}
+        \bnfor
+        \bnfts{\op{<\textasciitilde\textasciitilde}}
+        \bnfor
+        \bnfts{\op{\textasciitilde\textasciitilde>}}
+        \bnfor
         \bnfts{\op{,}}
         \bnfor
         \bnfts{\op{:}}
@@ -349,9 +357,12 @@ The bitwise operators work only on values of Bits type, with the exception
 of the shift operators which expect the right-hand operand to be an integer.
 Again, if the types are incorrect, it causes is a runtime type error.
 
-The regular bitwise operators extend the shorter operand with 0s on the left
-until both are of the same length. The left shift will extend with 0s on the
-right, while the right shift removes bits from the right (no bits are added).
+The three main binary bitwise operators extend the shorter operand with 0s on
+the left until both are of the same length.
+
+The left and right shift operators each come in three forms; one that extends,
+one that contracts, and one that maintains the length of the value, filling the
+tail end with zeros.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
@@ -377,16 +388,47 @@ right, while the right shift removes bits from the right (no bits are added).
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
     \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
-    \LeftLabel{Left Shift}
-    \BinaryInfC{$\Gamma\vdash A\ \op{<\textasciitilde}\ B = a(b\cdot \texttt{0})$}
+    \LeftLabel{Left Shift\textsubscript{E}}
+    \BinaryInfC{$\Gamma\vdash A\ \op{<\textasciitilde\textasciitilde}\ B = a(b\cdot \texttt{0})$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \rho \sigma : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
+    \AxiomC{$|\rho| = b$}
+    \LeftLabel{Left Shift\textsubscript{C}}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{<<\textasciitilde}\ B = \sigma$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \rho \sigma : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
+    \AxiomC{$|\rho| = b$}
+    \LeftLabel{Left Shift\textsubscript{M}}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = \sigma(b\cdot \texttt{0})$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
+    \LeftLabel{Right Shift\textsubscript{E}}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde\textasciitilde>}\ B = (b\cdot \texttt{0})a$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \rho \sigma : \ty{Bits}$}
     \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
     \AxiomC{$|\sigma| = b$}
-    \LeftLabel{Right Shift}
-    \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = \rho$}
+    \LeftLabel{Right Shift\textsubscript{C}}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>>}\ B = \rho$}
+\end{prooftree}
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash A = \rho \sigma : \ty{Bits}$}
+    \AxiomC{$\Gamma\vdash B = b : \ty{Integer}$}
+    \AxiomC{$|\sigma| = b$}
+    \LeftLabel{Right Shift\textsubscript{M}}
+    \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = (b\cdot \texttt{0})\rho$}
 \end{prooftree}
 
 Sequencing exists in \Poetry{}, as it does in \Prose{}, but is decidedly less
@@ -415,11 +457,10 @@ I trust you'll figure it out.
     \BinaryInfC{$\Gamma\vdash A\ \op{:}\ B : \tau \ty{:} \rho$}
 \end{prooftree}
 
-The glue\footnote{Indeed a nod to \href{https://www.inklestudios.com/ink/}{Ink}, another
-project of interest to me.} operator (\op{<>}) is for joining strings. Unlike some
-other languages, \Trilogy{} does not overload the addition operator (\op{+}) for
-this purpose. The two operands must be of String type, otherwise it is a runtime
-type error. The two strings are joined without separator into one longer string.
+The glue operator (\op{<>}) is for joining strings. Unlike some other languages,
+\Trilogy{} does not overload the addition operator (\op{+}) for this purpose.
+The two operands must be of String type, otherwise it is a runtime type error.
+The two strings are joined without separator into one longer string.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = \alpha : \ty{String}$}
