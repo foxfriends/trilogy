@@ -715,6 +715,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_indirect_call(self.procedure_type(0, false), function, args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);
         self.builder.build_return(None).unwrap();
 
         let entry = self.context.append_basic_block(yield_function, "entry");
