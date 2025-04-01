@@ -151,6 +151,36 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn shift_right(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("shift_right", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn shift_right_extend(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("shift_right_extend", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
+    pub(crate) fn shift_right_contract(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("shift_right_contract", 2);
+        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+    }
+
     pub(crate) fn member_access(
         &self,
         target: PointerValue<'ctx>,

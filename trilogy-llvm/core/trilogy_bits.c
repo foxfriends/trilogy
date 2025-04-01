@@ -143,6 +143,7 @@ trilogy_bits_xor(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
 
 trilogy_bits_value*
 trilogy_bits_shift_left_extend(trilogy_bits_value* lhs, size_t n) {
+    assert(n != 0);
     size_t old_bit_len = lhs->len;
     size_t space = SIZE_MAX - old_bit_len;
     if (n > space) internal_panic("bits length limit\n");
@@ -156,7 +157,7 @@ trilogy_bits_shift_left_extend(trilogy_bits_value* lhs, size_t n) {
         memset(out_bytes + old_len, 0, new_len - old_len);
     }
 
-    size_t old_tail_size = old_len % 8;
+    size_t old_tail_size = old_bit_len % 8;
     if (old_tail_size) {
         uint8_t overlap_bits = ~0 >> (8 - old_tail_size) << (8 - old_tail_size);
         out_bytes[old_len - 1] &= overlap_bits;
@@ -170,8 +171,7 @@ static void shift_left_into(
     const size_t bit_dist, const size_t n
 ) {
     for (size_t i = 0; i < n; ++i) {
-        uint8_t left_part = 0;
-        left_part = in[i + byte_dist] << bit_dist;
+        uint8_t left_part = in[i + byte_dist] << bit_dist;
         uint8_t right_part = 0;
         if (i + 1 < n) {
             right_part = in[i + byte_dist + 1] >> (8 - bit_dist);
@@ -182,6 +182,7 @@ static void shift_left_into(
 
 trilogy_bits_value*
 trilogy_bits_shift_left_contract(trilogy_bits_value* lhs, size_t n) {
+    assert(n != 0);
     assert(n <= lhs->len);
     size_t old_bit_len = lhs->len;
     size_t new_bit_len = old_bit_len - n;
@@ -194,6 +195,7 @@ trilogy_bits_shift_left_contract(trilogy_bits_value* lhs, size_t n) {
 }
 
 trilogy_bits_value* trilogy_bits_shift_left(trilogy_bits_value* lhs, size_t n) {
+    assert(n != 0);
     assert(n <= lhs->len);
     size_t bit_len = lhs->len;
     size_t len = bit_len_to_byte_len(bit_len);
@@ -203,6 +205,64 @@ trilogy_bits_value* trilogy_bits_shift_left(trilogy_bits_value* lhs, size_t n) {
     memset(out_bytes, 0, len);
     shift_left_into(
         out_bytes, lhs->contents, byte_dist, bit_dist, len - byte_dist
+    );
+    return trilogy_bits_new(bit_len, out_bytes);
+}
+
+static void shift_right_into(
+    uint8_t* out, const uint8_t* in, const size_t byte_dist,
+    const size_t bit_dist, const size_t n
+) {
+    for (size_t i = 0; i < n; ++i) {
+        uint8_t left_part = 0;
+        if (i > 0) left_part = in[i - 1] << (8 - bit_dist);
+        uint8_t right_part = in[i] >> bit_dist;
+        out[i + byte_dist] = left_part | right_part;
+    }
+}
+
+trilogy_bits_value*
+trilogy_bits_shift_right_extend(trilogy_bits_value* lhs, size_t n) {
+    assert(n != 0);
+    size_t old_bit_len = lhs->len;
+    size_t space = SIZE_MAX - old_bit_len;
+    if (n > space) internal_panic("bits length limit\n");
+    size_t new_bit_len = old_bit_len + n;
+    size_t old_len = bit_len_to_byte_len(old_bit_len);
+    size_t new_len = bit_len_to_byte_len(new_bit_len);
+    size_t byte_dist = n / 8;
+    size_t bit_dist = n % 8;
+
+    uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * new_len);
+    memset(out_bytes, 0, new_len);
+    shift_right_into(
+        out_bytes, lhs->contents, byte_dist, bit_dist, new_len - byte_dist
+    );
+    return trilogy_bits_new(new_bit_len, out_bytes);
+}
+
+trilogy_bits_value*
+trilogy_bits_shift_right_contract(trilogy_bits_value* lhs, size_t n) {
+    assert(n != 0);
+    assert(n <= lhs->len);
+    size_t new_bit_len = lhs->len - n;
+    size_t new_len = bit_len_to_byte_len(new_bit_len);
+    uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * new_len);
+    memcpy(out_bytes, lhs->contents, new_len);
+    return trilogy_bits_new(new_bit_len, out_bytes);
+}
+
+trilogy_bits_value*
+trilogy_bits_shift_right(trilogy_bits_value* lhs, size_t n) {
+    assert(n != 0);
+    size_t bit_len = lhs->len;
+    size_t byte_len = bit_len_to_byte_len(bit_len);
+    size_t byte_dist = n / 8;
+    size_t bit_dist = n % 8;
+    uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * byte_len);
+    memset(out_bytes, 0, byte_len);
+    shift_right_into(
+        out_bytes, lhs->contents, byte_dist, bit_dist, byte_len - byte_dist
     );
     return trilogy_bits_new(bit_len, out_bytes);
 }

@@ -369,9 +369,39 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
-            Builtin::RightShift => todo!(),
-            Builtin::RightShiftExtend => todo!(),
-            Builtin::RightShiftContract => todo!(),
+            Builtin::RightShift => {
+                let lhs = self.compile_expression(lhs, "rsh.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "rsh.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.shift_right(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::RightShiftExtend => {
+                let lhs = self.compile_expression(lhs, "rshex.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "rshex.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.shift_right_extend(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
+            Builtin::RightShiftContract => {
+                let lhs = self.compile_expression(lhs, "rshcon.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "rshcon.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.shift_right_contract(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             Builtin::Compose => todo!(),
             Builtin::RCompose => todo!(),
             Builtin::Pipe => todo!(),

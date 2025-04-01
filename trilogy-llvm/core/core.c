@@ -198,6 +198,10 @@ void shift_left(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
     size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    if (n == 0) {
+        trilogy_bits_clone_into(rv, lhs_bits);
+        return;
+    }
     trilogy_bits_value* out = trilogy_bits_shift_left(lhs_bits, n);
     trilogy_bits_init(rv, out);
 }
@@ -208,6 +212,10 @@ void shift_left_extend(
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
     size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    if (n == 0) {
+        trilogy_bits_clone_into(rv, lhs_bits);
+        return;
+    }
     trilogy_bits_value* out = trilogy_bits_shift_left_extend(lhs_bits, n);
     trilogy_bits_init(rv, out);
 }
@@ -218,7 +226,51 @@ void shift_left_contract(
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
     size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    if (n == 0) {
+        trilogy_bits_clone_into(rv, lhs_bits);
+        return;
+    }
     trilogy_bits_value* out = trilogy_bits_shift_left_contract(lhs_bits, n);
+    trilogy_bits_init(rv, out);
+}
+
+void shift_right(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
+    trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
+    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    if (n == 0) {
+        trilogy_bits_clone_into(rv, lhs_bits);
+        return;
+    }
+    trilogy_bits_value* out = trilogy_bits_shift_right(lhs_bits, n);
+    trilogy_bits_init(rv, out);
+}
+
+void shift_right_extend(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+) {
+    trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
+    trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
+    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    if (n == 0) {
+        trilogy_bits_clone_into(rv, lhs_bits);
+        return;
+    }
+    trilogy_bits_value* out = trilogy_bits_shift_right_extend(lhs_bits, n);
+    trilogy_bits_init(rv, out);
+}
+
+void shift_right_contract(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+) {
+    trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
+    trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
+    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    if (n == 0) {
+        trilogy_bits_clone_into(rv, lhs_bits);
+        return;
+    }
+    trilogy_bits_value* out = trilogy_bits_shift_right_contract(lhs_bits, n);
     trilogy_bits_init(rv, out);
 }
 
