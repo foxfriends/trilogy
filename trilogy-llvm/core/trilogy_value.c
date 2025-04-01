@@ -178,12 +178,7 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_BITS: {
         trilogy_bits_value* lhs_bits = trilogy_bits_assume(lhs);
         trilogy_bits_value* rhs_bits = trilogy_bits_assume(rhs);
-        if (lhs_bits->len != rhs_bits->len) return false;
-        if (lhs_bits->len == 0) return true;
-        return memcmp(
-                   lhs_bits->contents, rhs_bits->contents,
-                   trilogy_bits_bytelen(lhs_bits)
-               ) == 0;
+        return trilogy_bits_eq(lhs_bits, rhs_bits);
     }
     case TAG_STRUCT: {
         trilogy_struct_value* lhs_st = trilogy_struct_assume(lhs);

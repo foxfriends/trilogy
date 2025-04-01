@@ -13,6 +13,14 @@ void bitwise_and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void bitwise_or(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void bitwise_xor(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 
+void shift_left(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void shift_left_extend(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+);
+void shift_left_contract(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+);
+
 void referential_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void referential_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void structural_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
