@@ -14,8 +14,6 @@ trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
     return bits;
 }
 
-#include <stdio.h>
-
 trilogy_bits_value*
 trilogy_bits_init_new(trilogy_value* tv, size_t len, uint8_t* b) {
     trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
