@@ -85,13 +85,6 @@ impl<'ctx> Codegen<'ctx> {
             self.context
                 .create_enum_attribute(Attribute::get_named_enum_kind_id("naked"), 1),
         );
-        main_wrapper.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
 
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
 

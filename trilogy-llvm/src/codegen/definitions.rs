@@ -1,6 +1,5 @@
 //! Handles creating function definitions at the LLVM level.
 use crate::codegen::Codegen;
-use inkwell::attributes::{Attribute, AttributeLoc};
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::module::Linkage;
 use inkwell::values::FunctionValue;
@@ -89,13 +88,6 @@ impl<'ctx> Codegen<'ctx> {
         let accessor = self
             .module
             .add_function(name, self.accessor_type(), Some(linkage));
-        accessor.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
         accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         accessor
     }

@@ -1,6 +1,5 @@
 use crate::Codegen;
 use inkwell::{
-    attributes::{Attribute, AttributeLoc},
     debug_info::AsDIScope,
     llvm_sys::{LLVMCallConv, debuginfo::LLVMDIFlagPublic},
     module::Linkage,
@@ -16,14 +15,6 @@ impl<'ctx> Codegen<'ctx> {
             self.accessor_type(),
             Some(linkage),
         );
-        accessor.add_attribute(
-            AttributeLoc::Param(0),
-            self.context.create_type_attribute(
-                Attribute::get_named_enum_kind_id("sret"),
-                self.value_type().into(),
-            ),
-        );
-        accessor.get_nth_param(0).unwrap().set_name("sretptr");
         accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         accessor
     }
