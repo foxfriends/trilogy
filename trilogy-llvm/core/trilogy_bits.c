@@ -36,7 +36,7 @@ trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val) {
     trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
     bits->len = val->len;
     bits->contents = malloc_safe(sizeof(uint8_t) * val->len);
-    memcpy(bits->contents, val->contents, val->len);
+    memcpy(bits->contents, val->contents, bit_len_to_byte_len(val->len));
     return trilogy_bits_init(tv, bits);
 }
 
