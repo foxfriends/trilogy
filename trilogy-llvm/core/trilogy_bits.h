@@ -20,6 +20,7 @@ trilogy_bits_or(trilogy_bits_value* lhs, trilogy_bits_value* rhs);
 trilogy_bits_value*
 trilogy_bits_xor(trilogy_bits_value* lhs, trilogy_bits_value* rhs);
 
+size_t trilogy_bits_len(trilogy_bits_value* val);
 size_t trilogy_bits_bytelen(trilogy_bits_value* val);
 bool trilogy_bits_at(trilogy_bits_value* b, size_t index);
 int trilogy_bits_compare(trilogy_bits_value* lhs, trilogy_bits_value* rhs);

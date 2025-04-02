@@ -31,7 +31,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("structural_eq", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn structural_neq(
@@ -41,7 +41,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("structural_neq", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn referential_eq(
@@ -51,7 +51,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("referential_eq", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn referential_neq(
@@ -61,12 +61,12 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("referential_neq", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn not(&self, target: PointerValue<'ctx>, val: PointerValue<'ctx>) {
         let f = self.declare_core("boolean_not", 1);
-        self.call_internal(target, f, &[val.into()]);
+        self.call_core(target, f, &[val.into()]);
     }
 
     #[expect(dead_code)]
@@ -77,7 +77,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("boolean_and", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     #[expect(dead_code)]
@@ -88,7 +88,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("boolean_or", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn bitwise_or(
@@ -98,7 +98,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("bitwise_or", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn bitwise_and(
@@ -108,7 +108,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("bitwise_and", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn bitwise_xor(
@@ -118,7 +118,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("bitwise_xor", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn shift_left(
@@ -128,7 +128,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("shift_left", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn shift_left_extend(
@@ -138,7 +138,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("shift_left_extend", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn shift_left_contract(
@@ -148,7 +148,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("shift_left_contract", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn shift_right(
@@ -158,7 +158,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("shift_right", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn shift_right_extend(
@@ -168,7 +168,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("shift_right_extend", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn shift_right_contract(
@@ -178,7 +178,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("shift_right_contract", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn member_access(
@@ -188,7 +188,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("member_access", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn glue(
@@ -198,7 +198,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("glue", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn lt(
@@ -208,7 +208,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("lt", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn gt(
@@ -218,7 +218,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("gt", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn gte(
@@ -228,7 +228,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("gte", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn lte(
@@ -238,7 +238,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("lte", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn add(
@@ -248,7 +248,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("add", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn sub(
@@ -258,7 +258,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("subtract", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn mul(
@@ -268,7 +268,7 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("multiply", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn div(
@@ -278,17 +278,17 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
     ) {
         let f = self.declare_core("divide", 2);
-        self.call_internal(target, f, &[lhs.into(), rhs.into()]);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
     pub(crate) fn destruct(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {
         let f = self.declare_core("destruct", 1);
-        self.call_internal(target, f, &[value.into()]);
+        self.call_core(target, f, &[value.into()]);
     }
 
     pub(crate) fn panic(&self, msg: PointerValue<'ctx>) -> InstructionValue<'ctx> {
         let f = self.declare_core("panic", 1);
-        self.call_internal(
+        self.call_core(
             self.context.ptr_type(AddressSpace::default()).const_null(),
             f,
             &[msg.into()],

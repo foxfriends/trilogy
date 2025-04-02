@@ -16,6 +16,28 @@ impl<'ctx> Codegen<'ctx> {
         self.module.add_function(name, ty, Some(Linkage::External))
     }
 
+    #[allow(dead_code, reason = "for debugging")]
+    pub(crate) fn debug_print(&self, value: impl AsRef<str>) {
+        let f = self.declare_bare(
+            "printf",
+            self.context.i32_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                true,
+            ),
+        );
+        let debug_str = self.module.add_global(
+            self.context
+                .i8_type()
+                .array_type(value.as_ref().len() as u32 + 1),
+            None,
+            "",
+        );
+        debug_str.set_initializer(&self.context.const_string(value.as_ref().as_bytes(), true));
+        self.builder
+            .build_call(f, &[debug_str.as_pointer_value().into()], "")
+            .unwrap();
+    }
+
     /// Untags a boolean value. The return value is of type `i1`.
     pub(crate) fn trilogy_boolean_untag(
         &self,

@@ -172,7 +172,6 @@ impl<'ctx> Codegen<'ctx> {
 
         let cancel_to = self.get_cancel("when.runoff");
         self.call_known_continuation(cancel_to, result);
-        self.builder.build_unreachable().unwrap();
 
         self.become_continuation_point(handler_continuation_point);
         self.begin_next_function(handler_function);

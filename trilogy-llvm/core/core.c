@@ -31,7 +31,7 @@ void print(trilogy_value* rv, trilogy_value* val) {
     char* ptr = trilogy_string_as_c(trilogy_string_untag(val));
     printf("%s", ptr);
     free(ptr);
-    *rv = trilogy_unit;
+    trilogy_number_init_u64(rv, 0);
 }
 
 void trace(trilogy_value* rt) {
@@ -93,6 +93,11 @@ void length(trilogy_value* rv, trilogy_value* val) {
     case TAG_STRING:
         trilogy_number_init_u64(
             rv, trilogy_string_len(trilogy_string_assume(val))
+        );
+        break;
+    case TAG_BITS:
+        trilogy_number_init_u64(
+            rv, trilogy_bits_len(trilogy_bits_assume(val))
         );
         break;
     case TAG_ARRAY:

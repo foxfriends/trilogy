@@ -381,6 +381,22 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
+    /// An core function is much like an internal function, but is defined in C
+    /// and called directly, so should not use FastCC.
+    pub(crate) fn call_core(
+        &self,
+        target: PointerValue<'ctx>,
+        procedure: FunctionValue<'ctx>,
+        arguments: &[BasicMetadataValueEnum<'ctx>],
+    ) -> InstructionValue<'ctx> {
+        let mut args = vec![target.into()];
+        args.extend_from_slice(arguments);
+        let call = self.builder.build_call(procedure, &args, "").unwrap();
+        call.try_as_basic_value()
+            .either(|l| l.as_instruction_value(), Some)
+            .unwrap()
+    }
+
     /// Calls the contextual `yield` continuation.
     ///
     /// Calling `yield` is almost like calling a regular continuation, but we allocate a new
