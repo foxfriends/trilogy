@@ -96,9 +96,7 @@ void length(trilogy_value* rv, trilogy_value* val) {
         );
         break;
     case TAG_BITS:
-        trilogy_number_init_u64(
-            rv, trilogy_bits_len(trilogy_bits_assume(val))
-        );
+        trilogy_number_init_u64(rv, trilogy_bits_len(trilogy_bits_assume(val)));
         break;
     case TAG_ARRAY:
         trilogy_number_init_u64(

@@ -55,9 +55,7 @@ size_t trilogy_bits_bytelen(trilogy_bits_value* val) {
     return bit_len_to_byte_len(val->len);
 }
 
-size_t trilogy_bits_len(trilogy_bits_value* val) {
-    return val->len;
-}
+size_t trilogy_bits_len(trilogy_bits_value* val) { return val->len; }
 
 bool trilogy_bits_eq(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
     if (lhs->len != rhs->len) return false;
