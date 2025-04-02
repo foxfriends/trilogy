@@ -31,7 +31,7 @@ impl<'ctx> Codegen<'ctx> {
         let function =
             self.module
                 .add_function(&name, self.continuation_type(), Some(Linkage::Private));
-
+        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         function.set_subprogram(self.di.create_function(
             &name,
             function.get_name().to_str().unwrap(),
