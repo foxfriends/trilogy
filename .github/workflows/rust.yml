@@ -75,6 +75,11 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        opts:
+          - TRITEST_MEMCHECK=true
+          - TRITEST_OPT=-O3
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -94,4 +99,4 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Run cargo test
-        run: TRITEST_MEMCHECK=true cargo test
+        run: ${{matrix.opts}} cargo test
