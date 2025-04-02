@@ -1,5 +1,6 @@
 use colored::Colorize;
 use serde::Deserialize;
+use std::collections::HashSet;
 use std::env::var;
 use std::fs::{File, exists, read_dir, read_to_string};
 use std::io::{self, Read, Write, stdout};
@@ -12,7 +13,7 @@ use std::time::{Duration, Instant};
 use threadpool::ThreadPool;
 
 struct Report {
-    name: String,
+    path: PathBuf,
     trilogy_exit_code: i32,
     trilogy_stderr: String,
     trilogy_compile_time: Duration,
@@ -65,7 +66,7 @@ impl Report {
         writeln!(
             stdout,
             "test {} ... {} ({:?} trilogy; {:?} clang; {:?} native)",
-            self.name,
+            self.path.file_name().unwrap().to_string_lossy(),
             if self.is_success() {
                 "ok".green()
             } else {
@@ -84,14 +85,19 @@ impl Report {
             writeln!(
                 stdout,
                 "{} failed to compile\n---- trilogy error output ----\n{}",
-                self.name, self.trilogy_stderr,
+                self.path.file_name().unwrap().to_string_lossy(),
+                self.trilogy_stderr,
             )?;
             return Ok(());
         }
 
         let clang_output = self.clang_output.as_ref().unwrap();
         if !clang_output.status.success() {
-            writeln!(stdout, "{} generated invalid llvm ir", self.name)?;
+            writeln!(
+                stdout,
+                "{} generated invalid llvm ir",
+                self.path.file_name().unwrap().to_string_lossy()
+            )?;
             if !clang_output.stdout.is_empty() {
                 writeln!(
                     stdout,
@@ -120,7 +126,7 @@ impl Report {
             writeln!(
                 stdout,
                 "{} {} (expected {})",
-                self.name,
+                self.path.file_name().unwrap().to_string_lossy(),
                 program_output
                     .status
                     .code()
@@ -150,7 +156,11 @@ impl Report {
                 self.expected.exit,
             )?;
         } else {
-            writeln!(stdout, "{} output differs from expectation", self.name)?;
+            writeln!(
+                stdout,
+                "{} output differs from expectation",
+                self.path.file_name().unwrap().to_string_lossy()
+            )?;
         }
         let output = std::str::from_utf8(&program_output.stdout).unwrap_or("non UTF-8 output");
         if output != self.expected.output {
@@ -192,7 +202,7 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
         expected = toml::from_str(&read_to_string(path.join("spec.toml")).unwrap()).unwrap();
     }
     let mut report = Report {
-        name: path.file_name().unwrap().to_string_lossy().into_owned(),
+        path: path.clone(),
         trilogy_exit_code: 0,
         trilogy_stderr: String::new(),
         trilogy_compile_time: Duration::ZERO,
@@ -244,7 +254,6 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
             break 'test;
         }
 
-        // valgrind --log-file=memcheck --error-exitcode=97 --errors-for-leak-kinds=definite,possible --show-leak-kinds=all -- ./a.out > stdout 2> stderr
         let mut program_command = if memcheck {
             let memcheck = path.join("memcheck");
             let mut cmd = Command::new("valgrind");
@@ -280,12 +289,15 @@ fn main() {
 
     let pool = ThreadPool::new(thread_count);
     let start = Instant::now();
+    let mut expected = HashSet::new();
+
     let rx = {
         let (tx, rx) = channel();
         for case in read_dir("../testsuite").unwrap() {
             let case = case.unwrap();
             if case.file_type().unwrap().is_dir() {
                 let tx = tx.clone();
+                expected.insert(case.path());
                 pool.execute(move || test_case(case.path(), tx));
             }
         }
@@ -295,6 +307,7 @@ fn main() {
     let mut failures = vec![];
     let mut successes = 0;
     while let Ok(report) = rx.recv() {
+        expected.remove(&report.path);
         if !quiet {
             report.print_summary().unwrap();
         }
@@ -306,27 +319,30 @@ fn main() {
     }
 
     let duration = start.elapsed();
-    if !failures.is_empty() {
+    if !failures.is_empty() || !expected.is_empty() {
         println!("\nfailures:\n");
         for report in &failures {
             report.print_failure().unwrap();
         }
+        for path in &expected {
+            println!("{} did not succeed", path.display());
+        }
 
         println!(
-            "\ntest result: {}. {} passed; {} failed; finished in {:?}\n",
+            "\ntest result: {}. {} passed; {} failed; {} crashed; finished in {:?}\n",
             "FAILED".red(),
             successes,
             failures.len(),
+            expected.len(),
             duration
         );
         std::process::exit(101);
     }
 
     println!(
-        "\ntest result: {}. {} passed; {} failed; finished in {:?}\n",
+        "\ntest result: {}. {} passed; 0 failed; 0 crashed; finished in {:?}\n",
         "ok".green(),
         successes,
-        failures.len(),
         duration
     );
     std::process::exit(0);
