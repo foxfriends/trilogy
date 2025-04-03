@@ -1,6 +1,9 @@
 set quiet
 set shell := ["fish", "-c"]
 
+llvm_prefix := env("LLVM_SYS_180_PREFIX", "")
+clang := if llvm_prefix == "" { "clang" } else { llvm_prefix / "bin/clang" }
+
 default: run
 
 fmt: fmt-rust fmt-c
@@ -29,12 +32,12 @@ testsuite:
 
 run file="main.tri":
     cargo run -- compile {{file}} > main.ll
-    clang main.ll -g -O0 -rdynamic
+    {{clang}} main.ll -g -O0 -rdynamic
     ./a.out
 
 trace file="main.tri":
     TRILOGY_CORE_DEFINES=TRILOGY_CORE_TRACE cargo run -- compile {{file}} > main.ll
-    clang main.ll -g -O0 -rdynamic
+    {{clang}} main.ll -g -O0 -rdynamic
     ./a.out
 
 clean:
