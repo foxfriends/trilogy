@@ -1,5 +1,6 @@
 set quiet
 set shell := ["fish", "-c"]
+set dotenv-load
 
 llvm_prefix := env("LLVM_SYS_180_PREFIX", "")
 clang := if llvm_prefix == "" { "clang" } else { llvm_prefix / "bin/clang" }

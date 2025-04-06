@@ -150,6 +150,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let core =
             MemoryBuffer::create_from_memory_range(include_bytes!("../core/core.bc"), "core");
+        log::debug!("parsing core.bc");
         let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
         self.module.link_in_module(core).unwrap();
         self.di.builder.finalize();
