@@ -7,3 +7,4 @@ a.out
 *.bc
 /main.tri
 *.dSYM/
+.env
