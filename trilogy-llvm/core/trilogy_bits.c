@@ -237,7 +237,7 @@ trilogy_bits_shift_right_extend(trilogy_bits_value* lhs, size_t n) {
 
     uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * new_len);
     memset(out_bytes, 0, new_len);
-    shift_right_into(out_bytes, lhs->contents, n, new_len);
+    shift_right_into(out_bytes, lhs->contents, n, old_len);
     return trilogy_bits_new(new_bit_len, out_bytes);
 }
 
