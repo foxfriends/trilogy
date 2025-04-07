@@ -84,6 +84,7 @@ jobs:
         opts:
           - TRITEST_MEMCHECK=true
           - TRITEST_OPT=-O3
+      fail-fast: false
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
