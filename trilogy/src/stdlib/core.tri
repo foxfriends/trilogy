@@ -88,6 +88,9 @@ export bitwise_or
 extern proc bitwise_xor!(lhs, rhs)
 export bitwise_xor
 
+extern proc bitwise_invert!(val)
+export bitwise_invert
+
 extern proc primitive_to_string!(val)
 
 export to_string

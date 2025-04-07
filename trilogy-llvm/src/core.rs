@@ -301,4 +301,9 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(target, function, &[]);
         self.call_procedure(target, &[argument], name)
     }
+
+    pub(crate) fn invert(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {
+        let f = self.declare_core("bitwise_invert", 1);
+        self.call_core(target, f, &[value.into()]);
+    }
 }

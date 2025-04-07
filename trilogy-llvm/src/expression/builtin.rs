@@ -70,11 +70,19 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, name)?;
+                // NOTE: this one does not require destroying because to_string is not a C function.
+                // Calling the trilogy function will destroy it
                 let string = self.to_string(value, "");
                 Some(string)
             }
             Builtin::Negate => todo!(),
-            Builtin::Invert => todo!(),
+            Builtin::Invert => {
+                let value = self.compile_expression(expression, "")?;
+                let out = self.allocate_value(name);
+                self.invert(out, value);
+                self.trilogy_value_destroy(value);
+                Some(out)
+            }
             // Non-unary operators
             Builtin::Is => unreachable!(),
             Builtin::Pin => unreachable!(),

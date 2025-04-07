@@ -12,6 +12,7 @@ void boolean_or(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void bitwise_and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void bitwise_or(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void bitwise_xor(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void bitwise_invert(trilogy_value* rv, trilogy_value* val);
 
 void shift_left(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void shift_left_extend(

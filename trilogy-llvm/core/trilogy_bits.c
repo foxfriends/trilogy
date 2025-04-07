@@ -13,6 +13,14 @@ static trilogy_bits_value* trilogy_bits_new(size_t len, uint8_t* bytes) {
     return bits;
 }
 
+static trilogy_bits_value* trilogy_bits_copy(trilogy_bits_value* bits) {
+    if (bits->len == 0) return trilogy_bits_new(0, NULL);
+    size_t byte_len = bit_len_to_byte_len(bits->len);
+    uint8_t* contents = malloc_safe(sizeof(uint8_t) * byte_len);
+    memcpy(contents, bits->contents, byte_len);
+    return trilogy_bits_new(bits->len, contents);
+}
+
 trilogy_bits_value*
 trilogy_bits_init(trilogy_value* tv, trilogy_bits_value* bits) {
     assert(tv->tag == TAG_UNDEFINED);
@@ -26,8 +34,8 @@ trilogy_bits_init_new(trilogy_value* tv, size_t len, uint8_t* b) {
     trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
     size_t byte_len = bit_len_to_byte_len(len);
     bits->len = len;
-    bits->contents = malloc_safe(sizeof(uint8_t) * byte_len);
-    memcpy(bits->contents, b, byte_len);
+    bits->contents = len == 0 ? NULL : malloc_safe(sizeof(uint8_t) * byte_len);
+    if (len > 0) memcpy(bits->contents, b, byte_len);
     return trilogy_bits_init(tv, bits);
 }
 
@@ -46,7 +54,7 @@ trilogy_bits_value* trilogy_bits_untag(trilogy_value* val) {
 }
 
 bool trilogy_bits_at(trilogy_bits_value* b, size_t index) {
-    assert(index <= b->len);
+    assert(index < b->len);
     uint8_t byte = b->contents[index >> 3];
     return (bool)(1 & (byte >> (7 - (index & 7))));
 }
@@ -145,7 +153,7 @@ trilogy_bits_xor(trilogy_bits_value* lhs, trilogy_bits_value* rhs) {
 
 trilogy_bits_value*
 trilogy_bits_shift_left_extend(trilogy_bits_value* lhs, size_t n) {
-    assert(n != 0);
+    if (n == 0) return trilogy_bits_copy(lhs);
     size_t old_bit_len = lhs->len;
     size_t space = SIZE_MAX - old_bit_len;
     if (n > space) internal_panic("bits length limit\n");
@@ -184,11 +192,12 @@ static void shift_left_into(
 
 trilogy_bits_value*
 trilogy_bits_shift_left_contract(trilogy_bits_value* lhs, size_t n) {
-    assert(n != 0);
+    if (n == 0) return trilogy_bits_copy(lhs);
     assert(n <= lhs->len);
     size_t old_bit_len = lhs->len;
     size_t new_bit_len = old_bit_len - n;
     size_t new_len = bit_len_to_byte_len(new_bit_len);
+    if (new_len == 0) return trilogy_bits_new(0, NULL);
     size_t byte_dist = n / 8;
     size_t bit_dist = n % 8;
     uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * new_len);
@@ -197,7 +206,7 @@ trilogy_bits_shift_left_contract(trilogy_bits_value* lhs, size_t n) {
 }
 
 trilogy_bits_value* trilogy_bits_shift_left(trilogy_bits_value* lhs, size_t n) {
-    assert(n != 0);
+    if (n == 0) return trilogy_bits_copy(lhs);
     assert(n <= lhs->len);
     size_t bit_len = lhs->len;
     size_t len = bit_len_to_byte_len(bit_len);
@@ -227,26 +236,26 @@ static void shift_right_into(
 
 trilogy_bits_value*
 trilogy_bits_shift_right_extend(trilogy_bits_value* lhs, size_t n) {
-    assert(n != 0);
+    if (n == 0) return trilogy_bits_copy(lhs);
     size_t old_bit_len = lhs->len;
     size_t space = SIZE_MAX - old_bit_len;
     if (n > space) internal_panic("bits length limit\n");
     size_t new_bit_len = old_bit_len + n;
     size_t old_len = bit_len_to_byte_len(old_bit_len);
     size_t new_len = bit_len_to_byte_len(new_bit_len);
-
     uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * new_len);
     memset(out_bytes, 0, new_len);
-    shift_right_into(out_bytes, lhs->contents, n, old_len);
+    if (old_len != 0) shift_right_into(out_bytes, lhs->contents, n, old_len);
     return trilogy_bits_new(new_bit_len, out_bytes);
 }
 
 trilogy_bits_value*
 trilogy_bits_shift_right_contract(trilogy_bits_value* lhs, size_t n) {
-    assert(n != 0);
+    if (n == 0) return trilogy_bits_copy(lhs);
     assert(n <= lhs->len);
     size_t new_bit_len = lhs->len - n;
     size_t new_len = bit_len_to_byte_len(new_bit_len);
+    if (new_len == 0) return trilogy_bits_new(0, NULL);
     uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * new_len);
     memcpy(out_bytes, lhs->contents, new_len);
     return trilogy_bits_new(new_bit_len, out_bytes);
@@ -254,13 +263,28 @@ trilogy_bits_shift_right_contract(trilogy_bits_value* lhs, size_t n) {
 
 trilogy_bits_value*
 trilogy_bits_shift_right(trilogy_bits_value* lhs, size_t n) {
-    assert(n != 0);
+    if (n == 0) return trilogy_bits_copy(lhs);
     size_t bit_len = lhs->len;
     size_t byte_len = bit_len_to_byte_len(bit_len);
     uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * byte_len);
     memset(out_bytes, 0, byte_len);
     shift_right_into(out_bytes, lhs->contents, n, byte_len);
     return trilogy_bits_new(bit_len, out_bytes);
+}
+
+trilogy_bits_value* trilogy_bits_invert(trilogy_bits_value* bits) {
+    if (bits->len == 0) return trilogy_bits_new(0, NULL);
+    size_t byte_len = bit_len_to_byte_len(bits->len);
+    uint8_t* contents = malloc_safe(sizeof(uint8_t) * byte_len);
+    for (size_t i = 0; i < byte_len; ++i) {
+        contents[i] = ~(bits->contents[i]);
+    }
+    size_t tail_size = bits->len % 8;
+    if (tail_size) {
+        uint8_t overlap_bits = ~0 >> (8 - tail_size) << (8 - tail_size);
+        contents[byte_len - 1] &= overlap_bits;
+    }
+    return trilogy_bits_new(bits->len, contents);
 }
 
 trilogy_bits_value* trilogy_bits_assume(trilogy_value* val) {

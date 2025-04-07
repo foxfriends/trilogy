@@ -4,6 +4,7 @@ set dotenv-load
 
 llvm_prefix := env("LLVM_SYS_180_PREFIX", "")
 clang := if llvm_prefix == "" { "clang" } else { llvm_prefix / "bin/clang" }
+clang_format := if llvm_prefix == "" { "clang-format" } else { llvm_prefix / "bin/clang-format" }
 
 default: run
 
@@ -14,7 +15,7 @@ fmt-rust:
 
 [working-directory: "trilogy-llvm/core"]
 fmt-c:
-    clang-format -i *.{c,h}
+    {{clang_format}} -i *.{c,h}
 
 check: check-rust check-c
 

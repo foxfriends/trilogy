@@ -38,4 +38,6 @@ trilogy_bits_shift_right_extend(trilogy_bits_value* lhs, size_t n);
 trilogy_bits_value*
 trilogy_bits_shift_right_contract(trilogy_bits_value* lhs, size_t n);
 
+trilogy_bits_value* trilogy_bits_invert(trilogy_bits_value* bits);
+
 void trilogy_bits_destroy(trilogy_bits_value* b);

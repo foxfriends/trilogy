@@ -197,6 +197,12 @@ void bitwise_xor(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_init(rv, out);
 }
 
+void bitwise_invert(trilogy_value* rv, trilogy_value* value) {
+    trilogy_bits_value* bits = trilogy_bits_untag(value);
+    trilogy_bits_value* inverted = trilogy_bits_invert(bits);
+    trilogy_bits_init(rv, inverted);
+}
+
 void shift_left(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
