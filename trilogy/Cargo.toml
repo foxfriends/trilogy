@@ -15,7 +15,7 @@ lax = ["trilogy-parser/lax"]
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }
-colored = { version = "2.0.0" }
+colored = "3.0.0"
 num = "0.4.0"
 pretty = { version = "0.11.3" }
 trilogy-scanner = { path = "../trilogy-scanner/" }
@@ -35,7 +35,7 @@ log = "0.4.20"
 [dev-dependencies]
 toml = "0.8.20"
 serde = { version = "1.0.219", features = ["derive"] }
-colored = "2.0.0"
+colored = "3.0.0"
 threadpool = "1.8.1"
 num_cpus = "1.16.0"
 
