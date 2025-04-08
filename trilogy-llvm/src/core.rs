@@ -287,7 +287,7 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
     ) {
-        let f = self.declare_core("remainder", 2);
+        let f = self.declare_core("rem", 2);
         self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
