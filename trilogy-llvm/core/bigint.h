@@ -21,10 +21,14 @@ typedef struct bigint {
      * Though I don't like it, I admit that in this case it makes sense: these
      * are the base (2^64-1) digits of the number in little endian order.
      */
-    digit_t* digits;
+    union {
+        digit_t* digits;
+        digit_t value;
+    } contents;
 } bigint;
 
 extern const bigint bigint_zero;
+extern const bigint bigint_one;
 
 void bigint_init(bigint* v, size_t digit_length, digit_t* digits);
 void bigint_init_const(bigint* v, size_t digit_length, const digit_t* digits);

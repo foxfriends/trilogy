@@ -54,10 +54,11 @@ typedef struct trilogy_value {
 } trilogy_value;
 
 typedef struct trilogy_number_value {
-    // TODO: upgrade these to rationals...
     bool is_negative;
-    bigint re;
-    bigint im;
+    bigint re_numer;
+    bigint re_denom;
+    bigint im_numer;
+    bigint im_denom;
 } trilogy_number_value;
 
 typedef struct trilogy_string_value {

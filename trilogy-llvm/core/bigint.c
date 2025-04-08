@@ -4,7 +4,14 @@
 #include <stdio.h>
 #include <string.h>
 
-const bigint bigint_zero = {.capacity = 0, .length = 0, .digits = NULL};
+const bigint bigint_zero = {
+    .capacity = 0, .length = 1, .contents = {.value = 0}
+};
+
+const bigint bigint_one = {
+    .capacity = 0, .length = 1, .contents = {.value = 1}
+};
+
 const digit_t DIGIT_MAX = UINT32_MAX;
 static const uint64_t BASE = ((uint64_t)UINT32_MAX + 1);
 static size_t max(size_t lhs, size_t rhs) { return lhs > rhs ? lhs : rhs; }
@@ -20,23 +27,35 @@ static int digit_cmp(const digit_t* lhs, const digit_t* rhs, size_t i) {
 void bigint_init(bigint* val, size_t length, digit_t* digits) {
     val->capacity = length;
     val->length = length;
-    val->digits = digits;
+    val->contents.digits = digits;
+}
+
+void bigint_init_small(bigint* val, digit_t digit) {
+    val->capacity = 0;
+    val->length = 1;
+    val->contents.value = digit;
 }
 
 void bigint_init_const(bigint* val, size_t length, const digit_t* digits) {
+    if (length == 0) {
+        *val = bigint_zero;
+        return;
+    }
+    if (length == 1) {
+        val->capacity = 0;
+        val->length = 1;
+        val->contents.value = digits[0];
+        return;
+    }
     val->capacity = length;
     val->length = length;
-    val->digits = malloc_safe(length * sizeof(digit_t));
-    memcpy(val->digits, digits, length * sizeof(digit_t));
+    val->contents.digits = malloc_safe(length * sizeof(digit_t));
+    memcpy(val->contents.digits, digits, length * sizeof(digit_t));
 }
 
 void bigint_init_from_u64(bigint* val, uint64_t u64) {
-    if (u64 == 0) {
-        bigint_init(val, 0, NULL);
-    } else if (u64 <= DIGIT_MAX) {
-        digit_t* digits = malloc_safe(1 * sizeof(digit_t));
-        digits[0] = (digit_t)u64;
-        bigint_init(val, 1, digits);
+    if (u64 <= DIGIT_MAX) {
+        bigint_init_small(val, (digit_t)u64);
     } else {
         digit_t* digits = malloc_safe(2 * sizeof(digit_t));
         digits[0] = (digit_t)u64;
@@ -46,21 +65,27 @@ void bigint_init_from_u64(bigint* val, uint64_t u64) {
 }
 
 void bigint_clone(bigint* clone, const bigint* value) {
+    if (value->length == 1) {
+        assert(value->capacity == 0);
+        *clone = *value;
+        return;
+    }
     if (clone->capacity < value->length) {
         bigint_destroy(clone);
-        clone->digits = malloc_safe(value->length * sizeof(digit_t));
+        clone->contents.digits = malloc_safe(value->length * sizeof(digit_t));
         clone->capacity = value->length;
     }
     clone->length = value->length;
-    if (value->length > 0) {
-        memcpy(clone->digits, value->digits, value->length * sizeof(digit_t));
-    }
+    memcpy(
+        clone->contents.digits, value->contents.digits,
+        value->length * sizeof(digit_t)
+    );
 }
 
 void bigint_destroy(bigint* v) {
-    if (v->digits != NULL) free(v->digits);
+    if (v->capacity != 0) free(v->contents.digits);
     v->capacity = 0;
-    v->digits = NULL;
+    v->contents.digits = NULL;
 }
 
 bool add_digit(digit_t* out, digit_t lhs, digit_t rhs, bool carry) {
@@ -77,25 +102,52 @@ bool add_digit(digit_t* out, digit_t lhs, digit_t rhs, bool carry) {
     }
 }
 
+static void ensure_capacity(bigint* val, size_t capacity) {
+    if (capacity <= 1) return;
+    if (val->length == 1) {
+        assert(val->capacity == 0);
+        digit_t value = val->contents.value;
+        val->contents.digits = malloc_safe(sizeof(digit_t) * capacity);
+        val->contents.digits[0] = value;
+        val->capacity = capacity;
+    } else if (val->capacity < capacity) {
+        val->contents.digits =
+            realloc_safe(val->contents.digits, sizeof(digit_t) * capacity);
+        val->capacity = capacity;
+    }
+}
+
+static digit_t digit_at(bigint* val, size_t i) {
+    if (val->length == 1 && val->capacity == 0) {
+        return i == 0 ? val->contents.value : 0;
+    }
+    return i < val->length ? val->contents.digits[i] : 0;
+}
+
 void bigint_add(bigint* lhs, const bigint* rhs) {
     size_t capacity = max(lhs->length, rhs->length);
-    if (capacity == SIZE_MAX) {
+    if (capacity == 1) {
+        if (lhs->contents.value <= DIGIT_MAX - rhs->contents.value) {
+            lhs->contents.value += rhs->contents.value;
+            return;
+        }
+    } else if (capacity == SIZE_MAX) {
         internal_panic("bigint capacity limit\n");
     }
     capacity += 1;
-    if (lhs->capacity < capacity) {
-        lhs->digits = realloc_safe(lhs->digits, sizeof(digit_t) * capacity);
-        lhs->capacity = capacity;
-    }
+    ensure_capacity(lhs, capacity);
     bool carry = false;
     for (size_t i = 0; i < capacity; ++i) {
-        digit_t r = i < rhs->length ? rhs->digits[i] : 0;
+        digit_t r = digit_at(rhs, i);
         if (i >= lhs->length) {
-            lhs->digits[i] = 0;
+            lhs->contents.digits[i] = 0;
         }
-        carry = add_digit(&lhs->digits[i], lhs->digits[i], r, carry);
+        carry = add_digit(
+            &lhs->contents.digits[i], lhs->contents.digits[i], r, carry
+        );
     }
-    lhs->length = lhs->digits[capacity - 1] == 0 ? capacity - 1 : capacity;
+    lhs->length =
+        lhs->contents.digits[capacity - 1] == 0 ? capacity - 1 : capacity;
 }
 
 static bool sub_digit(digit_t* out, digit_t lhs, digit_t rhs, bool borrow) {
@@ -115,17 +167,18 @@ static bool sub_digit(digit_t* out, digit_t lhs, digit_t rhs, bool borrow) {
     }
 }
 
-// 3 1
-// 2
-
 static size_t
 bigint_sub_into(digit_t* out, const bigint* lhs, const bigint* rhs) {
     bool borrow = false;
     for (size_t i = 0; i < rhs->length; ++i) {
-        borrow = sub_digit(&out[i], lhs->digits[i], rhs->digits[i], borrow);
+        borrow = sub_digit(
+            &out[i], lhs->contents.digits[i], digit_at(rhs, i), borrow
+        );
     }
     if (borrow) {
-        sub_digit(&out[rhs->length], lhs->digits[rhs->length], 0, borrow);
+        sub_digit(
+            &out[rhs->length], lhs->contents.digits[rhs->length], 0, borrow
+        );
     }
     for (size_t i = lhs->length; i > 0; --i) {
         if (out[i - 1] != 0) return i;
@@ -133,17 +186,36 @@ bigint_sub_into(digit_t* out, const bigint* lhs, const bigint* rhs) {
     return 0;
 }
 
+static void inline_contents(bigint* val) {
+    assert(val->length == 1);
+    assert(val->capacity != 0);
+    digit_t value = val->contents.digits[0];
+    free(val->contents.digits);
+    val->capacity = 0;
+    val->contents.value = value;
+}
+
 bool bigint_sub(bigint* lhs, const bigint* rhs) {
+    if (lhs->length == 1 && rhs->length == 1) {
+        if (lhs->contents.value > rhs->contents.value) {
+            lhs->contents.value -= rhs->contents.value;
+            return false;
+        }
+        lhs->contents.value = rhs->contents.value - lhs->contents.value;
+        return true;
+    }
     if (bigint_cmp(lhs, rhs) == -1) {
         digit_t* out = malloc_safe(rhs->length * sizeof(digit_t));
         size_t length = bigint_sub_into(out, rhs, lhs);
+        if (lhs->length) free(lhs->contents.digits);
         lhs->capacity = rhs->length;
         lhs->length = length;
-        free(lhs->digits);
-        lhs->digits = out;
+        lhs->contents.digits = out;
+        if (lhs->length == 1) inline_contents(lhs);
         return true;
     }
-    lhs->length = bigint_sub_into(lhs->digits, lhs, rhs);
+    lhs->length = bigint_sub_into(lhs->contents.digits, lhs, rhs);
+    if (lhs->length == 1) inline_contents(lhs);
     return false;
 }
 
@@ -159,6 +231,10 @@ digits_mul_by(digit_t* output, const digit_t* lhs, digit_t rhs, size_t len) {
     output[len] = (digit_t)carry;
 }
 
+static digit_t* digits_ptr(bigint* val) {
+    return val->capacity == 0 ? &val->contents.value : val->contents.digits;
+}
+
 void bigint_mul(bigint* lhs, const bigint* rhs) {
     size_t available = SIZE_MAX - lhs->length;
     if (available < rhs->length) {
@@ -168,15 +244,18 @@ void bigint_mul(bigint* lhs, const bigint* rhs) {
     digit_t* output = malloc_safe(sizeof(digit_t) * capacity);
     memset(output, 0, sizeof(digit_t) * capacity);
     for (size_t i = 0; i < lhs->length; i++) {
-        digits_mul_by(output + i, rhs->digits, lhs->digits[i], rhs->length);
+        digits_mul_by(
+            output + i, digits_ptr(rhs), digit_at(lhs, i), rhs->length
+        );
     }
-    free(lhs->digits);
-    lhs->digits = output;
+    if (lhs->capacity) free(lhs->contents.digits);
+    lhs->contents.digits = output;
     lhs->capacity = capacity;
     lhs->length = capacity;
-    while (lhs->length > 0 && lhs->digits[lhs->length - 1] == 0) {
+    while (lhs->length > 1 && lhs->contents.digits[lhs->length - 1] == 0) {
         --lhs->length;
     }
+    if (lhs->length == 1) inline_contents(lhs);
 }
 
 static void digits_lsh(size_t length, digit_t* digits, unsigned int offset) {
@@ -210,13 +289,16 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
     // REF: The Art of Computer Programming, Volume 2, Section 4.3.1, Algorithm
     // D (page 272)
     assert(lhs->length >= rhs->length);
-    assert(rhs->length != 0);
+    assert(rhs->length != 1 || rhs->contents.value != 0);
 
     if (rhs->length == 1) {
-        digits_div(lhs->digits, lhs->digits, rhs->digits[0], lhs->length);
-        while (lhs->length > 0 && lhs->digits[lhs->length - 1] == 0) {
+        digits_div(
+            digits_ptr(lhs), digits_ptr(lhs), rhs->contents.value, lhs->length
+        );
+        while (lhs->length > 1 && lhs->contents.digits[lhs->length - 1] == 0) {
             --lhs->length;
         }
+        if (lhs->length == 1 && lhs->capacity != 0) inline_contents(lhs);
         return;
     }
 
@@ -225,17 +307,17 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
 
     // Normalize
     uint64_t offset = 1;
-    while (rhs->digits[n - 1] << offset < BASE / 2) {
+    while (rhs->contents.digits[n - 1] << offset < BASE / 2) {
         offset += 1;
     }
 
     digit_t* u = malloc_safe((n + m + 1) * sizeof(digit_t));
-    memcpy(u, lhs->digits, (n + m) * sizeof(digit_t));
+    memcpy(u, digits_ptr(lhs), (n + m) * sizeof(digit_t));
     u[n + m] = 0;
     digits_lsh(n + m + 1, u, offset);
 
     digit_t* v = malloc_safe(n * sizeof(digit_t));
-    memcpy(v, rhs->digits, n * sizeof(digit_t));
+    memcpy(v, digits_ptr(rhs), n * sizeof(digit_t));
     digits_lsh(n, v, offset);
 
     digit_t* q = malloc_safe((m + 1) * sizeof(digit_t));
@@ -287,13 +369,14 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
     free(qv);
     free(v);
     free(u);
-    free(lhs->digits);
-    lhs->digits = q;
+    free(lhs->contents.digits);
+    lhs->contents.digits = q;
     lhs->capacity = m + 1;
     lhs->length = m + 1;
-    while (lhs->length > 0 && lhs->digits[lhs->length - 1] == 0) {
+    while (lhs->length > 0 && lhs->contents.digits[lhs->length - 1] == 0) {
         --lhs->length;
     }
+    if (lhs->length == 1) inline_contents(lhs);
 }
 
 void bigint_rem(bigint* lhs, const bigint* rhs);
@@ -302,27 +385,29 @@ void bigint_pow(bigint* lhs, const bigint* rhs);
 int bigint_cmp(const bigint* lhs, const bigint* rhs) {
     if (lhs->length > rhs->length) return 1;
     if (rhs->length > lhs->length) return -1;
-    if (lhs->length == 0) return 0;
-    return digit_cmp(lhs->digits, rhs->digits, lhs->length);
+    if (lhs->length == 1) {
+        assert(lhs->capacity == 0);
+        assert(rhs->capacity == 0);
+        if (lhs->contents.value > rhs->contents.value) return 1;
+        if (lhs->contents.value < rhs->contents.value) return -1;
+        return 0;
+    }
+    return digit_cmp(lhs->contents.digits, rhs->contents.digits, lhs->length);
 }
 
 bool bigint_eq(const bigint* lhs, const bigint* rhs) {
     return bigint_cmp(lhs, rhs) == 0;
 }
 
-bool bigint_is_zero(const bigint* val) { return val->length == 0; }
+bool bigint_is_zero(const bigint* val) {
+    return val->length == 1 && val->contents.value == 0;
+}
 
 char* bigint_to_string(const bigint* val) {
-    if (val->length == 0) {
-        char* str = malloc_safe(2 * sizeof(char));
-        str[0] = '0';
-        str[1] = '\0';
-        return str;
-    }
-    if (val->length == 1) {
-        int len = snprintf(NULL, 0, "%u", val->digits[0]);
+    if (val->length == 1 && val->capacity == 0) {
+        int len = snprintf(NULL, 0, "%u", val->contents.value);
         char* str = malloc_safe((len + 1) * sizeof(char) + 1);
-        snprintf(str, len + 1, "%u", val->digits[0]);
+        snprintf(str, len + 1, "%u", val->contents.value);
         return str;
     }
 
@@ -332,10 +417,11 @@ char* bigint_to_string(const bigint* val) {
     size_t len = 0;
     char* str = malloc_safe(20 * val->length * sizeof(char));
 
-    while (!bigint_is_zero(&n)) {
-        digit_t digit = digits_div(n.digits, n.digits, 10, n.length);
+    while (n.length > 0) {
+        digit_t digit =
+            digits_div(digits_ptr(&n), digits_ptr(&n), 10, n.length);
         str[len++] = '0' + digit;
-        while (n.length > 0 && n.digits[n.length - 1] == 0) {
+        while (n.length > 0 && n.contents.digits[n.length - 1] == 0) {
             --n.length;
         }
     }
@@ -351,13 +437,13 @@ char* bigint_to_string(const bigint* val) {
 }
 
 uint64_t bigint_to_u64(const bigint* val) {
+    assert(val->length != 0);
     switch (val->length) {
-    case 0:
-        return 0;
     case 1:
-        return (uint64_t)val->digits[0];
+        return (uint64_t)val->contents.value;
     case 2:
-        return (uint64_t)val->digits[0] + ((uint64_t)val->digits[1] << 32);
+        return (uint64_t)val->contents.digits[0] +
+               ((uint64_t)val->contents.digits[1] << 32);
     default:
         internal_panic("expected u64, but number is too large");
     }
