@@ -77,7 +77,7 @@ impl<E: std::error::Error> Error<E> {
                 match error {
                     UnknownExport { name } => {
                         let span = cache.span(location, name.span());
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
                                 "exporting undeclared identifier `{}`",
                                 name.as_ref().fg(primary)
@@ -90,7 +90,7 @@ impl<E: std::error::Error> Error<E> {
                     }
                     UnboundIdentifier { name } => {
                         let span = cache.span(location, name.span());
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
                                 "reference to undeclared identifier `{}`",
                                 name.as_ref().fg(primary),
@@ -107,7 +107,7 @@ impl<E: std::error::Error> Error<E> {
                     } => {
                         let span = cache.span(location, duplicate.span());
                         let original = cache.span(location, *original);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
                                 "duplicate declaration of `{}` conflicts with {}",
                                 duplicate.as_ref().fg(primary),
@@ -133,7 +133,7 @@ impl<E: std::error::Error> Error<E> {
                     } => {
                         let span = cache.span(location, duplicate.span());
                         let original = cache.span(location, *original);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
                                 "identifier `{}` has already been exported",
                                 duplicate.as_ref().fg(primary),
@@ -154,7 +154,7 @@ impl<E: std::error::Error> Error<E> {
                     IdentifierInOwnDefinition { name } => {
                         let span = cache.span(location, name.span);
                         let declaration_span = cache.span(location, name.declaration_span);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
                                 "declaration of `{}` references itself in its own initializer",
                                 name.id.name().fg(primary),
@@ -176,7 +176,7 @@ impl<E: std::error::Error> Error<E> {
                     AssignedImmutableBinding { name, assignment } => {
                         let span = cache.span(location, *assignment);
                         let declaration_span = cache.span(location, name.declaration_span);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
                                 "cannot reassign immutable variable `{}`",
                                 name.id.name().fg(primary)
@@ -202,7 +202,7 @@ impl<E: std::error::Error> Error<E> {
                         let lhs = cache.span(location, *lhs);
                         let glue = cache.span(location, *glue);
                         let rhs = cache.span(location, *rhs);
-                        ariadne::Report::build(kind, location, glue.1.start)
+                        ariadne::Report::build(kind, glue.clone())
                             .with_message(
                                 "at least one side of a glue pattern must be a string literal",
                             )
@@ -230,11 +230,13 @@ impl<E: std::error::Error> Error<E> {
             ErrorKind::Analysis(location, error) => {
                 use super::analyzer::ErrorKind;
                 match error {
-                    ErrorKind::NoMainProcedure => ariadne::Report::build(kind, location, 0)
-                        .with_message("no definition of `proc main!()` was found"),
+                    ErrorKind::NoMainProcedure => {
+                        ariadne::Report::build(kind, (location.clone(), 0..0))
+                            .with_message("no definition of `proc main!()` was found")
+                    }
                     ErrorKind::MainHasParameters { proc } => {
                         let span = cache.span(location, proc.overloads[0].span);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message("definition of `proc main!()` must not accept parameters")
                             .with_label(Label::new(span).with_color(primary).with_message(format!(
                                 "procedure accepts {} parameters",
@@ -244,7 +246,7 @@ impl<E: std::error::Error> Error<E> {
                     ErrorKind::MainNotProcedure { item } => match item {
                         DefinitionItem::Function(func) => {
                             let span = cache.span(location, func.overloads[0].head_span);
-                            ariadne::Report::build(kind, location, span.1.start)
+                            ariadne::Report::build(kind, span.clone())
                                 .with_message("no definition of `proc main!()` was found")
                                 .with_label(Label::new(span).with_color(primary).with_message(
                                     "`func main` was found, but main must be a procedure",
@@ -252,7 +254,7 @@ impl<E: std::error::Error> Error<E> {
                         }
                         DefinitionItem::Constant(constant) => {
                             let span = cache.span(location, constant.name.span);
-                            ariadne::Report::build(kind, location, span.1.start)
+                            ariadne::Report::build(kind, span.clone())
                                 .with_message("no definition of `proc main!()` was found")
                                 .with_label(Label::new(span).with_color(primary).with_message(
                                     "`const main` was found, but main must be a procedure",
@@ -260,7 +262,7 @@ impl<E: std::error::Error> Error<E> {
                         }
                         DefinitionItem::Rule(rule) => {
                             let span = cache.span(location, rule.overloads[0].head_span);
-                            ariadne::Report::build(kind, location, span.1.start)
+                            ariadne::Report::build(kind, span.clone())
                                 .with_message("no definition of `proc main!()` was found")
                                 .with_label(Label::new(span).with_color(primary).with_message(
                                     "`rule main` was found, but main must be a procedure",
@@ -268,7 +270,7 @@ impl<E: std::error::Error> Error<E> {
                         }
                         DefinitionItem::Module(module) => {
                             let span = cache.span(location, module.name.span);
-                            ariadne::Report::build(kind, location, span.1.start)
+                            ariadne::Report::build(kind, span.clone())
                                 .with_message("no definition of `proc main!()` was found")
                                 .with_label(Label::new(span).with_color(primary).with_message(
                                     "`module main` was found, but main must be a procedure",
@@ -279,7 +281,7 @@ impl<E: std::error::Error> Error<E> {
                     },
                     ErrorKind::ConstantCycle { def } => {
                         let span = cache.span(location, def.name.span);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message("constant circularly refers to itself")
                             .with_label(Label::new(span).with_color(primary).with_message(
                                 "constants may not refer to themselves directly or indirectly",
@@ -287,7 +289,7 @@ impl<E: std::error::Error> Error<E> {
                     }
                     ErrorKind::ModuleCycle { def } => {
                         let span = cache.span(location, def.name.span);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message("module initialization circularly refers to itself")
                             .with_label(Label::new(span).with_color(primary).with_message(
                                 "modules may not refer to themselves directly or indirectly",
@@ -300,37 +302,37 @@ impl<E: std::error::Error> Error<E> {
                 use trilogy_parser::syntax::ErrorKind::*;
                 let span = cache.span(location, error.span());
                 match error.kind() {
-                    Unknown(message) => ariadne::Report::build(kind, location, span.1.start)
+                    Unknown(message) => ariadne::Report::build(kind, span.clone())
                         .with_message(message)
                         .with_label(Label::new(span).with_color(primary)),
-                    RuleRightArrow => ariadne::Report::build(kind, location, span.1.start)
+                    RuleRightArrow => ariadne::Report::build(kind, span.clone())
                         .with_message(format!("a `{}` may not be used in a rule definition", "->".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing it with a `<-`")),
-                    KwNotInExpression => ariadne::Report::build(kind, location, span.1.start)
+                    KwNotInExpression => ariadne::Report::build(kind, span.clone())
                         .with_message(format!("the `{}` keyword may not be used in an expression, did you mean to use the `!` operator?", "not".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing this `not` with `!`")),
-                    MatchStatementExpressionCase => ariadne::Report::build(kind, location, span.1.start)
+                    MatchStatementExpressionCase => ariadne::Report::build(kind, span.clone())
                         .with_message("cases in a match statement must be handled with blocks")
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing this handler with a block")),
                     TripleDot { dot } => {
                         let dot = cache.span(location, *dot);
-                        ariadne::Report::build(kind, location, span.1.start)
+                        ariadne::Report::build(kind, span.clone())
                             .with_message(format!("unexpected extra `{}` in spread (`{}`) expression", ".".fg(primary), "..".fg(secondary)))
                             .with_label(Label::new(span).with_color(secondary).with_message("in this spread expression"))
                             .with_label(Label::new(dot).with_color(primary).with_message("try removing this `.`"))
                             .with_help("the spread operator uses only two (`..`)")
                     }
-                    IfStatementRestriction => ariadne::Report::build(kind, location, span.1.start)
+                    IfStatementRestriction => ariadne::Report::build(kind, span)
                         .with_message("an `if` statement must be in strict statement form, or be a valid `if` expression"),
-                    IfExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
+                    IfExpressionRestriction => ariadne::Report::build(kind, span)
                         .with_message("an `if` expression must have an `else` clause"),
-                    MatchExpressionRestriction => ariadne::Report::build(kind, location, span.1.start)
+                    MatchExpressionRestriction => ariadne::Report::build(kind, span)
                         .with_message("a `match` expression must have an `else` case"),
                 }
             }
             ErrorKind::Resolver(location, error) => {
                 let span = cache.span(location, error.span);
-                ariadne::Report::build(kind, location, span.1.start)
+                ariadne::Report::build(kind, span.clone())
                     .with_message(format!(
                         "module resolution failed for module {}: {error}",
                         error.location.as_ref().fg(primary)

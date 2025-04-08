@@ -50,17 +50,17 @@ where
 {
     type Storage = I;
 
-    fn fetch(&mut self, id: &Location) -> Result<&ariadne::Source<I>, Box<dyn fmt::Debug + '_>> {
+    fn fetch(&mut self, id: &Location) -> Result<&ariadne::Source<Self::Storage>, impl fmt::Debug> {
         self.inner.fetch(id)
     }
 
-    fn display(&self, id: &Location) -> Option<Box<dyn fmt::Display>> {
+    fn display<'a>(&self, id: &'a Location) -> Option<impl fmt::Display + 'a> {
         if id.as_ref().scheme() != "file" {
-            return Some(Box::new(id.to_owned()));
+            return Some(Box::new(id.to_owned().to_string()));
         }
         match Path::new(id.as_ref().path()).strip_prefix(self.relative_base) {
             Ok(path) => Some(Box::new(path.display().to_string())),
-            Err(..) => Some(Box::new(id.to_owned())),
+            Err(..) => Some(Box::new(id.to_owned().to_string())),
         }
     }
 }
