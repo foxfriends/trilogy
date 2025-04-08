@@ -306,9 +306,19 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
+            Builtin::Remainder => {
+                let lhs = self.compile_expression(lhs, "rem.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "rem.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                let out = self.allocate_value(name);
+                self.rem(out, lhs, rhs);
+                self.trilogy_value_destroy(lhs);
+                self.trilogy_value_destroy(rhs);
+                Some(out)
+            }
             Builtin::Or => self.compile_or(lhs, rhs, name),
             Builtin::And => self.compile_and(lhs, rhs, name),
-            Builtin::Remainder => todo!(),
             Builtin::Power => todo!(),
             Builtin::IntDivide => todo!(),
             Builtin::BitwiseAnd => {

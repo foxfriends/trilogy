@@ -289,20 +289,22 @@ static digit_t digits_div(digit_t* out, digit_t* lhs, digit_t rhs, size_t len) {
     return r;
 }
 
-void bigint_div(bigint* lhs, const bigint* rhs) {
+void bigint_div_rem(bigint* lhs, const bigint* rhs, bigint* rem_out) {
     // REF: The Art of Computer Programming, Volume 2, Section 4.3.1, Algorithm
     // D (page 272)
     assert(lhs->length >= rhs->length);
     assert(rhs->length != 1 || rhs->contents.value != 0);
 
     if (rhs->length == 1) {
-        digits_div(
-            digits_ptr_mut(lhs), digits_ptr_mut(lhs), rhs->contents.value, lhs->length
+        digit_t r = digits_div(
+            digits_ptr_mut(lhs), digits_ptr_mut(lhs), rhs->contents.value,
+            lhs->length
         );
         while (lhs->length > 1 && lhs->contents.digits[lhs->length - 1] == 0) {
             --lhs->length;
         }
         if (lhs->length == 1 && lhs->capacity != 0) inline_contents(lhs);
+        if (rem_out != NULL) bigint_init_small(rem_out, r);
         return;
     }
 
@@ -370,20 +372,43 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
     } while (j-- > 0);
 
     // Unnormalize
-    free(qv);
-    free(v);
-    free(u);
     free(lhs->contents.digits);
     lhs->contents.digits = q;
     lhs->capacity = m + 1;
     lhs->length = m + 1;
-    while (lhs->length > 0 && lhs->contents.digits[lhs->length - 1] == 0) {
+    while (lhs->length > 1 && lhs->contents.digits[lhs->length - 1] == 0) {
         --lhs->length;
     }
     if (lhs->length == 1) inline_contents(lhs);
+
+    if (rem_out != NULL) {
+        digits_rsh(n + m + 1, u, offset);
+        rem_out->contents.digits = u;
+        rem_out->capacity = n + m + 1;
+        rem_out->length = n + m + 1;
+        while (rem_out->length > 1 &&
+               rem_out->contents.digits[rem_out->length - 1] == 0) {
+            --rem_out->length;
+        }
+        if (rem_out->length == 1) inline_contents(rem_out);
+    } else {
+        free(u);
+    }
+    free(qv);
+    free(v);
 }
 
-void bigint_rem(bigint* lhs, const bigint* rhs);
+void bigint_div(bigint* lhs, const bigint* rhs) {
+    bigint_div_rem(lhs, rhs, NULL);
+}
+
+void bigint_rem(bigint* lhs, const bigint* rhs) {
+    bigint out = bigint_zero;
+    bigint_div_rem(lhs, rhs, &out);
+    bigint_destroy(lhs);
+    *lhs = out;
+}
+
 void bigint_pow(bigint* lhs, const bigint* rhs);
 
 int bigint_cmp(const bigint* lhs, const bigint* rhs) {

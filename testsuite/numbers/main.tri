@@ -23,6 +23,12 @@ proc main!() {
   assert "big div big to small" as 17179869180 / 8589934590 == 2
   assert "big div big to big" as 18446744090889420804 / 4294967298 == 4294967298
 
+  assert "rem zero" as 24 % 3 == 0
+  assert $"rem ${24 % 7}" as 24 % 7 == 3
+  assert "big rem small" as 17179869192 % 7 == 3
+  assert "big rem big" as 4294967298 % 4294967299 == 4294967298
+  assert "big rem big to small" as 17179869183 % 17179869180 == 3
+
   assert $"str 1 (${0})" as $"${0}" == "0"
   assert $"str 2 (${31})" as $"${31}" == "31"
   assert $"str 3 (${10000000000000000000})" as $"${10000000000000000000}" == "10000000000000000000"

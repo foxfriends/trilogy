@@ -88,6 +88,12 @@ void divide(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_div(rv, lnum, rnum);
 }
 
+void remainder(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_number_value* lnum = trilogy_number_untag(lhs);
+    trilogy_number_value* rnum = trilogy_number_untag(rhs);
+    trilogy_number_rem(rv, lnum, rnum);
+}
+
 void length(trilogy_value* rv, trilogy_value* val) {
     switch (val->tag) {
     case TAG_STRING:

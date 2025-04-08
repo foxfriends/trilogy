@@ -143,6 +143,15 @@ void trilogy_number_div(
     bigint_div(&lhs_mut->re_numer, &rhs->re_numer);
 }
 
+void trilogy_number_rem(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+) {
+    // TODO: this is intentionally not supporting negative at this time
+    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
+    bigint_rem(&lhs_mut->re_numer, &rhs->re_numer);
+}
+
 char* trilogy_number_to_string(const trilogy_number_value* lhs) {
     // TODO: this is intentionally not supporting negative at this time
     return bigint_to_string(&lhs->re_numer);
