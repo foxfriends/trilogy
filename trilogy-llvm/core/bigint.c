@@ -117,7 +117,7 @@ static void ensure_capacity(bigint* val, size_t capacity) {
     }
 }
 
-static digit_t digit_at(bigint* val, size_t i) {
+static digit_t digit_at(const bigint* val, size_t i) {
     if (val->length == 1 && val->capacity == 0) {
         return i == 0 ? val->contents.value : 0;
     }
@@ -231,7 +231,11 @@ digits_mul_by(digit_t* output, const digit_t* lhs, digit_t rhs, size_t len) {
     output[len] = (digit_t)carry;
 }
 
-static digit_t* digits_ptr(bigint* val) {
+static const digit_t* digits_ptr(const bigint* val) {
+    return val->capacity == 0 ? &val->contents.value : val->contents.digits;
+}
+
+static digit_t* digits_ptr_mut(bigint* val) {
     return val->capacity == 0 ? &val->contents.value : val->contents.digits;
 }
 
@@ -293,7 +297,7 @@ void bigint_div(bigint* lhs, const bigint* rhs) {
 
     if (rhs->length == 1) {
         digits_div(
-            digits_ptr(lhs), digits_ptr(lhs), rhs->contents.value, lhs->length
+            digits_ptr_mut(lhs), digits_ptr_mut(lhs), rhs->contents.value, lhs->length
         );
         while (lhs->length > 1 && lhs->contents.digits[lhs->length - 1] == 0) {
             --lhs->length;
@@ -419,7 +423,7 @@ char* bigint_to_string(const bigint* val) {
 
     while (n.length > 0) {
         digit_t digit =
-            digits_div(digits_ptr(&n), digits_ptr(&n), 10, n.length);
+            digits_div(digits_ptr_mut(&n), digits_ptr_mut(&n), 10, n.length);
         str[len++] = '0' + digit;
         while (n.length > 0 && n.contents.digits[n.length - 1] == 0) {
             --n.length;
