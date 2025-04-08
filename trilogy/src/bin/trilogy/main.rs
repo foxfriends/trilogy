@@ -96,7 +96,7 @@ fn main() -> std::io::Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        Command::Run { file, print, debug } => match Builder::new().build_from_source(file) {
+        Command::Run { file, print, debug } => match Builder::std().build_from_source(file) {
             Ok(trilogy) => run(trilogy, print, debug),
             Err(report) => {
                 report.eprint();
