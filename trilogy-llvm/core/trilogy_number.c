@@ -56,10 +56,6 @@ trilogy_number_value*
 trilogy_number_clone_into(trilogy_value* tv, const trilogy_number_value* num) {
     trilogy_number_value* clone = malloc_safe(sizeof(trilogy_number_value));
     clone->is_negative = num->is_negative;
-    clone->re_numer = bigint_zero;
-    clone->re_denom = bigint_one;
-    clone->im_numer = bigint_zero;
-    clone->im_denom = bigint_one;
     bigint_clone(&clone->re_numer, &num->re_numer);
     bigint_clone(&clone->re_denom, &num->re_denom);
     bigint_clone(&clone->im_numer, &num->im_numer);
@@ -105,14 +101,63 @@ bool trilogy_number_eq(trilogy_number_value* lhs, trilogy_number_value* rhs) {
            bigint_eq(&lhs->im_denom, &rhs->im_denom);
 }
 
+static void rat_reduce(bigint* numer, bigint* denom) {
+    if (!bigint_is_one(denom)) {
+        bigint* gcd = bigint_gcd(numer, denom);
+        bigint_div(numer, gcd);
+        bigint_div(denom, gcd);
+        bigint_destroy(gcd);
+        free(gcd);
+    }
+}
+
+static void trilogy_number_reduce(trilogy_number_value* val) {
+    rat_reduce(&val->re_numer, &val->re_denom);
+    rat_reduce(&val->im_numer, &val->im_denom);
+}
+
+static void rat_add(
+    bigint* lhs_numer, bigint* lhs_denom, const bigint* rhs_numer,
+    const bigint* rhs_denom
+) {
+    if (bigint_eq(lhs_denom, rhs_denom)) {
+        bigint_add(lhs_numer, rhs_numer);
+        return;
+    }
+    bigint* gcd = bigint_gcd(lhs_denom, rhs_denom);
+    bigint rhs_fac;
+    bigint_clone(&rhs_fac, rhs_denom);
+    bigint_div(&rhs_fac, gcd);
+    bigint lhs_fac;
+    bigint_clone(&lhs_fac, lhs_denom);
+    bigint_div(&lhs_fac, gcd);
+    bigint_destroy(gcd);
+    free(gcd);
+
+    // Get LHS up to LCM
+    bigint_mul(lhs_numer, &rhs_fac);
+    bigint_mul(lhs_denom, &rhs_fac);
+    // Get RHS numer to LCM
+    bigint_mul(&lhs_fac, rhs_numer);
+    // Do the add of numerators
+    bigint_add(lhs_numer, &lhs_fac);
+
+    bigint_destroy(&lhs_fac);
+    bigint_destroy(&rhs_fac);
+}
+
 void trilogy_number_add(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting negative at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    bigint_add(&lhs_mut->re_numer, &rhs->re_numer);
-    bigint_add(&lhs_mut->im_numer, &rhs->im_numer);
+    rat_add(
+        &lhs_mut->re_numer, &lhs_mut->re_denom, &rhs->re_numer, &rhs->re_denom
+    );
+    rat_add(
+        &lhs_mut->im_numer, &lhs_mut->im_denom, &rhs->im_numer, &rhs->im_denom
+    );
+    trilogy_number_reduce(lhs_mut);
 }
 
 void trilogy_number_sub(

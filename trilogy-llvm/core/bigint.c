@@ -70,11 +70,8 @@ void bigint_clone(bigint* clone, const bigint* value) {
         *clone = *value;
         return;
     }
-    if (clone->capacity < value->length) {
-        bigint_destroy(clone);
-        clone->contents.digits = malloc_safe(value->length * sizeof(digit_t));
-        clone->capacity = value->length;
-    }
+    clone->contents.digits = malloc_safe(value->length * sizeof(digit_t));
+    clone->capacity = value->length;
     clone->length = value->length;
     memcpy(
         clone->contents.digits, value->contents.digits,
@@ -432,6 +429,10 @@ bool bigint_is_zero(const bigint* val) {
     return val->length == 1 && val->contents.value == 0;
 }
 
+bool bigint_is_one(const bigint* val) {
+    return val->length == 1 && val->contents.value == 1;
+}
+
 char* bigint_to_string(const bigint* val) {
     if (val->length == 1 && val->capacity == 0) {
         int len = snprintf(NULL, 0, "%u", val->contents.value);
@@ -440,7 +441,7 @@ char* bigint_to_string(const bigint* val) {
         return str;
     }
 
-    bigint n = bigint_zero;
+    bigint n;
     bigint_clone(&n, val);
 
     size_t len = 0;
@@ -476,4 +477,48 @@ uint64_t bigint_to_u64(const bigint* val) {
     default:
         internal_panic("expected u64, but number is too large");
     }
+}
+
+bigint* bigint_gcd(const bigint* lhs, const bigint* rhs) {
+    bigint* a = malloc_safe(sizeof(bigint));
+    bigint b;
+    if (bigint_is_zero(lhs)) {
+        bigint_clone(a, rhs);
+        return a;
+    }
+    if (bigint_is_zero(rhs)) {
+        bigint_clone(a, lhs);
+        return a;
+    }
+    bigint_clone(a, lhs);
+    bigint_clone(&b, rhs);
+    for (;;) {
+        int cmp = bigint_cmp(a, &b);
+        switch (cmp) {
+        case 1:
+            bigint_sub(a, &b);
+        case -1:
+            bigint_sub(&b, a);
+        case 0:
+            bigint_destroy(&b);
+            return a;
+        default:
+            assert(false);
+        }
+    }
+}
+
+bigint* bigint_lcm(const bigint* lhs, const bigint* rhs) {
+    bigint* lcm = malloc_safe(sizeof(bigint));
+    if (bigint_is_zero(lhs) && bigint_is_zero(rhs)) {
+        *lcm = bigint_zero;
+        return lcm;
+    }
+    bigint* gcd = bigint_gcd(lhs, rhs);
+    bigint_clone(lcm, lhs);
+    bigint_div(lcm, gcd);
+    bigint_mul(lcm, rhs);
+    bigint_destroy(gcd);
+    free(gcd);
+    return lcm;
 }

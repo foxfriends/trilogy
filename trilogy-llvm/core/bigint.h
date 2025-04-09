@@ -55,6 +55,10 @@ void bigint_pow(bigint* lhs, const bigint* rhs);
 int bigint_cmp(const bigint* lhs, const bigint* rhs);
 bool bigint_eq(const bigint* lhs, const bigint* rhs);
 bool bigint_is_zero(const bigint* val);
+bool bigint_is_one(const bigint* val);
 
 char* bigint_to_string(const bigint* val);
 uint64_t bigint_to_u64(const bigint* val);
+
+bigint* bigint_gcd(const bigint* lhs, const bigint* rhs);
+bigint* bigint_lcm(const bigint* lhs, const bigint* rhs);
