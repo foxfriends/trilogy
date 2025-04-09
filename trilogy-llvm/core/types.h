@@ -1,6 +1,5 @@
 #pragma once
-#include "bigint.h"
-#include <stdbool.h>
+#include "rational.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -54,11 +53,8 @@ typedef struct trilogy_value {
 } trilogy_value;
 
 typedef struct trilogy_number_value {
-    bool is_negative;
-    bigint re_numer;
-    bigint re_denom;
-    bigint im_numer;
-    bigint im_denom;
+    rational re;
+    rational im;
 } trilogy_number_value;
 
 typedef struct trilogy_string_value {

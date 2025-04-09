@@ -13,9 +13,6 @@ trilogy_number_value* trilogy_number_init_new(
     bool im_is_negative, size_t im_numer_length, digit_t* im_numer,
     size_t im_denom_length, digit_t* im_denom
 );
-trilogy_number_value* trilogy_number_init_bigint(
-    trilogy_value* tv, bool is_negative, bigint* i /* moved */
-);
 trilogy_number_value* trilogy_number_init_u64(trilogy_value* tv, uint64_t i);
 
 trilogy_number_value*
