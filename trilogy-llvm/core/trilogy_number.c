@@ -1,6 +1,7 @@
 #include "trilogy_number.h"
 #include "internal.h"
 #include <assert.h>
+#include <stdlib.h>
 
 trilogy_number_value*
 trilogy_number_init(trilogy_value* tv, trilogy_number_value* n) {
