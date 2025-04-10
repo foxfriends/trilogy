@@ -26,6 +26,7 @@ bool rational_eq(const rational* lhs, const rational* rhs);
 
 void rational_reduce(rational* val);
 void rational_negate(rational* val);
+void rational_truncate(rational* val);
 
 void rational_add(rational* lhs, const rational* rhs);
 void rational_sub(rational* lhs, const rational* rhs);

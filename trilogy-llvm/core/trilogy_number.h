@@ -45,6 +45,10 @@ void trilogy_number_div(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 );
+void trilogy_number_int_div(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+);
 void trilogy_number_rem(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs

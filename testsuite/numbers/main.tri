@@ -66,6 +66,10 @@ proc main!() {
   assert "div to rat" as 10 / 6 == 5/3
   assert "div by rat" as 10 / 1/2 == 20
 
+  assert "intdiv exact" as 21 // 3 == 7
+  assert "intdiv pos" as 22 // 3 == 7
+  assert "intdiv neg" as -22 // 3 == -7
+
   assert "rem zero" as 24 % 3 == 0
   assert "rem" as 24 % 7 == 3
   assert "big rem small" as 17179869192 % 7 == 3

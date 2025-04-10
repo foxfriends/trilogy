@@ -115,6 +115,17 @@ void trilogy_number_div(
     rational_div(&lhs_mut->re, &rhs->re);
 }
 
+void trilogy_number_int_div(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+) {
+    // TODO: this is intentionally not supporting complex
+    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
+    rational_div(&lhs_mut->re, &rhs->re);
+    rational_truncate(&lhs_mut->re);
+    rational_truncate(&lhs_mut->im);
+}
+
 void trilogy_number_rem(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs

@@ -88,6 +88,12 @@ void divide(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_div(rv, lnum, rnum);
 }
 
+void int_divide(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_number_value* lnum = trilogy_number_untag(lhs);
+    trilogy_number_value* rnum = trilogy_number_untag(rhs);
+    trilogy_number_int_div(rv, lnum, rnum);
+}
+
 void rem(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_value* lnum = trilogy_number_untag(lhs);
     trilogy_number_value* rnum = trilogy_number_untag(rhs);

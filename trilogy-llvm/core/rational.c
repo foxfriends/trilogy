@@ -183,6 +183,13 @@ void rational_rem(rational* lhs, const rational* rhs) {
     rational_reduce(lhs);
 }
 
+void rational_truncate(rational* val) {
+    bigint_div(&val->numer, &val->denom);
+    bigint_destroy(&val->denom);
+    val->denom = bigint_one;
+    rational_reduce(val);
+}
+
 char* rational_to_string(const rational* val) {
     if (bigint_is_one(&val->denom)) {
         if (!val->is_negative) return bigint_to_string(&val->numer);
