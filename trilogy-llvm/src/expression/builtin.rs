@@ -75,7 +75,13 @@ impl<'ctx> Codegen<'ctx> {
                 let string = self.to_string(value, "");
                 Some(string)
             }
-            Builtin::Negate => todo!(),
+            Builtin::Negate => {
+                let value = self.compile_expression(expression, "")?;
+                let out = self.allocate_value(name);
+                self.negate(out, value);
+                self.trilogy_value_destroy(value);
+                Some(out)
+            }
             Builtin::Invert => {
                 let value = self.compile_expression(expression, "")?;
                 let out = self.allocate_value(name);

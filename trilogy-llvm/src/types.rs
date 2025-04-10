@@ -212,7 +212,7 @@ impl<'ctx> Codegen<'ctx> {
         let re_denom_global = self.make_global_u32_array(&re_denom);
         let im_numer_global = self.make_global_u32_array(&im_numer);
         let im_denom_global = self.make_global_u32_array(&im_denom);
-        self.trilogy_number_init_new(
+        self.trilogy_number_init_const(
             into,
             self.context
                 .bool_type()

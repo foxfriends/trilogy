@@ -497,8 +497,10 @@ bigint* bigint_gcd(const bigint* lhs, const bigint* rhs) {
         switch (cmp) {
         case 1:
             bigint_sub(a, &b);
+            break;
         case -1:
             bigint_sub(&b, a);
+            break;
         case 0:
             bigint_destroy(&b);
             return a;

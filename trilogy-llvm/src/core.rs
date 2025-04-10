@@ -291,6 +291,11 @@ impl<'ctx> Codegen<'ctx> {
         self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn negate(&self, target: PointerValue<'ctx>, val: PointerValue<'ctx>) {
+        let f = self.declare_core("negate", 1);
+        self.call_core(target, f, &[val.into()]);
+    }
+
     pub(crate) fn destruct(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {
         let f = self.declare_core("destruct", 1);
         self.call_core(target, f, &[value.into()]);

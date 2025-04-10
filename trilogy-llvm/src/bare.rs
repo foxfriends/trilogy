@@ -116,7 +116,7 @@ impl<'ctx> Codegen<'ctx> {
         clippy::too_many_arguments,
         reason = "this is a crazy C function sorry"
     )]
-    pub(crate) fn trilogy_number_init_new(
+    pub(crate) fn trilogy_number_init_const(
         &self,
         value: PointerValue<'ctx>,
         re_is_negative: IntValue<'ctx>,
@@ -132,7 +132,7 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
-            "trilogy_number_init_new",
+            "trilogy_number_init_const",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),

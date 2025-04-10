@@ -11,18 +11,18 @@ trilogy_number_init(trilogy_value* tv, trilogy_number_value* n) {
     return n;
 }
 
-trilogy_number_value* trilogy_number_init_new(
+trilogy_number_value* trilogy_number_init_const(
     trilogy_value* tv, bool re_is_negative, size_t re_numer_length,
     digit_t* re_numer, size_t re_denom_length, digit_t* re_denom,
     bool im_is_negative, size_t im_numer_length, digit_t* im_numer,
     size_t im_denom_length, digit_t* im_denom
 ) {
     trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
-    rational_init_new(
+    rational_init_const(
         &value->re, re_is_negative, re_numer_length, re_numer, re_denom_length,
         re_denom
     );
-    rational_init_new(
+    rational_init_const(
         &value->im, im_is_negative, im_numer_length, im_numer, im_denom_length,
         im_denom
     );
@@ -79,30 +79,22 @@ bool trilogy_number_eq(trilogy_number_value* lhs, trilogy_number_value* rhs) {
     return rational_eq(&lhs->re, &rhs->re) && rational_eq(&lhs->im, &rhs->im);
 }
 
-static void trilogy_number_reduce(trilogy_number_value* val) {
-    rational_reduce(&val->re);
-    rational_reduce(&val->im);
-}
-
 void trilogy_number_add(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting negative at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
     rational_add(&lhs_mut->re, &rhs->re);
     rational_add(&lhs_mut->im, &rhs->im);
-    trilogy_number_reduce(lhs_mut);
 }
 
 void trilogy_number_sub(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting negative at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    bigint_sub(&lhs_mut->re.numer, &rhs->re.numer);
-    bigint_sub(&lhs_mut->im.numer, &rhs->im.numer);
+    rational_sub(&lhs_mut->re, &rhs->re);
+    rational_sub(&lhs_mut->im, &rhs->im);
 }
 
 void trilogy_number_mul(
@@ -132,7 +124,13 @@ void trilogy_number_rem(
     bigint_rem(&lhs_mut->re.numer, &rhs->re.numer);
 }
 
+void trilogy_number_negate(trilogy_value* tv, const trilogy_number_value* val) {
+    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, val);
+    rational_negate(&lhs_mut->re);
+    rational_negate(&lhs_mut->im);
+}
+
 char* trilogy_number_to_string(const trilogy_number_value* lhs) {
-    // TODO: this is intentionally not supporting negative at this time
-    return bigint_to_string(&lhs->re.numer);
+    // TODO: this is intentionally not supporting complex at this time
+    return rational_to_string(&lhs->re);
 }

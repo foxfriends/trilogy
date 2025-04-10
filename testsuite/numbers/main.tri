@@ -1,16 +1,46 @@
 proc main!() {
+  assert "neg zero" as 0 == -0
+
   assert "add" as 1 + 2 == 3
+  assert "add zero" as 2 + 0 == 2
   assert "big add" as 4294967296 + 2 == 4294967298
   assert "add big" as 2 + 4294967296 == 4294967298
   assert "add to big" as 4294967295 + 1 == 4294967296
   assert "add to big 2" as 4294967295 + 2 == 4294967297
   assert "big add big" as 4294967295 + 4294967295 == 8589934590
 
+  assert "neg add neg" as -3 + -5 == -8
+  assert "neg add pos" as -3 + 1 == -2
+  assert "neg add pos cross" as -3 + 5 == 2
+  assert "pos add neg" as 3 + -2 == 1
+  assert "pos add neg cross" as 3 + -5 == -2
+
+  assert "rat reduce whole" as 6/3 == 2
+  assert "rat reduce partial" as 3/9 == 1/3
+
+  assert "rat add rat" as 1/3 + 1/3 == 2/3
+  assert "rat add rat reduce" as 1/3 + 2/3 == 1
+  assert "rat add rat no match" as 1/2 + 2/3 == 7/6
+  assert "rat add negrat" as 1/3 + -1/3 == 0
+  assert "rat add zero" as 1/3 + 0 == 1/3
+
   assert "sub" as 8 - 2 == 6
   assert "big sub big to small" as 4294967299 - 4294967296 == 3
   assert "big sub" as 4294967299 - 2 == 4294967297
   assert "sub to small" as 4294967297 - 2 == 4294967295
   assert "big sub big to big" as 18446744065119617025 - 4294967295 == 18446744060824649730
+
+  assert "neg sub neg" as -3 - -1 == -2
+  assert "neg sub neg cross" as -3 - -5 == 2
+  assert "neg sub pos" as -3 - 1 == -4
+  assert "pos sub neg" as 3 - -2 == 5
+  assert "pos sub pos cross" as 3 - 5 == -2
+
+  assert "rat sub rat" as 1/3 - 2/3 == -1/3
+  assert "rat sub rat reduce" as 5/3 - 2/3 == 1
+  assert "rat sub rat no match" as 1/2 - 2/3 == -1/6
+  assert "rat sub negrat" as 1/3 - -1/3 == 2/3
+  assert "rat sub zero" as 1/3 - 0 == 1/3
 
   assert "mul" as 7 * 3 == 21
   assert "big mul" as 4294967296 * 3 == 12884901888
@@ -24,7 +54,7 @@ proc main!() {
   assert "big div big to big" as 18446744090889420804 / 4294967298 == 4294967298
 
   assert "rem zero" as 24 % 3 == 0
-  assert $"rem ${24 % 7}" as 24 % 7 == 3
+  assert "rem" as 24 % 7 == 3
   assert "big rem small" as 17179869192 % 7 == 3
   assert "big rem big" as 4294967298 % 4294967299 == 4294967298
   assert "big rem big to small" as 17179869183 % 17179869180 == 3

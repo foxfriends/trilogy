@@ -7,7 +7,7 @@
 
 trilogy_number_value*
 trilogy_number_init(trilogy_value* tv, trilogy_number_value* n);
-trilogy_number_value* trilogy_number_init_new(
+trilogy_number_value* trilogy_number_init_const(
     trilogy_value* tv, bool re_is_negative, size_t re_numer_length,
     digit_t* re_numer, size_t re_denom_length, digit_t* re_denom,
     bool im_is_negative, size_t im_numer_length, digit_t* im_numer,
@@ -49,5 +49,6 @@ void trilogy_number_rem(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 );
+void trilogy_number_negate(trilogy_value* tv, const trilogy_number_value* val);
 
 char* trilogy_number_to_string(const trilogy_number_value* tv);

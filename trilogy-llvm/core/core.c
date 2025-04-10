@@ -94,6 +94,11 @@ void rem(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_rem(rv, lnum, rnum);
 }
 
+void negate(trilogy_value* rv, trilogy_value* val) {
+    trilogy_number_value* num = trilogy_number_untag(val);
+    trilogy_number_negate(rv, num);
+}
+
 void length(trilogy_value* rv, trilogy_value* val) {
     switch (val->tag) {
     case TAG_STRING:
