@@ -101,27 +101,27 @@ void trilogy_number_mul(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting negative at this time
+    // TODO: this is intentionally not supporting complex at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    bigint_mul(&lhs_mut->re.numer, &rhs->re.numer);
+    rational_mul(&lhs_mut->re, &rhs->re);
 }
 
 void trilogy_number_div(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting negative at this time
+    // TODO: this is intentionally not supporting complex
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    bigint_div(&lhs_mut->re.numer, &rhs->re.numer);
+    rational_div(&lhs_mut->re, &rhs->re);
 }
 
 void trilogy_number_rem(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting negative at this time
+    // TODO: this is intentionally not supporting complex at this time
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    bigint_rem(&lhs_mut->re.numer, &rhs->re.numer);
+    rational_rem(&lhs_mut->re, &rhs->re);
 }
 
 void trilogy_number_negate(trilogy_value* tv, const trilogy_number_value* val) {

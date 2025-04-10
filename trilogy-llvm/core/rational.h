@@ -29,5 +29,8 @@ void rational_negate(rational* val);
 
 void rational_add(rational* lhs, const rational* rhs);
 void rational_sub(rational* lhs, const rational* rhs);
+void rational_mul(rational* lhs, const rational* rhs);
+void rational_div(rational* lhs, const rational* rhs);
+void rational_rem(rational* lhs, const rational* rhs);
 
 char* rational_to_string(const rational* val);

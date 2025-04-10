@@ -482,32 +482,23 @@ uint64_t bigint_to_u64(const bigint* val) {
 bigint* bigint_gcd(const bigint* lhs, const bigint* rhs) {
     bigint* a = malloc_safe(sizeof(bigint));
     bigint b;
-    if (bigint_is_zero(lhs)) {
-        bigint_clone(a, rhs);
-        return a;
-    }
-    if (bigint_is_zero(rhs)) {
+    if (bigint_cmp(lhs, rhs) == 1) {
         bigint_clone(a, lhs);
-        return a;
+        bigint_clone(&b, rhs);
+    } else {
+        bigint_clone(a, rhs);
+        bigint_clone(&b, lhs);
     }
-    bigint_clone(a, lhs);
-    bigint_clone(&b, rhs);
-    for (;;) {
-        int cmp = bigint_cmp(a, &b);
-        switch (cmp) {
-        case 1:
-            bigint_sub(a, &b);
-            break;
-        case -1:
-            bigint_sub(&b, a);
-            break;
-        case 0:
-            bigint_destroy(&b);
-            return a;
-        default:
-            assert(false);
-        }
+    while (!bigint_is_zero(&b)) {
+        bigint c;
+        bigint_clone(&c, &b);
+        bigint_rem(a, &b);
+        bigint_destroy(&b);
+        b = *a;
+        *a = c;
     }
+    bigint_destroy(&b);
+    return a;
 }
 
 bigint* bigint_lcm(const bigint* lhs, const bigint* rhs) {

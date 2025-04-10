@@ -47,17 +47,35 @@ proc main!() {
   assert "mul big" as 3 * 4294967296 == 12884901888
   assert "big mul big" as 4294967298 * 4294967298 == 18446744090889420804
 
+  assert "neg mul neg" as -2 * -3 == 6
+  assert "pos mul neg" as 2 * -3 == -6
+  assert "neg mul pos" as -2 * 3 == -6
+
+  assert "rat mul rat reduce" as 2/3 * 5/2 == 5/3
+
   assert "div" as 24 / 3 == 8
   assert "big div" as 17179869192 / 4 == 4294967298
   assert "big div to small" as 4294967298 / 2 == 2147483649
   assert "big div big to small" as 17179869180 / 8589934590 == 2
   assert "big div big to big" as 18446744090889420804 / 4294967298 == 4294967298
 
+  assert "neg div neg" as -9 / -3 == 3
+  assert "pos div neg" as 9 / -3 == -3
+  assert "neg div pos" as -9 / 3 == -3
+
+  assert "div to rat" as 10 / 6 == 5/3
+  assert "div by rat" as 10 / 1/2 == 20
+
   assert "rem zero" as 24 % 3 == 0
   assert "rem" as 24 % 7 == 3
   assert "big rem small" as 17179869192 % 7 == 3
   assert "big rem big" as 4294967298 % 4294967299 == 4294967298
   assert "big rem big to small" as 17179869183 % 17179869180 == 3
+
+  assert "neg rem zero" as -24 % 3 == 0
+  assert "rem neg zero" as 24 % -3 == 0
+  assert "neg rem nonzero" as -22 % 3 == -1
+  assert "rem neg nonzero" as 22 % -3 == 1
 
   assert $"str 1 (${0})" as $"${0}" == "0"
   assert $"str 2 (${31})" as $"${31}" == "31"

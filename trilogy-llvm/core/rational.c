@@ -1,5 +1,6 @@
 #include "rational.h"
 #include "internal.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -157,6 +158,29 @@ void rational_sub(rational* lhs, const rational* rhs) {
     } else {
         rational_add_unsigned(lhs, rhs);
     }
+}
+
+void rational_mul(rational* lhs, const rational* rhs) {
+    bigint_mul(&lhs->numer, &rhs->numer);
+    bigint_mul(&lhs->denom, &rhs->denom);
+    lhs->is_negative = lhs->is_negative != rhs->is_negative;
+    rational_reduce(lhs);
+}
+
+void rational_div(rational* lhs, const rational* rhs) {
+    assert(!rational_is_zero(rhs));
+    bigint_mul(&lhs->numer, &rhs->denom);
+    bigint_mul(&lhs->denom, &rhs->numer);
+    lhs->is_negative = lhs->is_negative != rhs->is_negative;
+    rational_reduce(lhs);
+}
+
+void rational_rem(rational* lhs, const rational* rhs) {
+    // TODO: this is intentionally not supporting fractions at this time
+    assert(rational_is_whole(lhs));
+    assert(rational_is_whole(rhs));
+    bigint_rem(&lhs->numer, &rhs->numer);
+    rational_reduce(lhs);
 }
 
 char* rational_to_string(const rational* val) {
