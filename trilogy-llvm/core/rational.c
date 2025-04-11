@@ -176,11 +176,18 @@ void rational_div(rational* lhs, const rational* rhs) {
 }
 
 void rational_rem(rational* lhs, const rational* rhs) {
-    // TODO: this is intentionally not supporting fractions at this time
-    assert(rational_is_whole(lhs));
-    assert(rational_is_whole(rhs));
-    bigint_rem(&lhs->numer, &rhs->numer);
-    rational_reduce(lhs);
+    if (rational_is_whole(lhs) && rational_is_whole(rhs)) {
+        bigint_rem(&lhs->numer, &rhs->numer);
+        rational_reduce(lhs);
+    } else {
+        rational times;
+        rational_clone(&times, lhs);
+        rational_div(&times, rhs);
+        rational_truncate(&times);
+        rational_mul(&times, rhs);
+        rational_sub(lhs, &times);
+        rational_destroy(&times);
+    }
 }
 
 void rational_truncate(rational* val) {

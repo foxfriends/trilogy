@@ -148,11 +148,12 @@ yields the exceptional result \val{'INF}. I am aware that division by zero is
 explicitly defined as undefined, and is very definitely not mathematically
 infinity, but \val{'INF} is not infinity, it is simply a signal that division
 by zero was performed. This is the case for both regular divison (\op{/}) and
-integer division (\op{//}), which floors to the nearest integer after dividing.
+integer division (\op{//}), which truncates (towards zero) to the nearest
+integer after dividing.
 
 The \op{\%} operator is the remainder operator, returning the remainder of
 integer division. Notably the remainder operator is the integer remainder operator,
-not a modulus operator, and is implemented following the same floored division
+not a modulus operator, and is implemented following the same truncated division
 as with integer division.
 
 The \op{**} operator is the exponentiation operator and, given the fact that
@@ -207,14 +208,14 @@ will not be an error, but actually the complex number \val{0i1}.
     \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
     \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
     \LeftLabel{Integer Division}
-    \BinaryInfC{$\Gamma\vdash A\ \op{//}\ B = \lfloor a \div b \rfloor : \ty{Number}$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{//}\ B = \lfloor a \div b \rfloor_0 : \ty{Number}$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = a : \ty{Number}$}
     \AxiomC{$\Gamma\vdash B = b : \ty{Number}$}
     \LeftLabel{Remainder}
-    \BinaryInfC{$\Gamma\vdash A\ \op{\%}\ B = a - b \lfloor a \div b \rfloor : \ty{Number}$}
+    \BinaryInfC{$\Gamma\vdash A\ \op{\%}\ B = a - b \lfloor a \div b \rfloor_0 : \ty{Number}$}
 \end{prooftree}
 
 \begin{prooftree}

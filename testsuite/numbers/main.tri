@@ -81,6 +81,11 @@ proc main!() {
   assert "neg rem nonzero" as -22 % 3 == -1
   assert "rem neg nonzero" as 22 % -3 == 1
 
+  assert "rem imperfect" as 7/3 % 3/2 == 5/6
+  assert "neg rem imperfect" as -7/3 % 3/2 == -5/6
+  assert "rem neg imperfect" as 7/3 % -3/2 == 5/6
+  assert "neg rem neg imperfect" as -7/3 % -3/2 == -5/6
+
   assert $"str 1 (${0})" as $"${0}" == "0"
   assert $"str 2 (${31})" as $"${31}" == "31"
   assert $"str 3 (${10000000000000000000})" as $"${10000000000000000000}" == "10000000000000000000"
