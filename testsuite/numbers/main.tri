@@ -97,10 +97,12 @@ proc main!() {
   assert "imaginary add" as 0i3 + 0i4 == 0i7
   assert "imaginary sub" as 0i3 - 0i4 == -0i1
   assert "imaginary mul" as 0i3 * 0i4 == -12
+  assert "imaginary div" as 0i3 / 0i4 == 3/4
 
   assert "complex add" as 1i3 + 2i4 == 3i7
   assert "complex sub" as 1i3 - 2i4 == -1 - 0i1
   assert "complex mul" as 1i3 * 2i4 == -10 + 0i10
+  assert "complex div" as 1i3 / 2i4 == 7/10i1/10
 
   assert "str 8" as $"${3i4}" == "3+4i"
   assert "str 9" as $"${-3i4}" == "-3-4i"

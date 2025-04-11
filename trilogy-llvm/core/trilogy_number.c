@@ -110,7 +110,7 @@ void trilogy_number_mul(
     }
 
     rational term;
-    // Complex multiplication (a+bi) * (c+di) is slow
+    // Complex multiplication: (a+bi) * (c+di) = (ac - bd) + (ad + bc)i
 
     // real part: ac - bd
     rational_clone(&term, &lhs->im /* b */);
@@ -131,9 +131,46 @@ void trilogy_number_div(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting complex
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    rational_div(&lhs_mut->re, &rhs->re);
+    if (rational_is_zero(&lhs->im) && rational_is_zero(&rhs->im)) {
+        // Real division is easy
+        rational_div(&lhs_mut->re, &rhs->re);
+        return;
+    }
+
+    // Complex division:
+    // (u+vi) / (x+yi)
+    //     = (ux + vy)/(x^2 + y^2)
+    //     + (vx - uy)/(x^2 + y^2)i
+
+    // x^2 + y^2
+    rational xy;
+    rational y;
+    rational_clone(&xy, &rhs->re);
+    rational_mul(&xy, &rhs->re);
+    rational_clone(&y, &rhs->im);
+    rational_mul(&y, &rhs->im);
+    rational_add(&xy, &y);
+    rational_destroy(&y);
+
+    // (ux + vy)
+    rational_clone(&y, &rhs->im);
+    rational_mul(&y, &lhs->im);
+    rational_mul(&lhs_mut->re, &rhs->re);
+    rational_add(&lhs_mut->re, &y);
+    // (ux + vy) / (x^2 + y^2)
+    rational_div(&lhs_mut->re, &xy);
+    rational_destroy(&y);
+
+    // (vx - uy)
+    rational_clone(&y, &rhs->im);
+    rational_mul(&y, &lhs->re);
+    rational_mul(&lhs_mut->im, &rhs->re);
+    rational_sub(&lhs_mut->im, &y);
+    // (vx - uy) / (x^2 + y^2)
+    rational_div(&lhs_mut->im, &xy);
+    rational_destroy(&y);
+    rational_destroy(&xy);
 }
 
 void trilogy_number_int_div(
