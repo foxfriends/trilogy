@@ -169,7 +169,7 @@ char* trilogy_number_to_string(const trilogy_number_value* val) {
     } else if (rational_is_zero(&val->re)) {
         char* im = rational_to_string(&val->im);
         size_t im_len = strlen(im);
-        realloc_safe(im, im_len + 2);
+        im = realloc_safe(im, im_len + 2);
         im[im_len] = 'i';
         im[im_len + 1] = '\0';
         return im;
@@ -178,7 +178,7 @@ char* trilogy_number_to_string(const trilogy_number_value* val) {
     char* im = rational_to_string_unsigned(&val->im);
     size_t re_len = strlen(re);
     size_t im_len = strlen(im);
-    char* joined = malloc_safe(sizeof(char) * im_len + re_len + 2);
+    char* joined = malloc_safe(sizeof(char) * im_len + re_len + 3);
     strncpy(joined, re, re_len);
     joined[re_len] = val->im.is_negative ? '-' : '+';
     strncpy(joined + re_len + 1, im, im_len);
