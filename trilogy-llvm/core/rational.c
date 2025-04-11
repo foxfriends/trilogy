@@ -232,3 +232,26 @@ char* rational_to_string(const rational* val) {
     free(denom);
     return joined;
 }
+
+char* rational_to_string_unsigned(const rational* val) {
+    if (bigint_is_one(&val->denom)) {
+        return bigint_to_string(&val->numer);
+    }
+    char* numer = bigint_to_string(&val->numer);
+    char* denom = bigint_to_string(&val->denom);
+    size_t numer_len = strlen(numer);
+    size_t denom_len = strlen(denom);
+    size_t new_len = numer_len + denom_len + 1;
+    char* joined = malloc_safe(sizeof(char) * new_len + 1);
+    size_t i = 0;
+    strncpy(joined + i, numer, numer_len);
+    i += numer_len;
+    joined[i] = '/';
+    ++i;
+    strncpy(joined + i, denom, denom_len);
+    i += denom_len;
+    joined[i] = '\0';
+    free(numer);
+    free(denom);
+    return joined;
+}

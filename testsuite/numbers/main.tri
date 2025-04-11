@@ -86,11 +86,25 @@ proc main!() {
   assert "rem neg imperfect" as 7/3 % -3/2 == 5/6
   assert "neg rem neg imperfect" as -7/3 % -3/2 == -5/6
 
-  assert $"str 1 (${0})" as $"${0}" == "0"
-  assert $"str 2 (${31})" as $"${31}" == "31"
-  assert $"str 3 (${10000000000000000000})" as $"${10000000000000000000}" == "10000000000000000000"
-  assert $"str 4 (${18446744090889420804})" as $"${18446744090889420804}" == "18446744090889420804"
-  assert $"str 5 (${-5})" as $"${-5}" == "-5"
-  assert $"str 6 (${5/3})" as $"${5/3}" == "5/3"
-  assert $"str 7 (${-5/3})" as $"${-5/3}" == "-5/3"
+  assert "str 1" as $"${0}" == "0"
+  assert "str 2" as $"${31}" == "31"
+  assert "str 3" as $"${10000000000000000000}" == "10000000000000000000"
+  assert "str 4" as $"${18446744090889420804}" == "18446744090889420804"
+  assert "str 5" as $"${-5}" == "-5"
+  assert "str 6" as $"${5/3}" == "5/3"
+  assert "str 7" as $"${-5/3}" == "-5/3"
+
+  assert "imaginary add" as 0i3 + 0i4 == 0i7
+  assert "imaginary sub" as 0i3 - 0i4 == -0i1
+  assert "imaginary mul" as 0i3 * 0i4 == -12
+
+  assert "complex add" as 1i3 + 2i4 == 3i7
+  assert "complex sub" as 1i3 - 2i4 == -1 - 0i1
+  assert "complex mul" as 1i3 * 2i4 == -10 + 0i10
+
+  assert "str 8" as $"${3i4}" == "3+4i"
+  assert "str 9" as $"${-3i4}" == "-3-4i"
+  assert "str 10" as $"${0i4}" == "4i"
+  assert "str 11" as $"${-3 + 0i4}" == "-3+4i"
+  assert "str 12" as $"${3 - 0i4}" == "3-4i"
 }

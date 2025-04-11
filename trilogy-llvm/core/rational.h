@@ -35,3 +35,4 @@ void rational_div(rational* lhs, const rational* rhs);
 void rational_rem(rational* lhs, const rational* rhs);
 
 char* rational_to_string(const rational* val);
+char* rational_to_string_unsigned(const rational* val);
