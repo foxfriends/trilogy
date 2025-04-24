@@ -3,6 +3,7 @@
 #include "rational.h"
 #include "trilogy_value.h"
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 trilogy_number_value*
