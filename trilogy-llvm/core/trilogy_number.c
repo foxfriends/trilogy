@@ -1,6 +1,7 @@
 #include "trilogy_number.h"
 #include "internal.h"
 #include "rational.h"
+#include "trilogy_value.h"
 #include <assert.h>
 #include <string.h>
 
@@ -220,9 +221,26 @@ void trilogy_number_rem(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting complex at this time
-    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    rational_rem(&lhs_mut->re, &rhs->re);
+    if (rational_is_zero(&lhs->im) && rational_is_zero(&rhs->im)) {
+        // Real remainder is easy
+        trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
+        rational_rem(&lhs_mut->re, &rhs->re);
+        return;
+    }
+    // Using this as reference for "complex remainder" but currently
+    // disregarding the final note about "What you definitely should not do is
+    // categorically round both [...] towards zero"
+    //     https://math.stackexchange.com/questions/889809/calculating-the-reminder-when-dividing-complex-numbers
+    // That is to say, the results of this operation may make actually no sense
+    // at all, and I will have to improve the concept later
+    trilogy_value qv = trilogy_undefined;
+    trilogy_number_int_div(&qv, lhs, rhs);
+    trilogy_number_value* q = trilogy_number_assume(&qv);
+    trilogy_value rhs_q = trilogy_undefined;
+    trilogy_number_mul(&rhs_q, q, rhs);
+    trilogy_number_sub(tv, lhs, trilogy_number_assume(&rhs_q));
+    trilogy_value_destroy(&qv);
+    trilogy_value_destroy(&rhs_q);
 }
 
 void trilogy_number_negate(trilogy_value* tv, const trilogy_number_value* val) {

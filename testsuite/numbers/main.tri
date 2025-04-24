@@ -105,6 +105,9 @@ proc main!() {
   assert "complex sub" as 1i3 - 2i4 == -1 - 0i1
   assert "complex mul" as 1i3 * 2i4 == -10 + 0i10
   assert "complex div" as 1i3 / 2i4 == 7/10i1/10
+  assert "real mod complex" as 21 % 3i1 == 3 - 0i6
+  assert "complex mod real" as 3i3 % 4 == 3i3
+  assert "complex mod complex" as 37i226 % 26i120 == 11i106
 
   assert "str 8" as $"${3i4}" == "3+4i"
   assert "str 9" as $"${-3i4}" == "-3-4i"
