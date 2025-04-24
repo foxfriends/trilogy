@@ -177,11 +177,43 @@ void trilogy_number_int_div(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    // TODO: this is intentionally not supporting complex
     trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
-    rational_div(&lhs_mut->re, &rhs->re);
+    if (rational_is_zero(&lhs->im) && rational_is_zero(&rhs->im)) {
+        // Real division is easy
+        rational_div(&lhs_mut->re, &rhs->re);
+        rational_truncate(&lhs_mut->re);
+        rational_truncate(&lhs_mut->im);
+        return;
+    }
+
+    // Complex division: compute the full division, truncate the real part, and
+    // throw away the imaginary part.
+    //
+    // (u+vi) // (x+yi)
+    //     = ⌊(ux + vy)/(x^2 + y^2)⌋_0
+
+    // x^2 + y^2
+    rational xy;
+    rational y;
+    rational_clone(&xy, &rhs->re);
+    rational_mul(&xy, &rhs->re);
+    rational_clone(&y, &rhs->im);
+    rational_mul(&y, &rhs->im);
+    rational_add(&xy, &y);
+    rational_destroy(&y);
+
+    // (ux + vy)
+    rational_clone(&y, &rhs->im);
+    rational_mul(&y, &lhs->im);
+    rational_mul(&lhs_mut->re, &rhs->re);
+    rational_add(&lhs_mut->re, &y);
+    // (ux + vy) / (x^2 + y^2)
+    rational_div(&lhs_mut->re, &xy);
+    rational_destroy(&y);
     rational_truncate(&lhs_mut->re);
-    rational_truncate(&lhs_mut->im);
+
+    rational_destroy(&lhs_mut->im);
+    lhs_mut->im = rational_zero;
 }
 
 void trilogy_number_rem(

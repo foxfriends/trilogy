@@ -69,6 +69,8 @@ proc main!() {
   assert "intdiv exact" as 21 // 3 == 7
   assert "intdiv pos" as 22 // 3 == 7
   assert "intdiv neg" as -22 // 3 == -7
+  assert "intdiv imaginary no real" as 21 // 0i1 == 0
+  assert "intdiv imaginary some real" as 21 // 3i1 == 6
 
   assert "rem zero" as 24 % 3 == 0
   assert "rem" as 24 % 7 == 3
