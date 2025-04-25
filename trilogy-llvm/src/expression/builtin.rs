@@ -438,9 +438,25 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Compose => todo!(),
             Builtin::RCompose => todo!(),
-            Builtin::Pipe => todo!(),
-            Builtin::RPipe => todo!(),
-            Builtin::Sequence => todo!(),
+            Builtin::Pipe => {
+                let lhs = self.compile_expression(lhs, "pipe.arg")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "pipe.fn")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                Some(self.apply_function(rhs, lhs, name))
+            }
+            Builtin::RPipe => {
+                let lhs = self.compile_expression(lhs, "pipe.fn")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "pipe.arg")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                Some(self.apply_function(lhs, rhs, name))
+            }
+            Builtin::Sequence => {
+                let lhs = self.compile_expression(lhs, "")?;
+                self.trilogy_value_destroy(lhs);
+                self.compile_expression(rhs, name)
+            }
             // Non-binary operators
             Builtin::ToString => unreachable!(),
             Builtin::Negate => unreachable!(),
