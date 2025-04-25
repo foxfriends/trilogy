@@ -114,4 +114,14 @@ proc main!() {
   assert "str 10" as $"${0i4}" == "4i"
   assert "str 11" as $"${-3 + 0i4}" == "-3+4i"
   assert "str 12" as $"${3 - 0i4}" == "3-4i"
+
+  assert "cmp lt true" as 3 < 5
+  assert "cmp lt false" as !(9 < 5)
+  assert "cmp lt eq" as !(3 < 3)
+  assert "cmp lt complex" as !(3 < 0i3)
+
+  assert "cmp gt true" as 9 > 5
+  assert "cmp gt false" as !(3 > 5)
+  assert "cmp gt eq" as !(3 > 3)
+  assert "cmp gt complex" as !(3 > 0i3)
 }

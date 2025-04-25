@@ -74,8 +74,10 @@ void trilogy_number_destroy(trilogy_number_value* val) {
 int trilogy_number_compare(
     trilogy_number_value* lhs, trilogy_number_value* rhs
 ) {
-    // TODO: handle `im` here
-    return rational_cmp(&lhs->re, &rhs->re);
+    if (rational_is_zero(&lhs->im) && rational_is_zero(&rhs->im)) {
+        return rational_cmp(&lhs->re, &rhs->re);
+    }
+    return -2;
 }
 
 bool trilogy_number_eq(trilogy_number_value* lhs, trilogy_number_value* rhs) {

@@ -274,15 +274,13 @@ rather than logical or mathematical purity.
 \end{prooftree}
 
 \FloatBarrier
-The ordered comparison operators work on any two values of the same type. Not
-all types are orderable, however, in which case the comparison returns \kw{unit}
-to indicate that an order cannot be determined. This \kw{unit} result is distinct
-from indicating that two compared items are the ``same'' in magnitude. When used
-on two values of different types, they are treated as unorderable and the comparison
-again returns \kw{unit}. This is different from most other type-mismatches in \Trilogy{},
-which cause a runtime type error; where those situations have no clear path forward,
-the ``unorderable'' option in this case is more flexible and does not make any
-assumptions about the behaviour of a program.
+The ordered comparison operators work on any two values of the same type. Not all types are
+orderable, however, in which case the comparison returns \kw{false} regardless of the order
+of the operands, to indicate that an order cannot be determined. When used on two values of
+different types, they are treated as unorderable and the comparison again returns \kw{false}.
+This is different from most other type-mismatches in \Trilogy{}, which cause a runtime type
+error; where those situations have no clear path forward, the ``unorderable'' option in this
+case is more flexible and does not make any assumptions about the behaviour of a program.
 
 Rather than defining the proof trees for every comparable type, Table~\ref{tab:ordering} summarizes
 orderings, and is referred to as $\text{cmp}(A \square B)$ in the proof trees below. Note
@@ -290,6 +288,10 @@ that in lexicographical order, elements are compared before the lengths of the s
 if one value is a prefix of the other, the prefix value is less than the longer value.
 In the fallible lexicographical order, if any element-wise comparison is unorderable, the
 whole result is treated unorderable.
+
+The distinction between an unorderable comparison and a two values of the same magnitude is
+not apparent when using the \op{<}, \op{>}, \op{<=}, or \op{>=} operators, but is observable
+when using the built-in \texttt{cmp} function\footref{foot:cmp}.
 
 \begin{table}[h]
     \centering
@@ -312,7 +314,6 @@ whole result is treated unorderable.
         Array                  & Fallible lexicographical order of elements \\
         Set                    & Unorderable\footnotemark \\
         Record                 & Unorderable\footref{foot:ord} \\
-        Iterator               & Unorderable \\
         Semantic types         & Unorderable \\
         Mismatched types       & Unorderable \\
         \hline
@@ -323,6 +324,10 @@ whole result is treated unorderable.
 \footnotetext{\label{foot:ord}Such ordering may be added at a later date, if
 a reasonable ordering is determined and found to be useful. I have not yet
 found it to be useful however.}
+
+\footnotetext{\label{foot:cmp}An operator may be introduced at some point, to represent
+generic comparison, as ``built-in function'' is not typically used in Trilogy, in favour
+of explicit syntax.}
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A$}
