@@ -31,6 +31,8 @@ void add(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void subtract(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void multiply(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void divide(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void rem(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void power(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void negate(trilogy_value* rv, trilogy_value* val);
 
 void length(trilogy_value* rv, trilogy_value* arr);

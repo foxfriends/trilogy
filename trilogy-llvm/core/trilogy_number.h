@@ -53,6 +53,10 @@ void trilogy_number_rem(
     trilogy_value* tv, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 );
+void trilogy_number_pow(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+);
 void trilogy_number_negate(trilogy_value* tv, const trilogy_number_value* val);
 
 char* trilogy_number_to_string(const trilogy_number_value* tv);

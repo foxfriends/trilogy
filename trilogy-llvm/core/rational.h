@@ -9,7 +9,13 @@ typedef struct rational {
     bigint denom;
 } rational;
 
+#define RATIONAL_ZERO                                                          \
+    {.is_negative = false, .numer = BIGINT_ZERO, .denom = BIGINT_ONE}
+#define RATIONAL_ONE                                                           \
+    {.is_negative = false, .numer = BIGINT_ONE, .denom = BIGINT_ONE}
+
 extern const rational rational_zero;
+extern const rational rational_one;
 
 void rational_init_const(
     rational*, bool is_negative, size_t numer_length, const digit_t* numer,

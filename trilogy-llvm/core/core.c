@@ -100,6 +100,12 @@ void rem(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_number_rem(rv, lnum, rnum);
 }
 
+void power(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_number_value* lnum = trilogy_number_untag(lhs);
+    trilogy_number_value* rnum = trilogy_number_untag(rhs);
+    trilogy_number_pow(rv, lnum, rnum);
+}
+
 void negate(trilogy_value* rv, trilogy_value* val) {
     trilogy_number_value* num = trilogy_number_untag(val);
     trilogy_number_negate(rv, num);

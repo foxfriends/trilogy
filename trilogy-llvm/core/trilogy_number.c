@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+static const trilogy_number_value trilogy_number_one = {
+    .re = RATIONAL_ONE, .im = RATIONAL_ZERO
+};
+
 trilogy_number_value*
 trilogy_number_init(trilogy_value* tv, trilogy_number_value* n) {
     assert(tv->tag == TAG_UNDEFINED);
@@ -40,11 +44,17 @@ trilogy_number_value* trilogy_number_init_u64(trilogy_value* tv, uint64_t num) {
     return trilogy_number_init(tv, value);
 }
 
-trilogy_number_value*
-trilogy_number_clone_into(trilogy_value* tv, const trilogy_number_value* num) {
+static trilogy_number_value*
+trilogy_number_clone(const trilogy_number_value* num) {
     trilogy_number_value* clone = malloc_safe(sizeof(trilogy_number_value));
     rational_clone(&clone->re, &num->re);
     rational_clone(&clone->im, &num->im);
+    return clone;
+}
+
+trilogy_number_value*
+trilogy_number_clone_into(trilogy_value* tv, const trilogy_number_value* num) {
+    trilogy_number_value* clone = trilogy_number_clone(num);
     return trilogy_number_init(tv, clone);
 }
 
@@ -102,11 +112,14 @@ void trilogy_number_sub(
     rational_sub(&lhs_mut->im, &rhs->im);
 }
 
-void trilogy_number_mul(
-    trilogy_value* tv, const trilogy_number_value* lhs,
+/**
+ * Does number multiplication into lhs_mut; lhs_mut should equal lhs but not be
+ * pointed to the same location for this to work.
+ */
+static void number_mul(
+    trilogy_number_value* restrict lhs_mut, const trilogy_number_value* lhs,
     const trilogy_number_value* rhs
 ) {
-    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
     if (rational_is_zero(&lhs->im) && rational_is_zero(&rhs->im)) {
         // Real multiplication is easy
         rational_mul(&lhs_mut->re, &rhs->re);
@@ -129,6 +142,14 @@ void trilogy_number_mul(
     rational_mul(&lhs_mut->im /* b */, &rhs->re /* c */);
     rational_add(&lhs_mut->im, &term);
     rational_destroy(&term);
+}
+
+void trilogy_number_mul(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+) {
+    trilogy_number_value* lhs_mut = trilogy_number_clone_into(tv, lhs);
+    number_mul(lhs_mut, lhs, rhs);
 }
 
 void trilogy_number_div(
@@ -244,6 +265,67 @@ void trilogy_number_rem(
     trilogy_number_sub(tv, lhs, trilogy_number_assume(&rhs_q));
     trilogy_value_destroy(&qv);
     trilogy_value_destroy(&rhs_q);
+}
+
+static void int_pow(trilogy_number_value* val, bigint* exp) {
+    if (bigint_is_one(exp)) return;
+    if (bigint_is_zero(exp)) {
+        trilogy_number_destroy(val);
+        *val = trilogy_number_one;
+        return;
+    }
+
+    trilogy_number_value x = *val;
+    *val = trilogy_number_one;
+
+    do {
+        if (bigint_is_odd(exp)) {
+            trilogy_number_value* yy = trilogy_number_clone(val);
+            number_mul(val, yy, &x);
+            trilogy_number_destroy(yy);
+            free(yy);
+        }
+
+        trilogy_number_value* xx = trilogy_number_clone(&x);
+        number_mul(&x, xx, xx);
+        trilogy_number_destroy(xx);
+        free(xx);
+
+        bigint_half(exp);
+    } while (!bigint_is_zero(exp) && !bigint_is_one(exp));
+    trilogy_number_value* yy = trilogy_number_clone(val);
+    number_mul(val, yy, &x);
+    trilogy_number_destroy(yy);
+    free(yy);
+    trilogy_number_destroy(&x);
+}
+
+void trilogy_number_pow(
+    trilogy_value* tv, const trilogy_number_value* lhs,
+    const trilogy_number_value* rhs
+) {
+    // Pow gets kind of tricky...
+    if (rational_is_zero(&rhs->im)) {
+        // Complex powers not yet implemented
+        if (rational_is_whole(&rhs->re)) {
+            // If it's an integer power, it's pretty easy, but depends on sign:
+            if (rhs->re.is_negative) {
+                trilogy_number_div(tv, &trilogy_number_one, lhs);
+                int_pow(trilogy_number_assume(tv), &rhs->re.numer);
+            } else {
+                int_pow(trilogy_number_clone_into(tv, lhs), &rhs->re.numer);
+            }
+        } else {
+            // If it's not an integer power, this is an nth root and therefore
+            // likely irrational, which means we probably cannot represent it
+            // accurately.
+            internal_panic("unimplemented: fractional powers");
+        }
+    } else {
+        // If it's not a real power, then b^z = e^(z ln b), apparently, but
+        // since we cannot represent `e` accurately, this is also not possible.
+        internal_panic("unimplemented: complex powers");
+    }
 }
 
 void trilogy_number_negate(trilogy_value* tv, const trilogy_number_value* val) {

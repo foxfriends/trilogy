@@ -4,11 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-const rational rational_zero = {
-    .is_negative = false,
-    .numer = {.capacity = 0, .length = 1, .contents = {.value = 0}},
-    .denom = {.capacity = 0, .length = 1, .contents = {.value = 1}},
-};
+const rational rational_zero = RATIONAL_ZERO;
+const rational rational_one = RATIONAL_ONE;
 
 void rational_init_const(
     rational* rat, bool is_negative, size_t numer_length, const digit_t* numer,

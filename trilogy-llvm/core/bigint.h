@@ -27,6 +27,15 @@ typedef struct bigint {
     } contents;
 } bigint;
 
+#define BIGINT_ZERO                                                            \
+    {                                                                          \
+        .capacity = 0, .length = 1, .contents = {.value = 0 }                  \
+    }
+#define BIGINT_ONE                                                             \
+    {                                                                          \
+        .capacity = 0, .length = 1, .contents = {.value = 1 }                  \
+    }
+
 extern const bigint bigint_zero;
 extern const bigint bigint_one;
 
@@ -50,12 +59,14 @@ bool bigint_sub(bigint* lhs, const bigint* rhs);
 void bigint_mul(bigint* lhs, const bigint* rhs);
 void bigint_div(bigint* lhs, const bigint* rhs);
 void bigint_rem(bigint* lhs, const bigint* rhs);
-void bigint_pow(bigint* lhs, const bigint* rhs);
+
+void bigint_half(bigint* val);
 
 int bigint_cmp(const bigint* lhs, const bigint* rhs);
 bool bigint_eq(const bigint* lhs, const bigint* rhs);
 bool bigint_is_zero(const bigint* val);
 bool bigint_is_one(const bigint* val);
+bool bigint_is_odd(const bigint* val);
 
 char* bigint_to_string(const bigint* val);
 uint64_t bigint_to_u64(const bigint* val);

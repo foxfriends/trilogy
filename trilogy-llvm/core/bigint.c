@@ -4,13 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-const bigint bigint_zero = {
-    .capacity = 0, .length = 1, .contents = {.value = 0}
-};
-
-const bigint bigint_one = {
-    .capacity = 0, .length = 1, .contents = {.value = 1}
-};
+const bigint bigint_zero = BIGINT_ZERO;
+const bigint bigint_one = BIGINT_ONE;
 
 const digit_t DIGIT_MAX = UINT32_MAX;
 static const uint64_t BASE = ((uint64_t)UINT32_MAX + 1);
@@ -275,6 +270,10 @@ static void digits_rsh(size_t length, digit_t* digits, unsigned int offset) {
     }
 }
 
+void bigint_half(bigint* val) {
+    digits_rsh(val->length, digits_ptr_mut(val), 1);
+}
+
 static digit_t digits_div(digit_t* out, digit_t* lhs, digit_t rhs, size_t len) {
     uint64_t r = 0;
     size_t j = len - 1;
@@ -406,8 +405,6 @@ void bigint_rem(bigint* lhs, const bigint* rhs) {
     *lhs = out;
 }
 
-void bigint_pow(bigint* lhs, const bigint* rhs);
-
 int bigint_cmp(const bigint* lhs, const bigint* rhs) {
     if (lhs->length > rhs->length) return 1;
     if (rhs->length > lhs->length) return -1;
@@ -431,6 +428,11 @@ bool bigint_is_zero(const bigint* val) {
 
 bool bigint_is_one(const bigint* val) {
     return val->length == 1 && val->contents.value == 1;
+}
+
+bool bigint_is_odd(const bigint* val) {
+    return val->length == 1 ? val->contents.value & 1
+                            : val->contents.digits[val->length - 1] & 1;
 }
 
 char* bigint_to_string(const bigint* val) {

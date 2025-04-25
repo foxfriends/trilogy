@@ -291,6 +291,16 @@ impl<'ctx> Codegen<'ctx> {
         self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn pow(
+        &self,
+        target: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("power", 2);
+        self.call_core(target, f, &[lhs.into(), rhs.into()]);
+    }
+
     pub(crate) fn rem(
         &self,
         target: PointerValue<'ctx>,

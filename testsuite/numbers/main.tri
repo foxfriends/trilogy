@@ -88,6 +88,13 @@ proc main!() {
   assert "rem neg imperfect" as 7/3 % -3/2 == 5/6
   assert "neg rem neg imperfect" as -7/3 % -3/2 == -5/6
 
+  assert "int pow zero" as 2 ** 0 == 1
+  assert "int pow one" as 2 ** 1 == 2
+  assert "int pow two" as 2 ** 2 == 4
+  assert "int pow even" as 2 ** 8 == 256
+  assert "int pow odd" as 2 ** 7 == 128
+  assert "int pow neg" as 2 ** -7 == 1/128
+
   assert "str 1" as $"${0}" == "0"
   assert "str 2" as $"${31}" == "31"
   assert "str 3" as $"${10000000000000000000}" == "10000000000000000000"
