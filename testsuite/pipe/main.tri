@@ -1,0 +1,6 @@
+func double x = x * 2
+
+proc main!() {
+  assert "forward" as 3 |> double == 6
+  assert "backward" as double <| 3 == 6
+}

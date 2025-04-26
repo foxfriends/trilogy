@@ -1,0 +1,6 @@
+func append ch s = s <> ch
+func repeat s = s <> s
+
+proc main!() {
+  append <| repeat <| "B"
+}

@@ -1,0 +1,9 @@
+func append ch s = s <> ch
+func repeat s = s <> s
+
+proc main!() {
+  assert ""
+    |> append <| repeat "A"
+    |> append <| repeat "B"
+    == "AABB"
+}
