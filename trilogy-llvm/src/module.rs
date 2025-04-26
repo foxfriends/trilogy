@@ -54,6 +54,20 @@ impl<'ctx> Codegen<'ctx> {
                         .globals
                         .insert(procedure.name.id.clone(), Head::Procedure);
                 }
+                DefinitionItem::Function(function) => {
+                    subcontext.declare_function(
+                        &function.name.to_string(),
+                        if definition.is_exported {
+                            Linkage::External
+                        } else {
+                            Linkage::Private
+                        },
+                        function.span(),
+                    );
+                    subcontext
+                        .globals
+                        .insert(function.name.id.clone(), Head::Function);
+                }
 
                 _ => {}
             }
@@ -65,6 +79,9 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Procedure(procedure) if procedure.overloads.is_empty() => {}
                 DefinitionItem::Procedure(procedure) => {
                     subcontext.compile_procedure(procedure);
+                }
+                DefinitionItem::Function(function) => {
+                    subcontext.compile_function(function);
                 }
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {}
                 DefinitionItem::Constant(constant) => {
@@ -89,6 +106,9 @@ impl<'ctx> Codegen<'ctx> {
                 }
                 DefinitionItem::Procedure(procedure) => {
                     self.import_procedure(location, &procedure.name.to_string());
+                }
+                DefinitionItem::Function(function) => {
+                    self.import_procedure(location, &function.name.to_string());
                 }
                 DefinitionItem::Constant(constant) => {
                     self.import_constant(location, constant);

@@ -1,0 +1,7 @@
+func either 'add a b = a + b
+func either 'sub a b = a - b
+
+proc main!() {
+  assert either 'add 3 4 == 7
+  assert either 'sub 3 4 == -1
+}

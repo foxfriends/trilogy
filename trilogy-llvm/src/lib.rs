@@ -20,6 +20,7 @@ mod core;
 mod current_continuation;
 mod entrypoint;
 mod expression;
+mod function;
 mod module;
 mod pattern_match;
 mod procedure;

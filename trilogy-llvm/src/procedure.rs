@@ -93,6 +93,7 @@ impl<'ctx> Codegen<'ctx> {
         function
     }
 
+    /// Declares a procedure (or function) that is being imported from another module.
     pub(crate) fn import_procedure(&self, location: &str, name: &str) -> FunctionValue<'ctx> {
         let accessor_name = format!("{}::{}", location, name);
         if let Some(function) = self.module.get_function(&accessor_name) {

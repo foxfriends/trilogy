@@ -41,11 +41,11 @@ pub(super) enum Closed<'ctx> {
 }
 
 #[derive(Clone)]
-#[expect(dead_code)]
 pub(crate) enum Head {
     Constant,
     Function,
     Procedure,
+    #[expect(dead_code)]
     Rule,
     Module(String),
 }

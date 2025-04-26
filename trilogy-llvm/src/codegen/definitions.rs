@@ -84,6 +84,16 @@ impl<'ctx> Codegen<'ctx> {
         function
     }
 
+    pub(crate) fn add_function(
+        &self,
+        name: &str,
+        debug_name: &str,
+        span: Span,
+        is_local_to_unit: bool,
+    ) -> FunctionValue<'ctx> {
+        self.add_procedure(name, 1, debug_name, span, is_local_to_unit)
+    }
+
     pub(crate) fn add_accessor(&self, name: &str, linkage: Linkage) -> FunctionValue<'ctx> {
         let accessor = self
             .module

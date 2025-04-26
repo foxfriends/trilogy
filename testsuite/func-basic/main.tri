@@ -1,0 +1,7 @@
+func hello a b = a + b
+
+proc main!() {
+  assert hello 1 2 == 3
+  let x = hello 3
+  assert x 4 == 7
+}

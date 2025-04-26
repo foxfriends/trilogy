@@ -1,0 +1,8 @@
+proc get_closure!(a) {
+  return do(b) a + b
+}
+
+proc main!() {
+  let closure = get_closure!(1)
+  assert closure!(2) == 3
+}
