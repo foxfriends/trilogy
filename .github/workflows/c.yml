@@ -10,7 +10,9 @@ jobs:
       - name: Checkout the source code
         uses: actions/checkout@v4
       - name: Install clang-format
-        run: sudo apt-get install clang-format
+        run:
+          sudo apt-get update
+          sudo apt-get install clang-format-18
       - name: Run clang-format
         run: clang-format --Werror --dry-run *.{c,h}
         working-directory: trilogy-llvm/core
