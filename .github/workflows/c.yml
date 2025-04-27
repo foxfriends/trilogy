@@ -14,7 +14,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install clang-format-18
       - name: Run clang-format
-        run: clang-format --Werror --dry-run *.{c,h}
+        run: clang-format-18 --Werror --dry-run *.{c,h}
         working-directory: trilogy-llvm/core
   iwyu:
     name: iwyu
