@@ -1,6 +1,8 @@
 name: Rust CI
 
 on: push
+env:
+  LLVM_SYS_180_PREFIX: /usr/lib/llvm-18/
 
 jobs:
   clippy:
@@ -100,7 +102,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install llvm libpolly-18-dev valgrind
+          sudo apt-get install llvm-18 libpolly-18-dev valgrind
       - name: Install Rust
         run: |
           rustup install stable
