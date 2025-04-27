@@ -309,12 +309,15 @@ void trilogy_number_pow(
         // Complex powers not yet implemented
         if (rational_is_whole(&rhs->re)) {
             // If it's an integer power, it's pretty easy, but depends on sign:
+            bigint exp = bigint_zero;
+            bigint_clone(&exp, &rhs->re.numer);
             if (rhs->re.is_negative) {
                 trilogy_number_div(tv, &trilogy_number_one, lhs);
-                int_pow(trilogy_number_assume(tv), &rhs->re.numer);
+                int_pow(trilogy_number_assume(tv), &exp);
             } else {
-                int_pow(trilogy_number_clone_into(tv, lhs), &rhs->re.numer);
+                int_pow(trilogy_number_clone_into(tv, lhs), &exp);
             }
+            bigint_destroy(&exp);
         } else {
             // If it's not an integer power, this is an nth root and therefore
             // likely irrational, which means we probably cannot represent it
