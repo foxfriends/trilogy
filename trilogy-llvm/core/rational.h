@@ -9,10 +9,10 @@ typedef struct rational {
     bigint denom;
 } rational;
 
-#define RATIONAL_ZERO                                                          \
-    {.is_negative = false, .numer = BIGINT_ZERO, .denom = BIGINT_ONE}
-#define RATIONAL_ONE                                                           \
-    {.is_negative = false, .numer = BIGINT_ONE, .denom = BIGINT_ONE}
+// clang-format off
+#define RATIONAL_ZERO {.is_negative = false, .numer = BIGINT_ZERO, .denom = BIGINT_ONE}
+#define RATIONAL_ONE {.is_negative = false, .numer = BIGINT_ONE, .denom = BIGINT_ONE}
+// clang-format on
 
 extern const rational rational_zero;
 extern const rational rational_one;
