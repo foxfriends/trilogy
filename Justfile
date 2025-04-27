@@ -25,7 +25,7 @@ check-rust:
 
 [working-directory: "trilogy-llvm/core"]
 check-c:
-    {{clang_tidy}} --warnings-as-errors *.{c,h}
+    {{clang_tidy}} --warnings-as-errors *.{c,h} --
 
 test:
     cargo test
