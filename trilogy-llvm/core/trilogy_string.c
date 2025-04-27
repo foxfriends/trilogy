@@ -1,6 +1,8 @@
 #include "trilogy_string.h"
 #include "internal.h"
+#include "types.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 

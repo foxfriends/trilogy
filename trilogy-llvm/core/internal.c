@@ -65,7 +65,9 @@ void* realloc_safe(void* ptr, size_t size) {
     return ptr;
 }
 
-void trilogy_unhandled_effect(trilogy_value* effect) {
+void trilogy_unhandled_effect(
+    trilogy_value* effect // NOLINT(misc-unused-parameters)
+) {
     internal_panic("unhandled effect caused program to terminate\n");
 }
 

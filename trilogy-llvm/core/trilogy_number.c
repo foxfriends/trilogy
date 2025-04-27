@@ -1,8 +1,11 @@
 #include "trilogy_number.h"
+#include "bigint.h"
 #include "internal.h"
 #include "rational.h"
 #include "trilogy_value.h"
+#include "types.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -341,7 +344,8 @@ char* trilogy_number_to_string(const trilogy_number_value* val) {
     if (rational_is_zero(&val->im)) {
         char* re = rational_to_string(&val->re);
         return re;
-    } else if (rational_is_zero(&val->re)) {
+    }
+    if (rational_is_zero(&val->re)) {
         char* im = rational_to_string(&val->im);
         size_t im_len = strlen(im);
         im = realloc_safe(im, im_len + 2);

@@ -1,5 +1,6 @@
 #include "trilogy_boolean.h"
 #include "internal.h"
+#include "types.h"
 #include <assert.h>
 #include <stdint.h>
 

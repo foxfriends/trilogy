@@ -1,5 +1,6 @@
 #include "trilogy_reference.h"
 #include "trilogy_value.h"
+#include "types.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>

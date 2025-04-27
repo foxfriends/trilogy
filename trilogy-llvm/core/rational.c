@@ -1,4 +1,5 @@
 #include "rational.h"
+#include "bigint.h"
 #include "internal.h"
 #include <assert.h>
 #include <stdlib.h>

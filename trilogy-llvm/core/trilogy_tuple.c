@@ -1,6 +1,7 @@
 #include "trilogy_tuple.h"
 #include "internal.h"
 #include "trilogy_value.h"
+#include "types.h"
 #include <assert.h>
 #include <stdint.h>
 

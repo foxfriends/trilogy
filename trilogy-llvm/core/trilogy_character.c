@@ -1,6 +1,8 @@
 #include "trilogy_character.h"
 #include "internal.h"
+#include "types.h"
 #include <assert.h>
+#include <stdint.h>
 
 void trilogy_character_init(trilogy_value* t, uint32_t ch) {
     assert(t->tag == TAG_UNDEFINED);

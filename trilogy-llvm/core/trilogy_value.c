@@ -14,6 +14,7 @@
 #include "trilogy_string.h"
 #include "trilogy_struct.h"
 #include "trilogy_tuple.h"
+#include "types.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -165,9 +166,8 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
         trilogy_callable_value* rhs_fn = (trilogy_callable_value*)rhs->payload;
         if (lhs_fn->closure == NO_CLOSURE && rhs_fn->closure == NO_CLOSURE) {
             return lhs_fn->function == rhs_fn->function;
-        } else {
-            return lhs_fn == rhs_fn;
         }
+        return lhs_fn == rhs_fn;
     }
     case TAG_STRING: {
         trilogy_string_value* lhs_str = trilogy_string_assume(lhs);
@@ -232,9 +232,8 @@ bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs) {
         trilogy_callable_value* rhs_fn = (trilogy_callable_value*)rhs->payload;
         if (lhs_fn->closure == NO_CLOSURE && rhs_fn->closure == NO_CLOSURE) {
             return lhs_fn->function == rhs_fn->function;
-        } else {
-            return lhs_fn == rhs_fn;
         }
+        return lhs_fn == rhs_fn;
     }
     default:
         return trilogy_value_structural_eq(lhs, rhs);

@@ -5,6 +5,7 @@ set dotenv-load
 llvm_prefix := env("LLVM_SYS_180_PREFIX", "")
 clang := if llvm_prefix == "" { "clang" } else { llvm_prefix / "bin/clang" }
 clang_format := if llvm_prefix == "" { "clang-format" } else { llvm_prefix / "bin/clang-format" }
+clang_tidy := if llvm_prefix == "" { "clang-tidy" } else { llvm_prefix / "bin/clang-tidy" }
 
 default: run
 
@@ -24,7 +25,7 @@ check-rust:
 
 [working-directory: "trilogy-llvm/core"]
 check-c:
-    ls *.{c,h} | xargs -I _ iwyu -Xiwyu --error _
+    {{clang_tidy}} --warnings-as-errors *.{c,h}
 
 test:
     cargo test

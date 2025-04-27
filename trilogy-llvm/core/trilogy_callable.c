@@ -3,7 +3,9 @@
 #include "trace.h"
 #include "trilogy_array.h"
 #include "trilogy_value.h"
+#include "types.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 trilogy_value* prepare_closure(uint32_t closure_size) {

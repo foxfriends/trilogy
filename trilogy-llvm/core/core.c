@@ -18,7 +18,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-void panic(trilogy_value* rv, trilogy_value* val) {
+void panic(
+    trilogy_value* _rv, // NOLINT(misc-unused-parameters)
+    trilogy_value* val
+) {
     trilogy_string_value* str = trilogy_string_untag(val);
     char* cstr = malloc_safe(sizeof(char) * (str->len + 2));
     strncpy(cstr, str->contents, str->len);
@@ -351,7 +354,7 @@ void cons(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_value lclone = trilogy_undefined;
     trilogy_value rclone = trilogy_undefined;
     trilogy_value_clone_into(&lclone, lhs);
-    trilogy_value_clone_into(&rclone, lhs);
+    trilogy_value_clone_into(&rclone, rhs);
     trilogy_tuple_init_new(rv, &lclone, &rclone);
 }
 
