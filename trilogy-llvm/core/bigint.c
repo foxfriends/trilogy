@@ -1,7 +1,9 @@
 #include "bigint.h"
 #include "internal.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 const bigint bigint_zero = BIGINT_ZERO;
@@ -85,13 +87,13 @@ bool add_digit(digit_t* out, digit_t lhs, digit_t rhs, bool carry) {
     if (space > rhs) {
         *out = lhs + rhs + carry;
         return false;
-    } else if (space == rhs) {
+    }
+    if (space == rhs) {
         *out = carry ? 0 : DIGIT_MAX;
         return carry;
-    } else {
-        *out = rhs - space - 1;
-        return true;
     }
+    *out = rhs - space - 1;
+    return true;
 }
 
 static void ensure_capacity(bigint* val, size_t capacity) {
@@ -146,17 +148,18 @@ static bool sub_digit(digit_t* out, digit_t lhs, digit_t rhs, bool borrow) {
     if (lhs > rhs) {
         *out = lhs - rhs - borrow;
         return false;
-    } else if (lhs == rhs) {
+    }
+    if (lhs == rhs) {
         *out = borrow ? DIGIT_MAX : 0;
         return borrow;
-    } else if (lhs == 0 && borrow) {
+    }
+    if (lhs == 0 && borrow) {
         *out = DIGIT_MAX - rhs;
         return true;
-    } else {
-        digit_t absdiff = rhs - (lhs - borrow);
-        *out = DIGIT_MAX - absdiff + 1;
-        return true;
     }
+    digit_t absdiff = rhs - (lhs - borrow);
+    *out = DIGIT_MAX - absdiff + 1;
+    return true;
 }
 
 static size_t
