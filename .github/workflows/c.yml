@@ -16,14 +16,12 @@ jobs:
       - name: Run clang-format
         run: clang-format-18 --Werror --dry-run *.{c,h}
         working-directory: trilogy-llvm/core
-  iwyu:
-    name: iwyu
+  check:
+    name: check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
-      - name: Install IWYU
-        run: sudo apt-get install iwyu
-      - name: Run IWYU
-        run: ls *.{c,h} | xargs -I _ iwyu -Xiwyu --error _
+      - name: Run clang-tidy
+        run: clang-tidy-18 *.{c,h}
         working-directory: trilogy-llvm/core
