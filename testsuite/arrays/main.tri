@@ -1,0 +1,23 @@
+func f [a, b, c] = [a * 2, b * 2, c * 2]
+
+proc get_array!() {
+  return [3, 4, 5]
+}
+
+proc main!() {
+  assert "1" as [1, 2, 3] == [1, 2, 3]
+  let xs = [1, 2, 3]
+  assert "2" as xs === xs
+  assert "3" as xs !== [1, 2, 3]
+
+  assert "4" as [..xs, 4] == [1, 2, 3, 4]
+  assert "5" as [0, ..xs] == [0, 1, 2, 3]
+  assert "6" as [..xs, ..xs] == [1, 2, 3, 1, 2, 3]
+
+  assert "7" as get_array!() == [3, 4, 5]
+  assert "8" as get_array!() !== get_array!()
+
+  assert "9" as [..get_array!()] == [3, 4, 5]
+  assert "10" as [..xs, ..get_array!()] == [1, 2, 3, 3, 4, 5]
+  assert "11" as [..f xs, ..get_array!()] == [2, 4, 6, 3, 4, 5]
+}

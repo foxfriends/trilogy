@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use crate::Codegen;
 use inkwell::{
     module::Linkage,
@@ -43,12 +45,12 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_function_body(
         &self,
         function: FunctionValue<'ctx>,
-        overloads: &[ir::Function],
+        overloads: &[impl Borrow<ir::Function>],
         span: Span,
     ) {
         self.begin_function(function, span);
 
-        let arity = overloads[0].parameters.len();
+        let arity = overloads[0].borrow().parameters.len();
         let mut params = Vec::with_capacity(arity);
         for _ in 0..arity as u32 - 1 {
             let continuation = self.add_continuation("");
@@ -80,6 +82,7 @@ impl<'ctx> Codegen<'ctx> {
         let brancher = self.end_continuation_point_as_branch();
 
         'outer: for overload in overloads {
+            let overload = overload.borrow();
             assert_eq!(overload.parameters.len(), arity);
             self.set_span(overload.head_span);
 

@@ -1,0 +1,8 @@
+func countdown 0 = []
+func countdown n =
+  let arr = countdown (n - 1),
+  [..arr, n]
+
+proc main!() {
+  assert countdown 5 == [1, 2, 3, 4, 5]
+}

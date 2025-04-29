@@ -1,0 +1,6 @@
+proc main!() {
+  let f = fn x y. x * y
+  assert f 3 5 == 15
+  let g = f 2
+  assert g 10 == 20
+}

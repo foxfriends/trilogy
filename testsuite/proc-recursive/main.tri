@@ -1,0 +1,11 @@
+proc countdown!(n) {
+  if n == 0 {
+    return []
+  }
+  let mut arr = countdown!(n - 1)
+  return [..arr, n]
+}
+
+proc main!() {
+  assert countdown!(5) == [1, 2, 3, 4, 5]
+}

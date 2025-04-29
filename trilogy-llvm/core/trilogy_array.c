@@ -105,6 +105,20 @@ void trilogy_array_at(
     trilogy_value_clone_into(tv, &arr->contents[index]);
 }
 
+void trilogy_array_slice(
+    trilogy_value* tv, trilogy_array_value* arr, size_t start, size_t end
+) {
+    assert(start <= arr->len);
+    assert(end <= arr->len);
+    assert(start <= end);
+    size_t len = end - start;
+    trilogy_array_value* into = trilogy_array_init_cap(tv, len);
+    for (size_t i = 0; i < len; ++i) {
+        trilogy_value_clone_into(&into->contents[i], &arr->contents[start + i]);
+    }
+    into->len = len;
+}
+
 int trilogy_array_compare(trilogy_array_value* lhs, trilogy_array_value* rhs) {
     size_t len = lhs->len < rhs->len ? lhs->len : rhs->len;
     for (size_t i = 0; i < len; ++i) {

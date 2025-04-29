@@ -1,0 +1,6 @@
+proc main!() {
+  let og = [1, 2, 3]
+  let [..xs] = og
+  assert xs == [1, 2, 3]
+  assert xs !== og
+}

@@ -1,0 +1,10 @@
+proc get_fn!(c) {
+  return fn a b. c * a * b
+}
+
+proc main!() {
+  let f = get_fn!(4)
+  assert f 3 5 == 60
+  let g = f 2
+  assert g 10 == 80
+}

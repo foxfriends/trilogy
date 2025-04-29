@@ -1,0 +1,8 @@
+proc main!() {
+  let og = [1, 2, 3, 4, 5]
+  let [..xs, a, b] = og
+  assert "a" as a == 4
+  assert "b" as b == 5
+  assert "xs" as xs == [1, 2, 3]
+  assert "og" as og == [1, 2, 3, 4, 5]
+}

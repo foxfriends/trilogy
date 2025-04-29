@@ -1,5 +1,5 @@
 use crate::codegen::{Codegen, Merger};
-use crate::types::{TAG_STRUCT, TAG_TUPLE};
+use crate::types::{TAG_ARRAY, TAG_STRUCT, TAG_TUPLE};
 use inkwell::IntPredicate;
 use inkwell::basic_block::BasicBlock;
 use inkwell::values::{IntValue, PointerValue};
@@ -116,8 +116,32 @@ impl<'ctx> Codegen<'ctx> {
             Value::Application(app) => {
                 self.compile_match_application(app, value, on_fail, bound_ids)?
             }
-            Value::Wildcard => {}
-            _ => todo!(),
+            Value::Wildcard => { /* always passes with no action */ }
+            Value::Array(array) => self.match_array(array, value, on_fail, bound_ids)?,
+            Value::Set(..) => {}
+            Value::Record(..) => {}
+            // Not patterns:
+            Value::Pack(..) => unreachable!(),
+            Value::Sequence(..) => unreachable!(),
+            Value::Assignment(..) => unreachable!(),
+            Value::Mapping(..) => unreachable!(),
+            Value::Query(..) => unreachable!(),
+            Value::While(..) => unreachable!(),
+            Value::For(..) => unreachable!(),
+            Value::Let(..) => unreachable!(),
+            Value::IfElse(..) => unreachable!(),
+            Value::Match(..) => unreachable!(),
+            Value::Fn(..) => unreachable!(),
+            Value::Do(..) => unreachable!(),
+            Value::Qy(..) => unreachable!(),
+            Value::Handled(..) => unreachable!(),
+            Value::ModuleAccess(..) => unreachable!(),
+            Value::Assert(..) => unreachable!(),
+            Value::ArrayComprehension(..) => unreachable!(),
+            Value::SetComprehension(..) => unreachable!(),
+            Value::RecordComprehension(..) => unreachable!(),
+            Value::End => unreachable!(),
+            Value::Builtin(..) => unreachable!(),
         }
 
         if let Some(prev) = prev {
@@ -277,6 +301,80 @@ impl<'ctx> Codegen<'ctx> {
                 self.match_constant(value, pinned, on_fail);
             }
             _ => todo!(),
+        }
+        Some(())
+    }
+
+    fn match_array(
+        &self,
+        array: &ir::Pack,
+        value: PointerValue<'ctx>,
+        on_fail: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
+    ) -> Option<()> {
+        let tag = self.get_tag(value, "");
+        let is_array = self
+            .builder
+            .build_int_compare(
+                IntPredicate::EQ,
+                tag,
+                self.tag_type().const_int(TAG_ARRAY, false),
+                "is_array",
+            )
+            .unwrap();
+        self.pm_cont_if(is_array, on_fail);
+
+        let mut spread = None;
+        for (i, element) in array.values.iter().enumerate() {
+            if element.is_spread {
+                spread = Some((i, element));
+                continue;
+            }
+            let value = self.use_temporary(value).unwrap();
+            let array_value = self.trilogy_array_assume(value, "");
+            if spread.is_some() {
+                let len = self.trilogy_array_len(array_value, "");
+                let distance = array.values.len() - i;
+                let distance_rt = self.usize_type().const_int(distance as u64, false);
+                let index = self.builder.build_int_sub(len, distance_rt, "").unwrap();
+                let ith_value = self.allocate_value("");
+                self.trilogy_array_at_dyn(ith_value, array_value, index);
+                self.bind_temporary(ith_value);
+                self.match_pattern(&element.expression, ith_value, on_fail, bound_ids)?;
+                if let Some(temp) = self.use_owned_temporary(ith_value) {
+                    self.trilogy_value_destroy(temp);
+                }
+            } else {
+                let ith_value = self.allocate_value("");
+                self.trilogy_array_at(ith_value, array_value, i);
+                self.bind_temporary(ith_value);
+                self.match_pattern(&element.expression, ith_value, on_fail, bound_ids)?;
+                if let Some(temp) = self.use_owned_temporary(ith_value) {
+                    self.trilogy_value_destroy(temp);
+                }
+            }
+        }
+        if let Some((i, spread)) = spread {
+            let value = self.use_temporary(value).unwrap();
+            let array_value = self.trilogy_array_assume(value, "");
+
+            let len = self.trilogy_array_len(array_value, "");
+            let distance = array.values.len() - (i + 1);
+            let distance_rt = self.usize_type().const_int(distance as u64, false);
+            let end = self.builder.build_int_sub(len, distance_rt, "").unwrap();
+
+            let rest = self.allocate_value("");
+            self.trilogy_array_slice(
+                rest,
+                array_value,
+                self.usize_type().const_int(i as u64, false),
+                end,
+            );
+            self.bind_temporary(rest);
+            self.match_pattern(&spread.expression, rest, on_fail, bound_ids)?;
+            if let Some(temp) = self.use_owned_temporary(rest) {
+                self.trilogy_value_destroy(temp);
+            }
         }
         Some(())
     }

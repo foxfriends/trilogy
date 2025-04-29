@@ -90,14 +90,48 @@ impl<'ctx> DebugInfo<'ctx> {
             None,
             &[
                 builder
-                    // Unsigned char
-                    .create_basic_type("trilogy_value_tag", 8, 0x8, LLVMDIFlagPublic)
-                    .unwrap()
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "tag",
+                        unit.get_file(),
+                        0,
+                        8,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type(
+                                "trilogy_value_tag",
+                                8,
+                                // Unsigned char
+                                0x8,
+                                LLVMDIFlagPublic,
+                            )
+                            .unwrap()
+                            .as_type(),
+                    )
                     .as_type(),
                 builder
-                    // Unsigned (u64)
-                    .create_basic_type("trilogy_value_tag", 64, 0x07, LLVMDIFlagPublic)
-                    .unwrap()
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "contents",
+                        unit.get_file(),
+                        0,
+                        64,
+                        0,
+                        8,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type(
+                                "trilogy_value_tag",
+                                64,
+                                // Unsigned (u64)
+                                0x07,
+                                LLVMDIFlagPublic,
+                            )
+                            .unwrap()
+                            .as_type(),
+                    )
                     .as_type(),
             ],
             0,

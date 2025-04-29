@@ -22,6 +22,9 @@ void trilogy_array_append(trilogy_array_value* arr, trilogy_value* tv);
 void trilogy_array_at(
     trilogy_value* tv, trilogy_array_value* arr, size_t index
 );
+void trilogy_array_slice(
+    trilogy_value* tv, trilogy_array_value* arr, size_t start, size_t end
+);
 
 int trilogy_array_compare(trilogy_array_value* lhs, trilogy_array_value* rhs);
 

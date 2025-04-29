@@ -1,0 +1,6 @@
+func map _ [] = []
+func map f [x, ..xs] = [f x, ..map f xs]
+
+proc main!() {
+  assert map (fn x. x * 2) [1, 2, 3] == [2, 4, 6]
+}
