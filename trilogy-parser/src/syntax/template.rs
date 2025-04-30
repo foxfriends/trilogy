@@ -50,12 +50,17 @@ impl Template {
             segments.push(TemplateSegment { interpolation, end });
             break;
         }
-        let tag = parser
-            .check(TokenType::Identifier)
-            .ok()
-            .map(|_| ())
-            .map(|_| Identifier::parse(parser))
-            .transpose()?;
+        parser.chomp();
+        let tag = if !parser.is_line_start {
+            parser
+                .check(TokenType::Identifier)
+                .ok()
+                .map(|_| ())
+                .map(|_| Identifier::parse(parser))
+                .transpose()?
+        } else {
+            None
+        };
 
         let mut span = template_start.span;
         if !segments.is_empty() {

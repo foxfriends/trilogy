@@ -10,4 +10,6 @@ proc main!() {
   io::println!($"${0bb01}")
   io::println!($"${1:'b}")
   io::println!($"${'hello('world)}")
+  io::println!($"${[]}")
+  io::println!($"${[1, 2]}")
 }

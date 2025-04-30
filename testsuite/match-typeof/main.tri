@@ -1,0 +1,15 @@
+proc main!() {
+  let first = match [1, 2, 3]
+    case typeof 'string then 1
+    case typeof 'tuple then 2
+    case typeof 'struct then 3
+    case typeof 'array then 4
+    else { assert false }
+  let second = match 'hello('world)
+    case typeof 'string then 1
+    case typeof 'tuple then 2
+    case typeof 'struct then 3
+    case typeof 'array then 4
+    else { assert false }
+  assert first + second == 7
+}
