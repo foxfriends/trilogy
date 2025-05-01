@@ -59,7 +59,8 @@ impl<'ctx> Codegen<'ctx> {
                         self.builder
                             .position_at(instruction.get_parent().unwrap(), instruction);
                         self.restore_function_context(snapshot.clone());
-                        let closure = self.build_closure(&parent.upgrade().unwrap(), &point);
+                        let parent = parent.upgrade().unwrap();
+                        let closure = self.build_closure(&parent, &point);
                         instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         instruction.erase_from_basic_block();
                     }
@@ -142,6 +143,11 @@ impl<'ctx> Codegen<'ctx> {
                         let upvalue_internal =
                             self.trilogy_reference_to_in(&builder, original_upvalue, variable);
                         upvalues.insert(id.clone(), original_upvalue);
+
+                        assert!(
+                            builder.get_insert_block().unwrap().get_parent()
+                                == self.builder.get_insert_block().unwrap().get_parent()
+                        );
 
                         if let Some(closing) = scope.unclosed.borrow_mut().remove(&variable) {
                             let debug_location = self.builder.get_current_debug_location().unwrap();

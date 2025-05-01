@@ -335,9 +335,9 @@ impl<'ctx> Codegen<'ctx> {
         self.bind_temporary(discriminant);
 
         let continuation = self.add_continuation("");
-        let brancher = self.end_continuation_point_as_branch();
         let mut merger = Merger::default();
         for case in &expr.cases {
+            let brancher = self.end_continuation_point_as_branch();
             let next_case_function = self.add_continuation("match.next");
             let go_to_next_case =
                 self.capture_current_continuation(next_case_function, &brancher, "match.next");

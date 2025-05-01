@@ -6,6 +6,7 @@ use inkwell::values::{InstructionValue, PointerValue};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[derive(Clone, Debug)]
 pub(super) struct Parent<'ctx> {
@@ -64,6 +65,8 @@ impl<'ctx> Merger<'ctx> {
     }
 }
 
+static CONTINUATION_POINT_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
 /// A continuation point tracks the values in scope and in closure for any segment of code
 /// that resides within one unbroken continuation. At the LLVM level, this can be considered
 /// one function; a single Trilogy function may be made up of numerous LLVM functions, its
@@ -73,8 +76,10 @@ impl<'ctx> Merger<'ctx> {
 /// program, as well as a control-flow graph based on the semantic structure of the program.
 /// These two structures do not have to align perfectly: a closure is semantically disconnected
 /// but lexically connected, while a merge is lexically disconnected but semantically connected.
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct ContinuationPoint<'ctx> {
+    #[allow(dead_code, reason = "handy debugging thing, maybe remove when the bugs are all gone")]
+    pub id: usize,
     /// Pointers to variables available at this point in the continuation.
     /// These pointers may be to values on stack, or to locations in the closure.
     pub(super) variables: RefCell<HashMap<Closed<'ctx>, Variable<'ctx>>>,
@@ -100,10 +105,25 @@ pub(crate) struct ContinuationPoint<'ctx> {
         RefCell<HashMap<PointerValue<'ctx>, Vec<(InstructionValue<'ctx>, DILocation<'ctx>)>>>,
 }
 
+impl Default for ContinuationPoint<'_> {
+    fn default() -> Self {
+        Self {
+            id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
+            variables: RefCell::default(),
+            parent_variables: HashSet::default(),
+            closure: RefCell::default(),
+            upvalues: RefCell::default(),
+            parents: Vec::default(),
+            unclosed: RefCell::default(),
+        }
+    }
+}
+
 impl<'ctx> ContinuationPoint<'ctx> {
     /// Creates a new continuation point which has visibility of the current one's variables.
     fn chain(&self) -> Self {
         Self {
+            id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
             variables: RefCell::default(),
             closure: RefCell::default(),
             parent_variables: self
@@ -160,7 +180,7 @@ impl<'ctx> ContinuationPoint<'ctx> {
 }
 
 impl<'ctx> Codegen<'ctx> {
-    pub(super) fn current_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
+    pub(crate) fn current_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
         self.continuation_points.borrow().last().unwrap().clone()
     }
 

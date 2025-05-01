@@ -218,10 +218,11 @@ impl<'ctx> Codegen<'ctx> {
     /// closure, if necessary.
     pub(crate) fn bind_temporary(&self, temporary: PointerValue<'ctx>) {
         let cp = self.current_continuation_point();
-        if !cp.parent_variables.contains(&Closed::Temporary(temporary)) {
+        let key = Closed::Temporary(temporary);
+        if !cp.parent_variables.contains(&key) && !cp.variables.borrow().contains_key(&key) {
             cp.variables
                 .borrow_mut()
-                .insert(Closed::Temporary(temporary), Variable::Owned(temporary));
+                .insert(key, Variable::Owned(temporary));
         }
     }
 
