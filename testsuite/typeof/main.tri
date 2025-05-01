@@ -1,6 +1,6 @@
 proc main!() {
   assert typeof unit == 'unit
-  assert typeof true == 'bool
+  assert typeof true == 'boolean
   assert typeof 'hello == 'atom
   assert typeof 'c' == 'char
   assert typeof "hello" == 'string

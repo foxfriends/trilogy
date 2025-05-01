@@ -95,25 +95,25 @@ extern proc primitive_to_string!(val)
 
 export to_string
 proc to_string!(val) {
-  return match val
-    case lhs:rhs then $"${lhs}:${rhs}"
-    case typeof 'struct {
-      let lhs:rhs = destruct!(val)
-      $"${lhs}(${rhs})"
-    }
-    # TODO: This is not working well, even just to have this case in place
-    # case typeof 'array {
-    #   let mut str = $"["
-    #   let mut i = 0
-    #   while i < length!(val) {
-    #     str <>= $"${val.i}"
-    #     i += 1
-    #     if i != length!(val) {
-    #       str <>= ", "
-    #     }
-    #   }
-    #   str <>= "]"
-    #   str
-    # }
-    else then primitive_to_string!(val)
+  # return match val
+  #   case lhs:rhs then $"${lhs}:${rhs}"
+  #   case typeof 'struct {
+  #     let lhs:rhs = destruct!(val)
+  #     $"${lhs}(${rhs})"
+  #   }
+  #   # case typeof 'array {
+  #   #   let mut str = $"["
+  #   #   let mut i = 0
+  #   #   while i < length!(val) {
+  #   #     str <>= $"${val.i}"
+  #   #     i += 1
+  #   #     if i != length!(val) {
+  #   #       str <>= ", "
+  #   #     }
+  #   #   }
+  #   #   str <> "]"
+  #   #   "[]"
+  #   # }
+  #   else then primitive_to_string!(val)
+  return ""
 }

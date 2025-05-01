@@ -187,3 +187,16 @@ impl MatchExpressionElseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    test_parse!(match_parse_exprs: "match x\n  case 1 then x\n  else then y" => MatchExpression::parse => "
+      (MatchExpression
+        _
+        (Expression::Reference _)
+        [(MatchExpressionCase _ _ _ _)]
+        (MatchExpressionElseCase _ _ _))
+    ");
+}

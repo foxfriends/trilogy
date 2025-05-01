@@ -1,7 +1,7 @@
 proc main!() {
   let a and typeof 'unit = unit
   assert a == unit
-  let b and typeof 'bool = true
+  let b and typeof 'boolean = true
   assert b == true
   let c and typeof 'atom = 'hello
   assert c == 'hello

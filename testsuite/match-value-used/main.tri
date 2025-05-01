@@ -1,0 +1,8 @@
+proc main!() {
+  let val = true
+  assert match val
+    case typeof 'struct then false
+    case typeof 'string then false
+    case typeof 'boolean then val
+    else then false
+}

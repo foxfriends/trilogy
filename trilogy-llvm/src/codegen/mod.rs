@@ -59,7 +59,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut atoms = HashMap::new();
         atoms.insert("undefined".to_owned(), types::TAG_UNDEFINED);
         atoms.insert("unit".to_owned(), types::TAG_UNIT);
-        atoms.insert("bool".to_owned(), types::TAG_BOOL);
+        atoms.insert("boolean".to_owned(), types::TAG_BOOL);
         atoms.insert("atom".to_owned(), types::TAG_ATOM);
         atoms.insert("char".to_owned(), types::TAG_CHAR);
         atoms.insert("string".to_owned(), types::TAG_STRING);

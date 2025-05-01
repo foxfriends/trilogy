@@ -282,14 +282,14 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Typeof => {
                 // TODO: we should restrict the expressions in this thing to be pins or constants... otherwise we do have to
                 // handle branching...
-                let expected_type = self.compile_expression(expression, "")?;
+                let expected_type = self.compile_expression(expression, "typeof.exp")?;
                 let value = self.use_temporary(value).unwrap();
-                let tag = self.get_tag(value, "");
+                let tag = self.get_tag(value, "typeof.tag");
                 let atom = self
                     .builder
                     .build_int_z_extend(tag, self.context.i64_type(), "")
                     .unwrap();
-                let type_ptr = self.allocate_value("");
+                let type_ptr = self.allocate_value("typeof.atom");
                 self.trilogy_atom_init(type_ptr, atom);
                 let cmp = self.trilogy_value_structural_eq(expected_type, type_ptr, "");
                 // NOTE: atom does not require destruction, so type_ptr is ok

@@ -104,9 +104,8 @@ impl<'ctx> Codegen<'ctx> {
         let closure_array = self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
         let mut upvalues = scope.upvalues.borrow_mut();
         for id in child_scope.closure.borrow().iter() {
-            let upvalue_name = format!("{id}.up");
             let new_upvalue = if let Some(ptr) = upvalues.get(id) {
-                let new_upvalue = self.allocate_value(&upvalue_name);
+                let new_upvalue = self.allocate_value(&format!("{id}.cloneup"));
                 self.trilogy_value_clone_into(new_upvalue, *ptr);
                 new_upvalue
             } else {
@@ -115,7 +114,7 @@ impl<'ctx> Codegen<'ctx> {
                     .expect("closure is messed up")
                 {
                     Variable::Closed { upvalue, .. } => {
-                        let new_upvalue = self.allocate_value(&upvalue_name);
+                        let new_upvalue = self.allocate_value(&format!("{id}.reup"));
                         self.trilogy_value_clone_into(new_upvalue, upvalue);
                         new_upvalue
                     }
@@ -135,7 +134,7 @@ impl<'ctx> Codegen<'ctx> {
                                 .unwrap(),
                         );
                         let original_upvalue = builder
-                            .build_alloca(self.value_type(), &upvalue_name)
+                            .build_alloca(self.value_type(), &format!("{id}.firstup"))
                             .unwrap();
                         builder
                             .build_store(original_upvalue, self.value_type().const_zero())
@@ -162,7 +161,7 @@ impl<'ctx> Codegen<'ctx> {
                             self.builder.set_current_debug_location(debug_location);
                         }
 
-                        let new_upvalue = self.allocate_value(&upvalue_name);
+                        let new_upvalue = self.allocate_value(&format!("{id}.newup"));
                         self.trilogy_value_clone_into(new_upvalue, original_upvalue);
                         new_upvalue
                     }

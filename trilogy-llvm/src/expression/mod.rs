@@ -295,7 +295,7 @@ impl<'ctx> Codegen<'ctx> {
         match &decl.query.value {
             QueryValue::Direct(unif) if decl.query.is_once() => {
                 // These variables are tricky... if they are invented only when initialized, they
-                // are trivially cleared before revisiting them due to a continuation, but they we
+                // are trivially cleared before revisiting them due to a continuation, but then we
                 // are not able to define recursive closures.
                 //
                 // Meanwhile, having moved the bindings out to here, we can easily self-reference,
@@ -343,8 +343,10 @@ impl<'ctx> Codegen<'ctx> {
                 self.capture_current_continuation(next_case_function, &brancher, "match.next");
             let next_case_cp = self.hold_continuation_point();
             let discriminant = self.use_temporary(discriminant).unwrap();
-            // TODO: I think we're leaking discriminant here sometimes
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
+            if let Some(discriminant_owned) = self.use_owned_temporary(discriminant) {
+                self.trilogy_value_destroy(discriminant_owned);
+            }
             let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
                 self.become_continuation_point(next_case_cp);
                 self.begin_next_function(next_case_function);
@@ -355,19 +357,17 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_value_destroy(guard_bool);
             let body_block = self.context.append_basic_block(self.get_function(), "body");
             let next_block = self.context.append_basic_block(self.get_function(), "next");
-            let brancher = self.end_continuation_point_as_branch();
+            let sub_brancher = self.end_continuation_point_as_branch();
             self.builder
                 .build_conditional_branch(guard_flag, body_block, next_block)
                 .unwrap();
-            let snapshot = self.snapshot_function_context();
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary(go_to_next_case).unwrap();
             self.void_call_continuation(go_next);
 
             self.builder.position_at_end(body_block);
-            self.restore_function_context(snapshot);
-            self.resume_continuation_point(&brancher);
+            self.resume_continuation_point(&sub_brancher);
             if let Some(result) = self.compile_expression(&case.body, name) {
                 let closure_allocation = self.continue_in_scope(continuation, result);
                 self.end_continuation_point_as_merge(&mut merger, closure_allocation);
