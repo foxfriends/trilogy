@@ -75,9 +75,13 @@ impl<'ctx> Codegen<'ctx> {
                     let var = self.get_variable(&id).unwrap().ptr();
                     self.trilogy_value_destroy(var);
                 }
-                self.match_pattern(&disj.1, value, on_fail, bound_ids)?;
-                let closure = self.void_continue_in_scope(on_success_function);
-                self.end_continuation_point_as_merge(&mut merger, closure);
+                if self
+                    .match_pattern(&disj.1, value, on_fail, bound_ids)
+                    .is_some()
+                {
+                    let closure = self.void_continue_in_scope(on_success_function);
+                    self.end_continuation_point_as_merge(&mut merger, closure);
+                }
 
                 self.merge_without_branch(merger);
                 self.begin_next_function(on_success_function);
