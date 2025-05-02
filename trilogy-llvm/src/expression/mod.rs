@@ -345,9 +345,6 @@ impl<'ctx> Codegen<'ctx> {
             let next_case_cp = self.hold_continuation_point();
             let discriminant = self.use_temporary(discriminant).unwrap();
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
-            if let Some(discriminant_owned) = self.use_owned_temporary(discriminant) {
-                self.trilogy_value_destroy(discriminant_owned);
-            }
             let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
                 self.become_continuation_point(next_case_cp);
                 self.begin_next_function(next_case_function);
@@ -382,6 +379,9 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unreachable().unwrap();
 
         if returns {
+            if let Some(discriminant_owned) = self.use_owned_temporary(discriminant) {
+                self.trilogy_value_destroy(discriminant_owned);
+            }
             self.merge_without_branch(merger);
             self.begin_next_function(continuation);
             Some(self.get_continuation(name))
