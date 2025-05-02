@@ -336,6 +336,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let continuation = self.add_continuation("");
         let mut merger = Merger::default();
+        let mut returns = false;
         for case in &expr.cases {
             let brancher = self.end_continuation_point_as_branch();
             let next_case_function = self.add_continuation("match.next");
@@ -371,6 +372,7 @@ impl<'ctx> Codegen<'ctx> {
             if let Some(result) = self.compile_expression(&case.body, name) {
                 let closure_allocation = self.continue_in_scope(continuation, result);
                 self.end_continuation_point_as_merge(&mut merger, closure_allocation);
+                returns = true;
             }
 
             self.become_continuation_point(next_case_cp);
@@ -379,9 +381,13 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.build_unreachable().unwrap();
 
-        self.merge_without_branch(merger);
-        self.begin_next_function(continuation);
-        Some(self.get_continuation(name))
+        if returns {
+            self.merge_without_branch(merger);
+            self.begin_next_function(continuation);
+            Some(self.get_continuation(name))
+        } else {
+            None
+        }
     }
 
     fn compile_application(

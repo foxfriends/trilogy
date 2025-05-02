@@ -1,0 +1,6 @@
+proc main!() {
+  match true
+    case true then exit 0
+    case false then exit 1
+    else then exit 2
+}
