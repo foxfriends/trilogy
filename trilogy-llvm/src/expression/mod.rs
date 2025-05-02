@@ -186,8 +186,8 @@ impl<'ctx> Codegen<'ctx> {
         let effect = self.get_continuation("effect");
         self.bind_temporary(effect);
 
-        let brancher = self.end_continuation_point_as_branch();
         for handler in handlers {
+            let brancher = self.end_continuation_point_as_branch();
             let next_case_function = self.add_continuation("");
             let go_to_next_case =
                 self.capture_current_continuation(next_case_function, &brancher, "when.next");
