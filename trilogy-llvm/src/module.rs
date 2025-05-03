@@ -19,7 +19,7 @@ impl<'ctx> Codegen<'ctx> {
                         .insert(module.name.id.clone(), Head::Module(location));
                 }
                 DefinitionItem::Constant(constant) => {
-                    subcontext.declare_constant(constant, definition.is_exported, definition.span);
+                    subcontext.declare_constant(constant, definition.span);
                     subcontext
                         .globals
                         .insert(constant.name.id.clone(), Head::Constant);
@@ -28,11 +28,7 @@ impl<'ctx> Codegen<'ctx> {
                     subcontext.declare_extern_procedure(
                         &procedure.name.to_string(),
                         procedure.arity,
-                        if definition.is_exported {
-                            Linkage::External
-                        } else {
-                            Linkage::Private
-                        },
+                        Linkage::External,
                         procedure.span(),
                     );
                     subcontext
@@ -43,11 +39,7 @@ impl<'ctx> Codegen<'ctx> {
                     subcontext.declare_procedure(
                         &procedure.name.to_string(),
                         procedure.arity,
-                        if definition.is_exported {
-                            Linkage::External
-                        } else {
-                            Linkage::Private
-                        },
+                        Linkage::External,
                         procedure.span(),
                     );
                     subcontext
@@ -57,11 +49,7 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Function(function) => {
                     subcontext.declare_function(
                         &function.name.to_string(),
-                        if definition.is_exported {
-                            Linkage::External
-                        } else {
-                            Linkage::Private
-                        },
+                        Linkage::External,
                         function.span(),
                     );
                     subcontext

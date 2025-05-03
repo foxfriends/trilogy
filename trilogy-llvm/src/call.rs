@@ -601,18 +601,20 @@ impl<'ctx> Codegen<'ctx> {
         let chain_function = self.module.add_function(
             "main.return",
             self.continuation_type(),
-            Some(Linkage::Private),
+            Some(Linkage::External),
         );
 
         let yield_function = self.module.add_function(
             "main.unhandled_effect",
             self.continuation_type(),
-            Some(Linkage::Private),
+            Some(Linkage::External),
         );
 
-        let end_function =
-            self.module
-                .add_function("main.end", self.continuation_type(), Some(Linkage::Private));
+        let end_function = self.module.add_function(
+            "main.end",
+            self.continuation_type(),
+            Some(Linkage::External),
+        );
 
         let callable = self.trilogy_callable_untag(value, "");
         let function = self.trilogy_procedure_untag(callable, 0, "");

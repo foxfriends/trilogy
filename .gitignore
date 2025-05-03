@@ -4,6 +4,7 @@
 a.out
 *.ll
 *.ll.tmp
+*.s
 *.bc
 /main.tri
 *.dSYM/

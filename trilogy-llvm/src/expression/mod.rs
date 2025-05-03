@@ -686,7 +686,7 @@ impl<'ctx> Codegen<'ctx> {
         let function = self.module.add_function(
             &function_name,
             self.procedure_type(arity, true),
-            Some(Linkage::Internal),
+            Some(Linkage::External),
         );
 
         let target = self.allocate_value(name);
@@ -730,7 +730,7 @@ impl<'ctx> Codegen<'ctx> {
         let function = self.module.add_function(
             &function_name,
             self.procedure_type(1, true),
-            Some(Linkage::Internal),
+            Some(Linkage::External),
         );
 
         let target = self.allocate_value(name);
