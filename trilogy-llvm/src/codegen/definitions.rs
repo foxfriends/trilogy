@@ -22,18 +22,18 @@ impl<'ctx> Codegen<'ctx> {
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
     pub(crate) fn add_continuation(&self, name: &str) -> FunctionValue<'ctx> {
-        let (parent_name, span) = self.get_current_definition();
+        let (parent_name, parent_linkage_name, span) = self.get_current_definition();
         let name = if name.is_empty() {
-            parent_name
+            parent_linkage_name
         } else {
-            format!("{parent_name}.{name}")
+            format!("{parent_linkage_name}.{name}")
         };
         let function =
             self.module
                 .add_function(&name, self.continuation_type(), Some(Linkage::Private));
         function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         function.set_subprogram(self.di.create_function(
-            &name,
+            &parent_name,
             function.get_name().to_str().unwrap(),
             self.di.continuation_di_type(),
             span,

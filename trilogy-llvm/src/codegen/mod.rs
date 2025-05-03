@@ -46,7 +46,7 @@ pub(crate) struct Codegen<'ctx> {
     /// compiling a function), and they should be topologically sorted according to their
     /// contained `capture_from` lists.
     continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
-    current_definition: RefCell<(String, Span)>,
+    current_definition: RefCell<(String, String, Span)>,
     closure_array: Cell<Option<PointerValue<'ctx>>>,
     pub(crate) function_params: RefCell<Vec<PointerValue<'ctx>>>,
 }
@@ -132,14 +132,14 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// If this is a nested scope, the previous continuation point should be branched from and
     /// later resumed, otherwise we will be lost at the end of the nested code.
-    pub(crate) fn set_current_definition(&self, name: String, span: Span) {
-        *self.current_definition.borrow_mut() = (name, span);
+    pub(crate) fn set_current_definition(&self, name: String, linkage_name: String, span: Span) {
+        *self.current_definition.borrow_mut() = (name, linkage_name, span);
         self.continuation_points
             .borrow_mut()
             .push(Rc::new(ContinuationPoint::default()));
     }
 
-    pub(crate) fn get_current_definition(&self) -> (String, Span) {
+    pub(crate) fn get_current_definition(&self) -> (String, String, Span) {
         self.current_definition.borrow().clone()
     }
 

@@ -680,7 +680,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_do(&self, procedure: &ir::Procedure, name: &str) -> PointerValue<'ctx> {
-        let (current, _) = self.get_current_definition();
+        let (current, _, _) = self.get_current_definition();
         let function_name = format!("{current}<do@{}>", procedure.span);
         let arity = procedure.parameters.len();
         let function = self.module.add_function(
@@ -724,7 +724,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_fn(&self, func: &ir::Function, name: &str) -> PointerValue<'ctx> {
-        let (current, _) = self.get_current_definition();
+        let (current, _, _) = self.get_current_definition();
         let function_name = format!("{current}<fn@{}>", func.span);
         let arity = func.parameters.len();
         let function = self.module.add_function(

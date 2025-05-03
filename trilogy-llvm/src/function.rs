@@ -37,7 +37,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_function(&self, definition: &ir::FunctionDefinition) {
         let name = definition.name.to_string();
         let function = self.module.get_function(&name).unwrap();
-        self.set_current_definition(name, definition.span());
+        self.set_current_definition(name.clone(), name, definition.span());
         self.compile_function_body(function, &definition.overloads, definition.span());
         self.close_continuation();
     }

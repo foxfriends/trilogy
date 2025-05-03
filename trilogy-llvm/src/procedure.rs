@@ -45,7 +45,7 @@ impl<'ctx> Codegen<'ctx> {
         let wrapper_function = self.add_procedure(&wrapper_name, arity, &wrapper_name, span, true);
         self.begin_function(wrapper_function, span);
         self.set_span(span);
-        self.set_current_definition(wrapper_name.to_owned(), span);
+        self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span);
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
         params.extend(
@@ -64,7 +64,7 @@ impl<'ctx> Codegen<'ctx> {
         self.end_function();
 
         let accessor = self.add_accessor(&accessor_name, linkage);
-        self.set_current_definition(accessor_name.to_owned(), span);
+        self.set_current_definition(name.to_owned(), accessor_name.to_owned(), span);
         self.builder.unset_current_debug_location();
         self.write_accessor(accessor, wrapper_function, arity);
     }
@@ -114,7 +114,7 @@ impl<'ctx> Codegen<'ctx> {
         let name = definition.name.to_string();
         let linkage_name = if name == "main" { MAIN_NAME } else { &name };
         let function = self.module.get_function(linkage_name).unwrap();
-        self.set_current_definition(linkage_name.to_owned(), procedure.span);
+        self.set_current_definition(name.to_owned(), linkage_name.to_owned(), procedure.span);
         self.compile_procedure_body(function, procedure);
         self.close_continuation();
     }
