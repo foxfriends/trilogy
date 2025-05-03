@@ -95,15 +95,34 @@ impl<'ctx> DebugInfo<'ctx> {
             )
             .unwrap();
 
+        let value_size = ptr_size + 64;
         let bool_type = builder
             .create_basic_type("boolean", 8, 0x2, LLVMDIFlagPublic)
             .unwrap();
-
+        let char_type = builder
+            .create_basic_type("char", 8, 0x8, LLVMDIFlagPublic)
+            .unwrap();
+        let byte_type = builder
+            .create_basic_type("byte", 8, 0x7, LLVMDIFlagPublic)
+            .unwrap();
         let size_t = builder
             .create_basic_type("size_t", ptr_size, 0x7, LLVMDIFlagPublic)
             .unwrap();
+        let u32_type = builder
+            .create_basic_type("u32", 32, 0x7, LLVMDIFlagPublic)
+            .unwrap();
         let digit_t = builder
             .create_basic_type("digit_t", 32, 0x7, LLVMDIFlagPublic)
+            .unwrap();
+        let c_str_type = builder.create_pointer_type(
+            "char*",
+            char_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+        let atom_type = builder
+            .create_basic_type("atom", 64, 0x07, LLVMDIFlagPublic)
             .unwrap();
 
         let string_type = builder.create_struct_type(
@@ -142,13 +161,55 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         ptr_size,
                         LLVMDIFlagPublic,
+                        c_str_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let bits_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "bits",
+            unit.get_file(),
+            0,
+            ptr_size * 2,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "len",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type("size_t", ptr_size, 0x7, LLVMDIFlagPublic)
+                            .unwrap()
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "contents",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
                         builder
                             .create_pointer_type(
-                                "char*",
-                                builder
-                                    .create_basic_type("char", 8, 0x8, LLVMDIFlagPublic)
-                                    .unwrap()
-                                    .as_type(),
+                                "",
+                                byte_type.as_type(),
                                 ptr_size,
                                 0,
                                 AddressSpace::default(),
@@ -365,9 +426,499 @@ impl<'ctx> DebugInfo<'ctx> {
             "",
         );
 
+        let value_type_placeholder =
+            unsafe { builder.create_placeholder_derived_type(module.get_context()) };
+        let value_pointer_type = builder.create_pointer_type(
+            "value_ptr",
+            value_type_placeholder.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+
+        let struct_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "struct_val",
+            unit.get_file(),
+            0,
+            64 + value_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "atom",
+                        unit.get_file(),
+                        0,
+                        64,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        atom_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "value",
+                        unit.get_file(),
+                        0,
+                        value_size,
+                        0,
+                        64,
+                        LLVMDIFlagPublic,
+                        value_type_placeholder.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let tuple_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "tuple",
+            unit.get_file(),
+            0,
+            2 * value_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "fst",
+                        unit.get_file(),
+                        0,
+                        value_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        value_type_placeholder.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "snd",
+                        unit.get_file(),
+                        0,
+                        value_size,
+                        0,
+                        value_size,
+                        LLVMDIFlagPublic,
+                        value_type_placeholder.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let array_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "array",
+            unit.get_file(),
+            0,
+            ptr_size * 4,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "rc",
+                        unit.get_file(),
+                        0,
+                        32,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        u32_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "len",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "cap",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "contents",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        3 * ptr_size,
+                        LLVMDIFlagPublic,
+                        value_pointer_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let set_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "set",
+            unit.get_file(),
+            0,
+            ptr_size * 4,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "rc",
+                        unit.get_file(),
+                        0,
+                        32,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        u32_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "len",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "cap",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "contents",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        3 * ptr_size,
+                        LLVMDIFlagPublic,
+                        value_pointer_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let tuple_ptr_type = builder.create_pointer_type(
+            "",
+            tuple_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+
+        let record_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "record",
+            unit.get_file(),
+            0,
+            ptr_size * 4,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "rc",
+                        unit.get_file(),
+                        0,
+                        32,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        u32_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "len",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "cap",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "contents",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        3 * ptr_size,
+                        LLVMDIFlagPublic,
+                        tuple_ptr_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let array_ptr_type = builder.create_pointer_type(
+            "",
+            array_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+
+        let callable_ptr_placeholder_type =
+            unsafe { builder.create_placeholder_derived_type(module.get_context()) };
+        let callable_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "callable",
+            unit.get_file(),
+            0,
+            ptr_size * 10,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "rc",
+                        unit.get_file(),
+                        0,
+                        32,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        u32_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "tag",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        32,
+                        LLVMDIFlagPublic,
+                        tag_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "arity",
+                        unit.get_file(),
+                        0,
+                        32,
+                        0,
+                        1 * ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "return_to",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_ptr_placeholder_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "yield_to",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        3 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_ptr_placeholder_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "cancel_to",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        4 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_ptr_placeholder_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "resume_to",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        5 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_ptr_placeholder_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "break_to",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        6 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_ptr_placeholder_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "continue_to",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        7 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_ptr_placeholder_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "closure",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        8 * ptr_size,
+                        LLVMDIFlagPublic,
+                        array_ptr_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "function",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        9 * ptr_size,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type("function", ptr_size, 0x01, LLVMDIFlagPublic)
+                            .unwrap()
+                            .as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let callable_ptr_type = builder.create_pointer_type(
+            "",
+            callable_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+        unsafe {
+            builder
+                .replace_placeholder_derived_type(callable_ptr_placeholder_type, callable_ptr_type);
+        }
+
         let any_value_type = builder.create_union_type(
             unit.get_file().as_debug_info_scope(),
-            "value_payload",
+            "",
             unit.get_file(),
             0,
             64,
@@ -422,6 +973,19 @@ impl<'ctx> DebugInfo<'ctx> {
                 builder
                     .create_member_type(
                         unit.get_file().as_debug_info_scope(),
+                        "atom",
+                        unit.get_file(),
+                        0,
+                        64,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        atom_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
                         "character",
                         unit.get_file(),
                         0,
@@ -447,7 +1011,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         LLVMDIFlagPublic,
                         builder
                             .create_pointer_type(
-                                "string_ptr",
+                                "",
                                 string_type.as_type(),
                                 ptr_size,
                                 0,
@@ -468,13 +1032,136 @@ impl<'ctx> DebugInfo<'ctx> {
                         LLVMDIFlagPublic,
                         builder
                             .create_pointer_type(
-                                "number_ptr",
+                                "",
                                 number_type.as_type(),
                                 ptr_size,
                                 0,
                                 AddressSpace::default(),
                             )
                             .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "bits",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "",
+                                bits_type.as_type(),
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "struct_",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "",
+                                struct_type.as_type(),
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "tuple",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        tuple_ptr_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "array",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        array_ptr_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "set",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "",
+                                set_type.as_type(),
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "record",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "",
+                                record_type.as_type(),
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "callable",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        callable_ptr_type.as_type(),
                     )
                     .as_type(),
             ],
@@ -487,7 +1174,7 @@ impl<'ctx> DebugInfo<'ctx> {
             "value",
             unit.get_file(),
             0,
-            128,
+            value_size,
             0,
             LLVMDIFlagPublic,
             None,
@@ -524,12 +1211,13 @@ impl<'ctx> DebugInfo<'ctx> {
             "",
         );
 
-        let value_pointer_type = builder.create_pointer_type(
-            "value_ptr",
+        let value_type_derived = builder.create_typedef(
             value_type.as_type(),
-            ptr_size,
+            "value",
+            unit.get_file(),
             0,
-            AddressSpace::default(),
+            unit.get_file().as_debug_info_scope(),
+            0,
         );
 
         let continuation_type = builder.create_subroutine_type(
@@ -538,6 +1226,9 @@ impl<'ctx> DebugInfo<'ctx> {
             &[value_pointer_type.as_type(); 7],
             LLVMDIFlagPublic,
         );
+        unsafe {
+            builder.replace_placeholder_derived_type(value_type_placeholder, value_type_derived);
+        }
 
         DebugInfo {
             builder,
