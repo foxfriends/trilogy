@@ -35,7 +35,7 @@ testsuite:
 
 run file="main.tri":
     cargo run -- compile {{file}} > main.ll
-    {{clang}} main.ll -g -O0 -rdynamic
+    {{clang}} main.ll -g -ldl -no-pie -fno-pie -fdebug-macro -O0 -rdynamic
     ./a.out
 
 trace file="main.tri":

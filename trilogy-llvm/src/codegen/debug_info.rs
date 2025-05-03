@@ -4,6 +4,7 @@ use inkwell::debug_info::{
     AsDIScope, DICompileUnit, DICompositeType, DIDerivedType, DILexicalBlock, DILocation, DIScope,
     DISubprogram, DISubroutineType, DWARFEmissionKind, DWARFSourceLanguage, DebugInfoBuilder,
 };
+use inkwell::execution_engine::ExecutionEngine;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Module;
 use inkwell::values::PointerValue;
@@ -41,7 +42,7 @@ impl<'ctx> DebugScope<'ctx> {
 }
 
 impl<'ctx> DebugInfo<'ctx> {
-    pub(crate) fn new(module: &Module<'ctx>, name: &str) -> Self {
+    pub(crate) fn new(module: &Module<'ctx>, name: &str, ee: &ExecutionEngine) -> Self {
         let url = Url::parse(name).unwrap();
         let (filename, directory) = match url.scheme() {
             "file" => {
@@ -79,12 +80,414 @@ impl<'ctx> DebugInfo<'ctx> {
             "",
         );
 
-        let value_type = builder.create_struct_type(
+        let ptr_size = ee.get_target_data().get_pointer_byte_size(None) as u64 * 8;
+
+        // I think this is the LLVMDwarfTypeEncodings?
+        // https://github.com/llvm-mirror/llvm/blob/2c4ca6832fa6b306ee6a7010bfb80a3f2596f824/include/llvm/BinaryFormat/Dwarf.def#L702-L723
+
+        let tag_type = builder
+            .create_basic_type(
+                "value_tag",
+                8,
+                // Unsigned char
+                0x8,
+                LLVMDIFlagPublic,
+            )
+            .unwrap();
+
+        let bool_type = builder
+            .create_basic_type("boolean", 8, 0x2, LLVMDIFlagPublic)
+            .unwrap();
+
+        let size_t = builder
+            .create_basic_type("size_t", ptr_size, 0x7, LLVMDIFlagPublic)
+            .unwrap();
+        let digit_t = builder
+            .create_basic_type("digit_t", 32, 0x7, LLVMDIFlagPublic)
+            .unwrap();
+
+        let string_type = builder.create_struct_type(
             unit.get_file().as_debug_info_scope(),
-            "trilogy_value",
+            "string",
             unit.get_file(),
             0,
-            72,
+            ptr_size * 2,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "len",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type("size_t", ptr_size, 0x7, LLVMDIFlagPublic)
+                            .unwrap()
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "contents",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "char*",
+                                builder
+                                    .create_basic_type("char", 8, 0x8, LLVMDIFlagPublic)
+                                    .unwrap()
+                                    .as_type(),
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let bigint_size = ptr_size * 3;
+        let bigint_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "bigint",
+            unit.get_file(),
+            0,
+            bigint_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "capacity",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "length",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "contents",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size * 2,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_union_type(
+                                unit.get_file().as_debug_info_scope(),
+                                "",
+                                unit.get_file(),
+                                0,
+                                ptr_size,
+                                0,
+                                LLVMDIFlagPublic,
+                                &[
+                                    builder
+                                        .create_member_type(
+                                            unit.get_file().as_debug_info_scope(),
+                                            "digits",
+                                            unit.get_file(),
+                                            0,
+                                            8,
+                                            0,
+                                            0,
+                                            LLVMDIFlagPublic,
+                                            builder
+                                                .create_pointer_type(
+                                                    "",
+                                                    digit_t.as_type(),
+                                                    ptr_size,
+                                                    0,
+                                                    AddressSpace::default(),
+                                                )
+                                                .as_type(),
+                                        )
+                                        .as_type(),
+                                    builder
+                                        .create_member_type(
+                                            unit.get_file().as_debug_info_scope(),
+                                            "value",
+                                            unit.get_file(),
+                                            0,
+                                            32,
+                                            0,
+                                            0,
+                                            LLVMDIFlagPublic,
+                                            digit_t.as_type(),
+                                        )
+                                        .as_type(),
+                                ],
+                                0,
+                                "",
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let rational_size = ptr_size + bigint_size * 2;
+
+        let rational_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "number",
+            unit.get_file(),
+            0,
+            rational_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "is_negative",
+                        unit.get_file(),
+                        0,
+                        8,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        bool_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "numer",
+                        unit.get_file(),
+                        0,
+                        bigint_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        bigint_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "denom",
+                        unit.get_file(),
+                        0,
+                        bigint_size,
+                        0,
+                        bigint_size + ptr_size,
+                        LLVMDIFlagPublic,
+                        bigint_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let number_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "number",
+            unit.get_file(),
+            0,
+            rational_size * 2,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "re",
+                        unit.get_file(),
+                        0,
+                        rational_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        rational_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "im",
+                        unit.get_file(),
+                        0,
+                        rational_size,
+                        0,
+                        rational_size,
+                        LLVMDIFlagPublic,
+                        rational_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let any_value_type = builder.create_union_type(
+            unit.get_file().as_debug_info_scope(),
+            "value_payload",
+            unit.get_file(),
+            0,
+            64,
+            0,
+            LLVMDIFlagPublic,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "undefined",
+                        unit.get_file(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type("undefined", 0, 0x07, LLVMDIFlagPublic)
+                            .unwrap()
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "unit",
+                        unit.get_file(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type("unit", 0, 0x07, LLVMDIFlagPublic)
+                            .unwrap()
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "boolean",
+                        unit.get_file(),
+                        0,
+                        8,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        bool_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "character",
+                        unit.get_file(),
+                        0,
+                        64,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_basic_type("character", 64, 0x7, LLVMDIFlagPublic)
+                            .unwrap()
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "string",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "string_ptr",
+                                string_type.as_type(),
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "number",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "number_ptr",
+                                number_type.as_type(),
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            "",
+        );
+
+        let value_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "value",
+            unit.get_file(),
+            0,
+            128,
             0,
             LLVMDIFlagPublic,
             None,
@@ -99,38 +502,20 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         0,
                         LLVMDIFlagPublic,
-                        builder
-                            .create_basic_type(
-                                "trilogy_value_tag",
-                                8,
-                                // Unsigned char
-                                0x8,
-                                LLVMDIFlagPublic,
-                            )
-                            .unwrap()
-                            .as_type(),
+                        tag_type.as_type(),
                     )
                     .as_type(),
                 builder
                     .create_member_type(
                         unit.get_file().as_debug_info_scope(),
-                        "contents",
+                        "payload",
                         unit.get_file(),
                         0,
                         64,
                         0,
-                        8,
+                        ptr_size,
                         LLVMDIFlagPublic,
-                        builder
-                            .create_basic_type(
-                                "trilogy_value_tag",
-                                64,
-                                // Unsigned (u64)
-                                0x07,
-                                LLVMDIFlagPublic,
-                            )
-                            .unwrap()
-                            .as_type(),
+                        any_value_type.as_type(),
                     )
                     .as_type(),
             ],
@@ -140,9 +525,9 @@ impl<'ctx> DebugInfo<'ctx> {
         );
 
         let value_pointer_type = builder.create_pointer_type(
-            "trilogy_value",
+            "value_ptr",
             value_type.as_type(),
-            0,
+            ptr_size,
             0,
             AddressSpace::default(),
         );

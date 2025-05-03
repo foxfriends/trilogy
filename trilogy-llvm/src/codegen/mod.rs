@@ -78,16 +78,17 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("gt".to_owned(), 18);
 
         let module = context.create_module("trilogy:runtime");
-        let di = DebugInfo::new(&module, "trilogy:runtime");
+        let ee = module
+            .create_jit_execution_engine(OptimizationLevel::Default)
+            .unwrap();
+        let di = DebugInfo::new(&module, "trilogy:runtime", &ee);
 
         let codegen = Codegen {
             atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
             di,
             context,
-            execution_engine: module
-                .create_jit_execution_engine(OptimizationLevel::Default)
-                .unwrap(),
+            execution_engine: ee,
             module: Rc::new(module),
             modules,
             globals: HashMap::default(),
@@ -107,7 +108,7 @@ impl<'ctx> Codegen<'ctx> {
     /// a `Codegen` for a Trilogy module's submodule.
     pub(crate) fn for_submodule(&self, name: &str) -> Codegen<'ctx> {
         let module = self.context.create_module(name);
-        let di = DebugInfo::new(&module, name);
+        let di = DebugInfo::new(&module, name, &self.execution_engine);
         Codegen {
             atoms: self.atoms.clone(),
             context: self.context,
