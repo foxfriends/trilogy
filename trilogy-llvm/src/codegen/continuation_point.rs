@@ -78,7 +78,10 @@ static CONTINUATION_POINT_COUNTER: AtomicUsize = AtomicUsize::new(0);
 /// but lexically connected, while a merge is lexically disconnected but semantically connected.
 #[derive(Clone, Debug)]
 pub(crate) struct ContinuationPoint<'ctx> {
-    #[allow(dead_code, reason = "handy debugging thing, maybe remove when the bugs are all gone")]
+    #[allow(
+        dead_code,
+        reason = "handy debugging thing, maybe remove when the bugs are all gone"
+    )]
     pub id: usize,
     /// Pointers to variables available at this point in the continuation.
     /// These pointers may be to values on stack, or to locations in the closure.

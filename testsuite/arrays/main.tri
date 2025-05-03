@@ -1,5 +1,10 @@
 func f [a, b, c] = [a * 2, b * 2, c * 2]
 
+proc make_array!(n) {
+  if n == 0 { return [] }
+  return [..make_array!(n - 1), n]
+}
+
 proc get_array!() {
   return [3, 4, 5]
 }
@@ -20,4 +25,6 @@ proc main!() {
   assert "9" as [..get_array!()] == [3, 4, 5]
   assert "10" as [..xs, ..get_array!()] == [1, 2, 3, 3, 4, 5]
   assert "11" as [..f xs, ..get_array!()] == [2, 4, 6, 3, 4, 5]
+
+  assert "12" as make_array!(3) == [1, 2, 3]
 }

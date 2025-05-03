@@ -328,6 +328,21 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.pm_cont_if(is_array, on_fail);
 
+        if !array.values.iter().any(|el| el.is_spread) {
+            let value = self.use_temporary(value).unwrap();
+            let arr = self.trilogy_array_assume(value, "arr");
+            let length = self.trilogy_array_len(arr, "len");
+            let expected = self
+                .context
+                .i64_type()
+                .const_int(array.values.len() as u64, false);
+            let is_full = self
+                .builder
+                .build_int_compare(IntPredicate::EQ, length, expected, "")
+                .unwrap();
+            self.pm_cont_if(is_full, on_fail);
+        }
+
         let mut spread = None;
         for (i, element) in array.values.iter().enumerate() {
             if element.is_spread {

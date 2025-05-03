@@ -288,6 +288,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_array_push(array_value, temporary);
             }
         }
+        let target = self.use_temporary(target).unwrap();
         Some(target)
     }
 
