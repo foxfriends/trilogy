@@ -786,7 +786,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         32,
                         0,
-                        1 * ptr_size,
+                        ptr_size,
                         LLVMDIFlagPublic,
                         size_t.as_type(),
                     )
