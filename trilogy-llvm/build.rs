@@ -12,7 +12,7 @@ fn try_command(command: &mut Command) {
 }
 
 fn main() {
-    let llvm_prefix = std::env::var("LLVM_SYS_180_PREFIX")
+    let llvm_prefix = std::env::var("LLVM_SYS_181_PREFIX")
         .ok()
         .and_then(|s| s.parse::<PathBuf>().ok())
         .map(|p| p.join("bin"))
