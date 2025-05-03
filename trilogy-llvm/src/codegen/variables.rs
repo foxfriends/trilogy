@@ -311,8 +311,18 @@ impl<'ctx> Codegen<'ctx> {
             // Then we record that we have already located this variable, to avoid relocating it if referenced
             // again from the current continuation point.
             let variable = Variable::Closed { location, upvalue };
-            // TODO: might be worth adding debug information to this variable, as if it was a declaration,
-            // same as we do for newly declared variables below.
+            if let Closed::Variable(var) = closed {
+                // Add debug information to this variable as if it was a declaration,
+                // same as we do for newly declared variables below.
+                self.di.describe_variable(
+                    location,
+                    var.name(),
+                    var.declaration_span,
+                    &builder,
+                    self.get_function().get_subprogram().unwrap(),
+                    self.create_debug_location(var.declaration_span),
+                );
+            }
             scope
                 .variables
                 .borrow_mut()
