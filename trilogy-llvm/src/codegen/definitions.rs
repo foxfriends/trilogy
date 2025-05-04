@@ -30,7 +30,7 @@ impl<'ctx> Codegen<'ctx> {
         };
         let function =
             self.module
-                .add_function(&name, self.continuation_type(), Some(Linkage::External));
+                .add_function(&name, self.continuation_type(), Some(Linkage::Private));
         function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         function.set_subprogram(self.di.create_function(
             &parent_name,
@@ -63,7 +63,7 @@ impl<'ctx> Codegen<'ctx> {
         let function = self.module.add_function(
             name,
             self.procedure_type(arity, false),
-            Some(Linkage::External),
+            Some(Linkage::Private),
         );
         function.set_subprogram(self.di.create_function(
             debug_name,

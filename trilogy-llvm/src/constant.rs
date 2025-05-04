@@ -23,12 +23,18 @@ impl<'ctx> Codegen<'ctx> {
         self.add_constant(location, &constant.name.to_string(), Linkage::External);
     }
 
-    pub(crate) fn declare_constant(&self, constant: &ir::ConstantDefinition, span: Span) {
-        let accessor = self.add_constant(
-            &self.location,
-            &constant.name.to_string(),
-            Linkage::External,
-        );
+    pub(crate) fn declare_constant(
+        &self,
+        constant: &ir::ConstantDefinition,
+        exported: bool,
+        span: Span,
+    ) {
+        let linkage = if exported {
+            Linkage::External
+        } else {
+            Linkage::Private
+        };
+        let accessor = self.add_constant(&self.location, &constant.name.to_string(), linkage);
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
             &constant.name.to_string(),
@@ -36,7 +42,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             span.start().line as u32 + 1,
             self.di.procedure_di_type(0),
-            false,
+            linkage != Linkage::External,
             true,
             span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -49,7 +55,7 @@ impl<'ctx> Codegen<'ctx> {
         let global = self
             .module
             .add_global(self.value_type(), None, &definition.name.to_string());
-        global.set_linkage(Linkage::External);
+        global.set_linkage(Linkage::Private);
         global.set_initializer(&self.value_type().const_zero());
 
         let function = self
