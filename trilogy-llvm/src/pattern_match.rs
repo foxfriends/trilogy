@@ -269,7 +269,8 @@ impl<'ctx> Codegen<'ctx> {
                     }
                     Some(())
                 }
-                _ => panic!("only builtins can be applied in pattern matching context"),
+                Value::Builtin(Builtin::Glue) => todo!(),
+                _ => panic!("only some operators are usable in pattern matching"),
             },
             _ => panic!("only builtins can be applied in pattern matching context"),
         }
@@ -304,7 +305,8 @@ impl<'ctx> Codegen<'ctx> {
                 let pinned = self.compile_expression(expression, "pin")?;
                 self.match_constant(value, pinned, on_fail);
             }
-            _ => todo!(),
+            Builtin::Negate => todo!(),
+            _ => panic!("only some operators are usable in pattern matching"),
         }
         Some(())
     }
