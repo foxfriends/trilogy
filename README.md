@@ -37,6 +37,7 @@ FFI to native libraries.
     - https://doc.rust-lang.org/reference/
     - https://github.com/HigherOrderCO/HVM
     - https://www.sciencedirect.com/science/article/pii/S0890540197926432/pdf?md5=30965cec6dd7605a865bbec4076f65e4&pid=1-s2.0-S0890540197926432-main.pdf
+    - https://arxiv.org/pdf/2504.18920
 - [x] Design the language: Check out the [spec](./spec/)!
 - [x] Read the [book](https://craftinginterpreters.com/)
 - [x] Specify the language (Living document)
