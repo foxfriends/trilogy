@@ -76,8 +76,12 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(initialize);
         if let Some(result) = self.compile_expression(&definition.value, "") {
+            let value = self
+                .builder
+                .build_load(self.value_type(), result, "")
+                .unwrap();
             self.builder
-                .build_store(global.as_pointer_value(), result)
+                .build_store(global.as_pointer_value(), value)
                 .unwrap();
             self.builder
                 .build_unconditional_branch(initialized)
