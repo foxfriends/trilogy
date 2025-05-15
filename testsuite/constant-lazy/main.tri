@@ -1,0 +1,9 @@
+module debug at "trilogy:debug"
+
+const value = debug::dbg!(2)
+
+proc main!() {
+  debug::dbg!(1)
+  assert value == 2
+  debug::dbg!(3)
+}
