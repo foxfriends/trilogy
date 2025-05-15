@@ -1,0 +1,5 @@
+const value = 5
+
+proc main!() {
+  assert value == 5
+}

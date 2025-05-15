@@ -1,0 +1,7 @@
+func make_value n = n + 5
+
+const value = make_value 3
+
+proc main!() {
+  assert value == 8
+}
