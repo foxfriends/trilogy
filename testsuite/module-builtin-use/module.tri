@@ -1,0 +1,5 @@
+proc inside!() {
+  return 5
+}
+
+export inside

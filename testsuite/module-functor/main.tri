@@ -1,0 +1,8 @@
+module box v {
+  proc get!() { return v }
+}
+
+proc main!() {
+  let boxed = box 5
+  assert boxed::get!() == 5
+}

@@ -1,0 +1,9 @@
+module a at "./a.tri"
+module b at "./a.tri"
+
+proc main!() {
+  assert a !== b
+  assert a === a
+  assert b === b
+  assert b::c === a::c
+}

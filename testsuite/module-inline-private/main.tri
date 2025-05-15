@@ -1,0 +1,15 @@
+module inner {
+  proc hidden!() {
+    return 4
+  }
+  
+  proc inside!() {
+    return hidden!() + 1
+  }
+
+  export inside
+}
+
+proc main!() {
+  assert inner::inside!() == 5
+}

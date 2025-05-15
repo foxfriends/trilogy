@@ -1,0 +1,3 @@
+module second at "./second.tri" use inside
+
+export inside

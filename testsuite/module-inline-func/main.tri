@@ -1,0 +1,9 @@
+module inner {
+  func inside n = n + 1
+
+  export inside
+}
+
+proc main!() {
+  assert inner::inside 4 == 5
+}

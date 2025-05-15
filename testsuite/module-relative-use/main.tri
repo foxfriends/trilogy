@@ -1,0 +1,6 @@
+module m at "./module.tri" use inside
+
+proc main!() {
+  assert inside === m::inside
+  assert inside!() == 5
+}
