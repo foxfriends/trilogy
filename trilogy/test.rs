@@ -175,14 +175,12 @@ impl Report {
             if program_output.stderr.is_empty() {
                 writeln!(stdout, "expected error output")?;
             }
-        } else {
-            if !program_output.stderr.is_empty() {
-                writeln!(
-                    stdout,
-                    "---- unexpected error output ----\n{}",
-                    std::str::from_utf8(&program_output.stderr).unwrap_or("non UTF-8 output"),
-                )?;
-            }
+        } else if !program_output.stderr.is_empty() {
+            writeln!(
+                stdout,
+                "---- unexpected error output ----\n{}",
+                std::str::from_utf8(&program_output.stderr).unwrap_or("non UTF-8 output"),
+            )?;
         }
 
         Ok(())
