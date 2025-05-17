@@ -14,7 +14,6 @@ impl TokenPattern for TokenType {
 
 impl<const N: usize> TokenPattern for [TokenType; N] {
     fn matches(&self, token: &Token) -> bool {
-        self.iter()
-            .any(|token_type| token.token_type == *token_type)
+        self.contains(&token.token_type)
     }
 }

@@ -83,7 +83,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         let di = DebugInfo::new(&module, "trilogy:runtime", &ee);
 
-        let codegen = Codegen {
+        Codegen {
             atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
             di,
@@ -97,9 +97,7 @@ impl<'ctx> Codegen<'ctx> {
             current_definition: RefCell::default(),
             closure_array: Cell::default(),
             function_params: RefCell::default(),
-        };
-
-        codegen
+        }
     }
 
     /// Creates a `Codegen` for another (distinct) Trilogy module.

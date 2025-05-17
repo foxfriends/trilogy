@@ -311,16 +311,15 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {
         let tag = self.get_tag(value, "");
-        let cmp = self
-            .builder
+
+        self.builder
             .build_int_compare(
                 IntPredicate::EQ,
                 tag,
                 self.context.i8_type().const_int(TAG_UNDEFINED, false),
                 "is_undefined",
             )
-            .unwrap();
-        cmp
+            .unwrap()
     }
 
     pub(crate) fn branch_undefined(
