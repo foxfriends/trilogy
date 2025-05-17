@@ -40,8 +40,14 @@ void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val);
 void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val);
 
 void glue(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
-void member_access(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+
 void cons(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+
+void member_access(trilogy_value* rv, trilogy_value* lhs, trilogy_value* index);
+void member_assign(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* index,
+    trilogy_value* value
+);
 
 void compare(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void lt(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);

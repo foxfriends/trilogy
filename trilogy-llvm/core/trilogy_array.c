@@ -98,6 +98,19 @@ void trilogy_array_append(trilogy_array_value* arr, trilogy_value* tv) {
     arr->len += tail_len;
 }
 
+void trilogy_array_set(
+    trilogy_array_value* arr, size_t index, trilogy_value* value
+) {
+    assert(index <= arr->len);
+    if (index == arr->len) {
+        arr->len++;
+        arr->contents[index] = *value;
+    } else {
+        trilogy_value_destroy(&arr->contents[index]);
+        arr->contents[index] = *value;
+    }
+}
+
 void trilogy_array_at(
     trilogy_value* tv, trilogy_array_value* arr, size_t index
 ) {

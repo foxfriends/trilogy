@@ -5,6 +5,7 @@
 #include "trilogy_boolean.h"
 #include "trilogy_character.h"
 #include "trilogy_number.h"
+#include "trilogy_record.h"
 #include "trilogy_string.h"
 #include "trilogy_struct.h"
 #include "trilogy_tuple.h"
@@ -335,7 +336,7 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
             trilogy_tuple_right(rv, trilogy_tuple_assume(c));
             break;
         default:
-            internal_panic("unimplemented: yield 'MIA\n");
+            internal_panic("invalid index for tuple member access");
         }
         break;
     }
@@ -345,9 +346,34 @@ void member_access(trilogy_value* rv, trilogy_value* c, trilogy_value* index) {
         trilogy_array_at(rv, trilogy_array_assume(c), i);
         break;
     }
+    case TAG_RECORD: {
+        trilogy_record_get(rv, trilogy_record_assume(c), index);
+        break;
+    }
     default:
         rte("string, bits, tuple, array, or record", c->tag);
     }
+}
+
+void member_assign(
+    trilogy_value* rv, trilogy_value* c, trilogy_value* index,
+    trilogy_value* value
+) {
+    switch (c->tag) {
+    case TAG_ARRAY: {
+        trilogy_number_value* number = trilogy_number_untag(index);
+        uint64_t i = trilogy_number_to_u64(number);
+        trilogy_array_set(trilogy_array_assume(c), i, value);
+        break;
+    }
+    case TAG_RECORD: {
+        trilogy_record_insert(trilogy_record_assume(c), index, value);
+        break;
+    }
+    default:
+        rte("string, bits, tuple, array, or record", c->tag);
+    }
+    *rv = trilogy_unit;
 }
 
 void cons(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
