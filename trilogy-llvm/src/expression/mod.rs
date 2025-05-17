@@ -40,7 +40,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Array(arr) => self.compile_array(arr, name),
             Value::Set(..) => todo!(),
-            Value::Record(..) => todo!(),
+            Value::Record(record) => self.compile_record(record, name),
             Value::ArrayComprehension(..) => todo!(),
             Value::SetComprehension(..) => todo!(),
             Value::RecordComprehension(..) => todo!(),
@@ -286,6 +286,29 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_array_append(array_value, temporary);
             } else {
                 self.trilogy_array_push(array_value, temporary);
+            }
+        }
+        let target = self.use_temporary(target).unwrap();
+        Some(target)
+    }
+
+    fn compile_record(&self, pack: &ir::Pack, name: &str) -> Option<PointerValue<'ctx>> {
+        let target = self.allocate_value(name);
+        self.bind_temporary(target);
+        self.trilogy_record_init_cap(target, pack.values.len(), "rec");
+        for element in &pack.values {
+            match &element.expression.value {
+                ir::Value::Mapping(kv) => {
+                    let key = self.compile_expression(&kv.0, "rec.k")?;
+                    self.bind_temporary(key);
+                    let value = self.compile_expression(&kv.1, "rec.v")?;
+                    let record = self.use_temporary(target).unwrap();
+                    let record = self.trilogy_record_assume(record, "");
+                    let key = self.use_temporary(key).unwrap();
+                    self.trilogy_record_insert(record, key, value);
+                }
+                _value if element.is_spread => todo!(),
+                _ => panic!("record elements must be spread or mapping"),
             }
         }
         let target = self.use_temporary(target).unwrap();

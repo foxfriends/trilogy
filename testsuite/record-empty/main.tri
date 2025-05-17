@@ -1,0 +1,4 @@
+proc main!() {
+  let record = {||}
+  assert typeof record === 'record
+}

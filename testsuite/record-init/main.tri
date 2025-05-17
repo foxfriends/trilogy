@@ -1,0 +1,5 @@
+proc main!() {
+  let record = {| 'a => 'b |}
+  assert typeof record === 'record
+  assert record.'a == 'b
+}

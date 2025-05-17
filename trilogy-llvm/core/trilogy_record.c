@@ -78,7 +78,7 @@ static size_t trilogy_record_find(
 
 static size_t trilogy_record_maintainance(trilogy_record_value* record) {
     // Maximum load factor = 75%
-    if (record->len > record->cap - record->cap / 4) {
+    if (record->len >= record->cap - record->cap / 4) {
         size_t old_cap = record->cap;
         trilogy_tuple_value* old_contents = record->contents;
         size_t new_cap = old_cap <= SIZE_MAX / 2 ? old_cap * 2 : SIZE_MAX;
@@ -98,6 +98,7 @@ static size_t trilogy_record_maintainance(trilogy_record_value* record) {
 void trilogy_record_insert(
     trilogy_record_value* record, trilogy_value* key, trilogy_value* value
 ) {
+    trilogy_record_maintainance(record);
     size_t empty = record->cap;
     size_t found = trilogy_record_find(record, key, &empty);
     if (found == record->cap) {
@@ -106,7 +107,6 @@ void trilogy_record_insert(
         record->contents[empty].fst = *key;
         record->contents[empty].snd = *value;
         record->len++;
-        trilogy_record_maintainance(record);
     } else {
         // If it is found, delete the new key, destroy the old value, and then
         // insert the new value.

@@ -531,6 +531,79 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_record_init_cap(
+        &self,
+        value: PointerValue<'ctx>,
+        cap: usize,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_record_init_cap",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.usize_type().into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    value.into(),
+                    self.usize_type().const_int(cap as u64, false).into(),
+                ],
+                name,
+            )
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_record_assume(
+        &self,
+        t: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_record_assume",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[t.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_record_insert(
+        &self,
+        record: PointerValue<'ctx>,
+        key: PointerValue<'ctx>,
+        value: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_record_insert",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[record.into(), key.into(), value.into()], "")
+            .unwrap();
+    }
+
     /// Untags a callable value. The returned PointerValue points to a `trilogy_callable_value`.
     pub(crate) fn trilogy_callable_untag(
         &self,
