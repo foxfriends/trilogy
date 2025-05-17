@@ -3,7 +3,7 @@ use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
 use inkwell::values::{BasicValue, PointerValue};
-use trilogy_ir::ir::{self, QueryValue, Value};
+use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_ir::visitor::Bindings;
 use trilogy_parser::syntax;
 
@@ -501,7 +501,26 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_clone_into(variable.ptr(), value);
                 Some(value)
             }
-            Value::Application(..) => todo!(),
+            Value::Application(app) => {
+                // { lhs = (parent = {. collection} key) } = rhs
+                match &app.function.value {
+                    Value::Application(parent)
+                        if matches!(parent.function.value, Value::Builtin(Builtin::Access)) =>
+                    {
+                        let container = self.compile_expression(&parent.argument, "")?;
+                        self.bind_temporary(container);
+                        let key = self.compile_expression(&app.argument, "")?;
+                        self.bind_temporary(key);
+                        let value = self.compile_expression(&assign.rhs, "")?;
+                        let container = self.use_temporary(container).unwrap();
+                        let key = self.use_temporary(key).unwrap();
+                        let out = self.allocate_value(name);
+                        self.member_assign(out, container, key, value);
+                        Some(out)
+                    }
+                    _ => panic!("invalid lvalue in assignment"),
+                }
+            }
             _ => panic!("invalid lvalue in assignment"),
         }
     }

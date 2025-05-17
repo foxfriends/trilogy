@@ -1,5 +1,6 @@
 proc main!() {
-  let record = {| 'a => 'b |}
+  let record = {| 'a => 'b, 1 => 4 |}
   assert typeof record === 'record
   assert record.'a == 'b
+  assert record.1 == 4
 }

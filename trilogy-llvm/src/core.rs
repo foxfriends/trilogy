@@ -191,6 +191,17 @@ impl<'ctx> Codegen<'ctx> {
         self.call_core(target, f, &[lhs.into(), rhs.into()]);
     }
 
+    pub(crate) fn member_assign(
+        &self,
+        target: PointerValue<'ctx>,
+        container: PointerValue<'ctx>,
+        key: PointerValue<'ctx>,
+        value: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_core("member_assign", 3);
+        self.call_core(target, f, &[container.into(), key.into(), value.into()]);
+    }
+
     pub(crate) fn glue(
         &self,
         target: PointerValue<'ctx>,

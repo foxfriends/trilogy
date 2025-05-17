@@ -127,6 +127,7 @@ void trilogy_record_delete(trilogy_record_value* record, trilogy_value* key) {
         trilogy_value_destroy(&record->contents[found].snd);
         record->contents[found].fst = trilogy_undefined;
         record->contents[found].snd = trilogy_unit;
+        record->len--;
     }
 }
 

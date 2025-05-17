@@ -1,0 +1,9 @@
+proc main!() {
+  let mut record = {||}
+  record.'a = 'b
+  record.'b = 'c
+  assert record.'a == 'b
+  assert record.'b == 'c
+  record.'a = 'd
+  assert record.'a == 'd
+}
