@@ -27,4 +27,9 @@ proc main!() {
   assert "11" as [..f xs, ..get_array!()] == [2, 4, 6, 3, 4, 5]
 
   assert "12" as make_array!(3) == [1, 2, 3]
+
+  let mut x_mut = [1]
+  x_mut.0 = 5
+  x_mut.1 = 10
+  assert x_mut == [5, 10]
 }
