@@ -82,7 +82,7 @@ impl<'ctx> Codegen<'ctx> {
         // - literals
         // - basic operators
         // - constant/function/procedure/rule references
-        // - partial function applications
+        // - partial function applications (?)
         if let Some(result) = self.compile_expression(&definition.value, "") {
             let value = self
                 .builder
