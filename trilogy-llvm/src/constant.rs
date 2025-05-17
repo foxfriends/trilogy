@@ -52,16 +52,14 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition) {
-        let global = self
-            .module
-            .add_global(self.value_type(), None, &definition.name.to_string());
+        let name = definition.name.to_string();
+        let linkage_name = format!("{}::{}", self.location, &name);
+        let global = self.module.add_global(self.value_type(), None, &name);
         global.set_linkage(Linkage::Private);
         global.set_initializer(&self.value_type().const_zero());
 
-        let function = self
-            .module
-            .get_function(&format!("{}::{}", self.location, definition.name))
-            .unwrap();
+        let function = self.module.get_function(&linkage_name).unwrap();
+        self.set_current_definition(name, linkage_name, definition.value.span);
 
         self.di.push_subprogram(function.get_subprogram().unwrap());
         self.di
@@ -74,7 +72,17 @@ impl<'ctx> Codegen<'ctx> {
 
         self.branch_undefined(global.as_pointer_value(), initialize, initialized);
 
+        self.builder.position_at_end(initialized);
+        let sret = function.get_first_param().unwrap().into_pointer_value();
+        self.trilogy_value_clone_into(sret, global.as_pointer_value());
+        self.builder.build_return(None).unwrap();
+
         self.builder.position_at_end(initialize);
+        // TODO: restrict constants to actually be "constant":
+        // - literals
+        // - basic operators
+        // - constant/function/procedure/rule references
+        // - partial function applications
         if let Some(result) = self.compile_expression(&definition.value, "") {
             let value = self
                 .builder
@@ -88,11 +96,6 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap();
         }
 
-        // TODO: someday constants... should be constant. And deterministic
-        self.builder.position_at_end(initialized);
-        let sret = function.get_first_param().unwrap().into_pointer_value();
-        self.trilogy_value_clone_into(sret, global.as_pointer_value());
-        self.builder.build_return(None).unwrap();
         self.di.pop_scope();
         self.di.pop_scope();
     }
