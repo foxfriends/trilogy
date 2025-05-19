@@ -1,4 +1,5 @@
 #include "trilogy_value.h"
+#include "hash.h"
 #include "internal.h"
 #include "trace.h"
 #include "trilogy_array.h"
@@ -343,4 +344,84 @@ int trilogy_value_compare(trilogy_value* lhs, trilogy_value* rhs) {
             trilogy_array_assume(lhs), trilogy_array_assume(rhs)
         );
     }
+}
+
+static void bigint_hash_into(hasher* h, bigint* b) {
+    hash_update_n(h, (uint8_t*)&b->length, sizeof(size_t));
+    if (b->capacity == 0) {
+        hash_update_n(h, (uint8_t*)&b->contents.value, sizeof(digit_t));
+    } else {
+        for (size_t i = 0; i < b->length; ++i) {
+            hash_update_n(h, (uint8_t*)&b->contents.digits[i], sizeof(digit_t));
+        }
+    }
+}
+
+static void trilogy_value_hash_into(hasher* h, trilogy_value* value) {
+    assert(value != NULL);
+    assert(value->tag != TAG_UNDEFINED);
+    assert(value->tag != TAG_REFERENCE);
+    hash_update(h, value->tag);
+
+    switch (value->tag) {
+    case TAG_UNIT:
+    case TAG_BOOL:
+    case TAG_ATOM:
+    case TAG_CHAR:
+    case TAG_ARRAY:
+    case TAG_SET:
+    case TAG_RECORD:
+    case TAG_CALLABLE: {
+        hash_update_n(h, (uint8_t*)&value->payload, sizeof(uint64_t));
+        break;
+    }
+    case TAG_STRING: {
+        trilogy_string_value* str = trilogy_string_assume(value);
+        hash_update_n(h, (uint8_t*)&str->len, sizeof(size_t));
+        hash_update_n(h, (uint8_t*)str->contents, str->len);
+        break;
+    }
+    case TAG_NUMBER: {
+        trilogy_number_value* t = trilogy_number_assume(value);
+        hash_update(h, (uint8_t)t->re.is_negative);
+        bigint_hash_into(h, &t->re.numer);
+        bigint_hash_into(h, &t->re.denom);
+        hash_update(h, (uint8_t)t->im.is_negative);
+        bigint_hash_into(h, &t->im.numer);
+        bigint_hash_into(h, &t->im.denom);
+        break;
+    }
+    case TAG_BITS: {
+        trilogy_bits_value* bits = trilogy_bits_assume(value);
+        size_t byte_len = trilogy_bits_bytelen(bits);
+        hash_update_n(h, (uint8_t*)&bits->len, sizeof(size_t));
+        hash_update_n(h, bits->contents, byte_len - 1);
+        size_t last_len = bits->len % 8;
+        uint8_t mask = ~0 >> (8 - last_len) << (8 - last_len);
+        uint8_t last = bits->contents[byte_len - 1] & mask;
+        hash_update(h, last);
+        break;
+    }
+    case TAG_STRUCT: {
+        trilogy_struct_value* st = trilogy_struct_assume(value);
+        hash_update_n(h, (uint8_t*)&st->atom, sizeof(uint64_t));
+        trilogy_value_hash_into(h, &st->contents);
+        break;
+    }
+    case TAG_TUPLE: {
+        trilogy_tuple_value* t = trilogy_tuple_assume(value);
+        trilogy_value_hash_into(h, &t->fst);
+        trilogy_value_hash_into(h, &t->snd);
+        break;
+    }
+    case TAG_UNDEFINED:
+    case TAG_REFERENCE:
+        internal_panic("unreachable");
+    }
+}
+
+uint64_t trilogy_value_hash(trilogy_value* value) {
+    hasher* h = hash_new();
+    trilogy_value_hash_into(h, value);
+    return hash_finish(h);
 }

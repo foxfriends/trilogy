@@ -9,9 +9,6 @@
 
 // This is hash map with basic open-addressed linear probing.
 
-// TODO: the hash SUCKS right now, but technically this should "function".
-static size_t hash(trilogy_value* value) { return 0; }
-
 trilogy_record_value*
 trilogy_record_init(trilogy_value* tv, trilogy_record_value* rec) {
     assert(tv->tag == TAG_UNDEFINED);
@@ -50,7 +47,7 @@ static size_t trilogy_record_find(
     trilogy_record_value* record, trilogy_value* key, size_t* insert_to
 ) {
     if (insert_to) *insert_to = record->cap;
-    size_t h = hash(key) % record->cap;
+    size_t h = ((size_t)trilogy_value_hash(key)) % record->cap;
     for (;; h = h == record->cap - 1 ? 0 : h + 1) {
         trilogy_tuple_value* entry = &record->contents[h];
         if (entry->fst.tag == TAG_UNDEFINED &&
@@ -76,7 +73,7 @@ static size_t trilogy_record_find(
     }
 }
 
-static size_t trilogy_record_maintainance(trilogy_record_value* record) {
+static void trilogy_record_maintainance(trilogy_record_value* record) {
     // Maximum load factor = 75%
     if (record->len >= record->cap - record->cap / 4) {
         size_t old_cap = record->cap;

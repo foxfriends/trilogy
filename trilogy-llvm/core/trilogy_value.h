@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 extern const trilogy_value trilogy_undefined;
 extern const trilogy_value trilogy_unit;
@@ -14,3 +15,5 @@ bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs);
 int trilogy_value_compare(trilogy_value* lhs, trilogy_value* rhs);
 
 void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val);
+
+uint64_t trilogy_value_hash(trilogy_value* value);
