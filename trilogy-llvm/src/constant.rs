@@ -23,21 +23,16 @@ impl<'ctx> Codegen<'ctx> {
         self.add_constant(location, &constant.name.to_string(), Linkage::External);
     }
 
-    pub(crate) fn declare_constant(
-        &self,
-        constant: &ir::ConstantDefinition,
-        exported: bool,
-        span: Span,
-    ) {
+    pub(crate) fn declare_constant(&self, name: &str, exported: bool, span: Span) {
         let linkage = if exported {
             Linkage::External
         } else {
             Linkage::Private
         };
-        let accessor = self.add_constant(&self.location, &constant.name.to_string(), linkage);
+        let accessor = self.add_constant(&self.location, name, linkage);
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
-            &constant.name.to_string(),
+            name,
             None,
             self.di.unit.get_file(),
             span.start().line as u32 + 1,

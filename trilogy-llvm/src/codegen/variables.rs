@@ -47,7 +47,8 @@ pub(crate) enum Head {
     Procedure,
     #[expect(dead_code)]
     Rule,
-    Module(String),
+    ExternalModule(String),
+    Module,
 }
 
 impl std::fmt::Display for Closed<'_> {

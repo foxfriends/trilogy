@@ -474,7 +474,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(module) = &module_ref.value {
-            if let Some(Head::Module(module)) = self.globals.get(&module.id) {
+            if let Some(Head::ExternalModule(module)) = self.globals.get(&module.id) {
                 let target = self.allocate_value(name);
                 let declared = self
                     .module

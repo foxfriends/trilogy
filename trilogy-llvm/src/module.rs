@@ -16,10 +16,38 @@ impl<'ctx> Codegen<'ctx> {
                     subcontext.import_module(&location, submodule);
                     subcontext
                         .globals
-                        .insert(module.name.id.clone(), Head::Module(location));
+                        .insert(module.name.id.clone(), Head::ExternalModule(location));
+                }
+                DefinitionItem::Module(def) => {
+                    let module = def.module.as_module().unwrap();
+                    if module.parameters.is_empty() {
+                        subcontext.declare_constant(
+                            &def.name.to_string(),
+                            definition.is_exported,
+                            definition.span,
+                        );
+                        subcontext.globals.insert(def.name.id.clone(), Head::Module);
+                    } else {
+                        subcontext.declare_function(
+                            &def.name.to_string(),
+                            if definition.is_exported {
+                                Linkage::External
+                            } else {
+                                Linkage::Private
+                            },
+                            definition.span,
+                        );
+                        subcontext
+                            .globals
+                            .insert(def.name.id.clone(), Head::Function);
+                    }
                 }
                 DefinitionItem::Constant(constant) => {
-                    subcontext.declare_constant(constant, definition.is_exported, definition.span);
+                    subcontext.declare_constant(
+                        &constant.name.to_string(),
+                        definition.is_exported,
+                        definition.span,
+                    );
                     subcontext
                         .globals
                         .insert(constant.name.id.clone(), Head::Constant);
@@ -68,8 +96,8 @@ impl<'ctx> Codegen<'ctx> {
                         .globals
                         .insert(function.name.id.clone(), Head::Function);
                 }
-
-                _ => {}
+                DefinitionItem::Rule(..) => todo!("implement rule"),
+                DefinitionItem::Test(..) => {}
             }
         }
 
@@ -84,10 +112,12 @@ impl<'ctx> Codegen<'ctx> {
                     subcontext.compile_function(function);
                 }
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {}
+                DefinitionItem::Module(..) => todo!("implement module"),
                 DefinitionItem::Constant(constant) => {
                     subcontext.compile_constant(constant);
                 }
-                _ => todo!(),
+                DefinitionItem::Rule(..) => todo!("implement rule"),
+                DefinitionItem::Test(..) => {}
             }
         }
 
