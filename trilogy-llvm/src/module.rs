@@ -112,7 +112,10 @@ impl<'ctx> Codegen<'ctx> {
                     subcontext.compile_function(function);
                 }
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {}
-                DefinitionItem::Module(..) => todo!("implement module"),
+                DefinitionItem::Module(def) => {
+                    let module = def.module.as_module().unwrap();
+                    self.compile_module(file, module);
+                }
                 DefinitionItem::Constant(constant) => {
                     subcontext.compile_constant(constant);
                 }

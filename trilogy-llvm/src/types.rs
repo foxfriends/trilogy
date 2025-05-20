@@ -176,6 +176,12 @@ impl<'ctx> Codegen<'ctx> {
         ])
     }
 
+    pub(crate) fn atom_value_raw(&self, atom: String) -> u64 {
+        let mut atoms = self.atoms.borrow_mut();
+        let next = atoms.len() as u64;
+        *atoms.entry(atom.to_owned()).or_insert(next)
+    }
+
     pub(crate) fn char_const(&self, value: char) -> StructValue<'ctx> {
         self.value_type().const_named_struct(&[
             self.tag_type().const_int(TAG_CHAR, false).into(),

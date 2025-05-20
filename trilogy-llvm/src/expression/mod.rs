@@ -53,9 +53,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Application(app) => self.compile_application(app, name),
             Value::Builtin(val) => Some(self.reference_builtin(*val, name)),
             Value::Reference(val) => Some(self.compile_reference(val, name)),
-            Value::ModuleAccess(access) => {
-                Some(self.compile_module_access(&access.0, &access.1, name))
-            }
+            Value::ModuleAccess(access) => self.compile_module_access(&access.0, &access.1, name),
             Value::IfElse(if_else) => self.compile_if_else(if_else, name),
             Value::Assignment(assign) => self.compile_assignment(assign, name),
             Value::While(expr) => self.compile_while(expr, name),
@@ -471,7 +469,7 @@ impl<'ctx> Codegen<'ctx> {
         module_ref: &ir::Expression,
         ident: &syntax::Identifier,
         name: &str,
-    ) -> PointerValue<'ctx> {
+    ) -> Option<PointerValue<'ctx>> {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(module) = &module_ref.value {
             if let Some(Head::ExternalModule(module)) = self.globals.get(&module.id) {
@@ -481,11 +479,19 @@ impl<'ctx> Codegen<'ctx> {
                     .get_function(&format!("{}::{}", module, ident.as_ref()))
                     .unwrap();
                 self.call_internal(target, declared, &[]);
-                return target;
+                return Some(target);
             }
         }
 
-        todo!()
+        let module_value = self.compile_expression(module_ref, "")?;
+        let module = self.trilogy_module_untag(module_value, "");
+        let id = self.atom_value_raw(ident.as_ref().to_owned());
+        let target = self.allocate_value(name);
+        let value =
+            self.trilogy_module_find(module, self.context.i64_type().const_int(id, false), "");
+        self.trilogy_value_clone_into(target, value);
+        self.trilogy_value_destroy(module_value);
+        Some(target)
     }
 
     fn compile_assignment(

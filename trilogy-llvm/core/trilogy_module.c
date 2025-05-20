@@ -30,6 +30,16 @@ trilogy_module_clone_into(trilogy_value* tv, trilogy_module* module) {
     return trilogy_module_init(tv, module);
 }
 
+trilogy_module* trilogy_module_untag(trilogy_value* val) {
+    if (val->tag != TAG_MODULE) rte("module", val->tag);
+    return trilogy_module_assume(val);
+}
+
+trilogy_module* trilogy_module_assume(trilogy_value* val) {
+    assert(val->tag == TAG_MODULE);
+    return (trilogy_module*)val->payload;
+}
+
 void trilogy_module_destroy(trilogy_module* module) {
     if (--module->rc == 0) {
         free(module->member_ids);
