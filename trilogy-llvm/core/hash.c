@@ -1,5 +1,7 @@
 #include "hash.h"
 #include "internal.h"
+#include <stdint.h>
+#include <stdlib.h>
 
 // Implements FNV-1a hash function, according to Wikipedia
 

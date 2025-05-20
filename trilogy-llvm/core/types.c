@@ -30,6 +30,8 @@ char* type_name(trilogy_value_tag tag) {
         return "record";
     case TAG_CALLABLE:
         return "callable";
+    case TAG_MODULE:
+        return "module";
     default:
         return "invalid value";
     }

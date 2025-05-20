@@ -71,11 +71,12 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("set".to_owned(), types::TAG_SET);
         atoms.insert("record".to_owned(), types::TAG_RECORD);
         atoms.insert("callable".to_owned(), types::TAG_CALLABLE);
-        atoms.insert("left".to_owned(), 14);
-        atoms.insert("right".to_owned(), 15);
-        atoms.insert("lt".to_owned(), 16);
-        atoms.insert("eq".to_owned(), 17);
-        atoms.insert("gt".to_owned(), 18);
+        atoms.insert("module".to_owned(), types::TAG_MODULE);
+        atoms.insert("left".to_owned(), 15);
+        atoms.insert("right".to_owned(), 16);
+        atoms.insert("lt".to_owned(), 17);
+        atoms.insert("eq".to_owned(), 18);
+        atoms.insert("gt".to_owned(), 19);
 
         let module = context.create_module("trilogy:runtime");
         let ee = module

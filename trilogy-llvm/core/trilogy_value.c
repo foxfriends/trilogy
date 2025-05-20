@@ -1,4 +1,5 @@
 #include "trilogy_value.h"
+#include "bigint.h"
 #include "hash.h"
 #include "internal.h"
 #include "trace.h"
@@ -154,6 +155,7 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_BOOL:
     case TAG_ATOM:
     case TAG_CHAR:
+    case TAG_MODULE:
         return lhs->payload == rhs->payload;
     case TAG_NUMBER: {
         trilogy_number_value* lhs_num = trilogy_number_assume(lhs);
@@ -223,7 +225,8 @@ bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs) {
     switch (lhs->tag) {
     case TAG_ARRAY:
     case TAG_SET:
-    case TAG_RECORD: {
+    case TAG_RECORD:
+    case TAG_MODULE: {
         return lhs->payload == rhs->payload;
     }
     case TAG_CALLABLE: {
@@ -293,6 +296,7 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
     case TAG_RECORD:
     case TAG_CALLABLE:
     case TAG_REFERENCE:
+    case TAG_MODULE:
     default:
         internal_panic("unimplemented\n");
     }
@@ -309,6 +313,7 @@ int trilogy_value_compare(trilogy_value* lhs, trilogy_value* rhs) {
     case TAG_SET:
     case TAG_RECORD:
     case TAG_CALLABLE:
+    case TAG_MODULE:
     case TAG_REFERENCE:
         return -2;
     case TAG_BOOL:
@@ -371,6 +376,7 @@ static void trilogy_value_hash_into(hasher* h, trilogy_value* value) {
     case TAG_ARRAY:
     case TAG_SET:
     case TAG_RECORD:
+    case TAG_MODULE:
     case TAG_CALLABLE: {
         hash_update_n(h, (uint8_t*)&value->payload, sizeof(uint64_t));
         break;

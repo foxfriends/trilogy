@@ -23,8 +23,9 @@ pub(crate) const TAG_ARRAY: u64 = 10;
 pub(crate) const TAG_SET: u64 = 11;
 pub(crate) const TAG_RECORD: u64 = 12;
 pub(crate) const TAG_CALLABLE: u64 = 13;
+pub(crate) const TAG_MODULE: u64 = 14;
 #[expect(dead_code, reason = "completeness")]
-pub(crate) const TAG_REFERENCE: u64 = 14;
+pub(crate) const TAG_REFERENCE: u64 = 15;
 
 #[expect(dead_code, reason = "completeness")]
 pub(crate) const CALLABLE_FUNCTION: u64 = 1;

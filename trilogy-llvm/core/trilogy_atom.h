@@ -2,12 +2,12 @@
 #include "types.h"
 #include <stdint.h>
 
-#define ATOM_LEFT 14
-#define ATOM_RIGHT 15
+#define ATOM_LEFT 15
+#define ATOM_RIGHT 16
 
-#define ATOM_LT 16
-#define ATOM_EQ 17
-#define ATOM_GT 18
+#define ATOM_LT 17
+#define ATOM_EQ 18
+#define ATOM_GT 19
 
 void trilogy_atom_init(trilogy_value* t, uint64_t i);
 uint64_t trilogy_atom_untag(trilogy_value* val);

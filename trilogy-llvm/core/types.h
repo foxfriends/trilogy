@@ -19,11 +19,17 @@ typedef enum trilogy_value_tag : uint8_t {
     TAG_RECORD = 12,
     TAG_CALLABLE = 13,
     /**
+     * I guess module will be a runtime type, since no avoiding one being
+     * referenced dynamically, and they follow different rules than other
+     * values.
+     */
+    TAG_MODULE = 14,
+    /**
      * Not an observable value in a Trilogy program, but the reference counted
      * reference to a heap allocated variable is a distinguished type at runtime
      * level...
      */
-    TAG_REFERENCE = 14
+    TAG_REFERENCE = 15
 } trilogy_value_tag;
 
 typedef enum trilogy_callable_tag : uint8_t {
@@ -226,5 +232,27 @@ typedef struct trilogy_reference {
      */
     trilogy_value closed;
 } trilogy_reference;
+
+/**
+ * A module instance.
+ */
+typedef struct trilogy_module {
+    /**
+     * The reference count for this module instance.
+     */
+    uint32_t rc;
+    /**
+     * The number of members in this module.
+     */
+    size_t len;
+    /**
+     * The sorted list of IDs for members in this module.
+     */
+    uint64_t* member_ids;
+    /**
+     * The actual pointers to contained members.
+     */
+    trilogy_value* members;
+} trilogy_module;
 
 char* type_name(trilogy_value_tag tag);
