@@ -552,8 +552,7 @@ impl<'ctx> Codegen<'ctx> {
                 {
                     Head::Constant | Head::Procedure | Head::Function => {
                         let target = self.allocate_value(name);
-                        let global_name =
-                            format!("{}::{ident}", self.module.get_name().to_str().unwrap());
+                        let global_name = format!("{}::{ident}", self.module_path());
                         let function = self.module.get_function(&global_name).unwrap();
                         self.call_internal(target, function, &[]);
                         target

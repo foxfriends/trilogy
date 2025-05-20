@@ -4,8 +4,16 @@ use trilogy_ir::ir::{self, DefinitionItem};
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
-        let mut subcontext = self.for_submodule(file);
+        let mut subcontext = self.for_file(file);
+        Self::compile_module_contents(&mut subcontext, module);
+        subcontext
+    }
 
+    pub(crate) fn compile_submodule(subcontext: &mut Codegen<'ctx>, module: &ir::Module) {
+        Self::compile_module_contents(subcontext, module);
+    }
+
+    fn compile_module_contents(subcontext: &mut Codegen<'ctx>, module: &ir::Module) {
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.
         for definition in module.definitions() {
@@ -114,7 +122,9 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {}
                 DefinitionItem::Module(def) => {
                     let module = def.module.as_module().unwrap();
-                    self.compile_module(file, module);
+                    subcontext.begin_submodule(def.name.to_string());
+                    Self::compile_submodule(subcontext, module);
+                    subcontext.end_submodule();
                 }
                 DefinitionItem::Constant(constant) => {
                     subcontext.compile_constant(constant);
@@ -123,8 +133,6 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Test(..) => {}
             }
         }
-
-        subcontext
     }
 
     pub(crate) fn import_module(&self, location: &str, module: &ir::Module) {

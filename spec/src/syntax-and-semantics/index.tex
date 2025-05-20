@@ -189,18 +189,18 @@ syntax tree, so having the documentation inside is simply useful.
 
 Modules act as containers for definitions, including procedures,
 functions, rules, and further submodules. Every \Trilogy{} document is
-implicitly a module, meaning a document may export any of its defined items,
+implicitly a module, meaning a document may export any of its defined items
 to make them available to other modules that reference that document. Any item
 defined at the top level of a module may be exported: procedures, functions,
 rules, and modules.
 
 The \Trilogy{} module system is modelled after that of OCaml: modules may
-be defined as functions which accept one or more other modules as parameters,
-and generate a new module. As in OCaml, such modules functions are \emph{applicative}:
+be defined as functions which accept one or more values as parameters
+to generate a new module. Unlike in OCaml, such modules functions are \emph{generative}:
 if a module function is applied to the same arguments multiple times, it will
-generate the same resulting module. At this time, a document cannot specify
-parameters, so such function modules may only be defined as a local submodule
-within some existing module.
+generate a distinct module. At this time, a document cannot specify parameters,
+so such function modules may only be defined as a local submodule within some
+existing module.
 
 Modules defined as external modules via the \kw{module}-\kw{at} construct
 are resolved as documents located via the canonical absolute URL designated

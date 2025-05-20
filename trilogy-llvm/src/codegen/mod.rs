@@ -39,6 +39,7 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) modules: &'ctx HashMap<String, &'ctx ir::Module>,
     pub(crate) globals: HashMap<Id, Head>,
     pub(crate) location: String,
+    pub(crate) path: Vec<String>,
 
     /// The chain of continuations arriving at the current expression being compiled.
     ///
@@ -85,6 +86,7 @@ impl<'ctx> Codegen<'ctx> {
         let di = DebugInfo::new(&module, "trilogy:runtime", &ee);
 
         Codegen {
+            path: vec![],
             atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
             di,
@@ -101,14 +103,12 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    /// Creates a `Codegen` for another (distinct) Trilogy module.
-    ///
-    /// This function is called `sub` as in `submodule` incorrectly; it is not for creating
-    /// a `Codegen` for a Trilogy module's submodule.
-    pub(crate) fn for_submodule(&self, name: &str) -> Codegen<'ctx> {
+    /// Creates a `Codegen` for another Trilogy file (module).
+    pub(crate) fn for_file(&self, name: &str) -> Codegen<'ctx> {
         let module = self.context.create_module(name);
         let di = DebugInfo::new(&module, name, &self.execution_engine);
         Codegen {
+            path: vec![],
             atoms: self.atoms.clone(),
             context: self.context,
             builder: self.context.create_builder(),
@@ -123,6 +123,21 @@ impl<'ctx> Codegen<'ctx> {
             closure_array: Cell::default(),
             function_params: RefCell::default(),
         }
+    }
+
+    pub(crate) fn begin_submodule(&mut self, name: String) {
+        self.path.push(name);
+    }
+
+    pub(crate) fn end_submodule(&mut self) {
+        self.path.pop().unwrap();
+    }
+
+    pub(crate) fn module_path(&self) -> String {
+        self.path.iter().fold(
+            self.module.get_name().to_str().unwrap().to_owned(),
+            |p, s| format!("{p}::{s}"),
+        )
     }
 
     /// Sets the current definition. This will push a fresh continuation point as the current
