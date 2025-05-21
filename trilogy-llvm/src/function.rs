@@ -27,7 +27,7 @@ impl<'ctx> Codegen<'ctx> {
         linkage: Linkage,
         span: Span,
     ) -> FunctionValue<'ctx> {
-        let accessor_name = format!("{}::{}", self.location, name);
+        let accessor_name = format!("{}::{}", self.module_path(), name);
         let function = self.add_function(name, name, span, linkage != Linkage::External);
         let accessor = self.add_accessor(&accessor_name, linkage);
         self.write_function_accessor(accessor, function);

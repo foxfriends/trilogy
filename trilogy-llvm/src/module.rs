@@ -1,5 +1,6 @@
-use crate::codegen::{Codegen, Head};
+use crate::codegen::{Codegen, Global, Head};
 use inkwell::module::Linkage;
+use trilogy_ir::Id;
 use trilogy_ir::ir::{self, DefinitionItem};
 
 impl<'ctx> Codegen<'ctx> {
@@ -13,6 +14,25 @@ impl<'ctx> Codegen<'ctx> {
         Self::compile_module_contents(subcontext, module);
     }
 
+    fn add_global(&mut self, id: Id, head: Head) {
+        self.globals.insert(
+            id,
+            Global {
+                path: self.path.clone(),
+                head,
+            },
+        );
+    }
+
+    fn begin_submodule(&mut self, name: String) {
+        self.path.push(name);
+    }
+
+    fn end_submodule(&mut self) {
+        self.path.pop().unwrap();
+        self.globals.retain(|_, v| self.path.starts_with(&v.path));
+    }
+
     fn compile_module_contents(subcontext: &mut Codegen<'ctx>, module: &ir::Module) {
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.
@@ -22,9 +42,7 @@ impl<'ctx> Codegen<'ctx> {
                     let location = module.module.as_external().unwrap().to_owned();
                     let submodule = subcontext.modules.get(&location).unwrap();
                     subcontext.import_module(&location, submodule);
-                    subcontext
-                        .globals
-                        .insert(module.name.id.clone(), Head::ExternalModule(location));
+                    subcontext.add_global(module.name.id.clone(), Head::ExternalModule(location));
                 }
                 DefinitionItem::Module(def) => {
                     let module = def.module.as_module().unwrap();
@@ -34,7 +52,7 @@ impl<'ctx> Codegen<'ctx> {
                             definition.is_exported,
                             definition.span,
                         );
-                        subcontext.globals.insert(def.name.id.clone(), Head::Module);
+                        subcontext.add_global(def.name.id.clone(), Head::Module);
                     } else {
                         subcontext.declare_function(
                             &def.name.to_string(),
@@ -45,9 +63,7 @@ impl<'ctx> Codegen<'ctx> {
                             },
                             definition.span,
                         );
-                        subcontext
-                            .globals
-                            .insert(def.name.id.clone(), Head::Function);
+                        subcontext.add_global(def.name.id.clone(), Head::Function);
                     }
                 }
                 DefinitionItem::Constant(constant) => {
@@ -56,9 +72,7 @@ impl<'ctx> Codegen<'ctx> {
                         definition.is_exported,
                         definition.span,
                     );
-                    subcontext
-                        .globals
-                        .insert(constant.name.id.clone(), Head::Constant);
+                    subcontext.add_global(constant.name.id.clone(), Head::Constant);
                 }
                 DefinitionItem::Procedure(procedure) if procedure.overloads.is_empty() => {
                     subcontext.declare_extern_procedure(
@@ -71,9 +85,7 @@ impl<'ctx> Codegen<'ctx> {
                         },
                         procedure.span(),
                     );
-                    subcontext
-                        .globals
-                        .insert(procedure.name.id.clone(), Head::Procedure);
+                    subcontext.add_global(procedure.name.id.clone(), Head::Procedure);
                 }
                 DefinitionItem::Procedure(procedure) => {
                     subcontext.declare_procedure(
@@ -86,9 +98,7 @@ impl<'ctx> Codegen<'ctx> {
                         },
                         procedure.span(),
                     );
-                    subcontext
-                        .globals
-                        .insert(procedure.name.id.clone(), Head::Procedure);
+                    subcontext.add_global(procedure.name.id.clone(), Head::Procedure);
                 }
                 DefinitionItem::Function(function) => {
                     subcontext.declare_function(
@@ -100,9 +110,7 @@ impl<'ctx> Codegen<'ctx> {
                         },
                         function.span(),
                     );
-                    subcontext
-                        .globals
-                        .insert(function.name.id.clone(), Head::Function);
+                    subcontext.add_global(function.name.id.clone(), Head::Function);
                 }
                 DefinitionItem::Rule(..) => todo!("implement rule"),
                 DefinitionItem::Test(..) => {}

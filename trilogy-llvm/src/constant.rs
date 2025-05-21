@@ -29,7 +29,7 @@ impl<'ctx> Codegen<'ctx> {
         } else {
             Linkage::Private
         };
-        let accessor = self.add_constant(&self.location, name, linkage);
+        let accessor = self.add_constant(&self.module_path(), name, linkage);
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
             name,
@@ -48,7 +48,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition) {
         let name = definition.name.to_string();
-        let linkage_name = format!("{}::{}", self.location, &name);
+        let linkage_name = format!("{}::{}", self.module_path(), &name);
         let global = self.module.add_global(self.value_type(), None, &name);
         global.set_linkage(Linkage::Private);
         global.set_initializer(&self.value_type().const_zero());

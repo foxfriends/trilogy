@@ -36,8 +36,8 @@ impl<'ctx> Codegen<'ctx> {
         linkage: Linkage,
         span: Span,
     ) {
-        let accessor_name = format!("{}::{}", self.location, name);
-        let wrapper_name = format!("{}::{}.fastcc", self.location, name);
+        let accessor_name = format!("{}::{}", self.module_path(), name);
+        let wrapper_name = format!("{}::{}.fastcc", self.module_path(), name);
         let original_function = self.add_external_declaration(name, arity, span);
 
         // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that
@@ -76,7 +76,7 @@ impl<'ctx> Codegen<'ctx> {
         linkage: Linkage,
         span: Span,
     ) -> FunctionValue<'ctx> {
-        let accessor_name = format!("{}::{}", self.location, name);
+        let accessor_name = format!("{}::{}", self.module_path(), name);
         let linkage_name = if name == "main" { MAIN_NAME } else { name };
 
         let function = self.add_procedure(

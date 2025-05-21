@@ -40,15 +40,36 @@ pub(super) enum Closed<'ctx> {
     Temporary(PointerValue<'ctx>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum Head {
     Constant,
     Function,
     Procedure,
     #[expect(dead_code)]
     Rule,
-    ExternalModule(String),
     Module,
+    ExternalModule(String),
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct Global {
+    pub path: Vec<String>,
+    pub head: Head,
+}
+
+impl Global {
+    pub(crate) fn module_path(&self, relative_to: &str) -> String {
+        match &self.head {
+            Head::ExternalModule(file) => self
+                .path
+                .iter()
+                .fold(file.to_owned(), |f, p| format!("{f}::{p}")),
+            _ => self
+                .path
+                .iter()
+                .fold(relative_to.to_owned(), |f, p| format!("{f}::{p}")),
+        }
+    }
 }
 
 impl std::fmt::Display for Closed<'_> {

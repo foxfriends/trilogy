@@ -24,7 +24,7 @@ use continuation_point::{ContinuationPoint, Exit, Parent};
 use debug_info::DebugInfo;
 pub(crate) use snapshot::Snapshot;
 use variables::Closed;
-pub(crate) use variables::{Head, Variable};
+pub(crate) use variables::{Global, Head, Variable};
 
 #[must_use = "confirm that the current basic block will end without further instructions"]
 pub(crate) struct NeverValue;
@@ -37,7 +37,7 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) di: DebugInfo<'ctx>,
     pub(crate) execution_engine: ExecutionEngine<'ctx>,
     pub(crate) modules: &'ctx HashMap<String, &'ctx ir::Module>,
-    pub(crate) globals: HashMap<Id, Head>,
+    pub(crate) globals: HashMap<Id, Global>,
     pub(crate) location: String,
     pub(crate) path: Vec<String>,
 
@@ -123,14 +123,6 @@ impl<'ctx> Codegen<'ctx> {
             closure_array: Cell::default(),
             function_params: RefCell::default(),
         }
-    }
-
-    pub(crate) fn begin_submodule(&mut self, name: String) {
-        self.path.push(name);
-    }
-
-    pub(crate) fn end_submodule(&mut self) {
-        self.path.pop().unwrap();
     }
 
     pub(crate) fn module_path(&self) -> String {

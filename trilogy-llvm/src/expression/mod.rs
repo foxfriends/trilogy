@@ -472,7 +472,21 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<PointerValue<'ctx>> {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(module) = &module_ref.value {
-            if let Some(Head::ExternalModule(module)) = self.globals.get(&module.id) {
+            if let Some(module) =
+                self.globals
+                    .get(&module.id)
+                    .and_then(|global| match &global.head {
+                        Head::Module => {
+                            let prefix = global
+                                .path
+                                .iter()
+                                .fold(self.location.to_owned(), |p, s| format!("{p}::{s}"));
+                            Some(format!("{prefix}::{}", module.id))
+                        }
+                        Head::ExternalModule(path) => Some(path.to_owned()),
+                        _ => None,
+                    })
+            {
                 let target = self.allocate_value(name);
                 let declared = self
                     .module
@@ -507,26 +521,23 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_clone_into(variable.ptr(), value);
                 Some(value)
             }
-            Value::Application(app) => {
-                // { lhs = (parent = {. collection} key) } = rhs
-                match &app.function.value {
-                    Value::Application(parent)
-                        if matches!(parent.function.value, Value::Builtin(Builtin::Access)) =>
-                    {
-                        let container = self.compile_expression(&parent.argument, "")?;
-                        self.bind_temporary(container);
-                        let key = self.compile_expression(&app.argument, "")?;
-                        self.bind_temporary(key);
-                        let value = self.compile_expression(&assign.rhs, "")?;
-                        let container = self.use_temporary(container).unwrap();
-                        let key = self.use_temporary(key).unwrap();
-                        let out = self.allocate_value(name);
-                        self.member_assign(out, container, key, value);
-                        Some(out)
-                    }
-                    _ => panic!("invalid lvalue in assignment"),
+            Value::Application(app) => match &app.function.value {
+                Value::Application(parent)
+                    if matches!(parent.function.value, Value::Builtin(Builtin::Access)) =>
+                {
+                    let container = self.compile_expression(&parent.argument, "")?;
+                    self.bind_temporary(container);
+                    let key = self.compile_expression(&app.argument, "")?;
+                    self.bind_temporary(key);
+                    let value = self.compile_expression(&assign.rhs, "")?;
+                    let container = self.use_temporary(container).unwrap();
+                    let key = self.use_temporary(key).unwrap();
+                    let out = self.allocate_value(name);
+                    self.member_assign(out, container, key, value);
+                    Some(out)
                 }
-            }
+                _ => panic!("invalid lvalue in assignment"),
+            },
             _ => panic!("invalid lvalue in assignment"),
         }
     }
@@ -550,9 +561,15 @@ impl<'ctx> Codegen<'ctx> {
                     .get(&identifier.id)
                     .expect("unresolved variable")
                 {
-                    Head::Constant | Head::Procedure | Head::Function => {
+                    global
+                        if matches!(
+                            global.head,
+                            Head::Constant | Head::Procedure | Head::Function
+                        ) =>
+                    {
                         let target = self.allocate_value(name);
-                        let global_name = format!("{}::{ident}", self.module_path());
+                        let global_name =
+                            format!("{}::{ident}", global.module_path(&self.location));
                         let function = self.module.get_function(&global_name).unwrap();
                         self.call_internal(target, function, &[]);
                         target
