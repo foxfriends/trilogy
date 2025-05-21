@@ -1,0 +1,15 @@
+module mod1 v {
+  proc secret!() { return v }
+
+  module mod2 n {
+    proc value!() { return secret!() * n + v }
+
+    export value
+  }
+
+  export mod2
+}
+
+proc main!() {
+  assert mod1 3::mod2 5::value!() == 18
+}

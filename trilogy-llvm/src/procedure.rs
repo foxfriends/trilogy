@@ -35,7 +35,7 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         linkage: Linkage,
         span: Span,
-    ) {
+    ) -> FunctionValue<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let wrapper_name = format!("{}::{}.fastcc", self.module_path(), name);
         let original_function = self.add_external_declaration(name, arity, span);
@@ -67,6 +67,8 @@ impl<'ctx> Codegen<'ctx> {
         self.set_current_definition(name.to_owned(), accessor_name.to_owned(), span);
         self.builder.unset_current_debug_location();
         self.write_accessor(accessor, wrapper_function, arity);
+
+        accessor
     }
 
     pub(crate) fn declare_procedure(

@@ -1,5 +1,6 @@
 module box v {
   proc get!() { return v }
+  export get
 }
 
 proc main!() {

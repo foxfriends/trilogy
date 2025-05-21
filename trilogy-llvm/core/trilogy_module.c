@@ -42,7 +42,9 @@ trilogy_module* trilogy_module_assume(trilogy_value* val) {
 
 void trilogy_module_destroy(trilogy_module* module) {
     if (--module->rc == 0) {
-        free(module->member_ids);
+        // NOTE: module->member_ids is not destroyed because it's always a
+        // global constant array pointer.
+        // free(module->member_ids);
         for (size_t i = 0; i < module->len; ++i) {
             trilogy_value_destroy(&module->members[i]);
         }

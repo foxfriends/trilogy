@@ -59,16 +59,9 @@ pub(crate) struct Global {
 
 impl Global {
     pub(crate) fn module_path(&self, relative_to: &str) -> String {
-        match &self.head {
-            Head::ExternalModule(file) => self
-                .path
-                .iter()
-                .fold(file.to_owned(), |f, p| format!("{f}::{p}")),
-            _ => self
-                .path
-                .iter()
-                .fold(relative_to.to_owned(), |f, p| format!("{f}::{p}")),
-        }
+        self.path
+            .iter()
+            .fold(relative_to.to_owned(), |f, p| format!("{f}::{p}"))
     }
 }
 

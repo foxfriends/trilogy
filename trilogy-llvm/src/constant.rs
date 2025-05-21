@@ -23,7 +23,12 @@ impl<'ctx> Codegen<'ctx> {
         self.add_constant(location, &constant.name.to_string(), Linkage::External);
     }
 
-    pub(crate) fn declare_constant(&self, name: &str, exported: bool, span: Span) {
+    pub(crate) fn declare_constant(
+        &self,
+        name: &str,
+        exported: bool,
+        span: Span,
+    ) -> FunctionValue<'ctx> {
         let linkage = if exported {
             Linkage::External
         } else {
@@ -44,6 +49,7 @@ impl<'ctx> Codegen<'ctx> {
             false,
         );
         accessor.set_subprogram(subprogram);
+        accessor
     }
 
     pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition) {

@@ -1403,6 +1403,38 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_module_init_new(
+        &self,
+        target: PointerValue<'ctx>,
+        len: IntValue<'ctx>,
+        member_ids: PointerValue<'ctx>,
+        members: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_module_init_new",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.usize_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[target.into(), len.into(), member_ids.into(), members.into()],
+                name,
+            )
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
     pub(crate) fn trilogy_module_find(
         &self,
         module: PointerValue<'ctx>,

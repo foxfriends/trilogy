@@ -1,0 +1,10 @@
+module box v {
+  proc compute!() { return v * 2 }
+  proc get!() { return compute!() }
+  export get
+}
+
+proc main!() {
+  let boxed = box 5
+  assert boxed::get!() == 10
+}

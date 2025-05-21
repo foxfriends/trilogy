@@ -490,7 +490,7 @@ impl<'ctx> Codegen<'ctx> {
                 let target = self.allocate_value(name);
                 let declared = self
                     .module
-                    .get_function(&format!("{}::{}", module, ident.as_ref()))
+                    .get_function(&format!("{module}::{}", ident.as_ref()))
                     .unwrap();
                 self.call_internal(target, declared, &[]);
                 return Some(target);
@@ -556,26 +556,18 @@ impl<'ctx> Codegen<'ctx> {
             }
             None => {
                 let ident = identifier.id.name();
-                match self
+                let global = self
                     .globals
                     .get(&identifier.id)
-                    .expect("unresolved variable")
-                {
-                    global
-                        if matches!(
-                            global.head,
-                            Head::Constant | Head::Procedure | Head::Function
-                        ) =>
-                    {
-                        let target = self.allocate_value(name);
-                        let global_name =
-                            format!("{}::{ident}", global.module_path(&self.location));
-                        let function = self.module.get_function(&global_name).unwrap();
-                        self.call_internal(target, function, &[]);
-                        target
-                    }
-                    _ => todo!(),
-                }
+                    .expect("unresolved variable");
+                let target = self.allocate_value(name);
+                let global_name = format!("{}::{ident}", global.module_path(&self.location));
+                let function = self
+                    .module
+                    .get_function(&global_name)
+                    .expect("function was not defined");
+                self.call_internal(target, function, &[]);
+                target
             }
         }
     }
