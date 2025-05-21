@@ -9,6 +9,7 @@
 #include "trilogy_boolean.h"
 #include "trilogy_callable.h"
 #include "trilogy_character.h"
+#include "trilogy_module.h"
 #include "trilogy_number.h"
 #include "trilogy_record.h"
 #include "trilogy_reference.h"
@@ -75,6 +76,9 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
     case TAG_REFERENCE:
         trilogy_reference_clone_into(into, trilogy_reference_assume(from));
         break;
+    case TAG_MODULE:
+        trilogy_module_clone_into(into, trilogy_module_assume(from));
+        break;
     default:
         internal_panic("invalid trilogy value\n");
     }
@@ -137,6 +141,11 @@ void trilogy_value_destroy(trilogy_value* value) {
     case TAG_REFERENCE: {
         trilogy_reference* p = trilogy_reference_assume(value);
         trilogy_reference_destroy(p);
+        break;
+    }
+    case TAG_MODULE: {
+        trilogy_module* p = trilogy_module_assume(value);
+        trilogy_module_destroy(p);
         break;
     }
     default:

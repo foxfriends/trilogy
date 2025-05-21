@@ -141,6 +141,8 @@ impl<'ctx> Codegen<'ctx> {
         if module.parameters.is_empty() {
             // A module with no parameters comes across as a constant:
             subcontext.compile_constant_constructor(module, members, is_public);
+        } else {
+            todo!("implement functor modules");
         }
 
         // Then comes actual codegen
@@ -203,6 +205,36 @@ impl<'ctx> Codegen<'ctx> {
         );
         accessor.set_subprogram(subprogram);
 
+        // The member IDs array is just a constant array
+        let member_ids_global = self.module.add_global(
+            self.context.i64_type().array_type(members.len() as u32),
+            None,
+            "",
+        );
+        member_ids_global.set_initializer(
+            &self.context.i64_type().const_array(
+                &members
+                    .keys()
+                    .map(|k| self.context.i64_type().const_int(*k, false))
+                    .collect::<Vec<_>>(),
+            ),
+        );
+
+        // The members array is a global array which we will lazily populate.
+        // It's fine because we're doing a constant module, so it will never
+        // get destroyed.
+        let members_global =
+            self.module
+                .add_global(self.value_type().array_type(members.len() as u32), None, "");
+        members_global.set_initializer(
+            &self.value_type().const_array(
+                &members
+                    .keys()
+                    .map(|_| self.value_type().const_zero())
+                    .collect::<Vec<_>>(),
+            ),
+        );
+
         // compile_constant
         let global = self.module.add_global(self.value_type(), None, &name);
         global.set_linkage(Linkage::Private);
@@ -229,19 +261,22 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(initialize);
 
-        let member_ids_global = self.module.add_global(
-            self.context.i64_type().array_type(members.len() as u32),
-            None,
-            "",
-        );
-        member_ids_global.set_initializer(
-            &self.context.i64_type().const_array(
-                &members
-                    .keys()
-                    .map(|k| self.context.i64_type().const_int(*k, false))
-                    .collect::<Vec<_>>(),
-            ),
-        );
+        for (i, ptr) in members.values().enumerate() {
+            let target = unsafe {
+                self.builder
+                    .build_gep(
+                        self.value_type().array_type(members.len() as u32),
+                        members_global.as_pointer_value(),
+                        &[
+                            self.context.i32_type().const_int(0, false),
+                            self.context.i32_type().const_int(i as u64, false),
+                        ],
+                        "",
+                    )
+                    .unwrap()
+            };
+            self.call_internal(target, *ptr, &[]);
+        }
 
         self.trilogy_module_init_new(
             global.as_pointer_value(),
@@ -249,7 +284,7 @@ impl<'ctx> Codegen<'ctx> {
                 .i64_type()
                 .const_int(members.len() as u64, false),
             member_ids_global.as_pointer_value(),
-            member_ids_global.as_pointer_value(),
+            members_global.as_pointer_value(),
             "",
         );
 

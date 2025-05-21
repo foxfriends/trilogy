@@ -91,8 +91,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let accessor = self.add_accessor(&accessor_name, linkage);
         self.write_accessor(accessor, function, arity);
-
-        function
+        accessor
     }
 
     /// Declares a procedure (or function) that is being imported from another module.
