@@ -1,0 +1,11 @@
+module x {
+  proc private!() {}
+  proc public!() {}
+
+  export public
+}
+
+proc main!() {
+  let y = x
+  assert typeof y == 'module
+}
