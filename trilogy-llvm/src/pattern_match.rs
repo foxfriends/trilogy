@@ -197,9 +197,13 @@ impl<'ctx> Codegen<'ctx> {
         bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
         match &application.function.value {
-            Value::Builtin(builtin) => {
-                self.compile_match_apply_builtin(*builtin, &application.argument, value, on_fail)
-            }
+            Value::Builtin(builtin) => self.compile_match_apply_builtin(
+                *builtin,
+                &application.argument,
+                value,
+                on_fail,
+                bound_ids,
+            ),
             Value::Application(app) => match &app.function.value {
                 Value::Builtin(Builtin::Cons) => {
                     let value_ref = self.use_temporary(value).unwrap();
@@ -282,12 +286,10 @@ impl<'ctx> Codegen<'ctx> {
         expression: &ir::Expression,
         value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
         match builtin {
             Builtin::Typeof => {
-                // TODO: we should restrict the expressions in this thing to be pins or constants... otherwise we do have to
-                // handle branching...
-                let expected_type = self.compile_expression(expression, "typeof.exp")?;
                 let value = self.use_temporary(value).unwrap();
                 let tag = self.get_tag(value, "typeof.tag");
                 let atom = self
@@ -296,9 +298,8 @@ impl<'ctx> Codegen<'ctx> {
                     .unwrap();
                 let type_ptr = self.allocate_value("typeof.atom");
                 self.trilogy_atom_init(type_ptr, atom);
-                let cmp = self.trilogy_value_structural_eq(expected_type, type_ptr, "");
-                // NOTE: atom does not require destruction, so type_ptr is ok
-                self.pm_cont_if(cmp, on_fail);
+                self.bind_temporary(type_ptr);
+                self.match_pattern(expression, type_ptr, on_fail, bound_ids)?;
             }
             Builtin::Pin => {
                 // Because only identifiers can be pinned, we don't have to worry about handling branching mess here

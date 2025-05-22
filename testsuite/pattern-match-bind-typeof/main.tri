@@ -1,0 +1,4 @@
+proc main!() {
+  let typeof t = "hello"
+  assert t == 'string
+}
