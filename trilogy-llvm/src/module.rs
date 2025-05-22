@@ -330,7 +330,7 @@ impl<'ctx> Codegen<'ctx> {
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
-        self.trilogy_callable_init_func(sret, constructor.as_global_value().as_pointer_value());
+        self.call_internal(sret, constructor, &[]);
         self.builder.build_return(None).unwrap();
         accessor
     }
