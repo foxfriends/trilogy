@@ -1,0 +1,9 @@
+module the_module {
+  func check x = x == 5
+  export check
+}
+
+proc main!() {
+  let value = the_module
+  assert value::check 5
+}
