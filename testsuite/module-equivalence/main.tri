@@ -1,9 +1,9 @@
 module a at "./a.tri"
-module b at "./a.tri"
+module b at "./b.tri"
 
 proc main!() {
-  assert a !== b
-  assert a === a
-  assert b === b
-  assert b::c === a::c
+  assert "check 1" as a !== b
+  assert "check 2" as a === a
+  assert "check 3" as b === b
+  assert "check 4" as b::c === a::c
 }

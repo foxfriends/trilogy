@@ -336,6 +336,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn declare_constructor(&self, location: &str) -> FunctionValue<'ctx> {
+        if let Some(accessor) = self.module.get_function(location) {
+            return accessor;
+        }
         let accessor =
             self.module
                 .add_function(location, self.accessor_type(), Some(Linkage::External));
