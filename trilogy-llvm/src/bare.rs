@@ -1437,14 +1437,15 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn trilogy_module_find(
         &self,
+        target: PointerValue<'ctx>,
         module: PointerValue<'ctx>,
         id: IntValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
+    ) {
         let f = self.declare_bare(
             "trilogy_module_find",
-            self.context.ptr_type(AddressSpace::default()).fn_type(
+            self.context.void_type().fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
                 ],
@@ -1452,10 +1453,7 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         self.builder
-            .build_call(f, &[module.into(), id.into()], name)
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_left()
-            .into_pointer_value()
+            .build_call(f, &[target.into(), module.into(), id.into()], "")
+            .unwrap();
     }
 }

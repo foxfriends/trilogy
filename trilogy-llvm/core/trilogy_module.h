@@ -14,4 +14,6 @@ void trilogy_module_destroy(trilogy_module* module);
 trilogy_module* trilogy_module_untag(trilogy_value* val);
 trilogy_module* trilogy_module_assume(trilogy_value* val);
 
-trilogy_value* trilogy_module_find(trilogy_module* module, uint64_t id);
+void trilogy_module_find(
+    trilogy_value* tv, trilogy_module* module, uint64_t id
+);

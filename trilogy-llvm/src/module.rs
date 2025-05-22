@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::codegen::{Codegen, Global, Head};
+use inkwell::AddressSpace;
 use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
@@ -220,17 +221,19 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
 
-        // The members array is a global array which we will lazily populate.
-        // It's fine because we're doing a constant module, so it will never
-        // get destroyed.
-        let members_global =
-            self.module
-                .add_global(self.value_type().array_type(members.len() as u32), None, "");
+        // So is the member accessors array
+        let members_global = self.module.add_global(
+            self.context
+                .ptr_type(AddressSpace::default())
+                .array_type(members.len() as u32),
+            None,
+            "",
+        );
         members_global.set_initializer(
-            &self.value_type().const_array(
+            &self.context.ptr_type(AddressSpace::default()).const_array(
                 &members
-                    .keys()
-                    .map(|_| self.value_type().const_zero())
+                    .values()
+                    .map(|v| v.as_global_value().as_pointer_value())
                     .collect::<Vec<_>>(),
             ),
         );
@@ -260,23 +263,6 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
 
         self.builder.position_at_end(initialize);
-
-        for (i, ptr) in members.values().enumerate() {
-            let target = unsafe {
-                self.builder
-                    .build_gep(
-                        self.value_type().array_type(members.len() as u32),
-                        members_global.as_pointer_value(),
-                        &[
-                            self.context.i32_type().const_int(0, false),
-                            self.context.i32_type().const_int(i as u64, false),
-                        ],
-                        "",
-                    )
-                    .unwrap()
-            };
-            self.call_internal(target, *ptr, &[]);
-        }
 
         self.trilogy_module_init_new(
             global.as_pointer_value(),

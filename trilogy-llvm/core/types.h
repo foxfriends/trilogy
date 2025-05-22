@@ -250,9 +250,13 @@ typedef struct trilogy_module {
      */
     uint64_t* member_ids;
     /**
-     * The actual pointers to contained members.
+     * The actual pointers to contained member accessors.
      */
-    trilogy_value* members;
+    void** members;
+    /**
+     * The closure containing the module parameters and storage for constants.
+     */
+    trilogy_array_value* closure;
 } trilogy_module;
 
 char* type_name(trilogy_value_tag tag);

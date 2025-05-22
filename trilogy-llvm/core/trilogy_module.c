@@ -1,5 +1,6 @@
 #include "trilogy_module.h"
 #include "internal.h"
+#include "trilogy_callable.h"
 #include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
@@ -20,6 +21,20 @@ trilogy_module* trilogy_module_init_new(
     module->len = len;
     module->member_ids = ids;
     module->members = members;
+    module->closure = NO_CLOSURE;
+    return trilogy_module_init(tv, module);
+}
+
+trilogy_module* trilogy_module_init_new_closure(
+    trilogy_value* tv, size_t len, uint64_t* ids, trilogy_value* members,
+    trilogy_array_value* closure
+) {
+    trilogy_module* module = malloc_safe(sizeof(trilogy_module));
+    module->rc = 1;
+    module->len = len;
+    module->member_ids = ids;
+    module->members = members;
+    module->closure = closure;
     return trilogy_module_init(tv, module);
 }
 
@@ -42,25 +57,31 @@ trilogy_module* trilogy_module_assume(trilogy_value* val) {
 
 void trilogy_module_destroy(trilogy_module* module) {
     if (--module->rc == 0) {
-        // NOTE: module->member_ids is not destroyed because it's always a
-        // global constant array pointer.
-        // free(module->member_ids);
-        for (size_t i = 0; i < module->len; ++i) {
-            trilogy_value_destroy(&module->members[i]);
-        }
-        free(module->members);
+        // NOTE: module->member_ids and module->members are not destroyed
+        // because they are constant global arrays.
+        trilogy_array_destroy(module->context);
         free(module);
     }
 }
 
-trilogy_value* trilogy_module_find(trilogy_module* module, uint64_t id) {
+typedef trilogy_value* (*accessor)(trilogy_value*);
+typedef trilogy_value* (*closure_accessor)(trilogy_value*, trilogy_array_value*);
+
+void trilogy_module_find(
+    trilogy_value* tv, trilogy_module* module, uint64_t id
+) {
     // NOTE: modules are typically quite small, so linear search is usually
     // going to be just fine, but if someone makes a pathological module we
     // might do much better to binary search this.
     for (size_t i = 0; i < module->len; ++i) {
         if (module->member_ids[i] == id) {
-            return &module->members[i];
+            if (module->closure == NO_CLOSURE) {
+                ((accessor)module->members[i])(tv);
+            } else {
+                ((closure_accessor)module->members[i])(tv, module->closure);
+            }
+            return;
         }
     }
-    return NULL;
+    return internal_panic("module does not contain requested member\n");
 }

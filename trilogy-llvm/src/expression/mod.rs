@@ -501,9 +501,7 @@ impl<'ctx> Codegen<'ctx> {
         let module = self.trilogy_module_untag(module_value, "");
         let id = self.atom_value_raw(ident.as_ref().to_owned());
         let target = self.allocate_value(name);
-        let value =
-            self.trilogy_module_find(module, self.context.i64_type().const_int(id, false), "");
-        self.trilogy_value_clone_into(target, value);
+        self.trilogy_module_find(target, module, self.context.i64_type().const_int(id, false));
         self.trilogy_value_destroy(module_value);
         Some(target)
     }
