@@ -4,7 +4,11 @@
 
 trilogy_module* trilogy_module_init(trilogy_value* tv, trilogy_module* module);
 trilogy_module* trilogy_module_init_new(
-    trilogy_value* tv, size_t len, uint64_t* ids, trilogy_value* members
+    trilogy_value* tv, size_t len, uint64_t* ids, void** members
+);
+trilogy_module* trilogy_module_init_new_closure(
+    trilogy_value* tv, size_t len, uint64_t* ids, void** members,
+    trilogy_array_value* closure
 );
 
 trilogy_module*

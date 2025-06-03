@@ -1,5 +1,6 @@
 #include "trilogy_module.h"
 #include "internal.h"
+#include "trilogy_array.h"
 #include "trilogy_callable.h"
 #include "trilogy_value.h"
 #include "types.h"
@@ -14,7 +15,7 @@ trilogy_module* trilogy_module_init(trilogy_value* tv, trilogy_module* module) {
 }
 
 trilogy_module* trilogy_module_init_new(
-    trilogy_value* tv, size_t len, uint64_t* ids, trilogy_value* members
+    trilogy_value* tv, size_t len, uint64_t* ids, void** members
 ) {
     trilogy_module* module = malloc_safe(sizeof(trilogy_module));
     module->rc = 1;
@@ -26,7 +27,7 @@ trilogy_module* trilogy_module_init_new(
 }
 
 trilogy_module* trilogy_module_init_new_closure(
-    trilogy_value* tv, size_t len, uint64_t* ids, trilogy_value* members,
+    trilogy_value* tv, size_t len, uint64_t* ids, void** members,
     trilogy_array_value* closure
 ) {
     trilogy_module* module = malloc_safe(sizeof(trilogy_module));
@@ -59,7 +60,7 @@ void trilogy_module_destroy(trilogy_module* module) {
     if (--module->rc == 0) {
         // NOTE: module->member_ids and module->members are not destroyed
         // because they are constant global arrays.
-        trilogy_array_destroy(module->context);
+        trilogy_array_destroy(module->closure);
         free(module);
     }
 }
