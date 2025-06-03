@@ -2,7 +2,6 @@
 #include "internal.h"
 #include "trilogy_array.h"
 #include "trilogy_callable.h"
-#include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
 #include <stdint.h>

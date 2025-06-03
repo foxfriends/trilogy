@@ -6,7 +6,7 @@ use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
-use inkwell::values::FunctionValue;
+use inkwell::values::{BasicValue, FunctionValue};
 use trilogy_ir::Id;
 use trilogy_ir::ir::{self, DefinitionItem};
 
@@ -140,10 +140,15 @@ impl<'ctx> Codegen<'ctx> {
 
         // With all those pre-declared, build the constructor for this module.
         if module.parameters.is_empty() {
-            // A module with no parameters comes across as a constant:
+            // A module with no parameters comes across as a constant, and returns
+            // a module object with no closure.
             subcontext.compile_constant_constructor(module, members, is_public);
         } else {
-            todo!("implement functor modules");
+            // A module with parameters looks like a function, and returns a module
+            // object with a closure. The module access operator pulls values from
+            // that closure to build the function members. Function equivalence in
+            // this situation will be tricky...
+            subcontext.compile_functor_constructor(module, members, is_public);
         }
 
         // Then comes actual codegen
@@ -178,17 +183,13 @@ impl<'ctx> Codegen<'ctx> {
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
     ) {
-        // add_constant
         let linkage = if is_public {
             Linkage::External
         } else {
             Linkage::Private
         };
         let name = self.module_path();
-        let accessor = self
-            .module
-            .add_function(&name, self.accessor_type(), Some(linkage));
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        let accessor = self.add_accessor(&name, linkage);
 
         // declare_constant
         let subprogram = self.di.builder.create_function(
@@ -280,6 +281,121 @@ impl<'ctx> Codegen<'ctx> {
 
         self.di.pop_scope();
         self.di.pop_scope();
+    }
+
+    fn compile_functor_constructor(
+        &self,
+        module: &ir::Module,
+        members: BTreeMap<u64, FunctionValue<'ctx>>,
+        is_public: bool,
+    ) {
+        let linkage = if is_public {
+            Linkage::External
+        } else {
+            Linkage::Private
+        };
+        let name = self.module_path();
+
+        // declare_function
+        let constructor_name = format!("{name}:::constructor");
+        let function = self.add_function(
+            &constructor_name,
+            &name,
+            module.span,
+            linkage != Linkage::External,
+        );
+        let accessor = self.add_accessor(&name, linkage);
+
+        // write_function_accessor
+        let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
+        let accessor_entry = self.context.append_basic_block(accessor, "entry");
+        self.builder.position_at_end(accessor_entry);
+        self.trilogy_callable_init_func(sret, function.as_global_value().as_pointer_value());
+        self.builder.build_return(None).unwrap();
+
+        // The member IDs array is just a constant array
+        let member_ids_global = self.module.add_global(
+            self.context.i64_type().array_type(members.len() as u32),
+            None,
+            "",
+        );
+        member_ids_global.set_initializer(
+            &self.context.i64_type().const_array(
+                &members
+                    .keys()
+                    .map(|k| self.context.i64_type().const_int(*k, false))
+                    .collect::<Vec<_>>(),
+            ),
+        );
+
+        // So is the member accessors array
+        let members_global = self.module.add_global(
+            self.context
+                .ptr_type(AddressSpace::default())
+                .array_type(members.len() as u32),
+            None,
+            "",
+        );
+        members_global.set_initializer(
+            &self.context.ptr_type(AddressSpace::default()).const_array(
+                &members
+                    .values()
+                    .map(|v| v.as_global_value().as_pointer_value())
+                    .collect::<Vec<_>>(),
+            ),
+        );
+
+        // compile_function_body
+        self.begin_function(function, module.span);
+
+        let arity = module.parameters.len();
+        let mut params = Vec::with_capacity(arity);
+        for _ in 0..arity as u32 - 1 {
+            let continuation = self.add_continuation("");
+            let param = self.get_continuation("");
+            self.bind_temporary(param);
+            params.push(param);
+            let return_to = self.get_return("");
+            let cont_val = self.allocate_value("");
+            let closure = self
+                .builder
+                .build_alloca(self.value_type(), "TEMP_CLOSURE")
+                .unwrap();
+            self.trilogy_callable_init_fn(cont_val, closure, continuation);
+            self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+            let inner_cp = self.hold_continuation_point();
+            self.call_known_continuation(return_to, cont_val);
+
+            self.become_continuation_point(inner_cp);
+            self.begin_next_function(continuation);
+        }
+
+        // The last parameter is collected in the same continuation as the body
+        let param = self.get_continuation("");
+        self.bind_temporary(param);
+        params.push(param);
+
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        let target = self.allocate_value("");
+        self.trilogy_module_init_new_closure(
+            target,
+            self.context
+                .i64_type()
+                .const_int(members.len() as u64, false),
+            member_ids_global.as_pointer_value(),
+            members_global.as_pointer_value(),
+            closure,
+            "",
+        );
+
+        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        let ret = self.get_return("");
+        self.call_known_continuation(ret, target);
+
+        self.end_function();
     }
 
     fn import_module(&self, name: &Id, location: &str, module: &ir::Module) -> FunctionValue<'ctx> {
