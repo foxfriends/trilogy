@@ -138,11 +138,19 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// If this is a nested scope, the previous continuation point should be branched from and
     /// later resumed, otherwise we will be lost at the end of the nested code.
-    pub(crate) fn set_current_definition(&self, name: String, linkage_name: String, span: Span) {
+    pub(crate) fn set_current_definition(
+        &self,
+        name: String,
+        linkage_name: String,
+        span: Span,
+        module_context: Option<Vec<Id>>,
+    ) {
         *self.current_definition.borrow_mut() = (name, linkage_name, span);
         self.continuation_points
             .borrow_mut()
-            .push(Rc::new(ContinuationPoint::default()));
+            .push(Rc::new(ContinuationPoint::new(
+                module_context.unwrap_or(vec![]),
+            )));
     }
 
     pub(crate) fn get_current_definition(&self) -> (String, String, Span) {

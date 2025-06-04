@@ -2,10 +2,14 @@ use crate::Codegen;
 use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
-use trilogy_ir::ir;
+use trilogy_ir::{ir, Id};
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn compile_constant(&self, definition: &ir::ConstantDefinition) {
+    pub(crate) fn compile_constant(
+        &self,
+        definition: &ir::ConstantDefinition,
+        module_context: Option<Vec<Id>>,
+    ) {
         let name = definition.name.to_string();
         let accessor_name = format!("{}::{}", self.module_path(), &name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
@@ -36,7 +40,7 @@ impl<'ctx> Codegen<'ctx> {
             global.as_pointer_value()
         };
 
-        self.set_current_definition(name, accessor_name, definition.value.span);
+        self.set_current_definition(name, accessor_name, definition.value.span, module_context);
         self.di.push_subprogram(subprogram);
         self.di.push_block_scope(definition.span());
         self.set_span(definition.value.span);

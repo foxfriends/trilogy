@@ -1,13 +1,11 @@
 use crate::{TrilogyValue, codegen::Codegen};
-use inkwell::{
-    AddressSpace,
-    attributes::{Attribute, AttributeLoc},
-    debug_info::AsDIScope,
-    execution_engine::ExecutionEngine,
-    llvm_sys::debuginfo::LLVMDIFlagPublic,
-    memory_buffer::MemoryBuffer,
-    module::Module,
-};
+use inkwell::AddressSpace;
+use inkwell::attributes::{Attribute, AttributeLoc};
+use inkwell::debug_info::AsDIScope;
+use inkwell::execution_engine::ExecutionEngine;
+use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
+use inkwell::memory_buffer::MemoryBuffer;
+use inkwell::module::Module;
 use std::rc::Rc;
 
 impl<'ctx> Codegen<'ctx> {
@@ -39,7 +37,7 @@ impl<'ctx> Codegen<'ctx> {
             false,
         );
         main_wrapper.set_subprogram(main_scope);
-        self.set_current_definition(":::main".to_owned(), "main".to_owned(), span);
+        self.set_current_definition(":::main".to_owned(), "main".to_owned(), span, None);
         self.di.push_subprogram(main_scope);
         self.di.push_block_scope(span);
         self.set_span(span);

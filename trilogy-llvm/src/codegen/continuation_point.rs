@@ -113,21 +113,6 @@ pub(crate) struct ContinuationPoint<'ctx> {
         RefCell<HashMap<PointerValue<'ctx>, Vec<(InstructionValue<'ctx>, DILocation<'ctx>)>>>,
 }
 
-impl Default for ContinuationPoint<'_> {
-    fn default() -> Self {
-        Self {
-            id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
-            variables: RefCell::default(),
-            module_closure: vec![],
-            parent_variables: HashSet::default(),
-            closure: RefCell::default(),
-            upvalues: RefCell::default(),
-            parents: Vec::default(),
-            unclosed: RefCell::default(),
-        }
-    }
-}
-
 impl<'ctx> ContinuationPoint<'ctx> {
     pub(crate) fn new(module_closure: Vec<Id>) -> Self {
         Self {
@@ -139,8 +124,11 @@ impl<'ctx> ContinuationPoint<'ctx> {
                     .map(|id| Closed::Variable(id.clone()))
                     .collect(),
             ),
+            parent_variables: module_closure
+                .iter()
+                .map(|id| Closed::Variable(id.clone()))
+                .collect(),
             module_closure,
-            parent_variables: HashSet::default(),
             upvalues: RefCell::default(),
             parents: vec![],
             unclosed: RefCell::default(),

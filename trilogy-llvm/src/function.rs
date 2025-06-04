@@ -2,7 +2,7 @@ use crate::Codegen;
 use inkwell::values::{BasicValue, FunctionValue};
 use source_span::Span;
 use std::borrow::Borrow;
-use trilogy_ir::ir;
+use trilogy_ir::{Id, ir};
 
 impl<'ctx> Codegen<'ctx> {
     fn write_function_accessor(
@@ -23,13 +23,17 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
     }
 
-    pub(crate) fn compile_function(&self, definition: &ir::FunctionDefinition) {
+    pub(crate) fn compile_function(
+        &self,
+        definition: &ir::FunctionDefinition,
+        module_context: Option<Vec<Id>>,
+    ) {
         let name = definition.name.to_string();
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
         let function = self.add_function(&name, &name, definition.span(), false);
         self.write_function_accessor(accessor, function);
-        self.set_current_definition(name.clone(), name, definition.span());
+        self.set_current_definition(name.clone(), name, definition.span(), module_context);
         self.compile_function_body(function, &definition.overloads, definition.span());
         self.close_continuation();
     }

@@ -124,13 +124,25 @@ impl<'ctx> Codegen<'ctx> {
         if module.parameters.is_empty() {
             // A module with no parameters comes across as a constant, and returns
             // a module object with no closure.
-            self.compile_constant_constructor(constructor_accessor, module, members, is_public);
+            self.compile_constant_constructor(
+                constructor_accessor,
+                module,
+                members,
+                is_public,
+                module_context.clone(),
+            );
         } else {
             // A module with parameters looks like a function, and returns a module
             // object with a closure. The module access operator pulls values from
             // that closure to build the function members. Function equivalence in
             // this situation will be tricky...
-            self.compile_functor_constructor(constructor_accessor, module, members, is_public);
+            self.compile_functor_constructor(
+                constructor_accessor,
+                module,
+                members,
+                is_public,
+                module_context.clone(),
+            );
         }
 
         // Then comes actual codegen
@@ -152,13 +164,13 @@ impl<'ctx> Codegen<'ctx> {
                     self.end_submodule();
                 }
                 DefinitionItem::Procedure(procedure) => {
-                    self.compile_procedure(procedure);
+                    self.compile_procedure(procedure, module_context.clone());
                 }
                 DefinitionItem::Function(function) => {
-                    self.compile_function(function);
+                    self.compile_function(function, module_context.clone());
                 }
                 DefinitionItem::Constant(constant) => {
-                    self.compile_constant(constant);
+                    self.compile_constant(constant, module_context.clone());
                 }
                 DefinitionItem::Rule(..) => todo!("implement rule"),
                 DefinitionItem::Test(..) => {}
@@ -172,6 +184,7 @@ impl<'ctx> Codegen<'ctx> {
         module: &ir::Module,
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
+        module_context: Option<Vec<Id>>,
     ) {
         let has_context = accessor.count_params() == 2;
         assert!(!has_context, "TODO");
@@ -229,7 +242,7 @@ impl<'ctx> Codegen<'ctx> {
         global.set_linkage(Linkage::Private);
         global.set_initializer(&self.value_type().const_zero());
 
-        self.set_current_definition(name.clone(), name, module.span);
+        self.set_current_definition(name.clone(), name, module.span, module_context);
 
         self.di.push_subprogram(subprogram);
         self.di.push_block_scope(module.span);
@@ -273,6 +286,7 @@ impl<'ctx> Codegen<'ctx> {
         module: &ir::Module,
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
+        module_context: Option<Vec<Id>>,
     ) {
         let has_context = accessor.count_params() == 2;
         assert!(!has_context, "TODO");
@@ -322,6 +336,7 @@ impl<'ctx> Codegen<'ctx> {
         );
 
         // compile_function_body
+        self.set_current_definition(name.clone(), name, module.span, module_context);
         self.begin_function(function, module.span);
 
         let arity = module.parameters.len();

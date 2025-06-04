@@ -2,7 +2,7 @@ use crate::Codegen;
 use inkwell::module::Linkage;
 use inkwell::values::{BasicMetadataValueEnum, FunctionValue};
 use source_span::Span;
-use trilogy_ir::ir;
+use trilogy_ir::{Id, ir};
 
 const MAIN_NAME: &str = "trilogy:::main";
 // NOTE: params start at 7, due to return, yield, end, cancel, resume, break, and continue
@@ -44,7 +44,7 @@ impl<'ctx> Codegen<'ctx> {
         let wrapper_function = self.add_procedure(&wrapper_name, arity, &wrapper_name, span, true);
         self.begin_function(wrapper_function, span);
         self.set_span(span);
-        self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span);
+        self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span, None);
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
         params.extend(
@@ -63,14 +63,18 @@ impl<'ctx> Codegen<'ctx> {
         self.end_function();
 
         let accessor = self.add_accessor(&accessor_name, false, linkage);
-        self.set_current_definition(name.to_owned(), accessor_name.to_owned(), span);
+        self.set_current_definition(name.to_owned(), accessor_name.to_owned(), span, None);
         self.builder.unset_current_debug_location();
         self.write_procedure_accessor(accessor, wrapper_function, arity);
 
         accessor
     }
 
-    pub(crate) fn compile_procedure(&self, definition: &ir::ProcedureDefinition) {
+    pub(crate) fn compile_procedure(
+        &self,
+        definition: &ir::ProcedureDefinition,
+        module_context: Option<Vec<Id>>,
+    ) {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
         let arity = procedure.parameters.len();
@@ -80,7 +84,12 @@ impl<'ctx> Codegen<'ctx> {
         let accessor = self.module.get_function(&accessor_name).unwrap();
         let function = self.add_procedure(linkage_name, arity, &name, definition.span(), false);
         self.write_procedure_accessor(accessor, function, arity);
-        self.set_current_definition(name.to_owned(), linkage_name.to_owned(), procedure.span);
+        self.set_current_definition(
+            name.to_owned(),
+            linkage_name.to_owned(),
+            procedure.span,
+            module_context,
+        );
         self.compile_procedure_body(function, procedure);
         self.close_continuation();
     }
