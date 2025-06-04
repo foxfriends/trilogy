@@ -1,11 +1,7 @@
-use std::borrow::Borrow;
-
 use crate::Codegen;
-use inkwell::{
-    module::Linkage,
-    values::{BasicValue, FunctionValue},
-};
+use inkwell::values::{BasicValue, FunctionValue};
 use source_span::Span;
+use std::borrow::Borrow;
 use trilogy_ir::ir;
 
 impl<'ctx> Codegen<'ctx> {
@@ -14,6 +10,8 @@ impl<'ctx> Codegen<'ctx> {
         accessor: FunctionValue<'ctx>,
         accessing: FunctionValue<'ctx>,
     ) {
+        let has_context = accessor.count_params() == 2;
+        assert!(!has_context, "TODO");
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
@@ -21,22 +19,12 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
     }
 
-    pub(crate) fn declare_function(
-        &self,
-        name: &str,
-        linkage: Linkage,
-        span: Span,
-    ) -> FunctionValue<'ctx> {
-        let accessor_name = format!("{}::{}", self.module_path(), name);
-        let function = self.add_function(name, name, span, linkage != Linkage::External);
-        let accessor = self.add_accessor(&accessor_name, linkage);
-        self.write_function_accessor(accessor, function);
-        accessor
-    }
-
     pub(crate) fn compile_function(&self, definition: &ir::FunctionDefinition) {
         let name = definition.name.to_string();
-        let function = self.module.get_function(&name).unwrap();
+        let accessor_name = format!("{}::{}", self.module_path(), name);
+        let accessor = self.module.get_function(&accessor_name).unwrap();
+        let function = self.add_function(&name, &name, definition.span(), false);
+        self.write_function_accessor(accessor, function);
         self.set_current_definition(name.clone(), name, definition.span());
         self.compile_function_body(function, &definition.overloads, definition.span());
         self.close_continuation();

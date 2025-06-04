@@ -287,11 +287,21 @@ impl<'ctx> Codegen<'ctx> {
             .fn_type(&vec![self.value_type().into(); arity + extras], false)
     }
 
-    pub(crate) fn accessor_type(&self) -> FunctionType<'ctx> {
-        self.context.void_type().fn_type(
-            &[self.context.ptr_type(AddressSpace::default()).into()],
-            false,
-        )
+    pub(crate) fn accessor_type(&self, has_context: bool) -> FunctionType<'ctx> {
+        if has_context {
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            )
+        } else {
+            self.context.void_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            )
+        }
     }
 
     pub(crate) fn external_type(&self, arity: usize) -> FunctionType<'ctx> {

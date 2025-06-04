@@ -1,9 +1,6 @@
 use crate::Codegen;
-use inkwell::{
-    llvm_sys::LLVMCallConv,
-    module::Linkage,
-    values::{BasicMetadataValueEnum, FunctionValue},
-};
+use inkwell::module::Linkage;
+use inkwell::values::{BasicMetadataValueEnum, FunctionValue};
 use source_span::Span;
 use trilogy_ir::ir;
 
@@ -12,12 +9,14 @@ const MAIN_NAME: &str = "trilogy:::main";
 const PROCEDURE_IMPLICIT_PARAMS: usize = 7;
 
 impl<'ctx> Codegen<'ctx> {
-    fn write_accessor(
+    fn write_procedure_accessor(
         &self,
         accessor: FunctionValue<'ctx>,
         accessing: FunctionValue<'ctx>,
         arity: usize,
     ) {
+        let has_context = accessor.count_params() == 2;
+        assert!(!has_context, "TODO");
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
@@ -63,58 +62,24 @@ impl<'ctx> Codegen<'ctx> {
         self.close_continuation();
         self.end_function();
 
-        let accessor = self.add_accessor(&accessor_name, linkage);
+        let accessor = self.add_accessor(&accessor_name, false, linkage);
         self.set_current_definition(name.to_owned(), accessor_name.to_owned(), span);
         self.builder.unset_current_debug_location();
-        self.write_accessor(accessor, wrapper_function, arity);
+        self.write_procedure_accessor(accessor, wrapper_function, arity);
 
-        accessor
-    }
-
-    pub(crate) fn declare_procedure(
-        &self,
-        name: &str,
-        arity: usize,
-        linkage: Linkage,
-        span: Span,
-    ) -> FunctionValue<'ctx> {
-        let accessor_name = format!("{}::{}", self.module_path(), name);
-        let linkage_name = if name == "main" { MAIN_NAME } else { name };
-
-        let function = self.add_procedure(
-            linkage_name,
-            arity,
-            name,
-            span,
-            linkage != Linkage::External,
-        );
-
-        let accessor = self.add_accessor(&accessor_name, linkage);
-        self.write_accessor(accessor, function, arity);
-        accessor
-    }
-
-    /// Declares a procedure (or function) that is being imported from another module.
-    pub(crate) fn import_procedure(&self, location: &str, name: &str) -> FunctionValue<'ctx> {
-        let accessor_name = format!("{}::{}", location, name);
-        if let Some(function) = self.module.get_function(&accessor_name) {
-            return function;
-        }
-        let accessor = self.module.add_function(
-            &accessor_name,
-            self.accessor_type(),
-            Some(Linkage::External),
-        );
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         accessor
     }
 
     pub(crate) fn compile_procedure(&self, definition: &ir::ProcedureDefinition) {
         assert_eq!(definition.overloads.len(), 1);
         let procedure = &definition.overloads[0];
+        let arity = procedure.parameters.len();
         let name = definition.name.to_string();
         let linkage_name = if name == "main" { MAIN_NAME } else { &name };
-        let function = self.module.get_function(linkage_name).unwrap();
+        let accessor_name = format!("{}::{}", self.module_path(), name);
+        let accessor = self.module.get_function(&accessor_name).unwrap();
+        let function = self.add_procedure(linkage_name, arity, &name, definition.span(), false);
+        self.write_procedure_accessor(accessor, function, arity);
         self.set_current_definition(name.to_owned(), linkage_name.to_owned(), procedure.span);
         self.compile_procedure_body(function, procedure);
         self.close_continuation();

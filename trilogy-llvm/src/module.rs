@@ -1,28 +1,18 @@
-use std::collections::BTreeMap;
-
 use crate::codegen::{Codegen, Global, Head};
 use inkwell::AddressSpace;
 use inkwell::debug_info::AsDIScope;
-use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
 use inkwell::values::{BasicValue, FunctionValue};
+use std::collections::BTreeMap;
 use trilogy_ir::Id;
 use trilogy_ir::ir::{self, DefinitionItem};
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
         let mut subcontext = self.for_file(file);
-        Self::compile_module_contents(&mut subcontext, module, true);
+        subcontext.compile_module_contents(module, false, true);
         subcontext
-    }
-
-    pub(crate) fn compile_submodule(
-        subcontext: &mut Codegen<'ctx>,
-        module: &ir::Module,
-        is_public: bool,
-    ) {
-        Self::compile_module_contents(subcontext, module, is_public);
     }
 
     fn add_global(&mut self, id: Id, head: Head) {
@@ -44,132 +34,112 @@ impl<'ctx> Codegen<'ctx> {
         self.globals.retain(|_, v| self.path.starts_with(&v.path));
     }
 
-    fn compile_module_contents(
-        subcontext: &mut Codegen<'ctx>,
-        module: &ir::Module,
-        is_public: bool,
-    ) {
+    fn compile_module_contents(&mut self, module: &ir::Module, has_context: bool, is_public: bool) {
+        let constructor_name = self.module_path();
+        let constructor_accessor =
+            self.declare_constructor(&constructor_name, has_context, is_public);
+
+        let has_context = has_context || !module.parameters.is_empty();
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.
         let mut members = BTreeMap::new();
         for definition in module.definitions() {
-            let function = match &definition.item {
+            let linkage = if definition.is_exported {
+                Linkage::External
+            } else {
+                Linkage::Private
+            };
+            let member_accessor = match &definition.item {
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {
+                    // TODO: probably most sensible to just disallow external modules to be imported in functor
+                    // modules since they won't be able to access the context values anyway.
                     let location = module.module.as_external().unwrap().to_owned();
-                    let submodule = subcontext.modules.get(&location).unwrap();
-                    subcontext.add_global(
+                    let submodule = self.modules.get(&location).unwrap();
+                    self.add_global(
                         module.name.id.clone(),
                         Head::ExternalModule(location.clone()),
                     );
-                    subcontext.import_module(definition.name().unwrap(), &location, submodule)
+                    self.import_module(definition.name().unwrap(), &location, submodule)
                 }
                 DefinitionItem::Module(def) => {
                     let module = def.module.as_module().unwrap();
-                    if module.parameters.is_empty() {
-                        subcontext.add_global(def.name.id.clone(), Head::Module);
-                        subcontext.declare_constant(
-                            &def.name.to_string(),
-                            definition.is_exported,
-                            definition.span,
-                        )
+                    let head_type = if module.parameters.is_empty() {
+                        Head::Module
                     } else {
-                        subcontext.add_global(def.name.id.clone(), Head::Function);
-                        subcontext.declare_function(
-                            &def.name.to_string(),
-                            if definition.is_exported {
-                                Linkage::External
-                            } else {
-                                Linkage::Private
-                            },
-                            definition.span,
-                        )
-                    }
+                        Head::Function
+                    };
+                    self.add_global(def.name.id.clone(), head_type);
+                    let accessor_name = format!("{}::{}", self.module_path(), def.name);
+                    self.add_accessor(&accessor_name, has_context, linkage)
                 }
                 DefinitionItem::Constant(constant) => {
-                    subcontext.add_global(constant.name.id.clone(), Head::Constant);
-                    subcontext.declare_constant(
-                        &constant.name.to_string(),
-                        definition.is_exported,
-                        definition.span,
-                    )
+                    self.add_global(constant.name.id.clone(), Head::Constant);
+                    let accessor_name = format!("{}::{}", self.module_path(), constant.name);
+                    self.add_accessor(&accessor_name, has_context, linkage)
                 }
                 DefinitionItem::Procedure(procedure) if procedure.overloads.is_empty() => {
-                    subcontext.add_global(procedure.name.id.clone(), Head::Procedure);
-                    subcontext.declare_extern_procedure(
+                    // TODO: probably most sensible to just disallow extern procedures to be defined in functor modules
+                    // since they won't be able to access the context values anyway.
+                    self.add_global(procedure.name.id.clone(), Head::Procedure);
+                    self.declare_extern_procedure(
                         &procedure.name.to_string(),
                         procedure.arity,
-                        if definition.is_exported {
-                            Linkage::External
-                        } else {
-                            Linkage::Private
-                        },
+                        linkage,
                         procedure.span(),
                     )
                 }
                 DefinitionItem::Procedure(procedure) => {
-                    subcontext.add_global(procedure.name.id.clone(), Head::Procedure);
-                    subcontext.declare_procedure(
-                        &procedure.name.to_string(),
-                        procedure.arity,
-                        if definition.is_exported {
-                            Linkage::External
-                        } else {
-                            Linkage::Private
-                        },
-                        procedure.span(),
-                    )
+                    self.add_global(procedure.name.id.clone(), Head::Procedure);
+                    let accessor_name = format!("{}::{}", self.module_path(), procedure.name);
+                    self.add_accessor(&accessor_name, has_context, linkage)
                 }
                 DefinitionItem::Function(function) => {
-                    subcontext.add_global(function.name.id.clone(), Head::Function);
-                    subcontext.declare_function(
-                        &function.name.to_string(),
-                        if definition.is_exported {
-                            Linkage::External
-                        } else {
-                            Linkage::Private
-                        },
-                        function.span(),
-                    )
+                    self.add_global(function.name.id.clone(), Head::Function);
+                    let accessor_name = format!("{}::{}", self.module_path(), function.name);
+                    self.add_accessor(&accessor_name, has_context, linkage)
                 }
                 DefinitionItem::Rule(..) => todo!("implement rule"),
                 DefinitionItem::Test(..) => continue,
             };
-            let member_id = subcontext.atom_value_raw(definition.name().unwrap().to_string());
-            members.insert(member_id, function);
+            let member_id = self.atom_value_raw(definition.name().unwrap().to_string());
+            members.insert(member_id, member_accessor);
         }
 
         // With all those pre-declared, build the constructor for this module.
         if module.parameters.is_empty() {
             // A module with no parameters comes across as a constant, and returns
             // a module object with no closure.
-            subcontext.compile_constant_constructor(module, members, is_public);
+            self.compile_constant_constructor(constructor_accessor, module, members, is_public);
         } else {
             // A module with parameters looks like a function, and returns a module
             // object with a closure. The module access operator pulls values from
             // that closure to build the function members. Function equivalence in
             // this situation will be tricky...
-            subcontext.compile_functor_constructor(module, members, is_public);
+            self.compile_functor_constructor(constructor_accessor, module, members, is_public);
         }
 
         // Then comes actual codegen
         for definition in module.definitions() {
             match &definition.item {
+                // An extern procedure is just an accessor, so there is no code to generate
                 DefinitionItem::Procedure(procedure) if procedure.overloads.is_empty() => {}
-                DefinitionItem::Procedure(procedure) => {
-                    subcontext.compile_procedure(procedure);
-                }
-                DefinitionItem::Function(function) => {
-                    subcontext.compile_function(function);
-                }
+                // External modules are also just accessors for all the top level public members
+                // with no additional code
                 DefinitionItem::Module(module) if module.module.as_external().is_some() => {}
                 DefinitionItem::Module(def) => {
                     let module = def.module.as_module().unwrap();
-                    subcontext.begin_submodule(def.name.to_string());
-                    Self::compile_submodule(subcontext, module, definition.is_exported);
-                    subcontext.end_submodule();
+                    self.begin_submodule(def.name.to_string());
+                    self.compile_module_contents(module, has_context, definition.is_exported);
+                    self.end_submodule();
+                }
+                DefinitionItem::Procedure(procedure) => {
+                    self.compile_procedure(procedure);
+                }
+                DefinitionItem::Function(function) => {
+                    self.compile_function(function);
                 }
                 DefinitionItem::Constant(constant) => {
-                    subcontext.compile_constant(constant);
+                    self.compile_constant(constant);
                 }
                 DefinitionItem::Rule(..) => todo!("implement rule"),
                 DefinitionItem::Test(..) => {}
@@ -179,19 +149,12 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_constant_constructor(
         &self,
+        accessor: FunctionValue<'ctx>,
         module: &ir::Module,
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
     ) {
-        let linkage = if is_public {
-            Linkage::External
-        } else {
-            Linkage::Private
-        };
         let name = self.module_path();
-        let accessor = self.add_accessor(&name, linkage);
-
-        // declare_constant
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
             &name,
@@ -199,7 +162,7 @@ impl<'ctx> Codegen<'ctx> {
             self.di.unit.get_file(),
             module.span.start().line as u32 + 1,
             self.di.procedure_di_type(0),
-            linkage != Linkage::External,
+            !is_public,
             true,
             module.span.start().line as u32 + 1,
             LLVMDIFlagPublic,
@@ -244,22 +207,21 @@ impl<'ctx> Codegen<'ctx> {
         global.set_linkage(Linkage::Private);
         global.set_initializer(&self.value_type().const_zero());
 
-        let function = self.module.get_function(&name).unwrap();
         self.set_current_definition(name.clone(), name, module.span);
 
-        self.di.push_subprogram(function.get_subprogram().unwrap());
+        self.di.push_subprogram(subprogram);
         self.di.push_block_scope(module.span);
         self.set_span(module.span);
 
-        let basic_block = self.context.append_basic_block(function, "entry");
-        let initialize = self.context.append_basic_block(function, "initialize");
-        let initialized = self.context.append_basic_block(function, "initialized");
+        let basic_block = self.context.append_basic_block(accessor, "entry");
+        let initialize = self.context.append_basic_block(accessor, "initialize");
+        let initialized = self.context.append_basic_block(accessor, "initialized");
         self.builder.position_at_end(basic_block);
 
         self.branch_undefined(global.as_pointer_value(), initialize, initialized);
 
         self.builder.position_at_end(initialized);
-        let sret = function.get_first_param().unwrap().into_pointer_value();
+        let sret = accessor.get_first_param().unwrap().into_pointer_value();
         self.trilogy_value_clone_into(sret, global.as_pointer_value());
         self.builder.build_return(None).unwrap();
 
@@ -285,26 +247,15 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_functor_constructor(
         &self,
+        accessor: FunctionValue<'ctx>,
         module: &ir::Module,
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
     ) {
-        let linkage = if is_public {
-            Linkage::External
-        } else {
-            Linkage::Private
-        };
-        let name = self.module_path();
-
         // declare_function
+        let name = self.module_path();
         let constructor_name = format!("{name}:::constructor");
-        let function = self.add_function(
-            &constructor_name,
-            &name,
-            module.span,
-            linkage != Linkage::External,
-        );
-        let accessor = self.add_accessor(&name, linkage);
+        let function = self.add_function(&constructor_name, &name, module.span, !is_public);
 
         // write_function_accessor
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
@@ -398,6 +349,14 @@ impl<'ctx> Codegen<'ctx> {
         self.end_function();
     }
 
+    pub(crate) fn import_accessor(&self, location: &str, name: &str) -> FunctionValue<'ctx> {
+        let accessor_name = format!("{}::{}", location, name);
+        if let Some(function) = self.module.get_function(&accessor_name) {
+            return function;
+        }
+        self.add_accessor(&accessor_name, false, Linkage::External)
+    }
+
     fn import_module(&self, name: &Id, location: &str, module: &ir::Module) -> FunctionValue<'ctx> {
         for definition in module.definitions() {
             if !definition.is_exported {
@@ -405,30 +364,34 @@ impl<'ctx> Codegen<'ctx> {
             }
             match &definition.item {
                 DefinitionItem::Module(module) => {
-                    self.declare_constructor(&format!("{location}::{}", module.name));
+                    let is_function_module = module
+                        .module
+                        .as_module()
+                        .is_some_and(|module| !module.parameters.is_empty());
+                    self.declare_constructor(
+                        &format!("{location}::{}", module.name),
+                        is_function_module,
+                        true,
+                    );
                 }
                 DefinitionItem::Procedure(procedure) => {
-                    self.import_procedure(location, &procedure.name.to_string());
+                    self.import_accessor(location, &procedure.name.to_string());
                 }
                 DefinitionItem::Function(function) => {
-                    self.import_procedure(location, &function.name.to_string());
+                    self.import_accessor(location, &function.name.to_string());
                 }
                 DefinitionItem::Constant(constant) => {
-                    self.import_constant(location, constant);
+                    self.import_accessor(location, &constant.name.to_string());
                 }
                 DefinitionItem::Rule(..) => todo!(),
                 DefinitionItem::Test(..) => continue,
             }
         }
 
-        let constructor = self.declare_constructor(location);
+        let constructor = self.declare_constructor(location, false, true);
         // The external module itself becomes aliased in this module:
-        let accessor = self.module.add_function(
-            &format!("{}::{name}", self.module_path()),
-            self.accessor_type(),
-            Some(Linkage::External),
-        );
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        let alias_name = format!("{}::{}", self.module_path(), name);
+        let accessor = self.add_accessor(&alias_name, false, Linkage::External);
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
@@ -437,14 +400,23 @@ impl<'ctx> Codegen<'ctx> {
         accessor
     }
 
-    fn declare_constructor(&self, location: &str) -> FunctionValue<'ctx> {
+    fn declare_constructor(
+        &self,
+        location: &str,
+        has_context: bool,
+        is_public: bool,
+    ) -> FunctionValue<'ctx> {
         if let Some(accessor) = self.module.get_function(location) {
             return accessor;
         }
-        let accessor =
-            self.module
-                .add_function(location, self.accessor_type(), Some(Linkage::External));
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
-        accessor
+        self.add_accessor(
+            location,
+            has_context,
+            if is_public {
+                Linkage::External
+            } else {
+                Linkage::Private
+            },
+        )
     }
 }

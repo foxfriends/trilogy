@@ -94,10 +94,15 @@ impl<'ctx> Codegen<'ctx> {
         self.add_procedure(name, 1, debug_name, span, is_local_to_unit)
     }
 
-    pub(crate) fn add_accessor(&self, name: &str, linkage: Linkage) -> FunctionValue<'ctx> {
-        let accessor = self
-            .module
-            .add_function(name, self.accessor_type(), Some(linkage));
+    pub(crate) fn add_accessor(
+        &self,
+        name: &str,
+        has_context: bool,
+        linkage: Linkage,
+    ) -> FunctionValue<'ctx> {
+        let accessor =
+            self.module
+                .add_function(name, self.accessor_type(has_context), Some(linkage));
         accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         accessor
     }

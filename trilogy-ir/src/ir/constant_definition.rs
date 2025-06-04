@@ -1,4 +1,5 @@
 use super::*;
+use source_span::Span;
 
 #[derive(Clone, Debug)]
 pub struct ConstantDefinition {
@@ -14,5 +15,9 @@ impl ConstantDefinition {
             value: Expression::unit(name.span),
             name,
         }
+    }
+
+    pub fn span(&self) -> Span {
+        self.name.span.union(self.value.span)
     }
 }
