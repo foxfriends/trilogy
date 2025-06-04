@@ -92,6 +92,10 @@ pub(crate) struct ContinuationPoint<'ctx> {
     /// and added to the closure array and variables map.
     pub(super) parent_variables: HashSet<Closed<'ctx>>,
 
+    /// The module closure must be implicitly included in the closure array, and carried
+    /// so long as control remains within the scope of the module.
+    pub(super) module_closure: Vec<Closed<'ctx>>,
+
     /// Maintains the order of variables found in the closure array.
     pub(super) closure: RefCell<Vec<Closed<'ctx>>>,
     /// The mapping from variable names to their upvalues. If one already exists for a variable
@@ -113,6 +117,7 @@ impl Default for ContinuationPoint<'_> {
         Self {
             id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
             variables: RefCell::default(),
+            module_closure: vec![],
             parent_variables: HashSet::default(),
             closure: RefCell::default(),
             upvalues: RefCell::default(),
@@ -123,12 +128,26 @@ impl Default for ContinuationPoint<'_> {
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
+    pub(crate) fn new(module_closure: Vec<Closed<'ctx>>) -> Self {
+        Self {
+            id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
+            variables: RefCell::default(),
+            closure: RefCell::new(module_closure.clone()),
+            module_closure,
+            parent_variables: HashSet::default(),
+            upvalues: RefCell::default(),
+            parents: vec![],
+            unclosed: RefCell::default(),
+        }
+    }
+
     /// Creates a new continuation point which has visibility of the current one's variables.
     fn chain(&self) -> Self {
         Self {
             id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
             variables: RefCell::default(),
-            closure: RefCell::default(),
+            closure: RefCell::new(self.module_closure.clone()),
+            module_closure: self.module_closure.clone(),
             parent_variables: self
                 .variables
                 .borrow()
