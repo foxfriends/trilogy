@@ -6,7 +6,7 @@ use trilogy_parser::{Spanned, syntax};
 #[derive(Clone, Debug)]
 pub struct Module {
     pub span: Span,
-    pub parameters: Vec<Expression>,
+    pub parameters: Vec<Identifier>,
     definitions: Definitions,
 }
 
@@ -28,7 +28,7 @@ impl Module {
             .head
             .parameters
             .into_iter()
-            .map(|param| Expression::reference(param.span(), Identifier::declare(converter, param)))
+            .map(|param| Identifier::declare(converter, param))
             .collect();
         let definitions = Definitions::convert(converter, ast.definitions);
         converter.pop_scope();

@@ -5,7 +5,7 @@ use daggy::{Dag, NodeIndex};
 use std::collections::{HashMap, HashSet};
 use trilogy_ir::Id;
 use trilogy_ir::ir::{self, ModuleCell};
-use trilogy_ir::visitor::{HasBindings, IrVisitable, IrVisitor};
+use trilogy_ir::visitor::{IrVisitable, IrVisitor};
 
 #[derive(Copy, Clone)]
 struct Node {
@@ -85,11 +85,9 @@ pub(super) fn validate_constants<E: std::error::Error>(
                         }
                         ModuleCell::Module(def) => {
                             let parameters = &def.get().unwrap().parameters;
-                            for parameter in parameters {
-                                for id in parameter.bindings() {
-                                    let index = dag.add_node(0);
-                                    nodes.insert(id.clone(), Node { index, arity: None });
-                                }
+                            for id in parameters {
+                                let index = dag.add_node(0);
+                                nodes.insert(id.id.clone(), Node { index, arity: None });
                             }
                             parameters.len()
                         }

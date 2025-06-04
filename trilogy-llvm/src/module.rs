@@ -11,7 +11,7 @@ use trilogy_ir::ir::{self, DefinitionItem};
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
         let mut subcontext = self.for_file(file);
-        subcontext.compile_module_contents(module, false, true);
+        subcontext.compile_module_contents(module, None, true);
         subcontext
     }
 
@@ -34,12 +34,21 @@ impl<'ctx> Codegen<'ctx> {
         self.globals.retain(|_, v| self.path.starts_with(&v.path));
     }
 
-    fn compile_module_contents(&mut self, module: &ir::Module, has_context: bool, is_public: bool) {
+    fn compile_module_contents(
+        &mut self,
+        module: &ir::Module,
+        mut module_context: Option<Vec<Id>>,
+        is_public: bool,
+    ) {
         let constructor_name = self.module_path();
         let constructor_accessor =
-            self.declare_constructor(&constructor_name, has_context, is_public);
+            self.declare_constructor(&constructor_name, module_context.is_some(), is_public);
 
-        let has_context = has_context || !module.parameters.is_empty();
+        if !module.parameters.is_empty() {
+            let context = module_context.get_or_insert_default();
+            context.extend(module.parameters.iter().map(|id| id.id.clone()));
+        }
+
         // Pre-declare everything this module will reference so that all references during codegen will
         // be valid.
         let mut members = BTreeMap::new();
@@ -70,12 +79,12 @@ impl<'ctx> Codegen<'ctx> {
                     };
                     self.add_global(def.name.id.clone(), head_type);
                     let accessor_name = format!("{}::{}", self.module_path(), def.name);
-                    self.add_accessor(&accessor_name, has_context, linkage)
+                    self.add_accessor(&accessor_name, module_context.is_some(), linkage)
                 }
                 DefinitionItem::Constant(constant) => {
                     self.add_global(constant.name.id.clone(), Head::Constant);
                     let accessor_name = format!("{}::{}", self.module_path(), constant.name);
-                    self.add_accessor(&accessor_name, has_context, linkage)
+                    self.add_accessor(&accessor_name, module_context.is_some(), linkage)
                 }
                 DefinitionItem::Procedure(procedure) if procedure.overloads.is_empty() => {
                     // TODO: probably most sensible to just disallow extern procedures to be defined in functor modules
@@ -91,12 +100,12 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Procedure(procedure) => {
                     self.add_global(procedure.name.id.clone(), Head::Procedure);
                     let accessor_name = format!("{}::{}", self.module_path(), procedure.name);
-                    self.add_accessor(&accessor_name, has_context, linkage)
+                    self.add_accessor(&accessor_name, module_context.is_some(), linkage)
                 }
                 DefinitionItem::Function(function) => {
                     self.add_global(function.name.id.clone(), Head::Function);
                     let accessor_name = format!("{}::{}", self.module_path(), function.name);
-                    self.add_accessor(&accessor_name, has_context, linkage)
+                    self.add_accessor(&accessor_name, module_context.is_some(), linkage)
                 }
                 DefinitionItem::Rule(..) => todo!("implement rule"),
                 DefinitionItem::Test(..) => continue,
@@ -129,7 +138,11 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Module(def) => {
                     let module = def.module.as_module().unwrap();
                     self.begin_submodule(def.name.to_string());
-                    self.compile_module_contents(module, has_context, definition.is_exported);
+                    self.compile_module_contents(
+                        module,
+                        module_context.clone(),
+                        definition.is_exported,
+                    );
                     self.end_submodule();
                 }
                 DefinitionItem::Procedure(procedure) => {

@@ -393,7 +393,7 @@ impl IrVisitable for ModuleDefinition {
 impl IrVisitable for Module {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         for parameter in &self.parameters {
-            visitor.visit_pattern(parameter);
+            visitor.visit_identifier(parameter);
         }
         for definition in self.definitions() {
             visitor.visit_definition(definition);

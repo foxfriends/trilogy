@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use trilogy_ir::Id;
 
 #[derive(Clone, Debug)]
 pub(super) struct Parent<'ctx> {
@@ -94,7 +95,7 @@ pub(crate) struct ContinuationPoint<'ctx> {
 
     /// The module closure must be implicitly included in the closure array, and carried
     /// so long as control remains within the scope of the module.
-    pub(super) module_closure: Vec<Closed<'ctx>>,
+    pub(super) module_closure: Vec<Id>,
 
     /// Maintains the order of variables found in the closure array.
     pub(super) closure: RefCell<Vec<Closed<'ctx>>>,
@@ -128,11 +129,16 @@ impl Default for ContinuationPoint<'_> {
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
-    pub(crate) fn new(module_closure: Vec<Closed<'ctx>>) -> Self {
+    pub(crate) fn new(module_closure: Vec<Id>) -> Self {
         Self {
             id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
             variables: RefCell::default(),
-            closure: RefCell::new(module_closure.clone()),
+            closure: RefCell::new(
+                module_closure
+                    .iter()
+                    .map(|id| Closed::Variable(id.clone()))
+                    .collect(),
+            ),
             module_closure,
             parent_variables: HashSet::default(),
             upvalues: RefCell::default(),
@@ -146,7 +152,12 @@ impl<'ctx> ContinuationPoint<'ctx> {
         Self {
             id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
             variables: RefCell::default(),
-            closure: RefCell::new(self.module_closure.clone()),
+            closure: RefCell::new(
+                self.module_closure
+                    .iter()
+                    .map(|id| Closed::Variable(id.clone()))
+                    .collect(),
+            ),
             module_closure: self.module_closure.clone(),
             parent_variables: self
                 .variables
