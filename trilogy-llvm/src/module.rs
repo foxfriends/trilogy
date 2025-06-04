@@ -73,6 +73,9 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Module(def) => {
                     let module = def.module.as_module().unwrap();
                     let head_type = if module.parameters.is_empty() {
+                        if let Some(context) = &mut module_context {
+                            context.push(def.name.id.clone());
+                        }
                         Head::Module
                     } else {
                         Head::Function
@@ -83,6 +86,9 @@ impl<'ctx> Codegen<'ctx> {
                 }
                 DefinitionItem::Constant(constant) => {
                     self.add_global(constant.name.id.clone(), Head::Constant);
+                    if let Some(context) = &mut module_context {
+                        context.push(constant.name.id.clone());
+                    }
                     let accessor_name = format!("{}::{}", self.module_path(), constant.name);
                     self.add_accessor(&accessor_name, module_context.is_some(), linkage)
                 }
