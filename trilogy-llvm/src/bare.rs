@@ -997,7 +997,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         t: PointerValue<'ctx>,
         arity: usize,
-        function: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_proc",
@@ -1019,7 +1019,7 @@ impl<'ctx> Codegen<'ctx> {
                         .i64_type()
                         .const_int(arity as u64, false)
                         .into(),
-                    function.into(),
+                    function.as_global_value().as_pointer_value().into(),
                 ],
                 "",
             )
@@ -1029,7 +1029,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn trilogy_callable_init_func(
         &self,
         t: PointerValue<'ctx>,
-        function: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_func",
@@ -1042,7 +1042,14 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         self.builder
-            .build_call(f, &[t.into(), function.into()], "")
+            .build_call(
+                f,
+                &[
+                    t.into(),
+                    function.as_global_value().as_pointer_value().into(),
+                ],
+                "",
+            )
             .unwrap();
     }
 

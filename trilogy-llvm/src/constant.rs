@@ -10,6 +10,9 @@ impl<'ctx> Codegen<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), &name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
 
+        let has_context = accessor.count_params() == 2;
+        assert!(!has_context, "TODO");
+
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
             &name,

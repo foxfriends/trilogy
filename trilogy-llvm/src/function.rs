@@ -11,11 +11,15 @@ impl<'ctx> Codegen<'ctx> {
         accessing: FunctionValue<'ctx>,
     ) {
         let has_context = accessor.count_params() == 2;
-        assert!(!has_context, "TODO");
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
-        self.trilogy_callable_init_func(sret, accessing.as_global_value().as_pointer_value());
+        if has_context {
+            let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
+            self.trilogy_callable_init_fn(sret, ctx, accessing);
+        } else {
+            self.trilogy_callable_init_func(sret, accessing);
+        }
         self.builder.build_return(None).unwrap();
     }
 

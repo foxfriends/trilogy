@@ -154,6 +154,9 @@ impl<'ctx> Codegen<'ctx> {
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
     ) {
+        let has_context = accessor.count_params() == 2;
+        assert!(!has_context, "TODO");
+
         let name = self.module_path();
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
@@ -252,6 +255,9 @@ impl<'ctx> Codegen<'ctx> {
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
     ) {
+        let has_context = accessor.count_params() == 2;
+        assert!(!has_context, "TODO");
+
         // declare_function
         let name = self.module_path();
         let constructor_name = format!("{name}:::constructor");
@@ -261,7 +267,7 @@ impl<'ctx> Codegen<'ctx> {
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
-        self.trilogy_callable_init_func(sret, function.as_global_value().as_pointer_value());
+        self.trilogy_callable_init_func(sret, function);
         self.builder.build_return(None).unwrap();
 
         // The member IDs array is just a constant array
