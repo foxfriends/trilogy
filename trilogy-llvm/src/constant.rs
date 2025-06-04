@@ -10,9 +10,6 @@ impl<'ctx> Codegen<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), &name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
 
-        let has_context = accessor.count_params() == 2;
-        assert!(!has_context, "TODO");
-
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
             &name,
@@ -28,9 +25,16 @@ impl<'ctx> Codegen<'ctx> {
         );
         accessor.set_subprogram(subprogram);
 
-        let global = self.module.add_global(self.value_type(), None, &name);
-        global.set_linkage(Linkage::Private);
-        global.set_initializer(&self.value_type().const_zero());
+        let has_context = accessor.count_params() == 2;
+        let storage = if has_context {
+            let variable = self.get_variable(&definition.name.id).unwrap();
+            variable.ptr()
+        } else {
+            let global = self.module.add_global(self.value_type(), None, &name);
+            global.set_linkage(Linkage::Private);
+            global.set_initializer(&self.value_type().const_zero());
+            global.as_pointer_value()
+        };
 
         self.set_current_definition(name, accessor_name, definition.value.span);
         self.di.push_subprogram(subprogram);
@@ -41,11 +45,11 @@ impl<'ctx> Codegen<'ctx> {
         let initialized = self.context.append_basic_block(accessor, "initialized");
         self.builder.position_at_end(basic_block);
 
-        self.branch_undefined(global.as_pointer_value(), initialize, initialized);
+        self.branch_undefined(storage, initialize, initialized);
 
         self.builder.position_at_end(initialized);
         let sret = accessor.get_first_param().unwrap().into_pointer_value();
-        self.trilogy_value_clone_into(sret, global.as_pointer_value());
+        self.trilogy_value_clone_into(sret, storage);
         self.builder.build_return(None).unwrap();
 
         self.builder.position_at_end(initialize);
@@ -59,9 +63,7 @@ impl<'ctx> Codegen<'ctx> {
                 .builder
                 .build_load(self.value_type(), result, "")
                 .unwrap();
-            self.builder
-                .build_store(global.as_pointer_value(), value)
-                .unwrap();
+            self.builder.build_store(storage, value).unwrap();
             self.builder
                 .build_unconditional_branch(initialized)
                 .unwrap();
