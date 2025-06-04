@@ -349,14 +349,6 @@ impl<'ctx> Codegen<'ctx> {
         self.end_function();
     }
 
-    pub(crate) fn import_accessor(&self, location: &str, name: &str) -> FunctionValue<'ctx> {
-        let accessor_name = format!("{}::{}", location, name);
-        if let Some(function) = self.module.get_function(&accessor_name) {
-            return function;
-        }
-        self.add_accessor(&accessor_name, false, Linkage::External)
-    }
-
     fn import_module(&self, name: &Id, location: &str, module: &ir::Module) -> FunctionValue<'ctx> {
         for definition in module.definitions() {
             if !definition.is_exported {
@@ -375,13 +367,13 @@ impl<'ctx> Codegen<'ctx> {
                     );
                 }
                 DefinitionItem::Procedure(procedure) => {
-                    self.import_accessor(location, &procedure.name.to_string());
+                    self.import_accessor(&format!("{}::{}", location, &procedure.name.to_string()));
                 }
                 DefinitionItem::Function(function) => {
-                    self.import_accessor(location, &function.name.to_string());
+                    self.import_accessor(&format!("{}::{}", location, &function.name.to_string()));
                 }
                 DefinitionItem::Constant(constant) => {
-                    self.import_accessor(location, &constant.name.to_string());
+                    self.import_accessor(&format!("{}::{}", location, &constant.name.to_string()));
                 }
                 DefinitionItem::Rule(..) => todo!(),
                 DefinitionItem::Test(..) => continue,

@@ -107,6 +107,15 @@ impl<'ctx> Codegen<'ctx> {
         accessor
     }
 
+    /// Imports an existing accessor from another module. Imported accessors are necessarily top
+    /// level, so they will never have context.
+    pub(crate) fn import_accessor(&self, name: &str) -> FunctionValue<'ctx> {
+        if let Some(function) = self.module.get_function(name) {
+            return function;
+        }
+        self.add_accessor(name, false, Linkage::External)
+    }
+
     pub(crate) fn add_external_declaration(
         &self,
         name: &str,
