@@ -2,7 +2,7 @@ use crate::Codegen;
 use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
-use trilogy_ir::{ir, Id};
+use trilogy_ir::{Id, ir};
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_constant(
