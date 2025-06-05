@@ -1,4 +1,4 @@
-use crate::codegen::{Codegen, Global, Head};
+use crate::codegen::{Codegen, Global, Head, Variable};
 use inkwell::AddressSpace;
 use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
@@ -40,6 +40,7 @@ impl<'ctx> Codegen<'ctx> {
         mut module_context: Option<Vec<Id>>,
         is_public: bool,
     ) {
+        let previous_module_context = module_context.clone();
         let constructor_name = self.module_path();
         let constructor_accessor =
             self.declare_constructor(&constructor_name, module_context.is_some(), is_public);
@@ -141,7 +142,8 @@ impl<'ctx> Codegen<'ctx> {
                 module,
                 members,
                 is_public,
-                module_context.clone(),
+                previous_module_context.clone(),
+                module_context.clone().unwrap(),
             );
         }
 
@@ -286,21 +288,34 @@ impl<'ctx> Codegen<'ctx> {
         module: &ir::Module,
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
-        module_context: Option<Vec<Id>>,
+        previous_module_context: Option<Vec<Id>>,
+        module_context: Vec<Id>,
     ) {
         let has_context = accessor.count_params() == 2;
-        assert!(!has_context, "TODO");
 
         // declare_function
         let name = self.module_path();
         let constructor_name = format!("{name}:::constructor");
-        let function = self.add_function(&constructor_name, &name, module.span, !is_public);
+        let function = self.add_function(
+            &constructor_name,
+            &name,
+            module.span,
+            previous_module_context.is_some(),
+            !is_public,
+        );
 
         // write_function_accessor
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
-        self.trilogy_callable_init_func(sret, function);
+        if has_context {
+            let context = accessor.get_nth_param(1).unwrap().into_pointer_value();
+            self.trilogy_callable_init_fn(sret, context, function);
+        } else {
+            let context = self.allocate_value("");
+            self.trilogy_array_init_cap(context, 0, "");
+            self.trilogy_callable_init_fn(sret, context, function);
+        }
         self.builder.build_return(None).unwrap();
 
         // The member IDs array is just a constant array
@@ -336,16 +351,17 @@ impl<'ctx> Codegen<'ctx> {
         );
 
         // compile_function_body
-        self.set_current_definition(name.clone(), name, module.span, module_context);
+        self.set_current_definition(name.clone(), name, module.span, previous_module_context);
         self.begin_function(function, module.span);
 
         let arity = module.parameters.len();
-        let mut params = Vec::with_capacity(arity);
-        for _ in 0..arity as u32 - 1 {
+        for i in 0..arity - 1 {
             let continuation = self.add_continuation("");
             let param = self.get_continuation("");
-            self.bind_temporary(param);
-            params.push(param);
+            let id = &module.parameters[i];
+            let variable = self.variable(&id.id);
+            self.trilogy_value_clone_into(variable, param);
+
             let return_to = self.get_return("");
             let cont_val = self.allocate_value("");
             let closure = self
@@ -363,13 +379,30 @@ impl<'ctx> Codegen<'ctx> {
 
         // The last parameter is collected in the same continuation as the body
         let param = self.get_continuation("");
-        self.bind_temporary(param);
-        params.push(param);
+        let id = module.parameters.last().unwrap();
+        let variable = self.variable(&id.id);
+        self.trilogy_value_clone_into(variable, param);
 
-        let closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_CLOSURE")
-            .unwrap();
+        let closure = self.allocate_value("");
+        let array = self.trilogy_array_init_cap(closure, module_context.len(), "");
+
+        for id in &module_context {
+            let upvalue = match self.get_variable(id).unwrap() {
+                Variable::Closed { upvalue, .. } => {
+                    let new_upvalue = self.allocate_value(&format!("{id}.reup"));
+                    self.trilogy_value_clone_into(new_upvalue, upvalue);
+                    new_upvalue
+                }
+                Variable::Owned(variable) => {
+                    let upvalue = self.allocate_value(&format!("{id}.up"));
+                    let reference = self.trilogy_reference_to(upvalue, variable);
+                    self.trilogy_reference_close(reference);
+                    upvalue
+                }
+            };
+            self.trilogy_array_push(array, upvalue);
+        }
+
         let target = self.allocate_value("");
         self.trilogy_module_init_new_closure(
             target,
@@ -381,11 +414,8 @@ impl<'ctx> Codegen<'ctx> {
             closure,
             "",
         );
-
-        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
         let ret = self.get_return("");
         self.call_known_continuation(ret, target);
-
         self.end_function();
     }
 

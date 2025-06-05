@@ -41,7 +41,8 @@ impl<'ctx> Codegen<'ctx> {
 
         // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that
         // converts to CCC.
-        let wrapper_function = self.add_procedure(&wrapper_name, arity, &wrapper_name, span, true);
+        let wrapper_function =
+            self.add_procedure(&wrapper_name, arity, &wrapper_name, span, false, true);
         self.begin_function(wrapper_function, span);
         self.set_span(span);
         self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span, None);
@@ -82,7 +83,14 @@ impl<'ctx> Codegen<'ctx> {
         let linkage_name = if name == "main" { MAIN_NAME } else { &name };
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
-        let function = self.add_procedure(linkage_name, arity, &name, definition.span(), false);
+        let function = self.add_procedure(
+            linkage_name,
+            arity,
+            &name,
+            definition.span(),
+            module_context.is_some(),
+            false,
+        );
         self.write_procedure_accessor(accessor, function, arity);
         self.set_current_definition(
             name.to_owned(),

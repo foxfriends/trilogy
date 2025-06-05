@@ -1146,6 +1146,14 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_reference_to(
+        &self,
+        pointer: PointerValue<'ctx>,
+        pointee: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
+        self.trilogy_reference_to_in(&self.builder, pointer, pointee)
+    }
+
     pub(crate) fn trilogy_reference_to_in(
         &self,
         builder: &Builder<'ctx>,
@@ -1452,7 +1460,7 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
-            "trilogy_module_init_new",
+            "trilogy_module_init_new_closure",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),

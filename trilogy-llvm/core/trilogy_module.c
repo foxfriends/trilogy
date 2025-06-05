@@ -2,6 +2,7 @@
 #include "internal.h"
 #include "trilogy_array.h"
 #include "trilogy_callable.h"
+#include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
 #include <stdint.h>
@@ -27,14 +28,15 @@ trilogy_module* trilogy_module_init_new(
 
 trilogy_module* trilogy_module_init_new_closure(
     trilogy_value* tv, size_t len, uint64_t* ids, void** members,
-    trilogy_array_value* closure
+    trilogy_value* closure
 ) {
+    assert(closure->tag == TAG_ARRAY);
     trilogy_module* module = malloc_safe(sizeof(trilogy_module));
     module->rc = 1;
     module->len = len;
     module->member_ids = ids;
     module->members = members;
-    module->closure = closure;
+    module->closure = trilogy_array_assume(closure);
     return trilogy_module_init(tv, module);
 }
 
@@ -65,7 +67,7 @@ void trilogy_module_destroy(trilogy_module* module) {
 }
 
 typedef trilogy_value* (*accessor)(trilogy_value*);
-typedef trilogy_value* (*closure_accessor)(trilogy_value*, trilogy_array_value*);
+typedef trilogy_value* (*closure_accessor)(trilogy_value*, trilogy_value*);
 
 void trilogy_module_find(
     trilogy_value* tv, trilogy_module* module, uint64_t id
@@ -78,7 +80,10 @@ void trilogy_module_find(
             if (module->closure == NO_CLOSURE) {
                 ((accessor)module->members[i])(tv);
             } else {
-                ((closure_accessor)module->members[i])(tv, module->closure);
+                trilogy_value* closure = malloc_safe(sizeof(trilogy_value));
+                *closure = trilogy_undefined;
+                trilogy_array_clone_into(closure, module->closure);
+                ((closure_accessor)module->members[i])(tv, closure);
             }
             return;
         }

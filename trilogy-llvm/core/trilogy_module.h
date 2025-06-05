@@ -8,7 +8,7 @@ trilogy_module* trilogy_module_init_new(
 );
 trilogy_module* trilogy_module_init_new_closure(
     trilogy_value* tv, size_t len, uint64_t* ids, void** members,
-    trilogy_array_value* closure
+    trilogy_value* closure
 );
 
 trilogy_module*

@@ -304,8 +304,13 @@ impl<'ctx> Codegen<'ctx> {
             // In this case, we first update the closure to ensure that we know to close over this variable
             // before exiting the parent scope.
             let mut closure = scope.closure.borrow_mut();
-            let closure_index = closure.len();
-            closure.push(closed.clone());
+            let closure_index = if let Some(index) = closure.iter().position(|v| v == closed) {
+                index
+            } else {
+                let index = closure.len();
+                closure.push(closed.clone());
+                index
+            };
 
             // As recommended by the LLVM docs somewhere, we prefer to hoist variable declarations to
             // the first basic block of the function.

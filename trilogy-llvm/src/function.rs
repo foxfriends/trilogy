@@ -31,7 +31,13 @@ impl<'ctx> Codegen<'ctx> {
         let name = definition.name.to_string();
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
-        let function = self.add_function(&name, &name, definition.span(), false);
+        let function = self.add_function(
+            &name,
+            &name,
+            definition.span(),
+            module_context.is_some(),
+            false,
+        );
         self.write_function_accessor(accessor, function);
         self.set_current_definition(name.clone(), name, definition.span(), module_context);
         self.compile_function_body(function, &definition.overloads, definition.span());

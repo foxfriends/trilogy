@@ -58,11 +58,12 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         debug_name: &str,
         span: Span,
+        has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
         let function = self.module.add_function(
             name,
-            self.procedure_type(arity, false),
+            self.procedure_type(arity, has_context),
             Some(Linkage::Private),
         );
         function.set_subprogram(self.di.create_function(
@@ -89,9 +90,10 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
         debug_name: &str,
         span: Span,
+        has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
-        self.add_procedure(name, 1, debug_name, span, is_local_to_unit)
+        self.add_procedure(name, 1, debug_name, span, has_context, is_local_to_unit)
     }
 
     pub(crate) fn add_accessor(

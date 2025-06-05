@@ -149,7 +149,7 @@ impl<'ctx> Codegen<'ctx> {
         self.continuation_points
             .borrow_mut()
             .push(Rc::new(ContinuationPoint::new(
-                module_context.unwrap_or(vec![]),
+                module_context.unwrap_or_default(),
             )));
     }
 
