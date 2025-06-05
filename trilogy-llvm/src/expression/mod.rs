@@ -564,7 +564,11 @@ impl<'ctx> Codegen<'ctx> {
                     .module
                     .get_function(&global_name)
                     .expect("function was not defined");
-                self.call_internal(target, function, &[]);
+                if function.count_params() == 2 {
+                    self.call_internal(target, function, &[self.get_closure("").into()]);
+                } else {
+                    self.call_internal(target, function, &[]);
+                }
                 target
             }
         }

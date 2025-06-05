@@ -175,6 +175,12 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    pub(crate) fn get_closure(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        self.trilogy_value_clone_into(container, *self.function_params.borrow().last().unwrap());
+        container
+    }
+
     fn get_closure_array(&self, builder: &Builder<'ctx>) -> PointerValue<'ctx> {
         match self.closure_array.get() {
             Some(array) => array,
