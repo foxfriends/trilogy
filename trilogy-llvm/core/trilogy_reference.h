@@ -4,6 +4,7 @@
 trilogy_reference*
 trilogy_reference_init(trilogy_value* tv, trilogy_reference* ref);
 trilogy_reference* trilogy_reference_to(trilogy_value* tv, trilogy_value* val);
+trilogy_reference* trilogy_reference_init_empty(trilogy_value* tv);
 trilogy_reference*
 trilogy_reference_clone_into(trilogy_value* tv, trilogy_reference* ref);
 

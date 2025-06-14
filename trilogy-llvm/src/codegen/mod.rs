@@ -188,6 +188,19 @@ impl<'ctx> Codegen<'ctx> {
             .collect();
     }
 
+    pub(crate) fn begin_constant(&self, function: FunctionValue<'ctx>, span: Span) {
+        self.di.push_subprogram(function.get_subprogram().unwrap());
+        self.di.push_block_scope(span);
+        self.set_span(span);
+        let entry = self.context.append_basic_block(function, "entry");
+        self.builder.position_at_end(entry);
+        self.closure_array.set(None);
+        *self.function_params.borrow_mut() = function
+            .get_param_iter()
+            .map(|param| param.into_pointer_value())
+            .collect();
+    }
+
     pub(crate) fn begin_next_function(&self, function: FunctionValue<'ctx>) {
         let entry = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(entry);

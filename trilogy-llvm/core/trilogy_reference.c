@@ -23,6 +23,14 @@ trilogy_reference* trilogy_reference_to(trilogy_value* tv, trilogy_value* val) {
     return trilogy_reference_init(tv, ref);
 }
 
+trilogy_reference* trilogy_reference_init_empty(trilogy_value* tv) {
+    trilogy_reference* ref = malloc(sizeof(trilogy_reference));
+    ref->rc = 1;
+    ref->location = &ref->closed;
+    ref->closed = trilogy_undefined;
+    return trilogy_reference_init(tv, ref);
+}
+
 trilogy_reference*
 trilogy_reference_clone_into(trilogy_value* tv, trilogy_reference* ref) {
     assert(ref->rc != 0);

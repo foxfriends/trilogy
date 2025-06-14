@@ -187,19 +187,33 @@ impl<'ctx> Codegen<'ctx> {
             Some(array) => array,
             None => {
                 let closure_ptr = self.function_params.borrow().last().copied().unwrap();
-                let instruction = closure_ptr.as_instruction().unwrap();
-                // <- this is where instruction points
-                // %closure_ptr = alloca
-                // store %closure, %closure_ptr
-                // <- this is where we want to be
-                if let Some(instruction) = instruction
-                    .get_next_instruction()
-                    .and_then(|ins| ins.get_next_instruction())
-                {
-                    builder.position_at(instruction.get_parent().unwrap(), &instruction);
-                } else {
-                    builder.position_at_end(instruction.get_parent().unwrap());
-                }
+                match closure_ptr.as_instruction() {
+                    Some(instruction) => {
+                        // <- this is where instruction points
+                        // %closure_ptr = alloca
+                        // store %closure, %closure_ptr
+                        // <- this is where we want to be
+                        if let Some(instruction) = instruction
+                            .get_next_instruction()
+                            .and_then(|ins| ins.get_next_instruction())
+                        {
+                            builder.position_at(instruction.get_parent().unwrap(), &instruction);
+                        } else {
+                            builder.position_at_end(instruction.get_parent().unwrap());
+                        }
+                    }
+                    None => {
+                        let block = self.get_function().get_first_basic_block().unwrap();
+                        match block.get_first_instruction() {
+                            Some(instruction) => {
+                                builder.position_at(block, &instruction);
+                            }
+                            None => {
+                                builder.position_at_end(block);
+                            }
+                        }
+                    }
+                };
                 let closure_array =
                     self.trilogy_array_assume_in(builder, closure_ptr, "closure_array");
                 self.closure_array.set(Some(closure_array));
@@ -333,8 +347,9 @@ impl<'ctx> Codegen<'ctx> {
             // pull it from.
             let upvalue =
                 self.get_closure_upvalue(&builder, closure_index, &format!("{closed}.up"));
+            let reference = self.trilogy_reference_assume_in(&builder, upvalue);
             let location =
-                self.trilogy_reference_get_location_in(&builder, upvalue, &closed.to_string());
+                self.trilogy_reference_get_location_in(&builder, reference, &closed.to_string());
             // Then we record that we have already located this variable, to avoid relocating it if referenced
             // again from the current continuation point.
             let variable = Variable::Closed { location, upvalue };
@@ -363,13 +378,12 @@ impl<'ctx> Codegen<'ctx> {
     fn trilogy_reference_get_location_in(
         &self,
         builder: &Builder<'ctx>,
-        upvalue: PointerValue<'ctx>,
+        reference: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        let trilogy_reference_value = self.trilogy_reference_assume_in(builder, upvalue);
         let ptr_to_location = builder
             // Field 1 is location, according to types.h
-            .build_struct_gep(self.reference_value_type(), trilogy_reference_value, 1, "")
+            .build_struct_gep(self.reference_value_type(), reference, 1, "")
             .unwrap();
         builder
             .build_load(
@@ -379,6 +393,14 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_reference_get_location(
+        &self,
+        upvalue: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        self.trilogy_reference_get_location_in(&self.builder, upvalue, name)
     }
 
     /// References a variable, if it is already available, or defines a it in the current scope otherwise.

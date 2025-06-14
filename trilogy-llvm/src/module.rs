@@ -3,7 +3,7 @@ use inkwell::AddressSpace;
 use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
-use inkwell::values::{BasicValue, FunctionValue};
+use inkwell::values::{BasicValue, FunctionValue, PointerValue};
 use std::collections::BTreeMap;
 use trilogy_ir::Id;
 use trilogy_ir::ir::{self, DefinitionItem};
@@ -43,8 +43,11 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let previous_module_context = module_context.clone();
         let constructor_name = self.module_path();
-        let constructor_accessor =
-            self.declare_constructor(&constructor_name, module_context.is_some(), is_public);
+        let constructor_accessor = self.declare_constructor(
+            &constructor_name,
+            previous_module_context.is_some(),
+            is_public,
+        );
 
         if !module.parameters.is_empty() {
             let context = module_context.get_or_insert_default();
@@ -131,6 +134,7 @@ impl<'ctx> Codegen<'ctx> {
                 module,
                 members,
                 is_public,
+                previous_module_context,
                 module_context.clone(),
             );
         } else {
@@ -143,7 +147,7 @@ impl<'ctx> Codegen<'ctx> {
                 module,
                 members,
                 is_public,
-                previous_module_context.clone(),
+                previous_module_context,
                 module_context.clone().unwrap(),
             );
         }
@@ -187,11 +191,9 @@ impl<'ctx> Codegen<'ctx> {
         module: &ir::Module,
         members: BTreeMap<u64, FunctionValue<'ctx>>,
         is_public: bool,
+        previous_module_context: Option<Vec<Id>>,
         module_context: Option<Vec<Id>>,
     ) {
-        let has_context = accessor.count_params() == 2;
-        assert!(!has_context, "TODO");
-
         let name = self.module_path();
         let subprogram = self.di.builder.create_function(
             self.di.unit.as_debug_info_scope(),
@@ -240,47 +242,94 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
 
-        // compile_constant
-        let global = self.module.add_global(self.value_type(), None, &name);
-        global.set_linkage(Linkage::Private);
-        global.set_initializer(&self.value_type().const_zero());
-
-        self.set_current_definition(name.clone(), name, module.span, module_context);
-
-        self.di.push_subprogram(subprogram);
-        self.di.push_block_scope(module.span);
-        self.set_span(module.span);
-
-        let basic_block = self.context.append_basic_block(accessor, "entry");
+        self.set_current_definition(
+            name.clone(),
+            name.clone(),
+            module.span,
+            previous_module_context,
+        );
+        self.begin_constant(accessor, module.span);
         let initialize = self.context.append_basic_block(accessor, "initialize");
         let initialized = self.context.append_basic_block(accessor, "initialized");
-        self.builder.position_at_end(basic_block);
 
-        self.branch_undefined(global.as_pointer_value(), initialize, initialized);
+        // compile_constant
+        let storage = if module_context.is_some() {
+            self.allocate_value("")
+        } else {
+            let global = self.module.add_global(self.value_type(), None, &name);
+            global.set_linkage(Linkage::Private);
+            global.set_initializer(&self.value_type().const_zero());
+            global.as_pointer_value()
+        };
+
+        self.branch_undefined(storage, initialize, initialized);
 
         self.builder.position_at_end(initialized);
         let sret = accessor.get_first_param().unwrap().into_pointer_value();
-        self.trilogy_value_clone_into(sret, global.as_pointer_value());
+        self.trilogy_value_clone_into(sret, storage);
         self.builder.build_return(None).unwrap();
 
         self.builder.position_at_end(initialize);
 
-        self.trilogy_module_init_new(
-            global.as_pointer_value(),
-            self.context
-                .i64_type()
-                .const_int(members.len() as u64, false),
-            member_ids_global.as_pointer_value(),
-            members_global.as_pointer_value(),
-            "",
-        );
+        if let Some(module_context) = module_context {
+            let closure = self.allocate_value("");
+            let array = self.trilogy_array_init_cap(closure, module_context.len(), "");
+            let mut references = vec![];
+            for id in &module_context {
+                let upvalue = match self.get_variable(id) {
+                    Some(Variable::Closed { upvalue, .. }) => {
+                        let new_upvalue = self.allocate_value(&format!("{id}.reup"));
+                        self.trilogy_value_clone_into(new_upvalue, upvalue);
+                        new_upvalue
+                    }
+                    Some(Variable::Owned(variable)) => {
+                        let upvalue = self.allocate_value(&format!("{id}.up"));
+                        let reference = self.trilogy_reference_to(upvalue, variable);
+                        self.trilogy_reference_close(reference);
+                        upvalue
+                    }
+                    None => {
+                        let upvalue = self.allocate_value("");
+                        references.push((self.trilogy_reference_init_empty(upvalue, ""), id));
+                        upvalue
+                    }
+                };
+                self.trilogy_array_push(array, upvalue);
+            }
+
+            for (reference, id) in references {
+                let global = self.globals.get(id).unwrap();
+                let location = self.trilogy_reference_get_location(reference, "");
+                self.init_global(location, global, closure);
+            }
+
+            self.trilogy_module_init_new_closure(
+                storage,
+                self.context
+                    .i64_type()
+                    .const_int(members.len() as u64, false),
+                member_ids_global.as_pointer_value(),
+                members_global.as_pointer_value(),
+                closure,
+                "",
+            );
+        } else {
+            self.trilogy_module_init_new(
+                storage,
+                self.context
+                    .i64_type()
+                    .const_int(members.len() as u64, false),
+                member_ids_global.as_pointer_value(),
+                members_global.as_pointer_value(),
+                "",
+            );
+        }
 
         self.builder
             .build_unconditional_branch(initialized)
             .unwrap();
 
-        self.di.pop_scope();
-        self.di.pop_scope();
+        self.end_function();
     }
 
     fn compile_functor_constructor(
@@ -387,29 +436,33 @@ impl<'ctx> Codegen<'ctx> {
         let closure = self.allocate_value("");
         let array = self.trilogy_array_init_cap(closure, module_context.len(), "");
 
+        let mut references = vec![];
         for id in &module_context {
-            let upvalue = if let Some(global) = self.globals.get(id) {
-                let constant_value = self.reference_global(global, "");
-                let upvalue = self.allocate_value("");
-                let reference = self.trilogy_reference_to(upvalue, constant_value);
-                self.trilogy_reference_close(reference);
-                upvalue
-            } else {
-                match self.get_variable(id).unwrap() {
-                    Variable::Closed { upvalue, .. } => {
-                        let new_upvalue = self.allocate_value(&format!("{id}.reup"));
-                        self.trilogy_value_clone_into(new_upvalue, upvalue);
-                        new_upvalue
-                    }
-                    Variable::Owned(variable) => {
-                        let upvalue = self.allocate_value(&format!("{id}.up"));
-                        let reference = self.trilogy_reference_to(upvalue, variable);
-                        self.trilogy_reference_close(reference);
-                        upvalue
-                    }
+            let upvalue = match self.get_variable(id) {
+                Some(Variable::Closed { upvalue, .. }) => {
+                    let new_upvalue = self.allocate_value(&format!("{id}.reup"));
+                    self.trilogy_value_clone_into(new_upvalue, upvalue);
+                    new_upvalue
+                }
+                Some(Variable::Owned(variable)) => {
+                    let upvalue = self.allocate_value(&format!("{id}.up"));
+                    let reference = self.trilogy_reference_to(upvalue, variable);
+                    self.trilogy_reference_close(reference);
+                    upvalue
+                }
+                None => {
+                    let upvalue = self.allocate_value("");
+                    references.push((self.trilogy_reference_init_empty(upvalue, ""), id));
+                    upvalue
                 }
             };
             self.trilogy_array_push(array, upvalue);
+        }
+
+        for (reference, id) in references {
+            let global = self.globals.get(id).unwrap();
+            let location = self.trilogy_reference_get_location(reference, "");
+            self.init_global(location, global, closure);
         }
 
         let target = self.allocate_value("");
@@ -426,6 +479,20 @@ impl<'ctx> Codegen<'ctx> {
         let ret = self.get_return("");
         self.call_known_continuation(ret, target);
         self.end_function();
+    }
+
+    fn init_global(
+        &self,
+        target: PointerValue<'ctx>,
+        global: &Global,
+        closure: PointerValue<'ctx>,
+    ) {
+        let global_name = format!("{}::{}", global.module_path(&self.location), global.id);
+        let function = self
+            .module
+            .get_function(&global_name)
+            .expect("function was not defined");
+        self.call_internal(target, function, &[closure.into()]);
     }
 
     fn import_module(&self, name: &Id, location: &str, module: &ir::Module) -> FunctionValue<'ctx> {

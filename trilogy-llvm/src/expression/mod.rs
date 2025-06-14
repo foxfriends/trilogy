@@ -562,7 +562,7 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(crate) fn reference_global(&self, global: &Global, name: &str) -> PointerValue<'ctx> {
+    fn reference_global(&self, global: &Global, name: &str) -> PointerValue<'ctx> {
         let target = self.allocate_value(name);
         let global_name = format!("{}::{}", global.module_path(&self.location), global.id);
         let function = self

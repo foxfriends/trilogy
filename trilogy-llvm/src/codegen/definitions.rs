@@ -82,6 +82,9 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(4).unwrap().set_name("resume_to");
         function.get_nth_param(5).unwrap().set_name("break_to");
         function.get_nth_param(6).unwrap().set_name("continue_to");
+        if has_context {
+            function.get_last_param().unwrap().set_name("closure");
+        }
         function
     }
 
@@ -106,6 +109,10 @@ impl<'ctx> Codegen<'ctx> {
             self.module
                 .add_function(name, self.accessor_type(has_context), Some(linkage));
         accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        accessor.get_nth_param(0).unwrap().set_name("output");
+        if has_context {
+            accessor.get_nth_param(1).unwrap().set_name("closure");
+        }
         accessor
     }
 

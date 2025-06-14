@@ -31,8 +31,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let has_context = accessor.count_params() == 2;
         let storage = if has_context {
-            let variable = self.get_variable(&definition.name.id).unwrap();
-            variable.ptr()
+            self.allocate_value("")
         } else {
             let global = self.module.add_global(self.value_type(), None, &name);
             global.set_linkage(Linkage::Private);
@@ -41,14 +40,9 @@ impl<'ctx> Codegen<'ctx> {
         };
 
         self.set_current_definition(name, accessor_name, definition.value.span, module_context);
-        self.di.push_subprogram(subprogram);
-        self.di.push_block_scope(definition.span());
-        self.set_span(definition.value.span);
-        let basic_block = self.context.append_basic_block(accessor, "entry");
+        self.begin_function(accessor, definition.span());
         let initialize = self.context.append_basic_block(accessor, "initialize");
         let initialized = self.context.append_basic_block(accessor, "initialized");
-        self.builder.position_at_end(basic_block);
-
         self.branch_undefined(storage, initialize, initialized);
 
         self.builder.position_at_end(initialized);
@@ -73,7 +67,6 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap();
         }
 
-        self.di.pop_scope();
-        self.di.pop_scope();
+        self.end_function();
     }
 }
