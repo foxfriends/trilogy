@@ -54,6 +54,7 @@ pub(crate) enum Head {
 #[derive(Clone, Debug)]
 pub(crate) struct Global {
     pub path: Vec<String>,
+    pub id: Id,
     pub head: Head,
 }
 

@@ -1,4 +1,4 @@
-use crate::codegen::{Codegen, Head, Merger, Variable};
+use crate::codegen::{Codegen, Global, Head, Merger, Variable};
 use inkwell::debug_info::AsDIScope;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
@@ -553,25 +553,28 @@ impl<'ctx> Codegen<'ctx> {
                 target
             }
             None => {
-                let ident = identifier.id.name();
                 let global = self
                     .globals
                     .get(&identifier.id)
                     .expect("unresolved variable");
-                let target = self.allocate_value(name);
-                let global_name = format!("{}::{ident}", global.module_path(&self.location));
-                let function = self
-                    .module
-                    .get_function(&global_name)
-                    .expect("function was not defined");
-                if function.count_params() == 2 {
-                    self.call_internal(target, function, &[self.get_closure("").into()]);
-                } else {
-                    self.call_internal(target, function, &[]);
-                }
-                target
+                self.reference_global(global, name)
             }
         }
+    }
+
+    pub(crate) fn reference_global(&self, global: &Global, name: &str) -> PointerValue<'ctx> {
+        let target = self.allocate_value(name);
+        let global_name = format!("{}::{}", global.module_path(&self.location), global.id);
+        let function = self
+            .module
+            .get_function(&global_name)
+            .expect("function was not defined");
+        if function.count_params() == 2 {
+            self.call_internal(target, function, &[self.get_closure("").into()]);
+        } else {
+            self.call_internal(target, function, &[]);
+        }
+        target
     }
 
     fn compile_or(

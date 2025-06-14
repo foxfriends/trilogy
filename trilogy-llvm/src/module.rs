@@ -17,9 +17,10 @@ impl<'ctx> Codegen<'ctx> {
 
     fn add_global(&mut self, id: Id, head: Head) {
         self.globals.insert(
-            id,
+            id.clone(),
             Global {
                 path: self.path.clone(),
+                id,
                 head,
             },
         );
@@ -387,20 +388,25 @@ impl<'ctx> Codegen<'ctx> {
         let array = self.trilogy_array_init_cap(closure, module_context.len(), "");
 
         for id in &module_context {
-            if let Some(_global) = self.globals.get(id) {
-                todo!()
-            }
-            let upvalue = match self.get_variable(id).unwrap() {
-                Variable::Closed { upvalue, .. } => {
-                    let new_upvalue = self.allocate_value(&format!("{id}.reup"));
-                    self.trilogy_value_clone_into(new_upvalue, upvalue);
-                    new_upvalue
-                }
-                Variable::Owned(variable) => {
-                    let upvalue = self.allocate_value(&format!("{id}.up"));
-                    let reference = self.trilogy_reference_to(upvalue, variable);
-                    self.trilogy_reference_close(reference);
-                    upvalue
+            let upvalue = if let Some(global) = self.globals.get(id) {
+                let constant_value = self.reference_global(global, "");
+                let upvalue = self.allocate_value("");
+                let reference = self.trilogy_reference_to(upvalue, constant_value);
+                self.trilogy_reference_close(reference);
+                upvalue
+            } else {
+                match self.get_variable(id).unwrap() {
+                    Variable::Closed { upvalue, .. } => {
+                        let new_upvalue = self.allocate_value(&format!("{id}.reup"));
+                        self.trilogy_value_clone_into(new_upvalue, upvalue);
+                        new_upvalue
+                    }
+                    Variable::Owned(variable) => {
+                        let upvalue = self.allocate_value(&format!("{id}.up"));
+                        let reference = self.trilogy_reference_to(upvalue, variable);
+                        self.trilogy_reference_close(reference);
+                        upvalue
+                    }
                 }
             };
             self.trilogy_array_push(array, upvalue);
