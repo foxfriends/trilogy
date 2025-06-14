@@ -407,6 +407,7 @@ impl<'ctx> Codegen<'ctx> {
         let arity = module.parameters.len();
         for i in 0..arity - 1 {
             let continuation = self.add_continuation("");
+            let brancher = self.end_continuation_point_as_branch();
             let param = self.get_continuation("");
             let id = &module.parameters[i];
             let variable = self.variable(&id.id);
@@ -419,7 +420,7 @@ impl<'ctx> Codegen<'ctx> {
                 .build_alloca(self.value_type(), "TEMP_CLOSURE")
                 .unwrap();
             self.trilogy_callable_init_fn(cont_val, closure, continuation);
-            self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+            self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
             let inner_cp = self.hold_continuation_point();
             self.call_known_continuation(return_to, cont_val);
 

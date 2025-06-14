@@ -29,6 +29,14 @@ impl<'ctx> Codegen<'ctx> {
         );
         accessor.set_subprogram(subprogram);
 
+        self.set_current_definition(
+            name.clone(),
+            accessor_name,
+            definition.value.span,
+            module_context,
+        );
+        self.begin_constant(accessor, definition.span());
+
         let has_context = accessor.count_params() == 2;
         let storage = if has_context {
             self.allocate_value("")
@@ -39,8 +47,6 @@ impl<'ctx> Codegen<'ctx> {
             global.as_pointer_value()
         };
 
-        self.set_current_definition(name, accessor_name, definition.value.span, module_context);
-        self.begin_function(accessor, definition.span());
         let initialize = self.context.append_basic_block(accessor, "initialize");
         let initialized = self.context.append_basic_block(accessor, "initialized");
         self.branch_undefined(storage, initialize, initialized);

@@ -1,0 +1,9 @@
+module child a b {
+  const sum = a + b
+
+  export sum
+}
+
+proc main!() {
+  assert child 3 4::sum === 7
+}
