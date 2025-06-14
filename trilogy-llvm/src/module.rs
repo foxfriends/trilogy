@@ -387,6 +387,9 @@ impl<'ctx> Codegen<'ctx> {
         let array = self.trilogy_array_init_cap(closure, module_context.len(), "");
 
         for id in &module_context {
+            if let Some(_global) = self.globals.get(id) {
+                todo!()
+            }
             let upvalue = match self.get_variable(id).unwrap() {
                 Variable::Closed { upvalue, .. } => {
                     let new_upvalue = self.allocate_value(&format!("{id}.reup"));
