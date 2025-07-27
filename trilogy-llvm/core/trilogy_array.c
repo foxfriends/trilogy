@@ -103,6 +103,9 @@ void trilogy_array_set(
 ) {
     assert(index <= arr->len);
     if (index == arr->len) {
+        if (index == arr->cap) {
+            trilogy_array_reserve(arr, 1);
+        }
         arr->len++;
         arr->contents[index] = *value;
     } else {
