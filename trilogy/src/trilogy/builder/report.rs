@@ -69,7 +69,7 @@ impl<E: std::error::Error> Error<E> {
 
         let report = match &self.0 {
             ErrorKind::External(error) => {
-                eprintln!("{}", error);
+                eprintln!("{error}");
                 return;
             }
             ErrorKind::Ir(location, error) => {

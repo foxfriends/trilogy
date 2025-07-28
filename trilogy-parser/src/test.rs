@@ -32,11 +32,11 @@ impl Debug for SExpr<'_> {
                         write!(f, " ")?;
                     }
                     first = false;
-                    write!(f, "{:?}", item)?;
+                    write!(f, "{item:?}")?;
                 }
                 write!(f, ")")?;
             }
-            Self::Label(label) => write!(f, "{}", label)?,
+            Self::Label(label) => write!(f, "{label}")?,
         }
         Ok(())
     }

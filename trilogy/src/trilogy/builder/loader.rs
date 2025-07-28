@@ -41,7 +41,7 @@ impl<E: std::error::Error> Display for Error<E> {
             ErrorKind::Io(error) => write!(f, "{error}"),
             ErrorKind::Network(error) => write!(f, "{error}"),
             ErrorKind::InvalidScheme(scheme) => {
-                write!(f, "invalid scheme in module location `{}`", scheme)
+                write!(f, "invalid scheme in module location `{scheme}`")
             }
         }
     }
@@ -139,7 +139,7 @@ where
     }
 
     pub fn load_source(&self, location: &Location) -> Result<Option<String>, ErrorKind<E>> {
-        log::debug!("locating module `{}`", location);
+        log::debug!("locating module `{location}`");
         if self.cache.has(location) {
             log::trace!("module cache hit");
             return Ok(Some(self.cache.load(location).map_err(ErrorKind::Cache)?));

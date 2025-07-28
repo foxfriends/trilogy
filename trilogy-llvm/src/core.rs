@@ -21,7 +21,7 @@ impl<'ctx> Codegen<'ctx> {
     /// Imported core procedures are the core.tri versions, so they cost as much as a regular
     /// procedure call.
     fn import_core(&self, name: &str) -> FunctionValue<'ctx> {
-        self.import_accessor(&format!("trilogy:core::{}", name))
+        self.import_accessor(&format!("trilogy:core::{name}"))
     }
 
     pub(crate) fn structural_eq(

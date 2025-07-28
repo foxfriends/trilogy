@@ -74,11 +74,11 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
     let result = trilogy.run();
     match result {
         Ok(value) if print => {
-            println!("{:?}", value);
+            println!("{value:?}");
         }
         Ok(value) => {
             // NOTE: for now, we're printing no matter what...
-            println!("{:?}", value);
+            println!("{value:?}");
         }
         Err(error) if debug => {
             eprintln!("{error:?}");
