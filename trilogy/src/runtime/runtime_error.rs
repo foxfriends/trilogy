@@ -103,26 +103,25 @@ impl RuntimeError {
             eprintln!("{frame}");
 
             if report.is_none() {
-                if let Some((_, loc)) = &frame.expr {
-                    if let Some(local) = loc
+                if let Some((_, loc)) = &frame.expr
+                    && let Some(local) = loc
                         .file
                         .parse::<Url>()
                         .ok()
                         .and_then(|url| url.to_file_path().ok())
                         .map(|path| path.display().to_string())
+                {
                     // Ariadne hates us
-                    {
-                        let span = cache.span(&local, loc.span);
-                        report = Some(
-                            ariadne::Report::build(ReportKind::Error, &loc.file, span.1.start)
-                                .with_message(format!("{}", self.error))
-                                .with_label(
-                                    Label::new(span)
-                                        .with_color(primary)
-                                        .with_message("in this expression"),
-                                ),
-                        );
-                    }
+                    let span = cache.span(&local, loc.span);
+                    report = Some(
+                        ariadne::Report::build(ReportKind::Error, &loc.file, span.1.start)
+                            .with_message(format!("{}", self.error))
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("in this expression"),
+                            ),
+                    );
                 }
             }
         }

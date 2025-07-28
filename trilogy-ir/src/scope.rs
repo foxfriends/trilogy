@@ -27,10 +27,10 @@ impl Scope {
     }
 
     pub fn declare(&mut self, name: String, is_mutable: bool, span: Span) -> Id {
-        if self.pseudo {
-            if let Some(declared) = self.declared_pseudo(&name) {
-                return declared.clone();
-            }
+        if self.pseudo
+            && let Some(declared) = self.declared_pseudo(&name)
+        {
+            return declared.clone();
         }
         self.symbols.reusable(name, is_mutable, span).clone()
     }

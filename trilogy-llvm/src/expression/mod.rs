@@ -471,8 +471,8 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> Option<PointerValue<'ctx>> {
         // Possibly a static module reference, which we can support very easily and efficiently
-        if let Value::Reference(module) = &module_ref.value {
-            if let Some(module) =
+        if let Value::Reference(module) = &module_ref.value
+            && let Some(module) =
                 self.globals
                     .get(&module.id)
                     .and_then(|global| match &global.head {
@@ -486,15 +486,14 @@ impl<'ctx> Codegen<'ctx> {
                         Head::ExternalModule(path) => Some(path.to_owned()),
                         _ => None,
                     })
-            {
-                let target = self.allocate_value(name);
-                let declared = self
-                    .module
-                    .get_function(&format!("{module}::{}", ident.as_ref()))
-                    .unwrap();
-                self.call_internal(target, declared, &[]);
-                return Some(target);
-            }
+        {
+            let target = self.allocate_value(name);
+            let declared = self
+                .module
+                .get_function(&format!("{module}::{}", ident.as_ref()))
+                .unwrap();
+            self.call_internal(target, declared, &[]);
+            return Some(target);
         }
 
         let module_value = self.compile_expression(module_ref, "")?;

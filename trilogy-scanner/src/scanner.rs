@@ -269,10 +269,11 @@ impl<'a> Scanner<'a> {
             if ch == '"' {
                 return self.make_token(on_end).with_value(content);
             }
-            if let Some(on_continue) = on_continue {
-                if ch == '$' && self.expect(|ch| ch == '{').is_some() {
-                    return self.make_token(on_continue).with_value(content);
-                }
+            if let Some(on_continue) = on_continue
+                && ch == '$'
+                && self.expect(|ch| ch == '{').is_some()
+            {
+                return self.make_token(on_continue).with_value(content);
             }
             if ch == '\\' {
                 ch = match self.escape_sequence() {
