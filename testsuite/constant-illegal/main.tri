@@ -1,0 +1,7 @@
+const hello = "hello"
+const world = "world"
+const hello_world = hello <> world
+
+proc main!() {
+  assert hello_world == "helloworld"
+}

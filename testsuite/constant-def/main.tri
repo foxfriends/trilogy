@@ -1,5 +1,9 @@
 const value = 5
+const sum = 5 + 15
+const string = "hello world"
 
 proc main!() {
   assert value == 5
+  assert sum == 20
+  assert string == "hello world"
 }

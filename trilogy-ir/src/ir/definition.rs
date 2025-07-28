@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Converter, Error, Id};
+use crate::{Converter, Error, Id, visitor::MightBeConstant};
 use source_span::Span;
 use std::sync::Arc;
 use trilogy_parser::{Spanned, syntax};
@@ -64,6 +64,11 @@ impl Definition {
                     return;
                 };
                 constant.value = Expression::convert(converter, ast.body);
+                if !constant.value.is_constant() {
+                    converter.error(Error::NonConstantExpressionInConstant {
+                        expression: constant.value.span,
+                    });
+                }
             }
             syntax::DefinitionItem::Function(ast) => {
                 let symbol = converter.declared(ast.head.name.as_ref()).unwrap();

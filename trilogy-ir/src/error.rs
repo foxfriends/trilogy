@@ -31,6 +31,9 @@ pub enum Error {
         glue: Span,
         rhs: Span,
     },
+    NonConstantExpressionInConstant {
+        expression: Span,
+    },
 }
 
 impl std::error::Error for Error {}
@@ -46,6 +49,9 @@ impl Display for Error {
             Error::DuplicateExport { .. } => write!(f, "duplicate export"),
             Error::GluePatternMissingLiteral { .. } => {
                 write!(f, "glue pattern missing string literal")
+            }
+            Error::NonConstantExpressionInConstant { .. } => {
+                write!(f, "non-constant expression in constant definition")
             }
         }
     }

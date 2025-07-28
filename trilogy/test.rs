@@ -24,7 +24,11 @@ struct Report {
     expected: Expectation,
 }
 
-#[derive(Deserialize, Default)]
+const fn const_true() -> bool {
+    true
+}
+
+#[derive(Deserialize)]
 struct Expectation {
     #[serde(default)]
     exit: i32,
@@ -32,10 +36,27 @@ struct Expectation {
     output: String,
     #[serde(default)]
     stderr: bool,
+    #[serde(default = "const_true")]
+    compile: bool,
+}
+
+impl Default for Expectation {
+    fn default() -> Self {
+        Self {
+            exit: 0,
+            output: String::new(),
+            stderr: false,
+            compile: true,
+        }
+    }
 }
 
 impl Report {
     fn is_success(&self) -> bool {
+        if !self.expected.compile {
+            return self.trilogy_exit_code != 0;
+        }
+
         self.trilogy_exit_code == 0
             && self
                 .clang_output
@@ -81,6 +102,14 @@ impl Report {
 
     fn print_failure(&self) -> io::Result<()> {
         let mut stdout = stdout().lock();
+        if !self.expected.compile {
+            writeln!(
+                stdout,
+                "{} was expected not to compile",
+                self.path.file_name().unwrap().to_string_lossy(),
+            )?;
+            return Ok(());
+        }
         if self.trilogy_exit_code != 0 {
             writeln!(
                 stdout,
@@ -135,14 +164,14 @@ impl Report {
                         #[cfg(unix)]
                         {
                             let signal = if let Some(sig) = program_output.status.signal() {
-                                format!("terminated by signal {}", sig)
+                                format!("terminated by signal {sig}")
                             } else if let Some(sig) = program_output.status.stopped_signal() {
-                                format!("stopped by signal {}", sig)
+                                format!("stopped by signal {sig}")
                             } else {
                                 "terminated unexpectedly".to_owned()
                             };
                             if program_output.status.core_dumped() {
-                                format!("{} (core dumped)", signal)
+                                format!("{signal} (core dumped)")
                             } else {
                                 signal
                             }
@@ -169,7 +198,7 @@ impl Report {
                 "---- expected output ----\n{}",
                 self.expected.output,
             )?;
-            writeln!(stdout, "---- actual output ----\n{}", output)?;
+            writeln!(stdout, "---- actual output ----\n{output}")?;
         }
         if self.expected.stderr {
             if program_output.stderr.is_empty() {
