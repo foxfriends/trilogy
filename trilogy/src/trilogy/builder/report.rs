@@ -292,23 +292,6 @@ impl<E: std::error::Error> Error<E> {
                         DefinitionItem::Test(..) => unreachable!(),
                         DefinitionItem::Procedure(..) => unreachable!(),
                     },
-                    ErrorKind::ConstantCycle { def } => {
-                        let span = cache.span(location, def.name.span);
-                        ariadne::Report::build(kind, span.clone())
-                            .with_message("constant circularly refers to itself")
-                            .with_label(Label::new(span).with_color(primary).with_message(
-                                "constants may not refer to themselves directly or indirectly",
-                            ))
-                    }
-                    ErrorKind::ModuleCycle { def } => {
-                        let span = cache.span(location, def.name.span);
-                        ariadne::Report::build(kind, span.clone())
-                            .with_message("module initialization circularly refers to itself")
-                            .with_label(Label::new(span).with_color(primary).with_message(
-                                "modules may not refer to themselves directly or indirectly",
-                            ))
-                            .with_note("this analysis may report false negatives. If that is the case for you right now, please submit a bug report to foxfriends/trilogy on GitHub.")
-                    }
                 }
             }
             ErrorKind::Syntax(location, error) => {

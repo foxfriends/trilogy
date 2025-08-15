@@ -4,8 +4,6 @@ use std::collections::HashMap;
 use trilogy_ir::ir::Module;
 
 mod error_kind;
-
-mod validate_constants;
 mod validate_main;
 
 pub(crate) use error_kind::ErrorKind;
@@ -19,7 +17,6 @@ pub(super) fn analyze<E: std::error::Error>(
     if !is_library {
         validate_main::validate_main(modules, entrypoint, report);
     }
-    // validate_constants::validate_constants(modules, report);
 }
 
 mod prelude {

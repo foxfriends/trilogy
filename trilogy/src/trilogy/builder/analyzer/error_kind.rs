@@ -6,8 +6,6 @@ pub enum ErrorKind {
     NoMainProcedure,
     MainHasParameters { proc: ir::ProcedureDefinition },
     MainNotProcedure { item: ir::DefinitionItem },
-    ConstantCycle { def: ir::ConstantDefinition },
-    ModuleCycle { def: ir::ModuleDefinition },
 }
 
 impl std::error::Error for ErrorKind {}
@@ -18,8 +16,6 @@ impl Display for ErrorKind {
             Self::NoMainProcedure => write!(f, "no main procedure"),
             Self::MainHasParameters { .. } => write!(f, "main has parameters"),
             Self::MainNotProcedure { .. } => write!(f, "main not procedure"),
-            Self::ConstantCycle { .. } => write!(f, "constant cycle"),
-            Self::ModuleCycle { .. } => write!(f, "module cycle"),
         }
     }
 }

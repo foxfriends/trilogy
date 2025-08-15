@@ -125,7 +125,6 @@ impl<C: Cache> Builder<C> {
     /// Note that while a successful result does indicate that the source contained a
     /// valid piece of Trilogy code, it is not necessarily a valid program that can be
     /// run. In particular, libraries are valid code but cannot be run.
-    #[allow(unreachable_code)]
     pub fn build_from_source(self, file: impl AsRef<Path>) -> Result<Trilogy, Report<C::Error>> {
         log::trace!("begin constructing Trilogy program");
         let Self {
