@@ -1277,6 +1277,15 @@ impl<'ctx> DebugInfo<'ctx> {
         )
     }
 
+    pub(crate) fn rule_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
+        self.builder.create_subroutine_type(
+            self.unit.get_file(),
+            None,
+            &vec![self.value_pointer_type.as_type(); arity + 9],
+            LLVMDIFlagPublic,
+        )
+    }
+
     pub(crate) fn continuation_di_type(&self) -> DISubroutineType<'ctx> {
         self.continuation_type
     }

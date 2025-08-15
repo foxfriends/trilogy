@@ -118,7 +118,11 @@ impl<'ctx> Codegen<'ctx> {
                     let accessor_name = format!("{}::{}", self.module_path(), function.name);
                     self.add_accessor(&accessor_name, module_context.is_some(), linkage)
                 }
-                DefinitionItem::Rule(..) => todo!("implement rule"),
+                DefinitionItem::Rule(rule) => {
+                    self.add_global(rule.name.id.clone(), Head::Rule);
+                    let accessor_name = format!("{}::{}", self.module_path(), rule.name);
+                    self.add_accessor(&accessor_name, module_context.is_some(), linkage)
+                }
                 DefinitionItem::Test(..) => continue,
             };
             let member_id = self.atom_value_raw(definition.name().unwrap().to_string());
@@ -179,7 +183,7 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Constant(constant) => {
                     self.compile_constant(constant, module_context.clone());
                 }
-                DefinitionItem::Rule(..) => todo!("implement rule"),
+                DefinitionItem::Rule(rule) => self.compile_rule(rule, module_context.clone()),
                 DefinitionItem::Test(..) => {}
             }
         }

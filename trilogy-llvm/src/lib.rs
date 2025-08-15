@@ -24,6 +24,7 @@ mod function;
 mod module;
 mod pattern_match;
 mod procedure;
+mod rule;
 mod types;
 
 type Entrypoint = unsafe extern "C" fn() -> c_void;

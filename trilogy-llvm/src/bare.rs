@@ -1083,6 +1083,75 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_callable_init_rule(
+        &self,
+        t: PointerValue<'ctx>,
+        arity: usize,
+        function: FunctionValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_init_rule",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    t.into(),
+                    self.context
+                        .i64_type()
+                        .const_int(arity as u64, false)
+                        .into(),
+                    function.as_global_value().as_pointer_value().into(),
+                ],
+                "",
+            )
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_callable_init_qy(
+        &self,
+        t: PointerValue<'ctx>,
+        arity: usize,
+        closure: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_init_qy",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    t.into(),
+                    self.context
+                        .i64_type()
+                        .const_int(arity as u64, false)
+                        .into(),
+                    closure.into(),
+                    function.as_global_value().as_pointer_value().into(),
+                ],
+                "",
+            )
+            .unwrap();
+    }
+
     pub(crate) fn exit(&self, t: PointerValue<'ctx>) -> NeverValue {
         let f = self.declare_bare(
             "exit_",

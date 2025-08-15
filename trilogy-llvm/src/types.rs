@@ -287,6 +287,24 @@ impl<'ctx> Codegen<'ctx> {
             .fn_type(&vec![self.value_type().into(); arity + extras], false)
     }
 
+    pub(crate) fn rule_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
+        // 0: return
+        // 1: yield
+        // 2: end
+        // 3: cancel
+        // 4: resume
+        // 5: break
+        // 6: continue
+        // 7: next
+        // 8: done
+        // [9..9 + arity): args
+        // 9 + arity: closure
+        let extras = if has_closure { 10 } else { 9 };
+        self.context
+            .void_type()
+            .fn_type(&vec![self.value_type().into(); arity + extras], false)
+    }
+
     pub(crate) fn accessor_type(&self, has_context: bool) -> FunctionType<'ctx> {
         if has_context {
             self.context.void_type().fn_type(

@@ -45,7 +45,6 @@ pub(crate) enum Head {
     Constant,
     Function,
     Procedure,
-    #[expect(dead_code)]
     Rule,
     Module,
     ExternalModule(String),
@@ -167,6 +166,30 @@ impl<'ctx> Codegen<'ctx> {
     /// Gets the current `continue` continuation, valid only when in a loop.
     pub(crate) fn clone_continue(&self, into: PointerValue<'ctx>) {
         self.trilogy_value_clone_into(into, self.function_params.borrow()[6]);
+    }
+
+    /// Gets the `next_to` pointer from the current rule context.
+    pub(crate) fn get_next(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        self.clone_next(container);
+        container
+    }
+
+    /// Gets the current `next` continuation, valid only when in a query.
+    pub(crate) fn clone_next(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[7]);
+    }
+
+    /// Gets the `done_to` pointer from the current rule context.
+    pub(crate) fn get_done(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        self.clone_done(container);
+        container
+    }
+
+    /// Gets the current `done` continuation, valid only when in a query.
+    pub(crate) fn clone_done(&self, into: PointerValue<'ctx>) {
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[8]);
     }
 
     /// When in a continuation function, gets the value that was yielded to the continuation.
