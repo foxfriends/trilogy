@@ -204,8 +204,11 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
+        self.bind_temporary(continuation);
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
         let closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
@@ -219,8 +222,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
             continue_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            next_to,
+            done_to,
             closure,
             continuation_function,
         );

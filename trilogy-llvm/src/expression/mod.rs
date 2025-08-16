@@ -57,7 +57,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::IfElse(if_else) => self.compile_if_else(if_else, name),
             Value::Assignment(assign) => self.compile_assignment(assign, name),
             Value::While(expr) => self.compile_while(expr, name),
-            Value::For(..) => todo!(),
+            Value::For(expr) => self.compile_for(expr, name),
             Value::Let(expr) => self.compile_let(expr, name),
             Value::Match(expr) => self.compile_match(expr, name),
             Value::Assert(assertion) => self.compile_assertion(assertion, name),
@@ -136,6 +136,28 @@ impl<'ctx> Codegen<'ctx> {
         self.become_continuation_point(break_continuation_point);
         self.begin_next_function(break_function);
         Some(self.get_continuation(name))
+    }
+
+    fn compile_for(&self, expr: &ir::Iterator, name: &str) -> Option<PointerValue<'ctx>> {
+        let done_function = self.add_continuation("done");
+        let brancher = self.end_continuation_point_as_branch();
+        let done_continuation =
+            self.capture_current_continuation_as_break(done_function, &brancher, "for_break");
+        let done_continuation_point = self.hold_continuation_point();
+        let next_iteration = self.compile_iterator(&expr.query, done_continuation)?;
+        if let Some(value) = self.compile_expression(&expr.value, name) {
+            self.call_known_continuation(next_iteration, value);
+        }
+
+        self.become_continuation_point(done_continuation_point);
+        self.begin_next_function(done_function);
+        // TODO: currently `for..else` is expecting this to return a boolean instead of a unit, but
+        // that's not really right... the for should really somehow be a "fold" construct eventually,
+        // returning neither unit or boolean.
+        //
+        // The `for..else` will need to just be transformed into a thing with a flag in it, at the
+        // IR level (or source level and drop the feature).
+        Some(self.allocate_const(self.unit_const(), ""))
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {

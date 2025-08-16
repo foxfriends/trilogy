@@ -1,8 +1,7 @@
-use std::borrow::Borrow;
-
 use crate::Codegen;
-use inkwell::values::{FunctionValue, PointerValue};
+use inkwell::values::FunctionValue;
 use source_span::Span;
+use std::borrow::Borrow;
 use trilogy_ir::{Id, ir};
 
 // NOTE: params start at 9, due to return, yield, end, cancel, resume, break, continue, next, and done
@@ -97,7 +96,11 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.builder.position_at_end(bind_parameter);
                 if self
-                    .compile_pattern_match(param, value, self.get_done(""))
+                    .compile_pattern_match(
+                        param,
+                        value,
+                        self.use_temporary(go_to_next_overload).unwrap(),
+                    )
                     .is_none()
                 {
                     break 'outer;
@@ -132,22 +135,20 @@ impl<'ctx> Codegen<'ctx> {
                     self.begin_next_function(next_parameter_function);
                 }
             }
+            if self
+                .compile_iterator(&overload.body, go_to_next_overload)
+                .is_none()
+            {
+                break 'outer;
+            }
             let next = self.get_next("");
-            self.compile_query(&overload.body, next, go_to_next_overload);
+            self.void_call_continuation(next);
+
             self.become_continuation_point(next_overload_cp);
             self.begin_next_function(next_overload_function);
         }
         let done = self.get_done("");
         self.void_call_continuation(done);
         self.end_function();
-    }
-
-    fn compile_query(
-        &self,
-        _body: &ir::Query,
-        _next: PointerValue<'ctx>,
-        done: PointerValue<'ctx>,
-    ) {
-        self.void_call_continuation(done);
     }
 }

@@ -1,0 +1,7 @@
+proc main!() {
+  let mut n = 0
+  for end {
+    n += 1
+  }
+  assert n == 0
+}

@@ -1,0 +1,7 @@
+rule only(true)
+
+proc main!() {
+  for only(false) {
+    exit 1
+  }
+}

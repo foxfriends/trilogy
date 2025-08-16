@@ -24,6 +24,7 @@ mod function;
 mod module;
 mod pattern_match;
 mod procedure;
+mod query;
 mod rule;
 mod types;
 
