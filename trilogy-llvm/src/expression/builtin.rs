@@ -497,6 +497,8 @@ impl<'ctx> Codegen<'ctx> {
                     self.get_resume(""),
                     self.get_break(""),
                     self.get_continue(""),
+                    self.get_next(""),
+                    self.get_done(""),
                 );
                 return_to
             }
@@ -512,6 +514,8 @@ impl<'ctx> Codegen<'ctx> {
                     self.get_resume(""),
                     self.context.ptr_type(AddressSpace::default()).const_null(),
                     self.context.ptr_type(AddressSpace::default()).const_null(),
+                    self.get_next(""),
+                    self.get_done(""),
                 );
                 break_to
             }
@@ -525,6 +529,8 @@ impl<'ctx> Codegen<'ctx> {
                     self.get_resume(""),
                     self.context.ptr_type(AddressSpace::default()).const_null(),
                     self.context.ptr_type(AddressSpace::default()).const_null(),
+                    self.get_next(""),
+                    self.get_done(""),
                 );
                 continue_to
             }

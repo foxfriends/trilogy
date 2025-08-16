@@ -29,6 +29,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -53,6 +55,8 @@ impl<'ctx> Codegen<'ctx> {
         let resume_to = self.get_resume("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
 
         self.bind_temporary(continuation);
 
@@ -78,6 +82,8 @@ impl<'ctx> Codegen<'ctx> {
             resume_to,
             break_to,
             continue_to,
+            next_to,
+            done_to,
             closure,
             continuation_function,
         );
@@ -98,6 +104,8 @@ impl<'ctx> Codegen<'ctx> {
         let resume_to = self.get_resume("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -112,6 +120,8 @@ impl<'ctx> Codegen<'ctx> {
             resume_to,
             break_to,
             continue_to,
+            next_to,
+            done_to,
             closure,
             continuation_function,
         );
@@ -130,6 +140,8 @@ impl<'ctx> Codegen<'ctx> {
         let yield_to = self.get_yield("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
         let closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
@@ -143,6 +155,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
             continue_to,
+            next_to,
+            done_to,
             closure,
             continuation_function,
         );
@@ -169,6 +183,8 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_init_cont(
             continuation,
             return_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -203,6 +219,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
             continue_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -239,6 +257,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
             continue_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -271,6 +291,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             break_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,

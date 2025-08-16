@@ -117,6 +117,8 @@ impl<'ctx> Codegen<'ctx> {
             self.get_resume(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_next(""),
+            self.get_done(""),
         );
         self.trilogy_callable_promote(
             break_to,
@@ -126,6 +128,8 @@ impl<'ctx> Codegen<'ctx> {
             self.get_resume(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_next(""),
+            self.get_done(""),
         );
         self.trilogy_callable_promote(
             continue_to,
@@ -135,6 +139,8 @@ impl<'ctx> Codegen<'ctx> {
             self.get_resume(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_next(""),
+            self.get_done(""),
         );
 
         let parent_closure = self
@@ -187,6 +193,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_break(""),
             self.get_continue(""),
+            self.get_next(""),
+            self.get_done(""),
         );
         self.trilogy_callable_promote(
             cancel_to,
@@ -196,6 +204,8 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_break(""),
             self.get_continue(""),
+            self.get_next(""),
+            self.get_done(""),
         );
 
         let break_clone = self.allocate_value("");

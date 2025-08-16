@@ -187,7 +187,7 @@ typedef struct trilogy_callable_value {
     uint32_t arity;
     /**
      * For captured continuations, the return and yield points are stored rather
-     * than provided. (The `end` pointer is still provided)
+     * than provided. The `end` pointer is still provided.
      **/
     struct trilogy_callable_value* return_to;
     struct trilogy_callable_value* yield_to;
@@ -195,6 +195,8 @@ typedef struct trilogy_callable_value {
     struct trilogy_callable_value* resume_to;
     struct trilogy_callable_value* break_to;
     struct trilogy_callable_value* continue_to;
+    struct trilogy_callable_value* next_to;
+    struct trilogy_callable_value* done_to;
     /**
      * Context captured from the closure of this callable. This is an array of
      * trilogy values (all of which would should be references?). The array is
