@@ -279,22 +279,6 @@ impl<'ctx> Codegen<'ctx> {
         // 4: resume
         // 5: break
         // 6: continue
-        // [7..7 + arity): args
-        // 7 + arity: closure
-        let extras = if has_closure { 8 } else { 7 };
-        self.context
-            .void_type()
-            .fn_type(&vec![self.value_type().into(); arity + extras], false)
-    }
-
-    pub(crate) fn rule_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
-        // 0: return
-        // 1: yield
-        // 2: end
-        // 3: cancel
-        // 4: resume
-        // 5: break
-        // 6: continue
         // 7: next
         // 8: done
         // [9..9 + arity): args
@@ -337,11 +321,13 @@ impl<'ctx> Codegen<'ctx> {
         // 4: resume
         // 5: break
         // 6: continue
-        // 7: argument
-        // 8: closure
+        // 7: next
+        // 8: done
+        // 9: argument
+        // 10: closure
         self.context
             .void_type()
-            .fn_type(&[self.value_type().into(); 9], false)
+            .fn_type(&[self.value_type().into(); 11], false)
     }
 
     pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {

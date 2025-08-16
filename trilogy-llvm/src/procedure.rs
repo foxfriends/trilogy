@@ -5,8 +5,8 @@ use source_span::Span;
 use trilogy_ir::{Id, ir};
 
 const MAIN_NAME: &str = "trilogy:::main";
-// NOTE: params start at 7, due to return, yield, end, cancel, resume, break, and continue
-const PROCEDURE_IMPLICIT_PARAMS: usize = 7;
+// NOTE: params start at 9, due to return, yield, end, cancel, resume, break, continue, next, and done
+const PROCEDURE_IMPLICIT_PARAMS: usize = 9;
 
 impl<'ctx> Codegen<'ctx> {
     fn write_procedure_accessor(

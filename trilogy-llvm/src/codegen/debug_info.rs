@@ -1223,7 +1223,7 @@ impl<'ctx> DebugInfo<'ctx> {
         let continuation_type = builder.create_subroutine_type(
             unit.get_file(),
             None,
-            &[value_pointer_type.as_type(); 7],
+            &[value_pointer_type.as_type(); 9],
             LLVMDIFlagPublic,
         );
         unsafe {
@@ -1269,15 +1269,6 @@ impl<'ctx> DebugInfo<'ctx> {
     }
 
     pub(crate) fn procedure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
-        self.builder.create_subroutine_type(
-            self.unit.get_file(),
-            None,
-            &vec![self.value_pointer_type.as_type(); arity + 7],
-            LLVMDIFlagPublic,
-        )
-    }
-
-    pub(crate) fn rule_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             None,

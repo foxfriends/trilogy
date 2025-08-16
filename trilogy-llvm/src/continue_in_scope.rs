@@ -61,6 +61,8 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
         let resume_to = self.get_resume("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
 
         let parent_closure = self
             .builder
@@ -75,6 +77,8 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(resume_to, "").into(),
             self.load_value(break_to, "").into(),
             self.load_value(continue_to, "").into(),
+            self.load_value(next_to, "").into(),
+            self.load_value(done_to, "").into(),
             argument,
             self.load_value(parent_closure, "").into(),
         ];
@@ -102,6 +106,8 @@ impl<'ctx> Codegen<'ctx> {
         let resume_to = self.get_resume("");
         let break_to = self.get_break("");
         let continue_to = self.get_continue("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
 
         self.trilogy_callable_promote(
             return_to,
@@ -144,6 +150,8 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(resume_to, "").into(),
             self.load_value(break_to, "").into(),
             self.load_value(continue_to, "").into(),
+            self.load_value(next_to, "").into(),
+            self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
             self.load_value(parent_closure, "").into(),
         ];
@@ -168,6 +176,8 @@ impl<'ctx> Codegen<'ctx> {
         let end_to = self.get_end("");
         let resume_to = self.get_resume("");
         let cancel_to = self.get_cancel("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
 
         self.trilogy_callable_promote(
             return_to,
@@ -204,6 +214,8 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(resume_to, "").into(),
             self.load_value(break_to, "").into(),
             self.load_value(continue_to, "").into(),
+            self.load_value(next_to, "").into(),
+            self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
             self.load_value(closure, "").into(),
         ];

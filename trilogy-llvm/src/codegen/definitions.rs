@@ -16,8 +16,10 @@ impl<'ctx> Codegen<'ctx> {
     /// 5. resume_to
     /// 6. break_to
     /// 7. continue_to
-    /// 8. value
-    /// 9. closure
+    /// 8. next_to
+    /// 9. done_to
+    /// 10. value
+    /// 11. closure
     ///
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
@@ -47,8 +49,10 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(4).unwrap().set_name("resume_to");
         function.get_nth_param(5).unwrap().set_name("break_to");
         function.get_nth_param(6).unwrap().set_name("continue_to");
-        function.get_nth_param(7).unwrap().set_name("cont_val");
-        function.get_nth_param(8).unwrap().set_name("closure");
+        function.get_nth_param(7).unwrap().set_name("next_to");
+        function.get_nth_param(8).unwrap().set_name("done_to");
+        function.get_nth_param(9).unwrap().set_name("cont_val");
+        function.get_nth_param(10).unwrap().set_name("closure");
         function
     }
 
@@ -82,6 +86,8 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(4).unwrap().set_name("resume_to");
         function.get_nth_param(5).unwrap().set_name("break_to");
         function.get_nth_param(6).unwrap().set_name("continue_to");
+        function.get_nth_param(7).unwrap().set_name("next_to");
+        function.get_nth_param(8).unwrap().set_name("done_to");
         if has_context {
             function.get_last_param().unwrap().set_name("closure");
         }
@@ -108,33 +114,7 @@ impl<'ctx> Codegen<'ctx> {
         has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
-        let function = self.module.add_function(
-            name,
-            self.rule_type(arity, has_context),
-            Some(Linkage::Private),
-        );
-        function.set_subprogram(self.di.create_function(
-            debug_name,
-            name,
-            self.di.rule_di_type(arity),
-            span,
-            is_local_to_unit,
-            true,
-        ));
-        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
-        function.get_nth_param(0).unwrap().set_name("return_to");
-        function.get_nth_param(1).unwrap().set_name("yield_to");
-        function.get_nth_param(2).unwrap().set_name("end_to");
-        function.get_nth_param(3).unwrap().set_name("cancel_to");
-        function.get_nth_param(4).unwrap().set_name("resume_to");
-        function.get_nth_param(5).unwrap().set_name("break_to");
-        function.get_nth_param(6).unwrap().set_name("continue_to");
-        function.get_nth_param(7).unwrap().set_name("next_to");
-        function.get_nth_param(8).unwrap().set_name("done_to");
-        if has_context {
-            function.get_last_param().unwrap().set_name("closure");
-        }
-        function
+        self.add_procedure(name, arity, debug_name, span, has_context, is_local_to_unit)
     }
 
     pub(crate) fn add_accessor(

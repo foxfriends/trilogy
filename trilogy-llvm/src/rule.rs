@@ -5,8 +5,8 @@ use inkwell::values::{FunctionValue, PointerValue};
 use source_span::Span;
 use trilogy_ir::{Id, ir};
 
-// NOTE: params start at 7, due to return, yield, end, cancel, resume, break, and continue
-const RULE_IMPLICIT_PARAMS: usize = 7;
+// NOTE: params start at 9, due to return, yield, end, cancel, resume, break, continue, next, and done
+const RULE_IMPLICIT_PARAMS: usize = 9;
 
 impl<'ctx> Codegen<'ctx> {
     fn write_rule_accessor(
@@ -65,19 +65,27 @@ impl<'ctx> Codegen<'ctx> {
         self.begin_function(function, span);
         let arity = overloads[0].borrow().parameters.len();
 
+        let brancher = self.end_continuation_point_as_branch();
+
         'outer: for overload in overloads {
             let overload = overload.borrow();
             assert_eq!(overload.parameters.len(), arity);
             self.set_span(overload.head_span);
+
+            let next_overload_function = self.add_continuation("");
+            let go_to_next_overload = self.capture_current_continuation(
+                next_overload_function,
+                &brancher,
+                "next_overload",
+            );
+            let next_overload_cp = self.hold_continuation_point();
+
             for (n, param) in overload.parameters.iter().enumerate() {
                 let value = self.function_params.borrow()[n + RULE_IMPLICIT_PARAMS];
 
                 let skip_parameter = self.context.append_basic_block(function, "skip_parameter");
                 let bind_parameter = self.context.append_basic_block(function, "bind_parameter");
                 self.branch_undefined(value, skip_parameter, bind_parameter);
-
-                self.builder.position_at_end(skip_parameter);
-                // TODO: go to next parameter
 
                 self.builder.position_at_end(bind_parameter);
                 if self
@@ -86,13 +94,18 @@ impl<'ctx> Codegen<'ctx> {
                 {
                     break 'outer;
                 }
+                // TODO: go to next parameter
+
+                self.builder.position_at_end(skip_parameter);
                 // TODO: also go to next parameter
             }
             let next = self.get_next("");
-            let done = self.get_done("");
-            self.compile_query(&overload.body, next, done);
-            // TODO: ^ done should be next overload, except for on the last overload
+            self.compile_query(&overload.body, next, go_to_next_overload);
+            self.become_continuation_point(next_overload_cp);
+            self.begin_next_function(next_overload_function);
         }
+        let done = self.get_done("");
+        self.void_call_continuation(done);
         self.end_function();
     }
 
