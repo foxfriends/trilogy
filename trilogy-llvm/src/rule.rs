@@ -87,6 +87,14 @@ impl<'ctx> Codegen<'ctx> {
                 let bind_parameter = self.context.append_basic_block(function, "bind_parameter");
                 self.branch_undefined(value, skip_parameter, bind_parameter);
 
+                let original_insert_function = self
+                    .builder
+                    .get_insert_block()
+                    .unwrap()
+                    .get_parent()
+                    .unwrap();
+                let original_snapshot = self.snapshot_function_context();
+
                 self.builder.position_at_end(bind_parameter);
                 if self
                     .compile_pattern_match(param, value, self.get_done(""))
@@ -94,10 +102,35 @@ impl<'ctx> Codegen<'ctx> {
                 {
                     break 'outer;
                 }
-                // TODO: go to next parameter
+                let post_insert_function = self
+                    .builder
+                    .get_insert_block()
+                    .unwrap()
+                    .get_parent()
+                    .unwrap();
+                if original_insert_function == post_insert_function {
+                    // We could do the second case always, but it's much more efficient to skip
+                    // making more closures if it can be avoided, which is the case if the pattern
+                    // never causes a branch (e.g. often because it's just a single variable).
+                    self.builder
+                        .build_unconditional_branch(skip_parameter)
+                        .unwrap();
+                    self.builder.position_at_end(skip_parameter);
+                } else {
+                    // Otherwise, if the parameter binding caused the continuation to change already,
+                    // we need yet another continuation that merges the "skip" case with the
+                    // "successful binding" case.
+                    let next_parameter_function = self.add_continuation("");
+                    let next_closure = self.void_continue_in_scope(next_parameter_function);
+                    self.add_branch_end_as_close(&brancher, next_closure);
 
-                self.builder.position_at_end(skip_parameter);
-                // TODO: also go to next parameter
+                    self.restore_function_context(original_snapshot);
+                    self.builder.position_at_end(skip_parameter);
+                    let skip_closure = self.void_continue_in_scope(next_parameter_function);
+                    self.add_branch_end_as_close(&brancher, skip_closure);
+
+                    self.begin_next_function(next_parameter_function);
+                }
             }
             let next = self.get_next("");
             self.compile_query(&overload.body, next, go_to_next_overload);
@@ -113,8 +146,8 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         _body: &ir::Query,
         _next: PointerValue<'ctx>,
-        _done: PointerValue<'ctx>,
+        done: PointerValue<'ctx>,
     ) {
-        todo!();
+        self.void_call_continuation(done);
     }
 }

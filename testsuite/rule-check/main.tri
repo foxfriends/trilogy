@@ -1,0 +1,9 @@
+rule either(true)
+rule either(false)
+
+proc main!() {
+  for either(true) {
+    exit 0
+  }
+  exit 1
+}

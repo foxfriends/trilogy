@@ -1,0 +1,10 @@
+module debug at "trilogy:debug"
+
+rule both(true)
+rule both(false)
+
+proc main!() {
+  for both(val) {
+    debug::dbg!(val)
+  }
+}
