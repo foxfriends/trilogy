@@ -63,7 +63,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Assert(assertion) => self.compile_assertion(assertion, name),
             Value::Fn(closure) => Some(self.compile_fn(closure, name)),
             Value::Do(closure) => Some(self.compile_do(closure, name)),
-            Value::Qy(..) => todo!(),
+            Value::Qy(closure) => Some(self.compile_qy(closure, name)),
             Value::Handled(handled) => self.compile_handled(handled, name),
             Value::End => {
                 self.compile_end();
@@ -842,6 +842,50 @@ impl<'ctx> Codegen<'ctx> {
         );
         function.set_subprogram(procedure_scope);
         self.compile_function_body(function, &[func], func.span);
+
+        self.builder.position_at_end(here);
+        self.restore_function_context(snapshot);
+        self.resume_continuation_point(&brancher);
+        target
+    }
+
+    fn compile_qy(&self, rule: &ir::Rule, name: &str) -> PointerValue<'ctx> {
+        let (current, _, _) = self.get_current_definition();
+        let rule_name = format!("{current}<qy@{}>", rule.span);
+        let arity = rule.parameters.len();
+        let function = self.module.add_function(
+            &rule_name,
+            self.procedure_type(arity, true),
+            Some(Linkage::Internal),
+        );
+
+        let target = self.allocate_value(name);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+
+        let brancher = self.end_continuation_point_as_branch();
+        self.trilogy_callable_init_qy(target, arity, closure, function);
+        let here = self.builder.get_insert_block().unwrap();
+        let snapshot = self.snapshot_function_context();
+
+        self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
+        let procedure_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
+            &rule_name,
+            None,
+            self.di.unit.get_file(),
+            rule.span.start().line as u32 + 1,
+            self.di.closure_di_type(arity),
+            true,
+            true,
+            rule.span.start().line as u32 + 1,
+            LLVMDIFlagPublic,
+            false,
+        );
+        function.set_subprogram(procedure_scope);
+        self.compile_rule_body(function, &[rule], rule.span);
 
         self.builder.position_at_end(here);
         self.restore_function_context(snapshot);

@@ -1,0 +1,7 @@
+proc main!() {
+  let check = qy() <- pass
+  for check() {
+    exit 0
+  }
+  exit 1
+}
