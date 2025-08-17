@@ -1,12 +1,10 @@
-use crate::Codegen;
+use crate::{Codegen, IMPLICIT_PARAMS};
 use inkwell::module::Linkage;
 use inkwell::values::{BasicMetadataValueEnum, FunctionValue};
 use source_span::Span;
 use trilogy_ir::{Id, ir};
 
 const MAIN_NAME: &str = "trilogy:::main";
-// NOTE: params start at 9, due to return, yield, end, cancel, resume, break, continue, next, and done
-const PROCEDURE_IMPLICIT_PARAMS: usize = 9;
 
 impl<'ctx> Codegen<'ctx> {
     fn write_procedure_accessor(
@@ -52,7 +50,7 @@ impl<'ctx> Codegen<'ctx> {
             self.function_params
                 .borrow()
                 .iter()
-                .skip(PROCEDURE_IMPLICIT_PARAMS)
+                .skip(IMPLICIT_PARAMS)
                 .map(|val| BasicMetadataValueEnum::<'ctx>::from(*val)),
         );
         self.builder
@@ -111,7 +109,7 @@ impl<'ctx> Codegen<'ctx> {
         'body: {
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
-                let value = self.function_params.borrow()[n + PROCEDURE_IMPLICIT_PARAMS];
+                let value = self.function_params.borrow()[n + IMPLICIT_PARAMS];
                 if self
                     .compile_pattern_match(param, value, self.get_end(""))
                     .is_none()

@@ -48,7 +48,6 @@ impl<'ctx> Codegen<'ctx> {
         pointer
     }
 
-    #[expect(dead_code, reason = "might be useful")]
     pub(crate) fn allocate_undefined(&self, name: &str) -> PointerValue<'ctx> {
         self.allocate_const(self.value_type().const_zero(), name)
     }

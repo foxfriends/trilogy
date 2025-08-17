@@ -1,3 +1,4 @@
+use crate::IMPLICIT_PARAMS;
 use crate::codegen::{Brancher, Codegen};
 use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE, CALLABLE_RESUME};
 use inkwell::llvm_sys::LLVMCallConv;
@@ -144,8 +145,8 @@ impl<'ctx> Codegen<'ctx> {
         arguments: &[PointerValue<'ctx>],
         name: &str,
     ) -> PointerValue<'ctx> {
-        let callable = self.trilogy_callable_untag(procedure, "");
         let arity = arguments.len();
+        let callable = self.trilogy_callable_untag(procedure, "");
         let function = self.trilogy_procedure_untag(callable, arity, "");
         let continuation_function = self.add_continuation("cc");
         self.call_callable(
@@ -156,6 +157,71 @@ impl<'ctx> Codegen<'ctx> {
             arguments,
             name,
         )
+    }
+
+    /// Calls a rule value with the provided arguments.
+    pub(crate) fn call_rule(
+        &self,
+        value: PointerValue<'ctx>,
+        arguments: &[PointerValue<'ctx>],
+        done_to: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let arity = arguments.len();
+        let callable = self.trilogy_callable_untag(value, "");
+        let rule = self.trilogy_rule_untag(callable, arity, "");
+
+        let continuation_function = self.add_next_to_continuation(arity, "next_to_cc");
+
+        // Values must be extracted before they are invalidated
+        let return_to = self.get_return(""); // NOTE: return isn't used... but idk what else to put for its value
+        let end_to = self.get_end("");
+        let yield_to = self.get_yield("");
+        let cancel_to = self.get_cancel("");
+        let resume_to = self.get_resume("");
+        let break_to = self.get_break("");
+        let continue_to = self.get_continue("");
+        let bound_closure = self.allocate_value("");
+        self.trilogy_callable_closure_into(bound_closure, callable, "");
+
+        // All variables and values are invalid after this point.
+        let next_to = self.close_current_continuation_as_next_done(continuation_function, "cc");
+        self.trilogy_value_destroy(value);
+
+        let mut args = Vec::with_capacity(arity + 10);
+        args.extend([
+            return_to,
+            yield_to,
+            end_to,
+            cancel_to,
+            resume_to,
+            break_to,
+            continue_to,
+            next_to,
+            done_to,
+        ]);
+        args.extend_from_slice(arguments);
+
+        let has_closure = self.is_closure(bound_closure);
+        let direct_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.definition");
+        let closure_block = self
+            .context
+            .append_basic_block(self.get_function(), "call.closure");
+        self.builder
+            .build_conditional_branch(has_closure, closure_block, direct_block)
+            .unwrap();
+
+        self.builder.position_at_end(direct_block);
+        self.make_call(rule, &args, arity, false);
+
+        self.builder.position_at_end(closure_block);
+        args.push(bound_closure);
+        self.make_call(rule, &args, arity, true);
+
+        self.begin_next_function(continuation_function);
+        self.get_continuation(name)
     }
 
     /// Applies a function value to the provided argument. This may also be used to call
@@ -211,7 +277,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_regular_continuation(
             callable_value,
             callable,
-            self.load_value(argument, "").into(),
+            &[self.load_value(argument, "").into()],
         );
 
         self.builder.position_at_end(call_continue);
@@ -265,7 +331,23 @@ impl<'ctx> Codegen<'ctx> {
         self.call_regular_continuation(
             continuation_value,
             callable,
-            self.load_value(argument, "").into(),
+            &[self.load_value(argument, "").into()],
+        );
+    }
+
+    pub(crate) fn call_next(
+        &self,
+        continuation_value: PointerValue<'ctx>,
+        arguments: &[PointerValue<'ctx>],
+    ) {
+        let callable = self.trilogy_callable_untag(continuation_value, "");
+        self.call_regular_continuation(
+            continuation_value,
+            callable,
+            &arguments
+                .iter()
+                .map(|val| self.load_value(*val, "").into())
+                .collect::<Vec<_>>(),
         );
     }
 
@@ -276,7 +358,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_regular_continuation(
             continuation_value,
             callable,
-            self.value_type().const_zero().into(),
+            &[self.value_type().const_zero().into()],
         );
     }
 
@@ -298,7 +380,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         continuation_value: PointerValue<'ctx>,
         callable: PointerValue<'ctx>,
-        argument: BasicMetadataValueEnum<'ctx>,
+        arguments: &[BasicMetadataValueEnum<'ctx>],
     ) {
         let continuation_pointer = self.trilogy_continuation_untag(callable, "");
         let return_to = self.allocate_value("");
@@ -337,7 +419,8 @@ impl<'ctx> Codegen<'ctx> {
         });
         self.trilogy_callable_closure_into(closure, callable, "");
 
-        let args = &[
+        let mut args = Vec::with_capacity(arguments.len() + IMPLICIT_PARAMS);
+        args.extend(&[
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
@@ -347,16 +430,15 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(continue_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
-            argument,
-            self.load_value(closure, "").into(),
-        ];
-
+        ]);
+        args.extend(arguments);
+        args.push(self.load_value(closure, "").into());
         self.trilogy_value_destroy(continuation_value);
 
         // NOTE: cleanup will be inserted here
         let call = self
             .builder
-            .build_indirect_call(self.continuation_type(), continuation_pointer, args, "")
+            .build_indirect_call(self.continuation_type(), continuation_pointer, &args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);

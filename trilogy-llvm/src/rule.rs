@@ -1,11 +1,8 @@
-use crate::Codegen;
+use crate::{Codegen, IMPLICIT_PARAMS};
 use inkwell::values::FunctionValue;
 use source_span::Span;
 use std::borrow::Borrow;
 use trilogy_ir::{Id, ir};
-
-// NOTE: params start at 9, due to return, yield, end, cancel, resume, break, continue, next, and done
-const RULE_IMPLICIT_PARAMS: usize = 9;
 
 impl<'ctx> Codegen<'ctx> {
     fn write_rule_accessor(
@@ -80,18 +77,13 @@ impl<'ctx> Codegen<'ctx> {
             let next_overload_cp = self.hold_continuation_point();
 
             for (n, param) in overload.parameters.iter().enumerate() {
-                let value = self.function_params.borrow()[n + RULE_IMPLICIT_PARAMS];
+                let value = self.function_params.borrow()[n + IMPLICIT_PARAMS];
 
                 let skip_parameter = self.context.append_basic_block(function, "skip_parameter");
                 let bind_parameter = self.context.append_basic_block(function, "bind_parameter");
                 self.branch_undefined(value, skip_parameter, bind_parameter);
 
-                let original_insert_function = self
-                    .builder
-                    .get_insert_block()
-                    .unwrap()
-                    .get_parent()
-                    .unwrap();
+                let original_insert_function = self.get_function();
                 let original_snapshot = self.snapshot_function_context();
 
                 self.builder.position_at_end(bind_parameter);
@@ -105,12 +97,7 @@ impl<'ctx> Codegen<'ctx> {
                 {
                     break 'outer;
                 }
-                let post_insert_function = self
-                    .builder
-                    .get_insert_block()
-                    .unwrap()
-                    .get_parent()
-                    .unwrap();
+                let post_insert_function = self.get_function();
                 if original_insert_function == post_insert_function {
                     // We could do the second case always, but it's much more efficient to skip
                     // making more closures if it can be avoided, which is the case if the pattern
@@ -135,14 +122,26 @@ impl<'ctx> Codegen<'ctx> {
                     self.begin_next_function(next_parameter_function);
                 }
             }
-            if self
-                .compile_iterator(&overload.body, go_to_next_overload)
-                .is_none()
-            {
+            let Some(next_iteration) = self.compile_iterator(&overload.body, go_to_next_overload)
+            else {
                 break 'outer;
+            };
+            self.bind_temporary(next_iteration);
+
+            let mut arguments = Vec::with_capacity(arity + 1);
+            arguments.push(next_iteration);
+            for param in &overload.parameters {
+                let Some(param_value) = self.compile_expression(param, "") else {
+                    break 'outer;
+                };
+                self.bind_temporary(param_value);
+                arguments.push(param_value);
             }
             let next = self.get_next("");
-            self.void_call_continuation(next);
+            for arg in arguments.iter_mut() {
+                *arg = self.use_temporary(*arg).unwrap();
+            }
+            self.call_next(next, &arguments);
 
             self.become_continuation_point(next_overload_cp);
             self.begin_next_function(next_overload_function);

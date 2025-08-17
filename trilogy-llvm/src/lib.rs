@@ -30,6 +30,10 @@ mod types;
 
 type Entrypoint = unsafe extern "C" fn() -> c_void;
 
+/// Parameters to rules/procedures/functions start at 9, due to return, yield, end, cancel,
+/// resume, break, continue, next, and done
+const IMPLICIT_PARAMS: usize = 9;
+
 #[repr(C)]
 #[derive(Default, Debug)]
 pub struct TrilogyValue {

@@ -56,6 +56,60 @@ impl<'ctx> Codegen<'ctx> {
         function
     }
 
+    /// Adds a new function to the module, to be used as a "next to" continuation.
+    ///
+    /// The parameters to this continuation are, in order:
+    /// - 1. return_to
+    /// - 2. yield_to
+    /// - 3. end_to
+    /// - 4. cancel_to
+    /// - 5. resume_to
+    /// - 6. break_to
+    /// - 7. continue_to
+    /// - 8. next_to
+    /// - 9. done_to
+    /// - 10. next_iteration
+    /// - [11 + arity). arguments
+    /// - [11 + arity. closure
+    ///
+    /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
+    /// object and provided by the calling convention.
+    pub(crate) fn add_next_to_continuation(&self, arity: usize, name: &str) -> FunctionValue<'ctx> {
+        let (parent_name, parent_linkage_name, span) = self.get_current_definition();
+        let name = if name.is_empty() {
+            parent_linkage_name
+        } else {
+            format!("{parent_linkage_name}.{name}/{arity}")
+        };
+        let function =
+            self.module
+                .add_function(&name, self.continuation_type(), Some(Linkage::Private));
+        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.set_subprogram(self.di.create_function(
+            &parent_name,
+            function.get_name().to_str().unwrap(),
+            self.di.procedure_di_type(arity + 1),
+            span,
+            true,
+            true,
+        ));
+        function.get_nth_param(0).unwrap().set_name("return_to");
+        function.get_nth_param(1).unwrap().set_name("yield_to");
+        function.get_nth_param(2).unwrap().set_name("end_to");
+        function.get_nth_param(3).unwrap().set_name("cancel_to");
+        function.get_nth_param(4).unwrap().set_name("resume_to");
+        function.get_nth_param(5).unwrap().set_name("break_to");
+        function.get_nth_param(6).unwrap().set_name("continue_to");
+        function.get_nth_param(7).unwrap().set_name("next_to");
+        function.get_nth_param(8).unwrap().set_name("done_to");
+        function
+            .get_nth_param(9)
+            .unwrap()
+            .set_name("next_iteration");
+        function.get_last_param().unwrap().set_name("closure");
+        function
+    }
+
     pub(crate) fn add_procedure(
         &self,
         name: &str,

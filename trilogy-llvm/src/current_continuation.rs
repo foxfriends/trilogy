@@ -196,6 +196,40 @@ impl<'ctx> Codegen<'ctx> {
         continuation
     }
 
+    /// Constructs a TrilogyValue that represents the current continuation to be used as `next` or `done`.
+    ///
+    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
+    /// so may not be referenced.
+    pub(crate) fn close_current_continuation_as_next_done(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let continuation = self.allocate_value(name);
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
+        self.bind_temporary(continuation);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_cont(
+            continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            next_to,
+            done_to,
+            closure,
+            continuation_function,
+        );
+        continuation
+    }
+
     /// Constructs a TrilogyValue that represents the current continuation to be used as `break`.
     pub(crate) fn capture_current_continuation_as_break(
         &self,
