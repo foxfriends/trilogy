@@ -2,7 +2,7 @@ use crate::{Codegen, IMPLICIT_PARAMS};
 use inkwell::{AddressSpace, values::PointerValue};
 use trilogy_ir::{
     ir,
-    visitor::{HasCanEvaluate, HasReferences},
+    visitor::{HasBindings, HasCanEvaluate},
 };
 
 impl<'ctx> Codegen<'ctx> {
@@ -11,7 +11,7 @@ impl<'ctx> Codegen<'ctx> {
         query: &ir::Query,
         done_to: PointerValue<'ctx>,
     ) -> Option<PointerValue<'ctx>> {
-        for variable in query.value.references() {
+        for variable in query.value.bindings() {
             self.variable(&variable);
         }
 
@@ -70,7 +70,7 @@ impl<'ctx> Codegen<'ctx> {
                             return Some(self.allocate_undefined("out_arg"));
                         }
                         let variables = pattern
-                            .references()
+                            .bindings()
                             .iter()
                             .map(|var| self.get_variable(var).unwrap())
                             .collect::<Vec<_>>();
