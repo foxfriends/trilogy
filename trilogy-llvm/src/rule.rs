@@ -79,12 +79,16 @@ impl<'ctx> Codegen<'ctx> {
             for (n, param) in overload.parameters.iter().enumerate() {
                 let value = self.function_params.borrow()[n + IMPLICIT_PARAMS];
 
-                let skip_parameter = self.context.append_basic_block(function, "skip_parameter");
-                let bind_parameter = self.context.append_basic_block(function, "bind_parameter");
-                self.branch_undefined(value, skip_parameter, bind_parameter);
-
                 let original_insert_function = self.get_function();
                 let original_snapshot = self.snapshot_function_context();
+
+                let skip_parameter = self
+                    .context
+                    .append_basic_block(original_insert_function, "skip_parameter");
+                let bind_parameter = self
+                    .context
+                    .append_basic_block(original_insert_function, "bind_parameter");
+                self.branch_undefined(value, skip_parameter, bind_parameter);
 
                 self.builder.position_at_end(bind_parameter);
                 if self

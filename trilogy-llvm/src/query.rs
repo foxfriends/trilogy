@@ -11,10 +11,12 @@ impl<'ctx> Codegen<'ctx> {
         query: &ir::Query,
         done_to: PointerValue<'ctx>,
     ) -> Option<PointerValue<'ctx>> {
+        for variable in query.value.references() {
+            self.variable(&variable);
+        }
+
         let next_function = self.add_continuation("next");
         let brancher = self.end_continuation_point_as_branch();
-
-        // TODO: declare variables here?
         let next_to =
             self.capture_current_continuation(next_function, &brancher, "next_continuation");
         let next_continuation_cp = self.hold_continuation_point();
@@ -70,13 +72,8 @@ impl<'ctx> Codegen<'ctx> {
                         let variables = pattern
                             .references()
                             .iter()
-                            .map(|var| self.get_variable(var))
-                            .collect::<Option<Vec<_>>>();
-                        let Some(variables) = variables else {
-                            // At least one variable in this pattern is not defined yet, so this is
-                            // definitely not evaluable.
-                            return Some(self.allocate_undefined("out_arg"));
-                        };
+                            .map(|var| self.get_variable(var).unwrap())
+                            .collect::<Vec<_>>();
                         if variables.is_empty() {
                             let arg = self.compile_expression(pattern, "in_arg")?;
                             self.bind_temporary(arg);
