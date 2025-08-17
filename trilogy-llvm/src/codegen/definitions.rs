@@ -107,7 +107,7 @@ impl<'ctx> Codegen<'ctx> {
         function
             .get_nth_param(9)
             .unwrap()
-            .set_name("next_iteration");
+            .set_name("next_iteration_param");
         function.get_last_param().unwrap().set_name("closure");
         function
     }

@@ -145,7 +145,9 @@ impl<'ctx> Codegen<'ctx> {
             self.capture_current_continuation_as_break(done_function, &brancher, "for_break");
         let done_continuation_point = self.hold_continuation_point();
         let next_iteration = self.compile_iterator(&expr.query, done_continuation)?;
+        self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, name) {
+            let next_iteration = self.use_temporary(next_iteration).unwrap();
             self.call_known_continuation(next_iteration, value);
         }
 

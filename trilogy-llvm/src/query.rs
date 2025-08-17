@@ -94,10 +94,21 @@ impl<'ctx> Codegen<'ctx> {
                         let in_arg = self.compile_expression(pattern, "in_arg")?;
                         let final_function = self.get_function();
                         if original_function == final_function {
+                            let merge_block =
+                                self.context.append_basic_block(final_function, "merge_arg");
+
                             let in_block = self.builder.get_insert_block().unwrap();
-                            self.builder.build_unconditional_branch(out_block).unwrap();
+                            self.builder
+                                .build_unconditional_branch(merge_block)
+                                .unwrap();
+
                             self.builder.position_at_end(out_block);
                             let out_arg = self.allocate_undefined("out_arg");
+                            self.builder
+                                .build_unconditional_branch(merge_block)
+                                .unwrap();
+
+                            self.builder.position_at_end(merge_block);
                             let phi = self
                                 .builder
                                 .build_phi(self.context.ptr_type(AddressSpace::default()), "arg")
