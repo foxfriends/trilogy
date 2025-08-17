@@ -312,7 +312,7 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
-    pub(crate) fn continuation_type(&self) -> FunctionType<'ctx> {
+    pub(crate) fn continuation_type(&self, arity: usize) -> FunctionType<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
@@ -326,7 +326,7 @@ impl<'ctx> Codegen<'ctx> {
         // 10: closure
         self.context
             .void_type()
-            .fn_type(&[self.value_type().into(); 11], false)
+            .fn_type(&vec![self.value_type().into(); 10 + arity], false)
     }
 
     pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {

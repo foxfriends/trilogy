@@ -171,8 +171,6 @@ impl<'ctx> Codegen<'ctx> {
         let callable = self.trilogy_callable_untag(value, "");
         let rule = self.trilogy_rule_untag(callable, arity, "");
 
-        let continuation_function = self.add_next_to_continuation(arity, "next_to_cc");
-
         // Values must be extracted before they are invalidated
         let return_to = self.get_return(""); // NOTE: return isn't used... but idk what else to put for its value
         let end_to = self.get_end("");
@@ -185,6 +183,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(bound_closure, callable, "");
 
         // All variables and values are invalid after this point.
+        let continuation_function = self.add_next_to_continuation(arity, "next_to_cc");
         let next_to = self.close_current_continuation_as_next_done(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
@@ -438,7 +437,7 @@ impl<'ctx> Codegen<'ctx> {
         // NOTE: cleanup will be inserted here
         let call = self
             .builder
-            .build_indirect_call(self.continuation_type(), continuation_pointer, &args, "")
+            .build_indirect_call(self.continuation_type(1), continuation_pointer, &args, "")
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
@@ -535,7 +534,7 @@ impl<'ctx> Codegen<'ctx> {
         let handler_continuation = self.trilogy_continuation_untag(handler, "");
         self.trilogy_value_destroy(handler_value);
         self.builder
-            .build_indirect_call(self.continuation_type(), handler_continuation, args, name)
+            .build_indirect_call(self.continuation_type(1), handler_continuation, args, name)
             .unwrap();
         self.builder.build_return(None).unwrap();
 
@@ -618,7 +617,7 @@ impl<'ctx> Codegen<'ctx> {
         ];
         self.trilogy_value_destroy(resume_value);
         self.builder
-            .build_indirect_call(self.continuation_type(), resume_continuation, args, "")
+            .build_indirect_call(self.continuation_type(1), resume_continuation, args, "")
             .unwrap();
         self.builder.build_return(None).unwrap();
     }
@@ -687,7 +686,7 @@ impl<'ctx> Codegen<'ctx> {
         ];
         let call = self
             .builder
-            .build_indirect_call(self.continuation_type(), continue_continuation, args, name)
+            .build_indirect_call(self.continuation_type(1), continue_continuation, args, name)
             .unwrap()
             .try_as_basic_value()
             .either(|l| l.as_instruction_value(), Some)
@@ -704,19 +703,21 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn call_main(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
         let chain_function = self.module.add_function(
             "main.return",
-            self.continuation_type(),
+            self.continuation_type(1),
             Some(Linkage::Private),
         );
 
         let yield_function = self.module.add_function(
             "main.unhandled_effect",
-            self.continuation_type(),
+            self.continuation_type(1),
             Some(Linkage::Private),
         );
 
-        let end_function =
-            self.module
-                .add_function("main.end", self.continuation_type(), Some(Linkage::Private));
+        let end_function = self.module.add_function(
+            "main.end",
+            self.continuation_type(1),
+            Some(Linkage::Private),
+        );
 
         let callable = self.trilogy_callable_untag(value, "");
         let function = self.trilogy_procedure_untag(callable, 0, "");

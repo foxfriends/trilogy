@@ -32,7 +32,7 @@ impl<'ctx> Codegen<'ctx> {
         };
         let function =
             self.module
-                .add_function(&name, self.continuation_type(), Some(Linkage::Private));
+                .add_function(&name, self.continuation_type(1), Some(Linkage::Private));
         function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         function.set_subprogram(self.di.create_function(
             &parent_name,
@@ -81,9 +81,11 @@ impl<'ctx> Codegen<'ctx> {
         } else {
             format!("{parent_linkage_name}.{name}/{arity}")
         };
-        let function =
-            self.module
-                .add_function(&name, self.continuation_type(), Some(Linkage::Private));
+        let function = self.module.add_function(
+            &name,
+            self.continuation_type(arity + 1),
+            Some(Linkage::Private),
+        );
         function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         function.set_subprogram(self.di.create_function(
             &parent_name,
