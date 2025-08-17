@@ -1,0 +1,8 @@
+rule only(true)
+
+proc main!() {
+  for only(is_it) {
+    if is_it { exit 0 }
+  }
+  exit 1
+}
