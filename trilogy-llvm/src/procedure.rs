@@ -41,9 +41,9 @@ impl<'ctx> Codegen<'ctx> {
         // converts to CCC.
         let wrapper_function =
             self.add_procedure(&wrapper_name, arity, &wrapper_name, span, false, true);
+        self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span, None);
         self.begin_function(wrapper_function, span);
         self.set_span(span);
-        self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span, None);
         let ret_val = self.allocate_value("");
         let mut params = vec![ret_val.into()];
         params.extend(

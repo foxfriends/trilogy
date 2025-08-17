@@ -183,6 +183,7 @@ impl<'ctx> Codegen<'ctx> {
                     )
                     .unwrap();
                 self.builder.build_store(container, param).unwrap();
+                self.bind_temporary(container);
                 container
             })
             .collect();
@@ -217,6 +218,7 @@ impl<'ctx> Codegen<'ctx> {
                     )
                     .unwrap();
                 self.builder.build_store(container, param).unwrap();
+                self.bind_temporary(container);
                 container
             })
             .collect();

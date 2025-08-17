@@ -95,6 +95,7 @@ impl<'ctx> Codegen<'ctx> {
                         let final_function = self.get_function();
                         if original_function == final_function {
                             let in_block = self.builder.get_insert_block().unwrap();
+                            self.builder.build_unconditional_branch(out_block).unwrap();
                             self.builder.position_at_end(out_block);
                             let out_arg = self.allocate_undefined("out_arg");
                             let phi = self
@@ -127,12 +128,14 @@ impl<'ctx> Codegen<'ctx> {
                 }
 
                 let next_iteration_inner = self.call_rule(rule, &arguments, done_to, "lookup_next");
+                self.bind_temporary(next_iteration_inner);
                 for (n, param) in lookup.patterns.iter().enumerate() {
                     let value = self.function_params.borrow()[n + 1 /* extra one is the "next iteration" */ + IMPLICIT_PARAMS];
                     self.compile_pattern_match(param, value, self.get_end(""))?
                 }
                 let next_to = self.use_temporary(next_to).unwrap();
-                self.call_known_continuation(next_to, next_iteration_inner);
+                let next_iteration = self.use_temporary(next_iteration_inner).unwrap();
+                self.call_known_continuation(next_to, next_iteration);
             }
             _ => todo!(),
         }
