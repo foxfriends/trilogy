@@ -67,7 +67,9 @@ impl<'ctx> Codegen<'ctx> {
                         if !pattern.can_evaluate() {
                             // This pattern is not possibly an expression, e.g. due to containing a wildcard
                             // or other pattern-only syntax element. It can only be used as an output parameter.
-                            return Some(self.allocate_undefined("out_arg"));
+                            let arg = self.allocate_undefined("out_arg");
+                            self.bind_temporary(arg);
+                            return Some(arg);
                         }
                         let variables = pattern
                             .bindings()
@@ -138,10 +140,12 @@ impl<'ctx> Codegen<'ctx> {
                     *argument = self.use_temporary(*argument).unwrap();
                 }
 
+                let done_to = self.use_temporary(done_to).unwrap();
                 let next_iteration_inner = self.call_rule(rule, &arguments, done_to, "lookup_next");
                 self.bind_temporary(next_iteration_inner);
                 for (n, param) in lookup.patterns.iter().enumerate() {
                     let value = self.function_params.borrow()[n + 1 /* extra one is the "next iteration" */ + IMPLICIT_PARAMS];
+                    let value = self.use_temporary(value).unwrap();
                     self.compile_pattern_match(param, value, self.get_end(""))?
                 }
                 let next_to = self.use_temporary(next_to).unwrap();
