@@ -1,9 +1,7 @@
 use crate::{Codegen, IMPLICIT_PARAMS};
 use inkwell::{AddressSpace, values::PointerValue};
-use trilogy_ir::{
-    ir,
-    visitor::{HasBindings, HasCanEvaluate},
-};
+use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
+use trilogy_ir::{Id, ir};
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_iterator(
@@ -11,6 +9,8 @@ impl<'ctx> Codegen<'ctx> {
         query: &ir::Query,
         done_to: PointerValue<'ctx>,
     ) -> Option<PointerValue<'ctx>> {
+        let mut bound_ids = Vec::default();
+
         for variable in query.value.bindings() {
             self.variable(&variable);
         }
@@ -21,7 +21,7 @@ impl<'ctx> Codegen<'ctx> {
             self.capture_current_continuation(next_function, &brancher, "next_continuation");
         let next_continuation_cp = self.hold_continuation_point();
 
-        self.compile_query(&query.value, next_to, done_to)?;
+        self.compile_query(&query.value, next_to, done_to, &mut bound_ids)?;
 
         self.become_continuation_point(next_continuation_cp);
         self.begin_next_function(next_function);
@@ -33,6 +33,7 @@ impl<'ctx> Codegen<'ctx> {
         query: &ir::QueryValue,
         next_to: PointerValue<'ctx>,
         done_to: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
         match query {
             ir::QueryValue::Pass => {
@@ -143,12 +144,35 @@ impl<'ctx> Codegen<'ctx> {
                 let done_to = self.use_temporary(done_to).unwrap();
                 let next_iteration_inner = self.call_rule(rule, &arguments, done_to, "lookup_next");
                 self.bind_temporary(next_iteration_inner);
+
+                let bound_before_lookup = bound_ids.len();
                 for (n, param) in lookup.patterns.iter().enumerate() {
                     let value = self.function_params.borrow()[n + 1 /* extra one is the "next iteration" */ + IMPLICIT_PARAMS];
                     let value = self.use_temporary(value).unwrap();
-                    self.compile_pattern_match(param, value, self.get_end(""))?
+                    bound_ids.extend(self.compile_pattern_match(param, value, self.get_end(""))?);
                 }
                 let next_to = self.use_temporary(next_to).unwrap();
+
+                let next_iteration_with_cleanup = self.add_continuation("rule_query_cleanup");
+                let brancher = self.end_continuation_point_as_branch();
+                let next_iteration_with_cleanup_continuation = self.capture_current_continuation(
+                    next_iteration_with_cleanup,
+                    &brancher,
+                    "pass_next",
+                );
+                let next_iteration_cp = self.hold_continuation_point();
+                self.call_known_continuation(next_to, next_iteration_with_cleanup_continuation);
+
+                self.become_continuation_point(next_iteration_cp);
+                self.begin_next_function(next_iteration_with_cleanup);
+                for id in bound_ids
+                    .split_off(bound_before_lookup)
+                    .into_iter()
+                    .filter(|id| !bound_ids.contains(id))
+                {
+                    let var = self.get_variable(&id).unwrap().ptr();
+                    self.trilogy_value_destroy(var);
+                }
                 let next_iteration = self.use_temporary(next_iteration_inner).unwrap();
                 self.call_known_continuation(next_to, next_iteration);
             }

@@ -13,11 +13,12 @@ impl<'ctx> Codegen<'ctx> {
         pattern: &ir::Expression,
         value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
-    ) -> Option<()> {
+    ) -> Option<Vec<Id>> {
         let mut bound_ids = Vec::default();
         self.bind_temporary(value);
         self.bind_temporary(on_fail);
-        self.match_pattern(pattern, value, on_fail, &mut bound_ids)
+        self.match_pattern(pattern, value, on_fail, &mut bound_ids);
+        Some(bound_ids)
     }
 
     fn match_pattern(
