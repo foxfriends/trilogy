@@ -34,6 +34,9 @@ pub enum Error {
     NonConstantExpressionInConstant {
         expression: Span,
     },
+    NoReturnFromRule {
+        expression: Span,
+    },
 }
 
 impl std::error::Error for Error {}
@@ -52,6 +55,9 @@ impl Display for Error {
             }
             Error::NonConstantExpressionInConstant { .. } => {
                 write!(f, "non-constant expression in constant definition")
+            }
+            Error::NoReturnFromRule { .. } => {
+                write!(f, "return is not valid in a rule definition")
             }
         }
     }

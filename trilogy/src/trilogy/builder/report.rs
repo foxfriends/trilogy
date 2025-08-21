@@ -238,6 +238,19 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
+                    NoReturnFromRule { expression } => {
+                        let span = cache.span(location, *expression);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message(
+                                "use of the return keyword is not valid in the body of a rule",
+                            )
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("in this expression")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
                 }
             }
             ErrorKind::Analysis(location, error) => {

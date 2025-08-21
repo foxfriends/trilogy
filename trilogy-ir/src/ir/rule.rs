@@ -1,5 +1,6 @@
 use super::*;
 use crate::Converter;
+use crate::visitor::ValidateForRule;
 use source_span::Span;
 use trilogy_parser::{Spanned, syntax};
 
@@ -26,6 +27,7 @@ impl Rule {
             .body
             .map(|query| Query::convert(converter, query))
             .unwrap_or_else(|| Query::pass(span));
+        body.validate_for_rule(converter);
         converter.pop_scope();
         Self {
             span,
@@ -45,6 +47,7 @@ impl Rule {
             .map(|param| Expression::convert_pattern(converter, param))
             .collect();
         let body = Query::convert(converter, ast.body);
+        body.validate_for_rule(converter);
         converter.pop_scope();
         Self {
             span,

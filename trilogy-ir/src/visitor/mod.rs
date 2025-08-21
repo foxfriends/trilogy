@@ -5,12 +5,14 @@ mod can_evaluate;
 mod identifiers;
 mod is_constant;
 mod references;
+mod validate_for_rule;
 
 pub use bindings::{Bindings, HasBindings};
 pub use can_evaluate::{CanEvaluate, HasCanEvaluate};
 pub use identifiers::Identifiers;
 pub use is_constant::{IsConstant, MightBeConstant};
 pub use references::{HasReferences, References};
+pub(crate) use validate_for_rule::ValidateForRule;
 
 macro_rules! visit_node {
     ($name:ident, $t:ty) => {
