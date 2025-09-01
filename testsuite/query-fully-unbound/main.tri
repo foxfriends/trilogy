@@ -1,0 +1,15 @@
+rule always(_)
+
+proc main!() {
+  let mut n = 0
+  for always(1) {
+    n += 1
+  }
+  for always(^n) {
+    n += 1
+  }
+  for always(r) {
+    exit 1
+  }
+  assert n == 2
+}

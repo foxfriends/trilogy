@@ -442,6 +442,9 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> Option<PointerValue<'ctx>> {
         match &application.function.value {
+            Value::Builtin(Builtin::Pin) => {
+                return self.compile_expression(&application.argument, name);
+            }
             Value::Builtin(builtin) if builtin.is_unary() => {
                 return self.compile_apply_unary(*builtin, &application.argument, name);
             }
