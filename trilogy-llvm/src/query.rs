@@ -1,4 +1,4 @@
-use crate::{Codegen, IMPLICIT_PARAMS};
+use crate::Codegen;
 use inkwell::{AddressSpace, values::PointerValue};
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
 use trilogy_ir::{Id, ir};
@@ -25,6 +25,11 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(next_continuation_cp);
         self.begin_next_function(next_function);
+        // The `next_to` function of an iterator is called with a function that starts the next
+        // iteration of the loop, followed by the values of its arguments, now fully bound. We
+        // only the next-iteration function is guaranteed, and we return it here as if it was
+        // the "return value" of the iterator. The Lookup case below handles the arguments, if
+        // necessary, as that's the only situation where they are possible.
         Some(self.get_continuation("next_iteration"))
     }
 
@@ -55,13 +60,18 @@ impl<'ctx> Codegen<'ctx> {
             }
             ir::QueryValue::Lookup(lookup) if lookup.patterns.is_empty() => {
                 let rule = self.compile_expression(&lookup.path, "rule")?;
-                let next_iteration = self.call_rule(rule, &[], done_to, "lookup_next");
+                let (next_iteration, out) = self.call_rule(rule, &[], done_to, "lookup_next");
+                assert!(out.is_empty());
                 let next_to = self.use_temporary(next_to).unwrap();
                 self.call_known_continuation(next_to, next_iteration);
             }
             ir::QueryValue::Lookup(lookup) => {
+                // NOTE: at this time, the lookup expression is not an arbitrary expression, only a
+                // reference/module path, so branching is not possible here.
                 let rule = self.compile_expression(&lookup.path, "rule")?;
-                let mut arguments = lookup
+                // NOTE: similarly, the arguments of a query must be syntactically both patterns and
+                // expressions, so we can again guarantee that branching is not possible.
+                let arguments = lookup
                     .patterns
                     .iter()
                     .map(|pattern| {
@@ -137,22 +147,25 @@ impl<'ctx> Codegen<'ctx> {
                         }
                     })
                     .collect::<Option<Vec<_>>>()?;
-                for argument in &mut arguments {
-                    *argument = self.use_temporary(*argument).unwrap();
-                }
 
                 let done_to = self.use_temporary(done_to).unwrap();
-                let next_iteration_inner = self.call_rule(rule, &arguments, done_to, "lookup_next");
+                let (next_iteration_inner, output_arguments) =
+                    self.call_rule(rule, &arguments, done_to, "lookup_next");
                 self.bind_temporary(next_iteration_inner);
 
                 let bound_before_lookup = bound_ids.len();
-                for (n, param) in lookup.patterns.iter().enumerate() {
-                    let value = self.function_params.borrow()[n + 1 /* extra one is the "next iteration" */ + IMPLICIT_PARAMS];
-                    let value = self.use_temporary(value).unwrap();
-                    bound_ids.extend(self.compile_pattern_match(param, value, self.get_end(""))?);
+                for (pattern, out_value) in lookup.patterns.iter().zip(output_arguments) {
+                    let out_value = self.use_temporary(out_value).unwrap();
+                    bound_ids.extend(self.compile_pattern_match(
+                        pattern,
+                        out_value,
+                        self.get_end(""),
+                    )?);
                 }
-                let next_to = self.use_temporary(next_to).unwrap();
 
+                // Wrap the next iteration with our own, as a lookup requires some cleanup
+                // before starting its next internal iteration.
+                let next_to = self.use_temporary(next_to).unwrap();
                 let next_iteration_with_cleanup = self.add_continuation("rule_query_cleanup");
                 let brancher = self.end_continuation_point_as_branch();
                 let next_iteration_with_cleanup_continuation = self.capture_current_continuation(
@@ -160,17 +173,19 @@ impl<'ctx> Codegen<'ctx> {
                     &brancher,
                     "pass_next",
                 );
-                let next_iteration_cp = self.hold_continuation_point();
+                let next_iteration_with_cleanup_cp = self.hold_continuation_point();
                 self.call_known_continuation(next_to, next_iteration_with_cleanup_continuation);
-
-                self.become_continuation_point(next_iteration_cp);
+                // The cleanup: destroy all variables that were unbound on the way in. This uses
+                // very similar detection as with patterns, noting that which variables are bound
+                // at iteration time can be determined statically as we make the pass through the
+                // query's IR.
+                self.become_continuation_point(next_iteration_with_cleanup_cp);
                 self.begin_next_function(next_iteration_with_cleanup);
-                for id in bound_ids
-                    .split_off(bound_before_lookup)
-                    .into_iter()
-                    .filter(|id| !bound_ids.contains(id))
+                for id in bound_ids[bound_before_lookup..]
+                    .iter()
+                    .filter(|id| !bound_ids[0..bound_before_lookup].contains(id))
                 {
-                    let var = self.get_variable(&id).unwrap().ptr();
+                    let var = self.get_variable(id).unwrap().ptr();
                     self.trilogy_value_destroy(var);
                 }
                 let next_iteration = self.use_temporary(next_iteration_inner).unwrap();

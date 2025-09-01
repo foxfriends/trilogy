@@ -160,13 +160,16 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Calls a rule value with the provided arguments.
+    ///
+    /// The return value here is the function to call to lookup the next binding for the rule,
+    /// along with the output values of the input arguments.
     pub(crate) fn call_rule(
         &self,
         value: PointerValue<'ctx>,
         arguments: &[PointerValue<'ctx>],
         done_to: PointerValue<'ctx>,
         name: &str,
-    ) -> PointerValue<'ctx> {
+    ) -> (PointerValue<'ctx>, Vec<PointerValue<'ctx>>) {
         let arity = arguments.len();
         let callable = self.trilogy_callable_untag(value, "");
         let rule = self.trilogy_rule_untag(callable, arity, "");
@@ -220,7 +223,12 @@ impl<'ctx> Codegen<'ctx> {
         self.make_call(rule, &args, arity, true);
 
         self.begin_next_function(continuation_function);
-        self.get_continuation(name)
+
+        let next_iteration = self.get_continuation(name);
+        let output_arguments = (0..arity)
+            .map(|i| self.function_params.borrow()[IMPLICIT_PARAMS + 1 + i])
+            .collect();
+        (next_iteration, output_arguments)
     }
 
     /// Applies a function value to the provided argument. This may also be used to call
