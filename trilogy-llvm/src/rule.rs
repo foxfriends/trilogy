@@ -2,7 +2,7 @@ use crate::{Codegen, IMPLICIT_PARAMS};
 use inkwell::values::FunctionValue;
 use source_span::Span;
 use std::borrow::Borrow;
-use trilogy_ir::{Id, ir};
+use trilogy_ir::{Id, ir, visitor::HasCanEvaluate};
 
 impl<'ctx> Codegen<'ctx> {
     fn write_rule_accessor(
@@ -126,6 +126,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.begin_next_function(next_parameter_function);
                 }
             }
+            // The rule runs the iterator, resulting in new bindings being set.
             let Some(next_iteration) = self.compile_iterator(&overload.body, go_to_next_overload)
             else {
                 break 'outer;
@@ -134,12 +135,32 @@ impl<'ctx> Codegen<'ctx> {
 
             let mut arguments = Vec::with_capacity(arity + 1);
             arguments.push(next_iteration);
-            for param in &overload.parameters {
-                let Some(param_value) = self.compile_expression(param, "") else {
-                    break 'outer;
-                };
-                self.bind_temporary(param_value);
-                arguments.push(param_value);
+            // Then each parameter pattern is evaluated to create the values for the output arguments.
+            // If the parameter cannot be evaluated (e.g. `rule always(_)`)
+            // * Re-use the input parameter value if available; but
+            // * if the input parameter was also not set (e.g. `for always(a)`), then consider this a failed
+            //   overload and go next.
+            for (i, param) in overload.parameters.iter().enumerate() {
+                if param.can_evaluate() {
+                    let Some(param_value) = self.compile_expression(param, "") else {
+                        break 'outer;
+                    };
+                    self.bind_temporary(param_value);
+                    arguments.push(param_value);
+                } else {
+                    let input_param = self.function_params.borrow()[i];
+                    let input_param = self.use_temporary(input_param).unwrap();
+                    let here = self.get_function();
+                    let fully_unbound = self.context.append_basic_block(here, "fully_unbound");
+                    let rebind_input = self.context.append_basic_block(here, "rebind_input");
+                    self.branch_undefined(input_param, fully_unbound, rebind_input);
+                    self.builder.position_at_end(fully_unbound);
+                    let next_overload = self.use_temporary(go_to_next_overload).unwrap();
+                    self.void_call_continuation(next_overload);
+
+                    self.builder.position_at_end(rebind_input);
+                    arguments.push(input_param);
+                }
             }
             let next = self.get_next("");
             for arg in arguments.iter_mut() {
