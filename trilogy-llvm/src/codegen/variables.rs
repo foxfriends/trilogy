@@ -297,7 +297,10 @@ impl<'ctx> Codegen<'ctx> {
         )? {
             Variable::Owned(pointer) => Some(pointer),
             Variable::Closed { location, .. } => {
-                let var = self.allocate_value("tempref");
+                let var = self.allocate_value(&format!(
+                    "{}.tempref",
+                    temporary.get_name().to_str().unwrap()
+                ));
                 self.trilogy_value_clone_into(var, location);
                 Some(var)
             }

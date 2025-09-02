@@ -77,7 +77,7 @@ impl<'ctx> Codegen<'ctx> {
             let next_overload_cp = self.hold_continuation_point();
 
             for (n, param) in overload.parameters.iter().enumerate() {
-                let value = self.function_params.borrow()[n + IMPLICIT_PARAMS];
+                let value = self.function_params.borrow()[IMPLICIT_PARAMS + n];
 
                 let original_insert_function = self.get_function();
                 let original_snapshot = self.snapshot_function_context();
@@ -140,7 +140,7 @@ impl<'ctx> Codegen<'ctx> {
             // * Re-use the input parameter value if available; but
             // * if the input parameter was also not set (e.g. `for always(a)`), then consider this a failed
             //   overload and go next.
-            for (i, param) in overload.parameters.iter().enumerate() {
+            for (n, param) in overload.parameters.iter().enumerate() {
                 if param.can_evaluate() {
                     let Some(param_value) = self.compile_expression(param, "") else {
                         break 'outer;
@@ -148,18 +148,24 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(param_value);
                     arguments.push(param_value);
                 } else {
-                    let input_param = self.function_params.borrow()[i];
+                    let input_param = self.function_params.borrow()[IMPLICIT_PARAMS + n];
                     let input_param = self.use_temporary(input_param).unwrap();
                     let here = self.get_function();
                     let fully_unbound = self.context.append_basic_block(here, "fully_unbound");
                     let rebind_input = self.context.append_basic_block(here, "rebind_input");
                     self.branch_undefined(input_param, fully_unbound, rebind_input);
+                    // If the input and output are both going to be undefined, then go right to the
+                    // next overload.
                     self.builder.position_at_end(fully_unbound);
                     let next_overload = self.use_temporary(go_to_next_overload).unwrap();
                     self.void_call_continuation(next_overload);
+                    self.hold_continuation_point();
 
+                    // There's actually no action for the rebind-input case, we're just going to the argument later
                     self.builder.position_at_end(rebind_input);
                     arguments.push(input_param);
+                    // Have to rebind the temporary parameter too though, since it got extracted already... I think.
+                    self.bind_temporary(input_param);
                 }
             }
             let next = self.get_next("");

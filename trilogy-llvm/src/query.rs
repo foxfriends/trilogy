@@ -15,7 +15,7 @@ impl<'ctx> Codegen<'ctx> {
             self.variable(&variable);
         }
 
-        let next_function = self.add_continuation("next");
+        let next_function = self.add_next_to_continuation(0, "next");
         let brancher = self.end_continuation_point_as_branch();
         let next_to =
             self.capture_current_continuation(next_function, &brancher, "next_continuation");
@@ -165,7 +165,6 @@ impl<'ctx> Codegen<'ctx> {
 
                 // Wrap the next iteration with our own, as a lookup requires some cleanup
                 // before starting its next internal iteration.
-                let next_to = self.use_temporary(next_to).unwrap();
                 let next_iteration_with_cleanup = self.add_continuation("rule_query_cleanup");
                 let brancher = self.end_continuation_point_as_branch();
                 let next_iteration_with_cleanup_continuation = self.capture_current_continuation(
@@ -174,7 +173,10 @@ impl<'ctx> Codegen<'ctx> {
                     "pass_next",
                 );
                 let next_iteration_with_cleanup_cp = self.hold_continuation_point();
-                self.call_known_continuation(next_to, next_iteration_with_cleanup_continuation);
+                self.call_known_continuation(
+                    self.use_temporary(next_to).unwrap(),
+                    next_iteration_with_cleanup_continuation,
+                );
                 // The cleanup: destroy all variables that were unbound on the way in. This uses
                 // very similar detection as with patterns, noting that which variables are bound
                 // at iteration time can be determined statically as we make the pass through the
@@ -189,7 +191,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.trilogy_value_destroy(var);
                 }
                 let next_iteration = self.use_temporary(next_iteration_inner).unwrap();
-                self.call_known_continuation(next_to, next_iteration);
+                self.call_known_continuation(next_iteration, self.get_continuation(""));
             }
             _ => todo!(),
         }
