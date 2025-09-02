@@ -9,6 +9,9 @@ void trilogy_unit_untag(trilogy_value* val);
 
 void trilogy_value_destroy(trilogy_value* val);
 void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from);
+void trilogy_value_clone_undefined_into(
+    trilogy_value* into, trilogy_value* from
+);
 
 bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs);
 bool trilogy_value_referential_eq(trilogy_value* lhs, trilogy_value* rhs);

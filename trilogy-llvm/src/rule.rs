@@ -76,9 +76,9 @@ impl<'ctx> Codegen<'ctx> {
             );
             let next_overload_cp = self.hold_continuation_point();
 
-            for (n, param) in overload.parameters.iter().enumerate() {
-                let value = self.function_params.borrow()[IMPLICIT_PARAMS + n];
-
+            let input_args =
+                self.function_params.borrow()[IMPLICIT_PARAMS..IMPLICIT_PARAMS + arity].to_vec();
+            for (param, &value) in overload.parameters.iter().zip(&input_args) {
                 let original_insert_function = self.get_function();
                 let original_snapshot = self.snapshot_function_context();
 
@@ -140,7 +140,7 @@ impl<'ctx> Codegen<'ctx> {
             // * Re-use the input parameter value if available; but
             // * if the input parameter was also not set (e.g. `for always(a)`), then consider this a failed
             //   overload and go next.
-            for (n, param) in overload.parameters.iter().enumerate() {
+            for (param, original) in overload.parameters.iter().zip(input_args) {
                 if param.can_evaluate() {
                     let Some(param_value) = self.compile_expression(param, "") else {
                         break 'outer;
@@ -148,8 +148,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(param_value);
                     arguments.push(param_value);
                 } else {
-                    let input_param = self.function_params.borrow()[IMPLICIT_PARAMS + n];
-                    let input_param = self.use_temporary(input_param).unwrap();
+                    let input_param = self.use_temporary(original).unwrap();
                     let here = self.get_function();
                     let fully_unbound = self.context.append_basic_block(here, "fully_unbound");
                     let rebind_input = self.context.append_basic_block(here, "rebind_input");

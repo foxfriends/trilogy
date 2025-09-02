@@ -301,7 +301,7 @@ impl<'ctx> Codegen<'ctx> {
                     "{}.tempref",
                     temporary.get_name().to_str().unwrap()
                 ));
-                self.trilogy_value_clone_into(var, location);
+                self.trilogy_value_clone_undefined_into(var, location);
                 Some(var)
             }
         }

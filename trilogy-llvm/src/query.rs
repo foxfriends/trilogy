@@ -15,7 +15,7 @@ impl<'ctx> Codegen<'ctx> {
             self.variable(&variable);
         }
 
-        let next_function = self.add_next_to_continuation(0, "next");
+        let next_function = self.add_next_to_continuation(0, "iterator_next");
         let brancher = self.end_continuation_point_as_branch();
         let next_to =
             self.capture_current_continuation(next_function, &brancher, "next_continuation");

@@ -1008,6 +1008,26 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_value_clone_undefined_into(
+        &self,
+        into: PointerValue<'ctx>,
+        from: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_value_clone_undefined_into",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[into.into(), from.into()], "")
+            .unwrap();
+    }
+
     pub(crate) fn trilogy_value_destroy(
         &self,
         value: PointerValue<'ctx>,
