@@ -148,23 +148,26 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(param_value);
                     arguments.push(param_value);
                 } else {
-                    let input_param = self.use_temporary(original).unwrap();
+                    arguments.push(original);
+
                     let here = self.get_function();
                     let fully_unbound = self.context.append_basic_block(here, "fully_unbound");
                     let rebind_input = self.context.append_basic_block(here, "rebind_input");
+                    let input_param = self.use_temporary(original).unwrap();
+                    let brancher = self.end_continuation_point_as_branch();
                     self.branch_undefined(input_param, fully_unbound, rebind_input);
+                    let snapshot = self.snapshot_function_context();
+
                     // If the input and output are both going to be undefined, then go right to the
                     // next overload.
                     self.builder.position_at_end(fully_unbound);
                     let next_overload = self.use_temporary(go_to_next_overload).unwrap();
                     self.void_call_continuation(next_overload);
-                    self.hold_continuation_point();
 
-                    // There's actually no action for the rebind-input case, we're just going to the argument later
+                    // There's actually no action for the rebind-input case, only to reuse the argument later
+                    self.resume_continuation_point(&brancher);
+                    self.restore_function_context(snapshot);
                     self.builder.position_at_end(rebind_input);
-                    arguments.push(input_param);
-                    // Have to rebind the temporary parameter too though, since it got extracted already... I think.
-                    self.bind_temporary(input_param);
                 }
             }
             let next = self.get_next("");
