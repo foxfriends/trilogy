@@ -6,12 +6,15 @@ proc main!() {
   let mut n = 0
   for always(1) {
     n += 1
+    debug::dbg!('a:n)
   }
   for always(^n) {
     n += 1
+    debug::dbg!('b:n)
   }
   for always(r) {
     exit 1
   }
+  debug::dbg!('c:n)
   assert n == 2
 }

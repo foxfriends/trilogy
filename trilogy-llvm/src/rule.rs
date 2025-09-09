@@ -156,7 +156,6 @@ impl<'ctx> Codegen<'ctx> {
                     let input_param = self.use_temporary(original).unwrap();
                     let brancher = self.end_continuation_point_as_branch();
                     self.branch_undefined(input_param, fully_unbound, rebind_input);
-                    let snapshot = self.snapshot_function_context();
 
                     // If the input and output are both going to be undefined, then go right to the
                     // next overload.
@@ -166,7 +165,6 @@ impl<'ctx> Codegen<'ctx> {
 
                     // There's actually no action for the rebind-input case, only to reuse the argument later
                     self.resume_continuation_point(&brancher);
-                    self.restore_function_context(snapshot);
                     self.builder.position_at_end(rebind_input);
                 }
             }
