@@ -278,7 +278,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap();
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         self.builder.position_at_end(call_continuation);
         self.call_regular_continuation(

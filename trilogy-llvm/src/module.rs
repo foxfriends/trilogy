@@ -411,7 +411,7 @@ impl<'ctx> Codegen<'ctx> {
         let arity = module.parameters.len();
         for i in 0..arity - 1 {
             let continuation = self.add_continuation("");
-            let brancher = self.end_continuation_point_as_branch();
+            let brancher = self.branch_continuation_point();
             let param = self.get_continuation("");
             let id = &module.parameters[i];
             let variable = self.variable(&id.id);

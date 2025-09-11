@@ -56,7 +56,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut params = Vec::with_capacity(arity);
         for _ in 0..arity as u32 - 1 {
             let continuation = self.add_continuation("");
-            let brancher = self.end_continuation_point_as_branch();
+            let brancher = self.branch_continuation_point();
             let param = self.get_continuation("");
             self.bind_temporary(param);
             params.push(param);
@@ -81,7 +81,7 @@ impl<'ctx> Codegen<'ctx> {
         self.bind_temporary(param);
         params.push(param);
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         'outer: for overload in overloads {
             let overload = overload.borrow();

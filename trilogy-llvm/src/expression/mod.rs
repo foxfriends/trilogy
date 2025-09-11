@@ -91,7 +91,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_while(&self, expr: &ir::While, name: &str) -> Option<PointerValue<'ctx>> {
         let continue_function = self.add_continuation("while");
         let break_function = self.add_continuation("while.done");
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         let break_continuation =
             self.capture_current_continuation_as_break(break_function, &brancher, "");
@@ -116,7 +116,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(bool_value, then_block, else_block)
             .unwrap();
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         let snapshot = self.snapshot_function_context();
 
         self.builder.position_at_end(else_block);
@@ -140,7 +140,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_for(&self, expr: &ir::Iterator, name: &str) -> Option<PointerValue<'ctx>> {
         let done_function = self.add_continuation("done");
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         let done_continuation =
             self.capture_current_continuation_as_break(done_function, &brancher, "for_break");
         let done_continuation_point = self.hold_continuation_point();
@@ -166,7 +166,7 @@ impl<'ctx> Codegen<'ctx> {
         let body_function = self.add_continuation("");
         let handler_function = self.add_continuation(name);
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         // Prepare cancel continuation for after the handled section is complete.
         let cancel_to_function = self.add_continuation("when.cancel");
@@ -209,7 +209,7 @@ impl<'ctx> Codegen<'ctx> {
         self.bind_temporary(effect);
 
         for handler in handlers {
-            let brancher = self.end_continuation_point_as_branch();
+            let brancher = self.branch_continuation_point();
             let next_case_function = self.add_continuation("");
             let go_to_next_case =
                 self.capture_current_continuation(next_case_function, &brancher, "when.next");
@@ -231,7 +231,7 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_value_destroy(guard_bool);
             let body_block = self.context.append_basic_block(self.get_function(), "body");
             let next_block = self.context.append_basic_block(self.get_function(), "next");
-            let inner_brancher = self.end_continuation_point_as_branch();
+            let inner_brancher = self.branch_continuation_point();
             self.builder
                 .build_conditional_branch(guard_flag, body_block, next_block)
                 .unwrap();
@@ -260,7 +260,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
         let expression = self.compile_expression(&assertion.assertion, name)?;
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         let cond = self.trilogy_boolean_untag(expression, "");
         let pass = self
             .context
@@ -384,7 +384,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut merger = Merger::default();
         let mut returns = false;
         for case in &expr.cases {
-            let brancher = self.end_continuation_point_as_branch();
+            let brancher = self.branch_continuation_point();
             let next_case_function = self.add_continuation("match.next");
             let go_to_next_case =
                 self.capture_current_continuation(next_case_function, &brancher, "match.next");
@@ -401,7 +401,7 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_value_destroy(guard_bool);
             let body_block = self.context.append_basic_block(self.get_function(), "body");
             let next_block = self.context.append_basic_block(self.get_function(), "next");
-            let sub_brancher = self.end_continuation_point_as_branch();
+            let sub_brancher = self.branch_continuation_point();
             self.builder
                 .build_conditional_branch(guard_flag, body_block, next_block)
                 .unwrap();
@@ -630,7 +630,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(cond_bool, if_true_block, if_false_block)
             .unwrap();
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         self.builder.position_at_end(if_true_block);
         let if_true_closure = self.continue_in_scope(merge_to_function, lhs_value);
@@ -681,7 +681,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(cond_bool, if_true_block, if_false_block)
             .unwrap();
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         self.builder.position_at_end(if_false_block);
         let if_false_closure = self.continue_in_scope(merge_to_function, lhs_value);
@@ -729,7 +729,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_conditional_branch(cond_bool, if_true_block, if_false_block)
             .unwrap();
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         self.builder.position_at_end(if_true_block);
         let if_true_closure = self.void_continue_in_scope(if_true_function);
@@ -782,7 +782,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         self.trilogy_callable_init_do(target, arity, closure, function);
         let here = self.builder.get_insert_block().unwrap();
         let snapshot = self.snapshot_function_context();
@@ -826,7 +826,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         self.trilogy_callable_init_fn(target, closure, function);
         let here = self.builder.get_insert_block().unwrap();
         let snapshot = self.snapshot_function_context();
@@ -870,7 +870,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         self.trilogy_callable_init_qy(target, arity, closure, function);
         let here = self.builder.get_insert_block().unwrap();
         let snapshot = self.snapshot_function_context();

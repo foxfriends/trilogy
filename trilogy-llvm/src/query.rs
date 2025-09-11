@@ -16,7 +16,7 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         let next_function = self.add_next_to_continuation(0, "iterator_next");
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         let next_to =
             self.capture_current_continuation(next_function, &brancher, "next_continuation");
         let next_continuation_cp = self.hold_continuation_point();
@@ -43,7 +43,7 @@ impl<'ctx> Codegen<'ctx> {
         match query {
             ir::QueryValue::Pass => {
                 let next_iteration = self.add_continuation("pass_next");
-                let brancher = self.end_continuation_point_as_branch();
+                let brancher = self.branch_continuation_point();
                 let next_iteration_continuation =
                     self.capture_current_continuation(next_iteration, &brancher, "pass_next");
                 let next_iteration_cp = self.hold_continuation_point();
@@ -166,7 +166,7 @@ impl<'ctx> Codegen<'ctx> {
                 // Wrap the next iteration with our own, as a lookup requires some cleanup
                 // before starting its next internal iteration.
                 let next_iteration_with_cleanup = self.add_continuation("rule_query_cleanup");
-                let brancher = self.end_continuation_point_as_branch();
+                let brancher = self.branch_continuation_point();
                 let next_iteration_with_cleanup_continuation = self.capture_current_continuation(
                     next_iteration_with_cleanup,
                     &brancher,

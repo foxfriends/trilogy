@@ -304,7 +304,7 @@ impl<'ctx> Codegen<'ctx> {
     /// Prepares the current continuation point to branch into multiple endings.
     /// The current continuation point remains the implicit continuation point,
     /// but can safely be ignored without ending it, as it may be ended later.
-    pub(crate) fn end_continuation_point_as_branch(&self) -> Brancher<'ctx> {
+    pub(crate) fn branch_continuation_point(&self) -> Brancher<'ctx> {
         let parent = self.continuation_points.borrow().last().unwrap().clone();
         Brancher(parent)
     }

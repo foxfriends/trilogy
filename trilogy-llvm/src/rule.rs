@@ -61,7 +61,7 @@ impl<'ctx> Codegen<'ctx> {
         self.begin_function(function, span);
         let arity = overloads[0].borrow().parameters.len();
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
 
         'outer: for overload in overloads {
             let overload = overload.borrow();
@@ -82,13 +82,13 @@ impl<'ctx> Codegen<'ctx> {
                 let original_insert_function = self.get_function();
                 let original_snapshot = self.snapshot_function_context();
 
-                let skip_parameter = self
-                    .context
-                    .append_basic_block(original_insert_function, "skip_parameter");
                 let bind_parameter = self
                     .context
                     .append_basic_block(original_insert_function, "bind_parameter");
-                self.branch_undefined(value, skip_parameter, bind_parameter);
+                let next_parameter = self
+                    .context
+                    .append_basic_block(original_insert_function, "next_parameter");
+                self.branch_undefined(value, next_parameter, bind_parameter);
 
                 self.builder.position_at_end(bind_parameter);
                 if self
@@ -107,9 +107,9 @@ impl<'ctx> Codegen<'ctx> {
                     // making more closures if it can be avoided, which is the case if the pattern
                     // never causes a branch (e.g. often because it's just a single variable).
                     self.builder
-                        .build_unconditional_branch(skip_parameter)
+                        .build_unconditional_branch(next_parameter)
                         .unwrap();
-                    self.builder.position_at_end(skip_parameter);
+                    self.builder.position_at_end(next_parameter);
                 } else {
                     // Otherwise, if the parameter binding caused the continuation to change already,
                     // we need yet another continuation that merges the "skip" case with the
@@ -119,7 +119,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.add_branch_end_as_close(&brancher, next_closure);
 
                     self.restore_function_context(original_snapshot);
-                    self.builder.position_at_end(skip_parameter);
+                    self.builder.position_at_end(next_parameter);
                     let skip_closure = self.void_continue_in_scope(next_parameter_function);
                     self.add_branch_end_as_close(&brancher, skip_closure);
 
@@ -154,7 +154,7 @@ impl<'ctx> Codegen<'ctx> {
                     let fully_unbound = self.context.append_basic_block(here, "fully_unbound");
                     let rebind_input = self.context.append_basic_block(here, "rebind_input");
                     let input_param = self.use_temporary(original).unwrap();
-                    let brancher = self.end_continuation_point_as_branch();
+                    let brancher = self.branch_continuation_point();
                     self.branch_undefined(input_param, fully_unbound, rebind_input);
 
                     // If the input and output are both going to be undefined, then go right to the

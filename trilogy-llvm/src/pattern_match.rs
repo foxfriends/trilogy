@@ -45,7 +45,7 @@ impl<'ctx> Codegen<'ctx> {
                 let on_success_function = self.add_continuation("pm.cont");
                 let mut merger = Merger::default();
 
-                let brancher = self.end_continuation_point_as_branch();
+                let brancher = self.branch_continuation_point();
                 let second_function = self.add_continuation("disj.snd");
                 let go_to_second =
                     self.capture_current_continuation(second_function, &brancher, "disj.snd");
@@ -175,7 +175,7 @@ impl<'ctx> Codegen<'ctx> {
             .context
             .append_basic_block(self.get_function(), "pm_cont");
 
-        let brancher = self.end_continuation_point_as_branch();
+        let brancher = self.branch_continuation_point();
         self.builder
             .build_conditional_branch(cond, cont, fail)
             .unwrap();
