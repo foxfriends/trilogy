@@ -39,12 +39,6 @@ impl<'ctx> Exit<'ctx> {
     }
 }
 
-/// A `Brancher` is created when a continuation point will end in more than one place (i.e. it branches).
-///
-/// At each place this continuation point might end, an `add_branch_end_` function should be called
-/// to correctly end the continuation in that position.
-pub(crate) struct Brancher<'ctx>(Rc<ContinuationPoint<'ctx>>);
-
 /// A `Merger` collects ended continuation points without starting the next continuation point immediately,
 /// typically when there are multiple continuations being built separately which will later both continue
 /// to the same place (i.e. merge).
@@ -105,6 +99,7 @@ pub(crate) struct ContinuationPoint<'ctx> {
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
     pub(super) parents: Vec<Exit<'ctx>>,
+    pub(super) shadows: Option<Weak<ContinuationPoint<'ctx>>>,
 
     /// A bit of a hack, but this is tracking all places that a variable is destroyed during
     /// scope cleanup without being closed. If we later determine that we need to close that
@@ -131,12 +126,27 @@ impl<'ctx> ContinuationPoint<'ctx> {
             module_closure,
             upvalues: RefCell::default(),
             parents: vec![],
+            shadows: None,
             unclosed: RefCell::default(),
         }
     }
 
+    fn compute_parent_variables(&self) -> HashSet<Closed<'ctx>> {
+        let mut variables: HashSet<_> = self
+            .variables
+            .borrow()
+            .keys()
+            .chain(self.parent_variables.iter())
+            .cloned()
+            .collect();
+        if let Some(shadowed) = &self.shadows {
+            variables.extend(shadowed.upgrade().unwrap().compute_parent_variables());
+        }
+        variables
+    }
+
     /// Creates a new continuation point which has visibility of the current one's variables.
-    fn chain(&self) -> Self {
+    fn chain(self: &Rc<Self>) -> Self {
         Self {
             id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
             variables: RefCell::default(),
@@ -147,15 +157,26 @@ impl<'ctx> ContinuationPoint<'ctx> {
                     .collect(),
             ),
             module_closure: self.module_closure.clone(),
-            parent_variables: self
-                .variables
-                .borrow()
-                .keys()
-                .chain(self.parent_variables.iter())
-                .cloned()
-                .collect(),
+            parent_variables: self.compute_parent_variables(),
             upvalues: RefCell::default(),
             parents: vec![],
+            shadows: None,
+            unclosed: RefCell::default(),
+        }
+    }
+
+    /// Creates a new continuation point which is "the same" as the current one, but is extended
+    /// with variables independently (typically due to branching).
+    fn shadow(self: &Rc<Self>) -> Self {
+        Self {
+            id: CONTINUATION_POINT_COUNTER.fetch_add(1, Ordering::Relaxed),
+            variables: RefCell::default(), // self.variables.clone(),
+            closure: RefCell::default(),
+            module_closure: self.module_closure.clone(),
+            parent_variables: HashSet::default(), // self.parent_variables.clone(),
+            upvalues: RefCell::default(),
+            parents: vec![],
+            shadows: Some(Rc::downgrade(self)),
             unclosed: RefCell::default(),
         }
     }
@@ -198,6 +219,23 @@ impl<'ctx> ContinuationPoint<'ctx> {
             snapshot,
         }));
     }
+
+    pub(crate) fn contains_temporary(&self, temporary: PointerValue<'ctx>) -> bool {
+        if let Some(shadowed) = &self.shadows
+            && shadowed.upgrade().unwrap().contains_temporary(temporary)
+        {
+            return true;
+        }
+        let key = Closed::Temporary(temporary);
+        self.parent_variables.contains(&key) || self.variables.borrow().contains_key(&key)
+    }
+
+    pub(crate) fn shadow_root(self: &Rc<ContinuationPoint<'ctx>>) -> Rc<ContinuationPoint<'ctx>> {
+        match &self.shadows {
+            Some(shadowed) => shadowed.upgrade().unwrap().shadow_root(),
+            None => self.clone(),
+        }
+    }
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -237,10 +275,25 @@ impl<'ctx> Codegen<'ctx> {
         cps.push(Rc::new(next));
     }
 
-    /// Pops the current continuation point, typically because it is not yet being handled.
-    /// Add it back later with `become_continuation_point` when it is ready to be written to.
-    pub(crate) fn hold_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
-        self.continuation_points.borrow_mut().pop().unwrap()
+    /// Ends the current continuation point. Cleanup code will be inserted before the provided
+    /// instruction which destroys all values that will be going out of scope. The instruction
+    /// should typically be the final `call` instruction in the that is being exited.
+    ///
+    /// After this, there is no valid implicit continuation point. A cleaned continuation should
+    /// be at the end of a lexical scope.
+    pub(crate) fn capture_contination_point(
+        &self,
+        closure_allocation: InstructionValue<'ctx>,
+    ) -> Rc<ContinuationPoint<'ctx>> {
+        let cps = self.continuation_points.borrow();
+        let current = cps.last().unwrap();
+        let mut next = current.chain();
+        next.capture_from(
+            current,
+            closure_allocation,
+            self.snapshot_function_context(),
+        );
+        Rc::new(next)
     }
 
     /// Reinstates a previously held continuation point.
@@ -253,60 +306,23 @@ impl<'ctx> Codegen<'ctx> {
             .push(continuation_point);
     }
 
-    /// Adds an ending to the previously branched continuation point. There should be no
-    /// existing implicit continuation point, and starts a new implicit continuation point.
-    pub(crate) fn add_branch_end_as_close(
-        &self,
-        brancher: &Brancher<'ctx>,
-        closure_allocation: InstructionValue<'ctx>,
-    ) {
-        let mut cps = self.continuation_points.borrow_mut();
-        let mut next = brancher.0.chain();
-        next.close_from(
-            &brancher.0,
-            closure_allocation,
-            self.snapshot_function_context(),
-        );
-        cps.push(Rc::new(next));
-    }
-
-    /// Resumes a continuation point that was previously held for a branch, which was used
-    /// only for non-ending captures, and not actually ended. The previously branched from
-    /// continuation point becomes the implicit continuation point again.
-    pub(crate) fn resume_continuation_point(&self, brancher: &Brancher<'ctx>) {
-        let mut cps = self.continuation_points.borrow_mut();
-        cps.push(brancher.0.clone());
-    }
-
-    /// Adds a non-ending capture on this branch. The branch must still be ended later with
-    /// a proper branch ending function.
-    ///
-    /// A placeholder closure allocation must be passed, which will later be replaced by
-    /// instructions to capture the values required by the closure.
-    ///
-    /// There should be no implicit continuation point before calling this, as this will
-    /// start a new one.
-    pub(crate) fn add_branch_capture(
-        &self,
-        brancher: &Brancher<'ctx>,
-        closure_allocation: InstructionValue<'ctx>,
-    ) {
-        let mut cps = self.continuation_points.borrow_mut();
-        let mut next = brancher.0.chain();
-        next.capture_from(
-            &brancher.0,
-            closure_allocation,
-            self.snapshot_function_context(),
-        );
-        cps.push(Rc::new(next));
-    }
-
     /// Prepares the current continuation point to branch into multiple endings.
     /// The current continuation point remains the implicit continuation point,
     /// but can safely be ignored without ending it, as it may be ended later.
-    pub(crate) fn branch_continuation_point(&self) -> Brancher<'ctx> {
-        let parent = self.continuation_points.borrow().last().unwrap().clone();
-        Brancher(parent)
+    pub(crate) fn branch_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
+        let mut cps = self.continuation_points.borrow_mut();
+        let current = cps.last().unwrap();
+        let now = Rc::new(current.shadow());
+        let later = Rc::new(current.shadow());
+        cps.push(now);
+        later
+    }
+
+    /// Creates a new, unattached, shadow of the current continuation point.
+    pub(crate) fn shadow_continuation_point(&self) -> Rc<ContinuationPoint<'ctx>> {
+        let cps = self.continuation_points.borrow();
+        let current = cps.last().unwrap();
+        Rc::new(current.shadow())
     }
 
     /// Ends the current continuation point, but does not start a new implicit
@@ -324,24 +340,11 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
-    /// Ties a Merger's collected exits to a new continuation point, with visibility to
-    /// only their shared parent Brancher's variables in scope.
-    ///
-    /// There should not be a current implicit continuation point when calling this. A
-    /// new one is set afterwards.
-    pub(crate) fn merge_branch(&self, branch: Brancher<'ctx>, merger: Merger<'ctx>) {
-        let mut cps = self.continuation_points.borrow_mut();
-        let mut cp = branch.0.chain();
-        cp.parents = merger.0;
-        cps.push(Rc::new(cp))
-    }
-
     /// Ties a Merger's collected exits to a new continuation point with visibility to
     /// the values of one of the branches, arbitrarily.
     ///
     /// Technically, since valid variable references have already been resolved at the
-    /// IR level, this additional visibility is not of danger, so we could use this
-    /// always instead of `merge_branch`, but... merge branch is a bit more intuitive.
+    /// IR level, this additional visibility is not of danger.
     ///
     /// There should not be a current implicit continuation point when calling this. A
     /// new one is set afterwards.

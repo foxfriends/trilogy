@@ -1,5 +1,5 @@
 use crate::IMPLICIT_PARAMS;
-use crate::codegen::{Brancher, Codegen};
+use crate::codegen::Codegen;
 use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE, CALLABLE_RESUME};
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::module::Linkage;
@@ -278,8 +278,9 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap();
 
-        let brancher = self.branch_continuation_point();
-
+        let continue_shadow = self.shadow_continuation_point();
+        let resume_shadow = self.shadow_continuation_point();
+        let function_shadow = self.shadow_continuation_point();
         self.builder.position_at_end(call_continuation);
         self.call_regular_continuation(
             callable_value,
@@ -288,22 +289,17 @@ impl<'ctx> Codegen<'ctx> {
         );
 
         self.builder.position_at_end(call_continue);
-        self.resume_continuation_point(&brancher);
+        self.become_continuation_point(continue_shadow);
         self.call_continue_inner(callable_value, argument, "");
 
         let continuation_function = self.add_continuation("cc");
         self.builder.position_at_end(call_resume);
-        self.resume_continuation_point(&brancher);
-        self.call_resume_inner(
-            continuation_function,
-            callable_value,
-            argument,
-            Some(&brancher),
-        );
+        self.become_continuation_point(resume_shadow);
+        self.call_resume_inner(continuation_function, callable_value, argument);
 
         self.builder.position_at_end(call_function);
         let function = self.trilogy_function_untag(callable, "");
-        self.resume_continuation_point(&brancher);
+        self.become_continuation_point(function_shadow);
         self.call_callable(
             continuation_function,
             callable_value,
@@ -558,7 +554,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn call_resume(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let resume_value = self.get_resume("");
         let continuation_function = self.add_continuation("resume.back");
-        self.call_resume_inner(continuation_function, resume_value, value, None);
+        self.call_resume_inner(continuation_function, resume_value, value);
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
     }
@@ -568,7 +564,6 @@ impl<'ctx> Codegen<'ctx> {
         continuation_function: FunctionValue<'ctx>,
         resume_value: PointerValue<'ctx>,
         value: PointerValue<'ctx>,
-        branch: Option<&Brancher<'ctx>>,
     ) {
         let resume = self.trilogy_callable_untag(resume_value, "");
         let resume_continuation = self.trilogy_continuation_untag(resume, "");
@@ -584,7 +579,7 @@ impl<'ctx> Codegen<'ctx> {
         let continue_to = self.allocate_value("");
         let closure = self.allocate_value("");
         let cancel_to =
-            self.close_current_continuation_as_cancel(continuation_function, branch, "when.cancel");
+            self.close_current_continuation_as_cancel(continuation_function, "when.cancel");
 
         self.trilogy_callable_return_to_into(return_to, resume);
 

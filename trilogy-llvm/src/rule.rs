@@ -1,4 +1,4 @@
-use crate::{Codegen, IMPLICIT_PARAMS};
+use crate::{Codegen, IMPLICIT_PARAMS, codegen::Merger};
 use inkwell::values::FunctionValue;
 use source_span::Span;
 use std::borrow::Borrow;
@@ -61,20 +61,14 @@ impl<'ctx> Codegen<'ctx> {
         self.begin_function(function, span);
         let arity = overloads[0].borrow().parameters.len();
 
-        let brancher = self.branch_continuation_point();
-
         'outer: for overload in overloads {
             let overload = overload.borrow();
             assert_eq!(overload.parameters.len(), arity);
             self.set_span(overload.head_span);
 
             let next_overload_function = self.add_continuation("");
-            let go_to_next_overload = self.capture_current_continuation(
-                next_overload_function,
-                &brancher,
-                "next_overload",
-            );
-            let next_overload_cp = self.hold_continuation_point();
+            let (go_to_next_overload, next_overload_cp) =
+                self.capture_current_continuation(next_overload_function, "next_overload");
 
             let input_args =
                 self.function_params.borrow()[IMPLICIT_PARAMS..IMPLICIT_PARAMS + arity].to_vec();
@@ -114,15 +108,17 @@ impl<'ctx> Codegen<'ctx> {
                     // Otherwise, if the parameter binding caused the continuation to change already,
                     // we need yet another continuation that merges the "skip" case with the
                     // "successful binding" case.
+                    let mut merger = Merger::default();
                     let next_parameter_function = self.add_continuation("");
                     let next_closure = self.void_continue_in_scope(next_parameter_function);
-                    self.add_branch_end_as_close(&brancher, next_closure);
+                    self.end_continuation_point_as_merge(&mut merger, next_closure);
 
                     self.restore_function_context(original_snapshot);
                     self.builder.position_at_end(next_parameter);
                     let skip_closure = self.void_continue_in_scope(next_parameter_function);
-                    self.add_branch_end_as_close(&brancher, skip_closure);
+                    self.end_continuation_point_as_merge(&mut merger, skip_closure);
 
+                    self.merge_without_branch(merger);
                     self.begin_next_function(next_parameter_function);
                 }
             }
@@ -154,7 +150,7 @@ impl<'ctx> Codegen<'ctx> {
                     let fully_unbound = self.context.append_basic_block(here, "fully_unbound");
                     let rebind_input = self.context.append_basic_block(here, "rebind_input");
                     let input_param = self.use_temporary(original).unwrap();
-                    let brancher = self.branch_continuation_point();
+                    let branched = self.branch_continuation_point();
                     self.branch_undefined(input_param, fully_unbound, rebind_input);
 
                     // If the input and output are both going to be undefined, then go right to the
@@ -164,7 +160,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.void_call_continuation(next_overload);
 
                     // There's actually no action for the rebind-input case, only to reuse the argument later
-                    self.resume_continuation_point(&brancher);
+                    self.become_continuation_point(branched);
                     self.builder.position_at_end(rebind_input);
                 }
             }

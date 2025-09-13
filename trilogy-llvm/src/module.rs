@@ -288,7 +288,8 @@ impl<'ctx> Codegen<'ctx> {
                     }
                     Some(Variable::Owned(variable)) => {
                         let upvalue = self.allocate_value(&format!("{id}.up"));
-                        let reference = self.trilogy_reference_to(upvalue, variable);
+                        let reference =
+                            self.trilogy_reference_to(upvalue, variable, &format!("*{id}.up"));
                         self.trilogy_reference_close(reference);
                         upvalue
                     }
@@ -411,7 +412,6 @@ impl<'ctx> Codegen<'ctx> {
         let arity = module.parameters.len();
         for i in 0..arity - 1 {
             let continuation = self.add_continuation("");
-            let brancher = self.branch_continuation_point();
             let param = self.get_continuation("");
             let id = &module.parameters[i];
             let variable = self.variable(&id.id);
@@ -424,8 +424,7 @@ impl<'ctx> Codegen<'ctx> {
                 .build_alloca(self.value_type(), "TEMP_CLOSURE")
                 .unwrap();
             self.trilogy_callable_init_fn(cont_val, closure, continuation);
-            self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
-            let inner_cp = self.hold_continuation_point();
+            let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
             self.call_known_continuation(return_to, cont_val);
 
             self.become_continuation_point(inner_cp);
@@ -451,7 +450,8 @@ impl<'ctx> Codegen<'ctx> {
                 }
                 Some(Variable::Owned(variable)) => {
                     let upvalue = self.allocate_value(&format!("{id}.up"));
-                    let reference = self.trilogy_reference_to(upvalue, variable);
+                    let reference =
+                        self.trilogy_reference_to(upvalue, variable, &format!("*{id}.up"));
                     self.trilogy_reference_close(reference);
                     upvalue
                 }

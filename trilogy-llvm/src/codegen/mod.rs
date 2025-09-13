@@ -19,8 +19,8 @@ mod definitions;
 mod snapshot;
 mod variables;
 
-pub(crate) use continuation_point::{Brancher, Merger};
-use continuation_point::{ContinuationPoint, Exit, Parent};
+pub(crate) use continuation_point::{ContinuationPoint, Merger};
+use continuation_point::{Exit, Parent};
 use debug_info::DebugInfo;
 pub(crate) use snapshot::Snapshot;
 use variables::Closed;

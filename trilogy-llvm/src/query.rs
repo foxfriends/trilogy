@@ -16,10 +16,8 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         let next_function = self.add_next_to_continuation(0, "iterator_next");
-        let brancher = self.branch_continuation_point();
-        let next_to =
-            self.capture_current_continuation(next_function, &brancher, "next_continuation");
-        let next_continuation_cp = self.hold_continuation_point();
+        let (next_to, next_continuation_cp) =
+            self.capture_current_continuation(next_function, "next_continuation");
 
         self.compile_query(&query.value, next_to, done_to, &mut bound_ids)?;
 
@@ -43,10 +41,8 @@ impl<'ctx> Codegen<'ctx> {
         match query {
             ir::QueryValue::Pass => {
                 let next_iteration = self.add_continuation("pass_next");
-                let brancher = self.branch_continuation_point();
-                let next_iteration_continuation =
-                    self.capture_current_continuation(next_iteration, &brancher, "pass_next");
-                let next_iteration_cp = self.hold_continuation_point();
+                let (next_iteration_continuation, next_iteration_cp) =
+                    self.capture_current_continuation(next_iteration, "pass_next");
                 self.call_known_continuation(next_to, next_iteration_continuation);
 
                 self.become_continuation_point(next_iteration_cp);
@@ -166,13 +162,8 @@ impl<'ctx> Codegen<'ctx> {
                 // Wrap the next iteration with our own, as a lookup requires some cleanup
                 // before starting its next internal iteration.
                 let next_iteration_with_cleanup = self.add_continuation("rule_query_cleanup");
-                let brancher = self.branch_continuation_point();
-                let next_iteration_with_cleanup_continuation = self.capture_current_continuation(
-                    next_iteration_with_cleanup,
-                    &brancher,
-                    "pass_next",
-                );
-                let next_iteration_with_cleanup_cp = self.hold_continuation_point();
+                let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
+                    self.capture_current_continuation(next_iteration_with_cleanup, "pass_next");
                 self.call_known_continuation(
                     self.use_temporary(next_to).unwrap(),
                     next_iteration_with_cleanup_continuation,

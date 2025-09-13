@@ -11,7 +11,10 @@
 //! discarded without being captured, and retroactively close a created upvalue over those
 //! variables as needed.
 use super::{Closed, Codegen, ContinuationPoint, Exit, Parent, Variable};
-use inkwell::values::{BasicValue, PointerValue};
+use inkwell::{
+    intrinsics::Intrinsic,
+    values::{BasicValue, PointerValue},
+};
 use std::rc::Rc;
 
 impl<'ctx> Codegen<'ctx> {
@@ -36,7 +39,7 @@ impl<'ctx> Codegen<'ctx> {
                             .position_at(instruction.get_parent().unwrap(), instruction);
                         self.restore_function_context(snapshot.clone());
                         let parent = parent.upgrade().unwrap();
-                        let closure = self.build_closure(&parent, &point);
+                        let closure = self.build_closure(parent.clone(), &point);
                         self.clean_and_close_scope(&parent);
                         instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         instruction.erase_from_basic_block();
@@ -60,7 +63,7 @@ impl<'ctx> Codegen<'ctx> {
                             .position_at(instruction.get_parent().unwrap(), instruction);
                         self.restore_function_context(snapshot.clone());
                         let parent = parent.upgrade().unwrap();
-                        let closure = self.build_closure(&parent, &point);
+                        let closure = self.build_closure(parent, &point);
                         instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         instruction.erase_from_basic_block();
                     }
@@ -69,15 +72,39 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn clean_and_close_scope(&self, cp: &ContinuationPoint<'ctx>) {
+    fn clean_and_close_scope(&self, cp: &Rc<ContinuationPoint<'ctx>>) {
+        if let Some(shadowed) = &cp.shadows {
+            self.clean_and_close_scope(&shadowed.upgrade().unwrap());
+        }
         for (id, var) in cp.variables.borrow().iter() {
             match var {
-                Variable::Owned(pointer) if matches!(id, Closed::Variable(..)) => {
+                Variable::Owned(pointer) => {
                     if let Some(pointer) = cp.upvalues.borrow().get(id) {
+                        // We have detected this variable as referenced in a future scope, so we have to close it
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
-                    } else {
+                    } else if matches!(id, Closed::Variable(..)) {
+                        // In this case, we have not YET detected that it is referenced, but it still might be
+                        // detected later, so we have to record this destroy in case it has to be upgraded to a
+                        // "close".
                         let instruction = self.trilogy_value_destroy(*pointer);
+                        cp.unclosed.borrow_mut().entry(*pointer).or_default().push((
+                            instruction,
+                            self.builder.get_current_debug_location().unwrap(),
+                        ));
+                    } else {
+                        // Similarly, but for temporaries: we don't need to explicitly destroy them because
+                        // their destruction (or lack thereof) is expected by the rest of codegen. We do,
+                        // however, wish to track them for closing purposes, so use a no-op instead of a destroy.
+                        let do_nothing = Intrinsic::find("llvm.donothing").unwrap();
+                        let do_nothing = do_nothing.get_declaration(&self.module, &[]).unwrap();
+                        let instruction = self
+                            .builder
+                            .build_call(do_nothing, &[], "noop")
+                            .unwrap()
+                            .try_as_basic_value()
+                            .either(|l| l.as_instruction_value(), Some)
+                            .unwrap();
                         cp.unclosed.borrow_mut().entry(*pointer).or_default().push((
                             instruction,
                             self.builder.get_current_debug_location().unwrap(),
@@ -85,25 +112,23 @@ impl<'ctx> Codegen<'ctx> {
                     }
                 }
                 Variable::Closed { upvalue, .. } => {
+                    // Variable was closed in a further parent scope, so does not need to be re-closed
                     self.trilogy_value_destroy(*upvalue);
                 }
-                _ => {}
             }
-        }
-        for param in self.function_params.borrow().iter() {
-            self.trilogy_value_destroy(*param);
         }
     }
 
     fn build_closure(
         &self,
-        scope: &ContinuationPoint<'ctx>,
+        scope: Rc<ContinuationPoint<'ctx>>,
         child_scope: &ContinuationPoint<'ctx>,
     ) -> PointerValue<'ctx> {
         let closure_size = child_scope.closure.borrow().len();
         let closure = self.allocate_value("closure");
         let closure_array = self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
-        let mut upvalues = scope.upvalues.borrow_mut();
+        let root_scope = scope.shadow_root();
+        let mut upvalues = root_scope.upvalues.borrow_mut();
         for id in child_scope.closure.borrow().iter() {
             let new_upvalue = if let Some(ptr) = upvalues.get(id) {
                 let new_upvalue = self.allocate_value(&format!("{id}.cloneup"));
@@ -111,7 +136,7 @@ impl<'ctx> Codegen<'ctx> {
                 new_upvalue
             } else {
                 match self
-                    .reference_from_scope(scope, id)
+                    .reference_from_scope(scope.as_ref(), id)
                     .expect("closure is messed up")
                 {
                     Variable::Closed { upvalue, .. } => {
@@ -140,8 +165,12 @@ impl<'ctx> Codegen<'ctx> {
                         builder
                             .build_store(original_upvalue, self.value_type().const_zero())
                             .unwrap();
-                        let upvalue_internal =
-                            self.trilogy_reference_to_in(&builder, original_upvalue, variable);
+                        let upvalue_internal = self.trilogy_reference_to_in(
+                            &builder,
+                            original_upvalue,
+                            variable,
+                            &format!("*{id}.firstup"),
+                        );
                         upvalues.insert(id.clone(), original_upvalue);
 
                         assert!(

@@ -1301,8 +1301,9 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         pointer: PointerValue<'ctx>,
         pointee: PointerValue<'ctx>,
+        name: &str,
     ) -> PointerValue<'ctx> {
-        self.trilogy_reference_to_in(&self.builder, pointer, pointee)
+        self.trilogy_reference_to_in(&self.builder, pointer, pointee, name)
     }
 
     pub(crate) fn trilogy_reference_to_in(
@@ -1310,6 +1311,7 @@ impl<'ctx> Codegen<'ctx> {
         builder: &Builder<'ctx>,
         pointer: PointerValue<'ctx>,
         pointee: PointerValue<'ctx>,
+        name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
             "trilogy_reference_to",
@@ -1322,7 +1324,7 @@ impl<'ctx> Codegen<'ctx> {
             ),
         );
         builder
-            .build_call(f, &[pointer.into(), pointee.into()], "")
+            .build_call(f, &[pointer.into(), pointee.into()], name)
             .unwrap()
             .try_as_basic_value()
             .unwrap_left()

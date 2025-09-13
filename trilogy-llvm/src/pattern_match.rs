@@ -45,15 +45,12 @@ impl<'ctx> Codegen<'ctx> {
                 let on_success_function = self.add_continuation("pm.cont");
                 let mut merger = Merger::default();
 
-                let brancher = self.branch_continuation_point();
                 let second_function = self.add_continuation("disj.snd");
-                let go_to_second =
-                    self.capture_current_continuation(second_function, &brancher, "disj.snd");
-                let secondary_cp = self.hold_continuation_point();
+                let (go_to_second, secondary_cp) =
+                    self.capture_current_continuation(second_function, "disj.snd");
                 let first_function = self.add_continuation("disj.fst");
-                let go_to_first =
-                    self.capture_current_continuation(first_function, &brancher, "disj.fst");
-                let primary_cp = self.hold_continuation_point();
+                let (go_to_first, primary_cp) =
+                    self.capture_current_continuation(first_function, "disj.fst");
                 self.void_call_continuation(go_to_first);
 
                 self.begin_next_function(first_function);
@@ -184,7 +181,7 @@ impl<'ctx> Codegen<'ctx> {
         self.void_call_continuation(on_fail);
 
         self.builder.position_at_end(cont);
-        self.resume_continuation_point(&brancher);
+        self.become_continuation_point(brancher);
         cont
     }
 

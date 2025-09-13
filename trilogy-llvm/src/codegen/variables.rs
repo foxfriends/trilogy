@@ -277,11 +277,10 @@ impl<'ctx> Codegen<'ctx> {
     /// closure, if necessary.
     pub(crate) fn bind_temporary(&self, temporary: PointerValue<'ctx>) {
         let cp = self.current_continuation_point();
-        let key = Closed::Temporary(temporary);
-        if !cp.parent_variables.contains(&key) && !cp.variables.borrow().contains_key(&key) {
+        if !cp.contains_temporary(temporary) {
             cp.variables
                 .borrow_mut()
-                .insert(key, Variable::Owned(temporary));
+                .insert(Closed::Temporary(temporary), Variable::Owned(temporary));
         }
     }
 
@@ -341,13 +340,20 @@ impl<'ctx> Codegen<'ctx> {
         // If the variable has already been referenced in the current scope, return the saved reference to avoid
         // doing the work of looking it up again.
         //
-        // This is the case for all Owned variables, and also for closed variables that have already been used.
+        // This is the case for all owned variables, and also for closed variables that have already been used.
         if let Some(var) = scope.variables.borrow().get(closed) {
             return Some(*var);
         }
 
-        // Otherwise, the variable might be visible from the parent continuation point.
+        if let Some(shadowed) = &scope.shadows {
+            // If the current scope is shadowing another, then we defer to the shadowed one at this point, as
+            // the parent variables must always be collected in the top-most scope (the REAL scope).
+            return self.reference_from_scope(&shadowed.upgrade().unwrap(), closed);
+        }
+
         if scope.parent_variables.contains(closed) {
+            // Otherwise, the variable might be visible from the parent continuation point.
+            //
             // In this case, we first update the closure to ensure that we know to close over this variable
             // before exiting the parent scope.
             let mut closure = scope.closure.borrow_mut();
@@ -453,6 +459,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         // Add this variable as an owned variable in the current continuation point.
         self.current_continuation_point()
+            .shadow_root()
             .variables
             .borrow_mut()
             .insert(Closed::Variable(id.clone()), Variable::Owned(variable));

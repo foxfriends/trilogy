@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use source_span::Span;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Id {
     pub declaration_span: Span,
     pub is_mutable: bool,
@@ -28,6 +28,22 @@ impl PartialEq for Id {
 impl Hash for Id {
     fn hash<H: Hasher>(&self, state: &mut H) {
         Arc::as_ptr(&self.tag).hash(state)
+    }
+}
+
+impl Debug for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_mutable {
+            write!(f, "[{}] let mut {}", self.declaration_span, self.tag)
+        } else {
+            write!(f, "[{}] let {}", self.declaration_span, self.tag)
+        }
+    }
+}
+
+impl Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.tag)
     }
 }
 
@@ -55,11 +71,5 @@ impl SymbolTable {
 
     pub fn reuse(&self, tag: &str) -> Option<&Id> {
         self.symbols.get(tag)
-    }
-}
-
-impl Display for Id {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.tag.fmt(f)
     }
 }

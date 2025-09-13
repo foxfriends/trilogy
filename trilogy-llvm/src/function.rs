@@ -56,7 +56,6 @@ impl<'ctx> Codegen<'ctx> {
         let mut params = Vec::with_capacity(arity);
         for _ in 0..arity as u32 - 1 {
             let continuation = self.add_continuation("");
-            let brancher = self.branch_continuation_point();
             let param = self.get_continuation("");
             self.bind_temporary(param);
             params.push(param);
@@ -68,8 +67,7 @@ impl<'ctx> Codegen<'ctx> {
                 .build_alloca(self.value_type(), "TEMP_CLOSURE")
                 .unwrap();
             self.trilogy_callable_init_fn(cont_val, closure, continuation);
-            self.add_branch_capture(&brancher, closure.as_instruction_value().unwrap());
-            let inner_cp = self.hold_continuation_point();
+            let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
             self.call_known_continuation(return_to, cont_val);
 
             self.become_continuation_point(inner_cp);
@@ -81,20 +79,14 @@ impl<'ctx> Codegen<'ctx> {
         self.bind_temporary(param);
         params.push(param);
 
-        let brancher = self.branch_continuation_point();
-
         'outer: for overload in overloads {
             let overload = overload.borrow();
             assert_eq!(overload.parameters.len(), arity);
             self.set_span(overload.head_span);
 
             let next_overload_function = self.add_continuation("");
-            let go_to_next_overload = self.capture_current_continuation(
-                next_overload_function,
-                &brancher,
-                "next_overload",
-            );
-            let next_overload_cp = self.hold_continuation_point();
+            let (go_to_next_overload, next_overload_cp) =
+                self.capture_current_continuation(next_overload_function, "next_overload");
 
             for (n, param) in overload.parameters.iter().enumerate() {
                 let value = self.use_temporary(params[n]).unwrap();
