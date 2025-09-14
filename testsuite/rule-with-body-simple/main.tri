@@ -1,14 +1,12 @@
-rule single(1)
-rule single(2)
-rule single(3)
+rule first(1)
 
-rule double(a, a) <- single(a)
+rule second(a) <- first(a)
 
 proc main!() {
   let mut n = 0
-  for double(a, b) {
-    assert a == b
+  for second(a) {
+    assert a == 1
     n += a
   }
-  assert n == 6
+  assert n == 1
 }
