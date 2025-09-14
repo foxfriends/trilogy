@@ -340,8 +340,7 @@ impl<'ctx> Codegen<'ctx> {
                 // However, variables that actually ARE from the scope do need to be shared. It's
                 // only THESE variables if the continuation is from within the expression.
                 for id in Bindings::of(&unif.pattern) {
-                    let var = self.variable(&id);
-                    self.bind_temporary(var);
+                    self.variable(&id);
                 }
                 let value = self.compile_expression(&unif.expression, "let.expr")?;
                 let on_fail = self.get_end("let.fail");
