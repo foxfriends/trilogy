@@ -153,8 +153,13 @@ impl<'ctx> Codegen<'ctx> {
         // that's not really right... the for should really somehow be a "fold" construct eventually,
         // returning neither unit or boolean.
         //
+        // let [1, 2, 3] = from list = [] for vals(x) { [...list, x] }
+        // let [1, 2, 3] = for vals(x) into list = [] { [...list, x] }
+        //
         // The `for..else` will need to just be transformed into a thing with a flag in it, at the
         // IR level (or source level and drop the feature).
+        //
+        // if !(for vals(x) into ok = false { true }) { for_else }
         Some(self.allocate_const(self.unit_const(), ""))
     }
 

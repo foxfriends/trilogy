@@ -6,6 +6,10 @@ use std::rc::Rc;
 impl<'ctx> Codegen<'ctx> {
     /// Constructs a TrilogyValue that represents the current continuation.
     ///
+    /// This is typically used for internal control flow operations. The resulting continuation
+    /// should not be reified to a runtime Trilogy value, as it does not preserve any runtime
+    /// control flow.
+    ///
     /// After this call, the current continuation point refers to the current continuation,
     /// while the continuation point of the captured continuation is returned.
     pub(crate) fn capture_current_continuation(

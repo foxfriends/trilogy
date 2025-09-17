@@ -267,6 +267,20 @@ void trilogy_callable_continue_to_into(
     trilogy_callable_clone_into(val, cal->continue_to);
 }
 
+void trilogy_callable_next_to_into(
+    trilogy_value* val, trilogy_callable_value* cal
+) {
+    if (cal->next_to == NULL) return;
+    trilogy_callable_clone_into(val, cal->next_to);
+}
+
+void trilogy_callable_done_to_into(
+    trilogy_value* val, trilogy_callable_value* cal
+) {
+    if (cal->done_to == NULL) return;
+    trilogy_callable_clone_into(val, cal->done_to);
+}
+
 void trilogy_callable_promote(
     trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to,
     trilogy_value* cancel_to, trilogy_value* resume_to, trilogy_value* break_to,

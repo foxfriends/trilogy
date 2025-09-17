@@ -68,7 +68,7 @@ impl<'ctx> Codegen<'ctx> {
 
             let next_overload_function = self.add_continuation("");
             let (go_to_next_overload, next_overload_cp) =
-                self.capture_current_continuation(next_overload_function, "next_overload");
+                self.capture_current_continuation_as_break(next_overload_function, "next_overload");
 
             let input_args =
                 self.function_params.borrow()[IMPLICIT_PARAMS..IMPLICIT_PARAMS + arity].to_vec();

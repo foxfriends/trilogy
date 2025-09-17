@@ -67,6 +67,12 @@ void trilogy_callable_break_to_into(
 void trilogy_callable_continue_to_into(
     trilogy_value*, trilogy_callable_value* orig
 );
+void trilogy_callable_next_to_into(
+    trilogy_value*, trilogy_callable_value* orig
+);
+void trilogy_callable_done_to_into(
+    trilogy_value*, trilogy_callable_value* orig
+);
 
 void trilogy_callable_promote(
     trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to,

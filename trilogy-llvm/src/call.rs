@@ -85,8 +85,8 @@ impl<'ctx> Codegen<'ctx> {
         let arity = arguments.len();
 
         // Values must be extracted before they are invalidated
-        let end_to = self.get_end("");
         let yield_to = self.get_yield("");
+        let end_to = self.get_end("");
         let cancel_to = self.get_cancel("");
         let resume_to = self.get_resume("");
         let break_to = self.get_break("");
@@ -223,7 +223,6 @@ impl<'ctx> Codegen<'ctx> {
         self.make_call(rule, &args, arity, true);
 
         self.begin_next_function(continuation_function);
-
         let next_iteration = self.get_continuation(name);
         let output_arguments = (0..arity)
             .map(|i| self.function_params.borrow()[IMPLICIT_PARAMS + 1 + i])
@@ -392,8 +391,8 @@ impl<'ctx> Codegen<'ctx> {
         let cancel_to = self.allocate_value("");
         let resume_to = self.allocate_value("");
         let break_to = self.allocate_value("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
+        let next_to = self.allocate_value("");
+        let done_to = self.allocate_value("");
         let continue_to = self.allocate_value("");
         let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, callable);
@@ -419,6 +418,14 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_continue_to_into(continue_to, callable);
         self.do_if(self.is_undefined(continue_to), || {
             self.clone_continue(continue_to);
+        });
+        self.trilogy_callable_next_to_into(next_to, callable);
+        self.do_if(self.is_undefined(next_to), || {
+            self.clone_next(next_to);
+        });
+        self.trilogy_callable_done_to_into(done_to, callable);
+        self.do_if(self.is_undefined(done_to), || {
+            self.clone_done(done_to);
         });
         self.trilogy_callable_closure_into(closure, callable, "");
 
