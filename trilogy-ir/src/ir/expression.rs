@@ -387,28 +387,12 @@ impl Expression {
     }
 
     fn convert_for_statement(converter: &mut Converter, ast: syntax::ForStatement) -> Self {
-        let else_block = ast
-            .else_block
-            .map(|ast| Expression::convert_block(converter, ast));
-
-        else_block
-            .into_iter()
-            .chain(ast.branches.into_iter().rev().map(|branch| {
-                let span = branch.span();
-                converter.push_scope();
-                let query = Query::convert(converter, branch.query);
-                let value = Expression::convert_block(converter, branch.body);
-                converter.pop_scope();
-                Expression::r#for(span, Iterator::new(query, value))
-            }))
-            .reduce(|if_none, case| {
-                let case_span = case.span;
-                Expression::if_else(
-                    case.span.union(if_none.span),
-                    IfElse::new(case, Expression::unit(case_span), if_none),
-                )
-            })
-            .unwrap()
+        let span = ast.span();
+        converter.push_scope();
+        let query = Query::convert(converter, ast.query);
+        let value = Expression::convert_block(converter, ast.body);
+        converter.pop_scope();
+        Expression::r#for(span, Iterator::new(query, value))
     }
 
     fn convert_iterator(

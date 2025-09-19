@@ -13,45 +13,18 @@ but similar semantics can be constructed using \kw{while}.
         \bnfsp
         \bnfpn{Block}
         \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{for}}
-        \bnfsp
-        \bnfpn{Query}
-        \bnfsp
-        \bnfpn{Block}
-        \bnfsp
-        \bnfts{\kw{else}}
-        \bnfsp
-        \bnfpn{SFor}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{for}}
-        \bnfsp
-        \bnfpn{Query}
-        \bnfsp
-        \bnfpn{Block}
-        \bnfsp
-        \bnfts{\kw{else}}
-        \bnfsp
-        \bnfpn{Block}
     }
 \end{bnf*}
 
-Notably different from other languages is that a \kw{for} loop may have an \kw{else} clause,
-similar to an \kw{if} statement. This \kw{else} clause is triggered in the case that the
-unification fails.
-
-The query of the \kw{for} loop is performed only once, at the beginning of the loop.
-Any mutation to the values as a result of the loop's execution will not affect the remaining
-iterations.
+The query of the \kw{for} loop is started only once, at the beginning of the loop.
+Any mutation to the values as a result of the loop's execution will not affect the
+remaining iterations.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash U$}
     \AxiomC{$\Gamma\vdash \forall\setof{U \given Q = U}.\ B\Rightarrow\Sigma$}
     \LeftLabel{For}
-    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Sigma$}
+    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\Rightarrow \Sigma$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -59,13 +32,6 @@ iterations.
     \AxiomC{$\Phi\vdash \forall\setof{U_2, \cdots, U_n}.\ B\Rightarrow\Sigma$}
     \LeftLabel{For}
     \BinaryInfC{$\Gamma\vdash \forall\setof{U_1, U_2, \cdots, U_n}.\ B\Rightarrow\Sigma$}
-\end{prooftree}
-
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash Q:\bot$}
-    \AxiomC{$\Gamma\vdash F\Rightarrow\Phi$}
-    \LeftLabel{For\textsuperscript{$\bot$}}
-    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ B\ \kw{else}\ F\Rightarrow \Phi$}
 \end{prooftree}
 
 A \kw{for} loop is distinct from the branching \kw{let} statement in how execution

@@ -137,7 +137,7 @@ pub use expression::Expression;
 pub use external_module_definition::ExternalModuleDefinition;
 pub use external_procedure_definition::ExternalProcedureDefinition;
 pub use fn_expression::FnExpression;
-pub use for_statement::{ForStatement, ForStatementBranch};
+pub use for_statement::ForStatement;
 pub use function_assignment::FunctionAssignment;
 pub use function_definition::FunctionDefinition;
 pub use function_head::FunctionHead;
