@@ -54,6 +54,37 @@ impl<'ctx> Codegen<'ctx> {
                 let done_to = self.use_temporary(done_to).unwrap();
                 self.void_call_continuation(done_to);
             }
+            ir::QueryValue::Is(expr) => {
+                let condition = self.compile_expression(expr, "is.condition")?;
+
+                let original_function_scope = self.get_function();
+                let if_true_block = self
+                    .context
+                    .append_basic_block(original_function_scope, "is.true");
+                let if_false_block = self
+                    .context
+                    .append_basic_block(original_function_scope, "is.false");
+                let cond_bool = self.trilogy_boolean_untag(condition, "is.bool");
+                self.trilogy_value_destroy(condition);
+                self.builder
+                    .build_conditional_branch(cond_bool, if_true_block, if_false_block)
+                    .unwrap();
+                let false_cp = self.branch_continuation_point();
+
+                self.builder.position_at_end(if_true_block);
+                let next_iteration = self.add_continuation("is_next");
+                let (next_iteration_continuation, next_iteration_cp) =
+                    self.capture_current_continuation(next_iteration, "is_next");
+                self.call_known_continuation(next_to, next_iteration_continuation);
+
+                self.become_continuation_point(false_cp);
+                self.builder.position_at_end(if_false_block);
+                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+
+                self.become_continuation_point(next_iteration_cp);
+                self.begin_next_function(next_iteration);
+                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+            }
             ir::QueryValue::Lookup(lookup) if lookup.patterns.is_empty() => {
                 let rule = self.compile_expression(&lookup.path, "rule")?;
                 let (next_iteration, out) = self.call_rule(rule, &[], done_to, "lookup_next");
@@ -184,7 +215,13 @@ impl<'ctx> Codegen<'ctx> {
                 let next_iteration = self.use_temporary(next_iteration_inner).unwrap();
                 self.call_known_continuation(next_iteration, self.get_continuation(""));
             }
-            _ => todo!(),
+            ir::QueryValue::Disjunction(..) => todo!(),
+            ir::QueryValue::Conjunction(..) => todo!(),
+            ir::QueryValue::Implication(..) => todo!(),
+            ir::QueryValue::Alternative(..) => todo!(),
+            ir::QueryValue::Direct(..) => todo!(),
+            ir::QueryValue::Element(..) => todo!(),
+            ir::QueryValue::Not(..) => todo!(),
         }
         Some(())
     }
