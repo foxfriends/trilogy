@@ -1,0 +1,9 @@
+module debug at "trilogy:debug" use dbg
+
+rule double(a, b) <- b = a * 2
+
+proc main!() {
+  for double(3, b) {
+    dbg!(b)
+  }
+}

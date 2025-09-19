@@ -40,15 +40,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<()> {
         match query {
             ir::QueryValue::Pass => {
-                let next_iteration = self.add_continuation("pass_next");
-                let (next_iteration_continuation, next_iteration_cp) =
-                    self.capture_current_continuation(next_iteration, "pass_next");
-                self.call_known_continuation(next_to, next_iteration_continuation);
-
-                self.become_continuation_point(next_iteration_cp);
-                self.begin_next_function(next_iteration);
-                let done_to = self.use_temporary(done_to).unwrap();
-                self.void_call_continuation(done_to);
+                self.next_deterministic(next_to, done_to, "pass_next");
             }
             ir::QueryValue::End => {
                 let done_to = self.use_temporary(done_to).unwrap();
@@ -69,21 +61,14 @@ impl<'ctx> Codegen<'ctx> {
                 self.builder
                     .build_conditional_branch(cond_bool, if_true_block, if_false_block)
                     .unwrap();
-                let false_cp = self.branch_continuation_point();
+                let true_cp = self.branch_continuation_point();
 
-                self.builder.position_at_end(if_true_block);
-                let next_iteration = self.add_continuation("is_next");
-                let (next_iteration_continuation, next_iteration_cp) =
-                    self.capture_current_continuation(next_iteration, "is_next");
-                self.call_known_continuation(next_to, next_iteration_continuation);
-
-                self.become_continuation_point(false_cp);
                 self.builder.position_at_end(if_false_block);
                 self.void_call_continuation(self.use_temporary(done_to).unwrap());
 
-                self.become_continuation_point(next_iteration_cp);
-                self.begin_next_function(next_iteration);
-                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+                self.become_continuation_point(true_cp);
+                self.builder.position_at_end(if_true_block);
+                self.next_deterministic(next_to, done_to, "is_next");
             }
             ir::QueryValue::Lookup(lookup) if lookup.patterns.is_empty() => {
                 let rule = self.compile_expression(&lookup.path, "rule")?;
@@ -175,9 +160,12 @@ impl<'ctx> Codegen<'ctx> {
                     })
                     .collect::<Option<Vec<_>>>()?;
 
-                let done_to = self.use_temporary(done_to).unwrap();
-                let (next_iteration_inner, output_arguments) =
-                    self.call_rule(rule, &arguments, done_to, "lookup_next");
+                let (next_iteration_inner, output_arguments) = self.call_rule(
+                    rule,
+                    &arguments,
+                    self.use_temporary(done_to).unwrap(),
+                    "lookup_next",
+                );
                 self.bind_temporary(next_iteration_inner);
 
                 let bound_before_lookup = bound_ids.len();
@@ -186,6 +174,9 @@ impl<'ctx> Codegen<'ctx> {
                     bound_ids.extend(self.compile_pattern_match(
                         pattern,
                         out_value,
+                        // NOTE: I can't recall why this is get_end and not done_to, but it doesn't work as done_to
+                        // Is that because this is right? Or because done_to is just not in scope and it should be
+                        // but when I switch it it gets messed up.
                         self.get_end(""),
                     )?);
                 }
@@ -219,10 +210,32 @@ impl<'ctx> Codegen<'ctx> {
             ir::QueryValue::Conjunction(..) => todo!(),
             ir::QueryValue::Implication(..) => todo!(),
             ir::QueryValue::Alternative(..) => todo!(),
-            ir::QueryValue::Direct(..) => todo!(),
+            ir::QueryValue::Direct(unification) => {
+                let rvalue = self.compile_expression(&unification.expression, "rvalue")?;
+                self.compile_pattern_match(&unification.pattern, rvalue, done_to)?;
+                self.next_deterministic(next_to, done_to, "assign_next");
+            }
             ir::QueryValue::Element(..) => todo!(),
             ir::QueryValue::Not(..) => todo!(),
         }
         Some(())
+    }
+
+    fn next_deterministic(
+        &self,
+        next_to: PointerValue<'ctx>,
+        done_to: PointerValue<'ctx>,
+        name: &str,
+    ) {
+        let next_iteration = self.add_continuation(name);
+        let (next_iteration_continuation, next_iteration_cp) =
+            self.capture_current_continuation(next_iteration, name);
+        let next_to = self.use_temporary(next_to).unwrap();
+        self.call_known_continuation(next_to, next_iteration_continuation);
+
+        self.become_continuation_point(next_iteration_cp);
+        self.begin_next_function(next_iteration);
+        let done_to = self.use_temporary(done_to).unwrap();
+        self.void_call_continuation(done_to);
     }
 }
