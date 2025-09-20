@@ -181,39 +181,44 @@ impl<'ctx> Codegen<'ctx> {
                     )?);
                 }
 
-                // Wrap the next iteration with our own, as a lookup requires some cleanup
-                // before starting its next internal iteration.
-                let next_iteration_with_cleanup = self.add_continuation("rule_query_cleanup");
-                let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
-                    self.capture_current_continuation(next_iteration_with_cleanup, "pass_next");
-                self.call_known_continuation(
-                    self.use_temporary(next_to).unwrap(),
-                    next_iteration_with_cleanup_continuation,
+                self.next_cleanup(
+                    next_iteration_inner,
+                    next_to,
+                    bound_ids,
+                    bound_before_lookup,
+                    "rule_query_cleanup",
                 );
-                // The cleanup: destroy all variables that were unbound on the way in. This uses
-                // very similar detection as with patterns, noting that which variables are bound
-                // at iteration time can be determined statically as we make the pass through the
-                // query's IR.
-                self.become_continuation_point(next_iteration_with_cleanup_cp);
-                self.begin_next_function(next_iteration_with_cleanup);
-                for id in bound_ids[bound_before_lookup..]
-                    .iter()
-                    .filter(|id| !bound_ids[0..bound_before_lookup].contains(id))
-                {
-                    let var = self.get_variable(id).unwrap().ptr();
-                    self.trilogy_value_destroy(var);
-                }
-                let next_iteration = self.use_temporary(next_iteration_inner).unwrap();
-                self.call_known_continuation(next_iteration, self.get_continuation(""));
             }
-            ir::QueryValue::Disjunction(..) => todo!(),
-            ir::QueryValue::Conjunction(..) => todo!(),
+            ir::QueryValue::Disjunction(disj) => {
+                let disj_second_fn = self.add_continuation("disj.second");
+                let (disj_second, disj_second_cp) =
+                    self.capture_current_continuation(disj_second_fn, "disj.second");
+                let next_of_first = self.compile_iterator(&disj.0, disj_second)?;
+                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_first);
+
+                self.become_continuation_point(disj_second_cp);
+                self.begin_next_function(disj_second_fn);
+                let next_of_second = self.compile_iterator(&disj.1, done_to)?;
+                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_second);
+            }
+            ir::QueryValue::Conjunction(conj) => {
+                let next_of_first = self.compile_iterator(&conj.0, done_to)?;
+                self.bind_temporary(next_of_first);
+                let next_of_second = self.compile_iterator(&conj.1, next_of_first)?;
+                let next_to = self.use_temporary(next_to).unwrap();
+                self.call_known_continuation(next_to, next_of_second);
+            }
             ir::QueryValue::Implication(..) => todo!(),
             ir::QueryValue::Alternative(..) => todo!(),
             ir::QueryValue::Direct(unification) => {
                 let rvalue = self.compile_expression(&unification.expression, "rvalue")?;
-                self.compile_pattern_match(&unification.pattern, rvalue, done_to)?;
-                self.next_deterministic(next_to, done_to, "assign_next");
+                let pre_len = bound_ids.len();
+                bound_ids.extend(self.compile_pattern_match(
+                    &unification.pattern,
+                    rvalue,
+                    done_to,
+                )?);
+                self.next_cleanup(done_to, next_to, bound_ids, pre_len, "assign_next");
             }
             ir::QueryValue::Element(..) => todo!(),
             ir::QueryValue::Not(..) => todo!(),
@@ -237,5 +242,40 @@ impl<'ctx> Codegen<'ctx> {
         self.begin_next_function(next_iteration);
         let done_to = self.use_temporary(done_to).unwrap();
         self.void_call_continuation(done_to);
+    }
+
+    fn next_cleanup(
+        &self,
+        next_iteration: PointerValue<'ctx>,
+        next_to: PointerValue<'ctx>,
+        bound_ids: &[Id],
+        keep_ids: usize,
+        name: &str,
+    ) {
+        // Wrap the next iteration with our own, as a lookup requires some cleanup
+        // before starting its next internal iteration.
+        let next_iteration_with_cleanup = self.add_continuation(name);
+        let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
+            self.capture_current_continuation(next_iteration_with_cleanup, name);
+        self.call_known_continuation(
+            self.use_temporary(next_to).unwrap(),
+            next_iteration_with_cleanup_continuation,
+        );
+
+        // The cleanup: destroy all variables that were unbound on the way in. This uses
+        // very similar detection as with patterns, noting that which variables are bound
+        // at iteration time can be determined statically as we make the pass through the
+        // query's IR.
+        self.become_continuation_point(next_iteration_with_cleanup_cp);
+        self.begin_next_function(next_iteration_with_cleanup);
+        for id in bound_ids[keep_ids..]
+            .iter()
+            .filter(|id| !bound_ids[0..keep_ids].contains(id))
+        {
+            let var = self.get_variable(id).unwrap().ptr();
+            self.trilogy_value_destroy(var);
+        }
+        let next_iteration = self.use_temporary(next_iteration).unwrap();
+        self.void_call_continuation(next_iteration);
     }
 }

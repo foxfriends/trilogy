@@ -144,7 +144,8 @@ impl<'ctx> Codegen<'ctx> {
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, name) {
             let next_iteration = self.use_temporary(next_iteration).unwrap();
-            self.call_known_continuation(next_iteration, value);
+            self.trilogy_value_destroy(value);
+            self.void_call_continuation(next_iteration);
         }
 
         self.become_continuation_point(done_continuation_point);

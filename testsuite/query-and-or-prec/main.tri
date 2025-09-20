@@ -1,0 +1,7 @@
+module debug at "trilogy:debug" use dbg
+
+proc main!() {
+  for a = 1 and b = 2 or b = 3 and a = 4 {
+    dbg!(a : b)
+  }
+}

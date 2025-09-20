@@ -1,0 +1,19 @@
+module debug at "trilogy:debug" use dbg
+
+rule val_a(1)
+rule val_a(2)
+rule val_a(3)
+
+rule val_b(4)
+rule val_b(5)
+rule val_b(6)
+
+proc main!() {
+  for a = 5 or a = 10 {
+    dbg!(a)
+  }
+
+  for val_a(a) or val_b(a) {
+    dbg!(a)
+  }
+}

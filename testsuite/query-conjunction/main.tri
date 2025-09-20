@@ -1,0 +1,15 @@
+module debug at "trilogy:debug" use dbg
+
+rule nums(1)
+rule nums(2)
+rule nums(3)
+
+proc main!() {
+  for a = 5 and b = 10 {
+    dbg!(a : b)
+  }
+
+  for nums(a) and nums(b) {
+    dbg!(a : b)
+  }
+}
