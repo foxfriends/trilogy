@@ -1,5 +1,5 @@
 use crate::codegen::{Codegen, Merger};
-use crate::types::{TAG_ARRAY, TAG_STRUCT, TAG_TUPLE};
+use crate::types::{TAG_ARRAY, TAG_NUMBER, TAG_STRUCT, TAG_TUPLE};
 use inkwell::IntPredicate;
 use inkwell::basic_block::BasicBlock;
 use inkwell::values::{IntValue, PointerValue};
@@ -318,7 +318,23 @@ impl<'ctx> Codegen<'ctx> {
                 let pinned = self.compile_expression(expression, "pin")?;
                 self.match_constant(value, pinned, on_fail);
             }
-            Builtin::Negate => todo!(),
+            Builtin::Negate => {
+                let negated = self.allocate_value("negated");
+                let value = self.use_temporary(value).unwrap();
+                let is_number = self
+                    .builder
+                    .build_int_compare(
+                        IntPredicate::EQ,
+                        self.get_tag(value, ""),
+                        self.tag_type().const_int(TAG_NUMBER, false),
+                        "is_num",
+                    )
+                    .unwrap();
+                self.pm_cont_if(is_number, on_fail);
+                self.negate(negated, value);
+                self.bind_temporary(negated);
+                self.match_pattern(expression, negated, on_fail, bound_ids)?;
+            }
             _ => panic!("only some operators are usable in pattern matching"),
         }
         Some(())

@@ -177,25 +177,31 @@ impl<'ctx> Codegen<'ctx> {
                 );
                 self.bind_temporary(next_iteration_inner);
 
+                // Wrap the next iteration with our own, as a lookup requires some cleanup
+                // before starting its next internal iteration.
+                let next_iteration_with_cleanup = self.add_continuation("lookup.next");
+                let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
+                    self.capture_current_continuation(next_iteration_with_cleanup, "lookup.next");
+
                 let bound_before_lookup = bound_ids.len();
                 for (pattern, out_value) in lookup.patterns.iter().zip(output_arguments) {
                     let out_value = self.use_temporary(out_value).unwrap();
                     self.compile_pattern_match_with_bindings(
                         pattern,
                         out_value,
-                        // I think this is supposed to be "clean up and next iteration"
-                        self.get_end(""),
+                        next_iteration_with_cleanup_continuation,
                         bound_ids,
                     )?;
                 }
 
-                self.next_cleanup(
-                    next_iteration_inner,
-                    next_to,
-                    bound_ids,
-                    bound_before_lookup,
-                    "rule_query_cleanup",
+                self.call_known_continuation(
+                    self.use_temporary(next_to).unwrap(),
+                    next_iteration_with_cleanup_continuation,
                 );
+
+                self.become_continuation_point(next_iteration_with_cleanup_cp);
+                self.begin_next_function(next_iteration_with_cleanup);
+                self.cleanup_go_next(next_iteration_inner, bound_ids, bound_before_lookup);
             }
             ir::QueryValue::Disjunction(disj) => {
                 let disj_second_fn = self.add_continuation("disj.second");
@@ -277,14 +283,21 @@ impl<'ctx> Codegen<'ctx> {
             next_iteration_with_cleanup_continuation,
         );
 
+        self.become_continuation_point(next_iteration_with_cleanup_cp);
+        self.begin_next_function(next_iteration_with_cleanup);
+        self.cleanup_go_next(next_iteration, bound_ids, keep_ids);
+    }
+
+    fn cleanup_go_next(
+        &self,
+        next_iteration: PointerValue<'ctx>,
+        bound_ids: &[Id],
+        keep_ids: usize,
+    ) {
         // The cleanup: destroy all variables that were unbound on the way in. This uses
         // very similar detection as with patterns, noting that which variables are bound
         // at iteration time can be determined statically as we make the pass through the
         // query's IR.
-        self.become_continuation_point(next_iteration_with_cleanup_cp);
-        self.begin_next_function(next_iteration_with_cleanup);
-        eprintln!("Bindings: {bound_ids:?}");
-        eprintln!("Cleaning these:");
         for id in bound_ids[keep_ids..]
             .iter()
             .filter(|id| !bound_ids[0..keep_ids].contains(id))

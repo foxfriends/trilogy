@@ -1,0 +1,7 @@
+proc main!() {
+  assert is x = 5
+  let x = 5
+  assert is ^x = 5
+  # assert is not 7 = 5
+  assert !is ^x = 8
+}

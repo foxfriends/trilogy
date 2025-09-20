@@ -434,6 +434,31 @@ impl<'ctx> Codegen<'ctx> {
             Value::Builtin(Builtin::Pin) => {
                 return self.compile_expression(&application.argument, name);
             }
+            Value::Builtin(Builtin::Is) => {
+                let Value::Query(query) = &application.argument.value else {
+                    unreachable!();
+                };
+                let merge_to_fn = self.add_continuation("is.cont");
+                let (merge_to_cont, merge_to_cp) =
+                    self.capture_current_continuation(merge_to_fn, "is.cont");
+
+                let end_false_fn = self.add_continuation("is_false");
+                let (end_false_cont, end_false_cp) =
+                    self.capture_current_continuation(end_false_fn, "is_false");
+                let next = self.compile_iterator(query, end_false_cont)?;
+                self.trilogy_value_destroy(next);
+                let result = self.allocate_const(self.bool_const(true), "");
+                self.call_known_continuation(self.use_temporary(merge_to_cont).unwrap(), result);
+
+                self.become_continuation_point(end_false_cp);
+                self.begin_next_function(end_false_fn);
+                let result = self.allocate_const(self.bool_const(false), "");
+                self.call_known_continuation(self.use_temporary(merge_to_cont).unwrap(), result);
+
+                self.become_continuation_point(merge_to_cp);
+                self.begin_next_function(merge_to_fn);
+                return Some(self.get_continuation("is"));
+            }
             Value::Builtin(builtin) if builtin.is_unary() => {
                 return self.compile_apply_unary(*builtin, &application.argument, name);
             }
