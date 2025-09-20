@@ -1,0 +1,12 @@
+module debug at "trilogy:debug" use dbg
+
+rule times_two(-1, -2)
+rule times_two(0, 0)
+rule times_two(1, 2)
+rule times_two(2, 4)
+
+proc main!() {
+  for times_two(a, a) {
+    dbg!(a)
+  }
+}

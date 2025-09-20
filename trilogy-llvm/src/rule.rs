@@ -60,6 +60,8 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         self.begin_function(function, span);
         let arity = overloads[0].borrow().parameters.len();
+        let input_args =
+            self.function_params.borrow()[IMPLICIT_PARAMS..IMPLICIT_PARAMS + arity].to_vec();
 
         'outer: for overload in overloads {
             let overload = overload.borrow();
@@ -70,8 +72,6 @@ impl<'ctx> Codegen<'ctx> {
             let (go_to_next_overload, next_overload_cp) =
                 self.capture_current_continuation_as_break(next_overload_function, "next_overload");
 
-            let input_args =
-                self.function_params.borrow()[IMPLICIT_PARAMS..IMPLICIT_PARAMS + arity].to_vec();
             for (param, &value) in overload.parameters.iter().zip(&input_args) {
                 let original_insert_function = self.get_function();
                 let original_snapshot = self.snapshot_function_context();
@@ -82,6 +82,7 @@ impl<'ctx> Codegen<'ctx> {
                 let next_parameter = self
                     .context
                     .append_basic_block(original_insert_function, "next_parameter");
+                let value = self.use_temporary(value).unwrap();
                 self.branch_undefined(value, next_parameter, bind_parameter);
 
                 self.builder.position_at_end(bind_parameter);
@@ -136,7 +137,7 @@ impl<'ctx> Codegen<'ctx> {
             // * Re-use the input parameter value if available; but
             // * if the input parameter was also not set (e.g. `for always(a)`), then consider this a failed
             //   overload and go next.
-            for (param, original) in overload.parameters.iter().zip(input_args) {
+            for (param, original) in overload.parameters.iter().zip(&input_args) {
                 if param.can_evaluate() {
                     let Some(param_value) = self.compile_expression(param, "") else {
                         break 'outer;
@@ -144,12 +145,12 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(param_value);
                     arguments.push(param_value);
                 } else {
-                    arguments.push(original);
+                    arguments.push(*original);
 
                     let here = self.get_function();
                     let fully_unbound = self.context.append_basic_block(here, "fully_unbound");
                     let rebind_input = self.context.append_basic_block(here, "rebind_input");
-                    let input_param = self.use_temporary(original).unwrap();
+                    let input_param = self.use_temporary(*original).unwrap();
                     let branched = self.branch_continuation_point();
                     self.branch_undefined(input_param, fully_unbound, rebind_input);
 
