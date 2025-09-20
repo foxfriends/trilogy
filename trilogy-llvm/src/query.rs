@@ -180,14 +180,13 @@ impl<'ctx> Codegen<'ctx> {
                 let bound_before_lookup = bound_ids.len();
                 for (pattern, out_value) in lookup.patterns.iter().zip(output_arguments) {
                     let out_value = self.use_temporary(out_value).unwrap();
-                    bound_ids.extend(self.compile_pattern_match(
+                    self.compile_pattern_match_with_bindings(
                         pattern,
                         out_value,
-                        // NOTE: I can't recall why this is get_end and not done_to, but it doesn't work as done_to
-                        // Is that because this is right? Or because done_to is just not in scope and it should be
-                        // but when I switch it it gets messed up.
+                        // I think this is supposed to be "clean up and next iteration"
                         self.get_end(""),
-                    )?);
+                        bound_ids,
+                    )?;
                 }
 
                 self.next_cleanup(
@@ -228,11 +227,12 @@ impl<'ctx> Codegen<'ctx> {
             ir::QueryValue::Direct(unification) => {
                 let rvalue = self.compile_expression(&unification.expression, "rvalue")?;
                 let pre_len = bound_ids.len();
-                bound_ids.extend(self.compile_pattern_match(
+                self.compile_pattern_match_with_bindings(
                     &unification.pattern,
                     rvalue,
                     done_to,
-                )?);
+                    bound_ids,
+                )?;
                 self.next_cleanup(done_to, next_to, bound_ids, pre_len, "assign_next");
             }
             ir::QueryValue::Element(..) => todo!(),
@@ -283,10 +283,13 @@ impl<'ctx> Codegen<'ctx> {
         // query's IR.
         self.become_continuation_point(next_iteration_with_cleanup_cp);
         self.begin_next_function(next_iteration_with_cleanup);
+        eprintln!("Bindings: {bound_ids:?}");
+        eprintln!("Cleaning these:");
         for id in bound_ids[keep_ids..]
             .iter()
             .filter(|id| !bound_ids[0..keep_ids].contains(id))
         {
+            eprintln!("{id:?}");
             let var = self.get_variable(id).unwrap().ptr();
             self.trilogy_value_destroy(var);
         }

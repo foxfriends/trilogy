@@ -4,6 +4,10 @@ rule nums(1)
 rule nums(2)
 rule nums(3)
 
+rule odds(1)
+rule odds(3)
+rule odds(5)
+
 proc main!() {
   for a = 5 and b = 10 {
     dbg!(a : b)
@@ -11,5 +15,9 @@ proc main!() {
 
   for nums(a) and nums(b) {
     dbg!(a : b)
+  }
+
+  for nums(a) and odds(a) {
+    dbg!(a)
   }
 }

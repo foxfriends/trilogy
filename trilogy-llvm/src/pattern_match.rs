@@ -13,12 +13,23 @@ impl<'ctx> Codegen<'ctx> {
         pattern: &ir::Expression,
         value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
-    ) -> Option<Vec<Id>> {
+    ) -> Option<()> {
         let mut bound_ids = Vec::default();
+        self.compile_pattern_match_with_bindings(pattern, value, on_fail, &mut bound_ids)
+    }
+
+    #[must_use = "must acknowledge continuation of control flow"]
+    pub(crate) fn compile_pattern_match_with_bindings(
+        &self,
+        pattern: &ir::Expression,
+        value: PointerValue<'ctx>,
+        on_fail: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
+    ) -> Option<()> {
         self.bind_temporary(value);
         self.bind_temporary(on_fail);
-        self.match_pattern(pattern, value, on_fail, &mut bound_ids);
-        Some(bound_ids)
+        self.match_pattern(pattern, value, on_fail, bound_ids);
+        Some(())
     }
 
     fn match_pattern(
@@ -32,10 +43,15 @@ impl<'ctx> Codegen<'ctx> {
 
         match &pattern.value {
             Value::Reference(id) => {
-                bound_ids.push(id.id.clone());
-                let variable = self.variable(&id.id);
-                let value_ref = self.use_temporary(value).unwrap();
-                self.trilogy_value_clone_into(variable, value_ref);
+                if bound_ids.contains(&id.id) {
+                    let pinned = self.variable(&id.id);
+                    self.match_constant(value, pinned, on_fail);
+                } else {
+                    bound_ids.push(id.id.clone());
+                    let variable = self.variable(&id.id);
+                    let value_ref = self.use_temporary(value).unwrap();
+                    self.trilogy_value_clone_into(variable, value_ref);
+                }
             }
             Value::Conjunction(conj) => {
                 self.match_pattern(&conj.0, value, on_fail, bound_ids)?;
