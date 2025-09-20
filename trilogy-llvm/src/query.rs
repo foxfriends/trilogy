@@ -302,7 +302,6 @@ impl<'ctx> Codegen<'ctx> {
             .iter()
             .filter(|id| !bound_ids[0..keep_ids].contains(id))
         {
-            eprintln!("{id:?}");
             let var = self.get_variable(id).unwrap().ptr();
             self.trilogy_value_destroy(var);
         }
