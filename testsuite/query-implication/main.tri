@@ -1,0 +1,31 @@
+module debug at "trilogy:debug" use dbg
+
+rule odds(1)
+rule odds(3)
+rule odds(5)
+rule odds(7)
+rule odds(9)
+
+rule threes(3)
+rule threes(6)
+rule threes(9)
+
+rule evens(1)
+rule evens(2)
+rule evens(3)
+rule evens(6)
+rule evens(8)
+
+proc main!() {
+  for if threes(a) then pass {
+    dbg!(a)
+  }
+
+  for if threes(a) then evens(c) {
+    dbg!(a:c)
+  }
+
+  for odds(a) and if threes(a) then evens(c) {
+    dbg!(a:c)
+  }
+}

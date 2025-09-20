@@ -15,13 +15,22 @@ impl<'ctx> Codegen<'ctx> {
             self.variable(&variable);
         }
 
+        self.compile_query(query, done_to, &mut bound_ids)
+    }
+
+    fn compile_query(
+        &self,
+        query: &ir::Query,
+        done_to: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
+    ) -> Option<PointerValue<'ctx>> {
         let next_function = self.add_next_to_continuation(0, "iterator_next");
-        let (next_to, next_continuation_cp) =
+        let (next_to, then_continuation_cp) =
             self.capture_current_continuation(next_function, "next_continuation");
 
-        self.compile_query(&query.value, next_to, done_to, &mut bound_ids)?;
+        self.compile_query_value(&query.value, next_to, done_to, bound_ids)?;
 
-        self.become_continuation_point(next_continuation_cp);
+        self.become_continuation_point(then_continuation_cp);
         self.begin_next_function(next_function);
         // The `next_to` function of an iterator is called with a function that starts the next
         // iteration of the loop, followed by the values of its arguments, now fully bound. We
@@ -31,7 +40,7 @@ impl<'ctx> Codegen<'ctx> {
         Some(self.get_continuation("next_iteration"))
     }
 
-    fn compile_query(
+    fn compile_query_value(
         &self,
         query: &ir::QueryValue,
         next_to: PointerValue<'ctx>,
@@ -193,22 +202,28 @@ impl<'ctx> Codegen<'ctx> {
                 let disj_second_fn = self.add_continuation("disj.second");
                 let (disj_second, disj_second_cp) =
                     self.capture_current_continuation(disj_second_fn, "disj.second");
-                let next_of_first = self.compile_iterator(&disj.0, disj_second)?;
+                let next_of_first =
+                    self.compile_query(&disj.0, disj_second, &mut bound_ids.clone())?;
                 self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_first);
 
                 self.become_continuation_point(disj_second_cp);
                 self.begin_next_function(disj_second_fn);
-                let next_of_second = self.compile_iterator(&disj.1, done_to)?;
+                let next_of_second = self.compile_query(&disj.1, done_to, bound_ids)?;
                 self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_second);
             }
             ir::QueryValue::Conjunction(conj) => {
-                let next_of_first = self.compile_iterator(&conj.0, done_to)?;
+                let next_of_first = self.compile_query(&conj.0, done_to, bound_ids)?;
                 self.bind_temporary(next_of_first);
-                let next_of_second = self.compile_iterator(&conj.1, next_of_first)?;
+                let next_of_second = self.compile_query(&conj.1, next_of_first, bound_ids)?;
                 let next_to = self.use_temporary(next_to).unwrap();
                 self.call_known_continuation(next_to, next_of_second);
             }
-            ir::QueryValue::Implication(..) => todo!(),
+            ir::QueryValue::Implication(implication) => {
+                self.compile_query(&implication.0, done_to, bound_ids)?;
+                let next_of_second = self.compile_query(&implication.1, done_to, bound_ids)?;
+                let next_to = self.use_temporary(next_to).unwrap();
+                self.call_known_continuation(next_to, next_of_second);
+            }
             ir::QueryValue::Alternative(..) => todo!(),
             ir::QueryValue::Direct(unification) => {
                 let rvalue = self.compile_expression(&unification.expression, "rvalue")?;
