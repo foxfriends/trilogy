@@ -287,7 +287,17 @@ impl<'ctx> Codegen<'ctx> {
                 self.next_cleanup(done_to, next_to, bound_ids, pre_len, "assign_next");
             }
             ir::QueryValue::Element(..) => todo!(),
-            ir::QueryValue::Not(..) => todo!(),
+            ir::QueryValue::Not(query) => {
+                let go_next_fn = self.add_continuation("not.next");
+                let (go_next, go_next_cp) =
+                    self.capture_current_continuation(go_next_fn, "not.next");
+                self.compile_query(query, go_next, bound_ids)?;
+                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+
+                self.become_continuation_point(go_next_cp);
+                self.begin_next_function(go_next_fn);
+                self.next_deterministic(next_to, done_to, "not.done");
+            }
         }
         Some(())
     }

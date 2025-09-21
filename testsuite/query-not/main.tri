@@ -1,0 +1,16 @@
+module debug at "trilogy:debug" use dbg
+
+rule inputs(1)
+rule inputs(2)
+rule inputs(3)
+rule inputs(4)
+
+rule outputs(1)
+rule outputs(4)
+rule outputs(5)
+
+proc main!() {
+  for inputs(a) and not outputs(a) {
+    dbg!(a)
+  }
+}
