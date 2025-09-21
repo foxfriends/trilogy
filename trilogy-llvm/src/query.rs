@@ -233,7 +233,48 @@ impl<'ctx> Codegen<'ctx> {
                 let next_to = self.use_temporary(next_to).unwrap();
                 self.call_known_continuation(next_to, next_of_second);
             }
-            ir::QueryValue::Alternative(..) => todo!(),
+            ir::QueryValue::Alternative(alt) => {
+                let state = self.allocate_const(self.bool_const(false), "alternative_state");
+                self.bind_temporary(state);
+
+                let alt_second_fn = self.add_continuation("alt.second");
+                let (alt_second, alt_second_cp) =
+                    self.capture_current_continuation(alt_second_fn, "alt.second");
+                let next_of_first =
+                    self.compile_query(&alt.0, alt_second, &mut bound_ids.clone())?;
+
+                let state_ref_first = self.use_temporary(state).unwrap();
+                self.trilogy_value_destroy(state_ref_first);
+                self.builder
+                    .build_store(state_ref_first, self.bool_const(true))
+                    .unwrap();
+                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_first);
+
+                self.become_continuation_point(alt_second_cp);
+                self.begin_next_function(alt_second_fn);
+
+                let then_block = self
+                    .context
+                    .append_basic_block(self.get_function(), "do_second");
+                let else_block = self
+                    .context
+                    .append_basic_block(self.get_function(), "skip_second");
+
+                let state_ref_second = self.use_temporary(state).unwrap();
+                let is_matched = self.trilogy_boolean_untag(state_ref_second, "is_matched");
+                self.builder
+                    .build_conditional_branch(is_matched, then_block, else_block)
+                    .unwrap();
+
+                let then_cp = self.branch_continuation_point();
+                self.builder.position_at_end(else_block);
+                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+
+                self.become_continuation_point(then_cp);
+                self.builder.position_at_end(then_block);
+                let next_of_second = self.compile_query(&alt.1, done_to, bound_ids)?;
+                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_second);
+            }
             ir::QueryValue::Direct(unification) => {
                 let rvalue = self.compile_expression(&unification.expression, "rvalue")?;
                 let pre_len = bound_ids.len();

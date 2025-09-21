@@ -1,0 +1,18 @@
+module debug at "trilogy:debug" use dbg
+
+rule inputs(1)
+rule inputs(2)
+rule inputs(3)
+rule inputs(4)
+
+rule left(1)
+rule left(3)
+
+rule right(2)
+rule right(3)
+
+proc main!() {
+  for inputs(a) and (left(a) or right(a)) {
+    dbg!(a)
+  }
+}
