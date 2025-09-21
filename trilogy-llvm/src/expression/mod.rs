@@ -41,7 +41,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Array(arr) => self.compile_array(arr, name),
             Value::Set(..) => todo!(),
             Value::Record(record) => self.compile_record(record, name),
-            Value::ArrayComprehension(..) => todo!(),
+            Value::ArrayComprehension(comp) => self.compile_array_comprehension(comp, name),
             Value::SetComprehension(..) => todo!(),
             Value::RecordComprehension(..) => todo!(),
             Value::Sequence(seq) => {
@@ -150,18 +150,40 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(done_continuation_point);
         self.begin_next_function(done_function);
-        // TODO: currently `for..else` is expecting this to return a boolean instead of a unit, but
-        // that's not really right... the for should really somehow be a "fold" construct eventually,
-        // returning neither unit or boolean.
+        // TODO: the for should really somehow be a "fold" construct eventually
         //
         // let [1, 2, 3] = from list = [] for vals(x) { [...list, x] }
         // let [1, 2, 3] = for vals(x) into list = [] { [...list, x] }
-        //
-        // The `for..else` will need to just be transformed into a thing with a flag in it, at the
-        // IR level (or source level and drop the feature).
-        //
-        // if !(for vals(x) into ok = false { true }) { for_else }
         Some(self.allocate_const(self.unit_const(), ""))
+    }
+
+    fn compile_array_comprehension(
+        &self,
+        expr: &ir::Iterator,
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
+        let output = self.allocate_value("acc");
+        self.trilogy_array_init_cap(output, 8, "");
+        self.bind_temporary(output);
+
+        let done_function = self.add_continuation("done");
+        let (done_continuation, done_continuation_point) =
+            self.capture_current_continuation_as_break(done_function, "for_break");
+        let next_iteration = self.compile_iterator(&expr.query, done_continuation)?;
+        self.bind_temporary(next_iteration);
+        if let Some(value) = self.compile_expression(&expr.value, "element") {
+            let arr_val = self.use_temporary(output).unwrap();
+            let arr = self.trilogy_array_assume(arr_val, "");
+            self.trilogy_array_push(arr, value);
+            let next_iteration = self.use_temporary(next_iteration).unwrap();
+            self.void_call_continuation(next_iteration);
+        }
+
+        self.become_continuation_point(done_continuation_point);
+        self.begin_next_function(done_function);
+        let output_clone = self.allocate_value(name);
+        self.trilogy_value_clone_into(output_clone, self.use_temporary(output).unwrap());
+        Some(output_clone)
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
