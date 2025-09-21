@@ -23,4 +23,6 @@ bool trilogy_record_contains_key(
 trilogy_record_value* trilogy_record_untag(trilogy_value* val);
 trilogy_record_value* trilogy_record_assume(trilogy_value* val);
 
+bool trilogy_record_structural_eq(trilogy_record_value* lhs, trilogy_record_value* rhs);
+
 void trilogy_record_destroy(trilogy_record_value* rec);

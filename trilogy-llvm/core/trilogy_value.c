@@ -225,13 +225,18 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
         for (uint64_t i = 0; i < lhs_arr->len; ++i) {
             if (!trilogy_value_structural_eq(
                     &lhs_arr->contents[i], &rhs_arr->contents[i]
-                ))
+                )) {
                 return false;
+            }
         }
         return true;
     }
-    case TAG_SET:
     case TAG_RECORD:
+        trilogy_record_value* lhs_rec = trilogy_record_assume(lhs);
+        trilogy_record_value* rhs_rec = trilogy_record_assume(rhs);
+        return trilogy_record_structural_eq(lhs_rec, rhs_rec);
+        break;
+    case TAG_SET:
     default:
         internal_panic("unimplemented\n");
         return false;

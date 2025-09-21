@@ -162,3 +162,18 @@ void trilogy_record_destroy(trilogy_record_value* record) {
         free(record);
     }
 }
+
+bool trilogy_record_structural_eq(
+    trilogy_record_value* lhs, trilogy_record_value* rhs
+) {
+    if (lhs->len != rhs->len) return false;
+    for (uint64_t i = 0; i < lhs->cap; ++i) {
+        trilogy_tuple_value* entry = &lhs->contents[i];
+        if (entry->fst.tag == TAG_UNDEFINED) continue;
+        size_t rhs_index = trilogy_record_find(rhs, &entry->fst, NULL);
+        if (rhs_index == rhs->cap) return false;
+        trilogy_value* rhs_value = &rhs->contents[rhs_index].snd;
+        if (!trilogy_value_structural_eq(&entry->snd, rhs_value)) return false;
+    }
+    return true;
+}

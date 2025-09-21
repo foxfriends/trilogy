@@ -18,6 +18,9 @@ proc main!() {
   assert "[1] != [2]" as [1] != [2]
   assert "[1, hello] == [1, hello]" as [1, "hello"] == [1, "hello"]
   assert "[1, hello] != [hello, 1]" as [1, "hello"] != ["hello", 1]
+  assert "{| 'a => 'b, 'x => 'y |} == {| 'x => 'y, 'a => 'b |}" as {| 'a => 'b, 'x => 'y |} == {| 'x => 'y, 'a => 'b |}
+  assert "{| 'a => 'b, 'x => 'y |} != {| 'a => 'b |}" as {| 'a => 'b, 'x => 'y |} != {| 'a => 'b|}
+  assert "{| 'a => 'b |} != {| 'a => 'b, 'x => 'y |}" as {| 'a => 'b |} != {| 'a => 'b, 'x => 'y |}
 
   let x = [1, 2]
   assert "x == x" as x == x
