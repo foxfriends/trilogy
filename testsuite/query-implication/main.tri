@@ -17,6 +17,10 @@ rule evens(6)
 rule evens(8)
 
 proc main!() {
+  for if threes(a) then end {
+    dbg!(a)
+  }
+
   for if threes(a) then pass {
     dbg!(a)
   }
@@ -26,6 +30,10 @@ proc main!() {
   }
 
   for odds(a) and if threes(a) then evens(c) {
+    dbg!(a:c)
+  }
+
+  for if (odds(a) and threes(a)) then evens(c) {
     dbg!(a:c)
   }
 }

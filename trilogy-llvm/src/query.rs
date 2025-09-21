@@ -224,7 +224,11 @@ impl<'ctx> Codegen<'ctx> {
                 self.call_known_continuation(next_to, next_of_second);
             }
             ir::QueryValue::Implication(implication) => {
-                self.compile_query(&implication.0, done_to, bound_ids)?;
+                let done_to_clone = self.allocate_value("done_to_clone");
+                self.bind_temporary(done_to_clone);
+                self.trilogy_value_clone_into(done_to_clone, done_to);
+                let next_of_first = self.compile_query(&implication.0, done_to_clone, bound_ids)?;
+                self.trilogy_value_destroy(next_of_first);
                 let next_of_second = self.compile_query(&implication.1, done_to, bound_ids)?;
                 let next_to = self.use_temporary(next_to).unwrap();
                 self.call_known_continuation(next_to, next_of_second);
