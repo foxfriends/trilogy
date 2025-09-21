@@ -1,0 +1,9 @@
+rule inputs(1)
+rule inputs(2)
+rule inputs(3)
+rule inputs(4)
+
+proc main!() {
+  let ins = [x for inputs(x)]
+  assert ins == [1, 2, 3, 4]
+}

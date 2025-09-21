@@ -43,7 +43,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Record(record) => self.compile_record(record, name),
             Value::ArrayComprehension(comp) => self.compile_array_comprehension(comp, name),
             Value::SetComprehension(..) => todo!(),
-            Value::RecordComprehension(..) => todo!(),
+            Value::RecordComprehension(comp) => self.compile_record_comprehension(comp, name),
             Value::Sequence(seq) => {
                 self.di.push_block_scope(expression.span);
                 let res = self.compile_sequence(seq, name);
@@ -177,6 +177,41 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_array_push(arr, value);
             let next_iteration = self.use_temporary(next_iteration).unwrap();
             self.void_call_continuation(next_iteration);
+        }
+
+        self.become_continuation_point(done_continuation_point);
+        self.begin_next_function(done_function);
+        let output_clone = self.allocate_value(name);
+        self.trilogy_value_clone_into(output_clone, self.use_temporary(output).unwrap());
+        Some(output_clone)
+    }
+
+    fn compile_record_comprehension(
+        &self,
+        expr: &ir::Iterator,
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
+        let output = self.allocate_value("acc");
+        self.trilogy_record_init_cap(output, 8, "");
+        self.bind_temporary(output);
+
+        let done_function = self.add_continuation("done");
+        let (done_continuation, done_continuation_point) =
+            self.capture_current_continuation_as_break(done_function, "for_break");
+        let next_iteration = self.compile_iterator(&expr.query, done_continuation)?;
+        self.bind_temporary(next_iteration);
+        let Value::Mapping(mapping) = &expr.value.value else {
+            unreachable!()
+        };
+        if let Some(key) = self.compile_expression(&mapping.0, "key") {
+            self.bind_temporary(key);
+            if let Some(value) = self.compile_expression(&mapping.1, "val") {
+                let rec_val = self.use_temporary(output).unwrap();
+                let rec = self.trilogy_record_assume(rec_val, "");
+                self.trilogy_record_insert(rec, self.use_temporary(key).unwrap(), value);
+                let next_iteration = self.use_temporary(next_iteration).unwrap();
+                self.void_call_continuation(next_iteration);
+            }
         }
 
         self.become_continuation_point(done_continuation_point);

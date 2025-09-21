@@ -1,0 +1,14 @@
+rule keys(1)
+rule keys(2)
+rule keys(3)
+rule keys(4)
+rule keys(5)
+
+rule values(1, 'a)
+rule values(3, 'b)
+rule values(5, 'c)
+
+proc main!() {
+  let ins = {| x => y for keys(x) and values(x, y) |}
+  assert ins == {| 1 => 'a, 3 => 'b, 5 => 'c |}
+}
