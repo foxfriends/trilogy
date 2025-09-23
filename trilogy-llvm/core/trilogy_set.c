@@ -121,7 +121,7 @@ void trilogy_set_append(trilogy_set_value* set, trilogy_value* tv) {
     } else {
         for (uint64_t i = 0; i < tail_len; ++i) {
             trilogy_value clone = trilogy_undefined;
-            trilogy_value_clone_into(&clone, &tail->contents[i]);
+            trilogy_value_clone_into(&clone, &tail->contents[i].fst);
             trilogy_set_insert(set, &clone);
         }
     }
@@ -157,7 +157,7 @@ void trilogy_set_destroy(trilogy_set_value* set) {
     if (--set->rc == 0) {
         if (set->contents == NULL) return;
         for (size_t i = 0; i < set->len; ++i) {
-            trilogy_value_destroy(&set->contents[i]);
+            trilogy_value_destroy(&set->contents[i].fst);
         }
         free(set->contents);
         free(set);
