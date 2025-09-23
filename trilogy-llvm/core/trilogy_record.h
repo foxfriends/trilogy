@@ -12,6 +12,7 @@ trilogy_record_clone_into(trilogy_value* tv, trilogy_record_value* rec);
 void trilogy_record_insert(
     trilogy_record_value* record, trilogy_value* key, trilogy_value* value
 );
+void trilogy_record_append(trilogy_record_value* record, trilogy_value* value);
 void trilogy_record_delete(trilogy_record_value* record, trilogy_value* key);
 void trilogy_record_get(
     trilogy_value* out, trilogy_record_value* record, trilogy_value* key

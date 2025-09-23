@@ -110,7 +110,6 @@ void trilogy_set_insert(trilogy_set_value* set, trilogy_value* value) {
 
 void trilogy_set_append(trilogy_set_value* set, trilogy_value* tv) {
     trilogy_set_value* tail = trilogy_set_untag(tv);
-    uint64_t tail_len = tail->len;
     if (tail->rc == 1) {
         for (uint64_t i = 0; i < tail->cap; ++i) {
             trilogy_tuple_value* entry = &tail->contents[i];
@@ -119,10 +118,13 @@ void trilogy_set_append(trilogy_set_value* set, trilogy_value* tv) {
             }
         }
     } else {
-        for (uint64_t i = 0; i < tail_len; ++i) {
-            trilogy_value clone = trilogy_undefined;
-            trilogy_value_clone_into(&clone, &tail->contents[i].fst);
-            trilogy_set_insert(set, &clone);
+        for (uint64_t i = 0; i < tail->cap; ++i) {
+            trilogy_tuple_value* entry = &tail->contents[i];
+            if (entry->fst.tag != TAG_UNDEFINED) {
+                trilogy_value clone = trilogy_undefined;
+                trilogy_value_clone_into(&clone, &entry->fst);
+                trilogy_set_insert(set, &clone);
+            }
         }
     }
     trilogy_value_destroy(tv);

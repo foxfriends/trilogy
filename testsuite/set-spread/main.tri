@@ -1,0 +1,6 @@
+proc main!() {
+  let fst = [| 1, 2, 3 |]
+  let snd = [| 2, 3, 4 |]
+  let all = [| 0, ..fst, ..snd, 5 |]
+  assert all == [| 0, 1, 2, 3, 4, 5 |]
+}

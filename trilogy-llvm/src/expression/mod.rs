@@ -425,7 +425,12 @@ impl<'ctx> Codegen<'ctx> {
                     let key = self.use_temporary(key).unwrap();
                     self.trilogy_record_insert(record, key, value);
                 }
-                _value if element.is_spread => todo!(),
+                _ if element.is_spread => {
+                    let temporary = self.compile_expression(&element.expression, "rec.element")?;
+                    let record = self.use_temporary(target).unwrap();
+                    let record = self.trilogy_record_assume(record, "");
+                    self.trilogy_record_append(record, temporary);
+                }
                 _ => panic!("record elements must be spread or mapping"),
             }
         }

@@ -687,6 +687,26 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_record_append(
+        &self,
+        record: PointerValue<'ctx>,
+        value: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_record_append",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[record.into(), value.into()], "")
+            .unwrap();
+    }
+
     /// Untags a callable value. The returned PointerValue points to a `trilogy_callable_value`.
     pub(crate) fn trilogy_callable_untag(
         &self,

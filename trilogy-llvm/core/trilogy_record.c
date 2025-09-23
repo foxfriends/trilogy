@@ -118,6 +118,30 @@ void trilogy_record_insert(
     }
 }
 
+void trilogy_record_append(trilogy_record_value* record, trilogy_value* tv) {
+    trilogy_record_value* tail = trilogy_record_untag(tv);
+    if (tail->rc == 1) {
+        for (uint64_t i = 0; i < tail->cap; ++i) {
+            trilogy_tuple_value* entry = &tail->contents[i];
+            if (entry->fst.tag != TAG_UNDEFINED) {
+                trilogy_record_insert(record, &entry->fst, &entry->snd);
+            }
+        }
+    } else {
+        for (uint64_t i = 0; i < tail->cap; ++i) {
+            trilogy_tuple_value* entry = &tail->contents[i];
+            if (entry->fst.tag != TAG_UNDEFINED) {
+                trilogy_value key = trilogy_undefined;
+                trilogy_value value = trilogy_undefined;
+                trilogy_value_clone_into(&key, &entry->fst);
+                trilogy_value_clone_into(&value, &entry->snd);
+                trilogy_record_insert(record, &key, &value);
+            }
+        }
+    }
+    trilogy_value_destroy(tv);
+}
+
 void trilogy_record_delete(trilogy_record_value* record, trilogy_value* key) {
     size_t found = trilogy_record_find(record, key, NULL);
     if (found != record->cap) {
