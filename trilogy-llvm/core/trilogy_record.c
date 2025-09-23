@@ -84,9 +84,11 @@ static void trilogy_record_maintainance(trilogy_record_value* record) {
         record->len = 0;
         record->contents = calloc_safe(new_cap, sizeof(trilogy_tuple_value));
         for (size_t i = 0; i < old_cap; ++i) {
-            trilogy_record_insert(
-                record, &old_contents[i].fst, &old_contents[i].snd
-            );
+            if (old_contents[i].fst.tag != TAG_UNDEFINED) {
+                trilogy_record_insert(
+                    record, &old_contents[i].fst, &old_contents[i].snd
+                );
+            }
         }
         free(old_contents);
     }
@@ -104,12 +106,15 @@ void trilogy_record_insert(
         record->contents[empty].fst = *key;
         record->contents[empty].snd = *value;
         record->len++;
+        *key = trilogy_undefined;
+        *value = trilogy_undefined;
     } else {
         // If it is found, delete the new key, destroy the old value, and then
         // insert the new value.
         trilogy_value_destroy(key);
         trilogy_value_destroy(&record->contents[found].snd);
         record->contents[found].snd = *value;
+        *value = trilogy_undefined;
     }
 }
 

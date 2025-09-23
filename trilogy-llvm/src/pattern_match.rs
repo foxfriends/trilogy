@@ -136,8 +136,8 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Wildcard => { /* always passes with no action */ }
             Value::Array(array) => self.match_array(array, value, on_fail, bound_ids)?,
-            Value::Set(..) => {}
-            Value::Record(..) => {}
+            Value::Set(..) => todo!(),
+            Value::Record(..) => todo!(),
             // Not patterns:
             Value::Pack(..) => unreachable!(),
             Value::Sequence(..) => unreachable!(),

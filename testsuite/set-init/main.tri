@@ -1,0 +1,5 @@
+proc main!() {
+  let set = [|'a, 'b, 1, 2|]
+  assert typeof set === 'set
+  # assert is 'a in set
+}

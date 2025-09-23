@@ -1,0 +1,16 @@
+rule keys(1)
+rule keys(4)
+
+rule values(1, 1)
+rule values(1, 2)
+rule values(2, 2)
+rule values(2, 3)
+rule values(3, 3)
+rule values(3, 4)
+rule values(4, 4)
+rule values(4, 5)
+
+proc main!() {
+  let ins = [| value for keys(i) and values(i, value) |]
+  assert ins == [| 1, 2, 4, 5 |]
+}
