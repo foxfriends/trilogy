@@ -8,12 +8,17 @@ trilogy_record_value* trilogy_record_init_empty(trilogy_value* tv);
 trilogy_record_value* trilogy_record_init_cap(trilogy_value* tv, size_t cap);
 trilogy_record_value*
 trilogy_record_clone_into(trilogy_value* tv, trilogy_record_value* rec);
+trilogy_record_value*
+trilogy_record_deep_clone_into(trilogy_value* tv, trilogy_record_value* rec);
+
+size_t trilogy_record_len(trilogy_record_value* tv);
+size_t trilogy_record_cap(trilogy_record_value* tv);
 
 void trilogy_record_insert(
     trilogy_record_value* record, trilogy_value* key, trilogy_value* value
 );
 void trilogy_record_append(trilogy_record_value* record, trilogy_value* value);
-void trilogy_record_delete(trilogy_record_value* record, trilogy_value* key);
+bool trilogy_record_delete(trilogy_record_value* record, trilogy_value* key);
 void trilogy_record_get(
     trilogy_value* out, trilogy_record_value* record, trilogy_value* key
 );

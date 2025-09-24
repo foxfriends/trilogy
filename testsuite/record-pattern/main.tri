@@ -1,0 +1,16 @@
+proc main!() {
+  let record = {| 'a => 1, 'b => 2, 'c => 3 |}
+  let {| 'a => a, 'b => 2, ..rest |} = record
+  assert record == {| 'a => 1, 'b => 2, 'c => 3 |}
+  assert rest == {| 'c => 3 |}
+  assert a == 1
+  assert !is {||} = record
+  assert !is {| 'a => 1 |} = record
+  assert !is {| 'a => 2, .._ |} = record
+  assert is {| 'a => 1, .._ |} = record
+  assert !is {| 'a => 1, 'b => 2, 'c => 3, 'd => 4 |} = record
+  let {| ..clone |} = record
+  assert clone == record
+  assert clone !== record
+  assert !is [| ..set |] = record
+}

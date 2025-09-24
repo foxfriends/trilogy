@@ -67,10 +67,8 @@ impl SetPattern {
         // handling in this parser so far!
         if let Ok(comma) = parser.expect(OpComma) {
             let Ok(close_bracket_pipe) = parser.expect(CBrackPipe) else {
-                let error = SyntaxError::new(
-                    comma.span,
-                    "a rest (`..`) element must close_bracket_pipe a set pattern",
-                );
+                let error =
+                    SyntaxError::new(comma.span, "a rest (`..`) element must end a set pattern");
                 parser.error(error.clone());
                 return Err(error);
             };
@@ -85,9 +83,9 @@ impl SetPattern {
                 close_bracket_pipe,
             });
         }
-        let close_bracket_pipe = parser.expect(CBrackPipe).map_err(|token| {
-            parser.expected(token, "expected `|]` to close_bracket_pipe set pattern")
-        })?;
+        let close_bracket_pipe = parser
+            .expect(CBrackPipe)
+            .map_err(|token| parser.expected(token, "expected `|]` to close set pattern"))?;
         Ok(Self {
             open_bracket_pipe,
             elements,

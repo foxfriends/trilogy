@@ -69,8 +69,8 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_end();
                 None
             }
-            Value::Pack(..) => panic!("arbitrary packs are not permitted"),
-            Value::Mapping(..) => panic!("arbitrary mappings are not permitted"),
+            Value::Pack(..) => panic!("loose packs are not permitted"),
+            Value::Mapping(..) => panic!("loose mappings are not permitted"),
             Value::Conjunction(..) => panic!("conjunction not permitted in expression context"),
             Value::Disjunction(..) => panic!("disjunction not permitted in expression context"),
             Value::Wildcard => panic!("wildcard not permitted in expression context"),

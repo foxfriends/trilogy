@@ -37,6 +37,12 @@ pub enum Error {
     NoReturnFromRule {
         expression: Span,
     },
+    MultiValuedPatternInSet {
+        expression: Span,
+    },
+    MultiValuedPatternInRecordKey {
+        expression: Span,
+    },
 }
 
 impl std::error::Error for Error {}
@@ -58,6 +64,18 @@ impl Display for Error {
             }
             Error::NoReturnFromRule { .. } => {
                 write!(f, "return is not valid in a rule definition")
+            }
+            Error::MultiValuedPatternInSet { .. } => {
+                write!(
+                    f,
+                    "the elements of a set pattern may only be able to bind to a single value"
+                )
+            }
+            Error::MultiValuedPatternInRecordKey { .. } => {
+                write!(
+                    f,
+                    "the keys of a record pattern may only be able to bind to a single value"
+                )
             }
         }
     }

@@ -42,6 +42,29 @@ trilogy_set_clone_into(trilogy_value* tv, trilogy_set_value* set) {
     return trilogy_set_init(tv, set);
 }
 
+trilogy_set_value*
+trilogy_set_deep_clone_into(trilogy_value* tv, trilogy_set_value* set) {
+    assert(set->rc != 0);
+    trilogy_set_value* new_set =
+        // Picking cap to avoid any reallocations during the initial
+        // construction
+        trilogy_set_init_cap(tv, (set->len / 3 + 1) * 4);
+
+    for (uint64_t i = 0; i < set->cap; ++i) {
+        trilogy_tuple_value* entry = &set->contents[i];
+        if (entry->fst.tag != TAG_UNDEFINED) {
+            trilogy_value key = trilogy_undefined;
+            trilogy_value_clone_into(&key, &entry->fst);
+            trilogy_set_insert(new_set, &key);
+        }
+    }
+
+    return new_set;
+}
+
+size_t trilogy_set_len(trilogy_set_value* tv) { return tv->len; }
+size_t trilogy_set_cap(trilogy_set_value* tv) { return tv->cap; }
+
 static size_t trilogy_set_find(
     trilogy_set_value* set, trilogy_value* key, size_t* insert_to
 ) {
@@ -130,7 +153,7 @@ void trilogy_set_append(trilogy_set_value* set, trilogy_value* tv) {
     trilogy_value_destroy(tv);
 }
 
-void trilogy_set_delete(trilogy_set_value* set, trilogy_value* value) {
+bool trilogy_set_delete(trilogy_set_value* set, trilogy_value* value) {
     size_t found = trilogy_set_find(set, value, NULL);
     if (found != set->cap) {
         // Only if it's found does it need to be destroyed. Remove the value (to
@@ -138,7 +161,9 @@ void trilogy_set_delete(trilogy_set_value* set, trilogy_value* value) {
         // to be adjusted.
         trilogy_value_destroy(&set->contents[found].fst);
         set->len--;
+        return true;
     }
+    return false;
 }
 
 bool trilogy_set_contains(trilogy_set_value* set, trilogy_value* value) {
