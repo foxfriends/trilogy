@@ -346,7 +346,7 @@ void trilogy_callable_promote(
 }
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
-    TRACE("Expect callable: %p\n", val);
+    TRACE("Expect callable\t(%d): %p\n", val->tag, val);
     if (val->tag != TAG_CALLABLE) rte("callable", val->tag);
     return trilogy_callable_assume(val);
 }
