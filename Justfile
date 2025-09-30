@@ -6,8 +6,9 @@ llvm_prefix := env("LLVM_SYS_181_PREFIX", "")
 clang := if llvm_prefix == "" { "clang" } else { llvm_prefix / "bin/clang" }
 clang_format := if llvm_prefix == "" { "clang-format" } else { llvm_prefix / "bin/clang-format" }
 clang_tidy := if llvm_prefix == "" { "clang-tidy" } else { llvm_prefix / "bin/clang-tidy" }
+lldb := `which lldb || which lldb-18`
 
-default: run
+default: print run
 
 fmt: fmt-rust fmt-c
 
@@ -33,13 +34,19 @@ test:
 testsuite:
     cargo test --test testsuite
 
+print file="main.tri":
+    cat {{justfile_dir() / file}}
+
 run file="main.tri":
-    cargo run -- compile {{file}} > main.ll
+    cargo run -- compile {{justfile_dir() / file}} > main.ll
     {{clang}} main.ll -g -ldl -fdebug-macro -O0 -rdynamic
     ./a.out
 
+use file:
+    cat {{justfile_dir() / file}} > main.tri
+
 debug:
-    lldb-18 ./a.out
+    {{lldb}} ./a.out
 
 trace file="main.tri":
     TRILOGY_CORE_DEFINES=TRILOGY_CORE_TRACE cargo run -- compile {{file}} > main.ll
