@@ -311,6 +311,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let pass_cp = self.branch_continuation_point();
         let cond = self.trilogy_boolean_untag(expression, "");
+        self.trilogy_value_destroy(expression);
         let pass = self
             .context
             .append_basic_block(self.get_function(), "assert.pass");
@@ -332,7 +333,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(pass);
         self.become_continuation_point(pass_cp);
         self.restore_function_context(snapshot);
-        Some(expression)
+        Some(self.allocate_const(self.unit_const(), "assertion"))
     }
 
     fn compile_sequence(&self, seq: &[ir::Expression], name: &str) -> Option<PointerValue<'ctx>> {
