@@ -79,7 +79,7 @@ impl<'ctx> Codegen<'ctx> {
         for (id, var) in cp.variables.borrow().iter() {
             match var {
                 Variable::Owned(pointer) => {
-                    if let Some(pointer) = cp.upvalues.borrow().get(id) {
+                    if let Some(pointer) = cp.shadow_root().upvalues.borrow().get(id) {
                         // We have detected this variable as referenced in a future scope, so we have to close it
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
