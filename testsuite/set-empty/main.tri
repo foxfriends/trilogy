@@ -1,0 +1,4 @@
+proc main!() {
+  let set = [||]
+  assert typeof set === 'set
+}

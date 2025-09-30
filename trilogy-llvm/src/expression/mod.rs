@@ -39,10 +39,10 @@ impl<'ctx> Codegen<'ctx> {
                 Some(val)
             }
             Value::Array(arr) => self.compile_array(arr, name),
-            Value::Set(..) => todo!(),
+            Value::Set(set) => self.compile_set(set, name),
             Value::Record(record) => self.compile_record(record, name),
             Value::ArrayComprehension(comp) => self.compile_array_comprehension(comp, name),
-            Value::SetComprehension(..) => todo!(),
+            Value::SetComprehension(comp) => self.compile_set_comprehension(comp, name),
             Value::RecordComprehension(comp) => self.compile_record_comprehension(comp, name),
             Value::Sequence(seq) => {
                 self.di.push_block_scope(expression.span);
@@ -69,8 +69,8 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_end();
                 None
             }
-            Value::Pack(..) => panic!("arbitrary packs are not permitted"),
-            Value::Mapping(..) => panic!("arbitrary mappings are not permitted"),
+            Value::Pack(..) => panic!("loose packs are not permitted"),
+            Value::Mapping(..) => panic!("loose mappings are not permitted"),
             Value::Conjunction(..) => panic!("conjunction not permitted in expression context"),
             Value::Disjunction(..) => panic!("disjunction not permitted in expression context"),
             Value::Wildcard => panic!("wildcard not permitted in expression context"),
@@ -175,6 +175,35 @@ impl<'ctx> Codegen<'ctx> {
             let arr_val = self.use_temporary(output).unwrap();
             let arr = self.trilogy_array_assume(arr_val, "");
             self.trilogy_array_push(arr, value);
+            let next_iteration = self.use_temporary(next_iteration).unwrap();
+            self.void_call_continuation(next_iteration);
+        }
+
+        self.become_continuation_point(done_continuation_point);
+        self.begin_next_function(done_function);
+        let output_clone = self.allocate_value(name);
+        self.trilogy_value_clone_into(output_clone, self.use_temporary(output).unwrap());
+        Some(output_clone)
+    }
+
+    fn compile_set_comprehension(
+        &self,
+        expr: &ir::Iterator,
+        name: &str,
+    ) -> Option<PointerValue<'ctx>> {
+        let output = self.allocate_value("acc");
+        self.trilogy_set_init_cap(output, 8, "");
+        self.bind_temporary(output);
+
+        let done_function = self.add_continuation("done");
+        let (done_continuation, done_continuation_point) =
+            self.capture_current_continuation_as_break(done_function, "for_break");
+        let next_iteration = self.compile_iterator(&expr.query, done_continuation)?;
+        self.bind_temporary(next_iteration);
+        if let Some(value) = self.compile_expression(&expr.value, "element") {
+            let set_val = self.use_temporary(output).unwrap();
+            let set = self.trilogy_set_assume(set_val, "");
+            self.trilogy_set_insert(set, value);
             let next_iteration = self.use_temporary(next_iteration).unwrap();
             self.void_call_continuation(next_iteration);
         }
@@ -364,6 +393,24 @@ impl<'ctx> Codegen<'ctx> {
         Some(target)
     }
 
+    fn compile_set(&self, pack: &ir::Pack, name: &str) -> Option<PointerValue<'ctx>> {
+        let target = self.allocate_value(name);
+        self.bind_temporary(target);
+        self.trilogy_set_init_cap(target, pack.values.len(), "set");
+        for element in &pack.values {
+            let temporary = self.compile_expression(&element.expression, "set.el")?;
+            let target = self.use_temporary(target).unwrap();
+            let set_value = self.trilogy_set_assume(target, "");
+            if element.is_spread {
+                self.trilogy_set_append(set_value, temporary);
+            } else {
+                self.trilogy_set_insert(set_value, temporary);
+            }
+        }
+        let target = self.use_temporary(target).unwrap();
+        Some(target)
+    }
+
     fn compile_record(&self, pack: &ir::Pack, name: &str) -> Option<PointerValue<'ctx>> {
         let target = self.allocate_value(name);
         self.bind_temporary(target);
@@ -379,7 +426,12 @@ impl<'ctx> Codegen<'ctx> {
                     let key = self.use_temporary(key).unwrap();
                     self.trilogy_record_insert(record, key, value);
                 }
-                _value if element.is_spread => todo!(),
+                _ if element.is_spread => {
+                    let temporary = self.compile_expression(&element.expression, "rec.element")?;
+                    let record = self.use_temporary(target).unwrap();
+                    let record = self.trilogy_record_assume(record, "");
+                    self.trilogy_record_append(record, temporary);
+                }
                 _ => panic!("record elements must be spread or mapping"),
             }
         }

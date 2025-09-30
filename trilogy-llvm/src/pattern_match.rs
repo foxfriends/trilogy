@@ -1,5 +1,5 @@
 use crate::codegen::{Codegen, Merger};
-use crate::types::{TAG_ARRAY, TAG_NUMBER, TAG_STRUCT, TAG_TUPLE};
+use crate::types::{TAG_ARRAY, TAG_NUMBER, TAG_RECORD, TAG_SET, TAG_STRUCT, TAG_TUPLE};
 use inkwell::IntPredicate;
 use inkwell::basic_block::BasicBlock;
 use inkwell::values::{IntValue, PointerValue};
@@ -136,8 +136,8 @@ impl<'ctx> Codegen<'ctx> {
             }
             Value::Wildcard => { /* always passes with no action */ }
             Value::Array(array) => self.match_array(array, value, on_fail, bound_ids)?,
-            Value::Set(..) => {}
-            Value::Record(..) => {}
+            Value::Set(set) => self.match_set(set, value, on_fail, bound_ids)?,
+            Value::Record(record) => self.match_record(record, value, on_fail, bound_ids)?,
             // Not patterns:
             Value::Pack(..) => unreachable!(),
             Value::Sequence(..) => unreachable!(),
@@ -425,6 +425,143 @@ impl<'ctx> Codegen<'ctx> {
             if let Some(temp) = self.use_owned_temporary(rest) {
                 self.trilogy_value_destroy(temp);
             }
+        }
+        Some(())
+    }
+
+    fn match_set(
+        &self,
+        pattern: &ir::Pack,
+        value: PointerValue<'ctx>,
+        on_fail: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
+    ) -> Option<()> {
+        let tag = self.get_tag(value, "");
+        let is_set = self
+            .builder
+            .build_int_compare(
+                IntPredicate::EQ,
+                tag,
+                self.tag_type().const_int(TAG_SET, false),
+                "is_set",
+            )
+            .unwrap();
+        self.pm_cont_if(is_set, on_fail);
+
+        if !pattern.values.iter().any(|el| el.is_spread) {
+            let value = self.use_temporary(value).unwrap();
+            let set = self.trilogy_set_assume(value, "set");
+            let length = self.trilogy_set_len(set, "len");
+            let expected = self
+                .context
+                .i64_type()
+                .const_int(pattern.values.len() as u64, false);
+            let is_full = self
+                .builder
+                .build_int_compare(IntPredicate::EQ, length, expected, "")
+                .unwrap();
+            self.pm_cont_if(is_full, on_fail);
+        }
+
+        let value = self.use_temporary(value).unwrap();
+        let set = self.trilogy_set_assume(value, "set");
+        let set_clone = self.allocate_value("set_clone");
+        self.trilogy_set_deep_clone_into(set_clone, set);
+        self.bind_temporary(set_clone);
+
+        let mut spread = None;
+        for element in &pattern.values {
+            if element.is_spread {
+                spread = Some(element);
+                continue;
+            }
+            let element_value = self.compile_expression(&element.expression, "el")?;
+            let set_clone = self.use_temporary(set_clone).unwrap();
+            let set_value = self.trilogy_set_assume(set_clone, "");
+            let was_in_set = self.trilogy_set_delete(set_value, element_value, "was_in_set");
+            self.trilogy_value_destroy(element_value);
+            self.pm_cont_if(was_in_set, on_fail);
+        }
+        if let Some(spread) = spread {
+            let set_clone = self.use_temporary(set_clone).unwrap();
+            self.match_pattern(&spread.expression, set_clone, on_fail, bound_ids)?;
+        }
+        if let Some(set_clone) = self.use_owned_temporary(set_clone) {
+            self.trilogy_value_destroy(set_clone);
+        }
+        Some(())
+    }
+
+    fn match_record(
+        &self,
+        pattern: &ir::Pack,
+        value: PointerValue<'ctx>,
+        on_fail: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
+    ) -> Option<()> {
+        let tag = self.get_tag(value, "");
+        let is_record = self
+            .builder
+            .build_int_compare(
+                IntPredicate::EQ,
+                tag,
+                self.tag_type().const_int(TAG_RECORD, false),
+                "is_record",
+            )
+            .unwrap();
+        self.pm_cont_if(is_record, on_fail);
+
+        if !pattern.values.iter().any(|el| el.is_spread) {
+            let value = self.use_temporary(value).unwrap();
+            let record = self.trilogy_record_assume(value, "record");
+            let length = self.trilogy_record_len(record, "len");
+            let expected = self
+                .context
+                .i64_type()
+                .const_int(pattern.values.len() as u64, false);
+            let is_full = self
+                .builder
+                .build_int_compare(IntPredicate::EQ, length, expected, "")
+                .unwrap();
+            self.pm_cont_if(is_full, on_fail);
+        }
+
+        let value = self.use_temporary(value).unwrap();
+        let record = self.trilogy_record_assume(value, "record");
+        let record_clone = self.allocate_value("record_clone");
+        self.trilogy_record_deep_clone_into(record_clone, record);
+        self.bind_temporary(record_clone);
+
+        let mut spread = None;
+        for element in &pattern.values {
+            if element.is_spread {
+                spread = Some(element);
+                continue;
+            }
+            let Value::Mapping(mapping) = &element.expression.value else {
+                unreachable!()
+            };
+            let key = self.compile_expression(&mapping.0, "key")?;
+            let record_clone = self.use_temporary(record_clone).unwrap();
+            let record_value = self.trilogy_record_assume(record_clone, "");
+            let contains_key = self.trilogy_record_contains_key(record_value, key, "contains_key");
+            self.pm_cont_if(contains_key, on_fail);
+
+            let element_value = self.allocate_value("element");
+            self.trilogy_record_get(element_value, record_value, key);
+            self.trilogy_record_delete(record_value, key, "");
+            self.bind_temporary(element_value);
+            self.match_pattern(&mapping.1, element_value, on_fail, bound_ids)?;
+            if let Some(element_value) = self.use_owned_temporary(element_value) {
+                self.trilogy_value_destroy(element_value);
+            }
+        }
+        if let Some(spread) = spread {
+            let record_clone = self.use_temporary(record_clone).unwrap();
+            self.match_pattern(&spread.expression, record_clone, on_fail, bound_ids)?;
+        }
+        if let Some(record_clone) = self.use_owned_temporary(record_clone) {
+            self.trilogy_value_destroy(record_clone);
         }
         Some(())
     }

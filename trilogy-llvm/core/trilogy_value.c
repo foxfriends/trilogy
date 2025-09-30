@@ -231,14 +231,18 @@ bool trilogy_value_structural_eq(trilogy_value* lhs, trilogy_value* rhs) {
         }
         return true;
     }
-    case TAG_RECORD:
+    case TAG_RECORD: {
         trilogy_record_value* lhs_rec = trilogy_record_assume(lhs);
         trilogy_record_value* rhs_rec = trilogy_record_assume(rhs);
         return trilogy_record_structural_eq(lhs_rec, rhs_rec);
-        break;
-    case TAG_SET:
+    }
+    case TAG_SET: {
+        trilogy_set_value* lhs_set = trilogy_set_assume(lhs);
+        trilogy_set_value* rhs_set = trilogy_set_assume(rhs);
+        return trilogy_set_structural_eq(lhs_set, rhs_set);
+    }
     default:
-        internal_panic("unimplemented\n");
+        internal_panic("unreachable\n");
         return false;
     }
 }

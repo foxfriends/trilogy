@@ -1,0 +1,6 @@
+proc main!() {
+  let fst = {| 'a => 1, 'b => 2, 'c => 3 |}
+  let snd = {| 'c => 2, 'd => 3, 'e => 4 |}
+  let all = {| 'd => 5, ..fst, ..snd, 'b => 6 |}
+  assert all == {| 'a => 1, 'b => 6, 'c => 2, 'd => 3, 'e => 4 |}
+}

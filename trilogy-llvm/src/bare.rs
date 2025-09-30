@@ -531,6 +531,149 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_set_init_cap(
+        &self,
+        value: PointerValue<'ctx>,
+        cap: usize,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_set_init_cap",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.usize_type().into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    value.into(),
+                    self.usize_type().const_int(cap as u64, false).into(),
+                ],
+                name,
+            )
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_set_assume(
+        &self,
+        t: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_set_assume",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[t.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_pointer_value()
+    }
+
+    pub(crate) fn trilogy_set_len(&self, value: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_set_len",
+            self.usize_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
+    pub(crate) fn trilogy_set_insert(&self, set: PointerValue<'ctx>, value: PointerValue<'ctx>) {
+        let f = self.declare_bare(
+            "trilogy_set_insert",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[set.into(), value.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_set_append(&self, set: PointerValue<'ctx>, value: PointerValue<'ctx>) {
+        let f = self.declare_bare(
+            "trilogy_set_append",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[set.into(), value.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_set_deep_clone_into(
+        &self,
+        new_set: PointerValue<'ctx>,
+        old_set: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_set_deep_clone_into",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[new_set.into(), old_set.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_set_delete(
+        &self,
+        set: PointerValue<'ctx>,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_set_delete",
+            self.context.bool_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[set.into(), value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
     pub(crate) fn trilogy_record_init_cap(
         &self,
         value: PointerValue<'ctx>,
@@ -582,6 +725,26 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_record_len(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_record_len",
+            self.usize_type().fn_type(
+                &[self.context.ptr_type(AddressSpace::default()).into()],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
     pub(crate) fn trilogy_record_insert(
         &self,
         record: PointerValue<'ctx>,
@@ -601,6 +764,116 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.builder
             .build_call(f, &[record.into(), key.into(), value.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_record_append(
+        &self,
+        record: PointerValue<'ctx>,
+        value: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_record_append",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[record.into(), value.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_record_deep_clone_into(
+        &self,
+        new_record: PointerValue<'ctx>,
+        old_record: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_record_deep_clone_into",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[new_record.into(), old_record.into()], "")
+            .unwrap();
+    }
+
+    pub(crate) fn trilogy_record_delete(
+        &self,
+        record: PointerValue<'ctx>,
+        key: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_record_delete",
+            self.context.bool_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[record.into(), key.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
+    pub(crate) fn trilogy_record_contains_key(
+        &self,
+        record: PointerValue<'ctx>,
+        key: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_record_contains_key",
+            self.context.bool_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[record.into(), key.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
+    pub(crate) fn trilogy_record_get(
+        &self,
+        target: PointerValue<'ctx>,
+        record: PointerValue<'ctx>,
+        key: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_record_get",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), record.into(), key.into()], "")
             .unwrap();
     }
 

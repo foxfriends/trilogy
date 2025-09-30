@@ -1,4 +1,5 @@
 use super::*;
+use crate::visitor::MightBeSingleValued;
 use crate::{Converter, Error};
 use source_span::Span;
 use trilogy_parser::Spanned;
@@ -328,8 +329,15 @@ impl Expression {
                 let mut elements: Pack = ast
                     .elements
                     .into_iter()
-                    .map(|element| Self::convert_pattern(converter, element))
-                    .map(Element::from)
+                    .map(|element| {
+                        let element_pattern = Self::convert_pattern(converter, element);
+                        if !element_pattern.is_single_valued_pattern() {
+                            converter.error(Error::MultiValuedPatternInSet {
+                                expression: element_pattern.span,
+                            });
+                        }
+                        Element::from(element_pattern)
+                    })
                     .collect();
                 elements.extend(
                     ast.rest
@@ -345,11 +353,14 @@ impl Expression {
                     .elements
                     .into_iter()
                     .map(|(key, value)| {
-                        Self::mapping(
-                            key.span().union(value.span()),
-                            Self::convert_pattern(converter, key),
-                            Self::convert_pattern(converter, value),
-                        )
+                        let span = key.span().union(value.span());
+                        let key_pattern = Self::convert_pattern(converter, key);
+                        if !key_pattern.is_single_valued_pattern() {
+                            converter.error(Error::MultiValuedPatternInRecordKey {
+                                expression: key_pattern.span,
+                            });
+                        }
+                        Self::mapping(span, key_pattern, Self::convert_pattern(converter, value))
                     })
                     .map(Element::from)
                     .collect();

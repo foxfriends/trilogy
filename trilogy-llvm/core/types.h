@@ -146,9 +146,11 @@ typedef struct trilogy_set_value {
      */
     size_t cap;
     /**
-     * An array of length `cap` containing the values of this set.
+     * An array of length `cap` containing the values of this set. This is a
+     * tuple, same as record as a set is just a record with `unit` for every
+     * value.
      */
-    trilogy_value* contents;
+    trilogy_tuple_value* contents;
 } trilogy_set_value;
 
 typedef struct trilogy_record_value {

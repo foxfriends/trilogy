@@ -1,0 +1,14 @@
+proc main!() {
+  let set = [| 1, 2, 3, 4, 5 |]
+  let [| 1, 2, ..rest |] = set
+  assert set == [| 1, 2, 3, 4, 5 |]
+  assert rest == [| 3, 4, 5 |]
+  assert !is [| 1, 2, 3, 4 |] = set
+  assert !is [| 1, 2 |] = set
+  assert is [| 1, 2, .._ |] = set
+  assert !is [||] = set
+  let [| ..clone |] = set
+  assert clone == set
+  assert clone !== set
+  assert !is {| ..record |} = set
+}

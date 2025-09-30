@@ -1,0 +1,4 @@
+proc main!() {
+  let {| x => 5 |} = {| 'x => 5 |}
+  assert x == 'x
+}

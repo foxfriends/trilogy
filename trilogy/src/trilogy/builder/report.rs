@@ -251,6 +251,36 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
+                    MultiValuedPatternInSet { expression } => {
+                        let span = cache.span(location, *expression);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message(
+                                "the elements of a set pattern may only bind to a single value",
+                            )
+                            .with_label(
+                                Label::new(span)
+                                    .with_message(
+                                        "this pattern can possibly match more than one value",
+                                    )
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
+                    MultiValuedPatternInRecordKey { expression } => {
+                        let span = cache.span(location, *expression);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message(
+                                "the keys of a record pattern may only bind to a single value",
+                            )
+                            .with_label(
+                                Label::new(span)
+                                    .with_message(
+                                        "this pattern can possibly match more than one value",
+                                    )
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
                 }
             }
             ErrorKind::Analysis(location, error) => {
