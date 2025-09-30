@@ -1,10 +1,8 @@
 use super::*;
 use crate::{Converter, Error};
 use source_span::Span;
-use trilogy_parser::{
-    Spanned,
-    syntax::{self, RestPattern},
-};
+use trilogy_parser::Spanned;
+use trilogy_parser::syntax::{self, RestPattern};
 
 #[derive(Clone, Debug)]
 pub struct Expression {
@@ -409,9 +407,10 @@ impl Expression {
 
     fn convert_template(converter: &mut Converter, ast: syntax::Template) -> Self {
         let span = ast.span();
-        let prefix = Self::string(ast.template_start.span, ast.prefix());
+        let prefix_str = ast.prefix();
         match ast.tag {
             Some(tag) => {
+                let prefix = Self::string(ast.template_start.span, prefix_str);
                 let (strings, interpolations) = ast
                     .segments
                     .into_iter()
@@ -446,11 +445,14 @@ impl Expression {
             }
             None => {
                 let span = ast.span();
-                let prefix = Self::string(ast.template_start.span, ast.prefix());
+                let prefix = (!prefix_str.is_empty())
+                    .then_some(Self::string(ast.template_start.span, prefix_str.clone()));
                 ast.segments
                     .into_iter()
                     .map(|seg| {
-                        let suffix = Self::string(seg.suffix_token().span, seg.suffix());
+                        let suffix = seg.suffix();
+                        let suffix = (!suffix.is_empty())
+                            .then_some(Self::string(seg.suffix_token().span, suffix));
                         let interpolation =
                             Expression::builtin(seg.interpolation.span(), Builtin::ToString)
                                 .apply_to(
@@ -460,15 +462,21 @@ impl Expression {
                         (interpolation, suffix)
                     })
                     .fold(prefix, |expr, (interpolation, suffix)| {
-                        Self::builtin(span, Builtin::Glue)
-                            .apply_to(
-                                span,
-                                Self::builtin(span, Builtin::Glue)
-                                    .apply_to(span, expr)
-                                    .apply_to(span, interpolation),
-                            )
-                            .apply_to(span, suffix)
+                        let expr = match expr {
+                            Some(expr) => Self::builtin(span, Builtin::Glue)
+                                .apply_to(span, expr)
+                                .apply_to(span, interpolation),
+                            None => interpolation,
+                        };
+                        let expr = match suffix {
+                            Some(suffix) => Self::builtin(span, Builtin::Glue)
+                                .apply_to(span, expr)
+                                .apply_to(span, suffix),
+                            None => expr,
+                        };
+                        Some(expr)
                     })
+                    .unwrap_or(Self::string(ast.template_start.span, prefix_str))
             }
         }
     }
