@@ -1,0 +1,6 @@
+module rules at "./rules.tri" use is_ok
+
+proc main!() {
+  assert is is_ok('ok)
+  assert is not is_ok('not_ok)
+}

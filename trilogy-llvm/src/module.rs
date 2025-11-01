@@ -526,7 +526,9 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Constant(constant) => {
                     self.import_accessor(&format!("{}::{}", location, &constant.name.to_string()));
                 }
-                DefinitionItem::Rule(..) => todo!(),
+                DefinitionItem::Rule(rule) => {
+                    self.import_accessor(&format!("{}::{}", location, &rule.name.to_string()));
+                }
                 DefinitionItem::Test(..) => continue,
             }
         }

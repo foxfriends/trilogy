@@ -1,0 +1,2 @@
+rule is_ok('ok)
+export is_ok
