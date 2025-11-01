@@ -529,7 +529,7 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Rule(rule) => {
                     self.import_accessor(&format!("{}::{}", location, &rule.name.to_string()));
                 }
-                DefinitionItem::Test(..) => continue,
+                DefinitionItem::Test(..) => unreachable!(),
             }
         }
 
