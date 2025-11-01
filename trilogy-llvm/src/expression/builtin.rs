@@ -72,8 +72,7 @@ impl<'ctx> Codegen<'ctx> {
                 let value = self.compile_expression(expression, name)?;
                 // NOTE: this one does not require destroying because to_string is not a C function.
                 // Calling the trilogy function will destroy it
-                let string = self.to_string(value, "");
-                Some(string)
+                Some(self.to_string(value, ""))
             }
             Builtin::Negate => {
                 let value = self.compile_expression(expression, "")?;
@@ -446,8 +445,20 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
-            Builtin::Compose => todo!(),
-            Builtin::RCompose => todo!(),
+            Builtin::Compose => {
+                let lhs = self.compile_expression(lhs, "compose.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "compose.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                Some(self.compose(lhs, rhs, name))
+            }
+            Builtin::RCompose => {
+                let lhs = self.compile_expression(lhs, "rcompose.lhs")?;
+                self.bind_temporary(lhs);
+                let rhs = self.compile_expression(rhs, "rcompose.rhs")?;
+                let lhs = self.use_temporary(lhs).unwrap();
+                Some(self.compose(rhs, lhs, name))
+            }
             Builtin::Pipe => {
                 let lhs = self.compile_expression(lhs, "pipe.arg")?;
                 self.bind_temporary(lhs);
@@ -534,39 +545,39 @@ impl<'ctx> Codegen<'ctx> {
                 );
                 continue_to
             }
-            Builtin::Access => todo!(),
-            Builtin::And => todo!(),
-            Builtin::Or => todo!(),
-            Builtin::Add => todo!(),
-            Builtin::Subtract => todo!(),
-            Builtin::Multiply => todo!(),
-            Builtin::Divide => todo!(),
-            Builtin::Remainder => todo!(),
-            Builtin::Power => todo!(),
-            Builtin::IntDivide => todo!(),
-            Builtin::StructuralEquality => todo!(),
-            Builtin::StructuralInequality => todo!(),
-            Builtin::ReferenceEquality => todo!(),
-            Builtin::ReferenceInequality => todo!(),
-            Builtin::Lt => todo!(),
-            Builtin::Gt => todo!(),
-            Builtin::Leq => todo!(),
-            Builtin::Geq => todo!(),
-            Builtin::BitwiseAnd => todo!(),
-            Builtin::BitwiseOr => todo!(),
-            Builtin::BitwiseXor => todo!(),
-            Builtin::LeftShift => todo!(),
-            Builtin::LeftShiftExtend => todo!(),
-            Builtin::LeftShiftContract => todo!(),
-            Builtin::RightShift => todo!(),
-            Builtin::RightShiftExtend => todo!(),
-            Builtin::RightShiftContract => todo!(),
-            Builtin::Cons => todo!(),
-            Builtin::Glue => todo!(),
-            Builtin::Compose => todo!(),
-            Builtin::RCompose => todo!(),
-            Builtin::Pipe => todo!(),
-            Builtin::RPipe => todo!(),
+            Builtin::Access => self.reference_core("member_access"),
+            Builtin::And => self.reference_core("boolean_and"),
+            Builtin::Or => self.reference_core("boolean_or"),
+            Builtin::Add => self.reference_core("add"),
+            Builtin::Subtract => self.reference_core("subtract"),
+            Builtin::Multiply => self.reference_core("multiply"),
+            Builtin::Divide => self.reference_core("divide"),
+            Builtin::Remainder => self.reference_core("rem"),
+            Builtin::Power => self.reference_core("power"),
+            Builtin::IntDivide => self.reference_core("int_divide"),
+            Builtin::StructuralEquality => self.reference_core("structural_eq"),
+            Builtin::StructuralInequality => self.reference_core("structural_neq"),
+            Builtin::ReferenceEquality => self.reference_core("referential_eq"),
+            Builtin::ReferenceInequality => self.reference_core("referential_neq"),
+            Builtin::Lt => self.reference_core("lt"),
+            Builtin::Gt => self.reference_core("gt"),
+            Builtin::Leq => self.reference_core("lte"),
+            Builtin::Geq => self.reference_core("gte"),
+            Builtin::BitwiseAnd => self.reference_core("bitwise_and"),
+            Builtin::BitwiseOr => self.reference_core("bitwise_or"),
+            Builtin::BitwiseXor => self.reference_core("bitwise_xor"),
+            Builtin::LeftShift => self.reference_core("shift_left"),
+            Builtin::LeftShiftExtend => self.reference_core("shift_left_extend"),
+            Builtin::LeftShiftContract => self.reference_core("shift_left_contract"),
+            Builtin::RightShift => self.reference_core("shift_right"),
+            Builtin::RightShiftExtend => self.reference_core("shift_right_extend"),
+            Builtin::RightShiftContract => self.reference_core("shift_right_contract"),
+            Builtin::Cons => self.reference_core("cons"),
+            Builtin::Glue => self.reference_core("glue"),
+            Builtin::Compose => self.reference_core("compose"),
+            Builtin::RCompose => self.reference_core("rcompose"),
+            Builtin::Pipe => self.reference_core("pipe"),
+            Builtin::RPipe => self.reference_core("rpipe"),
             // Not referenceable operators
             Builtin::Sequence => unreachable!(),
             Builtin::ToString => unreachable!(),

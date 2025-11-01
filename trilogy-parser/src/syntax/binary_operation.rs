@@ -137,8 +137,8 @@ impl BinaryOperator {
             OpSemi => Self::Sequence(token),
             OpColon => Self::Cons(token),
             OpGlue => Self::Glue(token),
-            OpGtGt => Self::Compose(token),
-            OpLtLt => Self::RCompose(token),
+            OpLtLt => Self::Compose(token),
+            OpGtGt => Self::RCompose(token),
             OpPipeGt => Self::Pipe(token),
             OpLtPipe => Self::RPipe(token),
             _ => unreachable!(),
@@ -218,8 +218,8 @@ mod test {
     test_parse!(binop_seq: "a ; b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Sequence _) _))");
     test_parse!(binop_cons: "a : b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Cons _) _))");
     test_parse!(binop_glue: "a <> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Glue _) _))");
-    test_parse!(binop_compose: "a >> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Compose _) _))");
-    test_parse!(binop_rcompose: "a << b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RCompose _) _))");
+    test_parse!(binop_compose: "a << b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Compose _) _))");
+    test_parse!(binop_rcompose: "a >> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RCompose _) _))");
     test_parse!(binop_pipe: "a |> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Pipe _) _))");
     test_parse!(binop_rpipe: "a <| b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RPipe _) _))");
 

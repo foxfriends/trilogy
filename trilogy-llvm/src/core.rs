@@ -24,6 +24,13 @@ impl<'ctx> Codegen<'ctx> {
         self.import_accessor(&format!("trilogy:core::{name}"))
     }
 
+    fn get_core(&self, name: &str) -> PointerValue<'ctx> {
+        let target = self.allocate_value(name);
+        let accessor = self.import_core(name);
+        self.call_internal(target, accessor, &[]);
+        target
+    }
+
     pub(crate) fn structural_eq(
         &self,
         target: PointerValue<'ctx>,
@@ -342,10 +349,27 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn to_string(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let target = self.allocate_value("to_string");
-        let function = self.import_core("to_string");
-        self.call_internal(target, function, &[]);
-        self.call_procedure(target, &[argument], name)
+        let to_string = self.get_core("to_string");
+        self.call_procedure(to_string, &[argument], name)
+    }
+
+    pub(crate) fn compose(
+        &self,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let compose = self.get_core("compose");
+        self.call_procedure(compose, &[lhs, rhs], name)
+    }
+
+    pub(crate) fn curry_2(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+        let curry_2 = self.get_core("curry_2");
+        self.apply_function(curry_2, argument, name)
+    }
+
+    pub(crate) fn reference_core(&self, name: &str) -> PointerValue<'ctx> {
+        self.curry_2(self.get_core(name), name)
     }
 
     pub(crate) fn invert(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {

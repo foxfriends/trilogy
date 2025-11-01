@@ -1,0 +1,7 @@
+proc main!() {
+  assert (f >> g) 1 == 'g:'f:1
+  assert (f << g) 1 == 'f:'g:1
+}
+
+func f x = 'f:x
+func g x = 'g:x

@@ -22,6 +22,14 @@ void shift_left_contract(
     trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
 );
 
+void shift_right(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void shift_right_extend(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+);
+void shift_right_contract(
+    trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs
+);
+
 void referential_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void referential_neq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void structural_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
@@ -31,6 +39,7 @@ void add(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void subtract(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void multiply(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void divide(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void int_divide(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void rem(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void power(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void negate(trilogy_value* rv, trilogy_value* val);

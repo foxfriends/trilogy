@@ -67,8 +67,8 @@ pub(crate) enum Precedence {
     Term,
     Factor,
     Exponent,
-    Compose,
     RCompose,
+    Compose,
     Path,
     Application,
     Unary,
@@ -191,8 +191,8 @@ impl Expression {
                 Box::new(ModuleAccess::parse(parser, lhs)?),
             ))),
             OpColon if precedence <= Precedence::Cons => Self::binary(parser, lhs),
-            OpGtGt if precedence < Precedence::Compose => Self::binary(parser, lhs),
-            OpLtLt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
+            OpLtLt if precedence < Precedence::Compose => Self::binary(parser, lhs),
+            OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
             OpLtPipe if precedence < Precedence::RPipe => Self::binary(parser, lhs),
             OpGlue if precedence < Precedence::Glue => Self::binary(parser, lhs),
@@ -622,17 +622,17 @@ mod test {
           (Expression::Binary
             (BinaryOperation
               (Expression::Reference _)
-              (BinaryOperator::Compose _)
+              (BinaryOperator::RCompose _)
               (Expression::Binary
                 (BinaryOperation
                   (Expression::Binary
                     (BinaryOperation
                       (Expression::Reference _)
-                      (BinaryOperator::RCompose _)
+                      (BinaryOperator::Compose _)
                       (Expression::Reference _)))
-                  (BinaryOperator::RCompose _)
+                  (BinaryOperator::Compose _)
                   (Expression::Reference _)))))
-          (BinaryOperator::Compose _)
+          (BinaryOperator::RCompose _)
           (Expression::Reference _)))");
     test_parse!(expr_prec_application: "x - f y + f y <| -z" => Expression::parse => "
       (Expression::Binary

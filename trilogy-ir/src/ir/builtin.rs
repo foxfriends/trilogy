@@ -100,6 +100,7 @@ impl Builtin {
     pub(super) fn convert(ast: syntax::KeywordReference) -> Expression {
         let span = ast.span();
         let op = match ast.keyword {
+            syntax::Keyword::Access(..) => Self::Access,
             syntax::Keyword::And(..) => Self::And,
             syntax::Keyword::Or(..) => Self::Or,
             syntax::Keyword::Add(..) => Self::Add,

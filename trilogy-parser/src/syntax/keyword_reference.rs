@@ -17,6 +17,7 @@ impl Spanned for KeywordReference {
 
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum Keyword {
+    Access(Token),
     And(Token),
     Or(Token),
     Add(Token),
@@ -68,6 +69,7 @@ impl KeywordReference {
             return None;
         }
         let constructor = match tokens[1].token_type {
+            OpDot => Keyword::Access,
             OpBang => Keyword::Not,
             OpTilde => Keyword::Invert,
             KwYield => Keyword::Yield,
@@ -100,8 +102,8 @@ impl KeywordReference {
             OpComma => Keyword::Sequence,
             OpColon => Keyword::Cons,
             OpGlue => Keyword::Glue,
-            OpGtGt => Keyword::Compose,
-            OpLtLt => Keyword::RCompose,
+            OpLtLt => Keyword::Compose,
+            OpGtGt => Keyword::RCompose,
             OpPipeGt => Keyword::Pipe,
             OpLtPipe => Keyword::RPipe,
             KwBreak => Keyword::Break,

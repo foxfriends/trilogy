@@ -13,8 +13,14 @@ export exit_
 extern proc structural_eq!(lhs, rhs)
 export structural_eq
 
+extern proc structural_neq!(lhs, rhs)
+export structural_neq
+
 extern proc referential_eq!(lhs, rhs)
 export referential_eq
+
+extern proc referential_neq!(lhs, rhs)
+export referential_neq
 
 extern proc lookup_atom!(atom)
 export lookup_atom
@@ -70,6 +76,15 @@ export multiply
 extern proc divide!(lhs, rhs)
 export divide
 
+extern proc int_divide!(lhs, rhs)
+export int_divide
+
+extern proc rem!(lhs, rhs)
+export rem
+
+extern proc power!(lhs, rhs)
+export power
+
 extern proc boolean_and!(lhs, rhs)
 export boolean_and
 
@@ -91,6 +106,24 @@ export bitwise_xor
 extern proc bitwise_invert!(val)
 export bitwise_invert
 
+extern proc shift_left!(lhs, rhs)
+export shift_left
+
+extern proc shift_left_extend!(lhs, rhs)
+export shift_left_extend
+
+extern proc shift_left_contract!(lhs, rhs)
+export shift_left_contract
+
+extern proc shift_right!(lhs, rhs)
+export shift_right
+
+extern proc shift_right_extend!(lhs, rhs)
+export shift_right_extend
+
+extern proc shift_right_contract!(lhs, rhs)
+export shift_right_contract
+
 extern proc primitive_to_string!(val)
 
 export to_string
@@ -102,7 +135,7 @@ proc to_string!(val) {
       $"${lhs}(${rhs})"
     }
     case typeof 'array {
-      let mut str = $"["
+      let mut str = "["
       let mut i = 0
       while i < length!(val) {
         str <>= $"${val.i}"
@@ -115,3 +148,28 @@ proc to_string!(val) {
     }
     else then primitive_to_string!(val)
 }
+
+export compose
+proc compose!(f, g) {
+  return fn x. f (g x)
+}
+
+export rcompose
+proc rcompose!(f, g) {
+  return fn x. g (f x)
+}
+
+export pipe
+proc pipe!(x, f) {
+  return f x
+}
+
+export rpipe
+proc rpipe!(f, x) {
+  return f x
+}
+
+# TODO: this "works" but there is no equality on the captured operators (there should be)
+#       could hack that in with some memoization or something, or implement this properly
+export curry_2
+func curry_2 procedure x y = procedure!(x, y)

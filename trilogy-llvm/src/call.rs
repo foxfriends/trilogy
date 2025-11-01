@@ -481,7 +481,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap()
     }
 
-    /// An core function is much like an internal function, but is defined in C
+    /// A core function is much like an internal function, but is defined in C
     /// and called directly, so should not use FastCC.
     pub(crate) fn call_core(
         &self,

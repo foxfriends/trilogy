@@ -1,0 +1,106 @@
+proc main!() {
+  let access = (.)
+  assert access {|'a => 'b|} 'a == 'b
+
+  let and_ = (&&)
+  assert and_ true true
+  assert !(and_ false true)
+
+  let or_ = (||)
+  assert or_ false true
+  assert or_ true false
+
+  let add = (+)
+  assert add 3 4 == 7
+
+  let subtract = (-)
+  assert subtract 5 4 == 1
+
+  let multiply = (*)
+  assert multiply 5 4 == 20
+
+  let divide = (/)
+  assert divide 5 4 == 5/4
+
+  let remainder = (%)
+  assert remainder 5 3 == 2
+
+  let power = (**)
+  assert power 5 3 == 125
+
+  let int_divide = (//)
+  assert int_divide 5 4 == 1
+
+  let structural_eq = (==)
+  assert structural_eq [] []
+
+  let structural_neq = (!=)
+  assert structural_neq [1] []
+
+  let a = []
+  let referential_eq = (===)
+  assert referential_eq a a
+
+  let referential_neq = (!==)
+  assert referential_neq [] []
+
+  let lt = (<)
+  assert lt 3 5
+
+  let leq = (<=)
+  assert leq 3 3
+
+  let gt = (>)
+  assert gt 3 1
+
+  let geq = (>=)
+  assert geq 3 3
+
+  let b_and = (&)
+  assert b_and 0bb01 0bb10 == 0bb00
+
+  let b_or = (|)
+  assert b_or 0bb01 0bb10 == 0bb11
+
+  let b_xor = (^)
+  assert b_xor 0bb011 0bb101 == 0bb110
+
+  let lsh = (<~)
+  assert lsh 0bb0001 2 == 0bb0100
+
+  let lshex = (<~~)
+  assert lshex 0bb0001 2 == 0bb000100
+
+  let lshcon = (<<~)
+  assert lshcon 0bb0001 2 == 0bb01
+
+  let rsh = (~>)
+  assert rsh 0bb0001 2 == 0bb0000
+
+  let rshex = (~~>)
+  assert rshex 0bb0001 2 == 0bb000001
+
+  let rshcon = (~>>)
+  assert rshcon 0bb0001 2 == 0bb00
+
+  let cons = (:)
+  assert cons 'a 'b == 'a:'b
+
+  let glue = (<>)
+  assert glue "A" "B" == "AB"
+
+  let compose = (<<)
+  assert compose f g 1 == 'f:('g:1)
+
+  let rcompose = (>>)
+  assert rcompose f g 1 == 'g:('f:1)
+
+  let pipe = (|>)
+  assert pipe 1 f == 'f:1
+
+  let rpipe = (<|)
+  assert rpipe f 1 == 'f:1
+}
+
+func f x = 'f:x
+func g x = 'g:x
