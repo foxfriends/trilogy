@@ -1,175 +1,231 @@
-extern proc print!(value)
+module c {
+  extern proc print!(value)
+  export print
+
+  extern proc panic!(value)
+  export panic
+
+  extern proc trace!(value)
+  export trace
+
+  extern proc exit_!(value)
+  export exit_
+
+  extern proc structural_eq!(lhs, rhs)
+  export structural_eq
+
+  extern proc structural_neq!(lhs, rhs)
+  export structural_neq
+
+  extern proc referential_eq!(lhs, rhs)
+  export referential_eq
+
+  extern proc referential_neq!(lhs, rhs)
+  export referential_neq
+
+  extern proc lookup_atom!(atom)
+  export lookup_atom
+
+  extern proc length!(arr)
+  export length
+
+  extern proc push!(arr, val)
+  export push
+
+  extern proc append!(arr, val)
+  export append
+
+  extern proc member_access!(container, index)
+  export member_access
+
+  extern proc glue!(lhs, rhs)
+  export glue
+
+  extern proc cons!(lhs, rhs)
+  export cons
+
+  extern proc construct!(lhs, rhs)
+  export construct
+
+  extern proc destruct!(val)
+  export destruct
+
+  extern proc compare!(lhs, rhs)
+  export compare
+
+  extern proc lt!(lhs, rhs)
+  export lt
+
+  extern proc lte!(lhs, rhs)
+  export lte
+
+  extern proc gt!(lhs, rhs)
+  export gt
+
+  extern proc gte!(lhs, rhs)
+  export gte
+
+  extern proc add!(lhs, rhs)
+  export add
+
+  extern proc subtract!(lhs, rhs)
+  export subtract
+
+  extern proc multiply!(lhs, rhs)
+  export multiply
+
+  extern proc divide!(lhs, rhs)
+  export divide
+
+  extern proc int_divide!(lhs, rhs)
+  export int_divide
+
+  extern proc rem!(lhs, rhs)
+  export rem
+
+  extern proc power!(lhs, rhs)
+  export power
+
+  extern proc boolean_and!(lhs, rhs)
+  export boolean_and
+
+  extern proc boolean_or!(lhs, rhs)
+  export boolean_or
+
+  extern proc boolean_not!(lhs, rhs)
+  export boolean_not
+
+  extern proc bitwise_and!(lhs, rhs)
+  export bitwise_and
+
+  extern proc bitwise_or!(lhs, rhs)
+  export bitwise_or
+
+  extern proc bitwise_xor!(lhs, rhs)
+  export bitwise_xor
+
+  extern proc bitwise_invert!(val)
+  export bitwise_invert
+
+  extern proc shift_left!(lhs, rhs)
+  export shift_left
+
+  extern proc shift_left_extend!(lhs, rhs)
+  export shift_left_extend
+
+  extern proc shift_left_contract!(lhs, rhs)
+  export shift_left_contract
+
+  extern proc shift_right!(lhs, rhs)
+  export shift_right
+
+  extern proc shift_right_extend!(lhs, rhs)
+  export shift_right_extend
+
+  extern proc shift_right_contract!(lhs, rhs)
+  export shift_right_contract
+
+  extern proc primitive_to_string!(val)
+}
+
+const print = c::print
 export print
 
-extern proc panic!(value)
+const panic = c::panic
 export panic
 
-extern proc trace!(value)
+const trace = c::trace
 export trace
 
-extern proc exit_!(value)
-export exit_
-
-extern proc structural_eq!(lhs, rhs)
-export structural_eq
-
-extern proc structural_neq!(lhs, rhs)
-export structural_neq
-
-extern proc referential_eq!(lhs, rhs)
-export referential_eq
-
-extern proc referential_neq!(lhs, rhs)
-export referential_neq
-
-extern proc lookup_atom!(atom)
-export lookup_atom
-
-extern proc length!(arr)
-export length
-
-extern proc push!(arr, val)
-export push
-
-extern proc append!(arr, val)
-export append
-
-extern proc member_access!(container, index)
-export member_access
-
-extern proc glue!(lhs, rhs)
-export glue
-
-extern proc cons!(lhs, rhs)
-export cons
-
-extern proc construct!(lhs, rhs)
-export construct
-
-extern proc destruct!(val)
-export destruct
-
-extern proc compare!(lhs, rhs)
-export compare
-
-extern proc lt!(lhs, rhs)
-export lt
-
-extern proc lte!(lhs, rhs)
-export lte
-
-extern proc gt!(lhs, rhs)
-export gt
-
-extern proc gte!(lhs, rhs)
-export gte
-
-extern proc add!(lhs, rhs)
-export add
-
-extern proc subtract!(lhs, rhs)
-export subtract
-
-extern proc multiply!(lhs, rhs)
-export multiply
-
-extern proc divide!(lhs, rhs)
-export divide
-
-extern proc int_divide!(lhs, rhs)
-export int_divide
-
-extern proc rem!(lhs, rhs)
-export rem
-
-extern proc power!(lhs, rhs)
-export power
-
-extern proc boolean_and!(lhs, rhs)
-export boolean_and
-
-extern proc boolean_or!(lhs, rhs)
-export boolean_or
-
-extern proc boolean_not!(lhs, rhs)
-export boolean_not
-
-extern proc bitwise_and!(lhs, rhs)
-export bitwise_and
-
-extern proc bitwise_or!(lhs, rhs)
-export bitwise_or
-
-extern proc bitwise_xor!(lhs, rhs)
-export bitwise_xor
-
-extern proc bitwise_invert!(val)
-export bitwise_invert
-
-extern proc shift_left!(lhs, rhs)
-export shift_left
-
-extern proc shift_left_extend!(lhs, rhs)
-export shift_left_extend
-
-extern proc shift_left_contract!(lhs, rhs)
-export shift_left_contract
-
-extern proc shift_right!(lhs, rhs)
-export shift_right
-
-extern proc shift_right_extend!(lhs, rhs)
-export shift_right_extend
-
-extern proc shift_right_contract!(lhs, rhs)
-export shift_right_contract
-
-extern proc primitive_to_string!(val)
-
 export to_string
-proc to_string!(val) {
-  return match val
-    case lhs:rhs then $"${lhs}:${rhs}"
-    case typeof 'struct {
-      let lhs:rhs = destruct!(val)
-      $"${lhs}(${rhs})"
-    }
-    case typeof 'array {
-      let mut str = "["
-      let mut i = 0
-      while i < length!(val) {
-        str <>= $"${val.i}"
-        i += 1
-        if i != length!(val) {
-          str <>= ", "
-        }
+func to_string val = match val
+  case lhs:rhs then $"${lhs}:${rhs}"
+  case typeof 'struct {
+    let lhs:rhs = c::destruct!(val)
+    $"${lhs}(${rhs})"
+  }
+  case typeof 'array {
+    let mut str = "["
+    let mut i = 0
+    while i < c::length!(val) {
+      str <>= $"${val.i}"
+      i += 1
+      if i != c::length!(val) {
+        str <>= ", "
       }
-      str <> "]"
     }
-    else then primitive_to_string!(val)
-}
+    str <> "]"
+  }
+  else then c::primitive_to_string!(val)
+
 
 export compose
-proc compose!(f, g) {
-  return fn x. f (g x)
-}
+func compose f g x = f (g x)
 
 export rcompose
-proc rcompose!(f, g) {
-  return fn x. g (f x)
-}
+func rcompose f g x = g (f x)
 
 export pipe
-proc pipe!(x, f) {
-  return f x
-}
+func pipe x f = f x
 
 export rpipe
-proc rpipe!(f, x) {
-  return f x
-}
+func rpipe f x = f x
 
-# TODO: this "works" but there is no equality on the captured operators (there should be)
-#       could hack that in with some memoization or something, or implement this properly
-export curry_2
-func curry_2 procedure x y = procedure!(x, y)
+func boolean_and lhs rhs = c::boolean_and!(lhs, rhs)
+export boolean_and
+func boolean_or lhs rhs = c::boolean_or!(lhs, rhs)
+export boolean_or
+func structural_eq lhs rhs = c::structural_eq!(lhs, rhs)
+export structural_eq
+func structural_neq lhs rhs = c::structural_neq!(lhs, rhs)
+export structural_neq
+func referential_eq lhs rhs = c::referential_eq!(lhs, rhs)
+export referential_eq
+func referential_neq lhs rhs = c::referential_neq!(lhs, rhs)
+export referential_neq
+func bitwise_or lhs rhs = c::bitwise_or!(lhs, rhs)
+export bitwise_or
+func bitwise_and lhs rhs = c::bitwise_and!(lhs, rhs)
+export bitwise_and
+func bitwise_xor lhs rhs = c::bitwise_xor!(lhs, rhs)
+export bitwise_xor
+func shift_left lhs rhs = c::shift_left!(lhs, rhs)
+export shift_left
+func shift_left_extend lhs rhs = c::shift_left_extend!(lhs, rhs)
+export shift_left_extend
+func shift_left_contract lhs rhs = c::shift_left_contract!(lhs, rhs)
+export shift_left_contract
+func shift_right lhs rhs = c::shift_right!(lhs, rhs)
+export shift_right
+func shift_right_extend lhs rhs = c::shift_right_extend!(lhs, rhs)
+export shift_right_extend
+func shift_right_contract lhs rhs = c::shift_right_contract!(lhs, rhs)
+export shift_right_contract
+func member_access lhs rhs = c::member_access!(lhs, rhs)
+export member_access
+func glue lhs rhs = c::glue!(lhs, rhs)
+export glue
+func lt lhs rhs = c::lt!(lhs, rhs)
+export lt
+func gt lhs rhs = c::gt!(lhs, rhs)
+export gt
+func lte lhs rhs = c::lte!(lhs, rhs)
+export lte
+func gte lhs rhs = c::gte!(lhs, rhs)
+export gte
+func add lhs rhs = c::add!(lhs, rhs)
+export add
+func subtract lhs rhs = c::subtract!(lhs, rhs)
+export subtract
+func multiply lhs rhs = c::multiply!(lhs, rhs)
+export multiply
+func divide lhs rhs = c::divide!(lhs, rhs)
+export divide
+func int_divide lhs rhs = c::int_divide!(lhs, rhs)
+export int_divide
+func power lhs rhs = c::power!(lhs, rhs)
+export power
+func rem lhs rhs = c::rem!(lhs, rhs)
+export rem
+func cons lhs rhs = c::cons!(lhs, rhs)
+export cons

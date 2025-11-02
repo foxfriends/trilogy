@@ -2,5 +2,6 @@ module core at "trilogy:core" use cons
 
 proc main!() {
   assert cons === core::cons
-  assert cons!(1, 2) == 1:2
+  assert cons === (:)
+  assert cons 1 2 == 1:2
 }

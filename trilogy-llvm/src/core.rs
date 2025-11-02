@@ -107,7 +107,7 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(crate) fn to_string(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
         let to_string = self.get_core("to_string");
-        self.call_procedure(to_string, &[argument], name)
+        self.apply_function(to_string, argument, name)
     }
 
     pub(crate) fn compose(
@@ -117,16 +117,14 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let compose = self.get_core("compose");
-        self.call_procedure(compose, &[lhs, rhs], name)
-    }
-
-    pub(crate) fn curry_2(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let curry_2 = self.get_core("curry_2");
-        self.apply_function(curry_2, argument, name)
+        self.bind_temporary(rhs);
+        let composed = self.apply_function(compose, lhs, name);
+        let rhs = self.use_temporary(rhs).unwrap();
+        self.apply_function(composed, rhs, name)
     }
 
     pub(crate) fn reference_core(&self, name: &str) -> PointerValue<'ctx> {
-        self.curry_2(self.get_core(name), name)
+        self.get_core(name)
     }
 
     pub(crate) fn invert(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {
