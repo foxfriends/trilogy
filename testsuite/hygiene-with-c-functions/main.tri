@@ -1,0 +1,10 @@
+# structural_eq is defined in the builtin core.c, writing a function with this name should
+# not cause issue, but if we're not hygienic about names then it does.
+proc structural_eq!(a, b) {
+  return false
+}
+
+proc main!() {
+  assert !structural_eq!(1, 1)
+  assert 1 == 1
+}

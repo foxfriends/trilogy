@@ -26,9 +26,9 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn add_continuation(&self, name: &str) -> FunctionValue<'ctx> {
         let (parent_name, parent_linkage_name, span) = self.get_current_definition();
         let name = if name.is_empty() {
-            parent_linkage_name
+            format!("cont#{parent_linkage_name}")
         } else {
-            format!("{parent_linkage_name}.{name}")
+            format!("cont#{parent_linkage_name}.{name}")
         };
         let function =
             self.module
@@ -77,9 +77,9 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn add_next_to_continuation(&self, arity: usize, name: &str) -> FunctionValue<'ctx> {
         let (parent_name, parent_linkage_name, span) = self.get_current_definition();
         let name = if name.is_empty() {
-            parent_linkage_name
+            format!("cont#{parent_linkage_name}")
         } else {
-            format!("{parent_linkage_name}.{name}/{arity}")
+            format!("cont#{parent_linkage_name}.{name}/{arity}")
         };
         let function = self.module.add_function(
             &name,
@@ -112,7 +112,7 @@ impl<'ctx> Codegen<'ctx> {
         function
     }
 
-    pub(crate) fn add_procedure(
+    fn add_definition(
         &self,
         name: &str,
         arity: usize,
@@ -150,6 +150,25 @@ impl<'ctx> Codegen<'ctx> {
         function
     }
 
+    pub(crate) fn add_procedure(
+        &self,
+        name: &str,
+        arity: usize,
+        debug_name: &str,
+        span: Span,
+        has_context: bool,
+        is_local_to_unit: bool,
+    ) -> FunctionValue<'ctx> {
+        self.add_definition(
+            &format!("proc#{name}"),
+            arity,
+            debug_name,
+            span,
+            has_context,
+            is_local_to_unit,
+        )
+    }
+
     pub(crate) fn add_function(
         &self,
         name: &str,
@@ -158,7 +177,14 @@ impl<'ctx> Codegen<'ctx> {
         has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
-        self.add_procedure(name, 1, debug_name, span, has_context, is_local_to_unit)
+        self.add_definition(
+            &format!("func#{name}"),
+            1,
+            debug_name,
+            span,
+            has_context,
+            is_local_to_unit,
+        )
     }
 
     pub(crate) fn add_rule(
@@ -170,7 +196,14 @@ impl<'ctx> Codegen<'ctx> {
         has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
-        self.add_procedure(name, arity, debug_name, span, has_context, is_local_to_unit)
+        self.add_definition(
+            &format!("rule#{name}"),
+            arity,
+            debug_name,
+            span,
+            has_context,
+            is_local_to_unit,
+        )
     }
 
     pub(crate) fn add_accessor(
