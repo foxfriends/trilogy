@@ -1,0 +1,11 @@
+proc main!() {
+  let "hello" <> world = "hello world";
+  assert world == " world"
+
+  let hello <> "world" = "hello world";
+  assert hello == "hello "
+
+  let "hello" <> "world" = "helloworld";
+
+  for "goodbye" <> world = "hello world" { exit 1 }
+}

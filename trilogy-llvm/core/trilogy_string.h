@@ -26,3 +26,10 @@ trilogy_string_value* trilogy_string_concat(
 int trilogy_string_compare(
     trilogy_string_value* lhs, trilogy_string_value* rhs
 );
+
+bool trilogy_string_unglue_start(
+    trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
+);
+bool trilogy_string_unglue_end(
+    trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
+);

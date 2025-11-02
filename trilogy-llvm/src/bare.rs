@@ -112,6 +112,58 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn unglue_start(
+        &self,
+        out: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "unglue_start",
+            self.context.bool_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[out.into(), lhs.into(), rhs.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
+    pub(crate) fn unglue_end(
+        &self,
+        out: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+        name: &str,
+    ) -> IntValue<'ctx> {
+        let f = self.declare_bare(
+            "unglue_end",
+            self.context.bool_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[out.into(), lhs.into(), rhs.into()], name)
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_left()
+            .into_int_value()
+    }
+
     #[expect(
         clippy::too_many_arguments,
         reason = "this is a crazy C function sorry"

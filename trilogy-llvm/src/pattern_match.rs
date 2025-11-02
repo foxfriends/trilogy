@@ -1,5 +1,5 @@
 use crate::codegen::{Codegen, Merger};
-use crate::types::{TAG_ARRAY, TAG_NUMBER, TAG_RECORD, TAG_SET, TAG_STRUCT, TAG_TUPLE};
+use crate::types::{TAG_ARRAY, TAG_NUMBER, TAG_RECORD, TAG_SET, TAG_STRING, TAG_STRUCT, TAG_TUPLE};
 use inkwell::IntPredicate;
 use inkwell::basic_block::BasicBlock;
 use inkwell::values::{IntValue, PointerValue};
@@ -208,6 +208,8 @@ impl<'ctx> Codegen<'ctx> {
         on_fail: PointerValue<'ctx>,
         bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
+        // NOTE: app.argument         => lhs
+        //       application.argument => rhs
         match &application.function.value {
             Value::Builtin(builtin) => self.compile_match_apply_builtin(
                 *builtin,
@@ -285,7 +287,48 @@ impl<'ctx> Codegen<'ctx> {
                     }
                     Some(())
                 }
-                Value::Builtin(Builtin::Glue) => todo!(),
+                Value::Builtin(Builtin::Glue) => {
+                    let value_ref = self.use_temporary(value).unwrap();
+                    let tag = self.get_tag(value_ref, "");
+                    let is_string = self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::EQ,
+                            tag,
+                            self.tag_type().const_int(TAG_STRING, false),
+                            "",
+                        )
+                        .unwrap();
+                    self.pm_cont_if(is_string, on_fail);
+
+                    let output = self.allocate_value("unglued");
+                    self.bind_temporary(output);
+                    if matches!(app.argument.value, Value::String(..)) {
+                        // If left side is a string literal, compare to the start of the string
+                        let lhs = self
+                            .compile_expression(&app.argument, "glue_pattern_lhs")
+                            .unwrap();
+                        let is_ok = self.unglue_start(output, lhs, value_ref, "did_unglue");
+                        self.pm_cont_if(is_ok, on_fail);
+                        self.match_pattern(&application.argument, output, on_fail, bound_ids)?;
+                    } else if matches!(application.argument.value, Value::String(..)) {
+                        // If right side is a string literal, compare to the end of the string
+                        let rhs = self
+                            .compile_expression(&application.argument, "glue_pattern_rhs")
+                            .unwrap();
+                        let is_ok = self.unglue_end(output, value_ref, rhs, "did_unglue");
+                        self.pm_cont_if(is_ok, on_fail);
+                        self.match_pattern(&app.argument, output, on_fail, bound_ids)?;
+                    } else {
+                        panic!(
+                            "invalid glue pattern: one side should be a string literal, the other should be a pattern"
+                        );
+                    }
+                    if let Some(temp) = self.use_owned_temporary(output) {
+                        self.trilogy_value_destroy(temp);
+                    }
+                    Some(())
+                }
                 _ => panic!("only some operators are usable in pattern matching"),
             },
             _ => panic!("only builtins can be applied in pattern matching context"),

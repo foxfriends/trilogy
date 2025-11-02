@@ -49,6 +49,8 @@ void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val);
 void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val);
 
 void glue(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void unglue_start(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
+void unglue_end(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 
 void cons(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 

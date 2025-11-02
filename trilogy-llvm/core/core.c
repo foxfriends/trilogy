@@ -413,3 +413,15 @@ void destruct(trilogy_value* rv, trilogy_value* val) {
     trilogy_value_clone_into(&contents, &s->contents);
     trilogy_tuple_init_new(rv, &atom, &contents);
 }
+
+bool unglue_start(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_string_value* lhs_str = trilogy_string_assume(lhs);
+    trilogy_string_value* rhs_str = trilogy_string_assume(rhs);
+    return trilogy_string_unglue_start(rv, lhs_str, rhs_str);
+}
+
+bool unglue_end(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
+    trilogy_string_value* lhs_str = trilogy_string_assume(lhs);
+    trilogy_string_value* rhs_str = trilogy_string_assume(rhs);
+    return trilogy_string_unglue_end(rv, lhs_str, rhs_str);
+}

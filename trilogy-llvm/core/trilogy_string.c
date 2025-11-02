@@ -89,4 +89,24 @@ trilogy_string_value* trilogy_string_concat(
     return trilogy_string_init_new(rt, len, ptr);
 }
 
+bool trilogy_string_unglue_start(
+    trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
+) {
+    if (rhs->len < lhs->len) return false;
+    if (strncmp(lhs->contents, rhs->contents, lhs->len) != 0) return false;
+    trilogy_string_init_new(rt, rhs->len - lhs->len, rhs->contents + lhs->len);
+    return true;
+}
+
+bool trilogy_string_unglue_end(
+    trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
+) {
+    if (lhs->len < rhs->len) return false;
+    size_t keep_len = lhs->len - rhs->len;
+    if (strncmp(lhs->contents + keep_len, rhs->contents, rhs->len) != 0)
+        return false;
+    trilogy_string_init_new(rt, keep_len, lhs->contents);
+    return true;
+}
+
 void trilogy_string_destroy(trilogy_string_value* val) { free(val->contents); }
