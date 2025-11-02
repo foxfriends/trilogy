@@ -4,7 +4,7 @@ use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::module::Linkage;
 use inkwell::values::{BasicValue, PointerValue};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
-use trilogy_ir::visitor::Bindings;
+use trilogy_ir::visitor::{Bindings, HasBindings};
 use trilogy_parser::syntax;
 
 mod builtin;
@@ -460,7 +460,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
                 let value = self.compile_expression(&unif.expression, "let.expr")?;
                 let on_fail = self.get_end("let.fail");
-                for id in Bindings::of(&unif.pattern) {
+                for id in unif.pattern.bindings() {
                     let var = self.get_variable(&id).unwrap().ptr();
                     self.trilogy_value_destroy(var);
                 }
@@ -473,7 +473,13 @@ impl<'ctx> Codegen<'ctx> {
                 }
                 self.compile_expression(&decl.body, name)
             }
-            _ => todo!("non-deterministic branching {:?}", decl.query.value),
+            _ => {
+                let end = self.get_end("");
+                self.bind_temporary(end);
+                let next_to = self.compile_iterator(&decl.query, end)?;
+                self.push_execution(next_to);
+                self.compile_expression(&decl.body, name)
+            },
         }
     }
 

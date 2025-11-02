@@ -1,0 +1,8 @@
+module debug at "trilogy:debug" use dbg
+
+proc main!() {
+  let x = 1 or x = 5
+  dbg!(x)
+  if x < 3 { end }
+  assert x == 5
+}

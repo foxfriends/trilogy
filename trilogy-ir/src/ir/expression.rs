@@ -221,7 +221,7 @@ impl Expression {
             FunctionAssignment(ast) => crate::ir::Assignment::convert_function(converter, *ast),
             If(ast) => IfElse::convert_expression(converter, *ast),
             Match(ast) => crate::ir::Match::convert_expression(converter, *ast),
-            Defer(_ast) => todo!("Implement defer"),
+            Defer(_ast) => todo!("implement defer"),
             While(ast) => crate::ir::While::convert(converter, *ast),
             For(ast) => Self::convert_for_statement(converter, *ast),
             Expression(ast) => Self::convert(converter, *ast),

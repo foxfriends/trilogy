@@ -1,0 +1,13 @@
+module debug at "trilogy:debug" use dbg
+
+rule options(1)
+rule options(2)
+rule options(3)
+rule options(4)
+
+proc main!() {
+  let options(x)
+  dbg!(x)
+  if x < 3 { end }
+  assert x == 3
+}

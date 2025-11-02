@@ -173,9 +173,9 @@ impl<'ctx> Codegen<'ctx> {
                         );
                         upvalues.insert(id.clone(), original_upvalue);
 
-                        assert!(
-                            builder.get_insert_block().unwrap().get_parent()
-                                == self.builder.get_insert_block().unwrap().get_parent()
+                        assert_eq!(
+                            builder.get_insert_block().unwrap().get_parent(),
+                            self.builder.get_insert_block().unwrap().get_parent()
                         );
 
                         if let Some(closing) = scope.unclosed.borrow_mut().remove(&variable) {

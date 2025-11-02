@@ -460,6 +460,49 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_return(None).unwrap();
     }
 
+    pub(crate) fn push_execution(&self, end_to: PointerValue<'ctx>) {
+        let execution = self.add_continuation("execution");
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        let cancel_to = self.get_cancel("");
+        let resume_to = self.get_resume("");
+        let break_to = self.get_break("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
+        let continue_to = self.get_continue("");
+
+        // NOTE: cleanup will be inserted here
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+
+        let args = [
+            self.load_value(return_to, "").into(),
+            self.load_value(yield_to, "").into(),
+            self.load_value(end_to, "").into(),
+            self.load_value(cancel_to, "").into(),
+            self.load_value(resume_to, "").into(),
+            self.load_value(break_to, "").into(),
+            self.load_value(continue_to, "").into(),
+            self.load_value(next_to, "").into(),
+            self.load_value(done_to, "").into(),
+            self.value_type().const_zero().into(),
+            self.load_value(closure, "").into(),
+        ];
+
+        let call = self
+            .builder
+            .build_direct_call(execution, &args, "")
+            .unwrap();
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        self.end_continuation_point_as_close(closure.as_instruction().unwrap());
+        self.builder.build_return(None).unwrap();
+
+        self.begin_next_function(execution);
+    }
+
     /// An internal function in this case is one that follows the convention of
     /// the first parameter being the output parameter, and all values being
     /// TrilogyValue pointers.
