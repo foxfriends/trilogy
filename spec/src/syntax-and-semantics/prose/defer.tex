@@ -24,6 +24,9 @@ initially encountered the \kw{defer} statement and caused it to run.
 Semantically, the \kw{defer} statement itself doesn't evaluate anything, only annotates
 the current continuation with the code to be run later.
 
+% TODO: a defer statement could receive the final value of the continuation as a parameter
+% and evaluate to a replacement continuation value? confusing and weird, but seems accurate
+
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash D \Rightarrow \Phi$}
     \LeftLabel{Defer}
