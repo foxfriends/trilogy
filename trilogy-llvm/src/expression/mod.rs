@@ -474,6 +474,9 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_expression(&decl.body, name)
             }
             _ => {
+                // TODO: in theory, the above case should be covered by this one, but right now
+                // if the above case is deleted, there are a few test cases that fail through this
+                // case. Appears to be some cleanup that is being missed.
                 let end = self.get_end("");
                 self.bind_temporary(end);
                 let next_to = self.compile_iterator(&decl.query, end)?;
