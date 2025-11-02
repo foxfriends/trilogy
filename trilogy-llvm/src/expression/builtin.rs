@@ -39,7 +39,7 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Not => {
                 let argument = self.compile_expression(expression, "")?;
                 let out = self.allocate_value(name);
-                self.not(out, argument);
+                self.boolean_not(out, argument);
                 self.trilogy_value_destroy(argument);
                 Some(out)
             }
@@ -284,7 +284,7 @@ impl<'ctx> Codegen<'ctx> {
                 let rhs = self.compile_expression(rhs, "sub.rhs")?;
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
-                self.sub(out, lhs, rhs);
+                self.subtract(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
@@ -295,7 +295,7 @@ impl<'ctx> Codegen<'ctx> {
                 let rhs = self.compile_expression(rhs, "mul.rhs")?;
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
-                self.mul(out, lhs, rhs);
+                self.multiply(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
@@ -306,7 +306,7 @@ impl<'ctx> Codegen<'ctx> {
                 let rhs = self.compile_expression(rhs, "div.rhs")?;
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
-                self.div(out, lhs, rhs);
+                self.divide(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
@@ -328,7 +328,7 @@ impl<'ctx> Codegen<'ctx> {
                 let rhs = self.compile_expression(rhs, "pow.rhs")?;
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
-                self.pow(out, lhs, rhs);
+                self.power(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
@@ -339,7 +339,7 @@ impl<'ctx> Codegen<'ctx> {
                 let rhs = self.compile_expression(rhs, "intdiv.rhs")?;
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
-                self.int_div(out, lhs, rhs);
+                self.int_divide(out, lhs, rhs);
                 self.trilogy_value_destroy(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
