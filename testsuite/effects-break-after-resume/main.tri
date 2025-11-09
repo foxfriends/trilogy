@@ -1,4 +1,4 @@
-module debug at "trilogy:debug"
+import "trilogy:debug" as debug
 
 proc thing!(a) {
   let result = yield 'a(a)

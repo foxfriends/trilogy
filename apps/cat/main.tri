@@ -1,9 +1,9 @@
-module io at "trilogy:io" use print, readline
+import "trilogy:io" use print, readline
 
 proc main!() {
     while true {
         with { print!(readline!()) }
-            when 'EOF invert { break }
+            when 'EOF then { break }
             else yield
     }
 }

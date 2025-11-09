@@ -1,4 +1,4 @@
-module UnordList {
+type UnordList {
     proc empty!() {
         return 'unordered(unit)
     }
@@ -14,7 +14,7 @@ module UnordList {
     export empty, insert, print
 }
 
-module OrdList {
+type OrdList {
     func empty = 'ordered(unit)
 
     func insert v 'ordered(x : xs) =

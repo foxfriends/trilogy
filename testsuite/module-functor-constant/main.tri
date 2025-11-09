@@ -1,4 +1,4 @@
-module child a b {
+type child a b {
   const sum = a + b
 
   export sum

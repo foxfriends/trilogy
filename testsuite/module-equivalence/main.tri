@@ -1,5 +1,5 @@
-module a at "./a.tri"
-module b at "./b.tri"
+import "./a.tri" as a
+import "./b.tri" as b
 
 proc main!() {
   assert "check 1" as a !== b

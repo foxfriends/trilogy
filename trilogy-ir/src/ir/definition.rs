@@ -1,7 +1,7 @@
 use super::*;
 use crate::{Converter, Error, Id, visitor::MightBeConstant};
 use source_span::Span;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use trilogy_parser::{Spanned, syntax};
 
 #[derive(Clone, Debug)]
@@ -30,6 +30,7 @@ impl Definition {
         converter: &mut Converter,
         ast: syntax::Definition,
         definitions: &mut Definitions,
+        anonymous: &HashMap<Span, Identifier>,
     ) {
         match ast.item {
             syntax::DefinitionItem::Export(ast) => {
@@ -83,21 +84,28 @@ impl Definition {
                 };
                 function.overloads.push(Function::convert(converter, *ast))
             }
-            syntax::DefinitionItem::ExternalModule(ast) => {
-                if let Some(module_use) = ast.module_use {
-                    let module_symbol = converter.declared(ast.head.name.as_ref()).unwrap().clone();
-                    let module_ident = Identifier::declared(converter, &ast.head.name).unwrap();
-                    let module_definition = definitions.get_mut(&module_symbol).unwrap();
+            syntax::DefinitionItem::Import(import) => {
+                let module_ident = if let Some(type_as) = import.type_as {
+                    let ident = Identifier::declared(converter, &type_as.identifier).unwrap();
+                    let module_definition = definitions.get_mut(&ident.id).unwrap();
                     let DefinitionItem::Module(..) = &mut module_definition.item else {
                         let error = Error::DuplicateDefinition {
-                            original: module_symbol.declaration_span,
-                            duplicate: ast.head.name,
+                            original: ident.id.declaration_span,
+                            duplicate: type_as.identifier,
                         };
                         converter.error(error);
                         return;
                     };
+                    Some(ident)
+                } else {
+                    None
+                };
+                if let Some(type_use) = import.type_use {
+                    // NOTE: use the created one from below
+                    let module_ident = module_ident
+                        .unwrap_or_else(|| anonymous.get(&import.import.span).unwrap().clone());
 
-                    for name in module_use.names {
+                    for name in type_use.names {
                         let symbol = converter.declared(name.as_ref()).unwrap().clone();
                         let definition = definitions.get_mut(&symbol).unwrap();
                         let DefinitionItem::Constant(constant) = &mut definition.item else {
@@ -109,9 +117,9 @@ impl Definition {
                             return;
                         };
                         constant.value = Expression::module_access(
-                            module_use.r#use.span,
+                            type_use.r#use.span,
                             Expression::reference(
-                                module_symbol.declaration_span,
+                                module_ident.id.declaration_span,
                                 module_ident.clone(),
                             ),
                             name,
@@ -119,32 +127,8 @@ impl Definition {
                     }
                 }
             }
-            syntax::DefinitionItem::Module(ast) => {
+            syntax::DefinitionItem::Type(ast) => {
                 let module_symbol = converter.declared(ast.head.name.as_ref()).unwrap().clone();
-
-                if let Some(module_use) = &ast.module_use {
-                    let module_ident = Identifier::declared(converter, &ast.head.name).unwrap();
-                    for name in &module_use.names {
-                        let symbol = converter.declared(name.as_ref()).unwrap().clone();
-                        let definition = definitions.get_mut(&symbol).unwrap();
-                        let DefinitionItem::Constant(constant) = &mut definition.item else {
-                            let error = Error::DuplicateDefinition {
-                                original: symbol.declaration_span,
-                                duplicate: name.clone(),
-                            };
-                            converter.error(error);
-                            return;
-                        };
-                        constant.value = Expression::module_access(
-                            module_use.r#use.span,
-                            Expression::reference(
-                                module_symbol.declaration_span,
-                                module_ident.clone(),
-                            ),
-                            name.clone(),
-                        )
-                    }
-                }
 
                 let module_definition = definitions.get_mut(&module_symbol).unwrap();
                 let DefinitionItem::Module(module) = &mut module_definition.item else {
@@ -196,7 +180,11 @@ impl Definition {
         }
     }
 
-    pub(super) fn declare(converter: &mut Converter, ast: &syntax::Definition) -> Vec<Self> {
+    pub(super) fn declare(
+        converter: &mut Converter,
+        ast: &syntax::Definition,
+        anonymous: &mut HashMap<Span, Identifier>,
+    ) -> Vec<Self> {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
             syntax::DefinitionItem::Constant(ast) => {
@@ -211,29 +199,37 @@ impl Definition {
                 let name = Identifier::declare(converter, ast.name.clone());
                 Self::new(ast.span(), ConstantDefinition::declare(name))
             }
-            syntax::DefinitionItem::ExternalModule(ast) => {
-                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
-                    let original = original.declaration_span;
-                    converter.error(Error::DuplicateDefinition {
-                        original,
-                        duplicate: ast.head.name.clone(),
-                    });
-                    return vec![];
-                }
+            syntax::DefinitionItem::Import(import) => {
+                let name = if let Some(type_as) = &import.type_as {
+                    if let Some(original) =
+                        converter.declared_no_shadow(type_as.identifier.as_ref())
+                    {
+                        let original = original.declaration_span;
+                        converter.error(Error::DuplicateDefinition {
+                            original,
+                            duplicate: type_as.identifier.clone(),
+                        });
+                        return vec![];
+                    }
+                    Identifier::declare(converter, type_as.identifier.clone())
+                } else {
+                    let ident = Identifier::temporary(converter, import.locator.span());
+                    anonymous.insert(import.import.span, ident.clone());
+                    ident
+                };
 
-                let name = Identifier::declare(converter, ast.head.name.clone());
                 let mut names = vec![Self::new(
-                    ast.span(),
-                    ModuleDefinition::external(name, converter.resolve(&ast.locator.value())),
+                    import.span(),
+                    ModuleDefinition::external(name, converter.resolve(&import.locator.value())),
                 )];
 
-                if let Some(module_use) = &ast.module_use {
+                if let Some(module_use) = &import.type_use {
                     for name in &module_use.names {
                         if let Some(original) = converter.declared_no_shadow(name.as_ref()) {
                             let original = original.declaration_span;
                             converter.error(Error::DuplicateDefinition {
                                 original,
-                                duplicate: ast.head.name.clone(),
+                                duplicate: name.clone(),
                             });
                         }
 
@@ -258,7 +254,7 @@ impl Definition {
                 let name = Identifier::declare(converter, ast.head.name.clone());
                 Self::new(span, FunctionDefinition::declare(name))
             }
-            syntax::DefinitionItem::Module(ast) => {
+            syntax::DefinitionItem::Type(ast) => {
                 if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
                     let original = original.declaration_span;
                     converter.error(Error::DuplicateDefinition {

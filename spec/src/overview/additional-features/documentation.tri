@@ -1,5 +1,5 @@
-module ImportantStuff {
-    #! This is the module that actually implements
+type ImportantStuff {
+    #! This is the type that actually implements
     #! all the important things.
 
     ## Doubles the provided number

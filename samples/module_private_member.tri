@@ -1,4 +1,4 @@
-module xyz {
+type xyz {
     func double x = 2 * x
 
     proc blackbox!(n) { return double n }

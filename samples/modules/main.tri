@@ -1,4 +1,4 @@
-module xyz at "./xyz.tri"
+import "./xyz.tri" as xyz
 
 proc main!() {
     exit xyz::double!(5)

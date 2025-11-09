@@ -1,4 +1,4 @@
-module x {
+type x {
   proc private!() {}
   proc public!() {}
 

@@ -1,4 +1,4 @@
-module debug at "trilogy:debug"
+import "trilogy:debug" as debug
 
 proc both!(a, b) {
   return if yield 'both then a else b

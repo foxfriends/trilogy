@@ -1,6 +1,6 @@
-module io at "trilogy:io" use println
-module iter at "trilogy:iter" use range
-module time at "trilogy:time" use instant, fmt_ns
+import "trilogy:io" use println
+import "trilogy:iter" use range
+import "trilogy:time" use instant, fmt_ns
 
 proc benchmark!() {
     let before = instant!()

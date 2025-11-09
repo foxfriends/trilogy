@@ -8,8 +8,6 @@ pub enum TokenType {
     KwAssert,
     /// `as`
     KwAs,
-    /// `at`
-    KwAt,
     /// `become`
     KwBecome,
     /// `break`
@@ -52,8 +50,6 @@ pub enum TokenType {
     KwLet,
     /// `match`
     KwMatch,
-    /// `module`
-    KwModule,
     /// `mut`
     KwMut,
     /// `next`
@@ -80,6 +76,10 @@ pub enum TokenType {
     KwThen,
     /// `true`
     KwTrue,
+    /// `type`
+    KwType,
+    /// `typeof`
+    KwTypeof,
     /// `unit`
     KwUnit,
     /// `when`
@@ -120,6 +120,8 @@ pub enum TokenType {
     KwInstanceof,
     /// `interface`
     KwInterface,
+    /// `iter`
+    KwIter,
     /// `lazy`
     KwLazy,
     /// `lens`
@@ -128,6 +130,8 @@ pub enum TokenType {
     KwLoop,
     /// `macro`
     KwMacro,
+    /// `module`
+    KwModule,
     /// `oper`
     KwOper,
     /// `prec`
@@ -148,10 +152,6 @@ pub enum TokenType {
     KwTrait,
     /// `try`
     KwTry,
-    /// `type`
-    KwType,
-    /// `typeof`
-    KwTypeof,
     /// `unless`
     KwUnless,
     /// `until`

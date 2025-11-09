@@ -1,4 +1,4 @@
-module io at "trilogy:io" use println
+import "trilogy:io" use println
 
 proc main!() {
   let x = 5

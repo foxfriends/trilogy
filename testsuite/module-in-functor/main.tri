@@ -1,7 +1,7 @@
-module mod1 v {
+type mod1 v {
   proc secret!() { return v }
 
-  module mod2 {
+  type mod2 {
     proc value!() { return secret!() * v * 2 }
 
     export value

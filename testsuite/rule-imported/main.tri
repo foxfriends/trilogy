@@ -1,4 +1,4 @@
-module rules at "./rules.tri" use is_ok
+import "./rules.tri" use is_ok
 
 proc main!() {
   assert is is_ok('ok)

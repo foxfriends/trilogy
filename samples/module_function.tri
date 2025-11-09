@@ -1,9 +1,9 @@
-module abc n {
+type abc n {
     func mult x = n * x
     export mult
 }
 
-module xyz {
+type xyz {
     func add x y = x + y
     export add
 }

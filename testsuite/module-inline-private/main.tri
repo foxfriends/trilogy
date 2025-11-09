@@ -1,4 +1,4 @@
-module inner {
+type inner {
   proc hidden!() {
     return 4
   }

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use trilogy_parser::syntax;
 
 use super::*;
@@ -23,12 +25,13 @@ impl Definitions {
     }
 
     pub(super) fn convert(converter: &mut Converter, ast: Vec<syntax::Definition>) -> Self {
+        let mut anonymous = HashMap::new();
         let mut definitions = ast
             .iter()
-            .flat_map(|ast| Definition::declare(converter, ast))
+            .flat_map(|ast| Definition::declare(converter, ast, &mut anonymous))
             .collect::<Self>();
         for definition in ast {
-            Definition::convert_into(converter, definition, &mut definitions);
+            Definition::convert_into(converter, definition, &mut definitions, &anonymous);
         }
         definitions
     }

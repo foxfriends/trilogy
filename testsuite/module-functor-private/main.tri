@@ -1,4 +1,4 @@
-module box v {
+type box v {
   proc compute!() { return v * 2 }
   proc get!() { return compute!() }
   export get

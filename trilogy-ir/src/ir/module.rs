@@ -21,7 +21,7 @@ impl Module {
         }
     }
 
-    pub(crate) fn convert_module(converter: &mut Converter, ast: syntax::ModuleDefinition) -> Self {
+    pub(crate) fn convert_module(converter: &mut Converter, ast: syntax::TypeDefinition) -> Self {
         converter.push_scope();
         let span = ast.span();
         let parameters: Vec<_> = ast

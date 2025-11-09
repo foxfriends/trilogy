@@ -1,4 +1,4 @@
-module m at "./module.tri"
+import "./module.tri" as m
 
 proc main!() {
   assert m::second::inside!() == 5

@@ -1,4 +1,4 @@
-module ReverseInt {
+type ReverseInt {
     func cmp x y =
         if x < y then 'gt
         else if x > y then 'lt
@@ -7,7 +7,7 @@ module ReverseInt {
     export cmp
 }
 
-module OrdList Ord {
+type OrdList Ord {
     proc empty!() {
         return 'ordered(unit)
     }
@@ -26,9 +26,9 @@ module OrdList Ord {
     export empty, insert, print
 }
 
-proc collectInto!(Collection, iter) {
+proc collectInto!(Collection, iterator) {
     let mut collection = Collection::empty!()
-    for item in iter {
+    for item in iterator {
         collection insert= item
     }
     return collection

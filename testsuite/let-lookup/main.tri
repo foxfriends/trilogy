@@ -1,4 +1,4 @@
-module debug at "trilogy:debug" use dbg
+import "trilogy:debug" use dbg
 
 rule options(1)
 rule options(2)

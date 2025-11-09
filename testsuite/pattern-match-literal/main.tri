@@ -1,5 +1,3 @@
-module io at "trilogy:io"
-
 proc main!() {
   let unit = unit
   let true = true

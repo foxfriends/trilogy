@@ -1,4 +1,4 @@
-module HereModule {
+type HereModule {
     proc getRandomNumber!() {
         return 5
     }
@@ -6,9 +6,9 @@ module HereModule {
     export getRandomNumber
 }
 
-module LocalModule at "./local_module.tri"
+import "./local_module.tri" as LocalModule
 
-module ForeignModule at "https://cameldridge.com/module.tri"
+import "https://cameldridge.com/module.tri" as ForeignModule
 
 proc main!() {
     let total = LocalModule::getRandomNumber!()

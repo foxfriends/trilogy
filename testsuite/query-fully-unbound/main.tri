@@ -1,5 +1,3 @@
-module debug at "trilogy:debug"
-
 rule always(_)
 
 proc main!() {

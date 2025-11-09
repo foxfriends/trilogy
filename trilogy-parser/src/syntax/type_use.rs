@@ -5,7 +5,7 @@ use trilogy_scanner::{Token, TokenType};
 
 /// The `use` portion of a module definition.
 #[derive(Clone, Debug, PrettyPrintSExpr)]
-pub struct ModuleUse {
+pub struct TypeUse {
     /// The `use` token
     pub r#use: Token,
     /// The imported names
@@ -13,13 +13,13 @@ pub struct ModuleUse {
     span: Span,
 }
 
-impl Spanned for ModuleUse {
+impl Spanned for TypeUse {
     fn span(&self) -> Span {
         self.span
     }
 }
 
-impl ModuleUse {
+impl TypeUse {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let r#use = parser
             .expect(TokenType::KwUse)

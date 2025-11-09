@@ -1,9 +1,9 @@
-module the_module {
+type some_type {
   func check x = x == 5
   export check
 }
 
 proc main!() {
-  let value = the_module
+  let value = some_type
   assert value::check 5
 }

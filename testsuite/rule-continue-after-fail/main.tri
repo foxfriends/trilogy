@@ -1,4 +1,4 @@
-module debug at "trilogy:debug" use dbg
+import "trilogy:debug" use dbg
 
 rule times_two(-1, -2)
 rule times_two(0, 0)

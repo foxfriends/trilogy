@@ -1,12 +1,12 @@
-module Helpers {
+type Helpers {
     func repeat 0 _ = unit
     func repeat n x = x : repeat (n - 1) x
 
     func twice x = repeat 2 x
     func thrice x = repeat 3 x
 
-    proc printEach!(iter) {
-        for item in iter {
+    proc printEach!(iterable) {
+        for item in iterable {
             println!(item)
         }
     }

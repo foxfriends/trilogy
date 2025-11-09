@@ -1,7 +1,7 @@
-module Left at "./left.tri"
-module Right at "./right.tri"
+import "./left.tri" as left
+import "./right.tri" as right
 
 proc main!() {
-    @Left::@Diamond::hello!()
-    @Right::@Diamond::hello!()
+    left::diamond::hello!()
+    right::diamond::hello!()
 }

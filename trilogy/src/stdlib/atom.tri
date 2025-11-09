@@ -1,4 +1,4 @@
-module rt at "trilogy:atom/rt"
+import "trilogy:atom/rt" as rt
 
 const dyn_atoms = {||}
 

@@ -1,4 +1,4 @@
-module core at "trilogy:core"
+import "trilogy:core" as core
 
 export print
 proc print!(value and typeof 'string) {

@@ -1,4 +1,4 @@
-module inner {
+type inner {
   func inside n = n + 1
 
   export inside

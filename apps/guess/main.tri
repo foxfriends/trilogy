@@ -1,6 +1,6 @@
-module io at "trilogy:io"
-module num at "trilogy:num"
-module str at "trilogy:str"
+import "trilogy:io" as io
+import "trilogy:num" as num
+import "trilogy:str" as str
 
 proc play!() {
     let answer = 42

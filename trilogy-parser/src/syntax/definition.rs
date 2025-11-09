@@ -7,9 +7,9 @@ use trilogy_scanner::TokenType::*;
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum DefinitionItem {
     /// An inline module definition.
-    Module(Box<ModuleDefinition>),
+    Type(Box<TypeDefinition>),
     /// An external (imported) module definition.
-    ExternalModule(Box<ExternalModuleDefinition>),
+    Import(Box<ImportDefinition>),
     /// A procedure definition.
     Procedure(Box<ProcedureDefinition>),
     /// An external procedure definition.
@@ -71,26 +71,11 @@ impl Definition {
 
         let token = parser.peek();
         let item = match token.token_type {
-            KwModule => {
-                let head = ModuleHead::parse(parser)?;
-                let token = parser.peek();
-                match token.token_type {
-                    KwAt => DefinitionItem::ExternalModule(Box::new(
-                        ExternalModuleDefinition::parse(parser, head)?,
-                    )),
-                    OBrace => {
-                        DefinitionItem::Module(Box::new(ModuleDefinition::parse(parser, head)?))
-                    }
-                    _ => {
-                        let error = SyntaxError::new(
-                            token.span,
-                            "expected `at` for an external module, or `{` for a local module",
-                        );
-                        parser.error(error.clone());
-                        return Err(error);
-                    }
-                }
+            KwType => {
+                let head = TypeHead::parse(parser)?;
+                DefinitionItem::Type(Box::new(TypeDefinition::parse(parser, head)?))
             }
+            KwImport => DefinitionItem::Import(Box::new(ImportDefinition::parse(parser)?)),
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
             KwConst => DefinitionItem::Constant(Box::new(ConstantDefinition::parse(parser)?)),
             KwRule => DefinitionItem::Rule(Box::new(RuleDefinition::parse(parser)?)),
@@ -154,24 +139,22 @@ mod test {
     test_parse!(def_rule: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_document => "(Definition () (DefinitionItem::Rule _))");
     test_parse!(def_fact_in_module: "rule hello(a, b)" => Definition::parse_in_module => "(Definition () (DefinitionItem::Rule _))");
     test_parse!(def_rule_in_module: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_module => "(Definition () (DefinitionItem::Rule _))");
-    test_parse!(def_module: "module X {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Module _))");
-    test_parse!(def_module_in_module: "module X {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Module _))");
-    test_parse!(def_external_module: "module X at \"./hello.tri\"" => Definition::parse_in_document => "(Definition () (DefinitionItem::ExternalModule _))");
-    test_parse!(def_external_module_in_module: "module X at \"./hello.tri\"" => Definition::parse_in_module => "(Definition () (DefinitionItem::ExternalModule _))");
-    test_parse_error!(def_module_invalid: "module X" => Definition::parse_in_document => "expected `at` for an external module, or `{` for a local module");
-    test_parse_error!(def_module_invalid_in_module: "module X" => Definition::parse_in_module => "expected `at` for an external module, or `{` for a local module");
+    test_parse!(def_module: "type X {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Type _))");
+    test_parse!(def_module_in_module: "type X {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Type _))");
+    test_parse!(def_external_module: "import \"./hello.tri\" as hello" => Definition::parse_in_document => "(Definition () (DefinitionItem::Import _))");
+    test_parse!(def_external_module_in_module: "import \"./hello.tri\" as hello" => Definition::parse_in_module => "(Definition () (DefinitionItem::Import _))");
     test_parse!(def_export: "export a, b, c" => Definition::parse_in_document => "(Definition () (DefinitionItem::Export _))");
     test_parse!(def_export_in_module: "export a, b, c" => Definition::parse_in_module => "(Definition () (DefinitionItem::Export _))");
     test_parse!(def_test: "test \"hello\" {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Test _))");
     test_parse!(def_test_in_module: "test \"hello\" {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Test _))");
-    test_parse!(def_documented: "## Hello this is a module\nmodule A {}" => Definition::parse_in_document => "(Definition (Documentation _) (DefinitionItem::Module _))");
-    test_parse!(def_documented_in_module: "## Hello this is a module\nmodule A {}" => Definition::parse_in_module => "(Definition (Documentation _) (DefinitionItem::Module _))");
+    test_parse!(def_documented: "## Hello this is a module\ntype A {}" => Definition::parse_in_document => "(Definition (Documentation _) (DefinitionItem::Type _))");
+    test_parse!(def_documented_in_module: "## Hello this is a module\ntype A {}" => Definition::parse_in_module => "(Definition (Documentation _) (DefinitionItem::Type _))");
     test_parse!(def_nothing: "" => Definition::parse_in_document => "()");
     test_parse!(def_nothing_in_module: "" => Definition::parse_in_module => "()");
     test_parse_error!(def_documented_nothing: "## Hello this is a doc for nothing" => Definition::parse_in_document => "outer documentation comment must precede the item it documents");
     test_parse_error!(def_documented_nothing_in_module: "## Hello this is a doc for nothing" => Definition::parse_in_module => "outer documentation comment must precede the item it documents");
-    test_parse_error!(def_documented_inner: "#! Hello this is a module\nmodule A {}" => Definition::parse_in_document => "inner documentation is only supported at the top of a document");
-    test_parse_error!(def_documented_inner_in_module: "#! Hello this is a module\nmodule A {}" => Definition::parse_in_module => "inner documentation is only supported at the top of a document");
+    test_parse_error!(def_documented_inner: "#! Hello this is a module\ntype A {}" => Definition::parse_in_document => "inner documentation is only supported at the top of a document");
+    test_parse_error!(def_documented_inner_in_module: "#! Hello this is a module\ntype A {}" => Definition::parse_in_module => "inner documentation is only supported at the top of a document");
     test_parse_error!(def_no_keyword: "hello x = y" => Definition::parse_in_document => "unexpected token in module body");
     test_parse_error!(def_no_keyword_in_module: "hello x = y" => Definition::parse_in_module => "unexpected token in module body");
 }

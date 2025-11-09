@@ -1,10 +1,10 @@
-module xyz n {
+type xyz n {
     rule above(x) <- is x > n
 
     export above
 }
 
-module abc {
+type abc {
     rule ns(1)
     rule ns(2)
     rule ns(3)

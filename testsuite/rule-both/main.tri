@@ -1,4 +1,4 @@
-module debug at "trilogy:debug"
+import "trilogy:debug" as debug
 
 rule both(true)
 rule both(false)

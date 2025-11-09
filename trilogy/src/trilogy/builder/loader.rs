@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt::{self, Display};
 use std::fs;
 use std::time::Instant;
-use trilogy_parser::syntax::{DefinitionItem, Document, ModuleDefinition, StringLiteral};
+use trilogy_parser::syntax::{DefinitionItem, Document, StringLiteral, TypeDefinition};
 use trilogy_parser::{Parse, Parser, Spanned};
 use trilogy_scanner::Scanner;
 use url::Url;
@@ -84,13 +84,13 @@ impl Module {
     }
 
     fn imported_modules(&self) -> impl Iterator<Item = StringLiteral> + '_ {
-        fn module_imported_modules(module_def: &ModuleDefinition) -> Vec<&StringLiteral> {
+        fn module_imported_modules(module_def: &TypeDefinition) -> Vec<&StringLiteral> {
             module_def
                 .definitions
                 .iter()
                 .flat_map(|def| match &def.item {
-                    DefinitionItem::Module(module_def) => module_imported_modules(module_def),
-                    DefinitionItem::ExternalModule(module_def) => vec![&module_def.locator],
+                    DefinitionItem::Type(module_def) => module_imported_modules(module_def),
+                    DefinitionItem::Import(module_def) => vec![&module_def.locator],
                     _ => vec![],
                 })
                 .collect()
@@ -101,8 +101,8 @@ impl Module {
             .definitions
             .iter()
             .flat_map(|def| match &def.item {
-                DefinitionItem::Module(module_def) => module_imported_modules(module_def),
-                DefinitionItem::ExternalModule(module_def) => vec![&module_def.locator],
+                DefinitionItem::Type(module_def) => module_imported_modules(module_def),
+                DefinitionItem::Import(module_def) => vec![&module_def.locator],
                 _ => vec![],
             })
             .cloned()

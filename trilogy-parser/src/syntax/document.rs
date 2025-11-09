@@ -28,7 +28,7 @@ impl Spanned for Document {
 impl Document {
     fn synchronize(parser: &mut Parser) {
         parser.synchronize([
-            DocOuter, KwModule, KwFunc, KwProc, KwRule, KwConst, KwExport, EndOfFile,
+            DocOuter, KwType, KwFunc, KwProc, KwRule, KwConst, KwExport, KwImport, EndOfFile,
         ]);
     }
 
@@ -78,11 +78,11 @@ mod test {
     test_parse!(document_multiple_defs: "func f x = x\nfunc f y = y\nfunc g x = x\n" |parser| Document::parse(&mut parser) => "(Document () [(Definition () _) (Definition () _) (Definition () _)])");
     test_parse_error!(document_defs_no_newline: "func f x = x func f y = y\n" |parser| Document::parse(&mut parser) => "definitions must be separated by line breaks");
 
-    test_parse!(document_module_empty: "module A {}\n" |parser| Document::parse(&mut parser) => "(Document () [(Definition () _)])");
-    test_parse!(document_module_nested: "module A {\n    module B { }\n}\n" |parser| Document::parse(&mut parser) => "(Document () [(Definition () _)])");
+    test_parse!(document_module_empty: "type A {}\n" |parser| Document::parse(&mut parser) => "(Document () [(Definition () _)])");
+    test_parse!(document_module_nested: "type A {\n    type B { }\n}\n" |parser| Document::parse(&mut parser) => "(Document () [(Definition () _)])");
 
-    test_parse_error!(document_module_no_end_newline: "module A {\n    module B { }}\n" |parser| Document::parse(&mut parser) => "definition in module must end with a line break");
-    test_parse_error!(document_module_no_start_newline: "module A {module B { }}\n" |parser| Document::parse(&mut parser) => "definitions must be separated by line breaks");
+    test_parse_error!(document_module_no_end_newline: "type A {\n    type B { }}\n" |parser| Document::parse(&mut parser) => "definition in type must end with a line break");
+    test_parse_error!(document_module_no_start_newline: "type A {type B { }}\n" |parser| Document::parse(&mut parser) => "definitions must be separated by line breaks");
 
     #[test]
     #[rustfmt::skip]

@@ -1,4 +1,4 @@
-module debug at "trilogy:debug"
+import "trilogy:debug" as debug
 
 proc the_loop!() {
   let mut i = 0

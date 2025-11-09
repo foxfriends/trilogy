@@ -1,4 +1,4 @@
-module xyz n {
+type xyz n {
     proc plus!(x) { return n + x }
 
     export plus

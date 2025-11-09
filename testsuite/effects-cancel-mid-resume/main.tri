@@ -1,4 +1,4 @@
-module io at "trilogy:io"
+import "trilogy:io" as io
 
 proc inner!() {
   let r = yield 'in

@@ -1,4 +1,4 @@
-module c {
+type c {
   extern proc print!(value)
   export print
 
