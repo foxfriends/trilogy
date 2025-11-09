@@ -169,30 +169,40 @@ syntax tree, so having the documentation inside is simply useful.
         \bnfes
     } \\
     \bnfprod*{DefinitionItem}{
-        \bnfpn{ModuleDefinition}\bnfor
-        \bnfpn{ProcedureDefinition}\bnfor
+        \bnfpn{TypeDefinition}\bnfor
+        \bnfpn{FunctionDefinition}\bnfor
     } \\
     \bnfmore*{
-        \bnfpn{FunctionDefinition}\bnfor
+        \bnfpn{ProcedureDefinition}\bnfor
         \bnfpn{RuleDefinition}\bnfor
     } \\
     \bnfmore*{
-        \bnfpn{ConstantDefinition}
-        \bnfor
+        \bnfpn{ConstantDefinition}\bnfor
+    } \\
+    \bnfmore*{
+        \bnfpn{ExternProcedureDefinition}\bnfor
+    } \\
+    \bnfmore*{
+        \bnfpn{ExternTypeDefinition}\bnfor
+    } \\
+    \bnfmore*{
+        \bnfpn{Test}\bnfor
+        \bnfpn{Import}\bnfor
         \bnfpn{Export}
-        \bnfor
-        \bnfpn{Test}
     }
 \end{bnf}
 
 \subsubsection{Modules}
 
-Modules act as containers for definitions, including procedures,
-functions, rules, and further submodules. Every \Trilogy{} document is
-implicitly a module, meaning a document may export any of its defined items
-to make them available to other modules that reference that document. Any item
+In \Trilogy{}, modules are defined using the \kw{type} keyword, and may someday
+be expanded upon in ways that make them more similar to existing type systems.
+
+Modules act as containers for definitions, including procedures, functions, rules,
+and further submodules. Every \Trilogy{} document is implicitly an anonymous
+module, meaning a document may export any of its defined items, and may be
+imported by other modules that wish to make use of those definitions. Any item
 defined at the top level of a module may be exported: procedures, functions,
-rules, and modules.
+rules, and submodules.
 
 The \Trilogy{} module system is modelled after that of OCaml: modules may
 be defined as functions which accept one or more values as parameters
@@ -202,39 +212,11 @@ generate a distinct module. At this time, a document cannot specify parameters,
 so such function modules may only be defined as a local submodule within some
 existing module.
 
-Modules defined as external modules via the \kw{module}-\kw{at} construct
-are resolved as documents located via the canonical absolute URL designated
-by the (potentially relative) path \texttt{String} in rule~\ref{bnf:module-at}.
-If two external module definitions paths resolve to the same canonical absolute
-URL, those two modules will be considered identical, despite being ``defined''
-in two places in the source code. The full details of the path resolution
-algorithm are defined in \S\ref{sec:module-resolution}.
-
-\begin{bnf}
-    \bnfprod*{ModuleDefinition}{
-        \bnfpn{ModuleConstruction}
+\begin{bnf*}
+    \bnfprod{TypeDefinition}{
+        \bnfts{\kw{type}}
         \bnfsp
-        \bnfpn{ModuleUse}
-        \bnfor
-    } \\
-    \bnfmore*{
-        \bnfpn{ModuleConstruction}
-    } \\
-    \bnfprod{ModuleConstruction}{
-        \label{bnf:module-at}
-        \bnfts{\kw{module}}
-        \bnfsp
-        \bnfpn{Identifier}
-        \bnfsp
-        \bnfts{\kw{at}}
-        \bnfsp
-        \bnfpn{String}
-        \bnfor
-    } \\
-    \bnfmore*{
-        \bnfts{\kw{module}}
-        \bnfsp
-        \bnfpn{ModuleHead}
+        \bnfpn{TypeHead}
         \bnfsp
         \bnfts{\{}
         \bnfsp
@@ -242,15 +224,67 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfsp
         \bnfts{\}}
     } \\
-    \bnfprod*{ModuleHead}{
+    \bnfprod{TypeHead}{
         \bnfpn{Identifier}
         \bnfsp
-        \bnfpn{ModuleParameters}
+        \bnfpn{TypeParameters}
     } \\
-    \bnfprod*{ModuleParameters}{
+    \bnfprod{TypeParameters}{
         \bnfpn{Identifier}
         \bnfsp
-        \bnfpn{ModuleParameters}
+        \bnfpn{TypeParameters}
+        \bnfor
+        \bnfes
+    }
+\end{bnf*}
+
+\subsubsection{Imports and Exports}
+
+Imported documents, defined using the \kw{import}-\texttt{String} construct
+are resolved as documents located via the canonical absolute URL designated
+by the (potentially relative) path \texttt{String} in rule~\ref{bnf:import}.
+If two external module definitions paths resolve to the same canonical absolute
+URL, those two modules will be considered identical, despite being ``defined''
+in two places in the source code. The full details of the path resolution
+algorithm are defined in \S\ref{sec:module-resolution}.
+
+Modules can also be imported from using the \kw{import}-\texttt{Expression}
+form, working in much the same way but for modules that are defined locally or
+require passing parameters. The expression in this case must be a constant
+expression.
+
+\begin{bnf}
+    \bnfprod{Import}{
+        \label{bnf:import}
+        \bnfts{\kw{import}}
+        \bnfsp
+        \bnfpn{String}
+        \bnfsp
+        \bnfpn{ImportAs}
+        \bnfsp
+        \bnfpn{ImportUse}
+        \bnfor
+    } \\
+    \bnfmore*{
+        \bnfts{\kw{import}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{ImportAs}
+        \bnfsp
+        \bnfpn{ImportUse}
+    } \\
+    \bnfprod*{ImportUse}{
+        \bnfts{\kw{use}}
+        \bnfsp
+        \bnfpn{NameList}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod*{ImportAs}{
+        \bnfts{\kw{as}}
+        \bnfsp
+        \bnfpn{Identifier}
         \bnfor
         \bnfes
     } \\
@@ -278,48 +312,45 @@ algorithm are defined in \S\ref{sec:module-resolution}.
         \bnfts{\kw{as}}
         \bnfsp
         \bnfpn{Identifier}
-    } \\
-    \bnfprod*{ModuleUse}{
-        \bnfts{\kw{use}}
-        \bnfsp
-        \bnfpn{NameList}
     }
 \end{bnf}
 
-A \kw{module} definition puts into scope a namespace in which all
-\kw{export}ed definitions contained within the module may be accessed.
+A \kw{type} definition puts into scope a namespace in which all \kw{export}ed
+definitions contained within the module may be accessed. An \kw{import}-\kw{as}
+puts such a namespace defined externally into scope, while the \kw{use} list
+exposes the \kw{export}ed members into the current module's scope directly.
+Otherwise, such members would need to be accessed using the module access
+operator (\S\ref{sec:module-access}).
 
-When a module is defined locally (directly in the same file as its parent
+When a module is defined as a submodule (directly in the same file as its parent
 module), the definitions within the module may access all definitions (including
 private definitions) of the containing module. The reverse is not true; the
 private members of a submodule remain private unless exported. Modules defined
 externally also may not access members of the module in which they are declared.
 
 \begin{prooftree}
-    \def\defaultHypSeparation{\hskip 0.1in}
     \AxiomC{$\Gamma,m_{1\hdots n},\Phi \vdash p$}
-    \AxiomC{$\kw{module}\ m\ m_{1\hdots n}\ \block{K}$}
+    \AxiomC{$\kw{type}\ m\ m_{1\hdots n}\ \block{K}$}
     \AxiomC{$K \Rightarrow \kw{export}\ p$}
-    \LeftLabel{Local Module}
+    \LeftLabel{Export}
     \TrinaryInfC{$\Gamma \vdash m\ \text{exports}\ p$}
 \end{prooftree}
 
 \begin{prooftree}
     \AxiomC{$\Phi \vdash p$}
-    \AxiomC{$\kw{module}\ m\ \kw{at}\ \sigma$}
+    \AxiomC{$\kw{import}\ \sigma\ \kw{as}\ m$}
     \AxiomC{$\text{read}(\sigma) \Rightarrow \kw{export}\ p$}
     \LeftLabel{External Module}
     \TrinaryInfC{$\Gamma \vdash m\ \text{exports}\ p$}
 \end{prooftree}
 
-The \kw{use} keyword binds specific members of an imported or declared module into the
-scope of the current module. Otherwise, such members would need to be accessed using
-the module access operator (\S\ref{sec:module-access}). This is implemented by the
-following syntax transformation.
-
-\begin{align*}
-    \texttt{\kw{module}\ \$m:id\ $\cdots$\ \kw{use} \$(\$i:id),+} & \Rightarrow \texttt{\$(\kw{const}\ \$i\ =\ \$m::\$i)+} %
-\end{align*}
+\begin{prooftree}
+    \AxiomC{$\Phi \vdash p$}
+    \AxiomC{$\Gamma \vdash m\ \text{exports}\ p$}
+    \AxiomC{$\kw{import}\ m\ \kw{use}\ p$}
+    \LeftLabel{Use}
+    \TrinaryInfC{$\Gamma \vdash p$}
+\end{prooftree}
 
 \subsubsection{Constants}
 
@@ -370,14 +401,6 @@ languages.
         \bnfsp
         \bnfts{\}}
     } \\
-    \bnfprod{ExternProcedureDefinition}{
-        \bnfts{\kw{extern}}
-        \bnfsp
-        \bnfts{\kw{proc}}
-        \bnfsp
-        \bnfpn{ProcedureHead}
-        \bnfsp
-    } \\
     \bnfprod{FunctionDefinition}{
         \bnfts{\kw{func}}
         \bnfsp
@@ -395,11 +418,49 @@ For name resolution purposes, defintions of all types are stored in the same
 scope. For example, a procedure and a function defined in the same module may
 not have the same name.
 
-Worth noting is the use of the \kw{extern} keyword: a procedure can be declared as an
-external procedure indicating that it is not implemented within the current file, but
-will be available at compilation time, from the current module's native library. At
-this time, it is incorrect to use the \kw{extern} keyword in any user program, but it
-is included for use within the core library.
+\subsubsection{External Definitions}
+
+\begin{bnf*}
+    \bnfprod{ExternTypeDefinition}{
+        \bnfts{\kw{extern}}
+        \bnfsp
+        \bnfts{\kw{type}}
+        \bnfsp
+        \bnfpn{TypeHead}
+        \bnfsp
+    } \\
+    \bnfmore{
+        \bnfts{\{}
+        \bnfsp
+        \bnfpn{ExternDefinitions}
+        \bnfsp
+        \bnfts{\}}
+    } \\
+    \bnfprod{ExternProcedureDefinition}{
+        \bnfts{\kw{extern}}
+        \bnfsp
+        \bnfts{\kw{proc}}
+        \bnfsp
+        \bnfpn{ProcedureHead}
+        \bnfsp
+    } \\
+    \bnfprod{ExternDefinitions}{
+        \bnfpn{ExternDefinition}
+        \bnfsp
+        \bnfpn{ExternDefinitions}
+        \bnfor
+        \bnfes
+    } \\
+    \bnfprod{ExternDefinition}{
+        \bnfpn{ExternProcedureDefinition}
+    }
+\end{bnf*}
+
+Worth noting is the use of the \kw{extern} keyword: a type or procedure can be declared as
+external indicating that it is not implemented within the current file but will be
+available at compilation time from the current module's native library. At this time, it is
+incorrect to use the \kw{extern} keyword in any user program, but it is included for use
+within the core library.
 
 \subimport{law/}{index.tex}
 
