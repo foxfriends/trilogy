@@ -1,0 +1,10 @@
+import "trilogy:debug" use dbg
+
+func make_twice n = [n, n]
+
+proc main!() {
+  for x in make_twice 3 {
+    dbg!(x)
+  }
+}
+

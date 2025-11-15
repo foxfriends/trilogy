@@ -1,0 +1,7 @@
+proc main!() {
+  let x = []
+  let y = []
+  let set = [| x, y |]
+  assert set == [| x, y |]
+  assert set != [| x |]
+}

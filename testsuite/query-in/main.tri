@@ -5,11 +5,15 @@ proc main!() {
     dbg!(x)
   }
 
+  let mut n = 0
   for x in [|4, 4, 4, 5, 5|] {
-    dbg!(x)
+    n += 1
   }
+  assert n == 2
 
+  let mut m = 0
   for x in {| 'a => 1, 'b => 2 |} {
-    dbg!(x)
+    m += 1
   }
+  assert m == 2
 }

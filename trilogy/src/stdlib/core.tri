@@ -243,11 +243,12 @@ func to_array (record and typeof 'record) = c::record_to_array!(record)
 export to_array
 
 rule elem(element, [element, .._])
-rule elem(element, [_, ..rest]) <- elem(element, rest)
+rule elem(element, [_, ..rest]) <- elem(element, ^rest)
 rule elem(_, []) <- end
 rule elem(element, set and typeof 'set) <-
   array = c::set_to_array!(set)
-  and elem(element, array)
-rule elem(element, record and typeof 'record) <- array = c::record_to_array!(record)
-  and elem(element, array)
+  and elem(element, ^array)
+rule elem(element, record and typeof 'record) <-
+  array = c::record_to_array!(record)
+  and elem(element, ^array)
 export elem

@@ -4,12 +4,14 @@ use crate::ir::*;
 use std::collections::HashSet;
 
 pub struct Bindings {
+    is_bindable: bool,
     bindings: HashSet<Id>,
 }
 
 impl Bindings {
     pub fn of<N: IrVisitable>(node: &N) -> HashSet<Id> {
         let mut bindings = Self {
+            is_bindable: true,
             bindings: HashSet::default(),
         };
         node.visit(&mut bindings);
@@ -29,7 +31,9 @@ impl IrVisitor for Bindings {
             Disjunction(pair) => self.visit_disjunction(pair),
             Application(application) => self.visit_application(application),
             Reference(ident) => {
-                self.bindings.insert(ident.id.clone());
+                if self.is_bindable {
+                    self.bindings.insert(ident.id.clone());
+                }
             }
             Set(pack) => self.visit_set(pack),
             Array(pack) => self.visit_array(pack),
@@ -64,7 +68,21 @@ impl IrVisitor for Bindings {
     fn visit_application(&mut self, node: &Application) {
         match &node.function.value {
             Value::Builtin(Builtin::Pin) => {}
-            _ => node.visit(self),
+            Value::Builtin(Builtin::Glue)
+            | Value::Builtin(Builtin::Negate)
+            | Value::Builtin(Builtin::Cons)
+            | Value::Builtin(Builtin::Typeof)
+            | Value::Builtin(Builtin::Construct) => {
+                self.is_bindable = true;
+                node.argument.visit(self);
+            }
+            _ => {
+                let was_bindable = self.is_bindable;
+                self.is_bindable = false;
+                node.function.visit(self);
+                node.argument.visit(self);
+                self.is_bindable = self.is_bindable || was_bindable;
+            }
         }
     }
 

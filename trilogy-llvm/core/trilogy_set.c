@@ -89,7 +89,7 @@ static size_t trilogy_set_find(
             if (insert_to && *insert_to == set->cap) *insert_to = h;
             continue;
         }
-        if (trilogy_value_structural_eq(key, &entry->fst)) {
+        if (trilogy_value_referential_eq(key, &entry->fst)) {
             if (insert_to) *insert_to = h;
             return h;
         }
