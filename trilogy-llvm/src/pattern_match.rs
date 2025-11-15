@@ -402,10 +402,20 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.pm_cont_if(is_array, on_fail);
 
-        if !array.values.iter().any(|el| el.is_spread) {
-            let value = self.use_temporary(value).unwrap();
-            let arr = self.trilogy_array_assume(value, "arr");
-            let length = self.trilogy_array_len(arr, "len");
+        let value = self.use_temporary(value).unwrap();
+        let arr = self.trilogy_array_assume(value, "arr");
+        let length = self.trilogy_array_len(arr, "len");
+        if array.values.iter().any(|el| el.is_spread) {
+            let expected = self.context.i64_type().const_int(
+                array.values.iter().filter(|el| !el.is_spread).count() as u64,
+                false,
+            );
+            let is_enough = self
+                .builder
+                .build_int_compare(IntPredicate::UGE, length, expected, "")
+                .unwrap();
+            self.pm_cont_if(is_enough, on_fail);
+        } else {
             let expected = self
                 .context
                 .i64_type()
