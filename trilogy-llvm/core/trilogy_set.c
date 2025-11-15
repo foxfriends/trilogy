@@ -1,5 +1,6 @@
 #include "trilogy_set.h"
 #include "internal.h"
+#include "trilogy_array.h"
 #include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
@@ -200,4 +201,18 @@ bool trilogy_set_structural_eq(trilogy_set_value* lhs, trilogy_set_value* rhs) {
         if (rhs_index == rhs->cap) return false;
     }
     return true;
+}
+
+trilogy_array_value*
+trilogy_set_to_array(trilogy_value* tv, trilogy_set_value* set) {
+    trilogy_array_value* arr = trilogy_array_init_cap(tv, set->len);
+    for (uint64_t i = 0; i < set->cap; ++i) {
+        trilogy_tuple_value* entry = &set->contents[i];
+        if (entry->fst.tag == TAG_UNDEFINED) continue;
+        trilogy_value val = trilogy_undefined;
+        trilogy_value_clone_into(&val, &entry->fst);
+        trilogy_array_push(arr, &val);
+    }
+    assert(arr->len == set->len);
+    return arr;
 }

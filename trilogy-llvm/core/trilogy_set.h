@@ -23,4 +23,7 @@ bool trilogy_set_structural_eq(trilogy_set_value* lhs, trilogy_set_value* rhs);
 trilogy_set_value* trilogy_set_untag(trilogy_value* val);
 trilogy_set_value* trilogy_set_assume(trilogy_value* val);
 
-void trilogy_set_destroy(trilogy_set_value* arr);
+void trilogy_set_destroy(trilogy_set_value* set);
+
+trilogy_array_value*
+trilogy_set_to_array(trilogy_value* tv, trilogy_set_value* set);

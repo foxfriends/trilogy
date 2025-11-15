@@ -1,0 +1,11 @@
+import "trilogy:debug" use dbg
+
+rule array_iterate(element, [element, .._])
+rule array_iterate(element, [_, ..rest]) <- array_iterate(element, rest)
+rule array_iterate(_, []) <- end
+
+proc main!() {
+  for array_iterate(x, [1, 2, 3]) {
+    dbg!(x)
+  }
+}

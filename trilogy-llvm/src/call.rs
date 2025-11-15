@@ -200,7 +200,7 @@ impl<'ctx> Codegen<'ctx> {
             break_to,
             continue_to,
             next_to,
-            done_to,
+            done_to, // NOTE: done_to may be a variable that gets closed and becomes invalid above
         ]);
         args.extend_from_slice(arguments);
 

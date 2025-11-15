@@ -4,7 +4,7 @@ use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
 use trilogy_ir::{Id, ir};
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn compile_iterator(
+    pub(crate) fn compile_query_iteration(
         &self,
         query: &ir::Query,
         done_to: PointerValue<'ctx>,
@@ -90,118 +90,7 @@ impl<'ctx> Codegen<'ctx> {
                 // NOTE: at this time, the lookup expression is not an arbitrary expression, only a
                 // reference/module path, so branching is not possible here.
                 let rule = self.compile_expression(&lookup.path, "rule")?;
-                // NOTE: similarly, the arguments of a query must be syntactically both patterns and
-                // expressions, so we can again guarantee that branching is not possible.
-                let arguments = lookup
-                    .patterns
-                    .iter()
-                    .map(|pattern| {
-                        if !pattern.can_evaluate() {
-                            // This pattern is not possibly an expression, e.g. due to containing a wildcard
-                            // or other pattern-only syntax element. It can only be used as an output parameter.
-                            let arg = self.allocate_undefined("out_arg");
-                            self.bind_temporary(arg);
-                            return Some(arg);
-                        }
-                        let variables = pattern
-                            .bindings()
-                            .iter()
-                            .map(|var| self.get_variable(var).unwrap())
-                            .collect::<Vec<_>>();
-                        if variables.is_empty() {
-                            let arg = self.compile_expression(pattern, "in_arg")?;
-                            self.bind_temporary(arg);
-                            return Some(arg);
-                        }
-                        // This pattern is (potentially) fully defined. We must confirm by checking all
-                        // the variables at runtime, and if they are all set, then we can construct
-                        // this pattern.
-                        let out_block = self.context.append_basic_block(self.get_function(), "out");
-                        let original_function = self.get_function();
-                        let snapshot = self.snapshot_function_context();
-                        for variable in variables {
-                            let next_arg =
-                                self.context.append_basic_block(self.get_function(), "next");
-                            self.branch_undefined(variable.ptr(), out_block, next_arg);
-                            self.builder.position_at_end(next_arg);
-                        }
-                        let in_arg = self.compile_expression(pattern, "in_arg")?;
-                        let final_function = self.get_function();
-                        if original_function == final_function {
-                            let merge_block =
-                                self.context.append_basic_block(final_function, "merge_arg");
-
-                            let in_block = self.builder.get_insert_block().unwrap();
-                            self.builder
-                                .build_unconditional_branch(merge_block)
-                                .unwrap();
-
-                            self.builder.position_at_end(out_block);
-                            let out_arg = self.allocate_undefined("out_arg");
-                            self.builder
-                                .build_unconditional_branch(merge_block)
-                                .unwrap();
-
-                            self.builder.position_at_end(merge_block);
-                            let phi = self
-                                .builder
-                                .build_phi(self.context.ptr_type(AddressSpace::default()), "arg")
-                                .unwrap();
-                            phi.add_incoming(&[(&in_arg, in_block), (&out_arg, out_block)]);
-                            let arg = phi.as_basic_value().into_pointer_value();
-                            self.bind_temporary(arg);
-                            Some(arg)
-                        } else {
-                            let arg_continuation = self.add_continuation("arg");
-                            let end = self.continue_in_scope(arg_continuation, in_arg);
-                            self.end_continuation_point_as_close(end);
-
-                            self.restore_function_context(snapshot);
-                            self.builder.position_at_end(out_block);
-                            let end = self.void_continue_in_scope(arg_continuation);
-                            self.end_continuation_point_as_close(end);
-
-                            self.begin_next_function(arg_continuation);
-                            let arg = self.get_continuation("arg");
-                            self.bind_temporary(arg);
-                            Some(arg)
-                        }
-                    })
-                    .collect::<Option<Vec<_>>>()?;
-
-                let (next_iteration_inner, output_arguments) = self.call_rule(
-                    rule,
-                    &arguments,
-                    self.use_temporary(done_to).unwrap(),
-                    "lookup_next",
-                );
-                self.bind_temporary(next_iteration_inner);
-
-                // Wrap the next iteration with our own, as a lookup requires some cleanup
-                // before starting its next internal iteration.
-                let next_iteration_with_cleanup = self.add_continuation("lookup.next");
-                let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
-                    self.capture_current_continuation(next_iteration_with_cleanup, "lookup.next");
-
-                let bound_before_lookup = bound_ids.len();
-                for (pattern, out_value) in lookup.patterns.iter().zip(output_arguments) {
-                    let out_value = self.use_temporary(out_value).unwrap();
-                    self.compile_pattern_match_with_bindings(
-                        pattern,
-                        out_value,
-                        next_iteration_with_cleanup_continuation,
-                        bound_ids,
-                    )?;
-                }
-
-                self.call_known_continuation(
-                    self.use_temporary(next_to).unwrap(),
-                    next_iteration_with_cleanup_continuation,
-                );
-
-                self.become_continuation_point(next_iteration_with_cleanup_cp);
-                self.begin_next_function(next_iteration_with_cleanup);
-                self.cleanup_go_next(next_iteration_inner, bound_ids, bound_before_lookup);
+                self.perform_lookup(rule, &lookup.patterns, next_to, done_to, bound_ids)?;
             }
             ir::QueryValue::Disjunction(disj) => {
                 let disj_second_fn = self.add_continuation("disj.second");
@@ -286,7 +175,16 @@ impl<'ctx> Codegen<'ctx> {
                 )?;
                 self.next_cleanup(done_to, next_to, bound_ids, pre_len, "assign_next");
             }
-            ir::QueryValue::Element(..) => todo!(),
+            ir::QueryValue::Element(unification) => {
+                let elem = self.elem();
+                self.perform_lookup(
+                    elem,
+                    [&unification.pattern, &unification.expression],
+                    next_to,
+                    done_to,
+                    bound_ids,
+                )?;
+            }
             ir::QueryValue::Not(query) => {
                 let go_next_fn = self.add_continuation("not.next");
                 let (go_next, go_next_cp) =
@@ -328,7 +226,7 @@ impl<'ctx> Codegen<'ctx> {
         keep_ids: usize,
         name: &str,
     ) {
-        // Wrap the next iteration with our own, as a lookup requires some cleanup
+        // Wrap the next iteration with our own, as a lookup or unification requires some cleanup
         // before starting its next internal iteration.
         let next_iteration_with_cleanup = self.add_continuation(name);
         let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
@@ -362,5 +260,125 @@ impl<'ctx> Codegen<'ctx> {
         }
         let next_iteration = self.use_temporary(next_iteration).unwrap();
         self.void_call_continuation(next_iteration);
+    }
+
+    fn perform_lookup<'a>(
+        &self,
+        rule: PointerValue<'ctx>,
+        patterns: impl IntoIterator<Item = &'a ir::Expression> + Copy,
+        next_to: PointerValue<'ctx>,
+        done_to: PointerValue<'ctx>,
+        bound_ids: &mut Vec<Id>,
+    ) -> Option<()> {
+        // NOTE: similarly, the arguments of a query must be syntactically both patterns and
+        // expressions, so we can again guarantee that branching is not possible.
+        let arguments = patterns
+            .into_iter()
+            .map(|pattern| {
+                if !pattern.can_evaluate() {
+                    // This pattern is not possibly an expression, e.g. due to containing a wildcard
+                    // or other pattern-only syntax element. It can only be used as an output parameter.
+                    let arg = self.allocate_undefined("out_arg");
+                    self.bind_temporary(arg);
+                    return Some(arg);
+                }
+                let variables = pattern
+                    .bindings()
+                    .iter()
+                    .map(|var| self.get_variable(var).unwrap())
+                    .collect::<Vec<_>>();
+                if variables.is_empty() {
+                    let arg = self.compile_expression(pattern, "in_arg")?;
+                    self.bind_temporary(arg);
+                    return Some(arg);
+                }
+                // This pattern is (potentially) fully defined. We must confirm by checking all
+                // the variables at runtime, and if they are all set, then we can construct
+                // this pattern.
+                let out_block = self.context.append_basic_block(self.get_function(), "out");
+                let original_function = self.get_function();
+                let snapshot = self.snapshot_function_context();
+                for variable in variables {
+                    let next_arg = self.context.append_basic_block(self.get_function(), "next");
+                    self.branch_undefined(variable.ptr(), out_block, next_arg);
+                    self.builder.position_at_end(next_arg);
+                }
+                let in_arg = self.compile_expression(pattern, "in_arg")?;
+                let final_function = self.get_function();
+                if original_function == final_function {
+                    let merge_block = self.context.append_basic_block(final_function, "merge_arg");
+
+                    let in_block = self.builder.get_insert_block().unwrap();
+                    self.builder
+                        .build_unconditional_branch(merge_block)
+                        .unwrap();
+
+                    self.builder.position_at_end(out_block);
+                    let out_arg = self.allocate_undefined("out_arg");
+                    self.builder
+                        .build_unconditional_branch(merge_block)
+                        .unwrap();
+
+                    self.builder.position_at_end(merge_block);
+                    let phi = self
+                        .builder
+                        .build_phi(self.context.ptr_type(AddressSpace::default()), "arg")
+                        .unwrap();
+                    phi.add_incoming(&[(&in_arg, in_block), (&out_arg, out_block)]);
+                    let arg = phi.as_basic_value().into_pointer_value();
+                    self.bind_temporary(arg);
+                    Some(arg)
+                } else {
+                    let arg_continuation = self.add_continuation("arg");
+                    let end = self.continue_in_scope(arg_continuation, in_arg);
+                    self.end_continuation_point_as_close(end);
+
+                    self.restore_function_context(snapshot);
+                    self.builder.position_at_end(out_block);
+                    let end = self.void_continue_in_scope(arg_continuation);
+                    self.end_continuation_point_as_close(end);
+
+                    self.begin_next_function(arg_continuation);
+                    let arg = self.get_continuation("arg");
+                    self.bind_temporary(arg);
+                    Some(arg)
+                }
+            })
+            .collect::<Option<Vec<_>>>()?;
+
+        let (next_iteration_inner, output_arguments) = self.call_rule(
+            rule,
+            &arguments,
+            self.use_temporary(done_to).unwrap(),
+            "lookup_next",
+        );
+        self.bind_temporary(next_iteration_inner);
+
+        // Wrap the next iteration with our own, as a lookup requires some cleanup
+        // before starting its next internal iteration.
+        let next_iteration_with_cleanup = self.add_continuation("lookup.next");
+        let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
+            self.capture_current_continuation(next_iteration_with_cleanup, "lookup.next");
+
+        let bound_before_lookup = bound_ids.len();
+        for (pattern, out_value) in patterns.into_iter().zip(output_arguments) {
+            let out_value = self.use_temporary(out_value).unwrap();
+            self.compile_pattern_match_with_bindings(
+                pattern,
+                out_value,
+                next_iteration_with_cleanup_continuation,
+                bound_ids,
+            )?;
+        }
+
+        self.call_known_continuation(
+            self.use_temporary(next_to).unwrap(),
+            next_iteration_with_cleanup_continuation,
+        );
+
+        self.become_continuation_point(next_iteration_with_cleanup_cp);
+        self.begin_next_function(next_iteration_with_cleanup);
+        self.cleanup_go_next(next_iteration_inner, bound_ids, bound_before_lookup);
+        Some(())
     }
 }

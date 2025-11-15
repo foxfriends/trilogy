@@ -126,6 +126,13 @@ type c {
   export shift_right_contract
 
   extern proc primitive_to_string!(val)
+  export primitive_to_string
+
+  extern proc set_to_array!(val)
+  export set_to_array
+
+  extern proc record_to_array!(val)
+  export record_to_array
 }
 
 const print = c::print
@@ -229,3 +236,18 @@ func rem lhs rhs = c::rem!(lhs, rhs)
 export rem
 func cons lhs rhs = c::cons!(lhs, rhs)
 export cons
+
+func to_array (arr and typeof 'array) = arr
+func to_array (set and typeof 'set) = c::set_to_array!(set)
+func to_array (record and typeof 'record) = c::record_to_array!(record)
+export to_array
+
+rule elem(element, [element, .._])
+rule elem(element, [_, ..rest]) <- elem(element, rest)
+rule elem(_, []) <- end
+rule elem(element, set and typeof 'set) <-
+  array = c::set_to_array!(set)
+  and elem(element, array)
+rule elem(element, record and typeof 'record) <- array = c::record_to_array!(record)
+  and elem(element, array)
+export elem

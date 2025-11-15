@@ -72,6 +72,10 @@ impl<'ctx> Codegen<'ctx> {
             let (go_to_next_overload, next_overload_cp) =
                 self.capture_current_continuation_as_break(next_overload_function, "next_overload");
 
+            let next_overload_clone = self.allocate_value("next_overload_clone");
+            self.trilogy_value_clone_into(next_overload_clone, go_to_next_overload);
+            self.bind_temporary(next_overload_clone);
+
             for (param, &value) in overload.parameters.iter().zip(&input_args) {
                 let original_insert_function = self.get_function();
                 let original_snapshot = self.snapshot_function_context();
@@ -124,7 +128,8 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
             // The rule runs the iterator, resulting in new bindings being set.
-            let Some(next_iteration) = self.compile_iterator(&overload.body, go_to_next_overload)
+            let Some(next_iteration) =
+                self.compile_query_iteration(&overload.body, go_to_next_overload)
             else {
                 break 'outer;
             };
@@ -157,7 +162,7 @@ impl<'ctx> Codegen<'ctx> {
                     // If the input and output are both going to be undefined, then go right to the
                     // next overload.
                     self.builder.position_at_end(fully_unbound);
-                    let next_overload = self.use_temporary(go_to_next_overload).unwrap();
+                    let next_overload = self.use_temporary(next_overload_clone).unwrap();
                     self.void_call_continuation(next_overload);
 
                     // There's actually no action for the rebind-input case, only to reuse the argument later

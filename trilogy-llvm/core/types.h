@@ -263,4 +263,35 @@ typedef struct trilogy_module {
     trilogy_array_value* closure;
 } trilogy_module;
 
+/**
+ * The foreign object works/appears as a module in Trilogy, but internally is
+ * backed by some native stuff instead. The contents takes the place of the
+ * closure, and is received as the last parameter when calling methods.
+ *
+ * RAII is not a thing, the contents are possibly unclosed resources,
+ * the Trilogy code should correctly open/close them if needed.
+ */
+typedef struct trilogy_foreign_object {
+    /**
+     * The reference count for this foreign object instance.
+     */
+    uint32_t rc;
+    /**
+     * The number of members in this foreign object.
+     */
+    size_t len;
+    /**
+     * The sorted list of IDs for members in this foreign object.
+     */
+    uint64_t* member_ids;
+    /**
+     * The actual pointers to contained member accessors.
+     */
+    void** members;
+    /**
+     * Pointer to the contained foreign object.
+     */
+    void* contents;
+} trilogy_foreign_object;
+
 char* type_name(trilogy_value_tag tag);

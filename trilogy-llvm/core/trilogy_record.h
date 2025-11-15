@@ -34,3 +34,6 @@ bool trilogy_record_structural_eq(
 );
 
 void trilogy_record_destroy(trilogy_record_value* rec);
+
+trilogy_array_value*
+trilogy_record_to_array(trilogy_value* tv, trilogy_record_value* rec);

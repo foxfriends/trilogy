@@ -1,5 +1,6 @@
 #include "trilogy_record.h"
 #include "internal.h"
+#include "trilogy_array.h"
 #include "trilogy_tuple.h"
 #include "trilogy_value.h"
 #include "types.h"
@@ -233,4 +234,18 @@ bool trilogy_record_structural_eq(
         if (!trilogy_value_structural_eq(&entry->snd, rhs_value)) return false;
     }
     return true;
+}
+
+trilogy_array_value*
+trilogy_record_to_array(trilogy_value* tv, trilogy_record_value* record) {
+    trilogy_array_value* arr = trilogy_array_init_cap(tv, record->len);
+    for (uint64_t i = 0; i < record->cap; ++i) {
+        trilogy_tuple_value* entry = &record->contents[i];
+        if (entry->fst.tag == TAG_UNDEFINED) continue;
+        trilogy_value val = trilogy_undefined;
+        trilogy_tuple_clone_into(&val, entry);
+        trilogy_array_push(arr, &val);
+    }
+    assert(arr->len == record->len);
+    return arr;
 }

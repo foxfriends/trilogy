@@ -131,4 +131,8 @@ impl<'ctx> Codegen<'ctx> {
         let f = self.declare_core("bitwise_invert", 1);
         self.call_core(target, f, &[value.into()]);
     }
+
+    pub(crate) fn elem(&self) -> PointerValue<'ctx> {
+        self.get_core("elem")
+    }
 }

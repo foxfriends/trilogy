@@ -68,3 +68,6 @@ void gte(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 
 void lookup_atom(trilogy_value* rv, trilogy_value* atom);
 void to_string(trilogy_value* rv, trilogy_value* val);
+
+void set_to_array(trilogy_value* rv, trilogy_value* val);
+void record_to_array(trilogy_value* rv, trilogy_value* val);

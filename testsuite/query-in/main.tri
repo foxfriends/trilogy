@@ -1,0 +1,15 @@
+import "trilogy:debug" use dbg
+
+proc main!() {
+  for x in [1, 2, 3] {
+    dbg!(x)
+  }
+
+  for x in [|4, 4, 4, 5, 5|] {
+    dbg!(x)
+  }
+
+  for x in {| 'a => 1, 'b => 2 |} {
+    dbg!(x)
+  }
+}

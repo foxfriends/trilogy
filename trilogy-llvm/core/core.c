@@ -6,6 +6,7 @@
 #include "trilogy_character.h"
 #include "trilogy_number.h"
 #include "trilogy_record.h"
+#include "trilogy_set.h"
 #include "trilogy_string.h"
 #include "trilogy_struct.h"
 #include "trilogy_tuple.h"
@@ -424,4 +425,14 @@ bool unglue_end(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_string_value* lhs_str = trilogy_string_assume(lhs);
     trilogy_string_value* rhs_str = trilogy_string_assume(rhs);
     return trilogy_string_unglue_end(rv, lhs_str, rhs_str);
+}
+
+void set_to_array(trilogy_value* rv, trilogy_value* set_val) {
+    trilogy_set_value* set = trilogy_set_untag(set_val);
+    trilogy_set_to_array(rv, set);
+}
+
+void record_to_array(trilogy_value* rv, trilogy_value* record_val) {
+    trilogy_record_value* record = trilogy_record_untag(record_val);
+    trilogy_record_to_array(rv, record);
 }
