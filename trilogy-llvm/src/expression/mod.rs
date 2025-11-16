@@ -142,9 +142,12 @@ impl<'ctx> Codegen<'ctx> {
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
             self.capture_current_continuation_as_break(done_function, "for_break");
+        let done_to_clone = self.allocate_value("break");
+        self.trilogy_value_clone_into(done_to_clone, done_continuation);
+        self.bind_temporary(done_to_clone);
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
         self.bind_temporary(next_iteration);
-        self.push_loop_scope(done_continuation, next_iteration);
+        self.push_loop_scope(done_to_clone, next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, name) {
             let next_iteration = self.use_temporary(next_iteration).unwrap();
             self.trilogy_value_destroy(value);
