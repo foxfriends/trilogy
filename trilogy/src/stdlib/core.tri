@@ -163,6 +163,32 @@ func to_string val = match val
     }
     str <> "]"
   }
+  case typeof 'set {
+    let mut str = "[|"
+    let mut i = 0
+    let arr = c::set_to_array!(val)
+    while i < c::length!(arr) {
+      str <>= $"${arr.i}"
+      i += 1
+      if i != c::length!(arr) {
+        str <>= ", "
+      }
+    }
+    str <> "|]"
+  }
+  case typeof 'record {
+    let mut str = "{|"
+    let mut i = 0
+    let arr = c::record_to_array!(val)
+    while i < c::length!(arr) {
+      str <>= $"${arr.i.'left} => ${arr.i.'right}"
+      i += 1
+      if i != c::length!(arr) {
+        str <>= ", "
+      }
+    }
+    str <> "|}"
+  }
   else then c::primitive_to_string!(val)
 
 
