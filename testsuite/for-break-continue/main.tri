@@ -1,0 +1,9 @@
+import "trilogy:debug" use dbg
+
+proc main!() {
+  for x in [1, 2, 3, 4] {
+    if x == 2 { continue unit }
+    if x % 2 == 0 { break unit }
+    dbg!(x)
+  }
+}
