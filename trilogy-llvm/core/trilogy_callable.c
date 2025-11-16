@@ -8,6 +8,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+static const char* CALLABLE_NAME_FN = "<fn>";
+static const char* CALLABLE_NAME_DO = "<do>";
+static const char* CALLABLE_NAME_QY = "<qy>";
+static const char* CALLABLE_NAME_RETURN = "<return>";
+static const char* CALLABLE_NAME_CANCEL = "<cancel>";
+static const char* CALLABLE_NAME_RESUME = "<resume>";
+static const char* CALLABLE_NAME_BREAK = "<break>";
+static const char* CALLABLE_NAME_CONTINUE = "<continue>";
+
 trilogy_value* prepare_closure(uint32_t closure_size) {
     return calloc_safe(closure_size, sizeof(trilogy_value));
 }
@@ -37,7 +46,7 @@ static trilogy_callable_value* trilogy_callable_value_init(
     trilogy_value* return_to, trilogy_value* yield_to, trilogy_value* cancel_to,
     trilogy_value* resume_to, trilogy_value* break_to,
     trilogy_value* continue_to, trilogy_value* next_to, trilogy_value* done_to,
-    trilogy_value* closure, void* p
+    trilogy_value* closure, void* p, const char* name
 ) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     callable->rc = 1;
@@ -89,6 +98,7 @@ static trilogy_callable_value* trilogy_callable_value_init(
         *closure = trilogy_undefined;
     }
     callable->function = p;
+    callable->name = name;
     TRACE("Initialized callable   (%d): %p\n", callable->tag, callable);
     return callable;
 }
@@ -99,7 +109,7 @@ trilogy_callable_init_fn(trilogy_value* t, trilogy_value* closure, void* p) {
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_FUNCTION, 1, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, closure, p
+        NULL, NULL, closure, p, CALLABLE_NAME_FN
     );
     return trilogy_callable_init(t, callable);
 }
@@ -111,7 +121,7 @@ trilogy_callable_value* trilogy_callable_init_do(
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_PROCEDURE, arity, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, closure, p
+        NULL, NULL, closure, p, CALLABLE_NAME_DO
     );
     return trilogy_callable_init(t, callable);
 }
@@ -123,30 +133,51 @@ trilogy_callable_value* trilogy_callable_init_qy(
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_RULE, arity, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, closure, p
+        NULL, NULL, closure, p, CALLABLE_NAME_QY
+    );
+    return trilogy_callable_init(t, callable);
+}
+
+trilogy_callable_value* trilogy_callable_init_proc(
+    trilogy_value* t, uint32_t arity, void* p, const char* name
+) {
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_value_init(
+        callable, CALLABLE_PROCEDURE, arity, NULL, NULL, NULL, NULL, NULL, NULL,
+        NULL, NULL, NO_CLOSURE, p, name
     );
     return trilogy_callable_init(t, callable);
 }
 
 trilogy_callable_value*
-trilogy_callable_init_proc(trilogy_value* t, uint32_t arity, void* p) {
-    return trilogy_callable_init_do(t, arity, NO_CLOSURE, p);
+trilogy_callable_init_func(trilogy_value* t, void* p, const char* name) {
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_value_init(
+        callable, CALLABLE_FUNCTION, 1, NULL, NULL, NULL, NULL, NULL, NULL,
+        NULL, NULL, NO_CLOSURE, p, name
+    );
+    return trilogy_callable_init(t, callable);
 }
 
-trilogy_callable_value* trilogy_callable_init_func(trilogy_value* t, void* p) {
-    return trilogy_callable_init_fn(t, NO_CLOSURE, p);
-}
-
-trilogy_callable_value*
-trilogy_callable_init_rule(trilogy_value* t, uint32_t arity, void* p) {
-    return trilogy_callable_init_qy(t, arity, NO_CLOSURE, p);
+trilogy_callable_value* trilogy_callable_init_rule(
+    trilogy_value* t, uint32_t arity, void* p, const char* name
+) {
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_value_init(
+        callable, CALLABLE_RULE, arity, NULL, NULL, NULL, NULL, NULL, NULL,
+        NULL, NULL, NO_CLOSURE, p, name
+    );
+    return trilogy_callable_init(t, callable);
 }
 
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
     trilogy_value* cancel_to, trilogy_value* resume_to, trilogy_value* break_to,
     trilogy_value* continue_to, trilogy_value* next_to, trilogy_value* done_to,
-    trilogy_value* closure, void* p
+    trilogy_value* closure, void* p, const char* name
 ) {
     assert(closure != NO_CLOSURE);
     assert(closure->tag == TAG_ARRAY);
@@ -154,7 +185,7 @@ trilogy_callable_value* trilogy_callable_init_cont(
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, cancel_to,
-        resume_to, break_to, continue_to, next_to, done_to, closure, p
+        resume_to, break_to, continue_to, next_to, done_to, closure, p, name
     );
     return trilogy_callable_init(t, callable);
 }
@@ -171,7 +202,8 @@ trilogy_callable_value* trilogy_callable_init_resume(
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_RESUME, 1, return_to, yield_to, cancel_to, resume_to,
-        break_to, continue_to, next_to, done_to, closure, p
+        break_to, continue_to, next_to, done_to, closure, p,
+        CALLABLE_NAME_RESUME
     );
     return trilogy_callable_init(t, callable);
 }
@@ -188,7 +220,8 @@ trilogy_callable_value* trilogy_callable_init_continue(
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_CONTINUE, 1, return_to, yield_to, cancel_to,
-        resume_to, break_to, continue_to, next_to, done_to, closure, p
+        resume_to, break_to, continue_to, next_to, done_to, closure, p,
+        CALLABLE_NAME_CONTINUE
     );
     return trilogy_callable_init(t, callable);
 }

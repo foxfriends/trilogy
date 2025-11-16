@@ -214,6 +214,11 @@ typedef struct trilogy_callable_value {
      * Pointer to the function itself.
      */
     void* function;
+    /**
+     * The defined name or builtin symbol of the callable. This string is a
+     * static C-string.
+     */
+    const char* name;
 } trilogy_callable_value;
 
 /**

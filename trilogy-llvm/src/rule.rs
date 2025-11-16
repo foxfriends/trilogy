@@ -19,7 +19,7 @@ impl<'ctx> Codegen<'ctx> {
             let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
             self.trilogy_callable_init_qy(sret, arity, ctx, accessing);
         } else {
-            self.trilogy_callable_init_rule(sret, arity, accessing);
+            self.trilogy_callable_init_rule(sret, arity, accessing, name);
         }
         self.builder.build_return(None).unwrap();
     }

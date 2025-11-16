@@ -1425,13 +1425,16 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         arity: usize,
         function: FunctionValue<'ctx>,
+        name: &str,
     ) {
+        let name_const = self.c_str(name);
         let f = self.declare_bare(
             "trilogy_callable_init_proc",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
@@ -1447,6 +1450,7 @@ impl<'ctx> Codegen<'ctx> {
                         .const_int(arity as u64, false)
                         .into(),
                     function.as_global_value().as_pointer_value().into(),
+                    name_const.into(),
                 ],
                 "",
             )
@@ -1457,11 +1461,14 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         t: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
+        name: &str,
     ) {
+        let name_const = self.c_str(name);
         let f = self.declare_bare(
             "trilogy_callable_init_func",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
@@ -1474,6 +1481,7 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     t.into(),
                     function.as_global_value().as_pointer_value().into(),
+                    name_const.into(),
                 ],
                 "",
             )
@@ -1515,13 +1523,16 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         arity: usize,
         function: FunctionValue<'ctx>,
+        name: &str,
     ) {
+        let name_const = self.c_str(name);
         let f = self.declare_bare(
             "trilogy_callable_init_rule",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
@@ -1537,6 +1548,7 @@ impl<'ctx> Codegen<'ctx> {
                         .const_int(arity as u64, false)
                         .into(),
                     function.as_global_value().as_pointer_value().into(),
+                    name_const.into(),
                 ],
                 "",
             )
@@ -1746,11 +1758,14 @@ impl<'ctx> Codegen<'ctx> {
         done_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
+        name: &str,
     ) {
+        let name_const = self.c_str(name);
         let f = self.declare_bare(
             "trilogy_callable_init_cont",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -1781,6 +1796,7 @@ impl<'ctx> Codegen<'ctx> {
                     done_to.into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
+                    name_const.into(),
                 ],
                 "",
             )

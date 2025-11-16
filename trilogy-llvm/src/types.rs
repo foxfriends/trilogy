@@ -1,3 +1,5 @@
+use std::fmt::Pointer;
+
 use crate::codegen::Codegen;
 use bitvec::field::BitField;
 use inkwell::basic_block::BasicBlock;
@@ -239,6 +241,10 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn string_const(&self, into: PointerValue<'ctx>, value: &str) {
+        self.trilogy_string_init_new(into, value.len(), self.c_str(value));
+    }
+
+    pub(crate) fn c_str(&self, value: &str) -> PointerValue<'ctx> {
         let bytes = value.as_bytes();
         let string = self.module.add_global(
             self.context.i8_type().array_type(bytes.len() as u32),
@@ -247,7 +253,7 @@ impl<'ctx> Codegen<'ctx> {
         );
         string.set_initializer(&self.context.const_string(bytes, false));
         string.set_constant(true);
-        self.trilogy_string_init_new(into, value.len(), string.as_pointer_value());
+        string.as_pointer_value()
     }
 
     pub(crate) fn bits_const(&self, into: PointerValue<'ctx>, value: &Bits) {

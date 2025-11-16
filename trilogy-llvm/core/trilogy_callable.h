@@ -15,18 +15,21 @@ trilogy_callable_value* trilogy_callable_init_qy(
     trilogy_value* t, uint32_t arity, trilogy_value* closure, void* p
 );
 
-trilogy_callable_value* trilogy_callable_init_func(trilogy_value* t, void* p);
 trilogy_callable_value*
-trilogy_callable_init_proc(trilogy_value* t, uint32_t arity, void* p);
-trilogy_callable_value*
-trilogy_callable_init_rule(trilogy_value* t, uint32_t arity, void* p);
+trilogy_callable_init_func(trilogy_value* t, void* p, const char* name);
+trilogy_callable_value* trilogy_callable_init_proc(
+    trilogy_value* t, uint32_t arity, void* p, const char* name
+);
+trilogy_callable_value* trilogy_callable_init_rule(
+    trilogy_value* t, uint32_t arity, void* p, const char* name
+);
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to /* moved */,
     trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
     trilogy_value* resume_to /* moved */, trilogy_value* break_to /* moved */,
     trilogy_value* continue_to /* moved */, trilogy_value* next_to /* moved */,
     trilogy_value* done_to /* moved */, trilogy_value* closure /* moved */,
-    void* p
+    void* p, const char* name
 );
 trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_value* t, trilogy_value* return_to /* moved */,
