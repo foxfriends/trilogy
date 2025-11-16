@@ -439,11 +439,12 @@ impl<'ctx> Codegen<'ctx> {
         Some(target)
     }
 
+    #[allow(clippy::all)] // just for now
     fn compile_let(&self, decl: &ir::Let, name: &str) -> Option<PointerValue<'ctx>> {
         match &decl.query.value {
             QueryValue::Direct(unif) if decl.query.is_once() => {
-                // These variables are tricky... if they are invented only when initialized, they
-                // are trivially cleared before revisiting them due to a continuation, but then we
+                // NOTE[rec-let]: These variables are tricky... if they are invented only when initialized,
+                // they are trivially cleared before revisiting them due to a continuation, but then we
                 // are not able to define recursive closures.
                 //
                 // Meanwhile, having moved the bindings out to here, we can easily self-reference,
@@ -474,11 +475,9 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_expression(&decl.body, name)
             }
             _ => {
-                // TODO: in theory, the above case should be covered by this one, but right now
-                // if the above case is deleted, there are a few test cases that fail through this
-                // case. Appears to be some cleanup that is being missed.
                 let end = self.get_end("");
                 self.bind_temporary(end);
+
                 let next_to = self.compile_query_iteration(&decl.query, end)?;
                 self.push_execution(next_to);
                 self.compile_expression(&decl.body, name)

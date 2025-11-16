@@ -206,6 +206,15 @@ impl<'ctx> Codegen<'ctx> {
             }
             ir::QueryValue::Direct(unification) => {
                 let rvalue = self.compile_expression(&unification.expression, "rvalue")?;
+
+                // NOTE[rec-let]: see other
+                for id in unification.pattern.bindings() {
+                    if !bound_ids.contains(&id) {
+                        let var = self.get_variable(&id).unwrap().ptr();
+                        self.trilogy_value_destroy(var);
+                    }
+                }
+
                 let pre_len = bound_ids.len();
                 self.compile_pattern_match_with_bindings(
                     &unification.pattern,
@@ -239,6 +248,14 @@ impl<'ctx> Codegen<'ctx> {
                 let next_iteration_with_cleanup = self.add_continuation("in.next");
                 let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
                     self.capture_current_continuation(next_iteration_with_cleanup, "in.next");
+
+                // NOTE[rec-let]: see other
+                for id in unification.pattern.bindings() {
+                    if !bound_ids.contains(&id) {
+                        let var = self.get_variable(&id).unwrap().ptr();
+                        self.trilogy_value_destroy(var);
+                    }
+                }
 
                 let bound_before_lookup = bound_ids.len();
                 self.compile_pattern_match_with_bindings(
