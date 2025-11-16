@@ -276,13 +276,11 @@ impl<'ctx> Codegen<'ctx> {
         // 2: end
         // 3: cancel
         // 4: resume
-        // 5: break
-        // 6: continue
-        // 7: next
-        // 8: done
-        // [9..9 + arity): args
-        // 9 + arity: closure
-        let extras = if has_closure { 10 } else { 9 };
+        // 5: next
+        // 6: done
+        // [7..7 + arity): args
+        // 8 + arity: closure
+        let extras = if has_closure { 8 } else { 7 };
         self.context
             .void_type()
             .fn_type(&vec![self.value_type().into(); arity + extras], false)
@@ -318,15 +316,13 @@ impl<'ctx> Codegen<'ctx> {
         // 2: end
         // 3: cancel
         // 4: resume
-        // 5: break
-        // 6: continue
         // 7: next
         // 8: done
         // 9: argument
         // 10: closure
         self.context
             .void_type()
-            .fn_type(&vec![self.value_type().into(); 10 + arity], false)
+            .fn_type(&vec![self.value_type().into(); 8 + arity], false)
     }
 
     pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {

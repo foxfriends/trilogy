@@ -93,8 +93,9 @@ impl<'ctx> Codegen<'ctx> {
         let break_function = self.add_continuation("while.done");
 
         let (break_continuation, break_continuation_point) =
-            self.capture_current_continuation_as_break(break_function, "");
-        self.continue_in_loop(continue_function, break_continuation);
+            self.capture_current_continuation_as_break(break_function, "break");
+        let continue_continuation = self.continue_in_loop(continue_function);
+        self.push_loop_scope(break_continuation, continue_continuation);
         self.begin_next_function(continue_function);
         // TODO: within the condition of a loop, `break` keyword should refer to the parent scope's break,
         // but here it refers to the child.
@@ -118,7 +119,7 @@ impl<'ctx> Codegen<'ctx> {
         let snapshot = self.snapshot_function_context();
 
         self.builder.position_at_end(else_block);
-        let break_continuation = self.get_break("break");
+        let break_continuation = self.get_break();
         self.call_known_continuation(
             break_continuation,
             self.allocate_const(self.unit_const(), ""),
@@ -133,6 +134,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(break_continuation_point);
         self.begin_next_function(break_function);
+        self.pop_loop_scope();
         Some(self.get_continuation(name))
     }
 
@@ -142,6 +144,7 @@ impl<'ctx> Codegen<'ctx> {
             self.capture_current_continuation_as_break(done_function, "for_break");
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
         self.bind_temporary(next_iteration);
+        self.push_loop_scope(done_continuation, next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, name) {
             let next_iteration = self.use_temporary(next_iteration).unwrap();
             self.trilogy_value_destroy(value);
@@ -150,6 +153,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(done_continuation_point);
         self.begin_next_function(done_function);
+        self.pop_loop_scope();
         // TODO: the for should really somehow be a "fold" construct eventually
         //
         // let [1, 2, 3] = from list = [] for vals(x) { [...list, x] }

@@ -59,7 +59,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Break => {
                 let result = self.compile_expression(expression, name)?;
-                let break_cont = self.get_break("");
+                let break_cont = self.get_break();
                 self.call_known_continuation(break_cont, result);
                 None
             }
@@ -506,8 +506,6 @@ impl<'ctx> Codegen<'ctx> {
                     self.get_yield(""),
                     self.get_cancel(""),
                     self.get_resume(""),
-                    self.get_break(""),
-                    self.get_continue(""),
                     self.get_next(""),
                     self.get_done(""),
                 );
@@ -515,36 +513,8 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Cancel => self.get_cancel(name),
             Builtin::Resume => self.get_resume(name),
-            Builtin::Break => {
-                let break_to = self.get_break(name);
-                self.trilogy_callable_promote(
-                    break_to,
-                    self.get_return(""),
-                    self.get_yield(""),
-                    self.get_cancel(""),
-                    self.get_resume(""),
-                    self.context.ptr_type(AddressSpace::default()).const_null(),
-                    self.context.ptr_type(AddressSpace::default()).const_null(),
-                    self.get_next(""),
-                    self.get_done(""),
-                );
-                break_to
-            }
-            Builtin::Continue => {
-                let continue_to = self.get_continue(name);
-                self.trilogy_callable_promote(
-                    continue_to,
-                    self.get_return(""),
-                    self.get_yield(""),
-                    self.get_cancel(""),
-                    self.get_resume(""),
-                    self.context.ptr_type(AddressSpace::default()).const_null(),
-                    self.context.ptr_type(AddressSpace::default()).const_null(),
-                    self.get_next(""),
-                    self.get_done(""),
-                );
-                continue_to
-            }
+            Builtin::Break => self.get_break(),
+            Builtin::Continue => self.get_continue(),
             Builtin::Access => self.reference_core("member_access"),
             Builtin::And => self.reference_core("boolean_and"),
             Builtin::Or => self.reference_core("boolean_or"),

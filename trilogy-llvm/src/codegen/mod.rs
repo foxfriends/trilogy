@@ -50,6 +50,8 @@ pub(crate) struct Codegen<'ctx> {
     current_definition: RefCell<(String, String, Span)>,
     closure_array: Cell<Option<PointerValue<'ctx>>>,
     pub(crate) function_params: RefCell<Vec<PointerValue<'ctx>>>,
+    pub(crate) current_break: RefCell<Vec<PointerValue<'ctx>>>,
+    pub(crate) current_continue: RefCell<Vec<PointerValue<'ctx>>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -100,6 +102,8 @@ impl<'ctx> Codegen<'ctx> {
             current_definition: RefCell::default(),
             closure_array: Cell::default(),
             function_params: RefCell::default(),
+            current_break: RefCell::default(),
+            current_continue: RefCell::default(),
         }
     }
 
@@ -122,6 +126,8 @@ impl<'ctx> Codegen<'ctx> {
             current_definition: RefCell::default(),
             closure_array: Cell::default(),
             function_params: RefCell::default(),
+            current_break: RefCell::default(),
+            current_continue: RefCell::default(),
         }
     }
 
@@ -227,5 +233,19 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn end_function(&self) {
         self.di.pop_scope();
         self.di.pop_scope();
+    }
+
+    pub(crate) fn push_loop_scope(
+        &self,
+        break_to: PointerValue<'ctx>,
+        continue_to: PointerValue<'ctx>,
+    ) {
+        self.current_break.borrow_mut().push(break_to);
+        self.current_continue.borrow_mut().push(continue_to);
+    }
+
+    pub(crate) fn pop_loop_scope(&self) {
+        self.current_break.borrow_mut().pop();
+        self.current_continue.borrow_mut().pop();
     }
 }

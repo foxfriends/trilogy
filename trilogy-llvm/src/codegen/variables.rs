@@ -145,27 +145,15 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// Gets the current `break` continuation, valid only when in a loop.
-    pub(crate) fn get_break(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.clone_break(container);
-        container
-    }
-
-    /// Gets the current `break` continuation, valid only when in a loop.
-    pub(crate) fn clone_break(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[5]);
+    pub(crate) fn get_break(&self) -> PointerValue<'ctx> {
+        let current_break = *self.current_break.borrow().last().unwrap();
+        self.use_temporary(current_break).unwrap()
     }
 
     /// Gets the current `continue` continuation, valid only when in a loop.
-    pub(crate) fn get_continue(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.clone_continue(container);
-        container
-    }
-
-    /// Gets the current `continue` continuation, valid only when in a loop.
-    pub(crate) fn clone_continue(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[6]);
+    pub(crate) fn get_continue(&self) -> PointerValue<'ctx> {
+        let current_continue = *self.current_continue.borrow().last().unwrap();
+        self.use_temporary(current_continue).unwrap()
     }
 
     /// Gets the `next_to` pointer from the current rule context.
@@ -177,7 +165,7 @@ impl<'ctx> Codegen<'ctx> {
 
     /// Gets the current `next` continuation, valid only when in a query.
     pub(crate) fn clone_next(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[7]);
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[5]);
     }
 
     /// Gets the `done_to` pointer from the current rule context.
@@ -189,13 +177,13 @@ impl<'ctx> Codegen<'ctx> {
 
     /// Gets the current `done` continuation, valid only when in a query.
     pub(crate) fn clone_done(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[8]);
+        self.trilogy_value_clone_into(into, self.function_params.borrow()[6]);
     }
 
     /// When in a continuation function, gets the value that was yielded to the continuation.
     pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[9]);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[7]);
         container
     }
 

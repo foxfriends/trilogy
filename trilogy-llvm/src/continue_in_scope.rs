@@ -25,8 +25,6 @@ impl<'ctx> Codegen<'ctx> {
             function,
             self.get_yield(""),
             self.get_cancel(""),
-            self.get_break(""),
-            self.get_continue(""),
             self.load_value(argument, "").into(),
         )
     }
@@ -43,8 +41,6 @@ impl<'ctx> Codegen<'ctx> {
             function,
             self.get_yield(""),
             self.get_cancel(""),
-            self.get_break(""),
-            self.get_continue(""),
             self.value_type().const_zero().into(),
         )
     }
@@ -54,8 +50,6 @@ impl<'ctx> Codegen<'ctx> {
         function: FunctionValue<'ctx>,
         yield_to: PointerValue<'ctx>,
         cancel_to: PointerValue<'ctx>,
-        break_to: PointerValue<'ctx>,
-        continue_to: PointerValue<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
     ) -> InstructionValue<'ctx> {
         let return_to = self.get_return("");
@@ -75,8 +69,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(end_to, "").into(),
             self.load_value(cancel_to, "").into(),
             self.load_value(resume_to, "").into(),
-            self.load_value(break_to, "").into(),
-            self.load_value(continue_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
             argument,
@@ -104,8 +96,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
         let resume_to = self.get_resume("");
-        let break_to = self.get_break("");
-        let continue_to = self.get_continue("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
 
@@ -115,30 +105,6 @@ impl<'ctx> Codegen<'ctx> {
             self.get_yield(""),
             self.get_cancel(""),
             self.get_resume(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_next(""),
-            self.get_done(""),
-        );
-        self.trilogy_callable_promote(
-            break_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_yield(""),
-            self.get_cancel(""),
-            self.get_resume(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_next(""),
-            self.get_done(""),
-        );
-        self.trilogy_callable_promote(
-            continue_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_yield(""),
-            self.get_cancel(""),
-            self.get_resume(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_next(""),
             self.get_done(""),
         );
@@ -154,8 +120,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(end_to, "").into(),
             self.load_value(cancel_to, "").into(),
             self.load_value(resume_to, "").into(),
-            self.load_value(break_to, "").into(),
-            self.load_value(continue_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
@@ -175,8 +139,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn continue_in_loop(
         &self,
         continue_function: FunctionValue<'ctx>,
-        break_to: PointerValue<'ctx>,
-    ) {
+    ) -> PointerValue<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let end_to = self.get_end("");
@@ -191,8 +154,6 @@ impl<'ctx> Codegen<'ctx> {
             self.get_yield(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_break(""),
-            self.get_continue(""),
             self.get_next(""),
             self.get_done(""),
         );
@@ -202,17 +163,35 @@ impl<'ctx> Codegen<'ctx> {
             self.get_yield(""),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_break(""),
-            self.get_continue(""),
             self.get_next(""),
             self.get_done(""),
         );
 
-        let break_clone = self.allocate_value("");
-        self.trilogy_value_clone_into(break_clone, break_to);
-        let continue_to =
-            self.close_current_continuation_as_continue(continue_function, break_clone, "");
-        let continue_to_callable = self.trilogy_callable_assume(continue_to, "");
+        let continue_to = self.allocate_value("continue");
+        self.bind_temporary(continue_to);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+        let continue_to_callable = self.trilogy_callable_init_continue(
+            continue_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            closure,
+            continue_function,
+            "",
+        );
+
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+        self.end_continuation_point_as_close_after(
+            closure.as_instruction_value().unwrap(),
+            continue_to_callable.as_instruction().unwrap(),
+        );
+
         let closure = self.allocate_value("");
         self.trilogy_callable_closure_into(closure, continue_to_callable, "");
 
@@ -222,8 +201,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(end_to, "").into(),
             self.load_value(cancel_to, "").into(),
             self.load_value(resume_to, "").into(),
-            self.load_value(break_to, "").into(),
-            self.load_value(continue_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
@@ -237,5 +214,7 @@ impl<'ctx> Codegen<'ctx> {
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
         self.builder.build_return(None).unwrap();
+
+        continue_to
     }
 }

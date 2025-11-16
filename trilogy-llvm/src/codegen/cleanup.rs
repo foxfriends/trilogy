@@ -32,40 +32,72 @@ impl<'ctx> Codegen<'ctx> {
                 match parent {
                     Exit::Close(Parent {
                         parent,
-                        instruction,
+                        closure_instruction,
+                        close_after_instruction,
                         snapshot,
                     }) => {
-                        self.builder
-                            .position_at(instruction.get_parent().unwrap(), instruction);
+                        // Allocate the closure in the same spot as the original allocation.
                         self.restore_function_context(snapshot.clone());
+                        self.builder.position_at(
+                            closure_instruction.get_parent().unwrap(),
+                            closure_instruction,
+                        );
+                        let closure = self.allocate_value("closure");
+                        let closure_size = point.closure.borrow().len();
+                        let closure_array =
+                            self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
+
+                        // But close it after the close_after_instruction
+                        self.builder.position_at(
+                            close_after_instruction.get_parent().unwrap(),
+                            &close_after_instruction.get_next_instruction().unwrap(),
+                        );
                         let parent = parent.upgrade().unwrap();
-                        let closure = self.build_closure(parent.clone(), &point);
+                        self.build_closure(closure_array, parent.clone(), &point);
                         self.clean_and_close_scope(&parent);
-                        instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
-                        instruction.erase_from_basic_block();
+                        closure_instruction
+                            .replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                        closure_instruction.erase_from_basic_block();
                     }
                     Exit::Clean(Parent {
                         parent,
-                        instruction,
+                        closure_instruction,
+                        close_after_instruction: _,
                         snapshot,
                     }) => {
-                        self.builder.position_before(instruction);
+                        self.builder.position_before(closure_instruction);
                         self.restore_function_context(snapshot.clone());
                         let parent = parent.upgrade().unwrap();
                         self.clean_and_close_scope(&parent);
                     }
                     Exit::Capture(Parent {
                         parent,
-                        instruction,
+                        closure_instruction,
+                        close_after_instruction,
                         snapshot,
                     }) => {
-                        self.builder
-                            .position_at(instruction.get_parent().unwrap(), instruction);
+                        // Allocate the closure in the same spot as the original allocation.
+                        self.restore_function_context(snapshot.clone());
+                        self.builder.position_at(
+                            closure_instruction.get_parent().unwrap(),
+                            closure_instruction,
+                        );
+                        let closure = self.allocate_value("closure");
+                        let closure_size = point.closure.borrow().len();
+                        let closure_array =
+                            self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
+
+                        // But close it after the close_after_instruction
+                        self.builder.position_at(
+                            close_after_instruction.get_parent().unwrap(),
+                            &close_after_instruction.get_next_instruction().unwrap(),
+                        );
                         self.restore_function_context(snapshot.clone());
                         let parent = parent.upgrade().unwrap();
-                        let closure = self.build_closure(parent, &point);
-                        instruction.replace_all_uses_with(&closure.as_instruction_value().unwrap());
-                        instruction.erase_from_basic_block();
+                        self.build_closure(closure_array, parent, &point);
+                        closure_instruction
+                            .replace_all_uses_with(&closure.as_instruction_value().unwrap());
+                        closure_instruction.erase_from_basic_block();
                     }
                 }
             }
@@ -121,12 +153,10 @@ impl<'ctx> Codegen<'ctx> {
 
     fn build_closure(
         &self,
+        closure_array: PointerValue<'ctx>,
         scope: Rc<ContinuationPoint<'ctx>>,
         child_scope: &ContinuationPoint<'ctx>,
-    ) -> PointerValue<'ctx> {
-        let closure_size = child_scope.closure.borrow().len();
-        let closure = self.allocate_value("closure");
-        let closure_array = self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
+    ) {
         let root_scope = scope.shadow_root();
         let mut upvalues = root_scope.upvalues.borrow_mut();
         for id in child_scope.closure.borrow().iter() {
@@ -204,6 +234,5 @@ impl<'ctx> Codegen<'ctx> {
             };
             self.trilogy_array_push(closure_array, new_upvalue);
         }
-        closure
     }
 }

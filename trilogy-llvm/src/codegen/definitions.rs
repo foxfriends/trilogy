@@ -14,12 +14,10 @@ impl<'ctx> Codegen<'ctx> {
     /// 3. end_to
     /// 4. cancel_to
     /// 5. resume_to
-    /// 6. break_to
-    /// 7. continue_to
-    /// 8. next_to
-    /// 9. done_to
-    /// 10. value
-    /// 11. closure
+    /// 6. next_to
+    /// 7. done_to
+    /// 8. value
+    /// 9. closure
     ///
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
@@ -47,12 +45,10 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(2).unwrap().set_name("end_to");
         function.get_nth_param(3).unwrap().set_name("cancel_to");
         function.get_nth_param(4).unwrap().set_name("resume_to");
-        function.get_nth_param(5).unwrap().set_name("break_to");
-        function.get_nth_param(6).unwrap().set_name("continue_to");
-        function.get_nth_param(7).unwrap().set_name("next_to");
-        function.get_nth_param(8).unwrap().set_name("done_to");
-        function.get_nth_param(9).unwrap().set_name("cont_val");
-        function.get_nth_param(10).unwrap().set_name("closure");
+        function.get_nth_param(5).unwrap().set_name("next_to");
+        function.get_nth_param(6).unwrap().set_name("done_to");
+        function.get_nth_param(7).unwrap().set_name("cont_val");
+        function.get_nth_param(8).unwrap().set_name("closure");
         function
     }
 
@@ -64,13 +60,11 @@ impl<'ctx> Codegen<'ctx> {
     /// - 3. end_to
     /// - 4. cancel_to
     /// - 5. resume_to
-    /// - 6. break_to
-    /// - 7. continue_to
-    /// - 8. next_to
-    /// - 9. done_to
-    /// - 10. next_iteration
-    /// - [11 + arity). arguments
-    /// - [11 + arity. closure
+    /// - 6. next_to
+    /// - 7. done_to
+    /// - 8. next_iteration
+    /// - [9 + arity). arguments
+    /// - [9 + arity. closure
     ///
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
@@ -100,12 +94,10 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(2).unwrap().set_name("end_to");
         function.get_nth_param(3).unwrap().set_name("cancel_to");
         function.get_nth_param(4).unwrap().set_name("resume_to");
-        function.get_nth_param(5).unwrap().set_name("break_to");
-        function.get_nth_param(6).unwrap().set_name("continue_to");
-        function.get_nth_param(7).unwrap().set_name("next_to");
-        function.get_nth_param(8).unwrap().set_name("done_to");
+        function.get_nth_param(5).unwrap().set_name("next_to");
+        function.get_nth_param(6).unwrap().set_name("done_to");
         function
-            .get_nth_param(9)
+            .get_nth_param(7)
             .unwrap()
             .set_name("next_iteration_param");
         function.get_last_param().unwrap().set_name("closure");
@@ -140,10 +132,8 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(2).unwrap().set_name("end_to");
         function.get_nth_param(3).unwrap().set_name("cancel_to");
         function.get_nth_param(4).unwrap().set_name("resume_to");
-        function.get_nth_param(5).unwrap().set_name("break_to");
-        function.get_nth_param(6).unwrap().set_name("continue_to");
-        function.get_nth_param(7).unwrap().set_name("next_to");
-        function.get_nth_param(8).unwrap().set_name("done_to");
+        function.get_nth_param(5).unwrap().set_name("next_to");
+        function.get_nth_param(6).unwrap().set_name("done_to");
         if has_context {
             function.get_last_param().unwrap().set_name("closure");
         }

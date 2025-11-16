@@ -747,7 +747,7 @@ impl<'ctx> DebugInfo<'ctx> {
             "callable",
             unit.get_file(),
             0,
-            ptr_size * 10,
+            ptr_size * 8,
             0,
             LLVMDIFlagPublic,
             None,
@@ -839,32 +839,6 @@ impl<'ctx> DebugInfo<'ctx> {
                         ptr_size,
                         0,
                         5 * ptr_size,
-                        LLVMDIFlagPublic,
-                        callable_ptr_placeholder_type.as_type(),
-                    )
-                    .as_type(),
-                builder
-                    .create_member_type(
-                        unit.get_file().as_debug_info_scope(),
-                        "break_to",
-                        unit.get_file(),
-                        0,
-                        ptr_size,
-                        0,
-                        6 * ptr_size,
-                        LLVMDIFlagPublic,
-                        callable_ptr_placeholder_type.as_type(),
-                    )
-                    .as_type(),
-                builder
-                    .create_member_type(
-                        unit.get_file().as_debug_info_scope(),
-                        "continue_to",
-                        unit.get_file(),
-                        0,
-                        ptr_size,
-                        0,
-                        7 * ptr_size,
                         LLVMDIFlagPublic,
                         callable_ptr_placeholder_type.as_type(),
                     )
@@ -1272,7 +1246,7 @@ impl<'ctx> DebugInfo<'ctx> {
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             None,
-            &vec![self.value_pointer_type.as_type(); arity + 9],
+            &vec![self.value_pointer_type.as_type(); arity + 7],
             LLVMDIFlagPublic,
         )
     }

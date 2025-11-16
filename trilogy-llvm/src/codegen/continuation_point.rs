@@ -13,10 +13,11 @@ use trilogy_ir::Id;
 pub(super) struct Parent<'ctx> {
     /// A pointer to the continuation point that we are cleaning or closing from.
     pub parent: Weak<ContinuationPoint<'ctx>>,
-    /// The instruction around which to add the required cleanup instructions. The exact
-    /// interpretation of this instruction depends on the variant of `Exit` this is
-    /// contained in.
-    pub instruction: InstructionValue<'ctx>,
+    /// The instruction that corresponds to the closure being closed, if any.
+    /// If none, just put whatever instruction.
+    pub closure_instruction: InstructionValue<'ctx>,
+    /// The instruction after which to add the required cleanup instructions.
+    pub close_after_instruction: InstructionValue<'ctx>,
     /// The function context snapshot to be set when writing cleanup instructions.
     pub snapshot: Snapshot<'ctx>,
 }
@@ -54,7 +55,8 @@ impl<'ctx> Merger<'ctx> {
     ) {
         self.0.push(Exit::Close(Parent {
             parent: Rc::downgrade(parent),
-            instruction,
+            closure_instruction: instruction,
+            close_after_instruction: instruction,
             snapshot,
         }));
     }
@@ -184,12 +186,28 @@ impl<'ctx> ContinuationPoint<'ctx> {
     fn close_from(
         &mut self,
         parent: &Rc<ContinuationPoint<'ctx>>,
-        instruction: InstructionValue<'ctx>,
+        closure_instruction: InstructionValue<'ctx>,
         snapshot: Snapshot<'ctx>,
     ) {
         self.parents.push(Exit::Close(Parent {
             parent: Rc::downgrade(parent),
-            instruction,
+            closure_instruction,
+            close_after_instruction: closure_instruction,
+            snapshot,
+        }));
+    }
+
+    fn close_from_after(
+        &mut self,
+        parent: &Rc<ContinuationPoint<'ctx>>,
+        closure_instruction: InstructionValue<'ctx>,
+        close_after_instruction: InstructionValue<'ctx>,
+        snapshot: Snapshot<'ctx>,
+    ) {
+        self.parents.push(Exit::Close(Parent {
+            parent: Rc::downgrade(parent),
+            closure_instruction,
+            close_after_instruction,
             snapshot,
         }));
     }
@@ -202,7 +220,8 @@ impl<'ctx> ContinuationPoint<'ctx> {
     ) {
         self.parents.push(Exit::Clean(Parent {
             parent: Rc::downgrade(parent),
-            instruction,
+            closure_instruction: instruction,
+            close_after_instruction: instruction,
             snapshot,
         }));
     }
@@ -215,7 +234,8 @@ impl<'ctx> ContinuationPoint<'ctx> {
     ) {
         self.parents.push(Exit::Capture(Parent {
             parent: Rc::downgrade(parent),
-            instruction,
+            closure_instruction: instruction,
+            close_after_instruction: instruction,
             snapshot,
         }));
     }
@@ -258,6 +278,23 @@ impl<'ctx> Codegen<'ctx> {
         let last = cps.last().unwrap();
         let mut next = last.chain();
         next.close_from(last, closure_allocation, self.snapshot_function_context());
+        cps.push(Rc::new(next));
+    }
+
+    pub(crate) fn end_continuation_point_as_close_after(
+        &self,
+        closure_allocation: InstructionValue<'ctx>,
+        close_after_instruction: InstructionValue<'ctx>,
+    ) {
+        let mut cps = self.continuation_points.borrow_mut();
+        let last = cps.last().unwrap();
+        let mut next = last.chain();
+        next.close_from_after(
+            last,
+            closure_allocation,
+            close_after_instruction,
+            self.snapshot_function_context(),
+        );
         cps.push(Rc::new(next));
     }
 
