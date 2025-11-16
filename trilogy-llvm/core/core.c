@@ -131,6 +131,14 @@ void length(trilogy_value* rv, trilogy_value* val) {
             rv, trilogy_array_len(trilogy_array_assume(val))
         );
         break;
+    case TAG_SET:
+        trilogy_number_init_u64(rv, trilogy_set_len(trilogy_set_assume(val)));
+        break;
+    case TAG_RECORD:
+        trilogy_number_init_u64(
+            rv, trilogy_record_len(trilogy_record_assume(val))
+        );
+        break;
     default:
         rte("string, bits, array, set, or record", val->tag);
     }

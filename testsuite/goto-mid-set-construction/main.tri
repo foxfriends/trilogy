@@ -1,9 +1,9 @@
 import "trilogy:core" use length
 
 proc main!() {
-  let arr = [(do() (return))!()]
-  assert length arr == 1
-  let goto in arr
+  let set = [| (do() (return))!() |]
+  assert length set == 1
+  let goto in set
   match goto
     case 1 then exit 0
     else then goto 1

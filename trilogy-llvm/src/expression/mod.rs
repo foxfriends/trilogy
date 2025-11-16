@@ -376,66 +376,98 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_array(&self, pack: &ir::Pack, name: &str) -> Option<PointerValue<'ctx>> {
+        let temporaries = pack
+            .values
+            .iter()
+            .map(|element| {
+                // NOTE[mut-collection-init]: if the execution re-enters this expression, the value
+                // must not get added to the same array instance multiple times. Previously this worked
+                // by mutating some temporary collection, but we avoid the issue by tracking proper list
+                // of values at compile time and constructing the array later.
+                let temporary = self.compile_expression(&element.expression, "arr.el")?;
+                self.bind_temporary(temporary);
+                Some((element.is_spread, temporary))
+            })
+            .collect::<Option<Vec<_>>>()?;
         let target = self.allocate_value(name);
-        self.bind_temporary(target);
-        self.trilogy_array_init_cap(target, pack.values.len(), "arr");
-        for element in &pack.values {
-            let temporary = self.compile_expression(&element.expression, "arr.el")?;
-            let target = self.use_temporary(target).unwrap();
-            let array_value = self.trilogy_array_assume(target, "");
-            if element.is_spread {
-                self.trilogy_array_append(array_value, temporary);
+        let array_value = self.trilogy_array_init_cap(target, pack.values.len(), "arr");
+        for (is_spread, temporary) in temporaries {
+            let value = self.use_temporary(temporary).unwrap();
+            if is_spread {
+                self.trilogy_array_append(array_value, value);
             } else {
-                self.trilogy_array_push(array_value, temporary);
+                self.trilogy_array_push(array_value, value);
             }
         }
-        let target = self.use_temporary(target).unwrap();
         Some(target)
     }
 
     fn compile_set(&self, pack: &ir::Pack, name: &str) -> Option<PointerValue<'ctx>> {
+        let temporaries = pack
+            .values
+            .iter()
+            .map(|element| {
+                // NOTE[mut-collection-init]: see above
+                let temporary = self.compile_expression(&element.expression, "set.el")?;
+                self.bind_temporary(temporary);
+                Some((element.is_spread, temporary))
+            })
+            .collect::<Option<Vec<_>>>()?;
         let target = self.allocate_value(name);
-        self.bind_temporary(target);
-        self.trilogy_set_init_cap(target, pack.values.len(), "set");
-        for element in &pack.values {
-            let temporary = self.compile_expression(&element.expression, "set.el")?;
-            let target = self.use_temporary(target).unwrap();
-            let set_value = self.trilogy_set_assume(target, "");
-            if element.is_spread {
-                self.trilogy_set_append(set_value, temporary);
+        let set_value = self.trilogy_set_init_cap(target, pack.values.len(), "set");
+        for (is_spread, temporary) in temporaries {
+            let value = self.use_temporary(temporary).unwrap();
+            if is_spread {
+                self.trilogy_set_append(set_value, value);
             } else {
-                self.trilogy_set_insert(set_value, temporary);
+                self.trilogy_set_insert(set_value, value);
             }
         }
-        let target = self.use_temporary(target).unwrap();
         Some(target)
     }
 
     fn compile_record(&self, pack: &ir::Pack, name: &str) -> Option<PointerValue<'ctx>> {
+        enum Element<'ctx> {
+            KeyValue(PointerValue<'ctx>, PointerValue<'ctx>),
+            Spread(PointerValue<'ctx>),
+        }
+        let temporaries = pack
+            .values
+            .iter()
+            .map(|element| {
+                // NOTE[mut-collection-init]: see above
+                match &element.expression.value {
+                    ir::Value::Mapping(kv) => {
+                        let key = self.compile_expression(&kv.0, "rec.k")?;
+                        self.bind_temporary(key);
+                        let value = self.compile_expression(&kv.1, "rec.v")?;
+                        self.bind_temporary(value);
+                        Some(Element::KeyValue(key, value))
+                    }
+                    _ if element.is_spread => {
+                        let value = self.compile_expression(&element.expression, "rec.element")?;
+                        self.bind_temporary(value);
+                        Some(Element::Spread(value))
+                    }
+                    _ => panic!("record elements must be spread or mapping"),
+                }
+            })
+            .collect::<Option<Vec<_>>>()?;
         let target = self.allocate_value(name);
-        self.bind_temporary(target);
-        self.trilogy_record_init_cap(target, pack.values.len(), "rec");
-        for element in &pack.values {
-            match &element.expression.value {
-                ir::Value::Mapping(kv) => {
-                    let key = self.compile_expression(&kv.0, "rec.k")?;
-                    self.bind_temporary(key);
-                    let value = self.compile_expression(&kv.1, "rec.v")?;
-                    let record = self.use_temporary(target).unwrap();
-                    let record = self.trilogy_record_assume(record, "");
+        let record_value = self.trilogy_record_init_cap(target, pack.values.len(), "record");
+        for element in temporaries {
+            match element {
+                Element::KeyValue(key, value) => {
                     let key = self.use_temporary(key).unwrap();
-                    self.trilogy_record_insert(record, key, value);
+                    let value = self.use_temporary(value).unwrap();
+                    self.trilogy_record_insert(record_value, key, value);
                 }
-                _ if element.is_spread => {
-                    let temporary = self.compile_expression(&element.expression, "rec.element")?;
-                    let record = self.use_temporary(target).unwrap();
-                    let record = self.trilogy_record_assume(record, "");
-                    self.trilogy_record_append(record, temporary);
+                Element::Spread(value) => {
+                    let value = self.use_temporary(value).unwrap();
+                    self.trilogy_record_append(record_value, value);
                 }
-                _ => panic!("record elements must be spread or mapping"),
             }
         }
-        let target = self.use_temporary(target).unwrap();
         Some(target)
     }
 
