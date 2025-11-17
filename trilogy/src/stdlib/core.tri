@@ -5,6 +5,9 @@ type c {
   extern proc readline!()
   export readline
 
+  extern proc readchar!()
+  export readchar
+
   extern proc panic!(value)
   export panic
 
@@ -136,6 +139,9 @@ type c {
 
   extern proc record_to_array!(val)
   export record_to_array
+
+  extern proc string_to_array!(val)
+  export string_to_array
 }
 
 const print = c::print
@@ -143,6 +149,9 @@ export print
 
 const readline = c::readline
 export readline
+
+const readchar = c::readchar
+export readchar
 
 const panic = c::panic
 export panic
@@ -272,6 +281,7 @@ export cons
 func to_array (arr and typeof 'array) = arr
 func to_array (set and typeof 'set) = c::set_to_array!(set)
 func to_array (record and typeof 'record) = c::record_to_array!(record)
+func to_array (string and typeof 'string) = c::string_to_array!(string)
 export to_array
 
 func length val = c::length!(val)
@@ -285,5 +295,8 @@ rule elem(element, set and typeof 'set) <-
   and elem(element, ^array)
 rule elem(element, record and typeof 'record) <-
   array = c::record_to_array!(record)
+  and elem(element, ^array)
+rule elem(element, string and typeof 'string) <-
+  array = c::string_to_array!(string)
   and elem(element, ^array)
 export elem

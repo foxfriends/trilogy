@@ -1,0 +1,8 @@
+import "trilogy:core" as core
+
+func is_empty "" = true
+func is_empty _ = false
+export is_empty
+
+func chars str and typeof 'string = core::to_array str
+export chars

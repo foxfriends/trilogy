@@ -33,3 +33,5 @@ bool trilogy_string_unglue_start(
 bool trilogy_string_unglue_end(
     trilogy_value* rt, trilogy_string_value* lhs, trilogy_string_value* rhs
 );
+
+void trilogy_string_to_array(trilogy_value* rt, trilogy_string_value* str);

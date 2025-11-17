@@ -16,12 +16,32 @@ proc println!(value and typeof 'string) {
   }
 }
 
+export readchar
+proc readchar!() {
+  let char = core::readchar!()
+  return match char
+    case 'eof then yield 'eof
+    case typeof 'char then char
+    case typeof 'number then yield 'errno(char)
+    else then yield 'error
+}
+
 export readline
 proc readline!() {
-  let line = core::readline!();
+  let line = core::readline!()
   return match line
     case 'eof then yield 'eof
     case typeof 'string then line
     case typeof 'number then yield 'errno(line)
     else then yield 'error
+}
+
+export readlines
+proc readlines!() {
+  while true {
+    let line = with readline!()
+      when 'eof cancel break unit
+      else yield
+    yield 'next(line)
+  }
 }

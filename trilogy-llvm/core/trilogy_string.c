@@ -1,5 +1,8 @@
 #include "trilogy_string.h"
 #include "internal.h"
+#include "trilogy_array.h"
+#include "trilogy_character.h"
+#include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
 #include <stdint.h>
@@ -110,3 +113,12 @@ bool trilogy_string_unglue_end(
 }
 
 void trilogy_string_destroy(trilogy_string_value* val) { free(val->contents); }
+
+void trilogy_string_to_array(trilogy_value* rt, trilogy_string_value* str) {
+    trilogy_array_value* arr = trilogy_array_init_cap(rt, str->len);
+    for (uint64_t i = 0; i < str->len; ++i) {
+        trilogy_value val = trilogy_undefined;
+        trilogy_character_init(&val, str->contents[i]);
+        trilogy_array_push(arr, &val);
+    }
+}

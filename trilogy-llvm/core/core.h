@@ -5,6 +5,7 @@ void trace(trilogy_value* rt);
 void panic(trilogy_value* rv, trilogy_value* message);
 void print(trilogy_value* rv, trilogy_value* str);
 void readline(trilogy_value* rv);
+void readchar(trilogy_value* rv);
 
 void boolean_not(trilogy_value* rv, trilogy_value* v);
 void boolean_and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
@@ -72,3 +73,4 @@ void to_string(trilogy_value* rv, trilogy_value* val);
 
 void set_to_array(trilogy_value* rv, trilogy_value* val);
 void record_to_array(trilogy_value* rv, trilogy_value* val);
+void string_to_array(trilogy_value* rv, trilogy_value* val);

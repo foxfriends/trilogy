@@ -57,6 +57,19 @@ void readline(trilogy_value* rv) {
     free(lineptr);
 }
 
+void readchar(trilogy_value* rv) {
+    int ch = getc(stdin);
+    if (ch == EOF) {
+        if (feof(stdin)) {
+            trilogy_atom_init(rv, ATOM_EOF);
+        } else if (ferror(stdin)) {
+            trilogy_number_init_u64(rv, errno);
+        }
+    } else {
+        trilogy_character_init(rv, ch);
+    }
+}
+
 void trace(trilogy_value* rt) {
     void* buffer[100];
     int count = backtrace(buffer, 100);
@@ -461,4 +474,9 @@ void set_to_array(trilogy_value* rv, trilogy_value* set_val) {
 void record_to_array(trilogy_value* rv, trilogy_value* record_val) {
     trilogy_record_value* record = trilogy_record_untag(record_val);
     trilogy_record_to_array(rv, record);
+}
+
+void string_to_array(trilogy_value* rv, trilogy_value* string_val) {
+    trilogy_string_value* string = trilogy_string_untag(string_val);
+    trilogy_string_to_array(rv, string);
 }
