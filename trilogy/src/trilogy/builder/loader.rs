@@ -29,6 +29,7 @@ pub(super) struct Error<E: std::error::Error> {
 #[derive(Debug)]
 pub(super) enum ErrorKind<E> {
     InvalidScheme(String),
+    Missing,
     Network(reqwest::Error),
     Io(std::io::Error),
     Cache(E),
@@ -42,6 +43,9 @@ impl<E: std::error::Error> Display for Error<E> {
             ErrorKind::Network(error) => write!(f, "{error}"),
             ErrorKind::InvalidScheme(scheme) => {
                 write!(f, "invalid scheme in module location `{scheme}`")
+            }
+            ErrorKind::Missing => {
+                write!(f, "requested module is missing")
             }
         }
     }
@@ -220,7 +224,17 @@ pub(super) fn load<C: Cache>(
             )
         }) {
             Ok(Some(source)) => source,
-            Ok(None) => continue,
+            Ok(None) => {
+                report.error(super::Error::resolution(
+                    from_location.clone(),
+                    Error {
+                        span,
+                        location: location.clone(),
+                        kind: ErrorKind::Missing,
+                    },
+                ));
+                continue;
+            }
             Err(error) => {
                 report.error(error);
                 continue;
