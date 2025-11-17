@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 void panic(
     trilogy_value* _rv, // NOLINT(misc-unused-parameters)
