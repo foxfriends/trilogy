@@ -4,6 +4,7 @@
 void trace(trilogy_value* rt);
 void panic(trilogy_value* rv, trilogy_value* message);
 void print(trilogy_value* rv, trilogy_value* str);
+void readline(trilogy_value* rv);
 
 void boolean_not(trilogy_value* rv, trilogy_value* v);
 void boolean_and(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);

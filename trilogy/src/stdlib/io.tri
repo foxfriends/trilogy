@@ -15,3 +15,13 @@ proc println!(value and typeof 'string) {
     yield 'ioerror
   }
 }
+
+export readline
+proc readline!() {
+  let line = core::readline!();
+  return match line
+    case 'eof then yield 'eof
+    case typeof 'string then line
+    case typeof 'number then yield 'errno(line)
+    else then yield 'error
+}

@@ -2,6 +2,9 @@ type c {
   extern proc print!(value)
   export print
 
+  extern proc readline!()
+  export readline
+
   extern proc panic!(value)
   export panic
 
@@ -137,6 +140,9 @@ type c {
 
 const print = c::print
 export print
+
+const readline = c::readline
+export readline
 
 const panic = c::panic
 export panic

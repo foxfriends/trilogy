@@ -13,6 +13,7 @@
 #include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
+#include <errno.h>
 #include <execinfo.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -37,6 +38,22 @@ void print(trilogy_value* rv, trilogy_value* val) {
     printf("%s", ptr);
     free(ptr);
     trilogy_number_init_u64(rv, 0);
+}
+
+void readline(trilogy_value* rv) {
+    char* lineptr = NULL;
+    size_t len = 0;
+    ssize_t read = getline(&lineptr, &len, stdin);
+    if (read == -1) {
+        if (feof(stdin)) {
+            trilogy_atom_init(rv, ATOM_EOF);
+        } else if (ferror(stdin)) {
+            trilogy_number_init_u64(rv, errno);
+        }
+    } else {
+        trilogy_string_init_new(rv, read, lineptr);
+    }
+    free(lineptr);
 }
 
 void trace(trilogy_value* rt) {

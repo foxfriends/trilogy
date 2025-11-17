@@ -1,9 +1,9 @@
 import "trilogy:io" use print, readline
 
 proc main!() {
-    while true {
-        with { print!(readline!()) }
-            when 'EOF then { break }
-            else yield
-    }
+  while true {
+    with print!(readline!())
+      when 'eof then { break unit }
+      else yield
+  }
 }

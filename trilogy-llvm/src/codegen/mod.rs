@@ -80,6 +80,7 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("lt".to_owned(), 17);
         atoms.insert("eq".to_owned(), 18);
         atoms.insert("gt".to_owned(), 19);
+        atoms.insert("eof".to_owned(), 20);
 
         let module = context.create_module("trilogy:runtime");
         let ee = module
