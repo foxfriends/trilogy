@@ -6,3 +6,11 @@ export is_empty
 
 func chars str and typeof 'string = core::to_array str
 export chars
+
+func join _ [] = ""
+func join _ [a] = a
+func join sep [a, b, ..strs] = $"${a}${sep}${b}${join sep strs}"
+export join
+
+func length str and typeof 'string = core::length str
+export length

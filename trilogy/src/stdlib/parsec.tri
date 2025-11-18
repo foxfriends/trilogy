@@ -1,0 +1,53 @@
+import "trilogy:debug" use dbg
+import "trilogy:array" as array
+import "trilogy:str" as str
+
+func apply parser = parser!()
+
+func char c = do() {
+  dbg!(c)
+  # if c == yield 'next {
+  #   yield 'accept
+  #   return c
+  # } else {
+  #   yield 'reject
+  # }
+}
+export char
+
+proc eof!() {
+  if yield 'eof {
+    yield 'accept
+  } else {
+    yield 'reject
+  }
+}
+export eof
+
+func seq parsers = map apply parsers
+export seq
+
+func string s = s
+  |> str::chars
+  |> array::map char
+  |> seq
+  |> map (str::join "")
+export string
+
+func map f parser = do() {
+  return f parser!()
+}
+export map
+
+func parse parser string =
+  let mut pos = 0,
+  with parser!()
+    when 'eof if pos == str::length string resume true
+    when 'eof resume false
+    when 'next resume string.pos
+    when 'accept then {
+      pos += 1
+      become unit
+    }
+    else yield
+export parse

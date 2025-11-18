@@ -1,0 +1,89 @@
+import "trilogy:core" as core
+
+func length (arr and typeof 'array) = core::length arr
+export length
+
+func map _ [] = []
+func map f [x, ..xs] = [f x, ..map f xs]
+export map
+
+func filter _ [] = []
+func filter p [x, ..xs] =
+  if p x
+    then [x, ..filter p xs]
+    else filter p xs
+export filter
+
+func fold _ a [] = a
+func fold f a [x, ..xs] = fold f (f a x) xs
+export fold
+
+func rfold _ a [] = a
+func rfold f a [x, ..xs] = f (fold f a xs) x
+export rfold
+
+func reduce f [] = yield 'mia
+func reduce f [x, ..xs] = fold f x xs
+export reduce
+
+func rreduce f [] = yield 'mia
+func rreduce f [..xs, x] = rfold f x xs
+export rreduce
+
+func reverse [] = []
+func reverse [x, ..xs] = [..reverse xs, x]
+export reverse
+
+func concat (xs and typeof 'array) (ys and typeof 'array) = [..xs, ..ys]
+export concat
+
+func append x (xs and typeof 'array) = [..xs, x]
+export append
+
+func prepend x (xs and typeof 'array) = [x, ..xs]
+export prepend
+
+func first [] = yield 'mia
+func first [x, .._] = x
+export first
+
+func last [] = yield 'mia
+func last [.._, x] = x
+export last
+
+func tail [] = yield 'mia
+func tail [_, ..xs] = xs
+export tail
+
+func head [] = yield 'mia
+func head [..xs, _] = xs
+export head
+
+func slice_unsafe i i _ = []
+func slice_unsafe i fin arr = [arr.i, ..slice (i + 1) fin arr]
+func slice i fin (arr and typeof 'array) =
+  if i > fin || i < 0 then
+    yield 'arg
+  else if i > length arr || fin > length arr then
+    yield 'mia
+  else
+    slice_unsafe i fin arr
+export slice
+
+func take_unsafe _ [] = []
+func take_unsafe 0 _ = []
+func take_unsafe n arr = [arr.0, ..take (n - 1) arr]
+func take n (arr and typeof 'array) =
+  if n < 0
+    then yield 'arg
+    else take_unsafe n arr
+export take
+
+func drop_unsafe _ [] = []
+func drop_unsafe 0 arr = arr
+func drop_unsafe n [_, ..arr] = drop (n - 1) arr
+func drop n (arr and typeof 'array) =
+  if n < 0
+    then yield 'arg
+    else drop_unsafe n arr
+export drop

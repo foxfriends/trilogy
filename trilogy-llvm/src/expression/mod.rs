@@ -1,7 +1,4 @@
 use crate::codegen::{Codegen, Global, Head, Merger, Variable};
-use inkwell::debug_info::AsDIScope;
-use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
-use inkwell::module::Linkage;
 use inkwell::values::{BasicValue, PointerValue};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_ir::visitor::{Bindings, HasBindings};
@@ -944,10 +941,13 @@ impl<'ctx> Codegen<'ctx> {
         let (current, _, _) = self.get_current_definition();
         let function_name = format!("{current}<do@{}>", procedure.span);
         let arity = procedure.parameters.len();
-        let function = self.module.add_function(
+        let function = self.add_procedure(
             &function_name,
-            self.procedure_type(arity, true),
-            Some(Linkage::Internal),
+            arity,
+            &function_name,
+            procedure.span,
+            true,
+            true,
         );
 
         let target = self.allocate_value(name);
@@ -963,20 +963,6 @@ impl<'ctx> Codegen<'ctx> {
         let outer_cp = self.shadow_continuation_point();
         let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.become_continuation_point(inner_cp);
-        let procedure_scope = self.di.builder.create_function(
-            self.di.unit.get_file().as_debug_info_scope(),
-            &function_name,
-            None,
-            self.di.unit.get_file(),
-            procedure.span.start().line as u32 + 1,
-            self.di.closure_di_type(arity),
-            true,
-            true,
-            procedure.span.start().line as u32 + 1,
-            LLVMDIFlagPublic,
-            false,
-        );
-        function.set_subprogram(procedure_scope);
         self.compile_procedure_body(function, procedure);
 
         self.builder.position_at_end(here);
@@ -988,12 +974,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_fn(&self, func: &ir::Function, name: &str) -> PointerValue<'ctx> {
         let (current, _, _) = self.get_current_definition();
         let function_name = format!("{current}<fn@{}>", func.span);
-        let arity = func.parameters.len();
-        let function = self.module.add_function(
-            &function_name,
-            self.procedure_type(1, true),
-            Some(Linkage::Internal),
-        );
+        let function = self.add_function(&function_name, &function_name, func.span, true, true);
 
         let target = self.allocate_value(name);
         let closure = self
@@ -1008,20 +989,6 @@ impl<'ctx> Codegen<'ctx> {
         let outer_cp = self.shadow_continuation_point();
         let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.become_continuation_point(inner_cp);
-        let procedure_scope = self.di.builder.create_function(
-            self.di.unit.get_file().as_debug_info_scope(),
-            &function_name,
-            None,
-            self.di.unit.get_file(),
-            func.span.start().line as u32 + 1,
-            self.di.closure_di_type(arity),
-            true,
-            true,
-            func.span.start().line as u32 + 1,
-            LLVMDIFlagPublic,
-            false,
-        );
-        function.set_subprogram(procedure_scope);
         self.compile_function_body(function, &[func], func.span);
 
         self.builder.position_at_end(here);
@@ -1034,11 +1001,7 @@ impl<'ctx> Codegen<'ctx> {
         let (current, _, _) = self.get_current_definition();
         let rule_name = format!("{current}<qy@{}>", rule.span);
         let arity = rule.parameters.len();
-        let function = self.module.add_function(
-            &rule_name,
-            self.procedure_type(arity, true),
-            Some(Linkage::Internal),
-        );
+        let function = self.add_rule(&rule_name, arity, &rule_name, rule.span, true, true);
 
         let target = self.allocate_value(name);
         let closure = self
@@ -1053,20 +1016,6 @@ impl<'ctx> Codegen<'ctx> {
         let outer_cp = self.shadow_continuation_point();
         let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.become_continuation_point(inner_cp);
-        let procedure_scope = self.di.builder.create_function(
-            self.di.unit.get_file().as_debug_info_scope(),
-            &rule_name,
-            None,
-            self.di.unit.get_file(),
-            rule.span.start().line as u32 + 1,
-            self.di.closure_di_type(arity),
-            true,
-            true,
-            rule.span.start().line as u32 + 1,
-            LLVMDIFlagPublic,
-            false,
-        );
-        function.set_subprogram(procedure_scope);
         self.compile_rule_body(function, &[rule], rule.span);
 
         self.builder.position_at_end(here);

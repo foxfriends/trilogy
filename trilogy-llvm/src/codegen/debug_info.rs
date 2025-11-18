@@ -1255,10 +1255,6 @@ impl<'ctx> DebugInfo<'ctx> {
         self.continuation_type
     }
 
-    pub(crate) fn closure_di_type(&self, arity: usize) -> DISubroutineType<'ctx> {
-        self.procedure_di_type(arity + 1)
-    }
-
     pub(crate) fn push_subprogram(&self, scope: DISubprogram<'ctx>) {
         let mut scopes = self.debug_scopes.borrow_mut();
         *scopes = vec![DebugScope::Unit(self.unit), DebugScope::Subprogram(scope)];

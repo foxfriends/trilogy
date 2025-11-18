@@ -1,0 +1,10 @@
+import "trilogy:debug" use dbg
+
+func dbg_later val = do() {
+  return dbg!(val)
+}
+
+proc main!() {
+  let closure = dbg_later 5
+  closure!()
+}

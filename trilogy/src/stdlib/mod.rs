@@ -22,6 +22,14 @@ where
             include_str!("./str.tri").to_owned(),
         )
         .source_module(
+            Location::library("array").unwrap(),
+            include_str!("./array.tri").to_owned(),
+        )
+        .source_module(
+            Location::library("parsec").unwrap(),
+            include_str!("./parsec.tri").to_owned(),
+        )
+        .source_module(
             Location::library("core").unwrap(),
             include_str!("./core.tri").to_owned(),
         )
