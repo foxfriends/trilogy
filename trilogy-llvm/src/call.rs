@@ -98,7 +98,7 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.close_current_continuation_as_return(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
-        let mut args = Vec::with_capacity(arity + 10);
+        let mut args = Vec::with_capacity(arity + 8);
         args.extend([
             return_to, yield_to, end_to, cancel_to, resume_to, next_to, done_to,
         ]);

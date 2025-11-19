@@ -120,10 +120,15 @@ impl<'ctx> Codegen<'ctx> {
                         // detected later, so we have to record this destroy in case it has to be upgraded to a
                         // "close".
                         let instruction = self.trilogy_value_destroy(*pointer);
-                        cp.unclosed.borrow_mut().entry(*pointer).or_default().push((
-                            instruction,
-                            self.builder.get_current_debug_location().unwrap(),
-                        ));
+                        cp.shadow_root()
+                            .unclosed
+                            .borrow_mut()
+                            .entry(*pointer)
+                            .or_default()
+                            .push((
+                                instruction,
+                                self.builder.get_current_debug_location().unwrap(),
+                            ));
                     } else {
                         // Similarly, but for temporaries: we don't need to explicitly destroy them because
                         // their destruction (or lack thereof) is expected by the rest of codegen. We do,
@@ -137,10 +142,15 @@ impl<'ctx> Codegen<'ctx> {
                             .try_as_basic_value()
                             .either(|l| l.as_instruction_value(), Some)
                             .unwrap();
-                        cp.unclosed.borrow_mut().entry(*pointer).or_default().push((
-                            instruction,
-                            self.builder.get_current_debug_location().unwrap(),
-                        ));
+                        cp.shadow_root()
+                            .unclosed
+                            .borrow_mut()
+                            .entry(*pointer)
+                            .or_default()
+                            .push((
+                                instruction,
+                                self.builder.get_current_debug_location().unwrap(),
+                            ));
                     }
                 }
                 Variable::Closed { upvalue, .. } => {
@@ -208,7 +218,9 @@ impl<'ctx> Codegen<'ctx> {
                             self.builder.get_insert_block().unwrap().get_parent()
                         );
 
-                        if let Some(closing) = scope.unclosed.borrow_mut().remove(&variable) {
+                        if let Some(closing) =
+                            scope.shadow_root().unclosed.borrow_mut().remove(&variable)
+                        {
                             let debug_location = self.builder.get_current_debug_location().unwrap();
                             // Due to the order of the code, captures appear above closes and cleans for
                             // the same parent in the continuation_points list.

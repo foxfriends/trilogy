@@ -88,10 +88,10 @@ impl<'ctx> Codegen<'ctx> {
             let (go_to_next_overload, next_overload_cp) =
                 self.capture_current_continuation(next_overload_function, "next_overload");
 
-            for (n, param) in overload.parameters.iter().enumerate() {
-                let value = self.use_temporary(params[n]).unwrap();
+            for (pattern, param) in overload.parameters.iter().zip(&params) {
+                let value = self.use_temporary(*param).unwrap();
                 if self
-                    .compile_pattern_match(param, value, go_to_next_overload)
+                    .compile_pattern_match(pattern, value, go_to_next_overload)
                     .is_none()
                 {
                     break 'outer;

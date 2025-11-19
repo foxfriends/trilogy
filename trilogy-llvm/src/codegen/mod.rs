@@ -179,6 +179,8 @@ impl<'ctx> Codegen<'ctx> {
         let entry = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(entry);
         self.closure_array.set(None);
+        self.current_break.borrow_mut().clear();
+        self.current_continue.borrow_mut().clear();
         *self.function_params.borrow_mut() = function
             .get_param_iter()
             .map(|param| {
