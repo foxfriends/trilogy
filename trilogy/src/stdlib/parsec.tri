@@ -3,15 +3,15 @@ import "trilogy:array" as array
 import "trilogy:str" as str
 
 func apply parser = parser!()
+export apply
 
 func char c = do() {
-  dbg!(c)
-  # if c == yield 'next {
-  #   yield 'accept
-  #   return c
-  # } else {
-  #   yield 'reject
-  # }
+  if c == yield 'next {
+    yield 'accept
+    return c
+  } else {
+    yield 'reject
+  }
 }
 export char
 
@@ -24,7 +24,7 @@ proc eof!() {
 }
 export eof
 
-func seq parsers = map apply parsers
+func seq parsers = do() array::map apply parsers
 export seq
 
 func string s = s
@@ -49,5 +49,6 @@ func parse parser string =
       pos += 1
       become unit
     }
+    when 'reject cancel yield 'reject
     else yield
 export parse
