@@ -1,0 +1,7 @@
+import "./module.tri" as mod
+
+proc get_module!() { return mod }
+
+proc main!() {
+  get_module!()::member!()
+}
