@@ -667,22 +667,21 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<PointerValue<'ctx>> {
         // Possibly a static module reference, which we can support very easily and efficiently
         if let Value::Reference(module) = &module_ref.value
-            && let Some(module) =
-                self.globals
-                    .get(&module.id)
-                    .and_then(|global| match &global.head {
-                        Head::Module => {
-                            let prefix = global
-                                .path
-                                .iter()
-                                .fold(self.location.to_owned(), |p, s| format!("{p}::{s}"));
-                            Some(format!("{prefix}::{}", module.id))
-                        }
-                        Head::ExternalModule(path) => Some(path.to_owned()),
-                        _ => None,
-                    })
+            && let Some(global) = self.globals.get(&module.id)
+            && let Some(module) = match &global.head {
+                Head::Module => {
+                    let prefix = global
+                        .path
+                        .iter()
+                        .fold(self.location.to_owned(), |p, s| format!("{p}::{s}"));
+                    Some(format!("{prefix}::{}", module.id))
+                }
+                Head::ExternalModule(path) => Some(path.to_owned()),
+                _ => None,
+            }
         {
             let target = self.allocate_value(name);
+            // TODO: statically invalid module accesses should be caught by the compiler?
             let declared = self
                 .module
                 .get_function(&format!("{module}::{}", ident.as_ref()))

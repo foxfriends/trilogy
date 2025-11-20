@@ -236,6 +236,16 @@ typedef struct trilogy_reference {
 } trilogy_reference;
 
 /**
+ * Static metadata about each module.
+ */
+typedef struct trilogy_module_data {
+    size_t len;
+    uint64_t* member_ids;
+    uint8_t* member_exports;
+    void** members;
+} trilogy_module_data;
+
+/**
  * A module instance.
  */
 typedef struct trilogy_module {
@@ -244,17 +254,9 @@ typedef struct trilogy_module {
      */
     uint32_t rc;
     /**
-     * The number of members in this module.
-     */
-    size_t len;
-    /**
-     * The sorted list of IDs for members in this module.
-     */
-    uint64_t* member_ids;
-    /**
-     * The actual pointers to contained member accessors.
-     */
-    void** members;
+     * Pointer to the module data table
+     **/
+    trilogy_module_data* module_data;
     /**
      * The closure containing the module parameters and storage for constants.
      */

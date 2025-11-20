@@ -1876,9 +1876,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn trilogy_module_init_new(
         &self,
         target: PointerValue<'ctx>,
-        len: IntValue<'ctx>,
-        member_ids: PointerValue<'ctx>,
-        members: PointerValue<'ctx>,
+        module_data: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
@@ -1886,19 +1884,13 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.usize_type().into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
             ),
         );
         self.builder
-            .build_call(
-                f,
-                &[target.into(), len.into(), member_ids.into(), members.into()],
-                name,
-            )
+            .build_call(f, &[target.into(), module_data.into()], name)
             .unwrap()
             .try_as_basic_value()
             .unwrap_left()
@@ -1908,9 +1900,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn trilogy_module_init_new_closure(
         &self,
         target: PointerValue<'ctx>,
-        len: IntValue<'ctx>,
-        member_ids: PointerValue<'ctx>,
-        members: PointerValue<'ctx>,
+        module_data: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
@@ -1918,8 +1908,6 @@ impl<'ctx> Codegen<'ctx> {
             "trilogy_module_init_new_closure",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.usize_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -1930,13 +1918,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_call(
                 f,
-                &[
-                    target.into(),
-                    len.into(),
-                    member_ids.into(),
-                    members.into(),
-                    closure.into(),
-                ],
+                &[target.into(), module_data.into(), closure.into()],
                 name,
             )
             .unwrap()

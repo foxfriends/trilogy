@@ -126,17 +126,18 @@ impl<'ctx> Codegen<'ctx> {
                 DefinitionItem::Test(..) => continue,
             };
             let member_id = self.atom_value_raw(definition.name().unwrap().to_string());
-            members.insert(member_id, member_accessor);
+            members.insert(member_id, (definition.is_exported, member_accessor));
         }
 
         // With all those pre-declared, build the constructor for this module.
+        let module_data_global = self.build_module_data(members);
         if module.parameters.is_empty() {
             // A module with no parameters comes across as a constant, and returns
             // a module object with no closure.
             self.compile_constant_constructor(
                 constructor_accessor,
                 module,
-                members,
+                module_data_global,
                 is_public,
                 previous_module_context,
                 module_context.clone(),
@@ -149,7 +150,7 @@ impl<'ctx> Codegen<'ctx> {
             self.compile_functor_constructor(
                 constructor_accessor,
                 module,
-                members,
+                module_data_global,
                 is_public,
                 previous_module_context,
                 module_context.clone().unwrap(),
@@ -189,11 +190,95 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
+    fn build_module_data(
+        &self,
+        members: BTreeMap<u64, (bool, FunctionValue<'ctx>)>,
+    ) -> PointerValue<'ctx> {
+        // The members are all global arrays, which are then assembled into the module_data structure
+        let member_ids_global = self.module.add_global(
+            self.context.i64_type().array_type(members.len() as u32),
+            None,
+            "",
+        );
+        member_ids_global.set_initializer(
+            &self.context.i64_type().const_array(
+                &members
+                    .keys()
+                    .map(|k| self.context.i64_type().const_int(*k, false))
+                    .collect::<Vec<_>>(),
+            ),
+        );
+
+        let members_byte_len = members.len() / 8 + if members.len() & 7 != 0 { 1 } else { 0 };
+        let members_exported_global = self.module.add_global(
+            self.context.i8_type().array_type(members_byte_len as u32),
+            None,
+            "",
+        );
+        let mut members_exported = vec![0; members_byte_len];
+        for (i, (is_exported, _)) in members.values().enumerate() {
+            if *is_exported {
+                let byte_index = i / 8;
+                let bit_index = i % 8;
+                members_exported[byte_index] |= 0x1 << bit_index;
+            }
+        }
+        members_exported_global.set_initializer(
+            &self.context.i8_type().const_array(
+                &members_exported
+                    .into_iter()
+                    .map(|v| self.context.i8_type().const_int(v, false))
+                    .collect::<Vec<_>>(),
+            ),
+        );
+
+        let members_global = self.module.add_global(
+            self.context
+                .ptr_type(AddressSpace::default())
+                .array_type(members.len() as u32),
+            None,
+            "",
+        );
+        members_global.set_initializer(
+            &self.context.ptr_type(AddressSpace::default()).const_array(
+                &members
+                    .values()
+                    .map(|(_, v)| v.as_global_value().as_pointer_value())
+                    .collect::<Vec<_>>(),
+            ),
+        );
+
+        let module_data_type = self.context.struct_type(
+            &[
+                self.context
+                    .ptr_sized_int_type(self.execution_engine.get_target_data(), None)
+                    .into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+            ],
+            false,
+        );
+        let module_data_global = self.module.add_global(module_data_type, None, "");
+        module_data_global.set_initializer(
+            &module_data_type.const_named_struct(&[
+                self.context
+                    .ptr_sized_int_type(self.execution_engine.get_target_data(), None)
+                    .const_int(members.len() as u64, false)
+                    .into(),
+                member_ids_global.as_pointer_value().into(),
+                members_exported_global.as_pointer_value().into(),
+                members_global.as_pointer_value().into(),
+            ]),
+        );
+        module_data_global.as_pointer_value()
+    }
+
     fn compile_constant_constructor(
         &self,
         accessor: FunctionValue<'ctx>,
         module: &ir::Module,
-        members: BTreeMap<u64, FunctionValue<'ctx>>,
+        module_data_global: PointerValue<'ctx>,
         is_public: bool,
         previous_module_context: Option<Vec<Id>>,
         module_context: Option<Vec<Id>>,
@@ -213,38 +298,6 @@ impl<'ctx> Codegen<'ctx> {
             false,
         );
         accessor.set_subprogram(subprogram);
-
-        // The member IDs array is just a constant array
-        let member_ids_global = self.module.add_global(
-            self.context.i64_type().array_type(members.len() as u32),
-            None,
-            "",
-        );
-        member_ids_global.set_initializer(
-            &self.context.i64_type().const_array(
-                &members
-                    .keys()
-                    .map(|k| self.context.i64_type().const_int(*k, false))
-                    .collect::<Vec<_>>(),
-            ),
-        );
-
-        // So is the member accessors array
-        let members_global = self.module.add_global(
-            self.context
-                .ptr_type(AddressSpace::default())
-                .array_type(members.len() as u32),
-            None,
-            "",
-        );
-        members_global.set_initializer(
-            &self.context.ptr_type(AddressSpace::default()).const_array(
-                &members
-                    .values()
-                    .map(|v| v.as_global_value().as_pointer_value())
-                    .collect::<Vec<_>>(),
-            ),
-        );
 
         self.set_current_definition(
             name.clone(),
@@ -308,26 +361,9 @@ impl<'ctx> Codegen<'ctx> {
                 self.init_global(location, global, closure);
             }
 
-            self.trilogy_module_init_new_closure(
-                storage,
-                self.context
-                    .i64_type()
-                    .const_int(members.len() as u64, false),
-                member_ids_global.as_pointer_value(),
-                members_global.as_pointer_value(),
-                closure,
-                "",
-            );
+            self.trilogy_module_init_new_closure(storage, module_data_global, closure, "");
         } else {
-            self.trilogy_module_init_new(
-                storage,
-                self.context
-                    .i64_type()
-                    .const_int(members.len() as u64, false),
-                member_ids_global.as_pointer_value(),
-                members_global.as_pointer_value(),
-                "",
-            );
+            self.trilogy_module_init_new(storage, module_data_global, "");
         }
 
         self.builder
@@ -341,7 +377,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         accessor: FunctionValue<'ctx>,
         module: &ir::Module,
-        members: BTreeMap<u64, FunctionValue<'ctx>>,
+        module_data_global: PointerValue<'ctx>,
         is_public: bool,
         previous_module_context: Option<Vec<Id>>,
         module_context: Vec<Id>,
@@ -372,38 +408,6 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_callable_init_fn(sret, context, function);
         }
         self.builder.build_return(None).unwrap();
-
-        // The member IDs array is just a constant array
-        let member_ids_global = self.module.add_global(
-            self.context.i64_type().array_type(members.len() as u32),
-            None,
-            "",
-        );
-        member_ids_global.set_initializer(
-            &self.context.i64_type().const_array(
-                &members
-                    .keys()
-                    .map(|k| self.context.i64_type().const_int(*k, false))
-                    .collect::<Vec<_>>(),
-            ),
-        );
-
-        // So is the member accessors array
-        let members_global = self.module.add_global(
-            self.context
-                .ptr_type(AddressSpace::default())
-                .array_type(members.len() as u32),
-            None,
-            "",
-        );
-        members_global.set_initializer(
-            &self.context.ptr_type(AddressSpace::default()).const_array(
-                &members
-                    .values()
-                    .map(|v| v.as_global_value().as_pointer_value())
-                    .collect::<Vec<_>>(),
-            ),
-        );
 
         // compile_function_body
         self.set_current_definition(name.clone(), name, module.span, previous_module_context);
@@ -471,16 +475,7 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         let target = self.allocate_value("");
-        self.trilogy_module_init_new_closure(
-            target,
-            self.context
-                .i64_type()
-                .const_int(members.len() as u64, false),
-            member_ids_global.as_pointer_value(),
-            members_global.as_pointer_value(),
-            closure,
-            "",
-        );
+        self.trilogy_module_init_new_closure(target, module_data_global, closure, "");
         let ret = self.get_return("");
         self.call_known_continuation(ret, target);
         self.end_function();

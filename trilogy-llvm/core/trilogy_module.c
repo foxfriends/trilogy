@@ -14,28 +14,22 @@ trilogy_module* trilogy_module_init(trilogy_value* tv, trilogy_module* module) {
     return module;
 }
 
-trilogy_module* trilogy_module_init_new(
-    trilogy_value* tv, size_t len, uint64_t* ids, void** members
-) {
+trilogy_module*
+trilogy_module_init_new(trilogy_value* tv, trilogy_module_data* module_data) {
     trilogy_module* module = malloc_safe(sizeof(trilogy_module));
     module->rc = 1;
-    module->len = len;
-    module->member_ids = ids;
-    module->members = members;
+    module->module_data = module_data;
     module->closure = NO_CLOSURE;
     return trilogy_module_init(tv, module);
 }
 
 trilogy_module* trilogy_module_init_new_closure(
-    trilogy_value* tv, size_t len, uint64_t* ids, void** members,
-    trilogy_value* closure
+    trilogy_value* tv, trilogy_module_data* module_data, trilogy_value* closure
 ) {
     assert(closure->tag == TAG_ARRAY);
     trilogy_module* module = malloc_safe(sizeof(trilogy_module));
     module->rc = 1;
-    module->len = len;
-    module->member_ids = ids;
-    module->members = members;
+    module->module_data = module_data;
     module->closure = trilogy_array_assume(closure);
     return trilogy_module_init(tv, module);
 }
@@ -59,8 +53,8 @@ trilogy_module* trilogy_module_assume(trilogy_value* val) {
 
 void trilogy_module_destroy(trilogy_module* module) {
     if (--module->rc == 0) {
-        // NOTE: module->member_ids and module->members are not destroyed
-        // because they are constant global arrays.
+        // NOTE: module->member_data is not destroyed because it is a global
+        // constant.
         trilogy_array_destroy(module->closure);
         free(module);
     }
@@ -72,21 +66,23 @@ typedef trilogy_value* (*closure_accessor)(trilogy_value*, trilogy_value*);
 void trilogy_module_find(
     trilogy_value* tv, trilogy_module* module, uint64_t id
 ) {
+    trilogy_module_data* module_data = module->module_data;
     // NOTE: modules are typically quite small, so linear search is usually
     // going to be just fine, but if someone makes a pathological module we
     // might do much better to binary search this.
-    for (size_t i = 0; i < module->len; ++i) {
-        if (module->member_ids[i] == id) {
+    for (size_t i = 0; i < module_data->len; ++i) {
+        if (module_data->member_ids[i] == id) {
             if (module->closure == NO_CLOSURE) {
-                ((accessor)module->members[i])(tv);
+                ((accessor)module_data->members[i])(tv);
             } else {
                 trilogy_value* closure = malloc_safe(sizeof(trilogy_value));
                 *closure = trilogy_undefined;
                 trilogy_array_clone_into(closure, module->closure);
-                ((closure_accessor)module->members[i])(tv, closure);
+                ((closure_accessor)module_data->members[i])(tv, closure);
             }
             return;
         }
     }
+    // TODO: consider that this maybe should not be a panic...
     return internal_panic("module does not contain requested member\n");
 }

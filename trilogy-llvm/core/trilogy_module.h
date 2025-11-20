@@ -3,12 +3,10 @@
 #include <stdint.h>
 
 trilogy_module* trilogy_module_init(trilogy_value* tv, trilogy_module* module);
-trilogy_module* trilogy_module_init_new(
-    trilogy_value* tv, size_t len, uint64_t* ids, void** members
-);
+trilogy_module*
+trilogy_module_init_new(trilogy_value* tv, trilogy_module_data* module_data);
 trilogy_module* trilogy_module_init_new_closure(
-    trilogy_value* tv, size_t len, uint64_t* ids, void** members,
-    trilogy_value* closure
+    trilogy_value* tv, trilogy_module_data* module_data, trilogy_value* closure
 );
 
 trilogy_module*
