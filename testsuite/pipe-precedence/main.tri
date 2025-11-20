@@ -6,4 +6,6 @@ proc main!() {
     |> append <| repeat "A"
     |> append <| repeat "B"
     == "AABB"
+
+  assert ((:) 'a <| (:) 'b <| (:) 'c <| 'd) == 'a:('b:('c:'d))
 }

@@ -194,7 +194,7 @@ impl Expression {
             OpLtLt if precedence < Precedence::Compose => Self::binary(parser, lhs),
             OpGtGt if precedence < Precedence::RCompose => Self::binary(parser, lhs),
             OpPipeGt if precedence < Precedence::Pipe => Self::binary(parser, lhs),
-            OpLtPipe if precedence < Precedence::RPipe => Self::binary(parser, lhs),
+            OpLtPipe if precedence <= Precedence::RPipe => Self::binary(parser, lhs),
             OpGlue if precedence < Precedence::Glue => Self::binary(parser, lhs),
             OpBang if precedence < Precedence::Call && !is_spaced => Ok(Continue(Self::Call(
                 Box::new(CallExpression::parse(parser, lhs)?),
