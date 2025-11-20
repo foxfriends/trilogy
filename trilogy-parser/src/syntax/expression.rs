@@ -607,13 +607,13 @@ mod test {
               (BinaryOperator::Pipe _)
               (Expression::Binary
                 (BinaryOperation
+                  (Expression::Reference _)
+                  (BinaryOperator::RPipe _)
                   (Expression::Binary
                     (BinaryOperation
                       (Expression::Reference _)
                       (BinaryOperator::RPipe _)
-                      (Expression::Reference _)))
-                  (BinaryOperator::RPipe _)
-                  (Expression::Reference _)))))
+                      (Expression::Reference _)))))))
           (BinaryOperator::Pipe _)
           (Expression::Reference _)))");
     test_parse!(expr_prec_compose_rcompose: "x >> f << g << y >> h" => Expression::parse => "
