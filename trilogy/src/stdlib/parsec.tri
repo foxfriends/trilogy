@@ -17,6 +17,11 @@ func parse parser string =
   with parser!()
     when 'eof if pos == str::length string resume true
     when 'eof resume false
+    when 'pos resume pos
+    when 'reset(new_pos) then {
+      pos = new_pos
+      become unit
+    }
     when 'next resume string.pos
     when 'accept then {
       pos += 1
@@ -34,8 +39,12 @@ func seq parsers = do() array::map apply parsers
 ## Attempt a parser, returning 'some(result) if it succeeds. If it fails,
 ## returns 'none without consuming any input.
 func option parser = do() {
-  with 'some(apply parser)
-    when 'reject cancel 'none
+  let pos = yield 'pos
+  return with 'none(apply parser)
+    when 'reject then {
+      yield 'reset(pos)
+      cancel 'none
+    }
     else yield
 }
 
