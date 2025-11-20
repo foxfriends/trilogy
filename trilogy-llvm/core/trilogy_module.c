@@ -72,6 +72,11 @@ void trilogy_module_find(
     // might do much better to binary search this.
     for (size_t i = 0; i < module_data->len; ++i) {
         if (module_data->member_ids[i] == id) {
+            size_t byte_index = i / 8;
+            uint8_t bit_index = i % 8;
+            uint8_t is_exported =
+                module_data->member_exports[byte_index] & (1 << bit_index);
+            if (!is_exported) break;
             if (module->closure == NO_CLOSURE) {
                 ((accessor)module_data->members[i])(tv);
             } else {

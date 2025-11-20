@@ -220,7 +220,7 @@ impl<'ctx> Codegen<'ctx> {
             if *is_exported {
                 let byte_index = i / 8;
                 let bit_index = i % 8;
-                members_exported[byte_index] |= 0x1 << bit_index;
+                members_exported[byte_index] |= 1 << bit_index;
             }
         }
         members_exported_global.set_initializer(
