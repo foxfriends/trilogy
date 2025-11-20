@@ -679,13 +679,14 @@ impl<'ctx> Codegen<'ctx> {
                 Head::ExternalModule(path) => Some(path.to_owned()),
                 _ => None,
             }
-        {
-            let target = self.allocate_value(name);
-            // TODO: statically invalid module accesses should be caught by the compiler?
-            let declared = self
+            && let Some(declared) = self
                 .module
                 .get_function(&format!("{module}::{}", ident.as_ref()))
-                .unwrap();
+        {
+            // TODO: statically invalid module accesses could be caught by the compiler
+            // and reported, but we'd want to do that before coming through here, as
+            // this final compile step is supposed to be without error.
+            let target = self.allocate_value(name);
             self.call_internal(target, declared, &[]);
             return Some(target);
         }
