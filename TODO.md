@@ -9,3 +9,4 @@
 * Build real standard library
 * Fix JIT mode, for "normal" use
 * Loosen requirement of pinning identifiers in queries (auto-pin should be better)
+* `yield 'mia` when hitting out of bounds on access operator
