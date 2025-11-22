@@ -1,0 +1,18 @@
+import "trilogy:debug" use dbg
+
+proc do_inner!() {
+  assert 'hello == yield 'get_hello
+  return true
+}
+
+proc do_things!() {
+  let value = with do_inner!() else yield
+  dbg!('value: value)
+}
+
+proc main!() {
+  assert with do_things!()
+    when 'get_hello resume 'hello
+    else yield
+  dbg!("Made it to end")
+}
