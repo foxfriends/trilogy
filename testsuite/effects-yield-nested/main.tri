@@ -1,0 +1,17 @@
+import "trilogy:io" use println
+
+proc do_inner!() {
+  assert 'hello == yield 'get_hello
+  return true
+}
+
+proc do_things!() {
+  with do_inner!() else yield
+}
+
+proc main!() {
+  assert with do_things!()
+    when 'get_hello resume 'hello
+    else yield
+  println!("Made it to end")
+}
