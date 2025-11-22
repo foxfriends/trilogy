@@ -578,7 +578,6 @@ impl<'ctx> Codegen<'ctx> {
         let resume_continuation = self.trilogy_continuation_untag(resume, "");
 
         let end_to = self.get_end("");
-        let resume_to = self.get_resume("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
 
@@ -593,19 +592,18 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_yield_to_into(yield_to, resume);
         let cancel_clone = self.allocate_value("");
         self.trilogy_value_clone_into(cancel_clone, cancel_to);
-        let resume_clone = self.allocate_value("");
-        self.trilogy_value_clone_into(resume_clone, resume_to);
         self.trilogy_callable_promote(
             yield_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             cancel_clone,
-            resume_clone,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
         );
 
-        self.trilogy_callable_resume_to_into(resume_to, resume);
+        let new_resume_to = self.allocate_value("new_resume_to");
+        self.trilogy_callable_resume_to_into(new_resume_to, resume);
         self.trilogy_callable_closure_into(closure, resume, "");
 
         let args = &[
@@ -613,7 +611,7 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
             self.load_value(cancel_to, "").into(),
-            self.load_value(resume_to, "").into(),
+            self.load_value(new_resume_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
             self.load_value(value, "").into(),

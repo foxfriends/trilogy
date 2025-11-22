@@ -163,6 +163,7 @@ impl<'ctx> Codegen<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
+        let resume_to = self.get_resume("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -175,8 +176,9 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
+            // When calling resume, we create a new cancel, so don't need to capture the old one.
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            resume_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,

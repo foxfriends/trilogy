@@ -40,7 +40,7 @@ func seq parsers = do() array::map apply parsers
 ## returns 'none without consuming any input.
 func option parser = do() {
   let pos = yield 'pos
-  return with 'none(apply parser)
+  return with 'some(apply parser)
     when 'reject then {
       yield 'reset(pos)
       cancel 'none
