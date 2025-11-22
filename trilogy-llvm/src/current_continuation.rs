@@ -151,6 +151,41 @@ impl<'ctx> Codegen<'ctx> {
         (handler, capture)
     }
 
+    /// Constructs a TrilogyValue that represents the current continuation, marked to be called using "resume" calling convention.
+    ///
+    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
+    /// so may not be referenced.
+    pub(crate) fn close_current_continuation_as_resume(
+        &self,
+        continuation_function: FunctionValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let continuation = self.allocate_value(name);
+        let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
+        self.bind_temporary(continuation);
+        let closure = self
+            .builder
+            .build_alloca(self.value_type(), "TEMP_CLOSURE")
+            .unwrap();
+
+        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
+        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        self.trilogy_callable_init_resume(
+            continuation,
+            return_to,
+            yield_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            closure,
+            continuation_function,
+        );
+
+        continuation
+    }
+
     /// Constructs a TrilogyValue that represents the current continuation to be used as `return`.
     ///
     /// This invalidates the current continuation point, all variables will be destroyed afterwards,
@@ -245,40 +280,5 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(shadow);
         (continuation, capture)
-    }
-
-    /// Constructs a TrilogyValue that represents the current continuation, marked to be called using "resume" calling convention.
-    ///
-    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
-    /// so may not be referenced.
-    pub(crate) fn close_current_continuation_as_resume(
-        &self,
-        continuation_function: FunctionValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let continuation = self.allocate_value(name);
-        let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
-        self.bind_temporary(continuation);
-        let closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_CLOSURE")
-            .unwrap();
-
-        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
-        self.trilogy_callable_init_resume(
-            continuation,
-            return_to,
-            yield_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            closure,
-            continuation_function,
-        );
-
-        continuation
     }
 }

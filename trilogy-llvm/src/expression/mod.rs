@@ -263,26 +263,29 @@ impl<'ctx> Codegen<'ctx> {
         let (cancel_to, cancel_to_continuation_point) =
             self.capture_current_continuation_as_cancel(cancel_to_function, "");
 
-        // Construct yield continuation that continues into the handler itself.
+        // Construct yield continuation that continues into the handler.
         let cancel_to_clone = self.allocate_value("");
         self.trilogy_value_clone_into(cancel_to_clone, cancel_to);
         let (handler, handler_continuation_point) =
             self.capture_current_continuation_as_yield(handler_function, cancel_to_clone, "");
 
-        // Then enter the handler, given the new yield and cancel to values`
+        // Then enter the handler, given the new yield and cancel to values.
         let body_closure = self.continue_in_handler(body_function, handler, cancel_to);
         self.end_continuation_point_as_close(body_closure);
-
         self.begin_next_function(body_function);
         let result = self.compile_expression(&handled.expression, name)?;
-
+        // When the body is evaluated, it will cancel to exit the handled area, returning to
+        // the most recent resume if mid-handler, or to the outside when complete.
         let cancel_to = self.get_cancel("when.runoff");
         self.call_known_continuation(cancel_to, result);
 
+        // Next compile the handler.
         self.become_continuation_point(handler_continuation_point);
         self.begin_next_function(handler_function);
         self.compile_handlers(&handled.handlers);
 
+        // Then back to the original scope, to continue the evaluation normally outside of the
+        // handling construct.
         self.become_continuation_point(cancel_to_continuation_point);
         self.begin_next_function(cancel_to_function);
         Some(self.get_continuation(name))
@@ -292,6 +295,8 @@ impl<'ctx> Codegen<'ctx> {
         let effect = self.get_continuation("effect");
         self.bind_temporary(effect);
 
+        // The handler works similar to a match expression, but matching against the effect
+        // and doing much more control flow work.
         for handler in handlers {
             let next_case_function = self.add_continuation("");
             let (go_to_next_case, next_case_cp) =
@@ -327,6 +332,8 @@ impl<'ctx> Codegen<'ctx> {
             self.restore_function_context(snapshot);
             self.become_continuation_point(body_cp);
             if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
+                // If a handler runs off, it ends. Most handlers should choose to explicitly cancel
+                // at some point.
                 self.trilogy_value_destroy(result);
                 self.void_call_continuation(self.get_end(""));
             }
@@ -335,6 +342,8 @@ impl<'ctx> Codegen<'ctx> {
             self.begin_next_function(next_case_function);
         }
 
+        // A handler is always complete by the syntax requiring an `else` case at the end, so the last
+        // branch is never reachable.
         let unreachable = self.builder.build_unreachable().unwrap();
         self.end_continuation_point_as_clean(unreachable);
     }
