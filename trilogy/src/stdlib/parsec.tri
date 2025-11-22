@@ -12,17 +12,19 @@ export apply, parse, map, seq, option, eof, char, string
 func apply parser = parser!()
 
 ## Run a parser against an input string
-func parse parser string =
+func parse parser input =
+  let len = str::length input,
   let mut pos = 0,
   with parser!()
-    when 'eof if pos == str::length string resume true
+    when 'eof if pos == len resume true
     when 'eof resume false
     when 'pos resume pos
     when 'reset(new_pos) then {
       pos = new_pos
       become unit
     }
-    when 'next resume string.pos
+    when 'next if pos < len resume input.pos
+    when 'next cancel yield 'reject
     when 'accept then {
       pos += 1
       become unit
