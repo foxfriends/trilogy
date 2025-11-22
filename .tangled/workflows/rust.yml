@@ -1,0 +1,21 @@
+name: "Rust CI"
+
+engine: "nixery"
+
+when:
+  - event: ["push"]
+    branch: ["*"]
+
+dependencies:
+  nixpkgs:
+    - "cargo"
+    - "llvmPackages_18.clang-unwrapped"
+    - "valgrind"
+
+steps:
+  - name: "Format"
+    command: "cargo fmt -- --check"
+  - name: "Clippy"
+    command: "cargo clippy -- -D warnings"
+  - name: "Test"
+    command: "cargo test"
