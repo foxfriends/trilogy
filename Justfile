@@ -2,11 +2,11 @@ set quiet
 set shell := ["fish", "-c"]
 set dotenv-load
 
-llvm_prefix := env("LLVM_SYS_181_PREFIX", "")
+llvm_prefix := env("LLVM_SYS_191_PREFIX", "")
 clang := if llvm_prefix == "" { "clang" } else { llvm_prefix / "bin/clang" }
 clang_format := if llvm_prefix == "" { "clang-format" } else { llvm_prefix / "bin/clang-format" }
 clang_tidy := if llvm_prefix == "" { "clang-tidy" } else { llvm_prefix / "bin/clang-tidy" }
-lldb := `which lldb || which lldb-18`
+lldb := `which lldb || which lldb-19`
 
 default: print run
 

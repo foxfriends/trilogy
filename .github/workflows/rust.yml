@@ -2,7 +2,7 @@ name: Rust CI
 
 on: push
 env:
-  LLVM_SYS_181_PREFIX: /usr/lib/llvm-18/
+  LLVM_SYS_191_PREFIX: /usr/lib/llvm-19/
 
 jobs:
   clippy:
@@ -23,7 +23,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install llvm-18 libpolly-18-dev
+          sudo apt-get install llvm-19 libpolly-19-dev
       - name: Install Rust
         run: |
           rustup install stable
@@ -71,7 +71,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install llvm-18 libpolly-18-dev
+          sudo apt-get install llvm-19 libpolly-19-dev
       - name: Install Rust
         run: |
           rustup install stable
@@ -102,7 +102,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install llvm-18 libpolly-18-dev valgrind
+          sudo apt-get install llvm-19 libpolly-19-dev valgrind
       - name: Install Rust
         run: |
           rustup install stable

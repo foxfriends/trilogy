@@ -1286,6 +1286,7 @@ impl<'ctx> DebugInfo<'ctx> {
             .as_debug_info_scope()
     }
 
+    #[expect(unused_variables, reason = "Waiting for bug to be fixed: https://github.com/TheDan64/inkwell/issues/613")]
     pub(crate) fn describe_variable(
         &self,
         variable: PointerValue<'ctx>,
@@ -1305,13 +1306,13 @@ impl<'ctx> DebugInfo<'ctx> {
             LLVMDIFlagPublic,
             0,
         );
-        self.builder.insert_declare_at_end(
-            variable,
-            Some(di_variable),
-            None,
-            location,
-            builder.get_insert_block().unwrap(),
-        );
+        // self.builder.insert_declare_at_end(
+        //     variable,
+        //     Some(di_variable),
+        //     None,
+        //     location,
+        //     builder.get_insert_block().unwrap(),
+        // );
     }
 }
 

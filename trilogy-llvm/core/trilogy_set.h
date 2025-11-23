@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include <stdbool.h>
+#include <stddef.h>
 
 trilogy_set_value* trilogy_set_init(trilogy_value* tv, trilogy_set_value* set);
 trilogy_set_value* trilogy_set_init_empty(trilogy_value* tv);

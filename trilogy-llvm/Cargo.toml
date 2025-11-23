@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 bitvec = "1.0.1"
-inkwell = { version = "0.7.1", features = ["llvm18-1"] }
+inkwell = { version = "0.7.1", features = ["llvm19-1"] }
 log = "0.4.27"
 num = "0.4.3"
 source-span = "2.7.0"
