@@ -2,7 +2,6 @@ name: Rust CI
 
 on: push
 env:
-  LLVM_SYS_191_PREFIX: /usr/lib/llvm-19/
   RUST_BACKTRACE: 1
 
 jobs:
@@ -31,7 +30,8 @@ jobs:
           rustup component add clippy
           rustup default stable
       - name: Run cargo clippy
-        run: cargo clippy -- -D warnings
+        run: |
+          LLVM_SYS_191_PREFIX=$(llvm-config --prefix) cargo clippy -- -D warnings
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
@@ -78,7 +78,8 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Run cargo check
-        run: cargo check
+        run: |
+          LLVM_SYS_191_PREFIX=$(llvm-config --prefix) cargo check
   test:
     name: test
     runs-on: ubuntu-latest
@@ -109,4 +110,5 @@ jobs:
           rustup install stable
           rustup default stable
       - name: Run cargo test
-        run: ${{matrix.opts}} cargo test
+        run: |
+          ${{matrix.opts}} LLVM_SYS_191_PREFIX=$(llvm-config --prefix) cargo test
