@@ -7,7 +7,7 @@ when:
 dependencies:
   nixpkgs:
     - "cargo"
-    - "llvmPackages_18.clang-unwrapped"
+    - "clang_18"
     - "valgrind"
 
 steps:
