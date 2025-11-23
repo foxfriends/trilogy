@@ -1,18 +1,22 @@
 import "trilogy:debug" use dbg
 
+proc d!(id, val) {
+  dbg!(id: val)
+  return val
+}
+
 proc do_inner!() {
-  assert 'hello == yield 'get_hello
+  assert 'hello == d!(5, yield d!(1, 'get_hello))
   return true
 }
 
 proc do_things!() {
-  let value = with do_inner!() else yield
-  dbg!('value: value)
+  return d!(9, with d!(6, do_inner!()) else eff then { cancel d!(7, resume d!(4, yield d!(2, eff))) })
 }
 
 proc main!() {
-  assert with do_things!()
-    when 'get_hello resume 'hello
-    else yield
+  assert d!(11, with d!(10, do_things!())
+    when 'get_hello cancel d!(8, resume d!(3, 'hello))
+    else yield)
   dbg!("Made it to end")
 }

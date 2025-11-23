@@ -122,7 +122,6 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn capture_current_continuation_as_yield(
         &self,
         continuation_function: FunctionValue<'ctx>,
-        cancel_to: PointerValue<'ctx>,
         name: &str,
     ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
         let handler = self.allocate_value(name);
@@ -140,7 +139,7 @@ impl<'ctx> Codegen<'ctx> {
             handler,
             return_to,
             yield_to,
-            cancel_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             next_to,
             done_to,

@@ -21,12 +21,7 @@ impl<'ctx> Codegen<'ctx> {
         function: FunctionValue<'ctx>,
         argument: PointerValue<'ctx>,
     ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            self.get_yield(""),
-            self.get_cancel(""),
-            self.load_value(argument, "").into(),
-        )
+        self.continue_in_scope_inner(function, self.load_value(argument, "").into())
     }
 
     /// See `continue_in_scope`; this does that, but passes an `undefined` value as the
@@ -37,23 +32,18 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         function: FunctionValue<'ctx>,
     ) -> InstructionValue<'ctx> {
-        self.continue_in_scope_inner(
-            function,
-            self.get_yield(""),
-            self.get_cancel(""),
-            self.value_type().const_zero().into(),
-        )
+        self.continue_in_scope_inner(function, self.value_type().const_zero().into())
     }
 
     fn continue_in_scope_inner(
         &self,
         function: FunctionValue<'ctx>,
-        yield_to: PointerValue<'ctx>,
-        cancel_to: PointerValue<'ctx>,
         argument: BasicMetadataValueEnum<'ctx>,
     ) -> InstructionValue<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
+        let yield_to = self.get_yield("");
+        let cancel_to = self.get_cancel("");
         let resume_to = self.get_resume("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");

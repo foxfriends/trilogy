@@ -6,7 +6,7 @@ proc do_inner!() {
 }
 
 proc do_things!() {
-  with do_inner!() else yield
+  return with do_inner!() else yield
 }
 
 proc main!() {

@@ -512,14 +512,13 @@ impl<'ctx> Codegen<'ctx> {
         let end_to = self.get_end("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
+        let cancel_to = self.get_cancel("");
 
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
-        let cancel_to = self.allocate_value("");
         let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, handler);
         self.trilogy_callable_yield_to_into(yield_to, handler);
-        self.trilogy_callable_cancel_to_into(cancel_to, handler);
         self.trilogy_callable_closure_into(closure, handler, "");
 
         let continuation_function = self.add_continuation("yield.resume");
@@ -554,7 +553,7 @@ impl<'ctx> Codegen<'ctx> {
     /// contextual `cancel_to` value so that when the current delimited continuation (`when`)
     /// is completed, we can go back into this handler.
     pub(crate) fn call_resume(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let resume_value = self.get_resume("");
+        let resume_value = self.get_resume("resume");
         let continuation_function = self.add_continuation("resume.back");
         self.call_resume_inner(continuation_function, resume_value, value);
         self.begin_next_function(continuation_function);

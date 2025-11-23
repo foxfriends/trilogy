@@ -264,10 +264,8 @@ impl<'ctx> Codegen<'ctx> {
             self.capture_current_continuation_as_cancel(cancel_to_function, "");
 
         // Construct yield continuation that continues into the handler.
-        let cancel_to_clone = self.allocate_value("");
-        self.trilogy_value_clone_into(cancel_to_clone, cancel_to);
         let (handler, handler_continuation_point) =
-            self.capture_current_continuation_as_yield(handler_function, cancel_to_clone, "");
+            self.capture_current_continuation_as_yield(handler_function, "");
 
         // Then enter the handler, given the new yield and cancel to values.
         let body_closure = self.continue_in_handler(body_function, handler, cancel_to);

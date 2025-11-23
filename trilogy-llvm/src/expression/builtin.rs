@@ -49,7 +49,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Cancel => {
                 let value = self.compile_expression(expression, name)?;
-                let cancel = self.get_cancel("");
+                let cancel = self.get_cancel("cancel");
                 self.call_known_continuation(cancel, value);
                 None
             }
