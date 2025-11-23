@@ -4,8 +4,8 @@ use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE, CALLABLE_RESUME};
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::module::Linkage;
 use inkwell::values::{
-    BasicMetadataValueEnum, BasicValue, FunctionValue, InstructionValue, IntValue,
-    LLVMTailCallKind, PointerValue,
+    BasicMetadataValueEnum, FunctionValue, InstructionValue, IntValue, LLVMTailCallKind,
+    PointerValue,
 };
 use inkwell::{AddressSpace, IntPredicate};
 
@@ -421,10 +421,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        let call = call
-            .try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap();
+        let call = call.try_as_basic_value().unwrap_instruction();
         self.end_continuation_point_as_clean(call);
         self.builder.build_return(None).unwrap();
     }
@@ -484,9 +481,7 @@ impl<'ctx> Codegen<'ctx> {
         args.extend_from_slice(arguments);
         let call = self.builder.build_call(procedure, &args, "").unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
-        call.try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap()
+        call.try_as_basic_value().unwrap_instruction()
     }
 
     /// A core function is much like an internal function, but is defined in C
@@ -500,9 +495,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut args = vec![target.into()];
         args.extend_from_slice(arguments);
         let call = self.builder.build_call(procedure, &args, "").unwrap();
-        call.try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap()
+        call.try_as_basic_value().unwrap_instruction()
     }
 
     /// Calls the contextual `yield` continuation.
@@ -684,8 +677,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_indirect_call(self.continuation_type(1), continue_continuation, args, name)
             .unwrap()
             .try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap();
+            .unwrap_instruction();
         self.builder.build_return(None).unwrap();
         self.end_continuation_point_as_clean(call);
     }

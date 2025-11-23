@@ -3,7 +3,7 @@ use inkwell::AddressSpace;
 use inkwell::builder::Builder;
 use inkwell::module::Linkage;
 use inkwell::types::FunctionType;
-use inkwell::values::{BasicValue, FunctionValue, InstructionValue, IntValue, PointerValue};
+use inkwell::values::{FunctionValue, InstructionValue, IntValue, PointerValue};
 
 impl<'ctx> Codegen<'ctx> {
     /// Bare functions do not satisfy any particular calling convention, and are intended
@@ -55,7 +55,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -75,7 +75,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -108,7 +108,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -134,7 +134,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[out.into(), lhs.into(), rhs.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -160,7 +160,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[out.into(), lhs.into(), rhs.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -230,7 +230,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -255,7 +255,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into(), lhs.into(), rhs.into()], "")
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -275,7 +275,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[t.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -332,7 +332,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into(), tag.into(), val.into()], "")
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -357,7 +357,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into(), len.into(), string.into()], "")
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -405,7 +405,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -434,7 +434,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[t.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -454,7 +454,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -610,7 +610,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -630,7 +630,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[t.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -646,7 +646,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -722,7 +722,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[set.into(), value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -753,7 +753,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -773,7 +773,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[t.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -793,7 +793,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -879,7 +879,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[record.into(), key.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -903,7 +903,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[record.into(), key.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -946,7 +946,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -970,7 +970,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[target.into(), callable.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1169,7 +1169,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1205,7 +1205,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1227,7 +1227,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1249,7 +1249,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1273,7 +1273,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[lhs.into(), rhs.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_int_value()
     }
 
@@ -1349,8 +1349,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], "")
             .unwrap()
             .try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap()
+            .unwrap_instruction()
     }
 
     pub(crate) fn trilogy_callable_init_proc(
@@ -1525,8 +1524,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[t.into()], "")
             .unwrap()
             .try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap();
+            .unwrap_instruction();
         self.end_continuation_point_as_clean(call);
         self.builder.build_unreachable().unwrap();
         NeverValue
@@ -1571,7 +1569,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[t.into()], "")
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1591,7 +1589,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[t.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1625,7 +1623,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[pointer.into(), pointee.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1812,7 +1810,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1829,8 +1827,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[effect.into()], "")
             .unwrap()
             .try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap();
+            .unwrap_instruction();
         self.end_continuation_point_as_clean(call);
         self.builder.build_unreachable().unwrap();
         NeverValue
@@ -1846,8 +1843,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[], "")
             .unwrap()
             .try_as_basic_value()
-            .either(|l| l.as_instruction_value(), Some)
-            .unwrap();
+            .unwrap_instruction();
         self.end_continuation_point_as_clean(call);
         self.builder.build_unreachable().unwrap();
         NeverValue
@@ -1869,7 +1865,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[value.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1893,7 +1889,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_call(f, &[target.into(), module_data.into()], name)
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 
@@ -1923,7 +1919,7 @@ impl<'ctx> Codegen<'ctx> {
             )
             .unwrap()
             .try_as_basic_value()
-            .unwrap_left()
+            .unwrap_basic()
             .into_pointer_value()
     }
 

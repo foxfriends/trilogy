@@ -140,8 +140,7 @@ impl<'ctx> Codegen<'ctx> {
                             .build_call(do_nothing, &[], "noop")
                             .unwrap()
                             .try_as_basic_value()
-                            .either(|l| l.as_instruction_value(), Some)
-                            .unwrap();
+                            .unwrap_instruction();
                         cp.shadow_root()
                             .unclosed
                             .borrow_mut()
