@@ -7,7 +7,7 @@ when:
 dependencies:
   nixpkgs:
     - "rustup"
-    - "clang"
+    - "clang_19"
     - "libllvm"
     - "valgrind"
 
