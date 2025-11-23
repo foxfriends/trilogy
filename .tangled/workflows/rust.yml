@@ -17,6 +17,7 @@ steps:
       rustup toolchain install stable
       rustup component add rustfmt
       rustup component add clippy
+      llvm-config --prefix
   - name: "Format"
     command: "cargo fmt -- --check"
   - name: "Clippy"
