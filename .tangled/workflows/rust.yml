@@ -1,10 +1,10 @@
-name: "Rust CI"
-
 engine: "nixery"
 
 when:
   - event: ["push"]
-    branch: ["*"]
+    branch: ["main"]
+  - event: ["pull_request"]
+    branch: ["main"]
 
 dependencies:
   nixpkgs:
