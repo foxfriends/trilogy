@@ -1,7 +1,14 @@
 use std::{fs, path::PathBuf, process::Command};
 
 fn try_command(command: &mut Command) {
-    let output = match command.spawn().unwrap().wait_with_output() {
+    let subprocess = match command.spawn() {
+        Ok(subprocess) => subprocess,
+        Err(error) => {
+            println!("cargo::error=Command failed: {command:?}\n{error}");
+            std::process::exit(1);
+        }
+    };
+    let output = match subprocess.wait_with_output() {
         Ok(output) => output,
         Err(error) => {
             println!("cargo::error=Command failed: {command:?}\n{error}");
