@@ -20,6 +20,6 @@ steps:
   - name: "Format"
     command: "cargo fmt -- --check"
   - name: "Clippy"
-    command: "cargo clippy -- -D warnings"
+    command: "LLVM_SYS_191_PREFIX=$(llvm-config --prefix) cargo clippy -- -D warnings"
   - name: "Test"
-    command: "cargo test"
+    command: "LLVM_SYS_191_PREFIX=$(llvm-config --prefix) cargo test"
