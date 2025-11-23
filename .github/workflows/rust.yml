@@ -109,6 +109,7 @@ jobs:
         run: |
           rustup install stable
           rustup default stable
+          llvm-config --prefix
       - name: Run cargo test
         run: |
           ${{matrix.opts}} LLVM_SYS_191_PREFIX=$(llvm-config --prefix) cargo test
