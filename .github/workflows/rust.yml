@@ -30,6 +30,7 @@ jobs:
           rustup install stable
           rustup component add clippy
           rustup default stable
+          ls -l $LLVM_SYS_191_PREFIX/bin
       - name: Run cargo clippy
         run: cargo clippy -- -D warnings
   rustfmt:
