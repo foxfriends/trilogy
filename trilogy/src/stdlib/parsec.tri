@@ -6,16 +6,24 @@ import "trilogy:debug" use dbg
 import "trilogy:array" as array
 import "trilogy:str" as str
 
-export apply, parse, map, seq, option, eof, char, string
+export apply, parse, run_parser, map, seq, option, choice, many, many_1, sep_by, sep_by_1, eof, char, string
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
 
-## Run a parser against an input string
-func parse parser input =
+## Run a parser against an input string. Returns the parsed result.
+##
+## Note that this does not necessarily consume the entire input string.
+## If this is desired, consider ensuring the provided parser ends with
+## the `eof` parser.
+func parse parser input = (run_parser parser input) . 'left
+
+## Run a parser against an input string, returning the parsed result
+## and the remaining portion of the string.
+func run_parser parser input =
   let len = str::length input,
   let mut pos = 0,
-  with parser!()
+  let result = with parser!()
     when 'eof if pos == len resume true
     when 'eof resume false
     when 'pos resume pos
@@ -23,14 +31,15 @@ func parse parser input =
       pos = new_pos
       become unit
     }
-    when 'next if pos < len resume input.pos
-    when 'next cancel yield 'reject
+    when 'next if pos < len resume 'some(input.pos)
+    when 'next resume 'none
     when 'accept then {
       pos += 1
       become unit
     }
-    when 'reject cancel yield 'reject
-    else yield
+    when 'reject(_) and rej cancel yield rej
+    else yield,
+  result : str::slice pos len input
 
 ## Transform the output value of a parser without parsing any more input.
 func map f parser = do() f parser!()
@@ -43,29 +52,76 @@ func seq parsers = do() array::map apply parsers
 func option parser = do() {
   let pos = yield 'pos
   return with 'some(apply parser)
-    when 'reject then {
+    when 'reject(_) then {
       yield 'reset(pos)
       cancel 'none
     }
     else yield
 }
 
+## Attempt each of the list of parsers. Returns the value of the first
+## parser that succeeds.
+func choice [] = do() yield 'reject("no options of choice matched input")
+func choice [parser, ..rest] = do () match apply (option parser)
+  case 'some(value) then return value
+  else then apply (choice rest)
+
+## Applies the parser as many times as possible, returning an array of
+## the parsed results.
+func many parser = do() {
+  let result = with apply parser
+    when 'reject(_) then { return [] }
+    else yield
+  return [result, ..apply (many parser)]
+}
+
+## Applies the parser as many times as possible, but at least once, returning
+## an array of the parsed results.
+func many_1 parser = do() {
+  let first = apply parser
+  let rest = apply (many parser)
+  return [first, ..rest]
+}
+
+func sep_tail sep parser = do() {
+  return match apply (option sep)
+    case 'none then []
+    else then apply (sep_by_1 sep parser)
+}
+
+## Parses zero or more occurrences of `parser`, separated by `sep`. Returns
+## an array of the parsed values of `parser`.
+func sep_by sep parser = do() {
+  return match apply (option parser)
+    case 'some(first) then [first, ..apply <| sep_tail sep parser]
+    else then []
+}
+
+## Parses one or more occurrences of `parser`, separated by `sep`. Returns
+## an array of the parsed values of `parser`.
+func sep_by_1 sep parser = do() {
+  let first = apply parser
+  let tail = apply <| sep_tail sep parser
+  return [first, ..tail]
+}
+
 ## A parser that matches the end of input.
 proc eof!() {
-  if yield 'eof {
-    yield 'accept
-  } else {
-    yield 'reject
+  if ! yield 'eof {
+    yield 'reject("expected end of input")
   }
 }
 
 ## A parser for a single character.
 func char c = do() {
-  if c == yield 'next {
+  let actual = match yield 'next
+    case 'some(ch) then ch
+    else then yield 'reject("reached end of input")
+  if c == actual {
     yield 'accept
     return c
   } else {
-    yield 'reject
+    yield 'reject($"expected '${c}', got '${actual}'")
   }
 }
 

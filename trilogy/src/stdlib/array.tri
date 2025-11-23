@@ -59,7 +59,7 @@ func head [] = yield 'mia
 func head [..xs, _] = xs
 export head
 
-func slice_unsafe i i _ = []
+func slice_unsafe i ^i _ = []
 func slice_unsafe i fin arr = [arr.i, ..slice (i + 1) fin arr]
 func slice i fin (arr and typeof 'array) =
   if i > fin || i < 0 then
