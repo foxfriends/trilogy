@@ -6,11 +6,16 @@ when:
 
 dependencies:
   nixpkgs:
-    - "cargo"
+    - "rustup"
     - "clang_18"
     - "valgrind"
 
 steps:
+  - name: "Install Rust"
+    command: |
+      rustup toolchain install stable
+      rustup component add rustfmt
+      rustup component add clippy
   - name: "Format"
     command: "cargo fmt -- --check"
   - name: "Clippy"
