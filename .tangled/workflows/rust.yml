@@ -9,7 +9,6 @@ dependencies:
     - "rustup"
     - "clang_18"
     - "valgrind"
-    - "openssl"
 
 steps:
   - name: "Install Rust"
