@@ -1,7 +1,13 @@
 use std::{fs, path::PathBuf, process::Command};
 
 fn try_command(command: &mut Command) {
-    let output = command.spawn().unwrap().wait_with_output().unwrap();
+    let output = match command.spawn().unwrap().wait_with_output() {
+        Ok(output) => output,
+        Err(error) => {
+            println!("cargo::error=Command failed: {command:?}\n{error}");
+            std::process::exit(1);
+        }
+    };
     if !output.status.success() {
         println!("cargo::error={}", String::from_utf8_lossy(&output.stderr));
         std::process::exit(1);
