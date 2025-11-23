@@ -3,6 +3,7 @@ name: Rust CI
 on: push
 env:
   LLVM_SYS_191_PREFIX: /usr/lib/llvm-19/
+  RUST_BACKTRACE: 1
 
 jobs:
   clippy:
