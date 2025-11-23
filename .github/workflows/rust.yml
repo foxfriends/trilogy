@@ -24,7 +24,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install llvm-19 libpolly-19-dev
+          sudo apt-get install clang-19 llvm-19 libpolly-19-dev
       - name: Install Rust
         run: |
           rustup install stable
@@ -73,7 +73,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install llvm-19 libpolly-19-dev
+          sudo apt-get install clang-19 llvm-19 libpolly-19-dev
       - name: Install Rust
         run: |
           rustup install stable
@@ -104,7 +104,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install llvm-19 libpolly-19-dev valgrind
+          sudo apt-get install clang-19 llvm-19 libpolly-19-dev valgrind
       - name: Install Rust
         run: |
           rustup install stable
