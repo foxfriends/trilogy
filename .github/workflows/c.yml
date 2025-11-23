@@ -22,6 +22,10 @@ jobs:
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install clang-tidy-19
       - name: Run clang-tidy
         run: clang-tidy-19 *.{c,h} --
         working-directory: trilogy-llvm/core

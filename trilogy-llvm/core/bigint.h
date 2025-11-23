@@ -27,14 +27,8 @@ typedef struct bigint {
     } contents;
 } bigint;
 
-#define BIGINT_ZERO                                                            \
-    {                                                                          \
-        .capacity = 0, .length = 1, .contents = {.value = 0 }                  \
-    }
-#define BIGINT_ONE                                                             \
-    {                                                                          \
-        .capacity = 0, .length = 1, .contents = {.value = 1 }                  \
-    }
+#define BIGINT_ZERO {.capacity = 0, .length = 1, .contents = {.value = 0}}
+#define BIGINT_ONE {.capacity = 0, .length = 1, .contents = {.value = 1}}
 
 extern const bigint bigint_zero;
 extern const bigint bigint_one;

@@ -1286,7 +1286,10 @@ impl<'ctx> DebugInfo<'ctx> {
             .as_debug_info_scope()
     }
 
-    #[expect(unused_variables, reason = "Waiting for bug to be fixed: https://github.com/TheDan64/inkwell/issues/613")]
+    #[expect(
+        unused_variables,
+        reason = "Waiting for bug to be fixed: https://github.com/TheDan64/inkwell/issues/613"
+    )]
     pub(crate) fn describe_variable(
         &self,
         variable: PointerValue<'ctx>,
