@@ -6,7 +6,7 @@ import "trilogy:debug" use dbg
 import "trilogy:array" as array
 import "trilogy:str" as str
 
-export apply, parse, run_parser, map, seq, option, choice, many, many_1, sep_by, sep_by_1, eof, char, string
+export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, end_by, end_by_1, eof, char, string
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
@@ -37,9 +37,19 @@ func run_parser parser input =
       pos += 1
       become unit
     }
-    when 'reject(_) and rej cancel yield rej
     else yield,
   result : str::slice pos len input
+
+## Parses the parser as a single atomic unit, without consuming any of the input on failure.
+func atomic parser = do() {
+  let pos = yield 'pos
+  return with apply parser
+    when 'reject(_) and rej then {
+      yield 'reset(pos)
+      yield rej
+    }
+    else yield
+}
 
 ## Transform the output value of a parser without parsing any more input.
 func map f parser = do() f parser!()
@@ -49,27 +59,31 @@ func seq parsers = do() array::map apply parsers
 
 ## Attempt a parser, returning 'some(result) if it succeeds. If it fails,
 ## returns 'none without consuming any input.
-func option parser = do() {
-  let pos = yield 'pos
-  return with 'some(apply parser)
-    when 'reject(_) then {
-      yield 'reset(pos)
-      cancel 'none
-    }
+func option parser = do()
+  with 'some(apply <| atomic parser)
+    when 'reject(_) cancel 'none
     else yield
-}
 
 ## Attempt each of the list of parsers. Returns the value of the first
 ## parser that succeeds.
-func choice [] = do() yield 'reject("no options of choice matched input")
-func choice [parser, ..rest] = do () match apply (option parser)
-  case 'some(value) then return value
-  else then apply (choice rest)
+func choice [] = do() yield 'reject("choice had no options")
+func choice [parser, ..rest] = do () {
+  return with apply (atomic parser)
+    when 'reject(err) cancel with apply (choice rest)
+      when 'reject("choice had no options") then {
+        yield 'reject(err)
+      }
+      when 'reject(errs) then {
+        yield 'reject($"${err}, or ${errs}")
+      }
+      else yield
+    else yield
+}
 
 ## Applies the parser as many times as possible, returning an array of
 ## the parsed results.
 func many parser = do() {
-  let result = with apply parser
+  let result = with apply (atomic parser)
     when 'reject(_) then { return [] }
     else yield
   return [result, ..apply (many parser)]
@@ -78,8 +92,8 @@ func many parser = do() {
 ## Applies the parser as many times as possible, but at least once, returning
 ## an array of the parsed results.
 func many_1 parser = do() {
-  let first = apply parser
-  let rest = apply (many parser)
+  let first = apply <| atomic parser
+  let rest = apply <| many parser
   return [first, ..rest]
 }
 
@@ -100,8 +114,33 @@ func sep_by sep parser = do() {
 ## Parses one or more occurrences of `parser`, separated by `sep`. Returns
 ## an array of the parsed values of `parser`.
 func sep_by_1 sep parser = do() {
-  let first = apply parser
+  let first = apply <| atomic parser
   let tail = apply <| sep_tail sep parser
+  return [first, ..tail]
+}
+
+## Parses `parser` followed by `follow`, returning only the result of `parser`.
+func followed_by follow parser = do() {
+  let result = apply parser
+  apply follow
+  return result
+}
+
+## Parses zero or more occurrences of `parser`, separated and ended by `sep`.
+## Returns an array of the parsed values of `parser`.
+func end_by sep parser = do() {
+  let first = match apply <| option <| followed_by sep parser
+    case 'some(value) then value
+    else then return []
+  let tail = apply <| end_by sep parser
+  return [first, ..tail]
+}
+
+## Parses one or more occurrences of `parser`, separated and ended by `sep`.
+## Returns an array of the parsed values of `parser`.
+func end_by_1 sep parser = do() {
+  let first = apply <| atomic <| followed_by sep parser
+  let tail = apply <| end_by sep parser
   return [first, ..tail]
 }
 
@@ -116,7 +155,10 @@ proc eof!() {
 func char c = do() {
   let actual = match yield 'next
     case 'some(ch) then ch
-    else then yield 'reject("reached end of input")
+    else {
+      yield 'reject("reached end of input")
+      end
+    }
   if c == actual {
     yield 'accept
     return c
@@ -131,3 +173,4 @@ func string s = s
   |> array::map char
   |> seq
   |> map (str::join "")
+  |> atomic
