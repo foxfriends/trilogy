@@ -34,7 +34,7 @@ proc pstate!(init, action) {
 }
 
 proc main!() {
-  dbg!(choice!(xor))
-  dbg!(pstate!(0, do() choice!(surprising)))
-  dbg!(choice!(do() pstate!(0, surprising)))
+  assert choice!(xor) == [false, true, true, false]
+  assert pstate!(0, do() choice!(surprising)) == [false, false, true, true, false]:2
+  assert choice!(do() pstate!(0, surprising)) == [false:1, false:1]
 }
