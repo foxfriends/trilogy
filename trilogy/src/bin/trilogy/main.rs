@@ -33,10 +33,24 @@ enum Command {
     /// Expects a single path in which the `main!()` procedure is found.
     Compile {
         file: PathBuf,
+        /// Compile a library instead of a program.
+        ///
+        /// In this case, no `proc main!()` is required, but the resulting library cannot be used
+        /// for much.
         #[arg(long = "lib")]
         library: bool,
+        /// Compile the tests instead of the application.
+        ///
+        /// The resulting binary will run the test suite and print its result when executed.
         #[arg(long = "test")]
         test: bool,
+        /// Only tests in modules whose path matches a listed prefix will be run.
+        ///
+        /// By default, tests in all locally defined modules are run.
+        ///
+        /// This flag is only relevant when compiling tests.
+        #[arg(long = "prefix", short = 'p', default_values_t = [String::from("file:")])]
+        filter_prefix: Vec<String>,
     },
     /// Check the syntax and warnings of a Trilogy program.
     Check {
@@ -47,7 +61,14 @@ enum Command {
     ///
     /// The provided path is not required to define a `main` function as
     /// entrypoint, as it will not be called.
-    Test { file: PathBuf },
+    Test {
+        file: PathBuf,
+        /// Only tests in modules whose path matches a listed prefix will be run.
+        ///
+        /// By default, tests in all locally defined modules are run.
+        #[arg(long = "prefix", short = 'p', default_values_t = [String::from("file:")])]
+        filter_prefix: Vec<String>,
+    },
     /// Format one or many Trilogy files.
     ///
     /// If one file is provided, the output is written to standard output
@@ -109,12 +130,16 @@ fn main() -> std::io::Result<()> {
             file,
             library,
             test,
-        } => match Builder::std().is_library(library).build_from_source(file) {
+            filter_prefix,
+        } => match Builder::std()
+            .is_library(library || test)
+            .build_from_source(file)
+        {
             Ok(trilogy) => {
                 print!(
                     "{}",
                     if test {
-                        trilogy.compile_test()
+                        trilogy.compile_test(&filter_prefix)
                     } else {
                         trilogy.compile()
                     }
@@ -131,9 +156,12 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         }
-        Command::Test { file } => match Builder::std().build_from_source(file) {
+        Command::Test {
+            file,
+            filter_prefix,
+        } => match Builder::std().is_library(true).build_from_source(file) {
             Ok(trilogy) => {
-                trilogy.test();
+                trilogy.test(&filter_prefix);
             }
             Err(report) => {
                 report.eprint();

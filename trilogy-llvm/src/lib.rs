@@ -92,7 +92,7 @@ pub fn compile_to_llvm(
 fn compile_tests<'a>(
     context: &'a Context,
     modules: &'a HashMap<String, &ir::Module>,
-    filter_prefix: &[&str],
+    filter_prefix: &[impl AsRef<str>],
 ) -> Codegen<'a> {
     let mut codegen = Codegen::new(context, modules);
 
@@ -108,14 +108,18 @@ fn compile_tests<'a>(
             .tests
             .iter()
             .map(|name| name.as_str())
-            .filter(|name| filter_prefix.iter().any(|prefix| name.starts_with(prefix)))
+            .filter(|name| {
+                filter_prefix
+                    .iter()
+                    .any(|prefix| name.starts_with(prefix.as_ref()))
+            })
             .collect::<Vec<_>>(),
     );
     log::debug!("trilogy compilation finished");
     codegen
 }
 
-pub fn evaluate_tests(modules: HashMap<String, &ir::Module>, filter_prefix: &[&str]) {
+pub fn evaluate_tests(modules: HashMap<String, &ir::Module>, filter_prefix: &[impl AsRef<str>]) {
     let context = Context::create();
     let codegen = compile_tests(&context, &modules, filter_prefix);
     let (_module, ee) = codegen.finish();
@@ -127,7 +131,7 @@ pub fn evaluate_tests(modules: HashMap<String, &ir::Module>, filter_prefix: &[&s
 
 pub fn compile_tests_to_llvm(
     modules: HashMap<String, &ir::Module>,
-    filter_prefix: &[&str],
+    filter_prefix: &[impl AsRef<str>],
 ) -> String {
     let context = Context::create();
     let codegen = compile_tests(&context, &modules, filter_prefix);

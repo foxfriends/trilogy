@@ -78,14 +78,14 @@ impl Trilogy {
     }
 
     /// Compiles and runs the the loaded Trilogy program in test mode.
-    pub fn test(&self) {
+    pub fn test(&self, filter_prefix: &[impl AsRef<str>]) {
         let modules = self
             .source
             .modules
             .iter()
             .map(|(location, module)| (location.to_string(), module))
             .collect();
-        trilogy_llvm::evaluate_tests(modules, &[""])
+        trilogy_llvm::evaluate_tests(modules, filter_prefix)
     }
 
     /// Runs the loaded Trilogy, evaluating the exported 0-arity procedure pointed to by
@@ -135,13 +135,13 @@ impl Trilogy {
     }
 
     /// Compiles a Trilogy testsuite to LLVM assembly code, returning a single linked module as a string.
-    pub fn compile_test(&self) -> String {
+    pub fn compile_test(&self, filter_prefix: &[impl AsRef<str>]) -> String {
         let modules = self
             .source
             .modules
             .iter()
             .map(|(location, module)| (location.to_string(), module))
             .collect();
-        trilogy_llvm::compile_tests_to_llvm(modules, &[""])
+        trilogy_llvm::compile_tests_to_llvm(modules, filter_prefix)
     }
 }

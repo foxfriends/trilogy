@@ -3,9 +3,24 @@ import "trilogy:core" as core
 func length (arr and typeof 'array) = core::length arr
 export length
 
+test "array length" {
+  assert length [] == 0
+  assert length [1] == 1
+  assert length [1, 2, 3] == 3
+}
+
 func map _ [] = []
 func map f [x, ..xs] = [f x, ..map f xs]
 export map
+
+test "array map" {
+  assert map (fn x. x * 2) [] == []
+  assert map (fn x. x * 2) [1] == [2]
+  assert map (fn x. x * 2) [1, 2, 3] == [2, 4, 6]
+  let arr = [1, 2, 3]
+  let doubled = map (fn x. x * 2) arr
+  assert arr == [1, 2, 3]
+}
 
 func filter _ [] = []
 func filter p [x, ..xs] =
@@ -13,6 +28,15 @@ func filter p [x, ..xs] =
     then [x, ..filter p xs]
     else filter p xs
 export filter
+
+test "array filter" {
+  assert filter (fn x. x % 2 == 0) [] == []
+  assert filter (fn x. x % 2 == 0) [1] == []
+  assert filter (fn x. x % 2 == 0) [1, 2, 3] == [2]
+  let arr = [1, 2, 3]
+  let evens = filter (fn x. x % 2 == 0) arr
+  assert arr == [1, 2, 3]
+}
 
 func fold _ a [] = a
 func fold f a [x, ..xs] = fold f (f a x) xs

@@ -31,6 +31,10 @@ const fn const_true() -> bool {
 #[derive(Deserialize)]
 struct Expectation {
     #[serde(default)]
+    test: bool,
+    #[serde(default)]
+    filter_prefix: Vec<String>,
+    #[serde(default)]
     exit: i32,
     #[serde(default)]
     output: String,
@@ -43,6 +47,8 @@ struct Expectation {
 impl Default for Expectation {
     fn default() -> Self {
         Self {
+            test: false,
+            filter_prefix: vec![],
             exit: 0,
             output: String::new(),
             stderr: false,
@@ -72,12 +78,13 @@ impl Report {
                         .code()
                         .map(|code| code == self.expected.exit)
                         .unwrap_or(false)
-                        && output.stdout == self.expected.output.as_bytes()
-                        && if self.expected.stderr {
-                            !output.stderr.is_empty()
-                        } else {
-                            output.stderr.is_empty()
-                        }
+                        && (self.expected.test
+                            || (output.stdout == self.expected.output.as_bytes()
+                                && if self.expected.stderr {
+                                    !output.stderr.is_empty()
+                                } else {
+                                    output.stderr.is_empty()
+                                }))
                 })
                 .unwrap_or(false)
     }
@@ -192,6 +199,12 @@ impl Report {
             )?;
         }
         let output = std::str::from_utf8(&program_output.stdout).unwrap_or("non UTF-8 output");
+
+        if self.expected.test {
+            writeln!(stdout, "---- test report ----\n{output}")?;
+            return Ok(());
+        }
+
         if output != self.expected.output {
             writeln!(
                 stdout,
@@ -250,6 +263,12 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
             .args(["compile", tri.to_str().unwrap()])
             .stdout(ll_file)
             .stderr(Stdio::piped());
+        if report.expected.test {
+            trilogy_command.arg("--test");
+            for prefix in &report.expected.filter_prefix {
+                trilogy_command.args(["--prefix", prefix]);
+            }
+        }
         let start = Instant::now();
         let mut trilogy_compile = trilogy_command.spawn().unwrap();
         let mut stderr = trilogy_compile.stderr.take().unwrap();
