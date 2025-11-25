@@ -1,3 +1,13 @@
+#! Helper functions to apply ANSI escapes to text.
+#!
+#! No attempt is made to ensure that the current environment supports ANSI escapes,
+#! that is up to the caller to determine.
+#!
+#! Reference:
+#!     https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797l
+
+# Colours
+
 const RESET_COLOR = "\u{001b}[0m"
 
 const BLACK = "\u{001b}[30m"
@@ -35,33 +45,6 @@ const BG_BRIGHT_BLUE = "\u{001b}[104m"
 const BG_BRIGHT_MAGENTA = "\u{001b}[105m"
 const BG_BRIGHT_CYAN = "\u{001b}[106m"
 const BG_BRIGHT_WHITE = "\u{001b}[107m"
-
-const BOLD = "\u{001b}[1m"
-const RESET_BOLD = "\u{001b}[22m"
-
-const DIM = "\u{001b}[2m"
-const RESET_DIM = "\u{001b}[22m"
-
-const ITALIC = "\u{001b}[3m"
-const RESET_ITALIC = "\u{001b}[23m"
-
-const UNDERLINE = "\u{001b}[4m"
-const RESET_UNDERLINE = "\u{001b}[24m"
-
-const BLINK = "\u{001b}[5m"
-const RESET_BLINK = "\u{001b}[25m"
-
-const INVERSE = "\u{001b}[7m"
-const RESET_INVERSE = "\u{001b}[27m"
-
-const INVISIBLE = "\u{001b}[8m"
-const RESET_INVISIBLE = "\u{001b}[28m"
-
-const STRIKETHROUGH = "\u{001b}[9m"
-const RESET_STRIKETHROUGH = "\u{001b}[29m"
-
-const DOUBLE_UNDERLINE = "\u{001b}[21m"
-const RESET_DOUBLE_UNDERLINE = "\u{001b}[24m"
 
 export black, red, green, yellow, blue, magenta, cyan, white
 
@@ -116,3 +99,52 @@ func bg id text = apply_color ($"\u{001b}[48;5;${id}m") text
 
 func fg_rgb r g b text = apply_color ($"\u{001b}[38;2;${r};${g};${b}m") text
 func bg_rgb r g b text = apply_color ($"\u{001b}[48;2;${r};${g};${b}m") text
+
+# Attributes
+
+export bold, dim, italic, underline, blink, inverse, invisible, strikethrough, double_underline
+
+const BOLD = "\u{001b}[1m"
+const RESET_BOLD = "\u{001b}[22m"
+
+func bold text = $"${BOLD}${text}${RESET_BOLD}"
+
+const DIM = "\u{001b}[2m"
+const RESET_DIM = "\u{001b}[22m"
+
+func dim text = $"${DIM}${text}${RESET_DIM}"
+
+const ITALIC = "\u{001b}[3m"
+const RESET_ITALIC = "\u{001b}[23m"
+
+func italic text = $"${ITALIC}${text}${RESET_ITALIC}"
+
+const UNDERLINE = "\u{001b}[4m"
+const RESET_UNDERLINE = "\u{001b}[24m"
+
+func underline text = $"${UNDERLINE}${text}${RESET_UNDERLINE}"
+
+const BLINK = "\u{001b}[5m"
+const RESET_BLINK = "\u{001b}[25m"
+
+func blink text = $"${BLINK}${text}${RESET_BLINK}"
+
+const INVERSE = "\u{001b}[7m"
+const RESET_INVERSE = "\u{001b}[27m"
+
+func inverse text = $"${INVERSE}${text}${RESET_INVERSE}"
+
+const INVISIBLE = "\u{001b}[8m"
+const RESET_INVISIBLE = "\u{001b}[28m"
+
+func invisible text = $"${INVISIBLE}${text}${RESET_INVISIBLE}"
+
+const STRIKETHROUGH = "\u{001b}[9m"
+const RESET_STRIKETHROUGH = "\u{001b}[29m"
+
+func strikethrough text = $"${STRIKETHROUGH}${text}${RESET_STRIKETHROUGH}"
+
+const DOUBLE_UNDERLINE = "\u{001b}[21m"
+const RESET_DOUBLE_UNDERLINE = "\u{001b}[24m"
+
+func double_underline text = $"${DOUBLE_UNDERLINE}${text}${RESET_DOUBLE_UNDERLINE}"
