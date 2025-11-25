@@ -1,0 +1,5 @@
+output = """
+[false, true, true, false]
+[false, false, true, true, false]:2
+[false:1, false:1]
+"""

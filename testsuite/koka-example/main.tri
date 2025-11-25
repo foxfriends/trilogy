@@ -1,0 +1,40 @@
+import "trilogy:debug" use dbg
+
+proc xor!() {
+  let p = yield 'choice
+  let q = yield 'choice
+  return if p then !q else q
+}
+
+proc choice!(action) {
+  return with [action!()]
+    when 'choice then {
+      cancel [..resume false, ..resume true]
+    }
+    else yield
+}
+
+proc surprising!() {
+  let p = yield 'choice
+  let i = yield 'get
+  yield 'set(i + 1)
+  return if i > 0 && p then xor!() else false
+}
+
+proc pstate!(init, action) {
+  let mut state = init
+  let result = with action!()
+    when 'get resume state
+    when 'set(val) then {
+      state = val
+      become unit
+    }
+    else yield
+  return result:state
+}
+
+proc main!() {
+  dbg!(choice!(xor))
+  dbg!(pstate!(0, do() choice!(surprising)))
+  dbg!(choice!(do() pstate!(0, surprising)))
+}
