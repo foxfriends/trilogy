@@ -1,9 +1,9 @@
 use super::Error;
+use super::loader::Module;
 use super::report::ReportBuilder;
 use crate::location::Location;
 use std::collections::HashMap;
 use trilogy_ir::{Converter, Resolver, ir};
-use trilogy_parser::syntax::Document;
 
 impl Resolver for Location {
     fn resolve(&self, locator: &str) -> String {
@@ -12,14 +12,14 @@ impl Resolver for Location {
 }
 
 pub(super) fn convert<E: std::error::Error>(
-    documents: Vec<(Location, Document)>,
+    modules: HashMap<Location, Module>,
     report: &mut ReportBuilder<E>,
 ) -> HashMap<Location, ir::Module> {
     let mut converted = HashMap::default();
 
-    for (location, document) in documents {
-        let mut converter = Converter::new(&location);
-        let module = converter.convert(document);
+    for (location, module) in modules {
+        let mut converter = Converter::new(&location, &module.source);
+        let module = converter.convert(module.contents.into_ast());
         for error in converter.errors() {
             report.error(Error::ir(location.clone(), error));
         }

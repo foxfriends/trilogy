@@ -10,16 +10,18 @@ pub trait Resolver {
 
 pub struct Converter<'a> {
     resolver: &'a dyn Resolver,
+    source: &'a str,
     errors: Vec<Error>,
     scope: Scope,
 }
 
 impl<'a> Converter<'a> {
-    pub fn new(resolver: &'a dyn Resolver) -> Self {
+    pub fn new(resolver: &'a dyn Resolver, source: &'a str) -> Self {
         Self {
             resolver,
             errors: vec![],
             scope: Scope::default(),
+            source,
         }
     }
 
@@ -65,5 +67,22 @@ impl<'a> Converter<'a> {
 
     pub(crate) fn resolve(&self, locator: &str) -> String {
         self.resolver.resolve(locator)
+    }
+
+    pub(crate) fn get_source(&self, span: Span) -> String {
+        let mut lines = self
+            .source
+            .lines()
+            .skip(span.start().line)
+            .take(span.last().line - span.start().line + 1)
+            .map(|line| line.to_owned())
+            .collect::<Vec<_>>();
+        lines[0] = lines[0]
+            .chars()
+            .skip(span.start().column)
+            .collect::<String>();
+        let last = lines.last_mut().unwrap();
+        *last = last.chars().take(span.end().column).collect::<String>();
+        lines.join("")
     }
 }

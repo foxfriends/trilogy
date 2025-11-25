@@ -146,12 +146,12 @@ impl<C: Cache> Builder<C> {
         };
         let entrypoint = Location::entrypoint(root_path.clone(), file);
         let time_loading = Instant::now();
-        let documents = loader::load(&cache, &entrypoint, &source_modules, &mut report);
+        let modules = loader::load(&cache, &entrypoint, &source_modules, &mut report);
         cache = report.checkpoint(&root_path, cache)?;
         log::trace!("all modules loaded: {:?}", time_loading.elapsed());
 
         let time_analyzing = Instant::now();
-        let mut modules = converter::convert(documents, &mut report);
+        let mut modules = converter::convert(modules, &mut report);
         analyzer::analyze(&mut modules, &entrypoint, &mut report, is_library);
         report.checkpoint(&root_path, cache)?;
         log::trace!("program analyzed: {:?}", time_analyzing.elapsed());

@@ -15,8 +15,9 @@ use trilogy_scanner::Scanner;
 use url::Url;
 
 #[derive(Clone, Debug)]
-struct Module {
-    contents: Parse<Document>,
+pub(super) struct Module {
+    pub contents: Parse<Document>,
+    pub source: String,
 }
 
 #[derive(Debug)]
@@ -84,7 +85,10 @@ impl Module {
         let parser = Parser::new(scanner);
         let contents = parser.parse();
         log::trace!("module parsed: {:?}", time_parsing.elapsed());
-        Self { contents }
+        Self {
+            contents,
+            source: source.to_owned(),
+        }
     }
 
     fn imported_modules(&self) -> impl Iterator<Item = StringLiteral> + '_ {
@@ -169,20 +173,20 @@ pub(super) fn load<C: Cache>(
     entrypoint: &Location,
     libraries: &HashMap<Location, String>,
     report: &mut ReportBuilder<C::Error>,
-) -> Vec<(Location, Document)> {
+) -> HashMap<Location, Module> {
     let mut modules = HashMap::new();
     let loader = Loader::new(cache, libraries);
 
     let mut module_queue = VecDeque::with_capacity(8);
 
-    // HACK: always force core to be imported.
+    // HACK: always force trilogy:core to be imported.
     let core_location = Location::library("core").unwrap();
     let source = match loader.load_source(&core_location) {
         Ok(Some(source)) => source,
         Ok(None) => unreachable!(),
         Err(error) => {
             report.error(error.into_cause().unwrap().into());
-            return vec![];
+            return HashMap::default();
         }
     };
     let core_module = Module::new(&source);
@@ -197,7 +201,7 @@ pub(super) fn load<C: Cache>(
         Ok(None) => unreachable!(),
         Err(error) => {
             report.error(error.into_cause().unwrap().into());
-            return vec![];
+            return HashMap::default();
         }
     };
     let entrymodule = Module::new(&source);
@@ -257,7 +261,4 @@ pub(super) fn load<C: Cache>(
     }
 
     modules
-        .into_iter()
-        .map(|(k, item)| (k, item.contents.into_ast()))
-        .collect()
 }
