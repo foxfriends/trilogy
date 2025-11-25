@@ -37,7 +37,7 @@ mod test {
     use super::*;
 
     test_parse!(bits_bin: "0bb0101" => BitsLiteral::parse => "(BitsLiteral _)");
-    test_parse!(bits_hex: "0xb10af" => BitsLiteral::parse => "(BitsLiteral _)");
-    test_parse!(bits_oct: "0ob107" => BitsLiteral::parse => "(BitsLiteral _)");
+    test_parse!(bits_hex: "0bx10af" => BitsLiteral::parse => "(BitsLiteral _)");
+    test_parse!(bits_oct: "0bo107" => BitsLiteral::parse => "(BitsLiteral _)");
     test_parse_error!(not_bits: "0b101" => BitsLiteral::parse => "expected bits literal");
 }
