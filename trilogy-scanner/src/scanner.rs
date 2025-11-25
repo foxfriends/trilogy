@@ -310,6 +310,7 @@ impl<'a> Scanner<'a> {
 
     fn binary(&mut self) -> BigInt {
         let mut value = String::new();
+        while self.expect('_').is_some() {}
         while let Some(ch) = self.expect('0'..='1') {
             value.push(ch);
             while self.expect('_').is_some() {}
@@ -319,6 +320,7 @@ impl<'a> Scanner<'a> {
 
     fn octal(&mut self) -> BigInt {
         let mut value = String::new();
+        while self.expect('_').is_some() {}
         while let Some(ch) = self.expect('0'..='7') {
             value.push(ch);
             while self.expect('_').is_some() {}
@@ -328,6 +330,7 @@ impl<'a> Scanner<'a> {
 
     fn hexadecimal(&mut self) -> BigInt {
         let mut value = String::new();
+        while self.expect('_').is_some() {}
         while let Some(ch) = self.expect(|ch: char| ch.is_ascii_hexdigit()) {
             value.push(ch);
             while self.expect('_').is_some() {}
@@ -376,10 +379,10 @@ impl<'a> Scanner<'a> {
     fn zero_or_other_base(&mut self) -> Numberlike {
         match self.expect("box") {
             Some('b') if self.expect('b').is_some() => Numberlike::Bits(self.bits_binary()),
+            Some('b') if self.expect('o').is_some() => Numberlike::Bits(self.bits_octal()),
+            Some('b') if self.expect('x').is_some() => Numberlike::Bits(self.bits_hexadecimal()),
             Some('b') => Numberlike::Complete(self.binary()),
-            Some('o') if self.expect('b').is_some() => Numberlike::Bits(self.bits_octal()),
             Some('o') => Numberlike::Complete(self.octal()),
-            Some('x') if self.expect('b').is_some() => Numberlike::Bits(self.bits_hexadecimal()),
             Some('x') => Numberlike::Complete(self.hexadecimal()),
             None => Numberlike::Incomplete(BigInt::zero()),
             _ => unreachable!(),

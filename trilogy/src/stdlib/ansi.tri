@@ -1,0 +1,118 @@
+const RESET_COLOR = "\u{001b}[0m"
+
+const BLACK = "\u{001b}[30m"
+const RED = "\u{001b}[31m"
+const GREEN = "\u{001b}[32m"
+const YELLOW = "\u{001b}[33m"
+const BLUE = "\u{001b}[34m"
+const MAGENTA = "\u{001b}[35m"
+const CYAN = "\u{001b}[36m"
+const WHITE = "\u{001b}[37m"
+
+const BG_BLACK = "\u{001b}[40m"
+const BG_RED = "\u{001b}[41m"
+const BG_GREEN = "\u{001b}[42m"
+const BG_YELLOW = "\u{001b}[43m"
+const BG_BLUE = "\u{001b}[44m"
+const BG_MAGENTA = "\u{001b}[45m"
+const BG_CYAN = "\u{001b}[46m"
+const BG_WHITE = "\u{001b}[47m"
+
+const BRIGHT_BLACK = "\u{001b}[90m"
+const BRIGHT_RED = "\u{001b}[91m"
+const BRIGHT_GREEN = "\u{001b}[92m"
+const BRIGHT_YELLOW = "\u{001b}[93m"
+const BRIGHT_BLUE = "\u{001b}[94m"
+const BRIGHT_MAGENTA = "\u{001b}[95m"
+const BRIGHT_CYAN = "\u{001b}[96m"
+const BRIGHT_WHITE = "\u{001b}[97m"
+
+const BG_BRIGHT_BLACK = "\u{001b}[100m"
+const BG_BRIGHT_RED = "\u{001b}[101m"
+const BG_BRIGHT_GREEN = "\u{001b}[102m"
+const BG_BRIGHT_YELLOW = "\u{001b}[103m"
+const BG_BRIGHT_BLUE = "\u{001b}[104m"
+const BG_BRIGHT_MAGENTA = "\u{001b}[105m"
+const BG_BRIGHT_CYAN = "\u{001b}[106m"
+const BG_BRIGHT_WHITE = "\u{001b}[107m"
+
+const BOLD = "\u{001b}[1m"
+const RESET_BOLD = "\u{001b}[22m"
+
+const DIM = "\u{001b}[2m"
+const RESET_DIM = "\u{001b}[22m"
+
+const ITALIC = "\u{001b}[3m"
+const RESET_ITALIC = "\u{001b}[23m"
+
+const UNDERLINE = "\u{001b}[4m"
+const RESET_UNDERLINE = "\u{001b}[24m"
+
+const BLINK = "\u{001b}[5m"
+const RESET_BLINK = "\u{001b}[25m"
+
+const INVERSE = "\u{001b}[7m"
+const RESET_INVERSE = "\u{001b}[27m"
+
+const INVISIBLE = "\u{001b}[8m"
+const RESET_INVISIBLE = "\u{001b}[28m"
+
+const STRIKETHROUGH = "\u{001b}[9m"
+const RESET_STRIKETHROUGH = "\u{001b}[29m"
+
+const DOUBLE_UNDERLINE = "\u{001b}[21m"
+const RESET_DOUBLE_UNDERLINE = "\u{001b}[24m"
+
+export black, red, green, yellow, blue, magenta, cyan, white
+
+func apply_color color text = $"${color}${text}${RESET_COLOR}"
+
+func black text = apply_color BLACK text
+func red text = apply_color RED text
+func green text = apply_color GREEN text
+func yellow text = apply_color YELLOW text
+func blue text = apply_color BLUE text
+func magenta text = apply_color MAGENTA text
+func cyan text = apply_color CYAN text
+func white text = apply_color WHITE text
+
+export bright_black, bright_red, bright_green, bright_yellow, bright_blue, bright_magenta, bright_cyan, bright_white
+
+func bright_black text = apply_color BRIGHT_BLACK text
+func bright_red text = apply_color BRIGHT_RED text
+func bright_green text = apply_color BRIGHT_GREEN text
+func bright_yellow text = apply_color BRIGHT_YELLOW text
+func bright_blue text = apply_color BRIGHT_BLUE text
+func bright_magenta text = apply_color BRIGHT_MAGENTA text
+func bright_cyan text = apply_color BRIGHT_CYAN text
+func bright_white text = apply_color BRIGHT_WHITE text
+
+export bg_black, bg_red, bg_green, bg_yellow, bg_blue, bg_magenta, bg_cyan, bg_white
+
+func bg_black text = apply_color BG_BLACK text
+func bg_red text = apply_color BG_RED text
+func bg_green text = apply_color BG_GREEN text
+func bg_yellow text = apply_color BG_YELLOW text
+func bg_blue text = apply_color BG_BLUE text
+func bg_magenta text = apply_color BG_MAGENTA text
+func bg_cyan text = apply_color BG_CYAN text
+func bg_white text = apply_color BG_WHITE text
+
+export bg_bright_black, bg_bright_red, bg_bright_green, bg_bright_yellow, bg_bright_blue, bg_bright_magenta, bg_bright_cyan, bg_bright_white
+
+func bg_bright_black text = apply_color BG_BRIGHT_BLACK text
+func bg_bright_red text = apply_color BG_BRIGHT_RED text
+func bg_bright_green text = apply_color BG_BRIGHT_GREEN text
+func bg_bright_yellow text = apply_color BG_BRIGHT_YELLOW text
+func bg_bright_blue text = apply_color BG_BRIGHT_BLUE text
+func bg_bright_magenta text = apply_color BG_BRIGHT_MAGENTA text
+func bg_bright_cyan text = apply_color BG_BRIGHT_CYAN text
+func bg_bright_white text = apply_color BG_BRIGHT_WHITE text
+
+export fg, bg, fg_rgb, bg_rgb
+
+func fg id text = apply_color ($"\u{001b}[38;5;${id}m") text
+func bg id text = apply_color ($"\u{001b}[48;5;${id}m") text
+
+func fg_rgb r g b text = apply_color ($"\u{001b}[38;2;${r};${g};${b}m") text
+func bg_rgb r g b text = apply_color ($"\u{001b}[48;2;${r};${g};${b}m") text

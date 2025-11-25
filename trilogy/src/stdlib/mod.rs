@@ -30,6 +30,10 @@ where
             include_str!("./parsec.tri").to_owned(),
         )
         .source_module(
+            Location::library("ansi").unwrap(),
+            include_str!("./ansi.tri").to_owned(),
+        )
+        .source_module(
             Location::library("core").unwrap(),
             include_str!("./core.tri").to_owned(),
         )

@@ -301,6 +301,8 @@ rule elem(element, string and typeof 'string) <-
   and elem(element, ^array)
 export elem
 
+import "trilogy:ansi" use red, green
+
 proc test_main!(tests) {
   let mut successes = 0
   let mut failures = 0
@@ -308,22 +310,25 @@ proc test_main!(tests) {
   c::print!($"running ${length tests} tests\n\n")
 
   for test_name:test_procedure in tests {
-    c::print!($"${test_name} ... ")
+    c::print!($"test ${test_name} ... ")
     with test_procedure!()
       when 'assertion_failed(msg) then {
-        c::print!($"assertion failed: ${msg}\n")
+        c::print!(red "assertion failed")
+        c::print!($": ${msg}\n")
         failures += 1
         continue unit
       }
       else eff then {
-        c::print!($"failure: unhandled effect yielded from test: ${eff}\n")
+        c::print!(red "failure")
+        c::print!($": unhandled effect yielded from test: ${eff}\n")
         failures += 1
         continue unit
       }
-    c::print!("ok\n")
+    c::print!(green "ok")
+    c::print!("\n")
     successes += 1
   }
-  let result = if failures == 0 then "ok" else "failure"
+  let result = if failures == 0 then green "ok" else red "failure"
   c::print!($"\ntest result: ${result}. ${successes} passed; ${failures} failed\n")
 
   if failures != 0 {

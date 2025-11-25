@@ -8,3 +8,4 @@
 * Build real standard library
 * Loosen requirement of pinning identifiers in queries (auto-pin should be better)
 * `yield 'mia` when hitting out of bounds on access operator
+* Rethink tagged template syntax (very ambiguous)
