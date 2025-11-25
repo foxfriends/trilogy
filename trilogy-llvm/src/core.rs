@@ -135,4 +135,8 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn elem(&self) -> PointerValue<'ctx> {
         self.get_core("elem")
     }
+
+    pub(crate) fn test_main(&self) -> PointerValue<'ctx> {
+        self.get_core("test_main")
+    }
 }

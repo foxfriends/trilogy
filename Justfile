@@ -8,7 +8,7 @@ clang_format := if llvm_prefix == "" { "clang-format" } else { llvm_prefix / "bi
 clang_tidy := if llvm_prefix == "" { "clang-tidy" } else { llvm_prefix / "bin/clang-tidy" }
 lldb := `which lldb || which lldb-19`
 
-default: print run
+default: print build-and-run
 
 fmt: fmt-rust fmt-c
 
@@ -38,9 +38,20 @@ print file="main.tri":
     cat {{justfile_dir() / file}}
 
 run file="main.tri":
+    cargo run -- run {{justfile_dir() / file}}
+
+build-and-run file="main.tri":
     cargo run -- compile {{justfile_dir() / file}} > main.ll
     {{clang}} main.ll -g -ldl -fdebug-macro -O0 -rdynamic
     ./a.out
+
+build-and-run-test file="main.tri":
+    cargo run -- compile {{justfile_dir() / file}} --test > test.ll
+    {{clang}} test.ll -g -ldl -fdebug-macro -O0 -rdynamic
+    ./a.out
+
+run-test file="main.tri":
+    cargo run -- test {{justfile_dir() / file}}
 
 use file:
     cat {{justfile_dir() / file}} > main.tri

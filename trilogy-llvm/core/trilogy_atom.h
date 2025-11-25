@@ -10,6 +10,7 @@
 #define ATOM_GT 19
 
 #define ATOM_EOF 20
+#define ATOM_ASSERTION_FAILED 21
 
 void trilogy_atom_init(trilogy_value* t, uint64_t i);
 uint64_t trilogy_atom_untag(trilogy_value* val);

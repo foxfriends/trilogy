@@ -156,7 +156,7 @@ impl<C: Cache> Builder<C> {
         report.checkpoint(&root_path, cache)?;
         log::trace!("program analyzed: {:?}", time_analyzing.elapsed());
 
-        Ok(Trilogy::new(Source::Trilogy {
+        Ok(Trilogy::new(Source {
             modules,
             entrypoint,
         }))

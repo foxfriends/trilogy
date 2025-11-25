@@ -9,9 +9,14 @@ use trilogy_ir::Id;
 use trilogy_ir::ir::{self, DefinitionItem};
 
 impl<'ctx> Codegen<'ctx> {
-    pub(crate) fn compile_module(&self, file: &str, module: &ir::Module) -> Codegen<'ctx> {
+    pub(crate) fn compile_module(
+        &self,
+        file: &str,
+        module: &ir::Module,
+        compile_tests: bool,
+    ) -> Codegen<'ctx> {
         let mut subcontext = self.for_file(file);
-        subcontext.compile_module_contents(module, None, true);
+        subcontext.compile_module_contents(module, None, true, compile_tests);
         subcontext
     }
 
@@ -40,6 +45,7 @@ impl<'ctx> Codegen<'ctx> {
         module: &ir::Module,
         mut module_context: Option<Vec<Id>>,
         is_public: bool,
+        compile_tests: bool,
     ) {
         let previous_module_context = module_context.clone();
         let constructor_name = self.module_path();
@@ -172,6 +178,7 @@ impl<'ctx> Codegen<'ctx> {
                         module,
                         module_context.clone(),
                         definition.is_exported,
+                        compile_tests,
                     );
                     self.end_submodule();
                 }
@@ -185,7 +192,16 @@ impl<'ctx> Codegen<'ctx> {
                     self.compile_constant(constant, module_context.clone());
                 }
                 DefinitionItem::Rule(rule) => self.compile_rule(rule, module_context.clone()),
-                DefinitionItem::Test(..) => {}
+                DefinitionItem::Test(..) if !compile_tests => {}
+                DefinitionItem::Test(test) => {
+                    assert!(
+                        module_context.is_none(),
+                        "tests cannot be inside of parameterized modules"
+                    );
+                    self.tests
+                        .push(format!("{}::{}", self.module_path(), test.name));
+                    self.compile_test(test);
+                }
             }
         }
     }

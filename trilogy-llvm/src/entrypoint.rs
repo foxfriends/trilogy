@@ -1,6 +1,4 @@
 use crate::{TrilogyValue, codegen::Codegen};
-use inkwell::AddressSpace;
-use inkwell::attributes::{Attribute, AttributeLoc};
 use inkwell::debug_info::AsDIScope;
 use inkwell::execution_engine::ExecutionEngine;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
@@ -54,7 +52,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(main, main_accessor, &[]);
 
         // Call main
-        let output = self.call_main(main);
+        let output = self.call_main(main, &[]);
         _ = self.exit(output);
         self.close_continuation();
         self.di.pop_scope();
@@ -67,23 +65,40 @@ impl<'ctx> Codegen<'ctx> {
         entrypoint: &str,
         output: *mut TrilogyValue,
     ) {
+        let span = self
+            .modules
+            .get(entrymodule)
+            .unwrap()
+            .definitions()
+            .iter()
+            .find(|def| def.name().map(|id| id.name()) == Some(entrypoint))
+            .map(|def| def.span)
+            .unwrap_or_default();
         let output_ptr = self.module.add_global(self.value_type(), None, "output");
         self.execution_engine
             .add_global_mapping(&output_ptr, output as usize);
-        let main_wrapper = self.module.add_function(
-            "main",
-            self.context.void_type().fn_type(
-                &[self.context.ptr_type(AddressSpace::default()).into()],
-                false,
-            ),
-            None,
-        );
-        main_wrapper.add_attribute(
-            AttributeLoc::Function,
-            self.context
-                .create_enum_attribute(Attribute::get_named_enum_kind_id("naked"), 1),
-        );
 
+        let main_wrapper =
+            self.module
+                .add_function("main", self.context.void_type().fn_type(&[], false), None);
+        let main_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
+            "main",
+            None,
+            self.di.unit.get_file(),
+            span.start().line as u32 + 1,
+            self.di.continuation_di_type(),
+            true,
+            true,
+            span.start().line as u32 + 1,
+            LLVMDIFlagPublic,
+            false,
+        );
+        main_wrapper.set_subprogram(main_scope);
+        self.set_current_definition(":::main".to_owned(), "main".to_owned(), span, None);
+        self.di.push_subprogram(main_scope);
+        self.di.push_block_scope(span);
+        self.set_span(span);
         let basic_block = self.context.append_basic_block(main_wrapper, "entry");
 
         self.builder.position_at_end(basic_block);
@@ -96,11 +111,69 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(main, main_accessor, &[]);
 
         // Call main
-        let return_value = self.call_main(main);
+        let return_value = self.call_main(main, &[]);
         self.builder
             .build_store(output_ptr.as_pointer_value(), return_value)
             .unwrap();
         self.builder.build_return(None).unwrap();
+        self.close_continuation();
+        self.di.pop_scope();
+        self.di.pop_scope();
+    }
+
+    pub(crate) fn compile_test_entrypoint(&self, test_accessor_names: &[&str]) {
+        let span = source_span::Span::default();
+        let main_wrapper =
+            self.module
+                .add_function("main", self.context.void_type().fn_type(&[], false), None);
+        let main_scope = self.di.builder.create_function(
+            self.di.unit.get_file().as_debug_info_scope(),
+            "main",
+            None,
+            self.di.unit.get_file(),
+            span.start().line as u32 + 1,
+            self.di.continuation_di_type(),
+            true,
+            true,
+            span.start().line as u32 + 1,
+            LLVMDIFlagPublic,
+            false,
+        );
+        main_wrapper.set_subprogram(main_scope);
+        self.set_current_definition(":::main".to_owned(), "main".to_owned(), span, None);
+        self.di.push_subprogram(main_scope);
+        self.di.push_block_scope(span);
+        self.set_span(span);
+        let basic_block = self.context.append_basic_block(main_wrapper, "entry");
+        self.builder.position_at_end(basic_block);
+
+        let test_manifest = self.allocate_value("tests");
+        let test_array =
+            self.trilogy_array_init_cap(test_manifest, test_accessor_names.len(), "tests_array");
+        for name in test_accessor_names {
+            let accessor = self.import_accessor(name);
+            let name_value = self.allocate_value("");
+            self.string_const(name_value, name);
+            let function_value = self.allocate_value("");
+            self.call_internal(function_value, accessor, &[]);
+            let test_tuple = self.allocate_value("");
+            self.trilogy_tuple_init_new(test_tuple, name_value, function_value);
+            self.trilogy_array_push(test_array, test_tuple);
+        }
+
+        let main = self.test_main();
+        self.call_main(
+            main,
+            &[self
+                .builder
+                .build_load(self.value_type(), test_manifest, "")
+                .unwrap()
+                .into()],
+        );
+        self.builder.build_return(None).unwrap();
+        self.close_continuation();
+        self.di.pop_scope();
+        self.di.pop_scope();
     }
 
     fn build_atom_registry(&self) {
@@ -146,9 +219,11 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn finish(self) -> (Module<'ctx>, ExecutionEngine<'ctx>) {
         self.build_atom_registry();
 
-        let core =
-            MemoryBuffer::create_from_memory_range(include_bytes!("../core/core.bc"), "core");
-        log::debug!("parsing core.bc");
+        let core = MemoryBuffer::create_from_memory_range(
+            include_bytes!("../core/trilogy_core.bc"),
+            "core",
+        );
+        log::debug!("parsing trilogy_core.bc");
         let core = Module::parse_bitcode_from_buffer(&core, self.context).unwrap();
         self.module.link_in_module(core).unwrap();
         self.di.builder.finalize();

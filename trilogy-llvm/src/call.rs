@@ -686,7 +686,11 @@ impl<'ctx> Codegen<'ctx> {
     /// This is similar to a standard procedure call, but because this is the first call
     /// in a program, we have to create the initial `return_to`, `yield_to`, and `end_to`
     /// continuations from scratch.
-    pub(crate) fn call_main(&self, value: PointerValue<'ctx>) -> PointerValue<'ctx> {
+    pub(crate) fn call_main(
+        &self,
+        value: PointerValue<'ctx>,
+        arguments: &[BasicMetadataValueEnum<'ctx>],
+    ) -> PointerValue<'ctx> {
         let chain_function = self.module.add_function(
             "main.return",
             self.continuation_type(1),
@@ -706,7 +710,7 @@ impl<'ctx> Codegen<'ctx> {
         );
 
         let callable = self.trilogy_callable_untag(value, "");
-        let function = self.trilogy_procedure_untag(callable, 0, "");
+        let function = self.trilogy_procedure_untag(callable, arguments.len(), "");
         let return_continuation = self.allocate_value("return");
         let yield_continuation = self.allocate_value("yield");
         let end_continuation = self.allocate_value("end");
@@ -807,7 +811,7 @@ impl<'ctx> Codegen<'ctx> {
             end_function,
         );
 
-        let args = &[
+        let mut args = vec![
             self.load_value(return_continuation, "").into(),
             self.load_value(yield_continuation, "").into(),
             self.load_value(end_continuation, "").into(),
@@ -816,10 +820,16 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(next_continuation, "").into(),
             self.load_value(done_continuation, "").into(),
         ];
+        args.extend(arguments);
         self.trilogy_value_destroy(value);
         let call = self
             .builder
-            .build_indirect_call(self.procedure_type(0, false), function, args, "")
+            .build_indirect_call(
+                self.procedure_type(arguments.len(), false),
+                function,
+                &args,
+                "",
+            )
             .unwrap();
         call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);

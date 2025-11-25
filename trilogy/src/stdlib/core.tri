@@ -300,3 +300,36 @@ rule elem(element, string and typeof 'string) <-
   array = c::string_to_array!(string)
   and elem(element, ^array)
 export elem
+
+proc test_main!(tests) {
+  let mut successes = 0
+  let mut failures = 0
+
+  c::print!($"running ${length tests} tests\n\n")
+
+  for test_name:test_procedure in tests {
+    c::print!($"${test_name} ... ")
+    with test_procedure!()
+      when 'assertion_failed(msg) then {
+        c::print!($"assertion failed: ${msg}\n")
+        failures += 1
+        continue unit
+      }
+      else eff then {
+        c::print!($"failure: unhandled effect yielded from test: ${eff}\n")
+        failures += 1
+        continue unit
+      }
+    c::print!("ok\n")
+    successes += 1
+  }
+  let result = if failures == 0 then "ok" else "failure"
+  c::print!($"\ntest result: ${result}. ${successes} passed; ${failures} failed\n")
+
+  if failures != 0 {
+    exit 1
+  } else {
+    exit 0
+  }
+}
+export test_main

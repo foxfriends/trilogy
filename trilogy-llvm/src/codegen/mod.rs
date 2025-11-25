@@ -29,6 +29,8 @@ pub(crate) use variables::{Global, Head, Variable};
 #[must_use = "confirm that the current basic block will end without further instructions"]
 pub(crate) struct NeverValue;
 
+pub(crate) const ATOM_ASSERTION_FAILED: u64 = 21;
+
 pub(crate) struct Codegen<'ctx> {
     pub(crate) atoms: Rc<RefCell<HashMap<String, u64>>>,
     pub(crate) context: &'ctx Context,
@@ -40,6 +42,8 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) globals: HashMap<Id, Global>,
     pub(crate) location: String,
     pub(crate) path: Vec<String>,
+
+    pub(crate) tests: Vec<String>,
 
     /// The chain of continuations arriving at the current expression being compiled.
     ///
@@ -81,6 +85,7 @@ impl<'ctx> Codegen<'ctx> {
         atoms.insert("eq".to_owned(), 18);
         atoms.insert("gt".to_owned(), 19);
         atoms.insert("eof".to_owned(), 20);
+        atoms.insert("assertion_failed".to_owned(), ATOM_ASSERTION_FAILED);
 
         let module = context.create_module("trilogy:runtime");
         let ee = module
@@ -90,6 +95,7 @@ impl<'ctx> Codegen<'ctx> {
 
         Codegen {
             path: vec![],
+            tests: vec![],
             atoms: Rc::new(RefCell::new(atoms)),
             builder: context.create_builder(),
             di,
@@ -114,6 +120,7 @@ impl<'ctx> Codegen<'ctx> {
         let di = DebugInfo::new(&module, name, &self.execution_engine);
         Codegen {
             path: vec![],
+            tests: vec![],
             atoms: self.atoms.clone(),
             context: self.context,
             builder: self.context.create_builder(),
@@ -250,5 +257,13 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn pop_loop_scope(&self) {
         self.current_break.borrow_mut().pop();
         self.current_continue.borrow_mut().pop();
+    }
+
+    pub(crate) fn consume(&mut self, submodule: Self) {
+        submodule.di.builder.finalize();
+        self.module
+            .link_in_module(Rc::into_inner(submodule.module).unwrap())
+            .unwrap();
+        self.tests.extend(submodule.tests);
     }
 }

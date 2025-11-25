@@ -213,6 +213,15 @@ impl<'ctx> Codegen<'ctx> {
         accessor
     }
 
+    pub(crate) fn add_test(&self, name: &str) -> FunctionValue<'ctx> {
+        let accessor =
+            self.module
+                .add_function(name, self.accessor_type(false), Some(Linkage::External));
+        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        accessor.get_nth_param(0).unwrap().set_name("output");
+        accessor
+    }
+
     /// Imports an existing accessor from another module. Imported accessors are necessarily top
     /// level, so they will never have context.
     pub(crate) fn import_accessor(&self, name: &str) -> FunctionValue<'ctx> {

@@ -10,11 +10,9 @@ pub use builder::{Builder, Report};
 pub use test_reporter::{TestDescription, TestReporter};
 
 #[derive(Clone, Debug)]
-enum Source {
-    Trilogy {
-        modules: HashMap<Location, Module>,
-        entrypoint: Location,
-    },
+struct Source {
+    modules: HashMap<Location, Module>,
+    entrypoint: Location,
 }
 
 /// An instance of the Trilogy runtime and virtual machine.
@@ -54,11 +52,7 @@ impl Trilogy {
     }
 
     pub fn source_entrypoint(&self) -> Option<&Location> {
-        #[allow(unreachable_patterns)]
-        match &self.source {
-            Source::Trilogy { entrypoint, .. } => Some(entrypoint),
-            _ => None,
-        }
+        Some(&self.source.entrypoint)
     }
 
     /// Loads a Trilogy program from a Trilogy source file on the local file system.
@@ -83,6 +77,17 @@ impl Trilogy {
         Ok(self.call("main", vec![]))
     }
 
+    /// Compiles and runs the the loaded Trilogy program in test mode.
+    pub fn test(&self) {
+        let modules = self
+            .source
+            .modules
+            .iter()
+            .map(|(location, module)| (location.to_string(), module))
+            .collect();
+        trilogy_llvm::evaluate_tests(modules, &[""])
+    }
+
     /// Runs the loaded Trilogy, evaluating the exported 0-arity procedure pointed to by
     /// the given path.
     ///
@@ -102,35 +107,41 @@ impl Trilogy {
         main: impl ModulePath,
         parameters: Vec<String>,
     ) -> trilogy_llvm::TrilogyValue {
-        match &self.source {
-            Source::Trilogy {
-                modules,
-                entrypoint,
-            } => {
-                let modules = modules
-                    .iter()
-                    .map(|(location, module)| (location.to_string(), module))
-                    .collect();
-                let path = main.path();
-                let main_name = path.last().unwrap();
-                trilogy_llvm::evaluate(modules, &entrypoint.to_string(), main_name, parameters)
-            }
-        }
+        let modules = self
+            .source
+            .modules
+            .iter()
+            .map(|(location, module)| (location.to_string(), module))
+            .collect();
+        let path = main.path();
+        let main_name = path.last().unwrap();
+        trilogy_llvm::evaluate(
+            modules,
+            &self.source.entrypoint.to_string(),
+            main_name,
+            parameters,
+        )
     }
 
     /// Compiles a Trilogy program to LLVM assembly code, returning a single linked module as a string.
     pub fn compile(&self) -> String {
-        match &self.source {
-            Source::Trilogy {
-                modules,
-                entrypoint,
-            } => {
-                let modules = modules
-                    .iter()
-                    .map(|(location, module)| (location.to_string(), module))
-                    .collect();
-                trilogy_llvm::compile_to_llvm(modules, &entrypoint.to_string(), "main")
-            }
-        }
+        let modules = self
+            .source
+            .modules
+            .iter()
+            .map(|(location, module)| (location.to_string(), module))
+            .collect();
+        trilogy_llvm::compile_to_llvm(modules, &self.source.entrypoint.to_string(), "main")
+    }
+
+    /// Compiles a Trilogy testsuite to LLVM assembly code, returning a single linked module as a string.
+    pub fn compile_test(&self) -> String {
+        let modules = self
+            .source
+            .modules
+            .iter()
+            .map(|(location, module)| (location.to_string(), module))
+            .collect();
+        trilogy_llvm::compile_tests_to_llvm(modules, &[""])
     }
 }

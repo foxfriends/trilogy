@@ -1,4 +1,4 @@
-use crate::codegen::{Codegen, Global, Head, Merger, Variable};
+use crate::codegen::{ATOM_ASSERTION_FAILED, Codegen, Global, Head, Merger, Variable};
 use inkwell::values::{BasicValue, PointerValue};
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_ir::visitor::{Bindings, HasBindings};
@@ -365,7 +365,18 @@ impl<'ctx> Codegen<'ctx> {
 
         self.builder.position_at_end(fail);
         if let Some(msg) = self.compile_expression(&assertion.message, "assert.msg") {
-            let panic = self.panic(msg);
+            let assertion_error = self.allocate_value("");
+            self.trilogy_struct_init_new(
+                assertion_error,
+                self.context
+                    .i64_type()
+                    .const_int(ATOM_ASSERTION_FAILED, false),
+                msg,
+            );
+            self.call_yield(assertion_error, "");
+            let panic_msg = self.allocate_value("");
+            self.string_const(panic_msg, "resumed from assertion error\n");
+            let panic = self.panic(panic_msg);
             self.builder.build_unreachable().unwrap();
             self.end_continuation_point_as_clean(panic);
         }

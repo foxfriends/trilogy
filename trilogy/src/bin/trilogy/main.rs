@@ -35,6 +35,8 @@ enum Command {
         file: PathBuf,
         #[arg(long = "lib")]
         library: bool,
+        #[arg(long = "test")]
+        test: bool,
     },
     /// Check the syntax and warnings of a Trilogy program.
     Check {
@@ -103,24 +105,41 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        Command::Compile { file, library } => {
-            match Builder::std().is_library(library).build_from_source(file) {
-                Ok(trilogy) => {
-                    print!("{}", trilogy.compile());
-                }
-                Err(report) => {
-                    report.eprint();
-                    std::process::exit(1);
-                }
+        Command::Compile {
+            file,
+            library,
+            test,
+        } => match Builder::std().is_library(library).build_from_source(file) {
+            Ok(trilogy) => {
+                print!(
+                    "{}",
+                    if test {
+                        trilogy.compile_test()
+                    } else {
+                        trilogy.compile()
+                    }
+                );
             }
-        }
+            Err(report) => {
+                report.eprint();
+                std::process::exit(1);
+            }
+        },
         Command::Check { file, .. } => {
             if let Err(report) = Trilogy::from_file(file) {
                 report.eprint();
                 std::process::exit(1);
             }
         }
-        Command::Test { .. } => todo!(),
+        Command::Test { file } => match Builder::std().build_from_source(file) {
+            Ok(trilogy) => {
+                trilogy.test();
+            }
+            Err(report) => {
+                report.eprint();
+                std::process::exit(1);
+            }
+        },
         #[cfg(feature = "dev")]
         Command::Dev(dev_command) => {
             dev::run(dev_command)?;

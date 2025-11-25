@@ -89,7 +89,7 @@ fn main() {
                     .into_iter()
                     .map(|source| source.with_extension("bc")),
             )
-            .args(["-o", "core.bc"])
+            .args(["-o", "trilogy_core.bc"])
             .current_dir(&core),
     );
 }
