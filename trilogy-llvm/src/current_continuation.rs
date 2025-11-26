@@ -51,12 +51,12 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn close_current_continuation_as_cancel(
         &self,
         continuation_function: FunctionValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
-        let cancel_to = self.get_cancel("");
         let resume_to = self.get_resume("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
@@ -122,6 +122,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn capture_current_continuation_as_yield(
         &self,
         continuation_function: FunctionValue<'ctx>,
+        cancel_to: PointerValue<'ctx>,
         name: &str,
     ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
         let handler = self.allocate_value(name);
@@ -139,7 +140,7 @@ impl<'ctx> Codegen<'ctx> {
             handler,
             return_to,
             yield_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            cancel_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             next_to,
             done_to,
@@ -163,6 +164,7 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let resume_to = self.get_resume("");
+        let cancel_to = self.get_cancel("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -175,8 +177,9 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
-            // When calling resume, we create a new cancel, so don't need to capture the old one.
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            // When calling resume, we create a new cancel, so this one won't be restored like normal.
+            // We do have to capture this old one though, to put it as the cancel_to of that new cancel.
+            cancel_to,
             resume_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),

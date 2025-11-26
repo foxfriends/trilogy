@@ -506,24 +506,25 @@ impl<'ctx> Codegen<'ctx> {
     /// Since `yield` cannot be captured in Trilogy code at this time, we do not need to have
     /// any special handling for calling yield elsewhere; we just special case it in the compiler.
     pub(crate) fn call_yield(&self, effect: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let handler_value = self.get_yield("");
-        let handler = self.trilogy_callable_untag(handler_value, "");
+        let the_yield = self.get_yield("");
+        let the_yield_callable = self.trilogy_callable_untag(the_yield, "");
 
         let end_to = self.get_end("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
-        let cancel_to = self.get_cancel("");
 
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
+        let cancel_to = self.allocate_value("");
         let closure = self.allocate_value("");
-        self.trilogy_callable_return_to_into(return_to, handler);
-        self.trilogy_callable_yield_to_into(yield_to, handler);
-        self.trilogy_callable_closure_into(closure, handler, "");
+        self.trilogy_callable_return_to_into(return_to, the_yield_callable);
+        self.trilogy_callable_yield_to_into(yield_to, the_yield_callable);
+        self.trilogy_callable_cancel_to_into(cancel_to, the_yield_callable);
+        self.trilogy_callable_closure_into(closure, the_yield_callable, "");
 
-        let continuation_function = self.add_continuation("yield.resume");
-        let resume_to =
-            self.close_current_continuation_as_resume(continuation_function, "yield.resume");
+        let resume_function = self.add_continuation("yield.resume");
+        // The current cancel_to gets saved inside the resume:
+        let resume_to = self.close_current_continuation_as_resume(resume_function, "yield.resume");
 
         let args = &[
             self.load_value(return_to, "").into(),
@@ -536,14 +537,14 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(effect, "").into(),
             self.load_value(closure, "").into(),
         ];
-        let handler_continuation = self.trilogy_continuation_untag(handler, "");
-        self.trilogy_value_destroy(handler_value);
+        let the_yield_cont = self.trilogy_continuation_untag(the_yield_callable, "");
+        self.trilogy_value_destroy(the_yield);
         self.builder
-            .build_indirect_call(self.continuation_type(1), handler_continuation, args, name)
+            .build_indirect_call(self.continuation_type(1), the_yield_cont, args, name)
             .unwrap();
         self.builder.build_return(None).unwrap();
 
-        self.begin_next_function(continuation_function);
+        self.begin_next_function(resume_function);
         self.get_continuation(name)
     }
 
@@ -572,18 +573,29 @@ impl<'ctx> Codegen<'ctx> {
         let end_to = self.get_end("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
+        // NOTE: pretty sure this cancel_to cannot be relevant because resume is capturable
+        // and therefore calls to the resume must be self-contained and not reliant on context.
+        // // let cancel_to = self.get_cancel("");
+
+        let old_cancel_to = self.allocate_value("");
+        self.trilogy_callable_cancel_to_into(old_cancel_to, resume);
+        let new_cancel_to = self.close_current_continuation_as_cancel(
+            continuation_function,
+            old_cancel_to,
+            "when.cancel",
+        );
 
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
+        let new_resume_to = self.allocate_value("new_resume_to");
         let closure = self.allocate_value("");
-        let cancel_to =
-            self.close_current_continuation_as_cancel(continuation_function, "when.cancel");
-
         self.trilogy_callable_return_to_into(return_to, resume);
-
         self.trilogy_callable_yield_to_into(yield_to, resume);
+        self.trilogy_callable_resume_to_into(new_resume_to, resume);
+        self.trilogy_callable_closure_into(closure, resume, "");
+
         let cancel_clone = self.allocate_value("");
-        self.trilogy_value_clone_into(cancel_clone, cancel_to);
+        self.trilogy_value_clone_into(cancel_clone, new_cancel_to);
         self.trilogy_callable_promote(
             yield_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -594,15 +606,11 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
         );
 
-        let new_resume_to = self.allocate_value("new_resume_to");
-        self.trilogy_callable_resume_to_into(new_resume_to, resume);
-        self.trilogy_callable_closure_into(closure, resume, "");
-
         let args = &[
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(cancel_to, "").into(),
+            self.load_value(new_cancel_to, "").into(),
             self.load_value(new_resume_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),

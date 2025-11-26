@@ -262,18 +262,25 @@ impl<'ctx> Codegen<'ctx> {
         let cancel_to_function = self.add_continuation("when.cancel");
         let (cancel_to, cancel_to_continuation_point) =
             self.capture_current_continuation_as_cancel(cancel_to_function, "");
+        let cancel_clone = self.allocate_value("");
+        self.trilogy_value_clone_into(cancel_clone, cancel_to);
 
         // Construct yield continuation that continues into the handler.
         let (handler, handler_continuation_point) =
-            self.capture_current_continuation_as_yield(handler_function, "");
+            self.capture_current_continuation_as_yield(handler_function, cancel_to, "");
 
-        // Then enter the handler, given the new yield and cancel to values.
-        let body_closure = self.continue_in_handler(body_function, handler, cancel_to);
+        // Then enter the handler, given the new yield values.
+        let body_closure = self.continue_in_handler(body_function, handler, cancel_clone);
         self.end_continuation_point_as_close(body_closure);
         self.begin_next_function(body_function);
         let result = self.compile_expression(&handled.expression, name)?;
+
         // When the body is evaluated, it will cancel to exit the handled area, returning to
         // the most recent resume if mid-handler, or to the outside when complete.
+        // let yield_to = self.get_yield("when.final_yield");
+        // let yield_to = self.trilogy_callable_untag(yield_to, "");
+        // let cancel_to = self.allocate_value("when.runoff");
+        // self.trilogy_callable_cancel_to_into(cancel_to, yield_to);
         let cancel_to = self.get_cancel("when.runoff");
         self.call_known_continuation(cancel_to, result);
 
