@@ -2,7 +2,6 @@ use crate::IMPLICIT_PARAMS;
 use crate::codegen::Codegen;
 use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE, CALLABLE_RESUME};
 use inkwell::llvm_sys::LLVMCallConv;
-use inkwell::module::Linkage;
 use inkwell::values::{
     BasicMetadataValueEnum, FunctionValue, InstructionValue, IntValue, LLVMTailCallKind,
     PointerValue,
@@ -691,23 +690,9 @@ impl<'ctx> Codegen<'ctx> {
         value: PointerValue<'ctx>,
         arguments: &[BasicMetadataValueEnum<'ctx>],
     ) -> PointerValue<'ctx> {
-        let chain_function = self.module.add_function(
-            "main.return",
-            self.continuation_type(1),
-            Some(Linkage::Private),
-        );
-
-        let yield_function = self.module.add_function(
-            "main.unhandled_effect",
-            self.continuation_type(1),
-            Some(Linkage::Private),
-        );
-
-        let end_function = self.module.add_function(
-            "main.end",
-            self.continuation_type(1),
-            Some(Linkage::Private),
-        );
+        let chain_function = self.add_continuation("return");
+        let yield_function = self.add_continuation("unhandled_effect");
+        let end_function = self.add_continuation("end");
 
         let callable = self.trilogy_callable_untag(value, "");
         let function = self.trilogy_procedure_untag(callable, arguments.len(), "");
@@ -744,17 +729,7 @@ impl<'ctx> Codegen<'ctx> {
             return_closure,
             chain_function,
         );
-        self.trilogy_callable_init_cont(
-            yield_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            yield_closure,
-            yield_function,
-        );
+
         self.trilogy_callable_init_cont(
             end_continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -765,6 +740,28 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             end_closure,
             end_function,
+        );
+
+        let yield_clone = self.allocate_value("");
+        let cancel_clone = self.allocate_value("");
+        let resume_clone = self.allocate_value("");
+        let next_clone = self.allocate_value("");
+        let done_clone = self.allocate_value("");
+        self.trilogy_value_clone_into(yield_clone, end_continuation);
+        self.trilogy_value_clone_into(cancel_clone, end_continuation);
+        self.trilogy_value_clone_into(resume_clone, end_continuation);
+        self.trilogy_value_clone_into(next_clone, end_continuation);
+        self.trilogy_value_clone_into(done_clone, end_continuation);
+        self.trilogy_callable_init_cont(
+            yield_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            yield_closure,
+            yield_function,
         );
         self.trilogy_callable_init_cont(
             cancel_continuation,
@@ -835,24 +832,34 @@ impl<'ctx> Codegen<'ctx> {
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);
         self.builder.build_return(None).unwrap();
 
-        let entry = self.context.append_basic_block(yield_function, "entry");
-        self.builder.position_at_end(entry);
-        let effect = self.allocate_value("effect");
-        self.builder
-            .build_store(effect, self.get_function().get_nth_param(7).unwrap())
-            .unwrap();
+        self.begin_function(yield_function, source_span::Span::default());
+        let effect = self.get_continuation("effect");
+        let effect = self.to_string(effect, "effect_string");
         _ = self.trilogy_unhandled_effect(effect);
+        self.end_function();
 
+        self.di
+            .push_subprogram(end_function.get_subprogram().unwrap());
+        self.di.push_block_scope(source_span::Span::default());
+        self.set_span(source_span::Span::default());
         let entry = self.context.append_basic_block(end_function, "entry");
         self.builder.position_at_end(entry);
         _ = self.trilogy_execution_ended();
+        self.di.pop_scope();
+        self.di.pop_scope();
 
+        self.di
+            .push_subprogram(chain_function.get_subprogram().unwrap());
+        self.di.push_block_scope(source_span::Span::default());
+        self.set_span(source_span::Span::default());
         let entry = self.context.append_basic_block(chain_function, "entry");
         self.builder.position_at_end(entry);
         let result = self.allocate_value("result");
         self.builder
             .build_store(result, self.get_function().get_nth_param(7).unwrap())
             .unwrap();
+        self.di.pop_scope();
+        self.di.pop_scope();
         result
     }
 }

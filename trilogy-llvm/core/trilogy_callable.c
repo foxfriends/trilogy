@@ -140,10 +140,21 @@ trilogy_callable_value* trilogy_callable_init_cont(
     assert(closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
-    trilogy_callable_value_init(
-        callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, cancel_to,
-        resume_to, next_to, done_to, closure, p
-    );
+    if (t == yield_to) {
+        // A weird little special case: the top level yield points to itself
+        // as its own yield_to
+        trilogy_callable_value_init(
+            callable, CALLABLE_CONTINUATION, 1, return_to, NULL, cancel_to,
+            resume_to, next_to, done_to, closure, p
+        );
+        callable->yield_to = callable;
+        callable->rc ++;
+    } else {
+        trilogy_callable_value_init(
+            callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, cancel_to,
+            resume_to, next_to, done_to, closure, p
+        );
+    }
     return trilogy_callable_init(t, callable);
 }
 
