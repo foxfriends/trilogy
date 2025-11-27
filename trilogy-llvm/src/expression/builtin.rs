@@ -511,8 +511,10 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Cancel => self.get_cancel(),
             Builtin::Resume => {
-                let resume = self.get_resume();
-                todo!()
+                let _resume = self.get_resume();
+                todo!(
+                    "build a regular function around resume that captures the cancels and hides its complex calling convention"
+                )
             }
             Builtin::Break => self.get_break(),
             Builtin::Continue => self.get_continue(),
