@@ -1014,7 +1014,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
-    #[expect(clippy::too_many_arguments)]
     pub(crate) fn trilogy_callable_promote(
         &self,
         target: PointerValue<'ctx>,

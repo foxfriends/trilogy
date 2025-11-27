@@ -438,9 +438,11 @@ impl<E: std::error::Error> ReportBuilder<E> {
         &mut self,
         relative_base: &Path,
         cache: C,
-    ) -> Result<C, Report<E>> {
+    ) -> Result<C, Box<Report<E>>> {
         if self.has_errors() {
-            Err(std::mem::take(self).report(relative_base.to_owned(), cache))
+            Err(Box::new(
+                std::mem::take(self).report(relative_base.to_owned(), cache),
+            ))
         } else {
             Ok(cache)
         }
