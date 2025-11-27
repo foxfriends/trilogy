@@ -42,46 +42,131 @@ func fold _ a [] = a
 func fold f a [x, ..xs] = fold f (f a x) xs
 export fold
 
+test "array fold" {
+  assert fold (+) 0 [1, 2, 3, 4] == 10
+  assert fold (+) 0 [] == 0
+  assert fold (:) 0 [1, 2, 3] == ((0:1):2):3
+}
+
 func rfold _ a [] = a
-func rfold f a [x, ..xs] = f (fold f a xs) x
+func rfold f a [x, ..xs] = f (rfold f a xs) x
 export rfold
+
+test "array rfold" {
+  assert rfold (+) 0 [1, 2, 3, 4] == 10
+  assert rfold (+) 0 [] == 0
+  assert rfold (:) 0 [1, 2, 3] == ((0:3):2):1
+}
 
 func reduce f [] = yield 'mia
 func reduce f [x, ..xs] = fold f x xs
 export reduce
 
+test "array reduce" {
+  assert reduce (+) [1, 2, 3, 4] == 10
+  assert with (reduce (+) []; false)
+    when 'mia cancel true
+    else yield
+  assert reduce (:) [1, 2, 3] == (1:2):3
+}
+
 func rreduce f [] = yield 'mia
 func rreduce f [..xs, x] = rfold f x xs
 export rreduce
+
+test "array rreduce" {
+  assert rreduce (+) [1, 2, 3, 4] == 10
+  assert with (rreduce (+) []; false)
+    when 'mia cancel true
+    else yield
+  assert rreduce (:) [1, 2, 3] == (3:2):1
+}
 
 func reverse [] = []
 func reverse [x, ..xs] = [..reverse xs, x]
 export reverse
 
+test "array reverse" {
+  assert reverse [] == []
+  assert reverse [1, 2, 3] == [3, 2, 1]
+  let x = [1, 2, 3]
+  let y = reverse x
+  assert x == [1, 2, 3]
+}
+
 func concat (xs and typeof 'array) (ys and typeof 'array) = [..xs, ..ys]
 export concat
+
+test "array concat" {
+  assert concat [1, 2] [3, 4] == [1, 2, 3, 4]
+  assert concat [] [] == []
+}
 
 func append x (xs and typeof 'array) = [..xs, x]
 export append
 
+test "array append" {
+  assert append 3 [1, 2] == [1, 2, 3]
+  assert append [] [1, 2] == [1, 2, []]
+  let x = [1, 2]
+  assert append 3 x == [1, 2, 3]
+  assert x == [1, 2]
+}
+
 func prepend x (xs and typeof 'array) = [x, ..xs]
 export prepend
+
+test "array prepend" {
+  assert prepend 3 [1, 2] == [3, 1, 2]
+  assert prepend [] [1, 2] == [[], 1, 2]
+  let x = [1, 2]
+  assert prepend 3 x == [3, 1, 2]
+  assert x == [1, 2]
+}
 
 func first [] = yield 'mia
 func first [x, .._] = x
 export first
 
+test "array first" {
+  assert first [1, 2, 3] == 1
+  assert with (first []; false)
+    when 'mia cancel true
+    else yield
+}
+
 func last [] = yield 'mia
 func last [.._, x] = x
 export last
+
+test "array last" {
+  assert last [1, 2, 3] == 3
+  assert with (last []; false)
+    when 'mia cancel true
+    else yield
+}
 
 func tail [] = yield 'mia
 func tail [_, ..xs] = xs
 export tail
 
+test "array tail" {
+  assert tail [1, 2, 3] == [2, 3]
+  assert with (tail []; false)
+    when 'mia cancel true
+    else yield
+}
+
 func head [] = yield 'mia
 func head [..xs, _] = xs
 export head
+
+test "array head" {
+  assert head [1, 2, 3] == [1, 2]
+  assert with (head []; false)
+    when 'mia cancel true
+    else yield
+}
 
 func slice_unsafe i ^i _ = []
 func slice_unsafe i fin arr = [arr.i, ..slice (i + 1) fin arr]
@@ -94,20 +179,78 @@ func slice i fin (arr and typeof 'array) =
     slice_unsafe i fin arr
 export slice
 
+test "array slice" {
+  assert slice 0 3 [1, 2, 3] == [1, 2, 3]
+  assert slice 1 2 [1, 2, 3] == [2]
+  assert slice 1 1 [1, 2, 3] == []
+  assert slice 1 3 [1, 2, 3] == [2, 3]
+  assert with (slice (-1) 2 [1, 2, 3]; false)
+    when 'arg cancel true
+    else yield
+  assert with (slice 2 1 [1, 2, 3]; false)
+    when 'arg cancel true
+    else yield
+  assert with (slice 0 5 [1, 2, 3]; false)
+    when 'mia cancel true
+    else yield
+  assert with (slice 5 5 [1, 2, 3]; false)
+    when 'mia cancel true
+    else yield
+}
+
 func take_unsafe _ [] = []
 func take_unsafe 0 _ = []
-func take_unsafe n arr = [arr.0, ..take (n - 1) arr]
+func take_unsafe n [x, ..arr] = [x, ..take (n - 1) arr]
 func take n (arr and typeof 'array) =
   if n < 0
     then yield 'arg
     else take_unsafe n arr
 export take
 
-func drop_unsafe _ [] = []
-func drop_unsafe 0 arr = arr
-func drop_unsafe n [_, ..arr] = drop (n - 1) arr
-func drop n (arr and typeof 'array) =
+test "array take" {
+  assert take 0 [1, 2, 3] == []
+  assert take 1 [1, 2, 3] == [1]
+  assert take 2 [1, 2, 3] == [1, 2]
+  assert take 3 [1, 2, 3] == [1, 2, 3]
+  assert take 12 [1, 2, 3] == [1, 2, 3]
+  assert with (take (-1) [1, 2, 3]; false)
+    when 'arg cancel true
+    else yield
+}
+
+func skip_unsafe _ [] = []
+func skip_unsafe 0 arr = arr
+func skip_unsafe n [_, ..arr] = skip (n - 1) arr
+func skip n (arr and typeof 'array) =
   if n < 0
     then yield 'arg
-    else drop_unsafe n arr
+    else skip_unsafe n arr
+export skip
+
+test "array skip" {
+  assert skip 0 [1, 2, 3] == [1, 2, 3]
+  assert skip 1 [1, 2, 3] == [2, 3]
+  assert skip 2 [1, 2, 3] == [3]
+  assert skip 3 [1, 2, 3] == []
+  assert skip 12 [1, 2, 3] == []
+  assert with (skip (-1) [1, 2, 3]; false)
+    when 'arg cancel true
+    else yield
+}
+
+func drop n (arr and typeof 'array) =
+  if n < 0 then yield 'arg
+  else if n >= length arr then []
+  else slice 0 (length arr - n) arr
 export drop
+
+test "array drop" {
+  assert drop 0 [1, 2, 3] == [1, 2, 3]
+  assert drop 1 [1, 2, 3] == [1, 2]
+  assert drop 2 [1, 2, 3] == [1]
+  assert drop 3 [1, 2, 3] == []
+  assert drop 12 [1, 2, 3] == []
+  assert with (drop (-1) [1, 2, 3]; false)
+    when 'arg cancel true
+    else yield
+}
