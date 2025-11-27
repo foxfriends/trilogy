@@ -91,7 +91,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let module = context.create_module("trilogy:runtime");
         let ee = module
-            .create_jit_execution_engine(OptimizationLevel::Default)
+            .create_jit_execution_engine(OptimizationLevel::Aggressive)
             .unwrap();
         let di = DebugInfo::new(&module, "trilogy:runtime", &ee);
 

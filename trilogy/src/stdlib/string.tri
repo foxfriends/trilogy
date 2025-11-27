@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:array" as array
 
-export is_empty, chars, join, length, slice
+export is_empty, chars, join, length, slice, starts_with, replace, replace_all
 
 func is_empty "" = true
 func is_empty _ = false
@@ -58,4 +58,51 @@ test "string slice" {
   assert with (slice 5 5 "123"; false)
     when 'mia cancel true
     else yield
+}
+
+func starts_with prefix string = slice 0 (length prefix) string == prefix
+
+test "string starts_with" {
+  assert starts_with "" ""
+  assert starts_with "" "hello"
+  assert starts_with "he" "hello"
+  assert starts_with "hello" "hello"
+  assert !(starts_with "be" "hello")
+  assert !(starts_with "el" "hello")
+}
+
+func replace "" _ _ = yield 'arg
+func replace _ _ "" = ""
+func replace original replacement string =
+  if length original > length string
+    then string
+  else if starts_with original string
+    then replacement <> slice (length original) (length string) string
+  else $"${string.0}" <> (replace original replacement <| slice 1 (length string) string)
+
+test "string replace" {
+  assert replace "h" "y" "hello" == "yello"
+  assert replace "l" "n" "hello" == "henlo"
+  assert replace "hel" "y" "hello" == "ylo"
+  assert replace "lo" "mi" "hello" == "helmi"
+  assert replace "elt" "mo" "hello" == "hello"
+  assert replace "a" "b" "" == ""
+}
+
+func replace_all "" _ _ = yield 'arg
+func replace_all _ _ "" = ""
+func replace_all original replacement string =
+  if length original > length string
+    then string
+  else if starts_with original string
+    then replacement <> (replace_all original replacement <| slice (length original) (length string) string)
+  else $"${string.0}" <> (replace_all original replacement <| slice 1 (length string) string)
+
+test "string replace_all" {
+  assert replace_all "h" "y" "hello" == "yello"
+  assert replace_all "l" "n" "hello" == "henno"
+  assert replace_all "hel" "y" "hello" == "ylo"
+  assert replace_all "lo" "mi" "hello" == "helmi"
+  assert replace_all "elt" "mo" "hello" == "hello"
+  assert replace_all "a" "b" "" == ""
 }
