@@ -4,10 +4,8 @@ use std::path::Path;
 use trilogy_ir::ir::Module;
 
 mod builder;
-mod test_reporter;
 
 pub use builder::{Builder, Report};
-pub use test_reporter::{TestDescription, TestReporter};
 
 #[derive(Clone, Debug)]
 struct Source {
@@ -65,7 +63,7 @@ impl Trilogy {
     /// Returns a [`Report`][] of all errors that occur during the loading, parsing, and
     /// analysis of the source code. The report is expected to be printed to users to
     /// provide them feedback as to what is wrong with their program.
-    pub fn from_file(file: impl AsRef<Path>) -> Result<Self, Report<std::io::Error>> {
+    pub fn from_file(file: impl AsRef<Path>) -> Result<Self, Box<Report<std::io::Error>>> {
         Builder::std().build_from_source(file)
     }
 

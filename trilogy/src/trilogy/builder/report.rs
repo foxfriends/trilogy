@@ -24,6 +24,7 @@ pub struct Report<E: std::error::Error> {
     cache: Box<dyn Cache<Error = E>>,
     errors: Vec<Error<E>>,
     warnings: Vec<Error<E>>,
+    libraries: HashMap<Location, String>,
 }
 
 impl<E: std::error::Error> Debug for Report<E> {
@@ -41,8 +42,7 @@ impl<E: std::error::Error + 'static> Report<E> {
     /// This is the intended way of consuming a Report.
     pub fn eprint(&self) {
         // NOTE: errors in libraries are unexpected, and cannot be reported accurately at this time
-        let empty = HashMap::new();
-        let loader = Loader::new(self.cache.as_ref(), &empty);
+        let loader = Loader::new(self.cache.as_ref(), &self.libraries);
         let cache = FnCache::new(move |loc: &Location| {
             loader
                 .load_source(loc)
@@ -390,6 +390,7 @@ impl<E: std::error::Error> Error<E> {
 pub(super) struct ReportBuilder<E: std::error::Error> {
     errors: Vec<Error<E>>,
     warnings: Vec<Error<E>>,
+    libraries: HashMap<Location, String>,
 }
 
 impl<E: std::error::Error> Default for ReportBuilder<E> {
@@ -397,6 +398,7 @@ impl<E: std::error::Error> Default for ReportBuilder<E> {
         Self {
             errors: vec![],
             warnings: vec![],
+            libraries: HashMap::default(),
         }
     }
 }
@@ -414,6 +416,10 @@ impl<E: std::error::Error> ReportBuilder<E> {
         !self.errors.is_empty()
     }
 
+    pub fn add_libraries(&mut self, libraries: HashMap<Location, String>) {
+        self.libraries.extend(libraries);
+    }
+
     pub fn report<C: Cache<Error = E> + 'static>(
         self,
         relative_base: PathBuf,
@@ -424,6 +430,7 @@ impl<E: std::error::Error> ReportBuilder<E> {
             cache: Box::new(cache),
             errors: self.errors,
             warnings: self.warnings,
+            libraries: self.libraries.clone(),
         }
     }
 

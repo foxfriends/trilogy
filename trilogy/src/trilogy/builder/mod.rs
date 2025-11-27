@@ -125,7 +125,10 @@ impl<C: Cache> Builder<C> {
     /// Note that while a successful result does indicate that the source contained a
     /// valid piece of Trilogy code, it is not necessarily a valid program that can be
     /// run. In particular, libraries are valid code but cannot be run.
-    pub fn build_from_source(self, file: impl AsRef<Path>) -> Result<Trilogy, Report<C::Error>> {
+    pub fn build_from_source(
+        self,
+        file: impl AsRef<Path>,
+    ) -> Result<Trilogy, Box<Report<C::Error>>> {
         log::trace!("begin constructing Trilogy program");
         let Self {
             mut cache,
@@ -134,13 +137,14 @@ impl<C: Cache> Builder<C> {
             is_library,
         } = self;
         let mut report = ReportBuilder::default();
+        report.add_libraries(source_modules.clone());
         let root_path = match root_dir {
             Some(root_dir) => root_dir,
             None => match std::env::current_dir() {
                 Ok(dir) => dir,
                 Err(error) => {
                     report.error(Error::external(error));
-                    return Err(report.report(file.as_ref().to_owned(), cache));
+                    return Err(Box::new(report.report(file.as_ref().to_owned(), cache)));
                 }
             },
         };

@@ -36,4 +36,4 @@ pub(crate) mod trilogy;
 
 pub use cache::{Cache, FileSystemCache, NoopCache};
 pub use location::Location;
-pub use trilogy::{Builder, Report, TestDescription, TestReporter, Trilogy};
+pub use trilogy::{Builder, Report, Trilogy};
