@@ -37,12 +37,10 @@ typedef enum trilogy_callable_tag : uint8_t {
     CALLABLE_PROCEDURE = 2,
     CALLABLE_RULE = 3,
     CALLABLE_CONTINUATION = 4,
-    // Resume is generally treated like a continuation, BUT it has a slightly
+    // Continue is generally treated like a continuation, BUT it has a slightly
     // different calling convention. We're just hacking that in so it happens
     // invisibly to end users...
-    CALLABLE_RESUME = 5,
-    // Continue kinda the same deal, needs to be called specially.
-    CALLABLE_CONTINUE = 6,
+    CALLABLE_CONTINUE = 5,
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {
@@ -193,8 +191,6 @@ typedef struct trilogy_callable_value {
      **/
     struct trilogy_callable_value* return_to;
     struct trilogy_callable_value* yield_to;
-    struct trilogy_callable_value* cancel_to;
-    struct trilogy_callable_value* resume_to;
     struct trilogy_callable_value* next_to;
     struct trilogy_callable_value* done_to;
     /**

@@ -158,7 +158,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
-        self.trilogy_callable_init_resume(
+        self.trilogy_callable_init_cont(
             continuation,
             return_to,
             yield_to,

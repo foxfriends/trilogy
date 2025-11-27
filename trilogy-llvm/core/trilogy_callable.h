@@ -26,12 +26,6 @@ trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* done_to /* moved */, trilogy_value* closure /* moved */,
     void* p
 );
-trilogy_callable_value* trilogy_callable_init_resume(
-    trilogy_value* t, trilogy_value* return_to /* moved */,
-    trilogy_value* yield_to /* moved */, trilogy_value* next_to /* moved */,
-    trilogy_value* done_to /* moved */, trilogy_value* closure /* moved */,
-    void* p
-);
 trilogy_callable_value* trilogy_callable_init_continue(
     trilogy_value* t, trilogy_value* return_to /* moved */,
     trilogy_value* yield_to /* moved */, trilogy_value* next_to /* moved */,
