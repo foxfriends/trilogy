@@ -1,6 +1,6 @@
 import "trilogy:io" as io
 import "trilogy:num" as num
-import "trilogy:str" as str
+import "trilogy:string" as str
 
 proc play!() {
     let answer = 42

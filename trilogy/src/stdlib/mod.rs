@@ -18,8 +18,8 @@ where
             include_str!("./atom.tri").to_owned(),
         )
         .source_module(
-            Location::library("str").unwrap(),
-            include_str!("./str.tri").to_owned(),
+            Location::library("string").unwrap(),
+            include_str!("./string.tri").to_owned(),
         )
         .source_module(
             Location::library("array").unwrap(),

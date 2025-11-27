@@ -1,0 +1,61 @@
+import "trilogy:core" as core
+import "trilogy:array" as array
+
+export is_empty, chars, join, length, slice
+
+func is_empty "" = true
+func is_empty _ = false
+
+test "string is_empty" {
+  assert (is_empty "")
+  assert !(is_empty "hello")
+}
+
+func chars str and typeof 'string = core::to_array str
+
+test "string chars" {
+  assert chars "hello" == ['h', 'e', 'l', 'l', 'o']
+  assert chars "" == []
+}
+
+func join _ [] = ""
+func join _ [a] = $"${a}"
+func join sep [a, ..strs] = $"${a}${sep}${join sep strs}"
+
+test "string join" {
+  assert join " " ["hello", "there", "world"] == "hello there world"
+  assert join "" ["hello", "there", "world"] == "hellothereworld"
+  assert join 'x' ["hello", "there", "world"] == "helloxtherexworld"
+  assert join 5 [1, 2, 3] == "15253"
+}
+
+func length str and typeof 'string = core::length str
+
+test "string length" {
+  assert length "hello" == 5
+  assert length "" == 0
+}
+
+func slice i fin (str and typeof 'string) = str
+  |> chars
+  |> array::slice i fin
+  |> join ""
+
+test "string slice" {
+  assert slice 0 3 "123" == "123"
+  assert slice 1 2 "123" == "2"
+  assert slice 1 1 "123" == ""
+  assert slice 1 3 "123" == "23"
+  assert with (slice (-1) 2 "123"; false)
+    when 'arg cancel true
+    else yield
+  assert with (slice 2 1 "123"; false)
+    when 'arg cancel true
+    else yield
+  assert with (slice 0 5 "123"; false)
+    when 'mia cancel true
+    else yield
+  assert with (slice 5 5 "123"; false)
+    when 'mia cancel true
+    else yield
+}
