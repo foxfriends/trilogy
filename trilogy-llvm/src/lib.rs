@@ -30,9 +30,8 @@ mod types;
 
 type Entrypoint = unsafe extern "C" fn() -> c_void;
 
-/// Parameters to rules/procedures/functions start at 7, due to return, yield, end, cancel,
-/// resume, next, and done
-const IMPLICIT_PARAMS: usize = 7;
+/// Parameters to rules/procedures/functions start at 5, due to return, yield, end, next, and done
+const IMPLICIT_PARAMS: usize = 5;
 
 #[repr(C)]
 #[derive(Default, Debug)]

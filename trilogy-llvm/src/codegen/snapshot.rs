@@ -11,6 +11,8 @@ pub(crate) struct Snapshot<'ctx> {
     debug_location: DILocation<'ctx>,
     current_break: Vec<PointerValue<'ctx>>,
     current_continue: Vec<PointerValue<'ctx>>,
+    current_resume: Vec<PointerValue<'ctx>>,
+    current_cancel: Vec<PointerValue<'ctx>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -22,6 +24,8 @@ impl<'ctx> Codegen<'ctx> {
             debug_location: self.builder.get_current_debug_location().unwrap(),
             current_break: self.current_break.borrow().clone(),
             current_continue: self.current_continue.borrow().clone(),
+            current_resume: self.current_resume.borrow().clone(),
+            current_cancel: self.current_cancel.borrow().clone(),
         }
     }
 
@@ -33,5 +37,7 @@ impl<'ctx> Codegen<'ctx> {
             .set_current_debug_location(snapshot.debug_location);
         *self.current_break.borrow_mut() = snapshot.current_break;
         *self.current_continue.borrow_mut() = snapshot.current_continue;
+        *self.current_resume.borrow_mut() = snapshot.current_resume;
+        *self.current_cancel.borrow_mut() = snapshot.current_cancel;
     }
 }

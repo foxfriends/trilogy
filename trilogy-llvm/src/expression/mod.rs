@@ -255,49 +255,48 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
-        let body_function = self.add_continuation("");
-        let handler_function = self.add_continuation(name);
+        let body_function = self.add_continuation("when.handler");
+        let handler_function = self.add_yield();
 
         // Prepare cancel continuation for after the handled section is complete.
         let cancel_to_function = self.add_continuation("when.cancel");
         let (cancel_to, cancel_to_continuation_point) =
-            self.capture_current_continuation_as_cancel(cancel_to_function, "");
-        let cancel_clone = self.allocate_value("");
-        self.trilogy_value_clone_into(cancel_clone, cancel_to);
+            self.capture_current_continuation_as_cancel(cancel_to_function, "cancel");
 
         // Construct yield continuation that continues into the handler.
         let (handler, handler_continuation_point) =
-            self.capture_current_continuation_as_yield(handler_function, cancel_to, "");
+            self.capture_current_continuation_as_yield(handler_function, "yield");
 
         // Then enter the handler, given the new yield values.
-        let body_closure = self.continue_in_handler(body_function, handler, cancel_clone);
+        let body_closure = self.continue_in_handler(body_function, handler);
+        self.push_with_scope(cancel_to);
+
         self.end_continuation_point_as_close(body_closure);
         self.begin_next_function(body_function);
         let result = self.compile_expression(&handled.expression, name)?;
 
         // When the body is evaluated, it will cancel to exit the handled area, returning to
         // the most recent resume if mid-handler, or to the outside when complete.
-        // let yield_to = self.get_yield("when.final_yield");
-        // let yield_to = self.trilogy_callable_untag(yield_to, "");
-        // let cancel_to = self.allocate_value("when.runoff");
-        // self.trilogy_callable_cancel_to_into(cancel_to, yield_to);
-        let cancel_to = self.get_cancel("when.runoff");
+        let cancel_to = self.use_temporary(cancel_to).unwrap();
         self.call_known_continuation(cancel_to, result);
 
         // Next compile the handler.
         self.become_continuation_point(handler_continuation_point);
         self.begin_next_function(handler_function);
+
         self.compile_handlers(&handled.handlers);
 
         // Then back to the original scope, to continue the evaluation normally outside of the
         // handling construct.
+        self.pop_with_scope();
         self.become_continuation_point(cancel_to_continuation_point);
         self.begin_next_function(cancel_to_function);
         Some(self.get_continuation(name))
     }
 
     fn compile_handlers(&self, handlers: &[ir::Handler]) {
-        let effect = self.get_continuation("effect");
+        let resume = self.get_provided_resume();
+        let effect = self.get_effect("effect");
         self.bind_temporary(effect);
 
         // The handler works similar to a match expression, but matching against the effect
@@ -336,12 +335,14 @@ impl<'ctx> Codegen<'ctx> {
             self.builder.position_at_end(body_block);
             self.restore_function_context(snapshot);
             self.become_continuation_point(body_cp);
+            self.push_handler_scope(resume);
             if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
                 // If a handler runs off, it ends. Most handlers should choose to explicitly cancel
                 // at some point.
                 self.trilogy_value_destroy(result);
                 self.void_call_continuation(self.get_end(""));
             }
+            self.pop_handler_scope();
 
             self.become_continuation_point(next_case_cp);
             self.begin_next_function(next_case_function);

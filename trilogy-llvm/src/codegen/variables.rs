@@ -120,28 +120,67 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_value_clone_into(into, self.function_params.borrow()[2]);
     }
 
-    /// When in a handler function, gets the cancel to pointer.
-    pub(crate) fn get_cancel(&self, name: &str) -> PointerValue<'ctx> {
+    /// Gets the `next_to` pointer from the current rule context.
+    pub(crate) fn get_next(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.clone_cancel(container);
+        self.clone_next(container);
         container
     }
 
-    /// When in a handler function, gets the cancel to pointer.
-    pub(crate) fn clone_cancel(&self, into: PointerValue<'ctx>) {
+    /// Gets the current `next` continuation, valid only when in a query.
+    pub(crate) fn clone_next(&self, into: PointerValue<'ctx>) {
         self.trilogy_value_clone_into(into, self.function_params.borrow()[3]);
     }
 
-    /// When in a handler function, gets the resume to pointer.
-    pub(crate) fn get_resume(&self, name: &str) -> PointerValue<'ctx> {
+    /// Gets the `done_to` pointer from the current rule context.
+    pub(crate) fn get_done(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.clone_resume(container);
+        self.clone_done(container);
         container
     }
 
-    /// When in a handler function, gets the resume to pointer.
-    pub(crate) fn clone_resume(&self, into: PointerValue<'ctx>) {
+    /// Gets the current `done` continuation, valid only when in a query.
+    pub(crate) fn clone_done(&self, into: PointerValue<'ctx>) {
         self.trilogy_value_clone_into(into, self.function_params.borrow()[4]);
+    }
+
+    /// When in a continuation function, gets the value that was yielded to the continuation.
+    pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
+        container
+    }
+
+    /// When in an effect handler, get the yielded effect.
+    pub(crate) fn get_effect(&self, name: &str) -> PointerValue<'ctx> {
+        let container = self.allocate_value(name);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
+        container
+    }
+
+    /// When in an effect handler, get the resume_to continuation. This is a direct pointer,
+    /// not a clone of the value.
+    pub(crate) fn get_provided_resume(&self) -> PointerValue<'ctx> {
+        self.function_params.borrow()[6]
+    }
+
+    /// When in a handler function, gets the cancel to pointer.
+    pub(crate) fn get_cancel(&self) -> PointerValue<'ctx> {
+        let current_cancel = *self.current_cancel.borrow().last().unwrap();
+        self.use_temporary(current_cancel).unwrap()
+    }
+
+    /// When in a handler function, gets the cancel to pointer as the raw location, not
+    /// a referenced value.
+    pub(crate) fn get_cancel_location(&self) -> PointerValue<'ctx> {
+        let current_cancel = *self.current_cancel.borrow().last().unwrap();
+        self.use_temporary_location(current_cancel).unwrap()
+    }
+
+    /// When in a handler function, gets the resume to pointer.
+    pub(crate) fn get_resume(&self) -> PointerValue<'ctx> {
+        let current_resume = *self.current_resume.borrow().last().unwrap();
+        self.use_temporary(current_resume).unwrap()
     }
 
     /// Gets the current `break` continuation, valid only when in a loop.
@@ -154,37 +193,6 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn get_continue(&self) -> PointerValue<'ctx> {
         let current_continue = *self.current_continue.borrow().last().unwrap();
         self.use_temporary(current_continue).unwrap()
-    }
-
-    /// Gets the `next_to` pointer from the current rule context.
-    pub(crate) fn get_next(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.clone_next(container);
-        container
-    }
-
-    /// Gets the current `next` continuation, valid only when in a query.
-    pub(crate) fn clone_next(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[5]);
-    }
-
-    /// Gets the `done_to` pointer from the current rule context.
-    pub(crate) fn get_done(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.clone_done(container);
-        container
-    }
-
-    /// Gets the current `done` continuation, valid only when in a query.
-    pub(crate) fn clone_done(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[6]);
-    }
-
-    /// When in a continuation function, gets the value that was yielded to the continuation.
-    pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[7]);
-        container
     }
 
     pub(crate) fn get_closure(&self, name: &str) -> PointerValue<'ctx> {
@@ -291,6 +299,21 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_clone_undefined_into(var, location);
                 Some(var)
             }
+        }
+    }
+
+    /// Uses the location of a previously bound temporary value. If the value was not previously bound with
+    /// `bind_temporary`, this will return `None`.
+    pub(crate) fn use_temporary_location(
+        &self,
+        temporary: PointerValue<'ctx>,
+    ) -> Option<PointerValue<'ctx>> {
+        match self.reference_from_scope(
+            &self.current_continuation_point(),
+            &Closed::Temporary(temporary),
+        )? {
+            Variable::Owned(pointer) => Some(pointer),
+            Variable::Closed { location, .. } => Some(location),
         }
     }
 

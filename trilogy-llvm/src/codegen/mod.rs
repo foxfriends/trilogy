@@ -56,6 +56,8 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) function_params: RefCell<Vec<PointerValue<'ctx>>>,
     pub(crate) current_break: RefCell<Vec<PointerValue<'ctx>>>,
     pub(crate) current_continue: RefCell<Vec<PointerValue<'ctx>>>,
+    pub(crate) current_cancel: RefCell<Vec<PointerValue<'ctx>>>,
+    pub(crate) current_resume: RefCell<Vec<PointerValue<'ctx>>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -111,6 +113,8 @@ impl<'ctx> Codegen<'ctx> {
             function_params: RefCell::default(),
             current_break: RefCell::default(),
             current_continue: RefCell::default(),
+            current_cancel: RefCell::default(),
+            current_resume: RefCell::default(),
         }
     }
 
@@ -136,6 +140,8 @@ impl<'ctx> Codegen<'ctx> {
             function_params: RefCell::default(),
             current_break: RefCell::default(),
             current_continue: RefCell::default(),
+            current_cancel: RefCell::default(),
+            current_resume: RefCell::default(),
         }
     }
 
@@ -188,6 +194,8 @@ impl<'ctx> Codegen<'ctx> {
         self.closure_array.set(None);
         self.current_break.borrow_mut().clear();
         self.current_continue.borrow_mut().clear();
+        self.current_cancel.borrow_mut().clear();
+        self.current_resume.borrow_mut().clear();
         *self.function_params.borrow_mut() = function
             .get_param_iter()
             .map(|param| {
@@ -257,6 +265,22 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn pop_loop_scope(&self) {
         self.current_break.borrow_mut().pop();
         self.current_continue.borrow_mut().pop();
+    }
+
+    pub(crate) fn push_with_scope(&self, cancel_to: PointerValue<'ctx>) {
+        self.current_cancel.borrow_mut().push(cancel_to);
+    }
+
+    pub(crate) fn pop_with_scope(&self) {
+        self.current_cancel.borrow_mut().pop();
+    }
+
+    pub(crate) fn push_handler_scope(&self, resume_to: PointerValue<'ctx>) {
+        self.current_resume.borrow_mut().push(resume_to);
+    }
+
+    pub(crate) fn pop_handler_scope(&self) {
+        self.current_resume.borrow_mut().pop();
     }
 
     pub(crate) fn consume(&mut self, submodule: Self) {

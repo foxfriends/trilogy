@@ -1,5 +1,3 @@
-import "trilogy:debug" use dbg
-
 proc xor!() {
   let p = yield 'choice
   let q = yield 'choice

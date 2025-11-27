@@ -22,22 +22,19 @@ trilogy_callable_value*
 trilogy_callable_init_rule(trilogy_value* t, uint32_t arity, void* p);
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to /* moved */,
-    trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
-    trilogy_value* resume_to /* moved */, trilogy_value* next_to /* moved */,
+    trilogy_value* yield_to /* moved */, trilogy_value* next_to /* moved */,
     trilogy_value* done_to /* moved */, trilogy_value* closure /* moved */,
     void* p
 );
 trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_value* t, trilogy_value* return_to /* moved */,
-    trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
-    trilogy_value* resume_to /* moved */, trilogy_value* next_to /* moved */,
+    trilogy_value* yield_to /* moved */, trilogy_value* next_to /* moved */,
     trilogy_value* done_to /* moved */, trilogy_value* closure /* moved */,
     void* p
 );
 trilogy_callable_value* trilogy_callable_init_continue(
     trilogy_value* t, trilogy_value* return_to /* moved */,
-    trilogy_value* yield_to /* moved */, trilogy_value* cancel_to /* moved */,
-    trilogy_value* resume_to /* moved */, trilogy_value* next_to /* moved */,
+    trilogy_value* yield_to /* moved */, trilogy_value* next_to /* moved */,
     trilogy_value* done_to /* moved */, trilogy_value* closure /* moved */,
     void* p
 );
@@ -52,12 +49,6 @@ void trilogy_callable_return_to_into(
 void trilogy_callable_yield_to_into(
     trilogy_value*, trilogy_callable_value* orig
 );
-void trilogy_callable_cancel_to_into(
-    trilogy_value*, trilogy_callable_value* orig
-);
-void trilogy_callable_resume_to_into(
-    trilogy_value*, trilogy_callable_value* orig
-);
 void trilogy_callable_next_to_into(
     trilogy_value*, trilogy_callable_value* orig
 );
@@ -67,7 +58,6 @@ void trilogy_callable_done_to_into(
 
 void trilogy_callable_promote(
     trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* cancel_to, trilogy_value* resume_to,
     trilogy_value* next_to /* moved */, trilogy_value* done_to /* moved */
 );
 
