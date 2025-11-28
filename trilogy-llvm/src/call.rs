@@ -657,13 +657,9 @@ impl<'ctx> Codegen<'ctx> {
         let return_closure = self.allocate_value("main.ret");
         let yield_closure = self.allocate_value("main.yield");
         let end_closure = self.allocate_value("main.end");
-        let next_closure = self.allocate_value("main.next");
-        let done_closure = self.allocate_value("main.done");
         self.trilogy_array_init_cap(return_closure, 0, "");
         self.trilogy_array_init_cap(yield_closure, 0, "");
         self.trilogy_array_init_cap(end_closure, 0, "");
-        self.trilogy_array_init_cap(next_closure, 0, "");
-        self.trilogy_array_init_cap(done_closure, 0, "");
         self.trilogy_callable_init_cont(
             return_continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -691,24 +687,8 @@ impl<'ctx> Codegen<'ctx> {
             end_closure,
             end_function,
         );
-        self.trilogy_callable_init_cont(
-            next_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            next_closure,
-            end_function,
-        );
-        self.trilogy_callable_init_cont(
-            done_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            done_closure,
-            end_function,
-        );
+        self.trilogy_value_clone_into(done_continuation, end_continuation);
+        self.trilogy_value_clone_into(next_continuation, end_continuation);
 
         let mut args = vec![
             self.load_value(return_continuation, "").into(),
