@@ -655,15 +655,6 @@ impl<'ctx> Codegen<'ctx> {
             chain_function,
         );
         self.trilogy_callable_init_cont(
-            yield_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            yield_closure,
-            yield_function,
-        );
-        self.trilogy_callable_init_cont(
             end_continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -674,6 +665,22 @@ impl<'ctx> Codegen<'ctx> {
         );
         self.trilogy_value_clone_into(done_continuation, end_continuation);
         self.trilogy_value_clone_into(next_continuation, end_continuation);
+
+        let done_clone = self.allocate_value("done_2");
+        let next_clone = self.allocate_value("next_2");
+        let end_clone = self.allocate_value("end_2");
+        self.trilogy_value_clone_into(end_clone, end_continuation);
+        self.trilogy_value_clone_into(done_clone, done_continuation);
+        self.trilogy_value_clone_into(next_clone, next_continuation);
+        self.trilogy_callable_init_cont(
+            yield_continuation,
+            end_clone,
+            yield_continuation,
+            next_clone,
+            done_clone,
+            yield_closure,
+            yield_function,
+        );
 
         let mut args = vec![
             self.load_value(return_continuation, "").into(),
@@ -697,34 +704,19 @@ impl<'ctx> Codegen<'ctx> {
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);
         self.builder.build_return(None).unwrap();
 
-        self.begin_function(yield_function, source_span::Span::default());
+        self.begin_next_function(yield_function);
         let effect = self.get_continuation("effect");
         let effect = self.to_string(effect, "effect_string");
         _ = self.trilogy_unhandled_effect(effect);
-        self.end_function();
 
-        self.di
-            .push_subprogram(end_function.get_subprogram().unwrap());
-        self.di.push_block_scope(source_span::Span::default());
-        self.set_span(source_span::Span::default());
-        let entry = self.context.append_basic_block(end_function, "entry");
-        self.builder.position_at_end(entry);
+        self.begin_next_function(end_function);
         _ = self.trilogy_execution_ended();
-        self.di.pop_scope();
-        self.di.pop_scope();
 
-        self.di
-            .push_subprogram(chain_function.get_subprogram().unwrap());
-        self.di.push_block_scope(source_span::Span::default());
-        self.set_span(source_span::Span::default());
-        let entry = self.context.append_basic_block(chain_function, "entry");
-        self.builder.position_at_end(entry);
+        self.begin_next_function(chain_function);
         let result = self.allocate_value("result");
         self.builder
             .build_store(result, self.get_function().get_nth_param(5).unwrap())
             .unwrap();
-        self.di.pop_scope();
-        self.di.pop_scope();
         result
     }
 }

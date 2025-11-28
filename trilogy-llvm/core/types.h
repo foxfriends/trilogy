@@ -182,7 +182,9 @@ typedef struct trilogy_callable_value {
     trilogy_callable_tag tag;
     /**
      * The number of parameters to this callable. Functions must have arity 1.
-     * Handlers have arity 2. Other types may have any arity.
+     * Procedures may have any arity. Continuations arity is not checked, but
+     * in most cases (and any case that the end programmer can get ahold of it
+     * directly) is 1.
      */
     uint32_t arity;
     /**

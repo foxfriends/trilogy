@@ -66,14 +66,13 @@ void* realloc_safe(void* ptr, size_t size) {
     return ptr;
 }
 
-static char* unhandled_effect_prefix =
-    "unhandled effect caused program to terminate: ";
+static char* unhandled_effect_prefix = "unhandled effect: ";
 
 void trilogy_unhandled_effect(trilogy_value* effect_string) {
     trilogy_string_value* string = trilogy_string_assume(effect_string);
     char* c_string = trilogy_string_as_c(string);
-    printf("%s%s", unhandled_effect_prefix, c_string);
-    internal_panic("\n");
+    fprintf(stderr, "%s%s\n", unhandled_effect_prefix, c_string);
+    exit(1);
 }
 
 void trilogy_execution_ended() {
