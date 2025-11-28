@@ -36,10 +36,7 @@ test "string length" {
   assert length "" == 0
 }
 
-func slice i fin (str and typeof 'string) = str
-  |> chars
-  |> array::slice i fin
-  |> join ""
+func slice i fin (str and typeof 'string) = core::slice i fin str
 
 test "string slice" {
   assert slice 0 3 "123" == "123"

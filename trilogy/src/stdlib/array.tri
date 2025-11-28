@@ -168,15 +168,7 @@ test "array head" {
     else yield
 }
 
-func slice_unsafe i ^i _ = []
-func slice_unsafe i fin arr = [arr.i, ..slice (i + 1) fin arr]
-func slice i fin (arr and typeof 'array) =
-  if i > fin || i < 0 then
-    yield 'arg
-  else if i > length arr || fin > length arr then
-    yield 'mia
-  else
-    slice_unsafe i fin arr
+func slice i fin (arr and typeof 'array) = core::slice i fin arr
 export slice
 
 test "array slice" {

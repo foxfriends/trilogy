@@ -59,6 +59,16 @@ uint32_t trilogy_string_at(trilogy_string_value* str, size_t index) {
     return (uint32_t)str->contents[index];
 }
 
+void trilogy_string_slice(
+    trilogy_value* tv, trilogy_string_value* str, size_t start, size_t end
+) {
+    assert(start <= str->len);
+    assert(end <= str->len);
+    assert(start <= end);
+    size_t len = end - start;
+    trilogy_string_init_new(tv, len, str->contents + start);
+}
+
 int trilogy_string_compare(
     trilogy_string_value* lhs, trilogy_string_value* rhs
 ) {

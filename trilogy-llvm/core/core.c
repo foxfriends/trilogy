@@ -480,3 +480,24 @@ void string_to_array(trilogy_value* rv, trilogy_value* string_val) {
     trilogy_string_value* string = trilogy_string_untag(string_val);
     trilogy_string_to_array(rv, string);
 }
+
+void slice(
+    trilogy_value* rv, trilogy_value* val, trilogy_value* start,
+    trilogy_value* end
+) {
+    const size_t start_i =
+        (size_t)trilogy_number_to_u64(trilogy_number_untag(start));
+    const size_t end_i =
+        (size_t)trilogy_number_to_u64(trilogy_number_untag(end));
+
+    switch (val->tag) {
+    case TAG_ARRAY:
+        trilogy_array_slice(rv, trilogy_array_assume(val), start_i, end_i);
+        break;
+    case TAG_STRING:
+        trilogy_string_slice(rv, trilogy_string_assume(val), start_i, end_i);
+        break;
+    default:
+        rte("string or array", val->tag);
+    }
+}

@@ -142,6 +142,9 @@ type c {
 
   extern proc string_to_array!(val)
   export string_to_array
+
+  extern proc slice!(val, i, fin)
+  export slice
 }
 
 const print = c::print
@@ -158,6 +161,15 @@ export panic
 
 const trace = c::trace
 export trace
+
+func slice i fin arr =
+  if i > fin || i < 0 then
+    yield 'arg
+  else if i > length arr || fin > length arr then
+    yield 'mia
+  else
+    c::slice!(arr, i, fin)
+export slice
 
 export to_string
 func to_string val = match val
