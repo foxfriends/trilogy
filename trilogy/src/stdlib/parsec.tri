@@ -4,7 +4,7 @@
 #!    https://hackage.haskell.org/package/parsec-3.1.18.0/docs/Text-Parsec-Combinator.html
 import "trilogy:debug" use dbg
 import "trilogy:array" as array
-import "trilogy:str" as str
+import "trilogy:string" as str
 
 export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, end_by, end_by_1, eof, char, string
 

@@ -1,5 +1,3 @@
-import "trilogy:io" as io
-
 proc inner!() {
   let r = yield 'in
   assert "resumed value is 'a" as r == 'a

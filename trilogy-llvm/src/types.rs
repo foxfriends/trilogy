@@ -34,8 +34,7 @@ pub(crate) const CALLABLE_PROCEDURE: u64 = 2;
 #[expect(dead_code, reason = "completeness")]
 pub(crate) const CALLABLE_RULE: u64 = 3;
 pub(crate) const CALLABLE_CONTINUATION: u64 = 4;
-pub(crate) const CALLABLE_RESUME: u64 = 5;
-pub(crate) const CALLABLE_CONTINUE: u64 = 6;
+pub(crate) const CALLABLE_CONTINUE: u64 = 5;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn allocate_const<V: BasicValue<'ctx>>(
@@ -116,6 +115,8 @@ impl<'ctx> Codegen<'ctx> {
                 self.context.i32_type().into(),
                 self.context.i8_type().into(),
                 self.context.i32_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
                 self.context.ptr_type(AddressSpace::default()).into(),
@@ -274,13 +275,11 @@ impl<'ctx> Codegen<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
-        // 3: cancel
-        // 4: resume
-        // 5: next
-        // 6: done
-        // [7..7 + arity): args
-        // 8 + arity: closure
-        let extras = if has_closure { 8 } else { 7 };
+        // 3: next
+        // 4: done
+        // [5..5 + arity): args
+        // 6 + arity: closure
+        let extras = if has_closure { 6 } else { 5 };
         self.context
             .void_type()
             .fn_type(&vec![self.value_type().into(); arity + extras], false)
@@ -314,15 +313,27 @@ impl<'ctx> Codegen<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
-        // 3: cancel
-        // 4: resume
-        // 7: next
-        // 8: done
-        // 9: argument
-        // 10: closure
+        // 3: next
+        // 4: done
+        // 5: argument
+        // 6: closure
         self.context
             .void_type()
-            .fn_type(&vec![self.value_type().into(); 8 + arity], false)
+            .fn_type(&vec![self.value_type().into(); 6 + arity], false)
+    }
+
+    pub(crate) fn yield_type(&self) -> FunctionType<'ctx> {
+        // 0: return
+        // 1: yield
+        // 2: end
+        // 3: next
+        // 4: done
+        // 5: effect
+        // 6: resume_to
+        // 7: closure
+        self.context
+            .void_type()
+            .fn_type(&[self.value_type().into(); 8], false)
     }
 
     pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {

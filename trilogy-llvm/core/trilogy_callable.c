@@ -34,9 +34,8 @@ void trilogy_callable_clone_into(
 
 static trilogy_callable_value* trilogy_callable_value_init(
     trilogy_callable_value* callable, trilogy_callable_tag tag, uint32_t arity,
-    trilogy_value* return_to, trilogy_value* yield_to, trilogy_value* cancel_to,
-    trilogy_value* resume_to, trilogy_value* next_to, trilogy_value* done_to,
-    trilogy_value* closure, void* p
+    trilogy_value* return_to, trilogy_value* yield_to, trilogy_value* next_to,
+    trilogy_value* done_to, trilogy_value* closure, void* p
 ) {
     assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
     callable->rc = 1;
@@ -51,16 +50,6 @@ static trilogy_callable_value* trilogy_callable_value_init(
     if (yield_to != NULL) {
         callable->yield_to = trilogy_callable_assume(yield_to);
         *yield_to = trilogy_undefined;
-    }
-    callable->cancel_to = NULL;
-    if (cancel_to != NULL) {
-        callable->cancel_to = trilogy_callable_assume(cancel_to);
-        *cancel_to = trilogy_undefined;
-    }
-    callable->resume_to = NULL;
-    if (resume_to != NULL) {
-        callable->resume_to = trilogy_callable_assume(resume_to);
-        *resume_to = trilogy_undefined;
     }
     callable->next_to = NULL;
     if (next_to != NULL) {
@@ -87,8 +76,7 @@ trilogy_callable_init_fn(trilogy_value* t, trilogy_value* closure, void* p) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_FUNCTION, 1, NULL, NULL, NULL, NULL, NULL, NULL,
-        closure, p
+        callable, CALLABLE_FUNCTION, 1, NULL, NULL, NULL, NULL, closure, p
     );
     return trilogy_callable_init(t, callable);
 }
@@ -99,8 +87,7 @@ trilogy_callable_value* trilogy_callable_init_do(
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_PROCEDURE, arity, NULL, NULL, NULL, NULL, NULL, NULL,
-        closure, p
+        callable, CALLABLE_PROCEDURE, arity, NULL, NULL, NULL, NULL, closure, p
     );
     return trilogy_callable_init(t, callable);
 }
@@ -111,8 +98,7 @@ trilogy_callable_value* trilogy_callable_init_qy(
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_RULE, arity, NULL, NULL, NULL, NULL, NULL, NULL,
-        closure, p
+        callable, CALLABLE_RULE, arity, NULL, NULL, NULL, NULL, closure, p
     );
     return trilogy_callable_init(t, callable);
 }
@@ -133,13 +119,14 @@ trilogy_callable_init_rule(trilogy_value* t, uint32_t arity, void* p) {
 
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* cancel_to, trilogy_value* resume_to, trilogy_value* next_to,
-    trilogy_value* done_to, trilogy_value* closure, void* p
+    trilogy_value* next_to, trilogy_value* done_to, trilogy_value* closure,
+    void* p
 ) {
     assert(closure != NO_CLOSURE);
     assert(closure->tag == TAG_ARRAY);
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
+<<<<<<< HEAD
     if (t == yield_to) {
         // A weird little special case: the top level yield points to itself
         // as its own yield_to
@@ -170,11 +157,15 @@ trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_callable_value_init(
         callable, CALLABLE_RESUME, 1, return_to, yield_to, cancel_to, resume_to,
         next_to, done_to, closure, p
+||||||| e11f0a71
+    trilogy_callable_value_init(
+        callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, cancel_to,
+        resume_to, next_to, done_to, closure, p
     );
     return trilogy_callable_init(t, callable);
 }
 
-trilogy_callable_value* trilogy_callable_init_continue(
+trilogy_callable_value* trilogy_callable_init_resume(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
     trilogy_value* cancel_to, trilogy_value* resume_to, trilogy_value* next_to,
     trilogy_value* done_to, trilogy_value* closure, void* p
@@ -184,8 +175,29 @@ trilogy_callable_value* trilogy_callable_init_continue(
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_CONTINUE, 1, return_to, yield_to, cancel_to,
-        resume_to, next_to, done_to, closure, p
+        callable, CALLABLE_RESUME, 1, return_to, yield_to, cancel_to, resume_to,
+        next_to, done_to, closure, p
+=======
+    trilogy_callable_value_init(
+        callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, next_to,
+        done_to, closure, p
+>>>>>>> main
+    );
+    return trilogy_callable_init(t, callable);
+}
+
+trilogy_callable_value* trilogy_callable_init_continue(
+    trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
+    trilogy_value* next_to, trilogy_value* done_to, trilogy_value* closure,
+    void* p
+) {
+    assert(closure != NO_CLOSURE);
+    assert(closure->tag == TAG_ARRAY);
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    trilogy_callable_value_init(
+        callable, CALLABLE_CONTINUE, 1, return_to, yield_to, next_to, done_to,
+        closure, p
     );
     return trilogy_callable_init(t, callable);
 }
@@ -203,8 +215,6 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         // is the case in the wrapper of main.
         if (val->return_to != NULL) trilogy_callable_destroy(val->return_to);
         if (val->yield_to != NULL) trilogy_callable_destroy(val->yield_to);
-        if (val->cancel_to != NULL) trilogy_callable_destroy(val->cancel_to);
-        if (val->resume_to != NULL) trilogy_callable_destroy(val->resume_to);
         if (val->next_to != NULL) trilogy_callable_destroy(val->next_to);
         if (val->done_to != NULL) trilogy_callable_destroy(val->done_to);
         free(val);
@@ -233,20 +243,6 @@ void trilogy_callable_yield_to_into(
     trilogy_callable_clone_into(val, cal->yield_to);
 }
 
-void trilogy_callable_cancel_to_into(
-    trilogy_value* val, trilogy_callable_value* cal
-) {
-    if (cal->cancel_to == NULL) return;
-    trilogy_callable_clone_into(val, cal->cancel_to);
-}
-
-void trilogy_callable_resume_to_into(
-    trilogy_value* val, trilogy_callable_value* cal
-) {
-    if (cal->resume_to == NULL) return;
-    trilogy_callable_clone_into(val, cal->resume_to);
-}
-
 void trilogy_callable_next_to_into(
     trilogy_value* val, trilogy_callable_value* cal
 ) {
@@ -263,8 +259,7 @@ void trilogy_callable_done_to_into(
 
 void trilogy_callable_promote(
     trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* cancel_to, trilogy_value* resume_to, trilogy_value* next_to,
-    trilogy_value* done_to
+    trilogy_value* next_to, trilogy_value* done_to
 ) {
     trilogy_callable_value* original = trilogy_callable_untag(tv);
     trilogy_callable_value* clone = malloc_safe(sizeof(trilogy_callable_value));
@@ -281,18 +276,6 @@ void trilogy_callable_promote(
         *yield_to = trilogy_undefined;
     } else if (clone->yield_to != NULL) {
         clone->yield_to->rc++;
-    }
-    if (cancel_to != NULL) {
-        clone->cancel_to = trilogy_callable_assume(cancel_to);
-        *cancel_to = trilogy_undefined;
-    } else if (clone->cancel_to != NULL) {
-        clone->cancel_to->rc++;
-    }
-    if (resume_to != NULL) {
-        clone->resume_to = trilogy_callable_assume(resume_to);
-        *resume_to = trilogy_undefined;
-    } else if (clone->resume_to != NULL) {
-        clone->resume_to->rc++;
     }
     if (next_to != NULL) {
         clone->next_to = trilogy_callable_assume(next_to);
@@ -348,8 +331,7 @@ void* trilogy_rule_untag(trilogy_callable_value* val, uint32_t arity) {
 }
 
 void* trilogy_continuation_untag(trilogy_callable_value* val) {
-    if (val->tag != CALLABLE_CONTINUATION && val->tag != CALLABLE_RESUME &&
-        val->tag != CALLABLE_CONTINUE) {
+    if (val->tag != CALLABLE_CONTINUATION && val->tag != CALLABLE_CONTINUE) {
         internal_panic("invalid continue-to of non-continuation callable\n");
     }
     return (void*)val->function;

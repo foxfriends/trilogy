@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 use threadpool::ThreadPool;
 
 struct Report {
+    report_error: Option<String>,
     path: PathBuf,
     trilogy_exit_code: i32,
     trilogy_stderr: String,
@@ -59,6 +60,9 @@ impl Default for Expectation {
 
 impl Report {
     fn is_success(&self) -> bool {
+        if self.report_error.is_some() {
+            return false;
+        }
         if !self.expected.compile {
             return self.trilogy_exit_code != 0;
         }
@@ -109,6 +113,16 @@ impl Report {
 
     fn print_failure(&self) -> io::Result<()> {
         let mut stdout = stdout().lock();
+        if let Some(error) = &self.report_error {
+            writeln!(
+                stdout,
+                "{} had errors in the test definition: {}",
+                self.path.file_name().unwrap().to_string_lossy(),
+                error,
+            )?;
+            return Ok(());
+        }
+
         if !self.expected.compile {
             writeln!(
                 stdout,
@@ -237,11 +251,8 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
         .and_then(|s| s.parse().ok())
         .unwrap_or(false);
 
-    let mut expected = Expectation::default();
-    if exists(path.join("spec.toml")).unwrap() {
-        expected = toml::from_str(&read_to_string(path.join("spec.toml")).unwrap()).unwrap();
-    }
     let mut report = Report {
+        report_error: None,
         path: path.clone(),
         trilogy_exit_code: 0,
         trilogy_stderr: String::new(),
@@ -250,8 +261,20 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
         clang_compile_time: Duration::ZERO,
         program_output: None,
         program_time: Duration::ZERO,
-        expected,
+        expected: Expectation::default(),
     };
+
+    if exists(path.join("spec.toml")).unwrap() {
+        let toml_string = read_to_string(path.join("spec.toml")).unwrap();
+        report.expected = match toml::from_str(&toml_string) {
+            Ok(toml_value) => toml_value,
+            Err(error) => {
+                report.report_error = Some(error.to_string());
+                done.send(report).unwrap();
+                return;
+            }
+        };
+    }
 
     'test: {
         let tri = path.join("main.tri");

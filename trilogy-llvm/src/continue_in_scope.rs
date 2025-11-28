@@ -43,8 +43,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
         let yield_to = self.get_yield("");
-        let cancel_to = self.get_cancel("");
-        let resume_to = self.get_resume("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
 
@@ -57,8 +55,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(cancel_to, "").into(),
-            self.load_value(resume_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
             argument,
@@ -81,11 +77,9 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         function: FunctionValue<'ctx>,
         yield_to: PointerValue<'ctx>,
-        cancel_to: PointerValue<'ctx>,
     ) -> InstructionValue<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
-        let resume_to = self.get_resume("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
 
@@ -93,8 +87,6 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_yield(""),
-            self.get_cancel(""),
-            self.get_resume(""),
             self.get_next(""),
             self.get_done(""),
         );
@@ -108,8 +100,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(cancel_to, "").into(),
-            self.load_value(resume_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
@@ -133,8 +123,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let end_to = self.get_end("");
-        let resume_to = self.get_resume("");
-        let cancel_to = self.get_cancel("");
         let next_to = self.get_next("");
         let done_to = self.get_done("");
 
@@ -142,17 +130,6 @@ impl<'ctx> Codegen<'ctx> {
             return_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_yield(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_next(""),
-            self.get_done(""),
-        );
-        self.trilogy_callable_promote(
-            cancel_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_yield(""),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_next(""),
             self.get_done(""),
         );
@@ -165,8 +142,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         let continue_to_callable = self.trilogy_callable_init_continue(
             continue_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -189,8 +164,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(cancel_to, "").into(),
-            self.load_value(resume_to, "").into(),
             self.load_value(next_to, "").into(),
             self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),

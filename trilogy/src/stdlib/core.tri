@@ -206,7 +206,6 @@ func to_string val = match val
   }
   else then c::primitive_to_string!(val)
 
-
 export compose
 func compose f g x = f (g x)
 
@@ -277,6 +276,8 @@ func rem lhs rhs = c::rem!(lhs, rhs)
 export rem
 func cons lhs rhs = c::cons!(lhs, rhs)
 export cons
+func destruct st = c::destruct!(st)
+export destruct
 
 func to_array (arr and typeof 'array) = arr
 func to_array (set and typeof 'set) = c::set_to_array!(set)

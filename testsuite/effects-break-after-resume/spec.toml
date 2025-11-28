@@ -1,1 +1,8 @@
-output = "loop(0)\nhandler(0)\nloop(1)\nhandler(1)\nloop(2)\nhandler(2)\n"
+output = """
+'loop(0)
+'handler(0)
+'loop(1)
+'handler(1)
+'loop(2)
+'handler(2)
+"""

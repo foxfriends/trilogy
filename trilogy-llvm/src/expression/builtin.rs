@@ -12,77 +12,77 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::Return => {
-                let result = self.compile_expression(expression, name)?;
-                let return_cont = self.get_return("");
+                let result = self.compile_expression(expression, "return_arg")?;
+                let return_cont = self.get_return("return");
                 self.call_known_continuation(return_cont, result);
                 None
             }
             Builtin::Exit => {
-                let result = self.compile_expression(expression, name)?;
+                let result = self.compile_expression(expression, "exit_code")?;
                 _ = self.exit(result);
                 None
             }
             Builtin::Typeof => {
-                let argument = self.compile_expression(expression, "")?;
+                let argument = self.compile_expression(expression, "typeof_arg")?;
                 let out = self.allocate_value(name);
                 // The atom table is specifically defined so that a value's tag
                 // lines up with it's typeof atom
-                let tag = self.get_tag(argument, "");
+                let tag = self.get_tag(argument, "typeof_arg_tag");
                 let raw_atom = self
                     .builder
-                    .build_int_z_extend(tag, self.context.i64_type(), "")
+                    .build_int_z_extend(tag, self.context.i64_type(), "raw_atom")
                     .unwrap();
                 self.trilogy_atom_init(out, raw_atom);
                 self.trilogy_value_destroy(argument);
                 Some(out)
             }
             Builtin::Not => {
-                let argument = self.compile_expression(expression, "")?;
+                let argument = self.compile_expression(expression, "not_arg")?;
                 let out = self.allocate_value(name);
                 self.boolean_not(out, argument);
                 self.trilogy_value_destroy(argument);
                 Some(out)
             }
             Builtin::Yield => {
-                let effect = self.compile_expression(expression, name)?;
+                let effect = self.compile_expression(expression, "effect")?;
                 Some(self.call_yield(effect, name))
             }
             Builtin::Cancel => {
-                let value = self.compile_expression(expression, name)?;
-                let cancel = self.get_cancel("cancel");
+                let value = self.compile_expression(expression, "cancel_arg")?;
+                let cancel = self.get_cancel();
                 self.call_known_continuation(cancel, value);
                 None
             }
             Builtin::Resume => {
-                let value = self.compile_expression(expression, name)?;
+                let value = self.compile_expression(expression, "resume_arg")?;
                 Some(self.call_resume(value, name))
             }
             Builtin::Break => {
-                let result = self.compile_expression(expression, name)?;
+                let result = self.compile_expression(expression, "break_arg")?;
                 let break_cont = self.get_break();
                 self.call_known_continuation(break_cont, result);
                 None
             }
             Builtin::Continue => {
-                let result = self.compile_expression(expression, name)?;
+                let result = self.compile_expression(expression, "continue_arg")?;
                 self.call_continue(result, "");
                 None
             }
             Builtin::ToString => {
-                let value = self.compile_expression(expression, name)?;
+                let value = self.compile_expression(expression, "to_string_arg")?;
                 // NOTE: this one does not require destroying because to_string is not a C function.
                 // Calling the trilogy function will destroy it
-                Some(self.to_string(value, ""))
+                Some(self.to_string(value, name))
             }
             Builtin::Negate => {
-                let value = self.compile_expression(expression, "")?;
+                let value = self.compile_expression(expression, "negate_arg")?;
                 let out = self.allocate_value(name);
                 self.negate(out, value);
                 self.trilogy_value_destroy(value);
                 Some(out)
             }
             Builtin::Invert => {
-                let value = self.compile_expression(expression, "")?;
+                let value = self.compile_expression(expression, "invert_arg")?;
                 let out = self.allocate_value(name);
                 self.invert(out, value);
                 self.trilogy_value_destroy(value);
@@ -504,15 +504,18 @@ impl<'ctx> Codegen<'ctx> {
                     return_to,
                     self.context.ptr_type(AddressSpace::default()).const_null(),
                     self.get_yield(""),
-                    self.get_cancel(""),
-                    self.get_resume(""),
                     self.get_next(""),
                     self.get_done(""),
                 );
                 return_to
             }
-            Builtin::Cancel => self.get_cancel(name),
-            Builtin::Resume => self.get_resume(name),
+            Builtin::Cancel => self.get_cancel(),
+            Builtin::Resume => {
+                let _resume = self.get_resume();
+                todo!(
+                    "build a regular function around resume that captures the cancels and hides its complex calling convention"
+                )
+            }
             Builtin::Break => self.get_break(),
             Builtin::Continue => self.get_continue(),
             Builtin::Access => self.reference_core("member_access"),
