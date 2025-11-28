@@ -37,6 +37,7 @@ FFI to native libraries.
     - https://doc.rust-lang.org/reference/
     - https://github.com/HigherOrderCO/HVM
     - https://www.sciencedirect.com/science/article/pii/S0890540197926432/pdf?md5=30965cec6dd7605a865bbec4076f65e4&pid=1-s2.0-S0890540197926432-main.pdf
+    - https://www.sciencedirect.com/science/article/pii/S1571066115000705/pdf?md5=3b9f68cbe5525034208dfacfb8b0e099&pid=1-s2.0-S1571066115000705-main.pdf
     - https://arxiv.org/pdf/2504.18920
 - [x] Design the language: Check out the [spec](./spec/)!
 - [x] Read the [book](https://craftinginterpreters.com/)
@@ -49,9 +50,9 @@ FFI to native libraries.
     - [x] ~~Bytecode generation~~
     - [x] ~~Virtual machine~~
     - [x] ~~Garbage collector~~
-    - [ ] LLVM code generation (in progress)
-    - [ ] Testing
-    - [ ] Standard library
+    - [x] LLVM code generation
+    - [ ] Extensive testing
+    - [ ] Standard library (in progress)
 - [ ] Implement the ecosystem
     - [ ] Formatter
     - [ ] Linter
