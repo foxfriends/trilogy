@@ -13,16 +13,10 @@ struct Source {
     entrypoint: Location,
 }
 
-/// An instance of the Trilogy runtime and virtual machine.
+/// An instance of the Trilogy runtime.
 ///
 /// This is the entrypoint to the whole Trilogy Programming Language, by which
 /// you can run Trilogy programs and embed them within larger Rust programs.
-///
-/// # Implementation
-///
-/// Whereas the [`VirtualMachine`][trilogy_vm::VirtualMachine] is the underlying
-/// VM engine, this `Trilogy` instance wraps that VM in a way that is specific to
-/// the Trilogy Programming Language.
 #[derive(Clone, Debug)]
 pub struct Trilogy {
     source: Source,
