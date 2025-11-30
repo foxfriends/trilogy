@@ -33,6 +33,9 @@ type Entrypoint = unsafe extern "C" fn() -> c_void;
 /// Parameters to rules/procedures/functions start at 5, due to return, yield, end, next, and done
 const IMPLICIT_PARAMS: usize = 5;
 
+// Apparently, this is the number... but it's not listed in llvm_sys.
+const TAIL_CALL_CONV: u32 = 18;
+
 #[repr(C)]
 #[derive(Default, Debug)]
 pub struct TrilogyValue {

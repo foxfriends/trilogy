@@ -34,7 +34,7 @@ impl<'ctx> Codegen<'ctx> {
         span: Span,
     ) -> FunctionValue<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), name);
-        let wrapper_name = format!("{}::{}.fastcc", self.module_path(), name);
+        let wrapper_name = format!("{}::{}.tailcc", self.module_path(), name);
         let original_function = self.add_external_declaration(name, arity, span);
 
         // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that

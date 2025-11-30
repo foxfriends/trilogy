@@ -1,6 +1,6 @@
-use crate::IMPLICIT_PARAMS;
 use crate::codegen::Codegen;
 use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE};
+use crate::{IMPLICIT_PARAMS, TAIL_CALL_CONV};
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::values::{
     BasicMetadataValueEnum, FunctionValue, InstructionValue, IntValue, LLVMTailCallKind,
@@ -57,7 +57,7 @@ impl<'ctx> Codegen<'ctx> {
                 "",
             )
             .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_call_convention(TAIL_CALL_CONV);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
         self.builder.build_return(None).unwrap();
     }
@@ -389,7 +389,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_indirect_call(self.continuation_type(1), continuation_pointer, &args, "")
             .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_call_convention(TAIL_CALL_CONV);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
         let call = call.try_as_basic_value().unwrap_instruction();
         self.end_continuation_point_as_clean(call);
@@ -423,7 +423,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_direct_call(execution, &args, "")
             .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_call_convention(TAIL_CALL_CONV);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
         self.end_continuation_point_as_close(closure.as_instruction().unwrap());
         self.builder.build_return(None).unwrap();
@@ -700,7 +700,7 @@ impl<'ctx> Codegen<'ctx> {
                 "",
             )
             .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_call_convention(TAIL_CALL_CONV);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);
         self.builder.build_return(None).unwrap();
 

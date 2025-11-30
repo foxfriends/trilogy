@@ -1,4 +1,5 @@
 //! Handles creating function definitions at the LLVM level.
+use crate::TAIL_CALL_CONV;
 use crate::codegen::Codegen;
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::module::Linkage;
@@ -29,7 +30,7 @@ impl<'ctx> Codegen<'ctx> {
         let function =
             self.module
                 .add_function(&name, self.continuation_type(1), Some(Linkage::Private));
-        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.set_call_conventions(TAIL_CALL_CONV);
         function.set_subprogram(self.di.create_function(
             &parent_name,
             function.get_name().to_str().unwrap(),
@@ -65,7 +66,7 @@ impl<'ctx> Codegen<'ctx> {
         let function = self
             .module
             .add_function(&name, self.yield_type(), Some(Linkage::Private));
-        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.set_call_conventions(TAIL_CALL_CONV);
         function.set_subprogram(self.di.create_function(
             &parent_name,
             function.get_name().to_str().unwrap(),
@@ -111,7 +112,7 @@ impl<'ctx> Codegen<'ctx> {
             self.continuation_type(arity + 1),
             Some(Linkage::Private),
         );
-        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.set_call_conventions(TAIL_CALL_CONV);
         function.set_subprogram(self.di.create_function(
             &parent_name,
             function.get_name().to_str().unwrap(),
@@ -155,7 +156,7 @@ impl<'ctx> Codegen<'ctx> {
             is_local_to_unit,
             true,
         ));
-        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.set_call_conventions(TAIL_CALL_CONV);
         function.get_nth_param(0).unwrap().set_name("return_to");
         function.get_nth_param(1).unwrap().set_name("yield_to");
         function.get_nth_param(2).unwrap().set_name("end_to");
@@ -244,7 +245,7 @@ impl<'ctx> Codegen<'ctx> {
         let accessor =
             self.module
                 .add_function(name, self.accessor_type(false), Some(Linkage::External));
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        accessor.set_call_conventions(TAIL_CALL_CONV);
         accessor.get_nth_param(0).unwrap().set_name("output");
         accessor
     }
