@@ -355,7 +355,7 @@ impl<'ctx> Codegen<'ctx> {
                         self.trilogy_value_clone_into(new_upvalue, upvalue);
                         new_upvalue
                     }
-                    Some(Variable::Owned(variable)) => {
+                    Some(Variable::Owned(variable)) | Some(Variable::Argument(variable)) => {
                         let upvalue = self.allocate_value(&format!("{id}.up"));
                         let reference =
                             self.trilogy_reference_to(upvalue, variable, &format!("*{id}.up"));
@@ -468,7 +468,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.trilogy_value_clone_into(new_upvalue, upvalue);
                     new_upvalue
                 }
-                Some(Variable::Owned(variable)) => {
+                Some(Variable::Owned(variable)) | Some(Variable::Argument(variable)) => {
                     let upvalue = self.allocate_value(&format!("{id}.up"));
                     let reference =
                         self.trilogy_reference_to(upvalue, variable, &format!("*{id}.up"));

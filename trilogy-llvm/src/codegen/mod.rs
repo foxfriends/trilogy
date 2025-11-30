@@ -203,11 +203,11 @@ impl<'ctx> Codegen<'ctx> {
                     .builder
                     .build_alloca(
                         self.value_type(),
-                        &format!("{}.value", param.get_name().to_string_lossy()),
+                        &format!("arg_{}", param.get_name().to_string_lossy()),
                     )
                     .unwrap();
                 self.builder.build_store(container, param).unwrap();
-                self.bind_temporary(container);
+                self.bind_argument(container);
                 container
             })
             .collect();
@@ -238,11 +238,11 @@ impl<'ctx> Codegen<'ctx> {
                     .builder
                     .build_alloca(
                         self.value_type(),
-                        &format!("{}.value", param.get_name().to_string_lossy()),
+                        &format!("arg_{}", param.get_name().to_string_lossy()),
                     )
                     .unwrap();
                 self.builder.build_store(container, param).unwrap();
-                self.bind_temporary(container);
+                self.bind_argument(container);
                 container
             })
             .collect();

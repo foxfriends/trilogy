@@ -501,7 +501,6 @@ impl<'ctx> Codegen<'ctx> {
         Some(target)
     }
 
-    #[allow(clippy::all)] // just for now
     fn compile_let(&self, decl: &ir::Let, name: &str) -> Option<PointerValue<'ctx>> {
         match &decl.query.value {
             QueryValue::Direct(unif) if decl.query.is_once() => {
@@ -528,12 +527,8 @@ impl<'ctx> Codegen<'ctx> {
                     self.trilogy_value_destroy(var);
                 }
                 self.compile_pattern_match(&unif.pattern, value, on_fail)?;
-                if let Some(temp) = self.use_owned_temporary(value) {
-                    self.trilogy_value_destroy(temp);
-                }
-                if let Some(temp) = self.use_owned_temporary(on_fail) {
-                    self.trilogy_value_destroy(temp);
-                }
+                self.destroy_owned_temporary(value);
+                self.destroy_owned_temporary(on_fail);
                 self.compile_expression(&decl.body, name)
             }
             _ => {
@@ -594,9 +589,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unreachable().unwrap();
 
         if returns {
-            if let Some(discriminant_owned) = self.use_owned_temporary(discriminant) {
-                self.trilogy_value_destroy(discriminant_owned);
-            }
+            self.destroy_owned_temporary(discriminant);
             self.merge_without_branch(merger);
             self.begin_next_function(continuation);
             Some(self.get_continuation(name))
@@ -762,7 +755,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_reference(&self, identifier: &ir::Identifier, name: &str) -> PointerValue<'ctx> {
         match self.get_variable(&identifier.id) {
-            Some(Variable::Owned(variable)) => {
+            Some(Variable::Owned(variable)) | Some(Variable::Argument(variable)) => {
                 let target = self.allocate_value(name);
                 self.trilogy_value_clone_into(target, variable);
                 target

@@ -162,6 +162,9 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(2).unwrap().set_name("end_to");
         function.get_nth_param(3).unwrap().set_name("next_to");
         function.get_nth_param(4).unwrap().set_name("done_to");
+        for (i, param) in function.get_param_iter().skip(5).enumerate() {
+            param.set_name(&format!("param_{i}"));
+        }
         if has_context {
             function.get_last_param().unwrap().set_name("closure");
         }

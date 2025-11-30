@@ -133,6 +133,7 @@ impl<'ctx> Codegen<'ctx> {
                         // Similarly, but for temporaries: we don't need to explicitly destroy them because
                         // their destruction (or lack thereof) is expected by the rest of codegen. We do,
                         // however, wish to track them for closing purposes, so use a no-op instead of a destroy.
+                        // self.allocate_value(&format!("comment#{id:?}"));
                         let do_nothing = Intrinsic::find("llvm.donothing").unwrap();
                         let do_nothing = do_nothing.get_declaration(&self.module, &[]).unwrap();
                         let instruction = self
@@ -141,6 +142,29 @@ impl<'ctx> Codegen<'ctx> {
                             .unwrap()
                             .try_as_basic_value()
                             .unwrap_instruction();
+                        cp.shadow_root()
+                            .unclosed
+                            .borrow_mut()
+                            .entry(*pointer)
+                            .or_default()
+                            .push((
+                                instruction,
+                                self.builder.get_current_debug_location().unwrap(),
+                            ));
+                    }
+                }
+                // Function arguments are much the same as variables, but are never temporaries despite being
+                // closed as anonymous pointers and therefore looking like temporaries on the `id` side.
+                Variable::Argument(pointer) => {
+                    if let Some(pointer) = cp.shadow_root().upvalues.borrow().get(id) {
+                        // We have detected this variable as referenced in a future scope, so we have to close it
+                        let upvalue = self.trilogy_reference_assume(*pointer);
+                        self.trilogy_reference_close(upvalue);
+                    } else {
+                        // In this case, we have not YET detected that it is referenced, but it still might be
+                        // detected later, so we have to record this destroy in case it has to be upgraded to a
+                        // "close".
+                        let instruction = self.trilogy_value_destroy(*pointer);
                         cp.shadow_root()
                             .unclosed
                             .borrow_mut()
@@ -183,7 +207,7 @@ impl<'ctx> Codegen<'ctx> {
                         self.trilogy_value_clone_into(new_upvalue, upvalue);
                         new_upvalue
                     }
-                    Variable::Owned(variable) => {
+                    Variable::Owned(variable) | Variable::Argument(variable) => {
                         let builder = self.context.create_builder();
                         let declaration = variable.as_instruction_value().unwrap();
                         builder.position_at(

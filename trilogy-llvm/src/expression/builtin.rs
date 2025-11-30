@@ -12,7 +12,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::Return => {
-                let result = self.compile_expression(expression, "return_arg")?;
+                let result = self.compile_expression(expression, "retval")?;
                 let return_cont = self.get_return("return");
                 self.call_known_continuation(return_cont, result);
                 None

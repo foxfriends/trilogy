@@ -73,9 +73,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.become_continuation_point(primary_cp);
                 let bound_before_first_pattern = bound_ids.len();
                 self.match_pattern(&disj.0, value, go_to_second, bound_ids)?;
-                if let Some(temp) = self.use_owned_temporary(go_to_second) {
-                    self.trilogy_value_destroy(temp);
-                }
+                self.destroy_owned_temporary(go_to_second);
                 let closure = self.void_continue_in_scope(on_success_function);
                 self.end_continuation_point_as_merge(&mut merger, closure);
 
@@ -238,9 +236,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(left);
                     self.trilogy_tuple_left(left, tuple);
                     self.match_pattern(&app.argument, left, on_fail, bound_ids)?;
-                    if let Some(left) = self.use_owned_temporary(left) {
-                        self.trilogy_value_destroy(left);
-                    }
+                    self.destroy_owned_temporary(left);
 
                     let value_ref = self.use_temporary(value).unwrap();
                     let tuple = self.trilogy_tuple_assume(value_ref, "");
@@ -248,9 +244,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(right);
                     self.trilogy_tuple_right(right, tuple);
                     self.match_pattern(&application.argument, right, on_fail, bound_ids)?;
-                    if let Some(right) = self.use_owned_temporary(right) {
-                        self.trilogy_value_destroy(right);
-                    }
+                    self.destroy_owned_temporary(right);
                     Some(())
                 }
                 Value::Builtin(Builtin::Construct) => {
@@ -279,12 +273,8 @@ impl<'ctx> Codegen<'ctx> {
                     self.trilogy_value_destroy(part);
                     self.trilogy_tuple_right(part, tuple);
                     self.match_pattern(&app.argument, part, on_fail, bound_ids)?;
-                    if let Some(temp) = self.use_owned_temporary(part) {
-                        self.trilogy_value_destroy(temp);
-                    }
-                    if let Some(temp) = self.use_owned_temporary(destructed) {
-                        self.trilogy_value_destroy(temp);
-                    }
+                    self.destroy_owned_temporary(part);
+                    self.destroy_owned_temporary(destructed);
                     Some(())
                 }
                 Value::Builtin(Builtin::Glue) => {
@@ -324,9 +314,7 @@ impl<'ctx> Codegen<'ctx> {
                             "invalid glue pattern: one side should be a string literal, the other should be a pattern"
                         );
                     }
-                    if let Some(temp) = self.use_owned_temporary(output) {
-                        self.trilogy_value_destroy(temp);
-                    }
+                    self.destroy_owned_temporary(output);
                     Some(())
                 }
                 _ => panic!("only some operators are usable in pattern matching"),
@@ -444,17 +432,13 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_array_at_dyn(ith_value, array_value, index);
                 self.bind_temporary(ith_value);
                 self.match_pattern(&element.expression, ith_value, on_fail, bound_ids)?;
-                if let Some(temp) = self.use_owned_temporary(ith_value) {
-                    self.trilogy_value_destroy(temp);
-                }
+                self.destroy_owned_temporary(ith_value);
             } else {
                 let ith_value = self.allocate_value("");
                 self.trilogy_array_at(ith_value, array_value, i);
                 self.bind_temporary(ith_value);
                 self.match_pattern(&element.expression, ith_value, on_fail, bound_ids)?;
-                if let Some(temp) = self.use_owned_temporary(ith_value) {
-                    self.trilogy_value_destroy(temp);
-                }
+                self.destroy_owned_temporary(ith_value);
             }
         }
         if let Some((i, spread)) = spread {
@@ -475,9 +459,7 @@ impl<'ctx> Codegen<'ctx> {
             );
             self.bind_temporary(rest);
             self.match_pattern(&spread.expression, rest, on_fail, bound_ids)?;
-            if let Some(temp) = self.use_owned_temporary(rest) {
-                self.trilogy_value_destroy(temp);
-            }
+            self.destroy_owned_temporary(rest);
         }
         Some(())
     }
@@ -539,9 +521,7 @@ impl<'ctx> Codegen<'ctx> {
             let set_clone = self.use_temporary(set_clone).unwrap();
             self.match_pattern(&spread.expression, set_clone, on_fail, bound_ids)?;
         }
-        if let Some(set_clone) = self.use_owned_temporary(set_clone) {
-            self.trilogy_value_destroy(set_clone);
-        }
+        self.destroy_owned_temporary(set_clone);
         Some(())
     }
 
@@ -605,17 +585,13 @@ impl<'ctx> Codegen<'ctx> {
             self.trilogy_record_delete(record_value, key, "");
             self.bind_temporary(element_value);
             self.match_pattern(&mapping.1, element_value, on_fail, bound_ids)?;
-            if let Some(element_value) = self.use_owned_temporary(element_value) {
-                self.trilogy_value_destroy(element_value);
-            }
+            self.destroy_owned_temporary(element_value);
         }
         if let Some(spread) = spread {
             let record_clone = self.use_temporary(record_clone).unwrap();
             self.match_pattern(&spread.expression, record_clone, on_fail, bound_ids)?;
         }
-        if let Some(record_clone) = self.use_owned_temporary(record_clone) {
-            self.trilogy_value_destroy(record_clone);
-        }
+        self.destroy_owned_temporary(record_clone);
         Some(())
     }
 }

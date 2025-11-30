@@ -20,6 +20,8 @@ pub(crate) enum Variable<'ctx> {
     },
     /// This is a variable that was defined in the current continuation point and is still owned.
     Owned(PointerValue<'ctx>),
+    /// This is a variable that was defined in the current continuation point and is still owned.
+    Argument(PointerValue<'ctx>),
 }
 
 impl<'ctx> Variable<'ctx> {
@@ -27,6 +29,7 @@ impl<'ctx> Variable<'ctx> {
         match self {
             Self::Closed { location, .. } => *location,
             Self::Owned(ptr) => *ptr,
+            Self::Argument(ptr) => *ptr,
         }
     }
 }
@@ -280,6 +283,17 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
+    /// Records an argument value as a temporary in the current continuation. Similar to
+    /// binding a regular temporary, but argument values are cleaned up slightly differently.
+    pub(crate) fn bind_argument(&self, temporary: PointerValue<'ctx>) {
+        let cp = self.current_continuation_point();
+        if !cp.contains_temporary(temporary) {
+            cp.variables
+                .borrow_mut()
+                .insert(Closed::Temporary(temporary), Variable::Argument(temporary));
+        }
+    }
+
     /// Uses a previously bound temporary value. If the value was not previously bound with
     /// `bind_temporary`, this will return `None`.
     pub(crate) fn use_temporary(
@@ -291,6 +305,7 @@ impl<'ctx> Codegen<'ctx> {
             &Closed::Temporary(temporary),
         )? {
             Variable::Owned(pointer) => Some(pointer),
+            Variable::Argument(pointer) => Some(pointer),
             Variable::Closed { location, .. } => {
                 let var = self.allocate_value(&format!(
                     "{}.tempref",
@@ -313,23 +328,29 @@ impl<'ctx> Codegen<'ctx> {
             &Closed::Temporary(temporary),
         )? {
             Variable::Owned(pointer) => Some(pointer),
+            Variable::Argument(pointer) => Some(pointer),
             Variable::Closed { location, .. } => Some(location),
         }
     }
 
-    /// Uses a previously bound temporary value, only if it is not captured. Often temporaries need
-    /// to be destroyed but only if they are not in the closure, as the closure will handle destruction
-    /// of its internal values.
-    pub(crate) fn use_owned_temporary(
-        &self,
-        temporary: PointerValue<'ctx>,
-    ) -> Option<PointerValue<'ctx>> {
+    /// Uses a previously bound temporary value, only if it is not captured.
+    fn use_owned_temporary(&self, temporary: PointerValue<'ctx>) -> Option<PointerValue<'ctx>> {
         match self.reference_from_scope(
             &self.current_continuation_point(),
             &Closed::Temporary(temporary),
         )? {
             Variable::Owned(pointer) => Some(pointer),
+            Variable::Argument(pointer) => Some(pointer),
             Variable::Closed { .. } => None,
+        }
+    }
+
+    /// Destroy a previously bound temporary value, if it was not captured by this point.
+    /// Often temporaries need to be destroyed but only if they are not in a closure,
+    /// as the closure will handle destruction of its internal values.
+    pub(crate) fn destroy_owned_temporary(&self, temporary: PointerValue<'ctx>) {
+        if let Some(temp) = self.use_owned_temporary(temporary) {
+            self.trilogy_value_destroy(temp);
         }
     }
 

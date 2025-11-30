@@ -714,9 +714,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.begin_next_function(chain_function);
         let result = self.allocate_value("result");
-        self.builder
-            .build_store(result, self.get_function().get_nth_param(5).unwrap())
-            .unwrap();
+        self.trilogy_value_clone_into(result, self.get_continuation("ret_val"));
         result
     }
 }
