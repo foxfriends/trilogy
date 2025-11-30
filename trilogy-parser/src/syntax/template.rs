@@ -51,7 +51,19 @@ impl Template {
         let dollar = parser
             .expect(TokenType::OpDollar)
             .expect("caller should have found this");
-        let tag = Identifier::parse(parser)?;
+        if let Err(token) = parser.check(TokenType::Identifier) {
+            if token.token_type == TokenType::String || token.token_type == TokenType::TemplateStart
+            {
+                let error = ErrorKind::TaggedTemplateMissingIdentifier.at(token.span);
+                parser.error(error.clone());
+                return Err(error);
+            } else {
+                let error = ErrorKind::TaggedTemplateNotIdentifier.at(token.span);
+                parser.error(error.clone());
+                return Err(error);
+            }
+        }
+        let tag = Identifier::parse(parser).unwrap();
 
         if let Ok(template_start) = parser.expect(TokenType::String) {
             return Ok(Self {
@@ -60,6 +72,12 @@ impl Template {
                 template_start,
                 segments: vec![],
             });
+        }
+
+        if let Err(token) = parser.check(TokenType::TemplateStart) {
+            let error = ErrorKind::TaggedTemplateNotIdentifier.at(tag.span().union(token.span));
+            parser.error(error.clone());
+            return Err(error);
         }
 
         Self::parse(Some((dollar, tag)), parser)

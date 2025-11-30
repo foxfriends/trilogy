@@ -12,6 +12,8 @@ pub enum ErrorKind {
     IfStatementRestriction,
     IfExpressionRestriction,
     MatchExpressionRestriction,
+    TaggedTemplateMissingIdentifier,
+    TaggedTemplateNotIdentifier,
 }
 
 impl ErrorKind {
@@ -79,6 +81,14 @@ impl Display for SyntaxError {
             ErrorKind::MatchExpressionRestriction => {
                 write!(f, "a `match` expression must have an `else` case")?
             }
+            ErrorKind::TaggedTemplateMissingIdentifier => write!(
+                f,
+                "the $ operator prefixing a tagged template requires a tag identifier"
+            )?,
+            ErrorKind::TaggedTemplateNotIdentifier => write!(
+                f,
+                "the $ operator prefixing a tagged template requires a tag identifier"
+            )?,
         }
 
         Ok(())

@@ -367,6 +367,12 @@ impl<E: std::error::Error> Error<E> {
                         .with_message("an `if` expression must have an `else` clause"),
                     MatchExpressionRestriction => ariadne::Report::build(kind, span)
                         .with_message("a `match` expression must have an `else` case"),
+                    TaggedTemplateMissingIdentifier => ariadne::Report::build(kind, span.clone())
+                        .with_message("a tagged template requires a tag identifier")
+                        .with_label(Label::new(span).with_color(primary).with_message("try inserting an identifier here")),
+                    TaggedTemplateNotIdentifier => ariadne::Report::build(kind, span.clone())
+                        .with_message("the `$` operator prefixing a tagged template requires an identifier")
+                        .with_label(Label::new(span).with_color(primary).with_message("this must be an identifier")),
                 }
             }
             ErrorKind::Resolver(location, error) => {
