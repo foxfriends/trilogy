@@ -15,5 +15,5 @@ proc main!() {
         when "Two"   resume 2
         when "Three" resume 3
         else         resume 0
-    println!($"The sum is ${sum}")
+    println!("The sum is ${sum}")
 }

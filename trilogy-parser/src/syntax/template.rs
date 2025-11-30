@@ -5,38 +5,17 @@ use trilogy_scanner::{Token, TokenType, TokenValue};
 
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct Template {
+    pub tag: Option<(Token, Identifier)>,
     pub template_start: Token,
     pub segments: Vec<TemplateSegment>,
-    pub tag: Option<Identifier>,
     span: Span,
 }
 
 impl Template {
-    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        if let Ok(template_start) = parser.expect(TokenType::DollarString) {
-            let mut span = template_start.span;
-
-            let tag = parser
-                .check(TokenType::Identifier)
-                .ok()
-                .map(|_| ())
-                .map(|_| Identifier::parse(parser))
-                .transpose()?;
-            if let Some(tag) = &tag {
-                span = span.union(tag.span());
-            }
-
-            return Ok(Self {
-                span,
-                template_start,
-                segments: vec![],
-                tag,
-            });
-        }
-
+    fn parse(tag: Option<(Token, Identifier)>, parser: &mut Parser) -> SyntaxResult<Self> {
         let template_start = parser
             .expect(TokenType::TemplateStart)
-            .expect("Caller should have found this");
+            .expect("caller should have found this");
         let mut segments = vec![];
         loop {
             let interpolation = Expression::parse(parser)?;
@@ -51,31 +30,43 @@ impl Template {
             break;
         }
         parser.chomp();
-        let tag = if !parser.is_line_start {
-            parser
-                .check(TokenType::Identifier)
-                .ok()
-                .map(|_| ())
-                .map(|_| Identifier::parse(parser))
-                .transpose()?
-        } else {
-            None
-        };
 
         let mut span = template_start.span;
         if !segments.is_empty() {
             span = span.union(segments.span());
         }
         if let Some(tag) = &tag {
-            span = span.union(tag.span());
+            span = span.union(tag.0.span());
         }
 
         Ok(Self {
             span,
+            tag,
             template_start,
             segments,
-            tag,
         })
+    }
+
+    pub(crate) fn parse_tagged(parser: &mut Parser) -> SyntaxResult<Self> {
+        let dollar = parser
+            .expect(TokenType::OpDollar)
+            .expect("caller should have found this");
+        let tag = Identifier::parse(parser)?;
+
+        if let Ok(template_start) = parser.expect(TokenType::String) {
+            return Ok(Self {
+                span: dollar.span.union(template_start.span),
+                tag: Some((dollar, tag)),
+                template_start,
+                segments: vec![],
+            });
+        }
+
+        Self::parse(Some((dollar, tag)), parser)
+    }
+
+    pub(crate) fn parse_bare(parser: &mut Parser) -> SyntaxResult<Self> {
+        Self::parse(None, parser)
     }
 
     pub fn prefix(&self) -> String {

@@ -74,7 +74,7 @@ func choice [parser, ..rest] = do () {
         yield 'reject(err)
       }
       when 'reject(errs) then {
-        yield 'reject($"${err}, or ${errs}")
+        yield 'reject("${err}, or ${errs}")
       }
       else yield
     else yield
@@ -163,7 +163,7 @@ func char c = do() {
     yield 'accept
     return c
   } else {
-    yield 'reject($"expected '${c}', got '${actual}'")
+    yield 'reject("expected '${c}', got '${actual}'")
   }
 }
 

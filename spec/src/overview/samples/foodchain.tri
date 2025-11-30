@@ -17,9 +17,9 @@ rule chain(a, d) <- eats(a, b) and chain(b, c) and eats(c, d)
 proc main!() {
     let animal = Atom readline!()
     for chain(^animal, eats) {
-        println!($"${animal} is above ${eats}")
+        println!("${animal} is above ${eats}")
     }
     for chain(eater, ^animal) {
-        println!($"${animal} is below ${eater}")
+        println!("${animal} is below ${eater}")
     }
 }

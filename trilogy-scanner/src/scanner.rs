@@ -262,17 +262,13 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Not my best method signature, but it gets the job done.
-    fn string_or_template(&mut self, on_continue: Option<TokenType>, on_end: TokenType) -> Token {
+    fn string_or_template(&mut self, on_continue: TokenType, on_end: TokenType) -> Token {
         let mut content = String::new();
         while let Some(mut ch) = self.consume() {
             if ch == '"' {
                 return self.make_token(on_end).with_value(content);
             }
-            if let Some(on_continue) = on_continue
-                && ch == '$'
-                && self.expect(|ch| ch == '{').is_some()
-            {
+            if ch == '$' && self.expect(|ch| ch == '{').is_some() {
                 return self.make_token(on_continue).with_value(content);
             }
             if ch == '\\' {
@@ -521,12 +517,10 @@ impl Iterator for Scanner<'_> {
             ch @ ('_' | 'a'..='z' | 'A'..='Z') => self.identifier_or_keyword(ch),
             '\'' => self.char_or_atom(),
             '#' => self.comment(),
-            '"' => self.string_or_template(None, String),
+            '"' => self.string_or_template(TemplateStart, String),
             // Feels slightly irresponsible to put side effects into a guard...
             // but it's been done all over this file. Apologies to reader.
-            '$' if self.expect('"').is_some() => {
-                self.string_or_template(Some(TemplateStart), DollarString)
-            }
+            '$' => self.make_token(OpDollar),
             '!' if self.expect('=').is_some() => {
                 if self.expect('=').is_some() {
                     self.make_token(OpBangEqEq)
@@ -543,9 +537,7 @@ impl Iterator for Scanner<'_> {
                 self.nesting.push('{');
                 self.make_token(OBrace)
             }
-            '}' if self.context('$') => {
-                self.string_or_template(Some(TemplateContinue), TemplateEnd)
-            }
+            '}' if self.context('$') => self.string_or_template(TemplateContinue, TemplateEnd),
             '}' => {
                 if self.context('{') {
                     self.nesting.pop();

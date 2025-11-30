@@ -19,11 +19,6 @@ for templates.
         \bnfpn{TemplateMore}
         \bnfor
     } \\
-    \bnfmore{
-        \bnfpn{DollarString}
-        \bnfor
-        \bnfpn{TemplateString}
-    } \\
     \bnfprod{TemplateMore}{
         \bnfpn{Expression}
         \bnfsp
@@ -36,7 +31,20 @@ for templates.
         \bnfpn{Expression}
         \bnfsp
         \bnfpn{TemplateEnd}
-    }
+    } \\
+    \bnfprod{TaggedTemplate}{
+        \bnfts{\$}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfpn{String}
+        \bnfor
+        \bnfts{\$}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfpn{Template}
+    }\\
 \end{bnf*}
 
 The semantics are quite different depending on whether the template was tagged

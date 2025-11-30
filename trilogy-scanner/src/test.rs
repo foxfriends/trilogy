@@ -374,8 +374,9 @@ test_tokenize!(string_escape_incomplete => r#""hello\"# = [Error]);
 test_tokenize!(string_escape_quote_incomplete => r#""hello\""# = [Error]);
 test_tokenize!(string_incomplete => r#""hello"# = [Error]);
 
-test_tokenize!(dollar_string => r#"$"hello""# = [DollarString]);
-test_tokenize!(template => r#"$"hello${3}world${4}end""# = [TemplateStart Numeric TemplateContinue Numeric TemplateEnd]);
+test_tokenize!(template => r#""hello${3}world${4}end""# = [TemplateStart Numeric TemplateContinue Numeric TemplateEnd]);
+test_tokenize!(tagged_template => r#"$ident"hello${3}world${4}end""# = [OpDollar Identifier TemplateStart Numeric TemplateContinue Numeric TemplateEnd]);
+test_tokenize!(tagged_string => r#"$ident"hello""# = [OpDollar Identifier String]);
 
 test_tokenize!(bang_oparen => "!(" = [OpBang OParen]);
 test_tokenize!(spaced_bang_oparen => "! (" = [OpBang Space OParen]); // a specifically used fact

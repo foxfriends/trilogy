@@ -114,7 +114,7 @@ impl Expression {
         KwFn,
         KwDo,
         KwQy,
-        DollarString,
+        OpDollar,
         TemplateStart,
         OParen,
     ];
@@ -367,9 +367,10 @@ impl Expression {
             KwFn => Ok(Ok(Self::Fn(Box::new(FnExpression::parse(parser)?)))),
             KwDo => Ok(Ok(Self::Do(Box::new(DoExpression::parse(parser)?)))),
             KwQy => Ok(Ok(Self::Qy(Box::new(QyExpression::parse(parser)?)))),
-            DollarString | TemplateStart => {
-                Ok(Ok(Self::Template(Box::new(Template::parse(parser)?))))
-            }
+            OpDollar => Ok(Ok(Self::Template(Box::new(Template::parse_tagged(
+                parser,
+            )?)))),
+            TemplateStart => Ok(Ok(Self::Template(Box::new(Template::parse_bare(parser)?)))),
             OParen => match KeywordReference::try_parse(parser) {
                 Some(keyword) => Ok(Ok(Self::Keyword(Box::new(keyword)))),
                 None => match ParenthesizedExpression::parse(parser)? {

@@ -173,16 +173,16 @@ export slice
 
 export to_string
 func to_string val = match val
-  case lhs:rhs then $"${lhs}:${rhs}"
+  case lhs:rhs then "${lhs}:${rhs}"
   case typeof 'struct {
     let lhs:rhs = c::destruct!(val)
-    $"${lhs}(${rhs})"
+    "${lhs}(${rhs})"
   }
   case typeof 'array {
     let mut str = "["
     let mut i = 0
     while i < c::length!(val) {
-      str <>= $"${val.i}"
+      str <>= "${val.i}"
       i += 1
       if i != c::length!(val) {
         str <>= ", "
@@ -195,7 +195,7 @@ func to_string val = match val
     let mut i = 0
     let arr = c::set_to_array!(val)
     while i < c::length!(arr) {
-      str <>= $"${arr.i}"
+      str <>= "${arr.i}"
       i += 1
       if i != c::length!(arr) {
         str <>= ", "
@@ -208,7 +208,7 @@ func to_string val = match val
     let mut i = 0
     let arr = c::record_to_array!(val)
     while i < c::length!(arr) {
-      str <>= $"${arr.i.'left} => ${arr.i.'right}"
+      str <>= "${arr.i.'left} => ${arr.i.'right}"
       i += 1
       if i != c::length!(arr) {
         str <>= ", "
@@ -320,20 +320,20 @@ proc test_main!(tests) {
   let mut successes = 0
   let mut failures = 0
 
-  c::print!($"running ${length tests} tests\n\n")
+  c::print!("running ${length tests} tests\n\n")
 
   for test_name:test_procedure in tests {
-    c::print!($"test ${test_name} ... ")
+    c::print!("test ${test_name} ... ")
     with test_procedure!()
       when 'assertion_failed(msg) then {
         c::print!(red "assertion failed")
-        c::print!($": ${msg}\n")
+        c::print!(": ${msg}\n")
         failures += 1
         continue unit
       }
       else eff then {
         c::print!(red "failure")
-        c::print!($": unhandled effect yielded from test: ${eff}\n")
+        c::print!(": unhandled effect yielded from test: ${eff}\n")
         failures += 1
         continue unit
       }
@@ -342,7 +342,7 @@ proc test_main!(tests) {
     successes += 1
   }
   let result = if failures == 0 then green "ok" else red "failure"
-  c::print!($"\ntest result: ${result}. ${successes} passed; ${failures} failed\n")
+  c::print!("\ntest result: ${result}. ${successes} passed; ${failures} failed\n")
 
   if failures != 0 {
     exit 1

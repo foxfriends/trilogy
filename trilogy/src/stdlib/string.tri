@@ -19,8 +19,8 @@ test "string chars" {
 }
 
 func join _ [] = ""
-func join _ [a] = $"${a}"
-func join sep [a, ..strs] = $"${a}${sep}${join sep strs}"
+func join _ [a] = "${a}"
+func join sep [a, ..strs] = "${a}${sep}${join sep strs}"
 
 test "string join" {
   assert join " " ["hello", "there", "world"] == "hello there world"
@@ -75,7 +75,7 @@ func replace original replacement string =
     then string
   else if starts_with original string
     then replacement <> slice (length original) (length string) string
-  else $"${string.0}" <> (replace original replacement <| slice 1 (length string) string)
+  else "${string.0}" <> (replace original replacement <| slice 1 (length string) string)
 
 test "string replace" {
   assert replace "h" "y" "hello" == "yello"
@@ -93,7 +93,7 @@ func replace_all original replacement string =
     then string
   else if starts_with original string
     then replacement <> (replace_all original replacement <| slice (length original) (length string) string)
-  else $"${string.0}" <> (replace_all original replacement <| slice 1 (length string) string)
+  else "${string.0}" <> (replace_all original replacement <| slice 1 (length string) string)
 
 test "string replace_all" {
   assert replace_all "h" "y" "hello" == "yello"

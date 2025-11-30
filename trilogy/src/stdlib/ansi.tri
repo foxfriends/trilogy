@@ -48,7 +48,7 @@ const BG_BRIGHT_WHITE = "\u{001b}[107m"
 
 export black, red, green, yellow, blue, magenta, cyan, white
 
-func apply_color color text = $"${color}${text}${RESET_COLOR}"
+func apply_color color text = "${color}${text}${RESET_COLOR}"
 
 func black text = apply_color BLACK text
 func red text = apply_color RED text
@@ -94,11 +94,11 @@ func bg_bright_white text = apply_color BG_BRIGHT_WHITE text
 
 export fg, bg, fg_rgb, bg_rgb
 
-func fg id text = apply_color ($"\u{001b}[38;5;${id}m") text
-func bg id text = apply_color ($"\u{001b}[48;5;${id}m") text
+func fg id text = apply_color ("\u{001b}[38;5;${id}m") text
+func bg id text = apply_color ("\u{001b}[48;5;${id}m") text
 
-func fg_rgb r g b text = apply_color ($"\u{001b}[38;2;${r};${g};${b}m") text
-func bg_rgb r g b text = apply_color ($"\u{001b}[48;2;${r};${g};${b}m") text
+func fg_rgb r g b text = apply_color ("\u{001b}[38;2;${r};${g};${b}m") text
+func bg_rgb r g b text = apply_color ("\u{001b}[48;2;${r};${g};${b}m") text
 
 # Attributes
 
@@ -107,44 +107,44 @@ export bold, dim, italic, underline, blink, inverse, invisible, strikethrough, d
 const BOLD = "\u{001b}[1m"
 const RESET_BOLD = "\u{001b}[22m"
 
-func bold text = $"${BOLD}${text}${RESET_BOLD}"
+func bold text = "${BOLD}${text}${RESET_BOLD}"
 
 const DIM = "\u{001b}[2m"
 const RESET_DIM = "\u{001b}[22m"
 
-func dim text = $"${DIM}${text}${RESET_DIM}"
+func dim text = "${DIM}${text}${RESET_DIM}"
 
 const ITALIC = "\u{001b}[3m"
 const RESET_ITALIC = "\u{001b}[23m"
 
-func italic text = $"${ITALIC}${text}${RESET_ITALIC}"
+func italic text = "${ITALIC}${text}${RESET_ITALIC}"
 
 const UNDERLINE = "\u{001b}[4m"
 const RESET_UNDERLINE = "\u{001b}[24m"
 
-func underline text = $"${UNDERLINE}${text}${RESET_UNDERLINE}"
+func underline text = "${UNDERLINE}${text}${RESET_UNDERLINE}"
 
 const BLINK = "\u{001b}[5m"
 const RESET_BLINK = "\u{001b}[25m"
 
-func blink text = $"${BLINK}${text}${RESET_BLINK}"
+func blink text = "${BLINK}${text}${RESET_BLINK}"
 
 const INVERSE = "\u{001b}[7m"
 const RESET_INVERSE = "\u{001b}[27m"
 
-func inverse text = $"${INVERSE}${text}${RESET_INVERSE}"
+func inverse text = "${INVERSE}${text}${RESET_INVERSE}"
 
 const INVISIBLE = "\u{001b}[8m"
 const RESET_INVISIBLE = "\u{001b}[28m"
 
-func invisible text = $"${INVISIBLE}${text}${RESET_INVISIBLE}"
+func invisible text = "${INVISIBLE}${text}${RESET_INVISIBLE}"
 
 const STRIKETHROUGH = "\u{001b}[9m"
 const RESET_STRIKETHROUGH = "\u{001b}[29m"
 
-func strikethrough text = $"${STRIKETHROUGH}${text}${RESET_STRIKETHROUGH}"
+func strikethrough text = "${STRIKETHROUGH}${text}${RESET_STRIKETHROUGH}"
 
 const DOUBLE_UNDERLINE = "\u{001b}[21m"
 const RESET_DOUBLE_UNDERLINE = "\u{001b}[24m"
 
-func double_underline text = $"${DOUBLE_UNDERLINE}${text}${RESET_DOUBLE_UNDERLINE}"
+func double_underline text = "${DOUBLE_UNDERLINE}${text}${RESET_DOUBLE_UNDERLINE}"

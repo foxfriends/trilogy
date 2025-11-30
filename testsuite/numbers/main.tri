@@ -95,13 +95,13 @@ proc main!() {
   assert "int pow odd" as 2 ** 7 == 128
   assert "int pow neg" as 2 ** -7 == 1/128
 
-  assert "str 1" as $"${0}" == "0"
-  assert "str 2" as $"${31}" == "31"
-  assert "str 3" as $"${10000000000000000000}" == "10000000000000000000"
-  assert "str 4" as $"${18446744090889420804}" == "18446744090889420804"
-  assert "str 5" as $"${-5}" == "-5"
-  assert "str 6" as $"${5/3}" == "5/3"
-  assert "str 7" as $"${-5/3}" == "-5/3"
+  assert "str 1" as "${0}" == "0"
+  assert "str 2" as "${31}" == "31"
+  assert "str 3" as "${10000000000000000000}" == "10000000000000000000"
+  assert "str 4" as "${18446744090889420804}" == "18446744090889420804"
+  assert "str 5" as "${-5}" == "-5"
+  assert "str 6" as "${5/3}" == "5/3"
+  assert "str 7" as "${-5/3}" == "-5/3"
 
   assert "imaginary add" as 0i3 + 0i4 == 0i7
   assert "imaginary sub" as 0i3 - 0i4 == -0i1
@@ -116,11 +116,11 @@ proc main!() {
   assert "complex mod real" as 3i3 % 4 == 3i3
   assert "complex mod complex" as 37i226 % 26i120 == 11i106
 
-  assert "str 8" as $"${3i4}" == "3+4i"
-  assert "str 9" as $"${-3i4}" == "-3-4i"
-  assert "str 10" as $"${0i4}" == "4i"
-  assert "str 11" as $"${-3 + 0i4}" == "-3+4i"
-  assert "str 12" as $"${3 - 0i4}" == "3-4i"
+  assert "str 8" as "${3i4}" == "3+4i"
+  assert "str 9" as "${-3i4}" == "-3-4i"
+  assert "str 10" as "${0i4}" == "4i"
+  assert "str 11" as "${-3 + 0i4}" == "-3+4i"
+  assert "str 12" as "${3 - 0i4}" == "3-4i"
 
   assert "cmp lt true" as 3 < 5
   assert "cmp lt false" as !(9 < 5)

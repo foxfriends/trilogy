@@ -176,9 +176,7 @@ pub enum TokenType {
     Numeric,
     /// A string literal (e.g. `"hello world"`)
     String,
-    /// A template string with no interpolations (e.g. `$"hello"`)
-    DollarString,
-    /// The beginning of a template string (e.g. `$"hello{`)
+    /// The beginning of a template string (e.g. `"hello{`)
     TemplateStart,
     /// The middle of a template string (e.g. `}hello{`)
     TemplateContinue,
@@ -347,6 +345,8 @@ pub enum TokenType {
     OpGlueEq,
     /// `~=`
     OpTildeEq,
+    /// `$`
+    OpDollar,
 
     /// `?`
     OpQuestion,

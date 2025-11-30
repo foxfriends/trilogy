@@ -420,7 +420,7 @@ impl Expression {
         let span = ast.span();
         let prefix_str = ast.prefix();
         match ast.tag {
-            Some(tag) => {
+            Some((_, tag)) => {
                 let prefix = Self::string(ast.template_start.span, prefix_str);
                 let (strings, interpolations) = ast
                     .segments

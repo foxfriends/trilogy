@@ -2,5 +2,5 @@ func fac n = n * fac n - 1
 func fac 0 = 1
 
 proc main!() {
-    print!($"3! = ${fac 3}")
+    print!("3! = ${fac 3}")
 }

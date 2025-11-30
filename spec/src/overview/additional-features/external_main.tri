@@ -15,5 +15,5 @@ proc main!() {
         + ForeignModule::getRandomNumber!()
         + HereModule::getRandomNumber!()
 
-    println!($"total random numbers: ${total}")
+    println!("total random numbers: ${total}")
 }

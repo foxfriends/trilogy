@@ -2,7 +2,7 @@ proc my_program!() {
   yield 'put(3:4)
   yield 'put(5:6)
   return match yield 'get(3)
-    case 'some(v) then $"${v}"
+    case 'some(v) then "${v}"
     case 'none then "nothing here"
     else then end
 }

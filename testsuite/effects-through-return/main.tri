@@ -16,5 +16,5 @@ proc main!() {
       cancel first:second
     }
     else yield
-  assert $"result is ${result}" as result == 1:2
+  assert "result is ${result}" as result == 1:2
 }

@@ -13,7 +13,7 @@ func calories "cheese" = 120
 proc main!() {
     println!("Enter your meal. Options:")
     for food(item, _) {
-        println!($"${item}")
+        println!("${item}")
     }
 
     let mut meal = []
@@ -24,7 +24,7 @@ proc main!() {
         if food(^item, _) {
             meal[length meal] = item
         } else {
-            println($"${item} is not a known type of food")
+            println("${item} is not a known type of food")
         }
     }
 

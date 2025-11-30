@@ -255,12 +255,9 @@ may be omitted (i.e. \val{0i5} not \texttt{i5}, and \val{13i0} not
 \subsection{String and Character Literals}
 
 Strings in \Trilogy{} are always enclosed in double quotes (\texttt{"}).
-
-Special ``template strings'' are prefixed with a \texttt{\$}, or tagged
-template strings are prefixed with a \texttt{\$} and an identifier.
-String tokenization ends up producing many types of tokens for template
-strings, where template strings containing no interpolations are parsed
-as regular strings:
+They may contain interpolations, so the tokens and syntax for strings is
+notably more complex than just strings. Special ``tagged templates'' a
+\texttt{\$} and an identifier.
 
 \begin{bnf*}
     \bnfprod{String}{
@@ -270,33 +267,7 @@ as regular strings:
         \bnfsp
         \bnfts{"}
     } \\
-    \bnfprod{DollarString}{
-        \bnfts{\$"}
-        \bnfsp
-        \bnfpn{content}
-        \bnfsp
-        \bnfts{"}
-    }\\
-    \bnfprod{TaggedString}{
-        \bnfts{\$"}
-        \bnfsp
-        \bnfpn{content}
-        \bnfsp
-        \bnfts{"}
-    }\\
     \bnfprod{TemplateStart}{
-        \bnfts{\$"}
-        \bnfsp
-        \bnfpn{content}
-        \bnfsp
-        \bnfts{\$\{}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\$}
-        \bnfsp
-        \bnfts{Identifier}
-        \bnfsp
         \bnfts{"}
         \bnfsp
         \bnfpn{content}

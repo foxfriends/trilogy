@@ -35,5 +35,5 @@ proc main() {
     let lc = length lines
     let wc = length (flatMap words lines)
     let cc = length (join "\n" lines)
-    println!($"${lc} ${wc} ${cc}")
+    println!("${lc} ${wc} ${cc}")
 }

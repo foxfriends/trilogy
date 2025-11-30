@@ -10,7 +10,7 @@ proc print!(value and typeof 'string) {
 
 export println
 proc println!(value and typeof 'string) {
-  let err = core::print!($"${value}\n")
+  let err = core::print!("${value}\n")
   if err < 0 {
     yield 'ioerror
   }

@@ -19,8 +19,8 @@ proc main!() {
         min = if (min < dur) == true then min else dur
     }
 
-    println!($"Total: ${fmt_ns total}")
-    println!($"Max: ${fmt_ns max}")
-    println!($"Min: ${fmt_ns min}")
-    println!($"Average: ${fmt_ns (total // 1000)}")
+    println!("Total: ${fmt_ns total}")
+    println!("Max: ${fmt_ns max}")
+    println!("Min: ${fmt_ns min}")
+    println!("Average: ${fmt_ns (total // 1000)}")
 }

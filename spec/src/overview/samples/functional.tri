@@ -18,5 +18,5 @@ proc main!() {
         |> digitsInBase 16
         |> map toHex
         |> foldr "" (<>)
-    println!($"${input} in hexadecimal is ${hexstring}")
+    println!("${input} in hexadecimal is ${hexstring}")
 }

@@ -1,19 +1,19 @@
 import "trilogy:io" as io
 
 proc main!() {
-  io::println!($"${unit}")
-  io::println!($"${true}")
-  io::println!($"${false}")
-  io::println!($"${3}")
-  io::println!($"${'hello}")
-  io::println!($"${"hi"}")
-  io::println!($"${0bb01}")
-  io::println!($"${1:'b}")
-  io::println!($"${'hello('world)}")
-  io::println!($"${[]}")
-  io::println!($"${[1, 2]}")
-  let set_string = $"${[|1, 2|]}"
+  io::println!("${unit}")
+  io::println!("${true}")
+  io::println!("${false}")
+  io::println!("${3}")
+  io::println!("${'hello}")
+  io::println!("${"hi"}")
+  io::println!("${0bb01}")
+  io::println!("${1:'b}")
+  io::println!("${'hello('world)}")
+  io::println!("${[]}")
+  io::println!("${[1, 2]}")
+  let set_string = "${[|1, 2|]}"
   assert set_string == "[|1, 2|]" || set_string == "[|2, 1|]"
-  let record_string = $"${{| 'a => 'b, 'c => 'd |}}"
+  let record_string = "${{| 'a => 'b, 'c => 'd |}}"
   assert record_string == "{|a => b, c => d|}" || record_string == "{|c => d, a => b|}"
 }
