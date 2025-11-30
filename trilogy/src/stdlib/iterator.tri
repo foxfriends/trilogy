@@ -1,0 +1,1 @@
+func of val = do() yield 'next(val)

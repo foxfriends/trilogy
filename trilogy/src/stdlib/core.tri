@@ -162,6 +162,12 @@ export panic
 const trace = c::trace
 export trace
 
+const push = c::push
+export push
+
+const append = c::append
+export append
+
 func slice i fin arr =
   if i > fin || i < 0 then
     yield 'arg

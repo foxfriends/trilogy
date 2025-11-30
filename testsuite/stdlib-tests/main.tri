@@ -1,2 +1,5 @@
 import "trilogy:array"
 import "trilogy:string"
+import "trilogy:number"
+import "trilogy:iterator"
+import "trilogy:parsec"

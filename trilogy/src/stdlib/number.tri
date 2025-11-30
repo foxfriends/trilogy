@@ -1,0 +1,12 @@
+export from_digit
+
+func from_digit '9' = 9
+func from_digit '8' = 8
+func from_digit '7' = 7
+func from_digit '6' = 6
+func from_digit '5' = 5
+func from_digit '4' = 4
+func from_digit '3' = 3
+func from_digit '2' = 2
+func from_digit '1' = 1
+func from_digit '0' = 0

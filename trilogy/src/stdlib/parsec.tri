@@ -4,9 +4,10 @@
 #!    https://hackage.haskell.org/package/parsec-3.1.18.0/docs/Text-Parsec-Combinator.html
 import "trilogy:debug" use dbg
 import "trilogy:array" as array
+import "trilogy:number" as num
 import "trilogy:string" as str
 
-export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, end_by, end_by_1, eof, char, string
+export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, end_by, end_by_1, eof, char, char_of, digit, string, integer
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
@@ -174,3 +175,27 @@ func string s = s
   |> seq
   |> map (str::join "")
   |> atomic
+
+## A parser for any single character from a string.
+func char_of s = s
+  |> str::chars
+  |> array::map char
+  |> choice
+
+## A parser for any base-10 digit.
+proc digit!() {
+  return apply <| char_of "0123456789"
+}
+
+## Parses a base-10 integer from a string, returning the value as a number.
+proc integer!() {
+  let digits = apply <| many_1 digit
+  return digits
+    |> array::map (num::from_digit)
+    |> array::fold (fn a d. 10 * a + d) 0
+}
+
+test "parsec integer" {
+  assert parse integer "12345" == 12345
+  assert parse integer "000300" == 300
+}

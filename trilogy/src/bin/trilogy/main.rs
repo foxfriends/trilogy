@@ -99,9 +99,8 @@ fn run(trilogy: Trilogy, print: bool, debug: bool) {
         Ok(value) if print => {
             println!("{value:?}");
         }
-        Ok(value) => {
-            // NOTE: for now, we're printing no matter what...
-            println!("{value:?}");
+        Ok(_value) => {
+            // NOTE: for now, exit codes don't return to Rust properly, so we don't use them
         }
         Err(error) if debug => {
             eprintln!("{error:?}");

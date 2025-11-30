@@ -22,6 +22,14 @@ where
             include_str!("./string.tri").to_owned(),
         )
         .source_module(
+            Location::library("number").unwrap(),
+            include_str!("./number.tri").to_owned(),
+        )
+        .source_module(
+            Location::library("iterator").unwrap(),
+            include_str!("./iterator.tri").to_owned(),
+        )
+        .source_module(
             Location::library("array").unwrap(),
             include_str!("./array.tri").to_owned(),
         )

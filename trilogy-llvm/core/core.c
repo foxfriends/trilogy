@@ -183,8 +183,14 @@ void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
         trilogy_array_push(trilogy_array_assume(arr), &pushing);
         break;
     }
+    case TAG_SET: {
+        trilogy_value pushing = trilogy_undefined;
+        trilogy_value_clone_into(&pushing, val);
+        trilogy_set_insert(trilogy_set_assume(arr), &pushing);
+        break;
+    }
     default:
-        rte("array, set, or record", arr->tag);
+        rte("array or set", arr->tag);
     }
     *rv = trilogy_unit;
 }
@@ -195,6 +201,18 @@ void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
         trilogy_value appending = trilogy_undefined;
         trilogy_value_clone_into(&appending, val);
         trilogy_array_append(trilogy_array_assume(arr), &appending);
+        break;
+    }
+    case TAG_SET: {
+        trilogy_value appending = trilogy_undefined;
+        trilogy_value_clone_into(&appending, val);
+        trilogy_set_append(trilogy_set_assume(arr), &appending);
+        break;
+    }
+    case TAG_RECORD: {
+        trilogy_value appending = trilogy_undefined;
+        trilogy_value_clone_into(&appending, val);
+        trilogy_record_append(trilogy_record_assume(arr), &appending);
         break;
     }
     default:

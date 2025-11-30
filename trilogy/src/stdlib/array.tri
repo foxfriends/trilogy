@@ -1,7 +1,34 @@
 import "trilogy:core" as core
 
+export push, extend, length, map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect
+
+proc push!(arr and typeof 'array, value) {
+  core::push!(arr, value)
+  return arr
+}
+
+test "array push" {
+  let array = []
+  assert push!(array, 3) === array
+  assert array == [3]
+  assert push!(array, 4) === array
+  assert array == [3, 4]
+}
+
+proc extend!(arr and typeof 'array, value and typeof 'array) {
+  core::append!(arr, value)
+  return arr
+}
+
+test "array push" {
+  let array = []
+  assert extend!(array, [1, 2]) === array
+  assert array == [1, 2]
+  assert extend!(array, [3, 4]) === array
+  assert array == [1, 2, 3, 4]
+}
+
 func length (arr and typeof 'array) = core::length arr
-export length
 
 test "array length" {
   assert length [] == 0
@@ -11,7 +38,6 @@ test "array length" {
 
 func map _ [] = []
 func map f [x, ..xs] = [f x, ..map f xs]
-export map
 
 test "array map" {
   assert map (fn x. x * 2) [] == []
@@ -27,7 +53,6 @@ func filter p [x, ..xs] =
   if p x
     then [x, ..filter p xs]
     else filter p xs
-export filter
 
 test "array filter" {
   assert filter (fn x. x % 2 == 0) [] == []
@@ -40,7 +65,6 @@ test "array filter" {
 
 func fold _ a [] = a
 func fold f a [x, ..xs] = fold f (f a x) xs
-export fold
 
 test "array fold" {
   assert fold (+) 0 [1, 2, 3, 4] == 10
@@ -50,7 +74,6 @@ test "array fold" {
 
 func rfold _ a [] = a
 func rfold f a [x, ..xs] = f (rfold f a xs) x
-export rfold
 
 test "array rfold" {
   assert rfold (+) 0 [1, 2, 3, 4] == 10
@@ -60,7 +83,6 @@ test "array rfold" {
 
 func reduce f [] = yield 'mia
 func reduce f [x, ..xs] = fold f x xs
-export reduce
 
 test "array reduce" {
   assert reduce (+) [1, 2, 3, 4] == 10
@@ -72,7 +94,6 @@ test "array reduce" {
 
 func rreduce f [] = yield 'mia
 func rreduce f [..xs, x] = rfold f x xs
-export rreduce
 
 test "array rreduce" {
   assert rreduce (+) [1, 2, 3, 4] == 10
@@ -84,7 +105,6 @@ test "array rreduce" {
 
 func reverse [] = []
 func reverse [x, ..xs] = [..reverse xs, x]
-export reverse
 
 test "array reverse" {
   assert reverse [] == []
@@ -95,7 +115,6 @@ test "array reverse" {
 }
 
 func concat (xs and typeof 'array) (ys and typeof 'array) = [..xs, ..ys]
-export concat
 
 test "array concat" {
   assert concat [1, 2] [3, 4] == [1, 2, 3, 4]
@@ -103,7 +122,6 @@ test "array concat" {
 }
 
 func append x (xs and typeof 'array) = [..xs, x]
-export append
 
 test "array append" {
   assert append 3 [1, 2] == [1, 2, 3]
@@ -114,7 +132,6 @@ test "array append" {
 }
 
 func prepend x (xs and typeof 'array) = [x, ..xs]
-export prepend
 
 test "array prepend" {
   assert prepend 3 [1, 2] == [3, 1, 2]
@@ -126,7 +143,6 @@ test "array prepend" {
 
 func first [] = yield 'mia
 func first [x, .._] = x
-export first
 
 test "array first" {
   assert first [1, 2, 3] == 1
@@ -137,7 +153,6 @@ test "array first" {
 
 func last [] = yield 'mia
 func last [.._, x] = x
-export last
 
 test "array last" {
   assert last [1, 2, 3] == 3
@@ -148,7 +163,6 @@ test "array last" {
 
 func tail [] = yield 'mia
 func tail [_, ..xs] = xs
-export tail
 
 test "array tail" {
   assert tail [1, 2, 3] == [2, 3]
@@ -159,7 +173,6 @@ test "array tail" {
 
 func head [] = yield 'mia
 func head [..xs, _] = xs
-export head
 
 test "array head" {
   assert head [1, 2, 3] == [1, 2]
@@ -169,7 +182,6 @@ test "array head" {
 }
 
 func slice i fin (arr and typeof 'array) = core::slice i fin arr
-export slice
 
 test "array slice" {
   assert slice 0 3 [1, 2, 3] == [1, 2, 3]
@@ -194,7 +206,6 @@ func take n (arr and typeof 'array) =
   if n <= length arr
     then slice 0 n arr
     else slice 0 (length arr) arr
-export take
 
 test "array take" {
   assert take 0 [1, 2, 3] == []
@@ -211,7 +222,6 @@ func skip n (arr and typeof 'array) =
   if n < length arr
     then slice n (length arr) arr
     else []
-export skip
 
 test "array skip" {
   assert skip 0 [1, 2, 3] == [1, 2, 3]
@@ -228,7 +238,6 @@ func drop n (arr and typeof 'array) =
   if n < 0 then yield 'arg
   else if n >= length arr then []
   else slice 0 (length arr - n) arr
-export drop
 
 test "array drop" {
   assert drop 0 [1, 2, 3] == [1, 2, 3]
@@ -239,4 +248,22 @@ test "array drop" {
   assert with (drop (-1) [1, 2, 3]; false)
     when 'arg cancel true
     else yield
+}
+
+func collect iterator =
+  let arr = [],
+  with (iterator!(); arr)
+    when 'next(val) then {
+      push!(arr, val)
+      become unit
+    }
+    else yield
+
+test "array collect" {
+  let iterator = do() {
+    yield 'next(1)
+    yield 'next(2)
+    yield 'next(3)
+  }
+  assert collect iterator == [1, 2, 3]
 }
