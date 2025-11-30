@@ -1,7 +1,6 @@
 use crate::codegen::Codegen;
 use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE};
 use crate::{IMPLICIT_PARAMS, TAIL_CALL_CONV};
-use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::values::{
     BasicMetadataValueEnum, FunctionValue, InstructionValue, IntValue, LLVMTailCallKind,
     PointerValue,
@@ -446,7 +445,6 @@ impl<'ctx> Codegen<'ctx> {
         let mut args = vec![target.into()];
         args.extend_from_slice(arguments);
         let call = self.builder.build_call(procedure, &args, "").unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.try_as_basic_value().unwrap_instruction()
     }
 
@@ -626,6 +624,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         value: PointerValue<'ctx>,
         arguments: &[BasicMetadataValueEnum<'ctx>],
+        call_conv: u32,
     ) -> PointerValue<'ctx> {
         let chain_function = self.add_continuation("return");
         let yield_function = self.add_continuation("unhandled_effect");
@@ -700,7 +699,7 @@ impl<'ctx> Codegen<'ctx> {
                 "",
             )
             .unwrap();
-        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
+        call.set_call_convention(call_conv);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);
         self.builder.build_return(None).unwrap();
 

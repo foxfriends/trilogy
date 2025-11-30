@@ -263,7 +263,6 @@ impl<'ctx> Codegen<'ctx> {
         let accessor =
             self.module
                 .add_function(name, self.accessor_type(has_context), Some(linkage));
-        accessor.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
         accessor.get_nth_param(0).unwrap().set_name("output");
         if has_context {
             accessor.get_nth_param(1).unwrap().set_name("closure");
@@ -275,7 +274,6 @@ impl<'ctx> Codegen<'ctx> {
         let accessor =
             self.module
                 .add_function(name, self.accessor_type(false), Some(Linkage::External));
-        accessor.set_call_conventions(TAIL_CALL_CONV);
         accessor.get_nth_param(0).unwrap().set_name("output");
         accessor
     }

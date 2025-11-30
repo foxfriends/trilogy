@@ -1,6 +1,8 @@
+use crate::TAIL_CALL_CONV;
 use crate::{TrilogyValue, codegen::Codegen};
 use inkwell::debug_info::AsDIScope;
 use inkwell::execution_engine::ExecutionEngine;
+use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::llvm_sys::debuginfo::LLVMDIFlagPublic;
 use inkwell::memory_buffer::MemoryBuffer;
 use inkwell::module::Module;
@@ -52,7 +54,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(main, main_accessor, &[]);
 
         // Call main
-        let output = self.call_main(main, &[]);
+        let output = self.call_main(main, &[], LLVMCallConv::LLVMFastCallConv as u32);
         _ = self.exit(output);
         self.close_continuation();
         self.di.pop_scope();
@@ -111,7 +113,7 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(main, main_accessor, &[]);
 
         // Call main
-        let return_pointer = self.call_main(main, &[]);
+        let return_pointer = self.call_main(main, &[], LLVMCallConv::LLVMFastCallConv as u32);
         let return_value = self
             .builder
             .build_load(self.value_type(), return_pointer, "")
@@ -173,6 +175,7 @@ impl<'ctx> Codegen<'ctx> {
                 .build_load(self.value_type(), test_manifest, "")
                 .unwrap()
                 .into()],
+            TAIL_CALL_CONV,
         );
         self.builder.build_return(None).unwrap();
         self.close_continuation();
