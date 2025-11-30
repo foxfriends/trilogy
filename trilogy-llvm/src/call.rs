@@ -700,7 +700,7 @@ impl<'ctx> Codegen<'ctx> {
                 "",
             )
             .unwrap();
-        // call.set_call_convention(TAIL_CALL_CONV);
+        call.set_call_convention(LLVMCallConv::LLVMFastCallConv as u32);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);
         self.builder.build_return(None).unwrap();
 
