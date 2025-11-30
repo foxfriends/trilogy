@@ -3,10 +3,13 @@ use crate::types;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::execution_engine::ExecutionEngine;
+use inkwell::memory_manager::McjitMemoryManager;
 use inkwell::module::Module;
+use inkwell::targets::CodeModel;
 use inkwell::values::PointerValue;
 use inkwell::{OptimizationLevel, values::FunctionValue};
 use source_span::Span;
+use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -60,6 +63,54 @@ pub(crate) struct Codegen<'ctx> {
     pub(crate) current_resume: RefCell<Vec<PointerValue<'ctx>>>,
 }
 
+#[derive(Debug, Default)]
+struct MemoryManager {
+    sections: Vec<(*mut u8, Layout)>,
+}
+
+impl McjitMemoryManager for MemoryManager {
+    fn allocate_code_section(
+        &mut self,
+        size: libc::uintptr_t,
+        alignment: libc::c_uint,
+        section_id: libc::c_uint,
+        section_name: &str,
+    ) -> *mut u8 {
+        let layout = Layout::from_size_align(size, alignment as usize).unwrap();
+        log::debug!("Allocating {section_name} ({section_id}) {layout:?}");
+        let allocated = unsafe { System.alloc_zeroed(layout) };
+        self.sections.push((allocated, layout));
+        allocated
+    }
+
+    fn allocate_data_section(
+        &mut self,
+        size: libc::uintptr_t,
+        alignment: libc::c_uint,
+        section_id: libc::c_uint,
+        section_name: &str,
+        _is_read_only: bool,
+    ) -> *mut u8 {
+        let layout = Layout::from_size_align(size, alignment as usize).unwrap();
+        log::debug!("Allocating {section_name} ({section_id}) {layout:?}");
+        let allocated = unsafe { System.alloc_zeroed(layout) };
+        self.sections.push((allocated, layout));
+        allocated
+    }
+
+    fn finalize_memory(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn destroy(&mut self) {
+        for (ptr, layout) in self.sections.drain(..) {
+            unsafe {
+                System.dealloc(ptr, layout);
+            }
+        }
+    }
+}
+
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn new(
         context: &'ctx Context,
@@ -91,7 +142,13 @@ impl<'ctx> Codegen<'ctx> {
 
         let module = context.create_module("trilogy:runtime");
         let ee = module
-            .create_jit_execution_engine(OptimizationLevel::Aggressive)
+            .create_mcjit_execution_engine_with_memory_manager(
+                MemoryManager::default(),
+                OptimizationLevel::Aggressive,
+                CodeModel::JITDefault,
+                false,
+                false,
+            )
             .unwrap();
         let di = DebugInfo::new(&module, "trilogy:runtime", &ee);
 
