@@ -37,7 +37,7 @@ const IMPLICIT_PARAMS: usize = 5;
 const TAIL_CALL_CONV: u32 = 18;
 
 #[repr(C)]
-#[derive(Default, Debug)]
+#[derive(Copy, Clone, Default, Debug)]
 pub struct TrilogyValue {
     pub tag: u8,
     pub payload: u64,
@@ -74,6 +74,7 @@ pub fn evaluate(
         let tri_main = ee.get_function::<Entrypoint>("main").unwrap();
         log::debug!("calling main");
         tri_main.call();
+        log::debug!("called main");
     };
 
     output

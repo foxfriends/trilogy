@@ -111,7 +111,11 @@ impl<'ctx> Codegen<'ctx> {
         self.call_internal(main, main_accessor, &[]);
 
         // Call main
-        let return_value = self.call_main(main, &[]);
+        let return_pointer = self.call_main(main, &[]);
+        let return_value = self
+            .builder
+            .build_load(self.value_type(), return_pointer, "")
+            .unwrap();
         self.builder
             .build_store(output_ptr.as_pointer_value(), return_value)
             .unwrap();
