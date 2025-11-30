@@ -256,11 +256,11 @@ may be omitted (i.e. \val{0i5} not \texttt{i5}, and \val{13i0} not
 
 Strings in \Trilogy{} are always enclosed in double quotes (\texttt{"}).
 
-At this time, one other special type of string, the ``template string'',
-is prefixed with a \texttt{\$}. In future, other special strings may be %
-implemented. String tokenization ends up producing many types of tokens
-for template strings, where template strings containing no interpolations
-are parsed as regular strings:
+Special ``template strings'' are prefixed with a \texttt{\$}, or tagged
+template strings are prefixed with a \texttt{\$} and an identifier.
+String tokenization ends up producing many types of tokens for template
+strings, where template strings containing no interpolations are parsed
+as regular strings:
 
 \begin{bnf*}
     \bnfprod{String}{
@@ -271,25 +271,45 @@ are parsed as regular strings:
         \bnfts{"}
     } \\
     \bnfprod{DollarString}{
-        \bnfts{\$"} %
+        \bnfts{\$"}
+        \bnfsp
+        \bnfpn{content}
+        \bnfsp
+        \bnfts{"}
+    }\\
+    \bnfprod{TaggedString}{
+        \bnfts{\$"}
         \bnfsp
         \bnfpn{content}
         \bnfsp
         \bnfts{"}
     }\\
     \bnfprod{TemplateStart}{
-        \bnfts{\$"} %
+        \bnfts{\$"}
         \bnfsp
         \bnfpn{content}
         \bnfsp
-        \bnfts{\$\{} %
+        \bnfts{\$\{}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\$}
+        \bnfsp
+        \bnfts{Identifier}
+        \bnfsp
+        \bnfts{"}
+        \bnfsp
+        \bnfpn{content}
+        \bnfsp
+        \bnfts{\$\{}
+        \bnfor
     } \\
     \bnfprod{TemplateMiddle}{
         \bnfts{\}}
         \bnfsp
         \bnfpn{content}
         \bnfsp
-        \bnfts{\$\{} %
+        \bnfts{\$\{}
     } \\
     \bnfprod{TemplateEnd}{
         \bnfts{\}}

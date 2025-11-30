@@ -1,11 +1,9 @@
 \subsubsection{Assert}
 
 The last statement, of very low importance, is the \kw{assert} statement.
-In a real program the \kw{assert} statement is not likely to be used, as
-it is truly only a convenience when writing tests, further discussed in
-\S\ref{sec:tests}. Technically you could use an \kw{assert} statement
-in a real program, but its dramatic behaviour of triggering an assertion error
-and immediately ending the program in failure makes that typically undesirable.
+In a real program the \kw{assert} statement is likely only to be used to
+enforce invariants, or otherwise only in tests, which are further discussed in
+\S\ref{sec:tests}.
 
 \begin{bnf*}
     \bnfprod{Assert}{
@@ -27,17 +25,18 @@ and immediately ending the program in failure makes that typically undesirable.
 
 The \kw{assert} statement is optionally provided an expression (before \kw{as})
 which is only evaluated in case of failure to be included in an error message.
+If no message is provided, the source text of the expression being asserted is
+extracted and used as the message.
 
 The other (or only) expression is the condition which is used to determine
 whether to end the program. If it evaluates to \kw{true}, the assertion was
 a success and execution continues.
 
-When \kw{false}, the message expression (if any) is evaluated. The message
-expression may not call any continuations, and may not fail for any reason.
-If either of these requirements is violated, or the evaluation of the
-message expression takes longer than one second, it is abandoned. Any further
-runtime errors encountered during this expression are ignored. The program
-then ends with an assertion error.
+When \kw{false}, the message expression (if any) is evaluated, an effect is
+\kw{yield}ed of the form \texttt{'unhandled\_exception(message)}. While it is possible
+to handle this effect, it is not recommended for anything but exceptionally
+specific reasons, as assertion errors are typically a sign of programer failure.
+If the handler for this effect attempts to \kw{resume}, the program will end.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash C = \kw{true}$}
