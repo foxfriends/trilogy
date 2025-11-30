@@ -190,13 +190,10 @@ test "array slice" {
     else yield
 }
 
-func take_unsafe _ [] = []
-func take_unsafe 0 _ = []
-func take_unsafe n [x, ..arr] = [x, ..take (n - 1) arr]
 func take n (arr and typeof 'array) =
-  if n < 0
-    then yield 'arg
-    else take_unsafe n arr
+  if n <= length arr
+    then slice 0 n arr
+    else slice 0 (length arr) arr
 export take
 
 test "array take" {
@@ -210,13 +207,10 @@ test "array take" {
     else yield
 }
 
-func skip_unsafe _ [] = []
-func skip_unsafe 0 arr = arr
-func skip_unsafe n [_, ..arr] = skip (n - 1) arr
 func skip n (arr and typeof 'array) =
-  if n < 0
-    then yield 'arg
-    else skip_unsafe n arr
+  if n < length arr
+    then slice n (length arr) arr
+    else []
 export skip
 
 test "array skip" {
