@@ -190,6 +190,33 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    pub(crate) fn add_main(
+        &self,
+        name: &str,
+        debug_name: &str,
+        span: Span,
+        is_local_to_unit: bool,
+    ) -> FunctionValue<'ctx> {
+        let function =
+            self.module
+                .add_function(name, self.procedure_type(0, false), Some(Linkage::Private));
+        function.set_subprogram(self.di.create_function(
+            debug_name,
+            name,
+            self.di.procedure_di_type(0),
+            span,
+            is_local_to_unit,
+            true,
+        ));
+        function.set_call_conventions(LLVMCallConv::LLVMFastCallConv as u32);
+        function.get_nth_param(0).unwrap().set_name("return_to");
+        function.get_nth_param(1).unwrap().set_name("yield_to");
+        function.get_nth_param(2).unwrap().set_name("end_to");
+        function.get_nth_param(3).unwrap().set_name("next_to");
+        function.get_nth_param(4).unwrap().set_name("done_to");
+        function
+    }
+
     pub(crate) fn add_function(
         &self,
         name: &str,

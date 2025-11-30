@@ -78,17 +78,29 @@ impl<'ctx> Codegen<'ctx> {
         let procedure = &definition.overloads[0];
         let arity = procedure.parameters.len();
         let name = definition.name.to_string();
-        let linkage_name = if name == "main" { MAIN_NAME } else { &name };
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
-        let function = self.add_procedure(
-            linkage_name,
-            arity,
-            &name,
-            definition.span(),
-            module_context.is_some(),
-            false,
-        );
+
+        let (function, linkage_name) = if name == "main" {
+            assert_eq!(arity, 0);
+            let function = self.add_main(
+                MAIN_NAME,
+                &name,
+                definition.span(),
+                module_context.is_some(),
+            );
+            (function, MAIN_NAME)
+        } else {
+            let function = self.add_procedure(
+                MAIN_NAME,
+                arity,
+                &name,
+                definition.span(),
+                module_context.is_some(),
+                false,
+            );
+            (function, name.as_str())
+        };
         self.write_procedure_accessor(accessor, function, arity);
         self.set_current_definition(
             name.to_owned(),
