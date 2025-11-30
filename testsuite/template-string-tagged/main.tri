@@ -1,0 +1,9 @@
+func repeat [string] [] = string
+func repeat [string, ..rs] [interpolation, ..ri] = "${string}${interpolation}${interpolation}${repeat rs ri}"
+
+proc main!() {
+  let greet = "hello"
+  let name = "world"
+  let string = $repeat"${greet} ${name}"
+  assert string == "hellohello worldworld"
+}
