@@ -94,11 +94,11 @@ func bg_bright_white text = apply_color BG_BRIGHT_WHITE text
 
 export fg, bg, fg_rgb, bg_rgb
 
-func fg id text = apply_color ("\u{001b}[38;5;${id}m") text
-func bg id text = apply_color ("\u{001b}[48;5;${id}m") text
+func fg id text = apply_color "\u{001b}[38;5;${id}m" text
+func bg id text = apply_color "\u{001b}[48;5;${id}m" text
 
-func fg_rgb r g b text = apply_color ("\u{001b}[38;2;${r};${g};${b}m") text
-func bg_rgb r g b text = apply_color ("\u{001b}[48;2;${r};${g};${b}m") text
+func fg_rgb r g b text = apply_color "\u{001b}[38;2;${r};${g};${b}m" text
+func bg_rgb r g b text = apply_color "\u{001b}[48;2;${r};${g};${b}m" text
 
 # Attributes
 
