@@ -2,7 +2,6 @@
 #include "trilogy_number.h"
 #include "trilogy_string.h"
 #include "types.h"
-#include <execinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
 
