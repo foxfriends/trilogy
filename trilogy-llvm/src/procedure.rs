@@ -122,10 +122,9 @@ impl<'ctx> Codegen<'ctx> {
             self.set_span(procedure.head_span);
             for (n, param) in procedure.parameters.iter().enumerate() {
                 let value = self.function_params.borrow()[n + IMPLICIT_PARAMS];
-                if self
-                    .compile_pattern_match(param, value, self.get_end(""))
-                    .is_none()
-                {
+                let end = self.get_end("");
+                self.bind_temporary(end);
+                if self.compile_pattern_match(param, value, end).is_none() {
                     break 'body;
                 }
             }

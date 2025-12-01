@@ -75,7 +75,7 @@ impl Report {
                 .clang_output
                 .as_ref()
                 .map(|out| out.status.success())
-                .unwrap_or(false)
+                .unwrap_or(self.expected.run)
             && self
                 .program_output
                 .as_ref()

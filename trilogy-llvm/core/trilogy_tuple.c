@@ -17,8 +17,10 @@ trilogy_tuple_value* trilogy_tuple_init_new(
     trilogy_value* tv, trilogy_value* fst, trilogy_value* snd
 ) {
     trilogy_tuple_value* tup = malloc_safe(sizeof(trilogy_tuple_value));
-    tup->fst = *fst;
-    tup->snd = *snd;
+    tup->fst = trilogy_undefined;
+    tup->snd = trilogy_undefined;
+    trilogy_value_clone_into(&tup->fst, fst);
+    trilogy_value_clone_into(&tup->snd, snd);
     return trilogy_tuple_init(tv, tup);
 }
 

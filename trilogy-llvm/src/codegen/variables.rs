@@ -173,13 +173,6 @@ impl<'ctx> Codegen<'ctx> {
         self.use_temporary(current_cancel).unwrap()
     }
 
-    /// When in a handler function, gets the cancel to pointer as the raw location, not
-    /// a referenced value.
-    pub(crate) fn get_cancel_location(&self) -> PointerValue<'ctx> {
-        let current_cancel = *self.current_cancel.borrow().last().unwrap();
-        self.use_temporary_location(current_cancel).unwrap()
-    }
-
     /// When in a handler function, gets the resume to pointer.
     pub(crate) fn get_resume(&self) -> PointerValue<'ctx> {
         let current_resume = *self.current_resume.borrow().last().unwrap();
@@ -189,13 +182,13 @@ impl<'ctx> Codegen<'ctx> {
     /// Gets the current `break` continuation, valid only when in a loop.
     pub(crate) fn get_break(&self) -> PointerValue<'ctx> {
         let current_break = *self.current_break.borrow().last().unwrap();
-        self.use_temporary(current_break).unwrap()
+        self.use_temporary_clone(current_break).unwrap()
     }
 
     /// Gets the current `continue` continuation, valid only when in a loop.
     pub(crate) fn get_continue(&self) -> PointerValue<'ctx> {
         let current_continue = *self.current_continue.borrow().last().unwrap();
-        self.use_temporary(current_continue).unwrap()
+        self.use_temporary_clone(current_continue).unwrap()
     }
 
     pub(crate) fn get_closure(&self, name: &str) -> PointerValue<'ctx> {
@@ -306,20 +299,12 @@ impl<'ctx> Codegen<'ctx> {
         )? {
             Variable::Owned(pointer) => Some(pointer),
             Variable::Argument(pointer) => Some(pointer),
-            Variable::Closed { location, .. } => {
-                let var = self.allocate_value(&format!(
-                    "{}.tempref",
-                    temporary.get_name().to_str().unwrap()
-                ));
-                self.trilogy_value_clone_undefined_into(var, location);
-                Some(var)
-            }
+            Variable::Closed { location, .. } => Some(location),
         }
     }
 
-    /// Uses the location of a previously bound temporary value. If the value was not previously bound with
-    /// `bind_temporary`, this will return `None`.
-    pub(crate) fn use_temporary_location(
+    /// Uses a clone of a previously bound temporary value.
+    pub(crate) fn use_temporary_clone(
         &self,
         temporary: PointerValue<'ctx>,
     ) -> Option<PointerValue<'ctx>> {
@@ -329,7 +314,11 @@ impl<'ctx> Codegen<'ctx> {
         )? {
             Variable::Owned(pointer) => Some(pointer),
             Variable::Argument(pointer) => Some(pointer),
-            Variable::Closed { location, .. } => Some(location),
+            Variable::Closed { location, .. } => {
+                let clone = self.allocate_value("");
+                self.trilogy_value_clone_into(clone, location);
+                Some(clone)
+            }
         }
     }
 

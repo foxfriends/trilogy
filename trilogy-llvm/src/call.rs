@@ -518,7 +518,7 @@ impl<'ctx> Codegen<'ctx> {
         let continuation_function = self.add_continuation("resume.back");
         let old_cancel_to = self.allocate_value("old_cancel_to");
         self.bind_temporary(old_cancel_to);
-        let cancel_location = self.get_cancel_location();
+        let cancel_location = self.get_cancel();
         self.trilogy_value_clone_into(old_cancel_to, cancel_location);
 
         let resume = self.trilogy_callable_untag(resume_value, "");
@@ -556,7 +556,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.begin_next_function(continuation_function);
         let old_cancel_to = self.use_temporary(old_cancel_to).unwrap();
-        let cancel_to_slot = self.get_cancel_location();
+        let cancel_to_slot = self.get_cancel();
         self.trilogy_value_destroy(cancel_to_slot);
         self.trilogy_value_clone_into(cancel_to_slot, old_cancel_to);
         self.get_continuation(name)

@@ -144,7 +144,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.structural_eq(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -155,7 +155,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.structural_neq(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -166,7 +166,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.referential_eq(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -177,7 +177,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.referential_neq(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -188,7 +188,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.member_access(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -199,17 +199,18 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.trilogy_tuple_init_new(out, lhs, rhs);
+                self.destroy_owned_temporary(lhs);
+                self.trilogy_value_destroy(rhs);
                 Some(out)
             }
             Builtin::Construct => {
                 let lhs = self.compile_expression(lhs, "struct.val")?;
-                self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "")?;
-                let lhs = self.use_temporary(lhs).unwrap();
                 let tag = self.trilogy_atom_untag(rhs, "struct.tag");
                 self.trilogy_value_destroy(rhs);
                 let out = self.allocate_value(name);
                 self.trilogy_struct_init_new(out, tag, lhs);
+                self.trilogy_value_destroy(lhs);
                 Some(out)
             }
             Builtin::Glue => {
@@ -219,7 +220,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.glue(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -230,7 +231,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.lt(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -252,7 +253,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.lte(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -263,7 +264,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.gte(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -274,7 +275,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.add(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -285,7 +286,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.subtract(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -296,7 +297,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.multiply(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -307,7 +308,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.divide(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -318,7 +319,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.rem(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -329,7 +330,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.power(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -340,7 +341,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.int_divide(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -353,7 +354,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.bitwise_and(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -375,7 +376,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.bitwise_xor(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -386,7 +387,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_left(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -397,7 +398,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_left_extend(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -408,7 +409,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_left_contract(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -419,7 +420,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_right(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -430,7 +431,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_right_extend(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -441,7 +442,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_right_contract(out, lhs, rhs);
-                self.trilogy_value_destroy(lhs);
+                self.destroy_owned_temporary(lhs);
                 self.trilogy_value_destroy(rhs);
                 Some(out)
             }
@@ -517,7 +518,10 @@ impl<'ctx> Codegen<'ctx> {
                 )
             }
             Builtin::Break => self.get_break(),
-            Builtin::Continue => self.get_continue(),
+            Builtin::Continue => {
+                // TODO: do similar for whatever happens to resume above to continue
+                self.get_continue()
+            }
             Builtin::Access => self.reference_core("member_access"),
             Builtin::And => self.reference_core("boolean_and"),
             Builtin::Or => self.reference_core("boolean_or"),

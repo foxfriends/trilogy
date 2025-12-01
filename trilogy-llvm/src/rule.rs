@@ -68,7 +68,7 @@ impl<'ctx> Codegen<'ctx> {
             assert_eq!(overload.parameters.len(), arity);
             self.set_span(overload.head_span);
 
-            let next_overload_function = self.add_continuation("");
+            let next_overload_function = self.add_continuation("overload");
             let (go_to_next_overload, next_overload_cp) =
                 self.capture_current_continuation_as_break(next_overload_function, "next_overload");
 
@@ -91,16 +91,12 @@ impl<'ctx> Codegen<'ctx> {
                 let next_parameter = self
                     .context
                     .append_basic_block(original_insert_function, "next_parameter");
-                let value = self.use_temporary(value).unwrap();
-                self.branch_undefined(value, next_parameter, bind_parameter);
+                let value_ref = self.use_temporary(value).unwrap();
+                self.branch_undefined(value_ref, next_parameter, bind_parameter);
 
                 self.builder.position_at_end(bind_parameter);
                 if self
-                    .compile_pattern_match(
-                        param,
-                        value,
-                        self.use_temporary(go_to_next_overload).unwrap(),
-                    )
+                    .compile_pattern_match(param, value, go_to_next_overload)
                     .is_none()
                 {
                     break 'outer;
@@ -167,7 +163,7 @@ impl<'ctx> Codegen<'ctx> {
                     // If the input and output are both going to be undefined, then go right to the
                     // next overload.
                     self.builder.position_at_end(fully_unbound);
-                    let next_overload = self.use_temporary(next_overload_clone).unwrap();
+                    let next_overload = self.use_temporary_clone(next_overload_clone).unwrap();
                     self.void_call_continuation(next_overload);
 
                     // There's actually no action for the rebind-input case, only to reuse the argument later
@@ -177,7 +173,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             let next = self.get_next("");
             for arg in arguments.iter_mut() {
-                *arg = self.use_temporary(*arg).unwrap();
+                *arg = self.use_temporary_clone(*arg).unwrap();
             }
             self.call_next(next, &arguments);
 

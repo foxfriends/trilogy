@@ -146,7 +146,7 @@ impl<'ctx> Codegen<'ctx> {
         self.bind_temporary(next_iteration);
         self.push_loop_scope(done_to_clone, next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, name) {
-            let next_iteration = self.use_temporary(next_iteration).unwrap();
+            let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
             self.trilogy_value_destroy(value);
             self.void_call_continuation(next_iteration);
         }
@@ -179,7 +179,7 @@ impl<'ctx> Codegen<'ctx> {
             let arr_val = self.use_temporary(output).unwrap();
             let arr = self.trilogy_array_assume(arr_val, "");
             self.trilogy_array_push(arr, value);
-            let next_iteration = self.use_temporary(next_iteration).unwrap();
+            let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
             self.void_call_continuation(next_iteration);
         }
 
@@ -208,7 +208,7 @@ impl<'ctx> Codegen<'ctx> {
             let set_val = self.use_temporary(output).unwrap();
             let set = self.trilogy_set_assume(set_val, "");
             self.trilogy_set_insert(set, value);
-            let next_iteration = self.use_temporary(next_iteration).unwrap();
+            let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
             self.void_call_continuation(next_iteration);
         }
 
@@ -241,8 +241,8 @@ impl<'ctx> Codegen<'ctx> {
             if let Some(value) = self.compile_expression(&mapping.1, "val") {
                 let rec_val = self.use_temporary(output).unwrap();
                 let rec = self.trilogy_record_assume(rec_val, "");
-                self.trilogy_record_insert(rec, self.use_temporary(key).unwrap(), value);
-                let next_iteration = self.use_temporary(next_iteration).unwrap();
+                self.trilogy_record_insert(rec, self.use_temporary_clone(key).unwrap(), value);
+                let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
                 self.void_call_continuation(next_iteration);
             }
         }
@@ -305,7 +305,6 @@ impl<'ctx> Codegen<'ctx> {
             let next_case_function = self.add_continuation("");
             let (go_to_next_case, next_case_cp) =
                 self.capture_current_continuation(next_case_function, "when.next");
-            let effect = self.use_temporary(effect).unwrap();
             if self
                 .compile_pattern_match(&handler.pattern, effect, go_to_next_case)
                 .is_none()
@@ -522,6 +521,8 @@ impl<'ctx> Codegen<'ctx> {
                 }
                 let value = self.compile_expression(&unif.expression, "let.expr")?;
                 let on_fail = self.get_end("let.fail");
+                self.bind_temporary(value);
+                self.bind_temporary(on_fail);
                 for id in unif.pattern.bindings() {
                     let var = self.get_variable(&id).unwrap().ptr();
                     self.trilogy_value_destroy(var);
@@ -553,7 +554,6 @@ impl<'ctx> Codegen<'ctx> {
             let next_case_function = self.add_continuation("match.next");
             let (go_to_next_case, next_case_cp) =
                 self.capture_current_continuation(next_case_function, "match.next");
-            let discriminant = self.use_temporary(discriminant).unwrap();
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
             let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
                 self.become_continuation_point(next_case_cp);
@@ -663,7 +663,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.bind_temporary(param);
                     arguments.push(param);
                 }
-                let function = self.use_temporary(function).unwrap();
+                let function = self.use_temporary_clone(function).unwrap();
                 for arg in arguments.iter_mut() {
                     *arg = self.use_temporary(*arg).unwrap();
                 }
@@ -672,7 +672,7 @@ impl<'ctx> Codegen<'ctx> {
             // Function application
             _ => {
                 let argument = self.compile_expression(&application.argument, "")?;
-                let function = self.use_temporary(function).unwrap();
+                let function = self.use_temporary_clone(function).unwrap();
                 Some(self.apply_function(function, argument, name))
             }
         }
@@ -741,10 +741,13 @@ impl<'ctx> Codegen<'ctx> {
                     let key = self.compile_expression(&app.argument, "")?;
                     self.bind_temporary(key);
                     let value = self.compile_expression(&assign.rhs, "")?;
-                    let container = self.use_temporary(container).unwrap();
-                    let key = self.use_temporary(key).unwrap();
+                    let container_val = self.use_temporary(container).unwrap();
+                    let key_val = self.use_temporary(key).unwrap();
                     let out = self.allocate_value(name);
-                    self.member_assign(out, container, key, value);
+                    self.member_assign(out, container_val, key_val, value);
+                    self.trilogy_value_destroy(value);
+                    self.destroy_owned_temporary(key);
+                    self.destroy_owned_temporary(container);
                     Some(out)
                 }
                 _ => panic!("invalid lvalue in assignment"),

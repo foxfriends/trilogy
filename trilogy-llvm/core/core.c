@@ -419,13 +419,21 @@ void member_assign(
 ) {
     switch (c->tag) {
     case TAG_ARRAY: {
+        trilogy_value value_clone = trilogy_undefined;
+        trilogy_value_clone_into(&value_clone, value);
         trilogy_number_value* number = trilogy_number_untag(index);
         uint64_t i = trilogy_number_to_u64(number);
-        trilogy_array_set(trilogy_array_assume(c), i, value);
+        trilogy_array_set(trilogy_array_assume(c), i, &value_clone);
         break;
     }
     case TAG_RECORD: {
-        trilogy_record_insert(trilogy_record_assume(c), index, value);
+        trilogy_value index_clone = trilogy_undefined;
+        trilogy_value value_clone = trilogy_undefined;
+        trilogy_value_clone_into(&index_clone, index);
+        trilogy_value_clone_into(&value_clone, value);
+        trilogy_record_insert(
+            trilogy_record_assume(c), &index_clone, &value_clone
+        );
         break;
     }
     default:
@@ -435,11 +443,7 @@ void member_assign(
 }
 
 void cons(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
-    trilogy_value lclone = trilogy_undefined;
-    trilogy_value rclone = trilogy_undefined;
-    trilogy_value_clone_into(&lclone, lhs);
-    trilogy_value_clone_into(&rclone, rhs);
-    trilogy_tuple_init_new(rv, &lclone, &rclone);
+    trilogy_tuple_init_new(rv, lhs, rhs);
 }
 
 void primitive_to_string(trilogy_value* rv, trilogy_value* val) {
@@ -458,9 +462,7 @@ void lookup_atom(trilogy_value* rv, trilogy_value* atom) {
 
 void construct(trilogy_value* rv, trilogy_value* atom, trilogy_value* value) {
     uint64_t atom_id = trilogy_atom_untag(atom);
-    trilogy_value value_clone = trilogy_undefined;
-    trilogy_value_clone_into(&value_clone, value);
-    trilogy_struct_init_new(rv, atom_id, &value_clone);
+    trilogy_struct_init_new(rv, atom_id, value);
 }
 
 void destruct(trilogy_value* rv, trilogy_value* val) {

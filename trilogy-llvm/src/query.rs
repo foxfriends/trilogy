@@ -52,8 +52,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.next_deterministic(next_to, done_to, "pass_next");
             }
             ir::QueryValue::End => {
-                let done_to = self.use_temporary(done_to).unwrap();
-                self.void_call_continuation(done_to);
+                self.void_call_continuation(self.use_temporary_clone(done_to).unwrap());
             }
             ir::QueryValue::Is(expr) => {
                 let condition = self.compile_expression(expr, "is.condition")?;
@@ -73,7 +72,7 @@ impl<'ctx> Codegen<'ctx> {
                 let true_cp = self.branch_continuation_point();
 
                 self.builder.position_at_end(if_false_block);
-                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+                self.void_call_continuation(self.use_temporary_clone(done_to).unwrap());
 
                 self.become_continuation_point(true_cp);
                 self.builder.position_at_end(if_true_block);
@@ -83,7 +82,7 @@ impl<'ctx> Codegen<'ctx> {
                 let rule = self.compile_expression(&lookup.path, "rule")?;
                 let (next_iteration, out) = self.call_rule(rule, &[], done_to, "lookup_next");
                 assert!(out.is_empty());
-                let next_to = self.use_temporary(next_to).unwrap();
+                let next_to = self.use_temporary_clone(next_to).unwrap();
                 self.call_known_continuation(next_to, next_iteration);
             }
             ir::QueryValue::Lookup(lookup) => {
@@ -114,7 +113,6 @@ impl<'ctx> Codegen<'ctx> {
 
                 let bound_before_lookup = bound_ids.len();
                 for (pattern, out_value) in lookup.patterns.iter().zip(output_arguments) {
-                    let out_value = self.use_temporary(out_value).unwrap();
                     self.compile_pattern_match_with_bindings(
                         pattern,
                         out_value,
@@ -124,7 +122,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
 
                 self.call_known_continuation(
-                    self.use_temporary(next_to).unwrap(),
+                    self.use_temporary_clone(next_to).unwrap(),
                     next_iteration_with_cleanup_continuation,
                 );
 
@@ -138,18 +136,24 @@ impl<'ctx> Codegen<'ctx> {
                     self.capture_current_continuation(disj_second_fn, "disj.second");
                 let next_of_first =
                     self.compile_query(&disj.0, disj_second, &mut bound_ids.clone())?;
-                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_first);
+                self.call_known_continuation(
+                    self.use_temporary_clone(next_to).unwrap(),
+                    next_of_first,
+                );
 
                 self.become_continuation_point(disj_second_cp);
                 self.begin_next_function(disj_second_fn);
                 let next_of_second = self.compile_query(&disj.1, done_to, bound_ids)?;
-                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_second);
+                self.call_known_continuation(
+                    self.use_temporary_clone(next_to).unwrap(),
+                    next_of_second,
+                );
             }
             ir::QueryValue::Conjunction(conj) => {
                 let next_of_first = self.compile_query(&conj.0, done_to, bound_ids)?;
                 self.bind_temporary(next_of_first);
                 let next_of_second = self.compile_query(&conj.1, next_of_first, bound_ids)?;
-                let next_to = self.use_temporary(next_to).unwrap();
+                let next_to = self.use_temporary_clone(next_to).unwrap();
                 self.call_known_continuation(next_to, next_of_second);
             }
             ir::QueryValue::Implication(implication) => {
@@ -159,7 +163,7 @@ impl<'ctx> Codegen<'ctx> {
                 let next_of_first = self.compile_query(&implication.0, done_to_clone, bound_ids)?;
                 self.trilogy_value_destroy(next_of_first);
                 let next_of_second = self.compile_query(&implication.1, done_to, bound_ids)?;
-                let next_to = self.use_temporary(next_to).unwrap();
+                let next_to = self.use_temporary_clone(next_to).unwrap();
                 self.call_known_continuation(next_to, next_of_second);
             }
             ir::QueryValue::Alternative(alt) => {
@@ -172,12 +176,15 @@ impl<'ctx> Codegen<'ctx> {
                 let next_of_first =
                     self.compile_query(&alt.0, alt_second, &mut bound_ids.clone())?;
 
-                let state_ref_first = self.use_temporary(state).unwrap();
+                let state_ref_first = self.use_temporary_clone(state).unwrap();
                 self.trilogy_value_destroy(state_ref_first);
                 self.builder
                     .build_store(state_ref_first, self.bool_const(true))
                     .unwrap();
-                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_first);
+                self.call_known_continuation(
+                    self.use_temporary_clone(next_to).unwrap(),
+                    next_of_first,
+                );
 
                 self.become_continuation_point(alt_second_cp);
                 self.begin_next_function(alt_second_fn);
@@ -197,12 +204,15 @@ impl<'ctx> Codegen<'ctx> {
 
                 let then_cp = self.branch_continuation_point();
                 self.builder.position_at_end(else_block);
-                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+                self.void_call_continuation(self.use_temporary_clone(done_to).unwrap());
 
                 self.become_continuation_point(then_cp);
                 self.builder.position_at_end(then_block);
                 let next_of_second = self.compile_query(&alt.1, done_to, bound_ids)?;
-                self.call_known_continuation(self.use_temporary(next_to).unwrap(), next_of_second);
+                self.call_known_continuation(
+                    self.use_temporary_clone(next_to).unwrap(),
+                    next_of_second,
+                );
             }
             ir::QueryValue::Direct(unification) => {
                 let rvalue = self.compile_expression(&unification.expression, "rvalue")?;
@@ -216,6 +226,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
 
                 let pre_len = bound_ids.len();
+                self.bind_temporary(rvalue);
                 self.compile_pattern_match_with_bindings(
                     &unification.pattern,
                     rvalue,
@@ -266,7 +277,7 @@ impl<'ctx> Codegen<'ctx> {
                 )?;
 
                 self.call_known_continuation(
-                    self.use_temporary(next_to).unwrap(),
+                    self.use_temporary_clone(next_to).unwrap(),
                     next_iteration_with_cleanup_continuation,
                 );
 
@@ -279,7 +290,7 @@ impl<'ctx> Codegen<'ctx> {
                 let (go_next, go_next_cp) =
                     self.capture_current_continuation(go_next_fn, "not.next");
                 self.compile_query(query, go_next, bound_ids)?;
-                self.void_call_continuation(self.use_temporary(done_to).unwrap());
+                self.void_call_continuation(self.use_temporary_clone(done_to).unwrap());
 
                 self.become_continuation_point(go_next_cp);
                 self.begin_next_function(go_next_fn);
@@ -298,12 +309,12 @@ impl<'ctx> Codegen<'ctx> {
         let next_iteration = self.add_continuation(name);
         let (next_iteration_continuation, next_iteration_cp) =
             self.capture_current_continuation(next_iteration, name);
-        let next_to = self.use_temporary(next_to).unwrap();
+        let next_to = self.use_temporary_clone(next_to).unwrap();
         self.call_known_continuation(next_to, next_iteration_continuation);
 
         self.become_continuation_point(next_iteration_cp);
         self.begin_next_function(next_iteration);
-        let done_to = self.use_temporary(done_to).unwrap();
+        let done_to = self.use_temporary_clone(done_to).unwrap();
         self.void_call_continuation(done_to);
     }
 
@@ -321,7 +332,7 @@ impl<'ctx> Codegen<'ctx> {
         let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
             self.capture_current_continuation(next_iteration_with_cleanup, name);
         self.call_known_continuation(
-            self.use_temporary(next_to).unwrap(),
+            self.use_temporary_clone(next_to).unwrap(),
             next_iteration_with_cleanup_continuation,
         );
 
@@ -347,7 +358,7 @@ impl<'ctx> Codegen<'ctx> {
             let var = self.get_variable(id).unwrap().ptr();
             self.trilogy_value_destroy(var);
         }
-        let next_iteration = self.use_temporary(next_iteration).unwrap();
+        let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
         self.void_call_continuation(next_iteration);
     }
 

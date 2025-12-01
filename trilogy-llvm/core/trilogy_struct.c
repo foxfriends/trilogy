@@ -18,7 +18,8 @@ trilogy_struct_value*
 trilogy_struct_init_new(trilogy_value* tv, uint64_t i, trilogy_value* val) {
     trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
     st->atom = i;
-    st->contents = *val;
+    st->contents = trilogy_undefined;
+    trilogy_value_clone_into(&st->contents, val);
     return trilogy_struct_init(tv, st);
 }
 

@@ -26,8 +26,6 @@ impl<'ctx> Codegen<'ctx> {
         on_fail: PointerValue<'ctx>,
         bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
-        self.bind_temporary(value);
-        self.bind_temporary(on_fail);
         self.match_pattern(pattern, value, on_fail, bound_ids);
         Some(())
     }
@@ -133,7 +131,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Application(app) => {
                 self.compile_match_application(app, value, on_fail, bound_ids)?
             }
-            Value::Wildcard => { /* always passes with no action */ }
+            Value::Wildcard => {}
             Value::Array(array) => self.match_array(array, value, on_fail, bound_ids)?,
             Value::Set(set) => self.match_set(set, value, on_fail, bound_ids)?,
             Value::Record(record) => self.match_record(record, value, on_fail, bound_ids)?,
@@ -376,10 +374,11 @@ impl<'ctx> Codegen<'ctx> {
     fn match_array(
         &self,
         array: &ir::Pack,
-        value: PointerValue<'ctx>,
+        input_value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
         bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
+        let value = self.use_temporary(input_value).unwrap();
         let tag = self.get_tag(value, "");
         let is_array = self
             .builder
@@ -392,7 +391,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.pm_cont_if(is_array, on_fail);
 
-        let value = self.use_temporary(value).unwrap();
         let arr = self.trilogy_array_assume(value, "arr");
         let length = self.trilogy_array_len(arr, "len");
         if array.values.iter().any(|el| el.is_spread) {
@@ -423,7 +421,7 @@ impl<'ctx> Codegen<'ctx> {
                 spread = Some((i, element));
                 continue;
             }
-            let value = self.use_temporary(value).unwrap();
+            let value = self.use_temporary(input_value).unwrap();
             let array_value = self.trilogy_array_assume(value, "");
             if spread.is_some() {
                 let len = self.trilogy_array_len(array_value, "");
@@ -444,7 +442,7 @@ impl<'ctx> Codegen<'ctx> {
             }
         }
         if let Some((i, spread)) = spread {
-            let value = self.use_temporary(value).unwrap();
+            let value = self.use_temporary(input_value).unwrap();
             let array_value = self.trilogy_array_assume(value, "");
 
             let len = self.trilogy_array_len(array_value, "");
@@ -469,10 +467,11 @@ impl<'ctx> Codegen<'ctx> {
     fn match_set(
         &self,
         pattern: &ir::Pack,
-        value: PointerValue<'ctx>,
+        input_value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
         bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
+        let value = self.use_temporary(input_value).unwrap();
         let tag = self.get_tag(value, "");
         let is_set = self
             .builder
@@ -485,9 +484,8 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.pm_cont_if(is_set, on_fail);
 
+        let set = self.trilogy_set_assume(value, "set");
         if !pattern.values.iter().any(|el| el.is_spread) {
-            let value = self.use_temporary(value).unwrap();
-            let set = self.trilogy_set_assume(value, "set");
             let length = self.trilogy_set_len(set, "len");
             let expected = self
                 .context
@@ -500,8 +498,6 @@ impl<'ctx> Codegen<'ctx> {
             self.pm_cont_if(is_full, on_fail);
         }
 
-        let value = self.use_temporary(value).unwrap();
-        let set = self.trilogy_set_assume(value, "set");
         let set_clone = self.allocate_value("set_clone");
         self.trilogy_set_deep_clone_into(set_clone, set);
         self.bind_temporary(set_clone);
@@ -530,10 +526,11 @@ impl<'ctx> Codegen<'ctx> {
     fn match_record(
         &self,
         pattern: &ir::Pack,
-        value: PointerValue<'ctx>,
+        input_value: PointerValue<'ctx>,
         on_fail: PointerValue<'ctx>,
         bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
+        let value = self.use_temporary(input_value).unwrap();
         let tag = self.get_tag(value, "");
         let is_record = self
             .builder
@@ -546,9 +543,8 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         self.pm_cont_if(is_record, on_fail);
 
+        let record = self.trilogy_record_assume(value, "record");
         if !pattern.values.iter().any(|el| el.is_spread) {
-            let value = self.use_temporary(value).unwrap();
-            let record = self.trilogy_record_assume(value, "record");
             let length = self.trilogy_record_len(record, "len");
             let expected = self
                 .context
@@ -561,8 +557,6 @@ impl<'ctx> Codegen<'ctx> {
             self.pm_cont_if(is_full, on_fail);
         }
 
-        let value = self.use_temporary(value).unwrap();
-        let record = self.trilogy_record_assume(value, "record");
         let record_clone = self.allocate_value("record_clone");
         self.trilogy_record_deep_clone_into(record_clone, record);
         self.bind_temporary(record_clone);
