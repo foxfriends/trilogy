@@ -44,7 +44,8 @@ impl<'ctx> Codegen<'ctx> {
         match &pattern.value {
             Value::Reference(id) => {
                 if bound_ids.contains(&id.id) {
-                    let pinned = self.variable(&id.id);
+                    let pinned = self.allocate_value("");
+                    self.trilogy_value_clone_into(pinned, self.variable(&id.id));
                     self.match_constant(value, pinned, on_fail);
                 } else {
                     bound_ids.push(id.id.clone());
@@ -175,6 +176,7 @@ impl<'ctx> Codegen<'ctx> {
     ) {
         let value_ref = self.use_temporary(value).unwrap();
         let is_match = self.trilogy_value_structural_eq(value_ref, constant, "");
+        self.trilogy_value_destroy(constant);
         self.pm_cont_if(is_match, on_fail);
     }
 
