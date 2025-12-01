@@ -92,7 +92,7 @@ impl<'ctx> Codegen<'ctx> {
             (function, MAIN_NAME)
         } else {
             let function = self.add_procedure(
-                MAIN_NAME,
+                &name,
                 arity,
                 &name,
                 definition.span(),
