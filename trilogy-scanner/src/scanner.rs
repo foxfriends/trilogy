@@ -297,6 +297,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn decimal(&mut self, mut value: String) -> BigInt {
+        while self.expect('_').is_some() {}
         while let Some(ch) = self.expect('0'..='9') {
             value.push(ch);
             while self.expect('_').is_some() {}
@@ -336,6 +337,7 @@ impl<'a> Scanner<'a> {
 
     fn bits_binary(&mut self) -> BitVec<usize, Msb0> {
         let mut value = BitVec::new();
+        while self.expect('_').is_some() {}
         while let Some(ch) = self.expect('0'..='1') {
             value.push(ch == '1');
             while self.expect('_').is_some() {}
@@ -345,6 +347,7 @@ impl<'a> Scanner<'a> {
 
     fn bits_octal(&mut self) -> BitVec<usize, Msb0> {
         let mut value = BitVec::new();
+        while self.expect('_').is_some() {}
         while let Some(ch) = self.expect('0'..='7') {
             value.push(hex_to_u32(ch) & 0b100 > 0);
             value.push(hex_to_u32(ch) & 0b010 > 0);
@@ -356,6 +359,7 @@ impl<'a> Scanner<'a> {
 
     fn bits_hexadecimal(&mut self) -> BitVec<usize, Msb0> {
         let mut value = BitVec::new();
+        while self.expect('_').is_some() {}
         while let Some(ch) = self.expect(|ch: char| ch.is_ascii_hexdigit()) {
             value.push(hex_to_u32(ch) & 0b1000 > 0);
             value.push(hex_to_u32(ch) & 0b0100 > 0);
