@@ -64,7 +64,11 @@ impl<'ctx> Codegen<'ctx> {
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         let call = self.builder.build_direct_call(function, args, "").unwrap();
         call.set_call_convention(TAIL_CALL_CONV);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        } else {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        }
         self.builder.build_return(None).unwrap();
         parent_closure.as_instruction_value().unwrap()
     }
@@ -109,7 +113,11 @@ impl<'ctx> Codegen<'ctx> {
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         let call = self.builder.build_direct_call(function, args, "").unwrap();
         call.set_call_convention(TAIL_CALL_CONV);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        } else {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        }
         self.builder.build_return(None).unwrap();
         parent_closure.as_instruction_value().unwrap()
     }
@@ -175,7 +183,11 @@ impl<'ctx> Codegen<'ctx> {
             .build_direct_call(continue_function, args, "")
             .unwrap();
         call.set_call_convention(TAIL_CALL_CONV);
-        call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        } else {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        }
         self.builder.build_return(None).unwrap();
 
         continue_to
