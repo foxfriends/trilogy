@@ -84,17 +84,6 @@ void trilogy_value_clone_into(trilogy_value* into, trilogy_value* from) {
     }
 }
 
-void trilogy_value_clone_undefined_into(
-    trilogy_value* into, trilogy_value* from
-) {
-    assert(into != NULL);
-    assert(into->tag == TAG_UNDEFINED);
-    if (from->tag == TAG_UNDEFINED) {
-        return;
-    }
-    trilogy_value_clone_into(into, from);
-}
-
 void trilogy_value_destroy(trilogy_value* value) {
     assert(value != NULL);
     TRACE("Destroying value (%2d): %p\n", value->tag, value);
