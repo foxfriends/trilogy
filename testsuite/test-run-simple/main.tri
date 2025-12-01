@@ -1,0 +1,5 @@
+import "trilogy:io" use println
+
+proc main!() {
+  println!("Hello")
+}

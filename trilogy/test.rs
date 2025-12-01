@@ -34,6 +34,8 @@ struct Expectation {
     #[serde(default)]
     test: bool,
     #[serde(default)]
+    run: bool,
+    #[serde(default)]
     filter_prefix: Vec<String>,
     #[serde(default)]
     exit: i32,
@@ -49,6 +51,7 @@ impl Default for Expectation {
     fn default() -> Self {
         Self {
             test: false,
+            run: false,
             filter_prefix: vec![],
             exit: 0,
             output: String::new(),
@@ -141,8 +144,9 @@ impl Report {
             return Ok(());
         }
 
-        let clang_output = self.clang_output.as_ref().unwrap();
-        if !clang_output.status.success() {
+        if let Some(clang_output) = self.clang_output.as_ref()
+            && !clang_output.status.success()
+        {
             writeln!(
                 stdout,
                 "{} generated invalid llvm ir",
@@ -282,15 +286,26 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
         let program = path.join("a.out");
         let ll_file = File::create(&ll).unwrap();
         let mut trilogy_command = Command::new(trilogy);
-        trilogy_command
-            .args(["compile", tri.to_str().unwrap()])
-            .stdout(ll_file)
-            .stderr(Stdio::piped());
         if report.expected.test {
-            trilogy_command.arg("--test");
+            trilogy_command
+                .args(["compile", "--test", tri.to_str().unwrap()])
+                .stdout(ll_file)
+                .stderr(Stdio::piped());
             for prefix in &report.expected.filter_prefix {
                 trilogy_command.args(["--prefix", prefix]);
             }
+        } else if report.expected.run {
+            trilogy_command.args(["run", tri.to_str().unwrap()]);
+            let start = Instant::now();
+            report.program_output = Some(trilogy_command.output().unwrap());
+            report.trilogy_compile_time = start.elapsed();
+            done.send(report).unwrap();
+            return;
+        } else {
+            trilogy_command
+                .args(["compile", tri.to_str().unwrap()])
+                .stdout(ll_file)
+                .stderr(Stdio::piped());
         }
         let start = Instant::now();
         let mut trilogy_compile = trilogy_command.spawn().unwrap();
