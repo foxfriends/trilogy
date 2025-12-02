@@ -126,7 +126,7 @@ impl<'ctx> Codegen<'ctx> {
         self.restore_function_context(snapshot);
         self.become_continuation_point(body_cp);
         if let Some(result) = self.compile_expression(&expr.body, name) {
-            self.call_continue(result, "");
+            self.call_known_continuation(self.get_continue(), result);
         }
 
         self.become_continuation_point(break_continuation_point);

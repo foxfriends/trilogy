@@ -473,51 +473,6 @@ impl<'ctx> Codegen<'ctx> {
         self.get_continuation(name)
     }
 
-    /// Calls the contextual `continue` continuation.
-    ///
-    /// Calling continue requires passing the same `continue_to` value to its own continuation,
-    /// so that it may also continue to the same place.
-    pub(crate) fn call_continue(&self, value: PointerValue<'ctx>, name: &str) {
-        let continue_to = self.get_continue();
-        let continue_callable = self.trilogy_callable_untag(continue_to, "");
-        let continue_continuation = self.trilogy_continuation_untag(continue_callable, "");
-
-        let end_to = self.get_end("");
-        let return_to = self.allocate_value("");
-        let yield_to = self.allocate_value("");
-        let closure = self.allocate_value("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
-        self.trilogy_callable_return_to_into(return_to, continue_callable);
-        self.do_if(self.is_undefined(return_to), || {
-            self.clone_return(return_to);
-        });
-        self.trilogy_callable_yield_to_into(yield_to, continue_callable);
-        self.do_if(self.is_undefined(yield_to), || {
-            self.clone_yield(yield_to);
-        });
-        self.trilogy_callable_closure_into(closure, continue_callable, "");
-
-        let args = &[
-            self.load_value(return_to, "").into(),
-            self.load_value(yield_to, "").into(),
-            self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
-            self.load_value(value, "").into(),
-            self.load_value(closure, "").into(),
-        ];
-        self.trilogy_value_destroy(continue_to);
-        let call = self
-            .builder
-            .build_indirect_call(self.continuation_type(1), continue_continuation, args, name)
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_instruction();
-        self.builder.build_return(None).unwrap();
-        self.end_continuation_point_as_clean(call);
-    }
-
     /// Calls the `main` function as the Trilogy program entrypoint.
     ///
     /// This is similar to a standard procedure call, but because this is the first call

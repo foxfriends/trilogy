@@ -66,7 +66,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Continue => {
                 let result = self.compile_expression(expression, "continue_arg")?;
-                self.call_continue(result, "");
+                self.call_known_continuation(self.get_continue(), result);
                 None
             }
             Builtin::ToString => {
@@ -632,7 +632,7 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.become_continuation_point(capture);
                 self.begin_next_function(function);
-                self.call_continue(self.get_continuation(""), "");
+                self.call_known_continuation(self.get_continue(), self.get_continuation(""));
 
                 self.builder.position_at_end(here);
                 self.restore_function_context(snapshot);
