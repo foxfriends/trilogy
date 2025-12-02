@@ -313,7 +313,7 @@ impl<'ctx> Codegen<'ctx> {
         });
         self.trilogy_callable_closure_into(closure, callable, "");
 
-        let mut args = Vec::with_capacity(arguments.len() + IMPLICIT_PARAMS);
+        let mut args = Vec::with_capacity(arguments.len() + IMPLICIT_PARAMS + 1);
         args.extend(&[
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
@@ -328,7 +328,12 @@ impl<'ctx> Codegen<'ctx> {
         // NOTE: cleanup will be inserted here
         let call = self
             .builder
-            .build_indirect_call(self.continuation_type(1), continuation_pointer, &args, "")
+            .build_indirect_call(
+                self.continuation_type(arguments.len()),
+                continuation_pointer,
+                &args,
+                "",
+            )
             .unwrap();
         call.set_call_convention(TAIL_CALL_CONV);
         if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
