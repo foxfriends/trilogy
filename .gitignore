@@ -3,6 +3,7 @@
 /target
 a.out
 *.ll
+*.s
 *.ll.tmp
 *.bc
 /main.tri

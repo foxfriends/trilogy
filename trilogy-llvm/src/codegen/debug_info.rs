@@ -22,6 +22,7 @@ pub(crate) struct DebugInfo<'ctx> {
     value_type: DICompositeType<'ctx>,
     value_pointer_type: DIDerivedType<'ctx>,
     continuation_type: DISubroutineType<'ctx>,
+    yield_type: DISubroutineType<'ctx>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1200,6 +1201,12 @@ impl<'ctx> DebugInfo<'ctx> {
             &[value_pointer_type.as_type(); 9],
             LLVMDIFlagPublic,
         );
+        let yield_type = builder.create_subroutine_type(
+            unit.get_file(),
+            None,
+            &[value_pointer_type.as_type(); 9],
+            LLVMDIFlagPublic,
+        );
         unsafe {
             builder.replace_placeholder_derived_type(value_type_placeholder, value_type_derived);
         }
@@ -1211,6 +1218,7 @@ impl<'ctx> DebugInfo<'ctx> {
             value_type,
             value_pointer_type,
             continuation_type,
+            yield_type,
         }
     }
 
@@ -1253,6 +1261,10 @@ impl<'ctx> DebugInfo<'ctx> {
 
     pub(crate) fn continuation_di_type(&self) -> DISubroutineType<'ctx> {
         self.continuation_type
+    }
+
+    pub(crate) fn yield_di_type(&self) -> DISubroutineType<'ctx> {
+        self.yield_type
     }
 
     pub(crate) fn push_subprogram(&self, scope: DISubprogram<'ctx>) {
