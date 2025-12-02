@@ -479,16 +479,7 @@ impl<'ctx> Codegen<'ctx> {
     /// so that it may also continue to the same place.
     pub(crate) fn call_continue(&self, value: PointerValue<'ctx>, name: &str) {
         let continue_to = self.get_continue();
-        self.call_continue_inner(continue_to, value, name);
-    }
-
-    fn call_continue_inner(
-        &self,
-        continue_value: PointerValue<'ctx>,
-        value: PointerValue<'ctx>,
-        name: &str,
-    ) {
-        let continue_callable = self.trilogy_callable_untag(continue_value, "");
+        let continue_callable = self.trilogy_callable_untag(continue_to, "");
         let continue_continuation = self.trilogy_continuation_untag(continue_callable, "");
 
         let end_to = self.get_end("");
@@ -516,6 +507,7 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(value, "").into(),
             self.load_value(closure, "").into(),
         ];
+        self.trilogy_value_destroy(continue_to);
         let call = self
             .builder
             .build_indirect_call(self.continuation_type(1), continue_continuation, args, name)
