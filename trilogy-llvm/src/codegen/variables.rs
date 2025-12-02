@@ -159,10 +159,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     /// When in an effect handler, get the yielded effect.
-    pub(crate) fn get_effect(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
-        container
+    pub(crate) fn get_effect_temporary(&self) -> PointerValue<'ctx> {
+        self.function_params.borrow()[5]
     }
 
     /// When in an effect handler, get the resume_to continuation. This is a direct pointer,

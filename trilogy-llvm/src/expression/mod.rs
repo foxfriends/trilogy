@@ -296,8 +296,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_handlers(&self, handlers: &[ir::Handler]) {
         let resume = self.get_provided_resume();
-        let effect = self.get_effect("effect");
-        self.bind_temporary(effect);
+        let effect = self.get_effect_temporary();
 
         // The handler works similar to a match expression, but matching against the effect
         // and doing much more control flow work.

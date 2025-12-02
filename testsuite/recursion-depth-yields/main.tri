@@ -1,0 +1,12 @@
+import "trilogy:debug" use dbg
+
+proc recursive!(i) {
+  if i % 100_000 == 0 { dbg!(i) }
+  with yield 'recurse
+    when 'recurse resume recursive!(i + 1)
+    else yield
+}
+
+proc main!() {
+  recursive!(0)
+}
