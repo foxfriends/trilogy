@@ -1,5 +1,5 @@
 use crate::codegen::Codegen;
-use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE};
+use crate::types::CALLABLE_CONTINUATION;
 use crate::{IMPLICIT_PARAMS, TAIL_CALL_CONV};
 use inkwell::AddressSpace;
 use inkwell::values::{
@@ -164,28 +164,18 @@ impl<'ctx> Codegen<'ctx> {
         let call_continuation = self
             .context
             .append_basic_block(self.get_function(), "ap.cont");
-        let call_continue = self
-            .context
-            .append_basic_block(self.get_function(), "ap.continue");
 
         self.builder
             .build_switch(
                 tag,
                 call_function,
-                &[
-                    (
-                        self.tag_type().const_int(CALLABLE_CONTINUATION, false),
-                        call_continuation,
-                    ),
-                    (
-                        self.tag_type().const_int(CALLABLE_CONTINUE, false),
-                        call_continue,
-                    ),
-                ],
+                &[(
+                    self.tag_type().const_int(CALLABLE_CONTINUATION, false),
+                    call_continuation,
+                )],
             )
             .unwrap();
 
-        let continue_shadow = self.shadow_continuation_point();
         let function_shadow = self.shadow_continuation_point();
         self.builder.position_at_end(call_continuation);
         self.call_regular_continuation(
@@ -193,10 +183,6 @@ impl<'ctx> Codegen<'ctx> {
             callable,
             &[self.load_value(argument, "").into()],
         );
-
-        self.builder.position_at_end(call_continue);
-        self.become_continuation_point(continue_shadow);
-        self.call_continue_inner(callable_value, argument, "");
 
         let continuation_function = self.add_continuation("cc");
 

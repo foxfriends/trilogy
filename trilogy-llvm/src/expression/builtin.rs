@@ -542,8 +542,31 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Break => self.get_break(),
             Builtin::Continue => {
-                // TODO: do similar for whatever happens to resume above to continue
-                self.get_continue()
+                let function = self.add_continuation("captured_continue");
+
+                let target = self.allocate_value(name);
+                let closure = self
+                    .builder
+                    .build_alloca(self.value_type(), "TEMP_CLOSURE")
+                    .unwrap();
+
+                self.trilogy_callable_init_fn(target, closure, function);
+
+                let here = self.builder.get_insert_block().unwrap();
+                let snapshot = self.snapshot_function_context();
+
+                let shadow = self.shadow_continuation_point();
+                let capture =
+                    self.capture_contination_point(closure.as_instruction_value().unwrap());
+
+                self.become_continuation_point(capture);
+                self.begin_next_function(function);
+                self.call_continue(self.get_continuation(""), "");
+
+                self.builder.position_at_end(here);
+                self.restore_function_context(snapshot);
+                self.become_continuation_point(shadow);
+                target
             }
             Builtin::Access => self.reference_core("member_access"),
             Builtin::And => self.reference_core("boolean_and"),

@@ -148,7 +148,7 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
-        let continue_to_callable = self.trilogy_callable_init_continue(
+        let continue_to_callable = self.trilogy_callable_init_cont(
             continue_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -156,7 +156,6 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continue_function,
-            "",
         );
 
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
