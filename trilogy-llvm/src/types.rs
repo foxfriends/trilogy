@@ -271,7 +271,7 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
-    pub(crate) fn procedure_type(&self, arity: usize, has_closure: bool) -> FunctionType<'ctx> {
+    pub(crate) fn procedure_type(&self, arity: usize) -> FunctionType<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
@@ -279,10 +279,9 @@ impl<'ctx> Codegen<'ctx> {
         // 4: done
         // [5..5 + arity): args
         // 6 + arity: closure
-        let extras = if has_closure { 6 } else { 5 };
         self.context
             .void_type()
-            .fn_type(&vec![self.value_type().into(); arity + extras], false)
+            .fn_type(&vec![self.value_type().into(); arity + 6], false)
     }
 
     pub(crate) fn accessor_type(&self, has_context: bool) -> FunctionType<'ctx> {

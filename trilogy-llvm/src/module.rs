@@ -403,13 +403,7 @@ impl<'ctx> Codegen<'ctx> {
         // declare_function
         let name = self.module_path();
         let constructor_name = format!("{name}:::constructor");
-        let function = self.add_function(
-            &constructor_name,
-            &name,
-            module.span,
-            previous_module_context.is_some(),
-            !is_public,
-        );
+        let function = self.add_function(&constructor_name, &name, module.span, !is_public);
 
         // write_function_accessor
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();

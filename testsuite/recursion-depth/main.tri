@@ -2,7 +2,7 @@ import "trilogy:debug" use dbg
 
 func recursive (i and 1_000_000) = dbg!(i)
 func recursive i =
-  recursive <| 1 + if i % 100_000 == 0 then dbg!(i) else i
+  recursive (1 + if i % 100_000 == 0 then dbg!(i) else i)
 
 proc main!() {
   recursive 0

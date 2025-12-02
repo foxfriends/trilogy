@@ -140,14 +140,11 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         debug_name: &str,
         span: Span,
-        has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
-        let function = self.module.add_function(
-            name,
-            self.procedure_type(arity, has_context),
-            Some(Linkage::Private),
-        );
+        let function =
+            self.module
+                .add_function(name, self.procedure_type(arity), Some(Linkage::Private));
         function.set_subprogram(self.di.create_function(
             debug_name,
             name,
@@ -165,9 +162,7 @@ impl<'ctx> Codegen<'ctx> {
         for (i, param) in function.get_param_iter().skip(5).enumerate() {
             param.set_name(&format!("param_{i}"));
         }
-        if has_context {
-            function.get_last_param().unwrap().set_name("closure");
-        }
+        function.get_last_param().unwrap().set_name("closure");
         function
     }
 
@@ -177,7 +172,6 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         debug_name: &str,
         span: Span,
-        has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
         self.add_definition(
@@ -185,7 +179,6 @@ impl<'ctx> Codegen<'ctx> {
             arity,
             debug_name,
             span,
-            has_context,
             is_local_to_unit,
         )
     }
@@ -199,7 +192,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> FunctionValue<'ctx> {
         let function =
             self.module
-                .add_function(name, self.procedure_type(0, false), Some(Linkage::Private));
+                .add_function(name, self.procedure_type(0), Some(Linkage::Private));
         function.set_subprogram(self.di.create_function(
             debug_name,
             name,
@@ -222,7 +215,6 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
         debug_name: &str,
         span: Span,
-        has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
         self.add_definition(
@@ -230,7 +222,6 @@ impl<'ctx> Codegen<'ctx> {
             1,
             debug_name,
             span,
-            has_context,
             is_local_to_unit,
         )
     }
@@ -241,7 +232,6 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         debug_name: &str,
         span: Span,
-        has_context: bool,
         is_local_to_unit: bool,
     ) -> FunctionValue<'ctx> {
         self.add_definition(
@@ -249,7 +239,6 @@ impl<'ctx> Codegen<'ctx> {
             arity,
             debug_name,
             span,
-            has_context,
             is_local_to_unit,
         )
     }

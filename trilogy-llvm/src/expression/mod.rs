@@ -963,14 +963,8 @@ impl<'ctx> Codegen<'ctx> {
         let (current, _, _) = self.get_current_definition();
         let function_name = format!("{current}<do@{}>", procedure.span);
         let arity = procedure.parameters.len();
-        let function = self.add_procedure(
-            &function_name,
-            arity,
-            &function_name,
-            procedure.span,
-            true,
-            true,
-        );
+        let function =
+            self.add_procedure(&function_name, arity, &function_name, procedure.span, true);
 
         let target = self.allocate_value(name);
         let closure = self
@@ -996,7 +990,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_fn(&self, func: &ir::Function, name: &str) -> PointerValue<'ctx> {
         let (current, _, _) = self.get_current_definition();
         let function_name = format!("{current}<fn@{}>", func.span);
-        let function = self.add_function(&function_name, &function_name, func.span, true, true);
+        let function = self.add_function(&function_name, &function_name, func.span, true);
 
         let target = self.allocate_value(name);
         let closure = self
@@ -1023,7 +1017,7 @@ impl<'ctx> Codegen<'ctx> {
         let (current, _, _) = self.get_current_definition();
         let rule_name = format!("{current}<qy@{}>", rule.span);
         let arity = rule.parameters.len();
-        let function = self.add_rule(&rule_name, arity, &rule_name, rule.span, true, true);
+        let function = self.add_rule(&rule_name, arity, &rule_name, rule.span, true);
 
         let target = self.allocate_value(name);
         let closure = self

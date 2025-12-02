@@ -33,14 +33,7 @@ impl<'ctx> Codegen<'ctx> {
         let name = definition.name.to_string();
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
-        let function = self.add_rule(
-            &name,
-            arity,
-            &name,
-            definition.span(),
-            module_context.is_some(),
-            false,
-        );
+        let function = self.add_rule(&name, arity, &name, definition.span(), false);
         self.write_rule_accessor(accessor, function, arity);
         self.set_current_definition(
             name.to_owned(),

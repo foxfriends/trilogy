@@ -1,37 +1,13 @@
 use crate::codegen::Codegen;
 use crate::types::{CALLABLE_CONTINUATION, CALLABLE_CONTINUE};
 use crate::{IMPLICIT_PARAMS, TAIL_CALL_CONV};
+use inkwell::AddressSpace;
 use inkwell::values::{
     BasicMetadataValueEnum, FunctionValue, InstructionValue, IntValue, LLVMTailCallKind,
     PointerValue,
 };
-use inkwell::{AddressSpace, IntPredicate};
 
 impl<'ctx> Codegen<'ctx> {
-    /// Checks whether a value that is supposedly a closure is actually a closure, or if it is
-    /// just the value `NO_CLOSURE = 0`.
-    fn is_closure(&self, closure: PointerValue<'ctx>) -> IntValue<'ctx> {
-        let has_closure = self
-            .builder
-            .build_ptr_to_int(
-                closure,
-                self.context
-                    .ptr_sized_int_type(self.execution_engine.get_target_data(), None),
-                "",
-            )
-            .unwrap();
-        self.builder
-            .build_int_compare(
-                IntPredicate::NE,
-                has_closure,
-                self.context
-                    .ptr_sized_int_type(self.execution_engine.get_target_data(), None)
-                    .const_zero(),
-                "",
-            )
-            .unwrap()
-    }
-
     /// Makes a function or procedure call, following standard calling convention.
     ///
     /// The current basic block is terminated, as Trilogy functions return by calling
@@ -41,7 +17,6 @@ impl<'ctx> Codegen<'ctx> {
         function_ptr: PointerValue<'ctx>,
         args: &[PointerValue<'ctx>],
         arity: usize,
-        has_closure: bool,
     ) {
         let args_loaded: Vec<_> = args
             .iter()
@@ -49,12 +24,7 @@ impl<'ctx> Codegen<'ctx> {
             .collect();
         let call = self
             .builder
-            .build_indirect_call(
-                self.procedure_type(arity, has_closure),
-                function_ptr,
-                &args_loaded,
-                "",
-            )
+            .build_indirect_call(self.procedure_type(arity), function_ptr, &args_loaded, "")
             .unwrap();
         call.set_call_convention(TAIL_CALL_CONV);
         if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
@@ -101,24 +71,8 @@ impl<'ctx> Codegen<'ctx> {
         let mut args = Vec::with_capacity(arity + 6);
         args.extend([return_to, yield_to, end_to, next_to, done_to]);
         args.extend_from_slice(arguments);
-
-        let has_closure = self.is_closure(bound_closure);
-        let direct_block = self
-            .context
-            .append_basic_block(self.get_function(), "call.definition");
-        let closure_block = self
-            .context
-            .append_basic_block(self.get_function(), "call.closure");
-        self.builder
-            .build_conditional_branch(has_closure, closure_block, direct_block)
-            .unwrap();
-
-        self.builder.position_at_end(direct_block);
-        self.make_call(function_ptr, &args, arity, false);
-
-        self.builder.position_at_end(closure_block);
         args.push(bound_closure);
-        self.make_call(function_ptr, &args, arity, true);
+        self.make_call(function_ptr, &args, arity);
 
         self.begin_next_function(continuation_function);
         self.get_continuation(name)
@@ -180,24 +134,8 @@ impl<'ctx> Codegen<'ctx> {
             done_to, // NOTE[next_overload_clone]: see other
         ]);
         args.extend_from_slice(arguments);
-
-        let has_closure = self.is_closure(bound_closure);
-        let direct_block = self
-            .context
-            .append_basic_block(self.get_function(), "call.definition");
-        let closure_block = self
-            .context
-            .append_basic_block(self.get_function(), "call.closure");
-        self.builder
-            .build_conditional_branch(has_closure, closure_block, direct_block)
-            .unwrap();
-
-        self.builder.position_at_end(direct_block);
-        self.make_call(rule, &args, arity, false);
-
-        self.builder.position_at_end(closure_block);
         args.push(bound_closure);
-        self.make_call(rule, &args, arity, true);
+        self.make_call(rule, &args, arity);
 
         self.begin_next_function(continuation_function);
         let next_iteration = self.get_continuation(name);
@@ -704,12 +642,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_value_destroy(value);
         let call = self
             .builder
-            .build_indirect_call(
-                self.procedure_type(arguments.len(), false),
-                function,
-                &args,
-                "",
-            )
+            .build_indirect_call(self.procedure_type(arguments.len()), function, &args, "")
             .unwrap();
         call.set_call_convention(call_conv);
         call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindNone);

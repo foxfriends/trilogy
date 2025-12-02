@@ -16,7 +16,7 @@ impl<'ctx> Codegen<'ctx> {
         let linkage_name = format!("test#{name}");
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.add_test(&accessor_name);
-        let function = self.add_procedure(&linkage_name, 0, &name, test.span, false, false);
+        let function = self.add_procedure(&linkage_name, 0, &name, test.span, false);
         self.write_test_accessor(accessor, function);
         self.set_current_definition(name.to_owned(), linkage_name.to_owned(), test.span, None);
         self.compile_test_body(function, test);
