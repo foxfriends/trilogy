@@ -277,7 +277,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // When the body is evaluated, it will cancel to exit the handled area, returning to
         // the most recent resume if mid-handler, or to the outside when complete.
-        let cancel_to = self.use_temporary(cancel_to).unwrap();
+        let cancel_to = self.use_temporary_clone(cancel_to).unwrap();
         self.call_known_continuation(cancel_to, result);
 
         // Next compile the handler.
@@ -396,7 +396,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_sequence(&self, seq: &[ir::Expression], name: &str) -> Option<PointerValue<'ctx>> {
         let mut exprs = seq.iter();
-        let mut value = self.compile_expression(exprs.next().unwrap(), name)?;
+        let mut value = self.compile_expression(exprs.next().unwrap(), "")?;
         for expr in exprs {
             self.trilogy_value_destroy(value);
             value = self.compile_expression(expr, name)?;

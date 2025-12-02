@@ -185,18 +185,8 @@ impl<'ctx> Codegen<'ctx> {
         value
     }
 
-    pub(crate) fn begin_function(&self, function: FunctionValue<'ctx>, span: Span) {
-        self.di.push_subprogram(function.get_subprogram().unwrap());
-        self.di.push_block_scope(span);
-        self.set_span(span);
-        let entry = self.context.append_basic_block(function, "entry");
-        self.builder.position_at_end(entry);
-        self.closure_array.set(None);
-        self.current_break.borrow_mut().clear();
-        self.current_continue.borrow_mut().clear();
-        self.current_cancel.borrow_mut().clear();
-        self.current_resume.borrow_mut().clear();
-        *self.function_params.borrow_mut() = function
+    fn bind_arguments(&self, function: FunctionValue<'ctx>) -> Vec<PointerValue<'ctx>> {
+        function
             .get_param_iter()
             .map(|param| {
                 let container = self
@@ -210,7 +200,21 @@ impl<'ctx> Codegen<'ctx> {
                 self.bind_argument(container);
                 container
             })
-            .collect();
+            .collect()
+    }
+
+    pub(crate) fn begin_function(&self, function: FunctionValue<'ctx>, span: Span) {
+        self.di.push_subprogram(function.get_subprogram().unwrap());
+        self.di.push_block_scope(span);
+        self.set_span(span);
+        let entry = self.context.append_basic_block(function, "entry");
+        self.builder.position_at_end(entry);
+        self.closure_array.set(None);
+        self.current_break.borrow_mut().clear();
+        self.current_continue.borrow_mut().clear();
+        self.current_cancel.borrow_mut().clear();
+        self.current_resume.borrow_mut().clear();
+        *self.function_params.borrow_mut() = self.bind_arguments(function);
     }
 
     pub(crate) fn begin_constant(&self, function: FunctionValue<'ctx>, span: Span) {
@@ -231,21 +235,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(entry);
         self.transfer_debug_info();
         self.closure_array.set(None);
-        *self.function_params.borrow_mut() = function
-            .get_param_iter()
-            .map(|param| {
-                let container = self
-                    .builder
-                    .build_alloca(
-                        self.value_type(),
-                        &format!("arg_{}", param.get_name().to_string_lossy()),
-                    )
-                    .unwrap();
-                self.builder.build_store(container, param).unwrap();
-                self.bind_argument(container);
-                container
-            })
-            .collect();
+        *self.function_params.borrow_mut() = self.bind_arguments(function);
     }
 
     pub(crate) fn end_function(&self) {

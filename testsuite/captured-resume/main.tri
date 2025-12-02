@@ -1,0 +1,21 @@
+import "trilogy:debug" use dbg
+
+proc yielding!() {
+  let x = yield 'capture
+  let y = yield 'get_value
+  return x + y
+}
+
+proc main!() {
+  let mut res = unit
+  with yielding!()
+    when 'capture then{
+      res = (resume)
+      cancel unit
+    }
+    when 'get_value resume 5
+    else yield
+
+  assert res 5 == 10
+  assert res 20 == 25
+}

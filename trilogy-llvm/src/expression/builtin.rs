@@ -1,6 +1,6 @@
 use crate::codegen::Codegen;
-use inkwell::AddressSpace;
 use inkwell::values::PointerValue;
+use inkwell::{AddressSpace, values::BasicValue};
 use trilogy_ir::ir::{self, Builtin};
 
 impl<'ctx> Codegen<'ctx> {
@@ -49,8 +49,9 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Cancel => {
                 let value = self.compile_expression(expression, "cancel_arg")?;
-                let cancel = self.get_cancel();
-                self.call_known_continuation(cancel, value);
+                let cancel_clone = self.allocate_value("");
+                self.trilogy_value_clone_into(cancel_clone, self.get_cancel());
+                self.call_known_continuation(cancel_clone, value);
                 None
             }
             Builtin::Resume => {
@@ -512,10 +513,32 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Cancel => self.get_cancel(),
             Builtin::Resume => {
-                let _resume = self.get_resume();
-                todo!(
-                    "build a regular function around resume that captures the cancels and hides its complex calling convention"
-                )
+                let function = self.add_continuation("captured_resume");
+
+                let target = self.allocate_value(name);
+                let closure = self
+                    .builder
+                    .build_alloca(self.value_type(), "TEMP_CLOSURE")
+                    .unwrap();
+
+                self.trilogy_callable_init_fn(target, closure, function);
+
+                let here = self.builder.get_insert_block().unwrap();
+                let snapshot = self.snapshot_function_context();
+
+                let shadow = self.shadow_continuation_point();
+                let capture =
+                    self.capture_contination_point(closure.as_instruction_value().unwrap());
+
+                self.become_continuation_point(capture);
+                self.begin_next_function(function);
+                self.call_resume(self.get_continuation(""), "");
+                self.call_known_continuation(self.get_return("return"), self.get_continuation(""));
+
+                self.builder.position_at_end(here);
+                self.restore_function_context(snapshot);
+                self.become_continuation_point(shadow);
+                target
             }
             Builtin::Break => self.get_break(),
             Builtin::Continue => {

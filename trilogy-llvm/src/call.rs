@@ -469,7 +469,8 @@ impl<'ctx> Codegen<'ctx> {
     /// contextual `cancel_to` value so that when the current delimited continuation (`when`)
     /// is completed, we can go back into this handler.
     pub(crate) fn call_resume(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let resume_value = self.get_resume();
+        let resume_value = self.allocate_value("resume");
+        self.trilogy_value_clone_into(resume_value, self.get_resume());
         let continuation_function = self.add_continuation("resume.back");
         let old_cancel_to = self.allocate_value("old_cancel_to");
         self.bind_temporary(old_cancel_to);
