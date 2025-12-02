@@ -1,6 +1,6 @@
 use crate::codegen::Codegen;
+use inkwell::values::BasicValue;
 use inkwell::values::PointerValue;
-use inkwell::{AddressSpace, values::BasicValue};
 use trilogy_ir::ir::{self, Builtin};
 
 impl<'ctx> Codegen<'ctx> {
@@ -501,17 +501,62 @@ impl<'ctx> Codegen<'ctx> {
     pub(super) fn reference_builtin(&self, builtin: Builtin, name: &str) -> PointerValue<'ctx> {
         match builtin {
             Builtin::Return => {
-                let return_to = self.get_return(name);
-                self.trilogy_callable_promote(
-                    return_to,
-                    self.context.ptr_type(AddressSpace::default()).const_null(),
-                    self.get_yield(""),
-                    self.get_next(""),
-                    self.get_done(""),
-                );
-                return_to
+                let return_to = self.get_return_temporary();
+
+                let function = self.add_continuation("captured_return");
+                let target = self.allocate_value(name);
+                let closure = self
+                    .builder
+                    .build_alloca(self.value_type(), "TEMP_CLOSURE")
+                    .unwrap();
+
+                self.trilogy_callable_init_fn(target, closure, function);
+
+                let here = self.builder.get_insert_block().unwrap();
+                let snapshot = self.snapshot_function_context();
+
+                let shadow = self.shadow_continuation_point();
+                let capture =
+                    self.capture_contination_point(closure.as_instruction_value().unwrap());
+
+                self.become_continuation_point(capture);
+                self.begin_next_function(function);
+                let return_to = self.use_temporary_clone(return_to).unwrap();
+                self.call_known_continuation(return_to, self.get_continuation(""));
+
+                self.builder.position_at_end(here);
+                self.restore_function_context(snapshot);
+                self.become_continuation_point(shadow);
+                target
             }
-            Builtin::Cancel => self.get_cancel(),
+            Builtin::Cancel => {
+                let function = self.add_continuation("captured_cancel");
+                let target = self.allocate_value(name);
+                let closure = self
+                    .builder
+                    .build_alloca(self.value_type(), "TEMP_CLOSURE")
+                    .unwrap();
+
+                self.trilogy_callable_init_fn(target, closure, function);
+
+                let here = self.builder.get_insert_block().unwrap();
+                let snapshot = self.snapshot_function_context();
+
+                let shadow = self.shadow_continuation_point();
+                let capture =
+                    self.capture_contination_point(closure.as_instruction_value().unwrap());
+
+                self.become_continuation_point(capture);
+                self.begin_next_function(function);
+                let cancel = self.allocate_value("");
+                self.trilogy_value_clone_into(cancel, self.get_cancel());
+                self.call_known_continuation(cancel, self.get_continuation(""));
+
+                self.builder.position_at_end(here);
+                self.restore_function_context(snapshot);
+                self.become_continuation_point(shadow);
+                target
+            }
             Builtin::Resume => {
                 let function = self.add_continuation("captured_resume");
 
@@ -540,7 +585,33 @@ impl<'ctx> Codegen<'ctx> {
                 self.become_continuation_point(shadow);
                 target
             }
-            Builtin::Break => self.get_break(),
+            Builtin::Break => {
+                let function = self.add_continuation("captured_break");
+                let target = self.allocate_value(name);
+                let closure = self
+                    .builder
+                    .build_alloca(self.value_type(), "TEMP_CLOSURE")
+                    .unwrap();
+
+                self.trilogy_callable_init_fn(target, closure, function);
+
+                let here = self.builder.get_insert_block().unwrap();
+                let snapshot = self.snapshot_function_context();
+
+                let shadow = self.shadow_continuation_point();
+                let capture =
+                    self.capture_contination_point(closure.as_instruction_value().unwrap());
+
+                self.become_continuation_point(capture);
+                self.begin_next_function(function);
+                let break_cont = self.get_break();
+                self.call_known_continuation(break_cont, self.get_continuation(""));
+
+                self.builder.position_at_end(here);
+                self.restore_function_context(snapshot);
+                self.become_continuation_point(shadow);
+                target
+            }
             Builtin::Continue => {
                 let function = self.add_continuation("captured_continue");
 

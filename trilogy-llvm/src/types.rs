@@ -27,14 +27,6 @@ pub(crate) const TAG_MODULE: u64 = 14;
 #[expect(dead_code, reason = "completeness")]
 pub(crate) const TAG_REFERENCE: u64 = 15;
 
-#[expect(dead_code, reason = "completeness")]
-pub(crate) const CALLABLE_FUNCTION: u64 = 1;
-#[expect(dead_code, reason = "completeness")]
-pub(crate) const CALLABLE_PROCEDURE: u64 = 2;
-#[expect(dead_code, reason = "completeness")]
-pub(crate) const CALLABLE_RULE: u64 = 3;
-pub(crate) const CALLABLE_CONTINUATION: u64 = 4;
-
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn allocate_const<V: BasicValue<'ctx>>(
         &self,
@@ -106,38 +98,6 @@ impl<'ctx> Codegen<'ctx> {
             ],
             false,
         )
-    }
-
-    pub(crate) fn callable_value_type(&self) -> StructType<'ctx> {
-        self.context.struct_type(
-            &[
-                self.context.i32_type().into(),
-                self.context.i8_type().into(),
-                self.context.i32_type().into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-                self.context.ptr_type(AddressSpace::default()).into(),
-            ],
-            false,
-        )
-    }
-
-    pub(crate) fn get_callable_tag(
-        &self,
-        callable: PointerValue<'ctx>,
-        name: &str,
-    ) -> IntValue<'ctx> {
-        let tag_ptr = self
-            .builder
-            .build_struct_gep(self.callable_value_type(), callable, 1, "")
-            .unwrap();
-        self.builder
-            .build_load(self.tag_type(), tag_ptr, name)
-            .unwrap()
-            .into_int_value()
     }
 
     pub(crate) fn reference_value_type(&self) -> StructType<'ctx> {

@@ -1,5 +1,4 @@
 use crate::codegen::Codegen;
-use crate::types::CALLABLE_CONTINUATION;
 use crate::{IMPLICIT_PARAMS, TAIL_CALL_CONV};
 use inkwell::AddressSpace;
 use inkwell::values::{
@@ -101,6 +100,30 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
+    /// Applies a function value to the provided argument. This may also be used to call
+    /// a continuation value, as continuations and functions appear identically in Trilogy
+    /// source code.
+    ///
+    /// See `call_callable` for more information on the calling convention.
+    pub(crate) fn apply_function(
+        &self,
+        callable_value: PointerValue<'ctx>,
+        argument: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let callable = self.trilogy_callable_untag(callable_value, "");
+        let function = self.trilogy_function_untag(callable, "");
+        let continuation_function = self.add_continuation("cc");
+        self.call_callable(
+            continuation_function,
+            callable_value,
+            callable,
+            function,
+            &[argument],
+            name,
+        )
+    }
+
     /// Calls a rule value with the provided arguments.
     ///
     /// The return value here is the function to call to lookup the next binding for the rule,
@@ -143,60 +166,6 @@ impl<'ctx> Codegen<'ctx> {
             .map(|i| self.function_params.borrow()[IMPLICIT_PARAMS + 1 + i])
             .collect();
         (next_iteration, output_arguments)
-    }
-
-    /// Applies a function value to the provided argument. This may also be used to call
-    /// a continuation value, as continuations and functions appear identically in Trilogy
-    /// source code.
-    ///
-    /// See `call_callable` for more information on the calling convention.
-    pub(crate) fn apply_function(
-        &self,
-        callable_value: PointerValue<'ctx>,
-        argument: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let callable = self.trilogy_callable_untag(callable_value, "");
-        let tag = self.get_callable_tag(callable, "");
-        let call_function = self
-            .context
-            .append_basic_block(self.get_function(), "ap.func");
-        let call_continuation = self
-            .context
-            .append_basic_block(self.get_function(), "ap.cont");
-
-        self.builder
-            .build_switch(
-                tag,
-                call_function,
-                &[(
-                    self.tag_type().const_int(CALLABLE_CONTINUATION, false),
-                    call_continuation,
-                )],
-            )
-            .unwrap();
-
-        let function_shadow = self.shadow_continuation_point();
-        self.builder.position_at_end(call_continuation);
-        self.call_regular_continuation(
-            callable_value,
-            callable,
-            &[self.load_value(argument, "").into()],
-        );
-
-        let continuation_function = self.add_continuation("cc");
-
-        self.builder.position_at_end(call_function);
-        let function = self.trilogy_function_untag(callable, "");
-        self.become_continuation_point(function_shadow);
-        self.call_callable(
-            continuation_function,
-            callable_value,
-            callable,
-            function,
-            &[argument],
-            name,
-        )
     }
 
     /// Applies a continuation value to the provided argument.

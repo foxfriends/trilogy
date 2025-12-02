@@ -94,9 +94,13 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    pub(crate) fn get_return_temporary(&self) -> PointerValue<'ctx> {
+        self.function_params.borrow()[0]
+    }
+
     /// Gets the `return_to` pointer from the current function context.
     pub(crate) fn clone_return(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[0]);
+        self.trilogy_value_clone_into(into, self.get_return_temporary());
     }
 
     /// Gets the `yield_to` pointer from the current function context.
