@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:array" as array
 
-export is_empty, chars, join, length, slice, drop, take, skip, starts_with, replace, replace_all
+export is_empty, chars, join, length, slice, drop, take, skip, starts_with, replace, replace_all, chomp, trim, trim_start, trim_end, trim_start_satisfies, trim_end_satisfies, trim_satisfies
 
 func is_empty "" = true
 func is_empty _ = false
@@ -150,4 +150,41 @@ test "string replace_all" {
   assert replace_all "lo" "mi" "hello" == "helmi"
   assert replace_all "elt" "mo" "hello" == "hello"
   assert replace_all "a" "b" "" == ""
+}
+
+func chomp str <> "\n" = str
+func chomp str = str
+
+test "string chomp" {
+  assert chomp "hello\n" == "hello"
+  assert chomp "hello\n\n" == "hello\n"
+  assert chomp "hello" == "hello"
+}
+
+func trim_start_satisfies_ predicate [] = []
+func trim_start_satisfies_ predicate ([ch, ..rest] and str) =
+  if predicate ch
+    then trim_start_satisfies_ predicate rest
+    else str
+func trim_end_satisfies_ predicate str = array::reverse <| trim_start_satisfies_ predicate <| array::reverse str
+
+func trim_satisfies predicate str = str
+  |> chars
+  |> trim_start_satisfies_ predicate
+  |> trim_end_satisfies_ predicate
+  |> join ""
+func trim_start_satisfies predicate str = join "" <| trim_start_satisfies_ predicate <| chars str
+func trim_end_satisfies predicate str = join "" <| trim_end_satisfies_ predicate <| chars str
+
+func is_whitespace char = char == ' ' || char == '\n' || char == '\t'
+
+func trim str = trim_satisfies is_whitespace str
+func trim_end str = trim_end_satisfies is_whitespace str
+func trim_start str = trim_start_satisfies is_whitespace str
+
+test "string trim" {
+  assert trim "  hello  " == "hello"
+  assert trim "\n\t  hello \t\n " == "hello"
+  assert trim_start "\n\t  hello \t\n " == "hello \t\n "
+  assert trim_end "\n\t  hello \t\n " == "\n\t  hello"
 }
