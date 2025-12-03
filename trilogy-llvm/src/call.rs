@@ -387,9 +387,9 @@ impl<'ctx> Codegen<'ctx> {
         let next_to = self.get_next("");
         let done_to = self.get_done("");
 
-        let return_to = self.allocate_value("");
-        let yield_to = self.allocate_value("");
-        let closure = self.allocate_value("");
+        let return_to = self.allocate_value("return_to");
+        let yield_to = self.allocate_value("yield_to");
+        let closure = self.allocate_value("closure");
         self.trilogy_callable_return_to_into(return_to, the_yield_callable);
         self.trilogy_callable_yield_to_into(yield_to, the_yield_callable);
         self.trilogy_callable_closure_into(closure, the_yield_callable, "");
@@ -409,9 +409,16 @@ impl<'ctx> Codegen<'ctx> {
         ];
         let the_yield_cont = self.trilogy_continuation_untag(the_yield_callable, "");
         self.trilogy_value_destroy(the_yield);
-        self.builder
+        let call = self
+            .builder
             .build_indirect_call(self.yield_type(), the_yield_cont, args, name)
             .unwrap();
+        call.set_call_convention(TAIL_CALL_CONV);
+        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        } else {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        }
         self.builder.build_return(None).unwrap();
 
         self.begin_next_function(resume_function);
@@ -460,9 +467,16 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(closure, "").into(),
         ];
         self.trilogy_value_destroy(resume_value);
-        self.builder
+        let call = self
+            .builder
             .build_indirect_call(self.continuation_type(1), resume_continuation, args, "")
             .unwrap();
+        call.set_call_convention(TAIL_CALL_CONV);
+        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        } else {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        }
         self.builder.build_return(None).unwrap();
 
         self.begin_next_function(continuation_function);
