@@ -2,6 +2,7 @@ import "trilogy:debug" use dbg
 
 proc recursive!(i) {
   if i % 100_000 == 0 { dbg!(i) }
+  if i == 1_000_000 { return unit }
   with yield 'recurse
     when 'recurse resume recursive!(i + 1)
     else yield

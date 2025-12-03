@@ -1,12 +1,52 @@
 use crate::codegen::Codegen;
 use crate::{IMPLICIT_PARAMS, TAIL_CALL_CONV};
 use inkwell::AddressSpace;
+use inkwell::types::FunctionType;
 use inkwell::values::{
-    BasicMetadataValueEnum, FunctionValue, InstructionValue, IntValue, LLVMTailCallKind,
-    PointerValue,
+    BasicMetadataValueEnum, CallSiteValue, FunctionValue, InstructionValue, IntValue,
+    LLVMTailCallKind, PointerValue,
 };
 
 impl<'ctx> Codegen<'ctx> {
+    pub(crate) fn direct_tail_call(
+        &self,
+        function: FunctionValue<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    ) -> CallSiteValue<'ctx> {
+        let call = self
+            .builder
+            .build_direct_call(function, args, name)
+            .unwrap();
+        call.set_call_convention(TAIL_CALL_CONV);
+        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        } else {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        }
+        call
+    }
+
+    pub(crate) fn indirect_tail_call(
+        &self,
+        function_type: FunctionType<'ctx>,
+        function_ptr: PointerValue<'ctx>,
+        args: &[BasicMetadataValueEnum<'ctx>],
+        name: &str,
+    ) -> CallSiteValue<'ctx> {
+        let call = self
+            .builder
+            .build_indirect_call(function_type, function_ptr, args, name)
+            .unwrap();
+        call.set_call_convention(TAIL_CALL_CONV);
+        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
+        } else {
+            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
+        }
+        call
+    }
+
     /// Makes a function or procedure call, following standard calling convention.
     ///
     /// The current basic block is terminated, as Trilogy functions return by calling
@@ -21,16 +61,7 @@ impl<'ctx> Codegen<'ctx> {
             .iter()
             .map(|arg| self.load_value(*arg, "").into())
             .collect();
-        let call = self
-            .builder
-            .build_indirect_call(self.procedure_type(arity), function_ptr, &args_loaded, "")
-            .unwrap();
-        call.set_call_convention(TAIL_CALL_CONV);
-        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
-        } else {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        }
+        self.indirect_tail_call(self.procedure_type(arity), function_ptr, &args_loaded, "");
         self.builder.build_return(None).unwrap();
     }
 
@@ -282,21 +313,14 @@ impl<'ctx> Codegen<'ctx> {
 
         // NOTE: cleanup will be inserted here
         let call = self
-            .builder
-            .build_indirect_call(
+            .indirect_tail_call(
                 self.continuation_type(arguments.len()),
                 continuation_pointer,
                 &args,
                 "",
             )
-            .unwrap();
-        call.set_call_convention(TAIL_CALL_CONV);
-        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
-        } else {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        }
-        let call = call.try_as_basic_value().unwrap_instruction();
+            .try_as_basic_value()
+            .unwrap_instruction();
         self.end_continuation_point_as_clean(call);
         self.builder.build_return(None).unwrap();
     }
@@ -324,16 +348,7 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(closure, "").into(),
         ];
 
-        let call = self
-            .builder
-            .build_direct_call(execution, &args, "")
-            .unwrap();
-        call.set_call_convention(TAIL_CALL_CONV);
-        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
-        } else {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        }
+        self.direct_tail_call(execution, &args, "");
         self.end_continuation_point_as_close(closure.as_instruction().unwrap());
         self.builder.build_return(None).unwrap();
 
@@ -409,16 +424,7 @@ impl<'ctx> Codegen<'ctx> {
         ];
         let the_yield_cont = self.trilogy_continuation_untag(the_yield_callable, "");
         self.trilogy_value_destroy(the_yield);
-        let call = self
-            .builder
-            .build_indirect_call(self.yield_type(), the_yield_cont, args, name)
-            .unwrap();
-        call.set_call_convention(TAIL_CALL_CONV);
-        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
-        } else {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        }
+        self.indirect_tail_call(self.yield_type(), the_yield_cont, args, name);
         self.builder.build_return(None).unwrap();
 
         self.begin_next_function(resume_function);
@@ -467,16 +473,7 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(closure, "").into(),
         ];
         self.trilogy_value_destroy(resume_value);
-        let call = self
-            .builder
-            .build_indirect_call(self.continuation_type(1), resume_continuation, args, "")
-            .unwrap();
-        call.set_call_convention(TAIL_CALL_CONV);
-        if self.get_function().get_call_conventions() == TAIL_CALL_CONV {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindMustTail);
-        } else {
-            call.set_tail_call_kind(LLVMTailCallKind::LLVMTailCallKindTail);
-        }
+        self.indirect_tail_call(self.continuation_type(1), resume_continuation, args, "");
         self.builder.build_return(None).unwrap();
 
         self.begin_next_function(continuation_function);
