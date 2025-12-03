@@ -1,4 +1,4 @@
-export from_digit, abs
+export from_digit, abs, max, min
 
 func from_digit '9' = 9
 func from_digit '8' = 8
@@ -17,4 +17,20 @@ test "number abs" {
   assert abs (-3) == 3
   assert abs 3 == 3
   assert abs 0 == 0
+}
+
+func max a b = if a > b then a else b
+
+test "number max" {
+  assert max 1 5 == 5
+  assert max 5 1 == 5
+  assert max (-1) (-5) == -1
+}
+
+func min a b = if a < b then a else b
+
+test "number min" {
+  assert min 1 5 == 1
+  assert min 5 1 == 1
+  assert min 1 (-5) == -5
 }
