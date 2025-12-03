@@ -631,6 +631,19 @@ impl<'ctx> Codegen<'ctx> {
                 self.begin_next_function(merge_to_fn);
                 return Some(self.get_continuation("is"));
             }
+            // If we're returning the result of an application directly, instead of capturing a new return_to,
+            // we can just provide the current return as the return_to of the inner application.
+            Value::Builtin(Builtin::Return) => {
+                if let Value::Application(arg_app) = &application.argument.value  &&
+                    // Unless it's an operator, those we do normally, cause they are not function calls
+                    !matches!(arg_app.function.value, Value::Builtin(..))
+                {
+                    self.compile_application_inline_return(arg_app)?;
+                    return None;
+                } else {
+                    return self.compile_apply_unary(Builtin::Return, &application.argument, name);
+                }
+            }
             Value::Builtin(builtin) if builtin.is_unary() => {
                 return self.compile_apply_unary(*builtin, &application.argument, name);
             }
@@ -675,6 +688,38 @@ impl<'ctx> Codegen<'ctx> {
                 Some(self.apply_function(function, argument, name))
             }
         }
+    }
+
+    fn compile_application_inline_return(&self, application: &ir::Application) -> Option<()> {
+        let function = self.compile_expression(&application.function, "")?;
+        self.bind_temporary(function);
+        match &application.argument.value {
+            // Procedure application
+            Value::Pack(pack) => {
+                let mut arguments = Vec::with_capacity(pack.values.len());
+                for val in pack.values.iter() {
+                    assert!(
+                        !val.is_spread,
+                        "a spread is not permitted in procedure argument lists"
+                    );
+                    let param = self.compile_expression(&val.expression, "")?;
+                    self.bind_temporary(param);
+                    arguments.push(param);
+                }
+                let function = self.use_temporary_clone(function).unwrap();
+                for arg in arguments.iter_mut() {
+                    *arg = self.use_temporary(*arg).unwrap();
+                }
+                self.call_procedure_inline_return(function, &arguments);
+            }
+            // Function application
+            _ => {
+                let argument = self.compile_expression(&application.argument, "")?;
+                let function = self.use_temporary_clone(function).unwrap();
+                self.apply_function_inline_return(function, argument)
+            }
+        }
+        None
     }
 
     fn compile_module_access(

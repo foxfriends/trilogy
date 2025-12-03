@@ -56,13 +56,15 @@ impl<'ctx> Codegen<'ctx> {
         function_ptr: PointerValue<'ctx>,
         args: &[PointerValue<'ctx>],
         arity: usize,
-    ) {
+    ) -> CallSiteValue<'ctx> {
         let args_loaded: Vec<_> = args
             .iter()
             .map(|arg| self.load_value(*arg, "").into())
             .collect();
-        self.indirect_tail_call(self.procedure_type(arity), function_ptr, &args_loaded, "");
+        let call =
+            self.indirect_tail_call(self.procedure_type(arity), function_ptr, &args_loaded, "");
         self.builder.build_return(None).unwrap();
+        call
     }
 
     /// Calls a standard callable (function or procedure).
@@ -108,6 +110,52 @@ impl<'ctx> Codegen<'ctx> {
         self.get_continuation(name)
     }
 
+    /// Calls a standard callable (function or procedure).
+    ///
+    /// As per standard calling convention, it's basically `call/cc`:
+    /// 1. The `return_to` is a newly constructed continuation, representing the current continuation ("returning" is done by `call_continuation`)
+    /// 2. The rest of the pointers are maintained from the calling context
+    /// 3. The arguments are provided
+    /// 4. If the callable was a closure, the captures are pulled from the callable object.
+    ///
+    /// As per the general calling convention, the callable object itself is destroyed, and all
+    /// arguments are moved into the call.
+    fn call_callable_inline_return(
+        &self,
+        value: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+        function_ptr: PointerValue<'ctx>,
+        arguments: &[PointerValue<'ctx>],
+    ) {
+        let arity = arguments.len();
+
+        // Values must be extracted before they are invalidated
+        let return_to = self.get_return("");
+        self.trilogy_callable_promote(
+            return_to,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.get_yield(""),
+            self.get_next(""),
+            self.get_done(""),
+        );
+        let yield_to = self.get_yield("");
+        let end_to = self.get_end("");
+        let next_to = self.get_next("");
+        let done_to = self.get_done("");
+        let bound_closure = self.allocate_value("");
+        self.trilogy_callable_closure_into(bound_closure, callable, "");
+
+        let mut args = Vec::with_capacity(arity + 6);
+        args.extend([return_to, yield_to, end_to, next_to, done_to]);
+        args.extend_from_slice(arguments);
+        args.push(bound_closure);
+
+        self.trilogy_value_destroy(value);
+        let call = self.make_call(function_ptr, &args, arity);
+        // All variables and values are invalid after this point.
+        self.end_continuation_point_as_clean(call.try_as_basic_value().unwrap_instruction());
+    }
+
     /// Calls a procedure value with the provided arguments.
     ///
     /// See `call_callable` for more information on the calling convention.
@@ -129,6 +177,27 @@ impl<'ctx> Codegen<'ctx> {
             arguments,
             name,
         )
+    }
+
+    pub(crate) fn call_procedure_inline_return(
+        &self,
+        procedure: PointerValue<'ctx>,
+        arguments: &[PointerValue<'ctx>],
+    ) {
+        let arity = arguments.len();
+        let callable = self.trilogy_callable_untag(procedure, "");
+        let function = self.trilogy_procedure_untag(callable, arity, "");
+        self.call_callable_inline_return(procedure, callable, function, arguments);
+    }
+
+    pub(crate) fn apply_function_inline_return(
+        &self,
+        callable_value: PointerValue<'ctx>,
+        argument: PointerValue<'ctx>,
+    ) {
+        let callable = self.trilogy_callable_untag(callable_value, "");
+        let function = self.trilogy_function_untag(callable, "");
+        self.call_callable_inline_return(function, callable, function, &[argument]);
     }
 
     /// Applies a function value to the provided argument. This may also be used to call
