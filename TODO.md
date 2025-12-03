@@ -9,3 +9,4 @@
 * Loosen requirement of pinning identifiers in queries (auto-pin should be better)
 * `yield 'mia` when hitting out of bounds on access operator
 * Fix the memory leaks
+* Something wrong with `or` patterns when running JIT
