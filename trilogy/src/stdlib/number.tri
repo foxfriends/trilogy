@@ -1,4 +1,4 @@
-export from_digit
+export from_digit, abs
 
 func from_digit '9' = 9
 func from_digit '8' = 8
@@ -10,3 +10,11 @@ func from_digit '3' = 3
 func from_digit '2' = 2
 func from_digit '1' = 1
 func from_digit '0' = 0
+
+func abs n = if n >= 0 then n else -n
+
+test "number abs" {
+  assert abs (-3) == 3
+  assert abs 3 == 3
+  assert abs 0 == 0
+}
