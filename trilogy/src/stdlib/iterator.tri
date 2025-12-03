@@ -1,1 +1,90 @@
-func of val = do() yield 'next(val)
+import "trilogy:array" use collect
+
+export of, forever, repeat, take, range, range_step, filter, map
+
+func run it = it!()
+
+func of val = do() {
+  yield 'next(val)
+}
+
+test "iterator of" {
+  assert 3 == with run <| of 3 when 'next(val) cancel val else yield
+  assert unit == with run <| of 3 when 'next(3) resume 1 else yield
+  assert collect <| of 3 == [3]
+}
+
+func forever val = do() {
+  while true { yield 'next(val) }
+}
+
+func repeat n val = take n <| forever val
+
+test "iterator repeat" {
+  assert collect <| repeat 3 5 == [5, 5, 5]
+}
+
+func take n it = do() {
+  let mut i = 0
+  with it!()
+    when 'next(val) if i < n then {
+      i += 1
+      become yield 'next(val)
+    }
+    when 'next(_) cancel unit
+    else yield
+}
+
+test "iterator take" {
+  let it = do() {
+    yield 'next(1)
+    yield 'next(2)
+    yield 'next(3)
+  }
+  assert collect <| take 2 it == [1, 2]
+}
+
+func range_step from to step = do() {
+  let cmp = if step > 0 then (<=) else (>=)
+  let mut i = from
+  while cmp i to {
+    yield 'next(i)
+    i += step
+  }
+}
+
+test "iterator range_step" {
+  assert collect <| range_step 0 5 1 == [0, 1, 2, 3, 4, 5]
+  assert collect <| range_step 5 1 (-1) == [5, 4, 3, 2, 1]
+  assert collect <| range_step 0 5 (-1) == []
+  assert collect <| range_step 5 1 1 == []
+  assert collect <| range_step 0 5 2 == [0, 2, 4]
+}
+
+func range from to = if from < to then range_step from to 1 else range_step from to (-1)
+
+test "iterator range" {
+  assert collect <| range 0 5 == [0, 1, 2, 3, 4, 5]
+  assert collect <| range 5 1 == [5, 4, 3, 2, 1]
+}
+
+func filter predicate it = do() {
+  with it!()
+    when 'next(val) if predicate val then { become yield 'next(val) }
+    when 'next(_) resume unit
+    else yield
+}
+
+test "iterator filter" {
+  assert collect <| filter (fn i. i % 2 == 0) <| range 1 5 == [2, 4]
+}
+
+func map f it = do() {
+  with it!()
+    when 'next(val) then { become yield 'next(f val) }
+    else yield
+}
+
+test "iterator map" {
+  assert collect <| map ((*) 2) <| range 1 5 == [2, 4, 6, 8, 10]
+}

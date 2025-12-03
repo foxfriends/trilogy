@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:array" as array
 
-export is_empty, chars, join, length, slice, starts_with, replace, replace_all
+export is_empty, chars, join, length, slice, drop, take, skip, starts_with, replace, replace_all
 
 func is_empty "" = true
 func is_empty _ = false
@@ -54,6 +54,54 @@ test "string slice" {
     else yield
   assert with (slice 5 5 "123"; false)
     when 'mia cancel true
+    else yield
+}
+
+func take n (str and typeof 'string) =
+  if n <= length str
+    then slice 0 n str
+    else slice 0 (length str) str
+
+test "string take" {
+  assert take 0 "123" == ""
+  assert take 1 "123" == "1"
+  assert take 2 "123" == "12"
+  assert take 3 "123" == "123"
+  assert take 12 "123" == "123"
+  assert with (take (-1) "123"; false)
+    when 'arg cancel true
+    else yield
+}
+
+func skip n (str and typeof 'string) =
+  if n < length str
+    then slice n (length str) str
+    else ""
+
+test "string skip" {
+  assert skip 0 "123" == "123"
+  assert skip 1 "123" == "23"
+  assert skip 2 "123" == "3"
+  assert skip 3 "123" == ""
+  assert skip 12 "123" == ""
+  assert with (skip (-1) "123"; false)
+    when 'arg cancel true
+    else yield
+}
+
+func drop n (str and typeof 'string) =
+  if n < 0 then yield 'arg
+  else if n >= length str then ""
+  else slice 0 (length str - n) str
+
+test "string drop" {
+  assert drop 0 "123" == "123"
+  assert drop 1 "123" == "12"
+  assert drop 2 "123" == "1"
+  assert drop 3 "123" == ""
+  assert drop 12 "123" == ""
+  assert with (drop (-1) "123"; false)
+    when 'arg cancel true
     else yield
 }
 
