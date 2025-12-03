@@ -1,8 +1,30 @@
-import "trilogy:array" use collect
+import "trilogy:array" as array use collect
 
-export of, forever, repeat, take, range, range_step, filter, map
+export run, of, forever, repeat, take, range, range_step, filter, map, scanl, foldl, sum, count, from, any, all
 
 func run it = it!()
+
+func from arr and typeof 'array = do() { for item in arr { yield 'next(item) } }
+func from set and typeof 'set = do() { for item in set { yield 'next(item) } }
+func from record and typeof 'record = do() { for item in record { yield 'next(item) } }
+func from string and typeof 'string = do() { for item in string { yield 'next(item) } }
+
+test "iterator from" {
+  assert collect <| from [1, 2, 3] == [1, 2, 3]
+
+  let kvs = collect <| from {|'a => 'b, 'c => 'd|}
+  assert array::length kvs == 2
+  # assert is 'a:'b in kvs
+  # assert is 'c:'d in kvs
+
+  let arr = collect <| from [|1, 2, 3|]
+  assert array::length arr == 3
+  # assert is 1 in arr
+  # assert is 2 in arr
+  # assert is 3 in arr
+
+  assert collect <| from "hello" == ['h', 'e', 'l', 'l', 'o']
+}
 
 func of val = do() {
   yield 'next(val)
@@ -42,6 +64,29 @@ test "iterator take" {
     yield 'next(3)
   }
   assert collect <| take 2 it == [1, 2]
+}
+
+func chunks 0 _ = yield 'arg
+func chunks n it = do() {
+  let mut chunk = []
+  with it!()
+    when 'next(item) then {
+      chunk = [..chunk, item]
+      if array::length chunk == n {
+        yield 'next(chunk)
+        chunk = []
+      }
+      become unit
+    }
+    else yield
+  if chunk != [] { yield 'next(chunk) }
+}
+
+test "iterator chunks" {
+  assert collect <| chunks 3 <| range 1 9 == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+  assert collect <| chunks 3 <| range 1 7 == [[1, 2, 3], [4, 5, 6], [7]]
+  assert collect <| chunks 1 <| range 1 3 == [[1], [2], [3]]
+  with chunks 0 when 'arg cancel unit else yield
 }
 
 func range_step from to step = do() {
@@ -87,4 +132,77 @@ func map f it = do() {
 
 test "iterator map" {
   assert collect <| map ((*) 2) <| range 1 5 == [2, 4, 6, 8, 10]
+}
+
+func scanl f a it = do() {
+  let mut state = a
+  with it!()
+    when 'next(val) then {
+      state = f state val
+      yield 'next(state)
+      become unit
+    }
+    else yield
+}
+
+test "iterator scanl" {
+  assert collect <| scanl (+) 0 <| range 1 5 == [1, 3, 6, 10, 15]
+}
+
+func foldl f a it =
+  let mut state = a,
+  with it!()
+    when 'next(val) then {
+      state = f state val
+      become unit
+    }
+    else yield;
+  state
+
+test "iterator foldl" {
+  assert foldl (:) 0 <| range 1 5 == ((((0:1):2):3):4):5
+}
+
+func sum it = foldl (+) 0 it
+
+test "iterator sum" {
+  assert sum <| range 1 5 == 15
+}
+
+func count it = foldl (fn a _. a + 1) 0 it
+
+test "iterator count" {
+  assert count <| range 1 5 == 5
+}
+
+func any predicate it = 
+  with it!(); false
+    when 'next(val) then {
+      if predicate val {
+        return true
+      }
+      become unit
+    }
+    else yield
+
+test "iterator any" {
+  assert any ((==) 2) <| range 1 3
+  assert !(any ((==) 5) <| range 1 3)
+  assert any ((==) 1) <| forever 1
+}
+
+func all predicate it = 
+  with it!(); true
+    when 'next(val) then {
+      if !(predicate val) {
+        return false
+      }
+      become unit
+    }
+    else yield
+
+test "iterator all" {
+  assert !(all (fn x. x < 2) <| range 1 3)
+  assert all (fn x. x < 5) <| range 1 3
+  assert !(all ((==) 1) <| forever 2)
 }

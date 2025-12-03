@@ -1,6 +1,6 @@
 import "trilogy:core" as core
 
-export push, extend, length, map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect
+export push, extend, length, map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks
 
 proc push!(arr and typeof 'array, value) {
   core::push!(arr, value)
@@ -266,4 +266,15 @@ test "array collect" {
     yield 'next(3)
   }
   assert collect iterator == [1, 2, 3]
+}
+
+func chunks 0 _ = yield 'arg
+func chunks _ [] = []
+func chunks n arr = [take n arr, ..chunks n (skip n arr)]
+
+test "array chunks" {
+  assert chunks 3 [1, 2, 3, 4, 5, 6, 7, 8, 9] == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+  assert chunks 3 [1, 2, 3, 4, 5, 6, 7] == [[1, 2, 3], [4, 5, 6], [7]]
+  assert chunks 1 [1, 2, 3] == [[1], [2], [3]]
+  with chunks 0 when 'arg cancel unit else yield
 }
