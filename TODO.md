@@ -9,3 +9,4 @@
 * Loosen requirement of pinning identifiers in queries (auto-pin should be better)
 * Fix the memory leaks
 * Something wrong with `or` patterns when running JIT
+* Rethink complex number syntax, make more like normal
