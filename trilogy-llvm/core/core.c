@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "rational.h"
 #include "trilogy_array.h"
 #include "trilogy_atom.h"
 #include "trilogy_bits.h"
@@ -520,4 +521,16 @@ void slice(
     default:
         rte("string or array", val->tag);
     }
+}
+
+void re(trilogy_value* rv, trilogy_value* val) {
+    trilogy_number_value* num = trilogy_number_untag(val);
+    rational zero = RATIONAL_ZERO;
+    trilogy_number_init_from_re_im(rv, num->re, zero);
+}
+
+void im(trilogy_value* rv, trilogy_value* val) {
+    trilogy_number_value* num = trilogy_number_untag(val);
+    rational zero = RATIONAL_ZERO;
+    trilogy_number_init_from_re_im(rv, zero, num->im);
 }

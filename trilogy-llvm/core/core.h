@@ -74,3 +74,6 @@ void to_string(trilogy_value* rv, trilogy_value* val);
 void set_to_array(trilogy_value* rv, trilogy_value* val);
 void record_to_array(trilogy_value* rv, trilogy_value* val);
 void string_to_array(trilogy_value* rv, trilogy_value* val);
+
+void re(trilogy_value* rv, trilogy_value* num);
+void im(trilogy_value* rv, trilogy_value* num);

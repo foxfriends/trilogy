@@ -7,7 +7,7 @@ import "trilogy:array" as array
 import "trilogy:number" as num
 import "trilogy:string" as str
 
-export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, end_by, end_by_1, eof, char, char_of, digit, string, integer
+export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, end_by, end_by_1, eof, any_char, char, char_of, digit, string, integer
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
@@ -73,9 +73,11 @@ func choice [parser, ..rest] = do () {
     when 'reject(err) cancel with apply (choice rest)
       when 'reject("choice had no options") then {
         yield 'reject(err)
+        end
       }
       when 'reject(errs) then {
         yield 'reject("${err}, or ${errs}")
+        end
       }
       else yield
     else yield
@@ -149,6 +151,7 @@ func end_by_1 sep parser = do() {
 proc eof!() {
   if ! yield 'eof {
     yield 'reject("expected end of input")
+    end
   }
 }
 
@@ -165,7 +168,21 @@ func char c = do() {
     return c
   } else {
     yield 'reject("expected '${c}', got '${actual}'")
+    end
   }
+}
+
+## A parser for a single character.
+func any_char c = do() {
+  match yield 'next
+    case 'some(ch) {
+      yield 'accept
+      return c
+    }
+    else {
+      yield 'reject("reached end of input")
+      end
+    }
 }
 
 ## A parser for a specific sequence of characters.

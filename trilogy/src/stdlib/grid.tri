@@ -1,0 +1,61 @@
+import "trilogy:iterator" as it
+import "trilogy:number" use im
+
+export from, adjacent, rotate_right, surrounding
+
+proc from!(arr and typeof 'array) {
+  let mut pos = 0i0
+  let mut grid = {||}
+  for row in arr {
+    for col in row {
+      grid.pos = col
+      pos += 1
+    }
+    pos = 0i1 + im pos
+  }
+  return grid
+}
+
+test "grid from" {
+  let grid = from!(["123", "456", "789"])
+  assert grid.0 == '1'
+  assert grid.1 == '2'
+  assert grid.2 == '3'
+  assert grid.0i1 == '4'
+  assert grid.1i1 == '5'
+  assert grid.2i1 == '6'
+  assert grid.0i2 == '7'
+  assert grid.1i2 == '8'
+  assert grid.2i2 == '9'
+}
+
+func adjacent pos = [pos + 0i1 ** i for i in [0, 1, 2, 3]]
+
+test "grid adjacent" {
+  assert adjacent 0i0 == [1, 0i1, -1, -0i1]
+}
+
+func rotate_right dir = dir * 0i1
+
+test "grid rotate_right" {
+  assert rotate_right 1 == 0i1
+  assert rotate_right 0i1 == -1
+  assert rotate_right (-1) == -0i1
+  assert rotate_right (-0i1) == 1
+  assert rotate_right (-0i2) == 2
+}
+
+func surrounding pos = [pos + offset for offset in [-1-0i1, -1, -1+0i1, -0i1, 0i1, 1 - 0i1, 1, 1 + 0i1]]
+
+test "grid rotate_right" {
+  assert surrounding 0 == [
+    -1 - 0i1,
+    -1,
+    -1 + 0i1,
+    -0i1,
+    0i1,
+    1 - 0i1,
+    1,
+    1 + 0i1,
+  ]
+}

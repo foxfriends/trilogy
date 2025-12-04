@@ -145,7 +145,19 @@ type c {
 
   extern proc slice!(val, i, fin)
   export slice
+
+  extern proc re!(val)
+  export re
+
+  extern proc im!(val)
+  export im
 }
+
+const im = c::im
+export im
+
+const re = c::re
+export re
 
 const print = c::print
 export print
@@ -274,7 +286,7 @@ func member_access (str and typeof 'string) (index and typeof 'number) =
 func member_access (bits and typeof 'bits) (index and typeof 'number) =
   if index >= 0 && index < length bits then c::member_access!(bits, index) else yield 'mia
 func member_access (rec and typeof 'record) index =
-  if is index:_ in rec then c::member_access!(rec, index) else yield 'mia
+  if is ^index:_ in rec then c::member_access!(rec, index) else yield 'mia
 func member_access (tup and typeof 'tuple) 'left = c::member_access!(tup, 'left)
 func member_access (tup and typeof 'tuple) 'right = c::member_access!(tup, 'right)
 func member_access (tup and typeof 'tuple) _ = yield 'mia

@@ -189,7 +189,7 @@ test "string trim" {
   assert trim_end "\n\t  hello \t\n " == "\n\t  hello"
 }
 
-func collect iterator = string
+func collect iterator =
   let mut str = "",
   with (iterator!(); str)
     when 'next(val) then {

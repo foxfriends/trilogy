@@ -1,4 +1,10 @@
-export from_digit, abs, max, min
+import "trilogy:core" as core
+
+export from_digit, abs, max, min, re, im
+
+func re num and typeof 'number = core::re!(num)
+
+func im num and typeof 'number = core::im!(num)
 
 func from_digit '9' = 9
 func from_digit '8' = 8

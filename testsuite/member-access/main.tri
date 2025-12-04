@@ -5,4 +5,8 @@ proc main!() {
 
   assert "hello".4 == 'o'
   assert with "hello".5 when 'mia cancel true else cancel false
+
+  assert {|'a' => 0, 'b' => 1, 'c' => 2|}.'a' == 0
+  assert {|0 => 'a', 1 => 'b', 2 => 'c'|}.0 == 'a'
+  assert with {|0 => 'a', 1 => 'b', 2 => 'c'|}.3 when 'mia cancel true else cancel false
 }

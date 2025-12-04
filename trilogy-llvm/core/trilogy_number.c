@@ -39,6 +39,14 @@ trilogy_number_value* trilogy_number_init_const(
     return trilogy_number_init(tv, value);
 }
 
+trilogy_number_value*
+trilogy_number_init_from_re_im(trilogy_value* tv, rational re, rational im) {
+    trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
+    value->re = re;
+    value->im = im;
+    return trilogy_number_init(tv, value);
+}
+
 trilogy_number_value* trilogy_number_init_u64(trilogy_value* tv, uint64_t num) {
     trilogy_number_value* value = malloc_safe(sizeof(trilogy_number_value));
     value->re = rational_zero;
