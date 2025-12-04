@@ -1,10 +1,34 @@
 import "trilogy:core" as core
 
-export from_digit, abs, max, min, re, im
+export from_digit, abs, max, min, re, im, conj, swap
 
 func re num and typeof 'number = core::re!(num)
 
+test "number re" {
+  assert re 3i1 == 3
+  assert re (-3i1) == -3
+}
+
 func im num and typeof 'number = core::im!(num)
+
+test "number im" {
+  assert im 3i1 == 0i1
+  assert im (-3i1) == -0i1
+}
+
+func conj num and typeof 'number = re num - im num
+
+test "number conj" {
+  assert conj 3i1 == 3 - 0i1
+  assert conj (-3i1) == -3 + 0i1
+}
+
+func swap num and typeof 'number = conj num * 0i1
+
+test "number swap" {
+  assert swap 3i1 == 1i3
+  assert swap (-3i1) == -1i3
+}
 
 func from_digit '9' = 9
 func from_digit '8' = 8
