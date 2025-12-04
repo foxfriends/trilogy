@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:array" as array
 
-export is_empty, chars, join, length, slice, drop, take, skip, starts_with, replace, replace_all, chomp, trim, trim_start, trim_end, trim_start_satisfies, trim_end_satisfies, trim_satisfies
+export is_empty, chars, join, length, slice, drop, take, skip, starts_with, replace, replace_all, chomp, trim, trim_start, trim_end, trim_start_satisfies, trim_end_satisfies, trim_satisfies, collect
 
 func is_empty "" = true
 func is_empty _ = false
@@ -187,4 +187,29 @@ test "string trim" {
   assert trim "\n\t  hello \t\n " == "hello"
   assert trim_start "\n\t  hello \t\n " == "hello \t\n "
   assert trim_end "\n\t  hello \t\n " == "\n\t  hello"
+}
+
+func collect iterator = string
+  let mut str = "",
+  with (iterator!(); str)
+    when 'next(val) then {
+      str <>= core::to_string val
+      become unit
+    }
+    else yield
+
+test "string collect" {
+  let string_iter = do() {
+    yield 'next("hello")
+    yield 'next(" ")
+    yield 'next("world")
+  }
+  assert collect string_iter == "hello world"
+
+  let mixed_iter = do() {
+    yield 'next(true)
+    yield 'next(' ')
+    yield 'next(3)
+  }
+  assert collect mixed_iter == "true 3"
 }

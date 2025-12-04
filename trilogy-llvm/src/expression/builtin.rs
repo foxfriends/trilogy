@@ -187,11 +187,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "acc.i")?;
                 let lhs = self.use_temporary(lhs).unwrap();
-                let out = self.allocate_value(name);
-                self.member_access(out, lhs, rhs);
-                self.destroy_owned_temporary(lhs);
-                self.trilogy_value_destroy(rhs);
-                Some(out)
+                Some(self.member_access(lhs, rhs, ""))
             }
             Builtin::Cons => {
                 let lhs = self.compile_expression(lhs, "cons.lhs")?;

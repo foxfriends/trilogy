@@ -1,0 +1,8 @@
+proc main!() {
+  assert [1, 2, 3].2 == 3
+  assert [1, 2, 3].0 == 1
+  assert with [1, 2, 3].4 when 'mia cancel true else cancel false
+
+  assert "hello".4 == 'o'
+  assert with "hello".5 when 'mia cancel true else cancel false
+}

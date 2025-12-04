@@ -1,4 +1,5 @@
 import "trilogy:core" as core
+import "trilogy:string" as string
 
 export print
 proc print!(value and typeof 'string) {
@@ -44,4 +45,9 @@ proc readlines!() {
       else yield
     yield 'next(line)
   }
+}
+
+export readall
+proc readall!() {
+  return string::collect <| readlines!()
 }

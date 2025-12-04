@@ -47,7 +47,7 @@ impl<'ctx> Codegen<'ctx> {
         self.import_accessor(&format!("trilogy:core::{name}"))
     }
 
-    fn get_core(&self, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn reference_core(&self, name: &str) -> PointerValue<'ctx> {
         let target = self.allocate_value(name);
         let accessor = self.import_core(name);
         self.call_internal(target, accessor, &[]);
@@ -67,7 +67,6 @@ impl<'ctx> Codegen<'ctx> {
     core_binary_operator!(shift_right);
     core_binary_operator!(shift_right_extend);
     core_binary_operator!(shift_right_contract);
-    core_binary_operator!(member_access);
     core_binary_operator!(glue);
     core_binary_operator!(lt);
     core_binary_operator!(gt);
@@ -106,7 +105,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn to_string(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
-        let to_string = self.get_core("to_string");
+        let to_string = self.reference_core("to_string");
         self.apply_function(to_string, argument, name)
     }
 
@@ -116,15 +115,24 @@ impl<'ctx> Codegen<'ctx> {
         rhs: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        let compose = self.get_core("compose");
+        let compose = self.reference_core("compose");
         self.bind_temporary(rhs);
-        let composed = self.apply_function(compose, lhs, name);
+        let composed = self.apply_function(compose, lhs, "composing");
         let rhs = self.use_temporary(rhs).unwrap();
         self.apply_function(composed, rhs, name)
     }
 
-    pub(crate) fn reference_core(&self, name: &str) -> PointerValue<'ctx> {
-        self.get_core(name)
+    pub(crate) fn member_access(
+        &self,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+        name: &str,
+    ) -> PointerValue<'ctx> {
+        let member_access = self.reference_core("member_access");
+        self.bind_temporary(rhs);
+        let composed = self.apply_function(member_access, lhs, "accessing");
+        let rhs = self.use_temporary(rhs).unwrap();
+        self.apply_function(composed, rhs, name)
     }
 
     pub(crate) fn invert(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {
@@ -133,10 +141,10 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn elem(&self) -> PointerValue<'ctx> {
-        self.get_core("elem")
+        self.reference_core("elem")
     }
 
     pub(crate) fn test_main(&self) -> PointerValue<'ctx> {
-        self.get_core("test_main")
+        self.reference_core("test_main")
     }
 }

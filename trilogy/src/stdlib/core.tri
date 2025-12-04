@@ -266,8 +266,20 @@ func shift_right_extend lhs rhs = c::shift_right_extend!(lhs, rhs)
 export shift_right_extend
 func shift_right_contract lhs rhs = c::shift_right_contract!(lhs, rhs)
 export shift_right_contract
-func member_access lhs rhs = c::member_access!(lhs, rhs)
+
+func member_access (arr and typeof 'array) (index and typeof 'number) =
+  if index >= 0 && index < length arr then c::member_access!(arr, index) else yield 'mia
+func member_access (str and typeof 'string) (index and typeof 'number) =
+  if index >= 0 && index < length str then c::member_access!(str, index) else yield 'mia
+func member_access (bits and typeof 'bits) (index and typeof 'number) =
+  if index >= 0 && index < length bits then c::member_access!(bits, index) else yield 'mia
+func member_access (rec and typeof 'record) index =
+  if is index:_ in rec then c::member_access!(rec, index) else yield 'mia
+func member_access (tup and typeof 'tuple) 'left = c::member_access!(tup, 'left)
+func member_access (tup and typeof 'tuple) 'right = c::member_access!(tup, 'right)
+func member_access (tup and typeof 'tuple) _ = yield 'mia
 export member_access
+
 func glue lhs rhs = c::glue!(lhs, rhs)
 export glue
 func lt lhs rhs = c::lt!(lhs, rhs)
