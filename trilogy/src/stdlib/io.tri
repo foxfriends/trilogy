@@ -49,5 +49,5 @@ proc readlines!() {
 
 export readall
 proc readall!() {
-  return string::collect <| readlines!()
+  return string::collect readlines
 }
