@@ -101,9 +101,9 @@ func many_1 parser = do() {
 }
 
 func sep_tail sep parser = do() {
-  return match apply (option sep)
-    case 'none then []
-    else then apply (sep_by_1 sep parser)
+  return match apply (option (prefixed_by sep parser))
+    case 'some(result) then [result, ..apply (sep_tail sep parser)]
+    else then [] 
 }
 
 ## Parses zero or more occurrences of `parser`, separated by `sep`. Returns
@@ -129,10 +129,16 @@ func followed_by follow parser = do() {
   return result
 }
 
+## Parses `prefix` followed by `parser`, returning only the result of `parser`.
+func prefixed_by prefix parser = do() {
+  apply prefix
+  return apply parser
+}
+
 ## Parses zero or more occurrences of `parser`, separated and ended by `sep`.
 ## Returns an array of the parsed values of `parser`.
 func end_by sep parser = do() {
-  let first = match apply <| option <| followed_by sep parser
+  let first = match apply (option (followed_by sep parser))
     case 'some(value) then value
     else then return []
   let tail = apply <| end_by sep parser
