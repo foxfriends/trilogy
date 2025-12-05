@@ -10,3 +10,4 @@
 * Fix the memory leaks
 * Something wrong with `or` patterns when running JIT
 * Rethink complex number syntax, make more like normal
+* Remove distinction between unary functions and unary procedures
