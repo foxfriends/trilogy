@@ -1,6 +1,6 @@
 import "trilogy:array" as array use collect
 
-export run, of, forever, repeat, take, range, range_step, filter, map, scanl, foldl, sum, count, from, any, all
+export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, scanl, foldl, sum, count, from, any, all
 
 func run it = it!()
 
@@ -89,6 +89,7 @@ test "iterator chunks" {
   with chunks 0 when 'arg cancel unit else yield
 }
 
+func range_step _ _ 0 = yield 'arg
 func range_step from to step = do() {
   let cmp = if step > 0 then (<=) else (>=)
   let mut i = from
@@ -106,11 +107,38 @@ test "iterator range_step" {
   assert collect <| range_step 0 5 2 == [0, 2, 4]
 }
 
+func rangex_step _ _ 0 = yield 'arg
+func rangex_step from to step = do() {
+  let cmp = if step > 0 then (<) else (>)
+  let mut i = from
+  while cmp i to {
+    yield 'next(i)
+    i += step
+  }
+}
+
+test "iterator rangex_step" {
+  assert collect <| rangex_step 0 5 1 == [0, 1, 2, 3, 4]
+  assert collect <| rangex_step 5 1 (-1) == [5, 4, 3, 2]
+  assert collect <| rangex_step 0 5 (-1) == []
+  assert collect <| rangex_step 5 1 1 == []
+  assert collect <| rangex_step 0 5 2 == [0, 2, 4]
+}
+
 func range from to = if from < to then range_step from to 1 else range_step from to (-1)
 
 test "iterator range" {
   assert collect <| range 0 5 == [0, 1, 2, 3, 4, 5]
   assert collect <| range 5 1 == [5, 4, 3, 2, 1]
+  assert collect <| range 0 0 == [0]
+}
+
+func rangex from to = if from < to then rangex_step from to 1 else rangex_step from to (-1)
+
+test "iterator rangex" {
+  assert collect <| rangex 0 5 == [0, 1, 2, 3, 4]
+  assert collect <| rangex 5 1 == [5, 4, 3, 2]
+  assert collect <| rangex 0 0 == []
 }
 
 func filter predicate it = do() {
