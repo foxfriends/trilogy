@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:array" as array
 
-export is_empty, chars, join, length, slice, drop, take, skip, starts_with, replace, replace_all, chomp, trim, trim_start, trim_end, trim_start_satisfies, trim_end_satisfies, trim_satisfies, collect
+export is_empty, chars, join, length, slice, drop, take, skip, starts_with, replace, replace_all, chomp, trim, trim_start, trim_end, trim_start_satisfies, trim_end_satisfies, trim_satisfies, collect, split
 
 func is_empty "" = true
 func is_empty _ = false
@@ -105,7 +105,7 @@ test "string drop" {
     else yield
 }
 
-func starts_with prefix string = slice 0 (length prefix) string == prefix
+func starts_with prefix string = take (length prefix) string == prefix
 
 test "string starts_with" {
   assert starts_with "" ""
@@ -114,6 +114,7 @@ test "string starts_with" {
   assert starts_with "hello" "hello"
   assert !(starts_with "be" "hello")
   assert !(starts_with "el" "hello")
+  assert !(starts_with "hello" "he")
 }
 
 func replace "" _ _ = yield 'arg
@@ -187,6 +188,22 @@ test "string trim" {
   assert trim "\n\t  hello \t\n " == "hello"
   assert trim_start "\n\t  hello \t\n " == "hello \t\n "
   assert trim_end "\n\t  hello \t\n " == "\n\t  hello"
+}
+
+func split_ pos sep string =
+  if pos >= length string
+    then [string]
+  else if starts_with sep <| skip pos string
+    then [take pos string, ..split_ 0 sep <| skip (pos + length sep) string]
+  else
+    split_ (pos + 1) sep string
+func split "" string = chars string
+func split sep string = split_ 0 sep string
+
+test "string split" {
+  assert split " " "hello there world" == ["hello", "there", "world"]
+  assert split " " "hello  there" == ["hello", "", "there"]
+  assert split "ll" "helllo worlld" == ["he", "lo wor", "d"]
 }
 
 func collect iterator =

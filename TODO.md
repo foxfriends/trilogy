@@ -16,3 +16,4 @@
     * Type-agnostic global functions (similar to core, but safe)
     * Consistent interfaces to individual core standard modules
     * Maybe adjust naming and organization of `core.c`, which is kind of scary conflictable
+* Guards on `func`

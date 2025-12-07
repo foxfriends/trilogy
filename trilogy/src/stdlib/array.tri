@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:number" as num
 
-export push, extend, length, map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose
+export push, extend, length, map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose, flatten
 
 proc push!(arr and typeof 'array, value) {
   core::push!(arr, value)
@@ -329,4 +329,14 @@ test "array transpose" {
   assert transpose [[1, 2, 3]] == [[1], [2], [3]]
   assert transpose [[1, 2, 3], [1, 2]] == [[1, 1], [2, 2], [3]]
   assert transpose [[1, 2, 3], [1, 2], [1, 2, 3]] == [[1, 1, 1], [2, 2, 2], [3, 3]]
+}
+
+func flatten [] = []
+func flatten [xs, ..xss] = [..xs, ..flatten xss]
+
+test "array flatten" {
+  assert flatten [] == []
+  assert flatten [[]] == []
+  assert flatten [[1, 2], [2, 4]] == [1, 2, 2, 4]
+  assert flatten [[1, 2, [3]], [2, 4]] == [1, 2, [3], 2, 4]
 }
