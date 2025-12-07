@@ -7,7 +7,7 @@ import "trilogy:array" as array
 import "trilogy:number" as num
 import "trilogy:string" as str
 
-export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, end_by, end_by_1, per_line, eof, any_char, char, char_of, digit, string, integer
+export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, end_by, end_by_1, sep_end_by, per_line, eof, any_char, char, char_of, digit, string, integer
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
@@ -138,7 +138,7 @@ func prefixed_by prefix parser = do() {
 ## Parses zero or more occurrences of `parser`, separated and ended by `sep`.
 ## Returns an array of the parsed values of `parser`.
 func end_by sep parser = do() {
-  let first = match apply (option (followed_by sep parser))
+  let first = match apply <| option <| followed_by sep parser
     case 'some(value) then value
     else then return []
   let tail = apply <| end_by sep parser
@@ -153,8 +153,17 @@ func end_by_1 sep parser = do() {
   return [first, ..tail]
 }
 
+func sep_end_by sep parser = do() {
+  let first = match apply <| option parser
+    case 'some(value) then value
+    else then return []
+  return match apply <| option sep
+    case 'some(_) then [first, ..apply <| sep_end_by sep parser]
+    else then [first]
+}
+
 ## Reads one instance of `parser` per line.
-func per_line parser = sep_by (char '\n') parser
+func per_line parser = sep_end_by (char '\n') parser
 
 ## A parser that matches the end of input.
 proc eof!() {
