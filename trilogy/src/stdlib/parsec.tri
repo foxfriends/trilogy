@@ -69,8 +69,8 @@ func option parser = do()
 ## parser that succeeds.
 func choice [] = do() yield 'reject("choice had no options")
 func choice [parser, ..rest] = do () {
-  return with apply (atomic parser)
-    when 'reject(err) cancel with apply (choice rest)
+  return with apply <| atomic parser
+    when 'reject(err) cancel with apply <| choice rest
       when 'reject("choice had no options") then {
         yield 'reject(err)
         end
@@ -86,10 +86,10 @@ func choice [parser, ..rest] = do () {
 ## Applies the parser as many times as possible, returning an array of
 ## the parsed results.
 func many parser = do() {
-  let result = with apply (atomic parser)
+  let result = with apply <| atomic parser
     when 'reject(_) then { return [] }
     else yield
-  return [result, ..apply (many parser)]
+  return [result, ..apply <| many parser]
 }
 
 ## Applies the parser as many times as possible, but at least once, returning
@@ -101,15 +101,15 @@ func many_1 parser = do() {
 }
 
 func sep_tail sep parser = do() {
-  return match apply (option (prefixed_by sep parser))
-    case 'some(result) then [result, ..apply (sep_tail sep parser)]
+  return match apply <| option <| prefixed_by sep parser
+    case 'some(result) then [result, ..apply <| sep_tail sep parser]
     else then [] 
 }
 
 ## Parses zero or more occurrences of `parser`, separated by `sep`. Returns
 ## an array of the parsed values of `parser`.
 func sep_by sep parser = do() {
-  return match apply (option parser)
+  return match apply <| option parser
     case 'some(first) then [first, ..apply <| sep_tail sep parser]
     else then []
 }
@@ -211,6 +211,11 @@ func char_of s = s
 ## A parser for any base-10 digit.
 proc digit!() {
   return apply <| char_of "0123456789"
+}
+
+test "parsec digit" {
+  assert parse digit "123" == '1'
+  assert with parse digit "A"; false when 'reject(_) cancel true else cancel false
 }
 
 ## Parses a base-10 integer from a string, returning the value as a number.
