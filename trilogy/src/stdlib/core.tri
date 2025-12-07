@@ -41,6 +41,9 @@ type c {
   extern proc append!(arr, val)
   export append
 
+  extern proc contains_key!(arr, key)
+  export contains_key
+
   extern proc member_access!(container, index)
   export member_access
 
@@ -180,6 +183,9 @@ export push
 const append = c::append
 export append
 
+func contains_key key arr = c::contains_key!(arr, key)
+export contains_key
+
 func slice i fin arr =
   if i > fin || i < 0 then
     yield 'arg
@@ -286,7 +292,7 @@ func member_access (str and typeof 'string) (index and typeof 'number) =
 func member_access (bits and typeof 'bits) (index and typeof 'number) =
   if index >= 0 && index < length bits then c::member_access!(bits, index) else yield 'mia
 func member_access (rec and typeof 'record) index =
-  if is ^index:_ in rec then c::member_access!(rec, index) else yield 'mia
+  if c::contains_key!(rec, index) then c::member_access!(rec, index) else yield 'mia
 func member_access (tup and typeof 'tuple) 'left = c::member_access!(tup, 'left)
 func member_access (tup and typeof 'tuple) 'right = c::member_access!(tup, 'right)
 func member_access (tup and typeof 'tuple) _ = yield 'mia

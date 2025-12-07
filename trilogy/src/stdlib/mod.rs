@@ -34,6 +34,10 @@ where
             include_str!("./array.tri").to_owned(),
         )
         .source_module(
+            Location::library("set").unwrap(),
+            include_str!("./set.tri").to_owned(),
+        )
+        .source_module(
             Location::library("grid").unwrap(),
             include_str!("./grid.tri").to_owned(),
         )

@@ -71,7 +71,9 @@ static size_t trilogy_set_find(
 ) {
     if (insert_to) *insert_to = set->cap;
     size_t h = ((size_t)trilogy_value_hash(key)) % set->cap;
-    for (;; h = h == set->cap - 1 ? 0 : h + 1) {
+    for (size_t checked = 0; checked < set->cap;
+         h = h == set->cap - 1 ? 0 : h + 1) {
+        checked++;
         trilogy_tuple_value* entry = &set->contents[h];
         if (entry->fst.tag == TAG_UNDEFINED &&
             entry->snd.tag == TAG_UNDEFINED) {
@@ -94,6 +96,7 @@ static size_t trilogy_set_find(
             return h;
         }
     }
+    return set->cap;
 }
 
 static void trilogy_set_maintainance(trilogy_set_value* set) {
@@ -121,6 +124,7 @@ void trilogy_set_insert(trilogy_set_value* set, trilogy_value* value) {
     size_t found = trilogy_set_find(set, value, &empty);
     if (found == set->cap) {
         // If it's not found, insert the new value and mark it with a `unit`.
+        assert(empty != set->cap);
         set->contents[empty].fst = *value;
         set->contents[empty].snd = trilogy_unit;
         set->len++;
@@ -168,6 +172,7 @@ bool trilogy_set_delete(trilogy_set_value* set, trilogy_value* value) {
 }
 
 bool trilogy_set_contains(trilogy_set_value* set, trilogy_value* value) {
+    if (set->len == 0) return false;
     return trilogy_set_find(set, value, NULL) != set->cap;
 }
 

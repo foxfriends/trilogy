@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:number" as num
 
-export push, extend, length, map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose, flatten
+export push, extend, length, map, flat_map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose, flatten
 
 proc push!(arr and typeof 'array, value) {
   core::push!(arr, value)
@@ -47,6 +47,15 @@ test "array map" {
   let arr = [1, 2, 3]
   let doubled = map (fn x. x * 2) arr
   assert arr == [1, 2, 3]
+}
+
+func flat_map _ [] = []
+func flat_map f [x, ..xs] = [..f x, ..flat_map f xs]
+
+test "array flat_map" {
+  assert flat_map (fn x. [x * 2, x / 2]) [] == []
+  assert flat_map (fn x. [x * 2, x / 2]) [1] == [2, 1/2]
+  assert flat_map (fn x. [x * 2, x / 2]) [1, 2, 3] == [2, 1/2, 4, 1, 6, 3/2]
 }
 
 func filter _ [] = []

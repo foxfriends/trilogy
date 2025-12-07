@@ -75,7 +75,9 @@ static size_t trilogy_record_find(
 ) {
     if (insert_to) *insert_to = record->cap;
     size_t h = ((size_t)trilogy_value_hash(key)) % record->cap;
-    for (;; h = h == record->cap - 1 ? 0 : h + 1) {
+    for (size_t checked = 0; checked < record->cap;
+         h = h == record->cap - 1 ? 0 : h + 1) {
+        checked++;
         trilogy_tuple_value* entry = &record->contents[h];
         if (entry->fst.tag == TAG_UNDEFINED &&
             entry->snd.tag == TAG_UNDEFINED) {
@@ -98,6 +100,7 @@ static size_t trilogy_record_find(
             return h;
         }
     }
+    return record->cap;
 }
 
 static void trilogy_record_maintainance(trilogy_record_value* record) {
@@ -128,6 +131,7 @@ void trilogy_record_insert(
     size_t empty = record->cap;
     size_t found = trilogy_record_find(record, key, &empty);
     if (found == record->cap) {
+        assert(empty != record->cap);
         // If it's not found, insert the new key and value at the empty
         // position.
         record->contents[empty].fst = *key;
@@ -189,6 +193,7 @@ bool trilogy_record_delete(trilogy_record_value* record, trilogy_value* key) {
 bool trilogy_record_contains_key(
     trilogy_record_value* record, trilogy_value* key
 ) {
+    if (record->len == 0) return false;
     return trilogy_record_find(record, key, NULL) != record->cap;
 }
 

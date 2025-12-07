@@ -1,0 +1,46 @@
+import "trilogy:core" as core
+
+export contains, push, collect
+
+proc push!(set and typeof 'set, val) {
+  core::push!(set, val)
+}
+
+test "set push" {
+  let mut set = [||]
+  push!(set, 5)
+  assert set == [|5|]
+  push!(set, 6)
+  assert set == [|5, 6|]
+  push!(set, 6)
+  assert set == [|5, 6|]
+}
+
+func contains val set and typeof 'set = core::contains_key val set
+
+test "set contains" {
+  let set = [|1, 2, 3|]
+  assert contains 3 set
+  assert contains 1 set
+  assert !(contains 4 set)
+}
+
+func collect iterator =
+  let set = [||],
+  with (iterator!(); set)
+    when 'next(val) then {
+      push!(set, val)
+      become unit
+    }
+    else yield
+
+test "set collect" {
+  let iterator = do() {
+    yield 'next(1)
+    yield 'next(2)
+    yield 'next(3)
+    yield 'next(2)
+    yield 'next(1)
+  }
+  assert collect iterator == [| 1, 2, 3 |]
+}

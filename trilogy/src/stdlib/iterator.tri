@@ -1,6 +1,6 @@
 import "trilogy:array" as array use collect
 
-export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, scanl, foldl, sum, count, from, any, all
+export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, flat_map, scanl, fold, sum, count, from, any, all, enumerate
 
 func run it = it!()
 
@@ -143,7 +143,7 @@ test "iterator rangex" {
 
 func filter predicate it = do() {
   with it!()
-    when 'next(val) if predicate val then { become yield 'next(val) }
+    when 'next(val) if predicate val resume yield 'next(val)
     when 'next(_) resume unit
     else yield
 }
@@ -154,7 +154,7 @@ test "iterator filter" {
 
 func map f it = do() {
   with it!()
-    when 'next(val) then { become yield 'next(f val) }
+    when 'next(val) resume yield 'next(f val)
     else yield
 }
 
@@ -162,13 +162,26 @@ test "iterator map" {
   assert collect <| map ((*) 2) <| range 1 5 == [2, 4, 6, 8, 10]
 }
 
+func flat_map f it = do() {
+  with it!()
+    when 'next(val) then {
+      let inner = f val
+      inner!()
+      become unit
+    }
+    else yield
+}
+
+test "iterator flat_map" {
+  assert collect <| flat_map (range 0) <| range 0 3 == [0, 0, 1, 0, 1, 2, 0, 1, 2, 3]
+}
+
 func scanl f a it = do() {
   let mut state = a
   with it!()
     when 'next(val) then {
       state = f state val
-      yield 'next(state)
-      become unit
+      become yield 'next(state)
     }
     else yield
 }
@@ -177,7 +190,7 @@ test "iterator scanl" {
   assert collect <| scanl (+) 0 <| range 1 5 == [1, 3, 6, 10, 15]
 }
 
-func foldl f a it =
+func fold f a it =
   let mut state = a,
   with it!()
     when 'next(val) then {
@@ -187,17 +200,17 @@ func foldl f a it =
     else yield;
   state
 
-test "iterator foldl" {
-  assert foldl (:) 0 <| range 1 5 == ((((0:1):2):3):4):5
+test "iterator fold" {
+  assert fold (:) 0 <| range 1 5 == ((((0:1):2):3):4):5
 }
 
-func sum it = foldl (+) 0 it
+func sum it = fold (+) 0 it
 
 test "iterator sum" {
   assert sum <| range 1 5 == 15
 }
 
-func count it = foldl (fn a _. a + 1) 0 it
+func count it = fold (fn a _. a + 1) 0 it
 
 test "iterator count" {
   assert count <| range 1 5 == 5
@@ -233,4 +246,19 @@ test "iterator all" {
   assert !(all (fn x. x < 2) <| range 1 3)
   assert all (fn x. x < 5) <| range 1 3
   assert !(all ((==) 1) <| forever 2)
+}
+
+func enumerate it = do() {
+  let mut i = 0
+  with it!()
+    when 'next(v) then {
+      let j = i
+      i += 1
+      become yield 'next(j:v)
+    }
+    else yield
+}
+
+test "iterator enumerate" {
+  assert collect <| enumerate <| range 3 5 == [0:3, 1:4, 2:5]
 }

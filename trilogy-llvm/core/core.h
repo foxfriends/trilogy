@@ -49,6 +49,7 @@ void negate(trilogy_value* rv, trilogy_value* val);
 void length(trilogy_value* rv, trilogy_value* arr);
 void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val);
 void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val);
+void contains_key(trilogy_value* rv, trilogy_value* arr, trilogy_value* key);
 
 void glue(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);
 void unglue_start(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs);

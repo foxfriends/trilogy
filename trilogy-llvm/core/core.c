@@ -222,6 +222,25 @@ void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     *rv = trilogy_unit;
 }
 
+void contains_key(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
+    switch (arr->tag) {
+    case TAG_SET: {
+        trilogy_boolean_init(
+            rv, trilogy_set_contains(trilogy_set_assume(arr), val)
+        );
+        break;
+    }
+    case TAG_RECORD: {
+        trilogy_boolean_init(
+            rv, trilogy_record_contains_key(trilogy_record_assume(arr), val)
+        );
+        break;
+    }
+    default:
+        rte("set, or record", arr->tag);
+    }
+}
+
 void glue(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_string_value* lstr = trilogy_string_untag(lhs);
     trilogy_string_value* rstr = trilogy_string_untag(rhs);
