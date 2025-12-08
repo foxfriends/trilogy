@@ -154,6 +154,12 @@ type c {
 
   extern proc im!(val)
   export im
+
+  extern proc numer!(val)
+  export numer
+
+  extern proc denom!(val)
+  export denom
 }
 
 const im = c::im
@@ -161,6 +167,12 @@ export im
 
 const re = c::re
 export re
+
+const numer = c::numer
+export numer
+
+const denom = c::denom
+export denom
 
 const print = c::print
 export print

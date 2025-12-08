@@ -78,3 +78,5 @@ void string_to_array(trilogy_value* rv, trilogy_value* val);
 
 void re(trilogy_value* rv, trilogy_value* num);
 void im(trilogy_value* rv, trilogy_value* num);
+void numer(trilogy_value* rv, trilogy_value* num);
+void denom(trilogy_value* rv, trilogy_value* num);

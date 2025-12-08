@@ -551,5 +551,22 @@ void re(trilogy_value* rv, trilogy_value* val) {
 void im(trilogy_value* rv, trilogy_value* val) {
     trilogy_number_value* num = trilogy_number_untag(val);
     rational zero = RATIONAL_ZERO;
-    trilogy_number_init_from_re_im(rv, zero, num->im);
+    trilogy_number_init_from_re_im(rv, num->im, zero);
+}
+
+void numer(trilogy_value* rv, trilogy_value* val) {
+    trilogy_number_value* num = trilogy_number_untag(val);
+    rational real = RATIONAL_ONE;
+    real.is_negative = num->re.is_negative;
+    real.numer = num->re.numer;
+    rational zero = RATIONAL_ZERO;
+    trilogy_number_init_from_re_im(rv, real, zero);
+}
+
+void denom(trilogy_value* rv, trilogy_value* val) {
+    trilogy_number_value* num = trilogy_number_untag(val);
+    rational real = RATIONAL_ONE;
+    real.numer = num->re.denom;
+    rational zero = RATIONAL_ZERO;
+    trilogy_number_init_from_re_im(rv, real, zero);
 }

@@ -1,6 +1,94 @@
 import "trilogy:core" as core
 
-export from_digit, abs, max, min, re, im, conj, swap
+export numer, denom, is_natural, is_whole, is_integer, is_real, is_imaginary, is_complex, from_digit, abs, max, min, re, im, conj, swap, sign
+
+func numer num and typeof 'number = core::numer!(num)
+
+test "number numer" {
+  assert numer 1 == 1
+  assert numer 3/2 == 3
+  assert numer 4/2 == 2
+  assert numer 3i1 == 3
+  assert numer (-5/2) == -5
+  assert numer 3/2i1/4 == 3
+}
+
+func denom num and typeof 'number = core::denom!(num)
+
+test "number denom" {
+  assert denom 1 == 1
+  assert denom 3/2 == 2
+  assert denom 4/2 == 1
+  assert denom 3i1 == 1
+  assert denom (-5/2) == 2
+  assert denom 3/2i1/4 == 2
+}
+
+func is_natural num = im num == 0 && denom num == 1 && numer num >= 1
+
+test "number is_natural" {
+  assert is_natural 3
+  assert !(is_natural 0)
+  assert !(is_natural (-1))
+  assert !(is_natural 1/2)
+  assert !(is_natural 0i1)
+  assert !(is_natural 3i1)
+}
+
+func is_whole num = im num == 0 && denom num == 1 && numer num >= 0
+
+test "number is_whole" {
+  assert is_whole 3
+  assert is_whole 0
+  assert !(is_whole 1/2)
+  assert !(is_whole (-1))
+  assert !(is_whole 0i1)
+  assert !(is_whole 3i1)
+}
+
+func is_integer num = im num == 0 && denom num == 1
+
+test "number is_integer" {
+  assert is_integer 3
+  assert is_integer 0
+  assert is_integer (-1)
+  assert !(is_integer 1/2)
+  assert !(is_integer 0i1)
+  assert !(is_integer 3i1)
+}
+
+func is_real num = im num == 0
+
+test "number is_integer" {
+  assert is_real 3
+  assert is_real 0
+  assert is_real (-1)
+  assert is_real 1/2
+  assert !(is_real 0i1)
+  assert !(is_real 3i1)
+}
+
+func is_imaginary num = re num == 0 && im num != 0
+
+test "number is_integer" {
+  assert !(is_imaginary 3)
+  assert !(is_imaginary 0)
+  assert !(is_imaginary (-1))
+  assert !(is_imaginary 1/2)
+  assert is_imaginary 0i1
+  assert !(is_imaginary 3i1)
+}
+
+func is_complex num = re num != 0 && im num != 0
+
+test "number is_integer" {
+  assert !(is_complex 3)
+  assert !(is_complex 0)
+  assert !(is_complex (-1))
+  assert !(is_complex 1/2)
+  assert !(is_complex 0i1)
+  assert (is_complex 3i1)
+}
 
 func re num and typeof 'number = core::re!(num)
 
@@ -12,11 +100,11 @@ test "number re" {
 func im num and typeof 'number = core::im!(num)
 
 test "number im" {
-  assert im 3i1 == 0i1
-  assert im (-3i1) == -0i1
+  assert im 3i1 == 1
+  assert im (-3i1) == -1
 }
 
-func conj num and typeof 'number = re num - im num
+func conj num and typeof 'number = re num - (0i1 * im num)
 
 test "number conj" {
   assert conj 3i1 == 3 - 0i1
@@ -63,4 +151,54 @@ test "number min" {
   assert min 1 5 == 1
   assert min 5 1 == 1
   assert min 1 (-5) == -5
+}
+
+func sign a = match a
+  case 0 then 0
+  case n if n < 0 then -1
+  else then 1
+
+test "number sign" {
+  assert sign 5 == 1
+  assert sign 0 == 0
+  assert sign (-5) == -1
+}
+
+func trunc_ a = if denom a == 1 then a else numer a // denom a
+func trunc a = trunc_ (re a) + 0i1 * trunc_ (im a)
+
+test "number trunc" {
+  assert trunc 5 == 5
+  assert trunc 0 == 0
+  assert trunc (-5) == -5
+  assert trunc (-5/2) == -2
+  assert trunc (5/2) == 2
+  assert trunc (5/2i5/2) == 2i2
+  assert trunc (-5/2i5/2) == -2i2
+}
+
+func floor_ a = if denom a == 1 then a else if a > 0 then trunc_ a else trunc_ a - 1
+func floor a = floor_ (re a) + 0i1 * floor_ (im a)
+
+test "number floor" {
+  assert floor 5 == 5
+  assert floor 0 == 0
+  assert floor (-5) == -5
+  assert floor (-5/2) == -3
+  assert floor (5/2) == 2
+  assert floor (5/2i5/2) == 2i2
+  assert floor (-5/2i5/2) == -3i3
+}
+
+func ceil_ a = if denom a == 1 then a else if a > 0 then trunc_ a + 1 else trunc_ a
+func ceil a = ceil_ (re a) + 0i1 * ceil_ (im a)
+
+test "number ceil" {
+  assert ceil 5 == 5
+  assert ceil 0 == 0
+  assert ceil (-5) == -5
+  assert ceil (-5/2) == -2
+  assert ceil (5/2) == 3
+  assert ceil (5/2i5/2) == 3i3
+  assert ceil (-5/2i5/2) == -2i2
 }

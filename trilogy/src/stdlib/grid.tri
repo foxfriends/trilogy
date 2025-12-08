@@ -11,7 +11,7 @@ proc from!(arr and typeof 'array) {
       grid.pos = col
       pos += 1
     }
-    pos = 0i1 + im pos
+    pos = 0i1 * (1 + im pos)
   }
   return grid
 }
