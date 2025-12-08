@@ -38,6 +38,9 @@ type c {
   extern proc push!(arr, val)
   export push
 
+  extern proc pop!(arr)
+  export pop
+
   extern proc append!(arr, val)
   export append
 
@@ -46,6 +49,9 @@ type c {
 
   extern proc member_access!(container, index)
   export member_access
+
+  extern proc delete_member!(container, index)
+  export delete_member
 
   extern proc glue!(lhs, rhs)
   export glue
@@ -191,6 +197,12 @@ export trace
 
 const push = c::push
 export push
+
+const pop = c::pop
+export pop
+
+const delete_member = c::delete_member
+export delete_member
 
 const append = c::append
 export append

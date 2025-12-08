@@ -75,6 +75,13 @@ void trilogy_array_push(trilogy_array_value* arr, trilogy_value* tv) {
     ++arr->len;
 }
 
+void trilogy_array_pop(trilogy_value* tv, trilogy_array_value* arr) {
+    assert(arr->len > 0);
+    --arr->len;
+    *tv = arr->contents[arr->len];
+    arr->contents[arr->len] = trilogy_undefined;
+}
+
 void trilogy_array_append(trilogy_array_value* arr, trilogy_value* tv) {
     trilogy_array_value* tail = trilogy_array_untag(tv);
     uint64_t tail_len = trilogy_array_len(tail);

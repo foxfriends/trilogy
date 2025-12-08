@@ -1,0 +1,98 @@
+import "trilogy:debug" use dbg
+import "trilogy:array" as array use length
+
+export heap
+
+proc swap!(array, i, j) {
+  let temp = array.i
+  array.i = array.j
+  array.j = temp
+}
+
+type heap cmp {
+  export push, pop, collect
+
+  proc push!(heap, val) {
+    let mut i = length heap
+    let mut parent = (i - 1) // 2
+    array::push!(heap, val)
+    while i > 0 && !(cmp (heap.parent) (heap.i)) {
+      swap!(heap, i, parent)
+      i = parent
+      parent = (i - 1) // 2
+    }
+  }
+
+  proc pop!(heap) {
+    swap!(heap, 0, length heap - 1)
+    let output = array::pop!(heap)
+
+    let mut i = 0
+    while i < length heap {
+      let left = i * 2 + 1
+      if left >= length heap { break unit }
+      let right = left + 1
+      let candidate = if right >= length heap || cmp (heap.left) (heap.right)
+        then left
+        else right
+      if !(cmp (heap.i) (heap.candidate)) {
+        swap!(heap, candidate, i)
+        i = candidate
+      } else {
+        break unit
+      }
+    }
+
+    return output
+  }
+
+  func collect iterator =
+    let heap = [],
+    with (iterator!(); heap)
+      when 'next(val) then {
+        push!(heap, val)
+        become unit
+      }
+      else yield
+}
+
+test "heap push" {
+  let max_heap = heap (>=)
+  let heap = []
+  max_heap::push!(heap, 1)
+  assert heap == [1]
+  max_heap::push!(heap, 2)
+  assert heap == [2, 1]
+  max_heap::push!(heap, 3)
+  assert heap == [3, 1, 2]
+  max_heap::push!(heap, 4)
+  assert heap == [4, 3, 2, 1]
+}
+
+test "heap pop" {
+  let max_heap = heap (>=)
+  let heap = []
+  max_heap::push!(heap, 3)
+  max_heap::push!(heap, 4)
+  max_heap::push!(heap, 1)
+  max_heap::push!(heap, 2)
+  assert max_heap::pop!(heap) == 4
+  assert heap == [3, 2, 1]
+  assert max_heap::pop!(heap) == 3
+  assert heap == [2, 1]
+  assert max_heap::pop!(heap) == 2
+  assert heap == [1]
+  assert max_heap::pop!(heap) == 1
+  assert heap == []
+}
+
+test "heap collect" {
+  let max_heap = heap (>=)
+  let iterator = do() {
+    yield 'next(1)
+    yield 'next(2)
+    yield 'next(3)
+    yield 'next(4)
+  }
+  assert max_heap::collect iterator == [4, 3, 2, 1]
+}

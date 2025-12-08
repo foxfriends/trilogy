@@ -196,6 +196,10 @@ void push(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     *rv = trilogy_unit;
 }
 
+void pop(trilogy_value* rv, trilogy_value* arr) {
+    trilogy_array_pop(rv, trilogy_array_untag(arr));
+}
+
 void append(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     switch (arr->tag) {
     case TAG_ARRAY: {
@@ -233,6 +237,25 @@ void contains_key(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
     case TAG_RECORD: {
         trilogy_boolean_init(
             rv, trilogy_record_contains_key(trilogy_record_assume(arr), val)
+        );
+        break;
+    }
+    default:
+        rte("set, or record", arr->tag);
+    }
+}
+
+void delete_member(trilogy_value* rv, trilogy_value* arr, trilogy_value* val) {
+    switch (arr->tag) {
+    case TAG_SET: {
+        trilogy_boolean_init(
+            rv, trilogy_set_delete(trilogy_set_assume(arr), val)
+        );
+        break;
+    }
+    case TAG_RECORD: {
+        trilogy_boolean_init(
+            rv, trilogy_record_delete(trilogy_record_assume(arr), val)
         );
         break;
     }

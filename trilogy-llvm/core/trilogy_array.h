@@ -18,6 +18,7 @@ size_t trilogy_array_resize(trilogy_array_value* tv, size_t cap);
 size_t trilogy_array_reserve(trilogy_array_value* tv, size_t cap);
 
 void trilogy_array_push(trilogy_array_value* arr, trilogy_value* tv);
+void trilogy_array_pop(trilogy_value* tv, trilogy_array_value* arr);
 void trilogy_array_set(
     trilogy_array_value* arr, size_t index, trilogy_value* tv
 );

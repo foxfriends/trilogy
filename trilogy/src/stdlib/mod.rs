@@ -42,6 +42,10 @@ where
             include_str!("./grid.tri").to_owned(),
         )
         .source_module(
+            Location::library("heap").unwrap(),
+            include_str!("./heap.tri").to_owned(),
+        )
+        .source_module(
             Location::library("parsec").unwrap(),
             include_str!("./parsec.tri").to_owned(),
         )

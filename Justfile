@@ -34,6 +34,12 @@ test:
 testsuite:
     cargo test --test testsuite
 
+[working-directory: './testsuite/stdlib-tests/']
+test-stdlib:
+    cargo run -- compile --test main.tri --prefix trilogy: > main.ll
+    {{clang}} main.ll -g -ldl -fdebug-macro -O0 -rdynamic
+    ./a.out
+
 print file="main.tri":
     cat {{justfile_dir() / file}}
 

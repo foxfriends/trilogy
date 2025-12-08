@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:number" as num
 
-export push, extend, length, map, flat_map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose, flatten
+export push, pop, extend, length, map, flat_map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose, flatten
 
 proc push!(arr and typeof 'array, value) {
   core::push!(arr, value)
@@ -14,6 +14,22 @@ test "array push" {
   assert array == [3]
   assert push!(array, 4) === array
   assert array == [3, 4]
+}
+
+proc pop!(arr and typeof 'array) {
+  if length arr == 0 {
+    return yield 'mia
+  } else {
+    return core::pop!(arr)
+  }
+}
+
+test "array pop" {
+  let array = [1, 2, 3]
+  assert pop!(array) == 3
+  assert array == [1, 2]
+  assert pop!(array) == 2
+  assert array == [1]
 }
 
 proc extend!(arr and typeof 'array, value and typeof 'array) {
