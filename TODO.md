@@ -17,3 +17,4 @@
     * Consistent interfaces to individual core standard modules
     * Maybe adjust naming and organization of `core.c`, which is kind of scary conflictable
 * Guards on `func`
+* Improve stack traces and panic messages for debugging
