@@ -1,4 +1,5 @@
 use crate::codegen::Codegen;
+use inkwell::AddressSpace;
 use inkwell::values::BasicValue;
 use inkwell::values::PointerValue;
 use trilogy_ir::ir::{self, Builtin};
@@ -498,6 +499,13 @@ impl<'ctx> Codegen<'ctx> {
         match builtin {
             Builtin::Return => {
                 let return_to = self.get_return_temporary();
+                self.trilogy_callable_promote(
+                    return_to,
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
+                    self.get_yield(""),
+                    self.get_next(""),
+                    self.get_done(""),
+                );
 
                 let function = self.add_continuation("captured_return");
                 let target = self.allocate_value(name);

@@ -120,13 +120,13 @@ impl<'ctx> Codegen<'ctx> {
         let next_to = self.get_next("");
         let done_to = self.get_done("");
 
-        self.trilogy_callable_promote(
-            return_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_yield(""),
-            self.get_next(""),
-            self.get_done(""),
-        );
+        // self.trilogy_callable_promote(
+        //     return_to,
+        //     self.context.ptr_type(AddressSpace::default()).const_null(),
+        //     self.get_yield(""),
+        //     self.get_next(""),
+        //     self.get_done(""),
+        // );
 
         let continue_to = self.allocate_value("continue");
         self.bind_temporary(continue_to);
