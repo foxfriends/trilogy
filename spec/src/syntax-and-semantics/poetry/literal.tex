@@ -249,7 +249,8 @@ as if its elements were written in place of the spread.
 \begin{prooftree}
     \def\defaultHypSeparation{\hskip 0in}
     \AxiomC{$\Gamma\vdash X : \ty{Record}\ \kappa\ \nu$}
-    \AxiomC{$\Gamma\vdash \texttt{\{|}K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
+    \noLine
+    \UnaryInfC{$\Gamma\vdash \texttt{\{|}K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
     \LeftLabel{Record\textsuperscript{\op{..}}}
-    \BinaryInfC{$\Gamma\vdash\texttt{\{|}\op{..}X\ \texttt{,}\ K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
+    \UnaryInfC{$\Gamma\vdash\texttt{\{|}\op{..}X\ \texttt{,}\ K_2\ \texttt{=>}\ V_2\ \texttt{,}\cdots\texttt{,}\ K_n\ \texttt{=>}\ V_n\texttt{|\}} : \ty{Record}\ \kappa\ \nu$}
 \end{prooftree}
