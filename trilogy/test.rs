@@ -11,6 +11,7 @@ use std::process::{Command, Output, Stdio};
 use std::sync::mpsc::{Sender, channel};
 use std::time::{Duration, Instant};
 use threadpool::ThreadPool;
+use wait_timeout::ChildExt as _;
 
 struct Report {
     report_error: Option<String>,
@@ -119,7 +120,7 @@ impl Report {
         if let Some(error) = &self.report_error {
             writeln!(
                 stdout,
-                "{} had errors in the test definition: {}",
+                "{} had errors: {}",
                 self.path.file_name().unwrap().to_string_lossy(),
                 error,
             )?;
@@ -353,8 +354,34 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
         } else {
             Command::new(program)
         };
-        let start = Instant::now();
-        report.program_output = Some(program_command.output().unwrap());
+        let mut child = program_command
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        std::mem::drop(child.stdin.take());
+        let mut out = child.stdout.take().unwrap();
+        let mut err = child.stderr.take().unwrap();
+        match child.wait_timeout(Duration::from_secs(10)) {
+            Err(error) => {
+                report.report_error = Some(error.to_string());
+            }
+            Ok(None) => {
+                child.kill().unwrap();
+                report.report_error = Some("timed out".to_owned());
+            }
+            Ok(Some(status)) => {
+                let mut stdout = vec![];
+                let mut stderr = vec![];
+                out.read_to_end(&mut stdout).unwrap();
+                err.read_to_end(&mut stderr).unwrap();
+                report.program_output = Some(Output {
+                    status,
+                    stdout,
+                    stderr,
+                });
+            }
+        };
         report.program_time = start.elapsed();
     }
 

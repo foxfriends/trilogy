@@ -1,0 +1,11 @@
+import "trilogy:array" use collect
+import "trilogy:iterator" use range
+import "trilogy:debug" use dbg
+
+proc main!() {
+  for i in collect <| range 0 1_000_000 {
+    if i % 100_000 == 0 {
+      dbg!(i)
+    }
+  }
+}
