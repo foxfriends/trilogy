@@ -87,7 +87,7 @@ trilogy_callable_value* trilogy_callable_init_do(
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_PROCEDURE, arity, NULL, NULL, NULL, NULL, closure, p
+        callable, CALLABLE_FUNCTION, arity, NULL, NULL, NULL, NULL, closure, p
     );
     return trilogy_callable_init(t, callable);
 }
@@ -257,7 +257,7 @@ void* trilogy_function_untag(trilogy_callable_value* val) {
 }
 
 void* trilogy_procedure_untag(trilogy_callable_value* val, uint32_t arity) {
-    if (val->tag != CALLABLE_PROCEDURE) {
+    if (val->tag != CALLABLE_FUNCTION) {
         internal_panic("invalid call of non-procedure callable\n");
     }
     if (val->arity != arity) internal_panic("procedure call arity mismatch\n");

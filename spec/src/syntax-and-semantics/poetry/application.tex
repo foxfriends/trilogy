@@ -14,8 +14,8 @@ parameters.
     }
 \end{bnf*}
 
-The first expression must evaluate to a value of Function type, otherwise
-it is a runtime type error.
+The first expression must evaluate to a value of Function type with arity one,
+otherwise it is a runtime type error.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash F : \tau \rightarrow \rho$}

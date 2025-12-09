@@ -34,9 +34,8 @@ typedef enum trilogy_value_tag : uint8_t {
 
 typedef enum trilogy_callable_tag : uint8_t {
     CALLABLE_FUNCTION = 1,
-    CALLABLE_PROCEDURE = 2,
-    CALLABLE_RULE = 3,
-    CALLABLE_CONTINUATION = 4,
+    CALLABLE_RULE = 2,
+    CALLABLE_CONTINUATION = 3,
 } trilogy_callable_tag;
 
 typedef struct trilogy_value {

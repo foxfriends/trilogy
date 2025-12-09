@@ -1,10 +1,9 @@
 \subsubsection{Procedure Call}
 
-Procedures may be called in expressions, even in functions. Though this sort of
-breaks the ``pureness'' of \Poetry{}, I think it's also sort of justifiable if you
-consider the procedure call to actually be syntax sugar for a \kw{yield} that
-corresponds to a handler that calls that procedure and resumes with the result.
-Assume that handler is applied automatically by the procedure's definition.
+Procedures may be called in much the same way as functions are applied. In fact,
+single arity procedures and functions can be used interchangeably. The procedure
+call syntax only provides the means by which to call functions of arity other than
+one.
 
 \begin{bnf*}
     \bnfprod{ProcedureCall}{
