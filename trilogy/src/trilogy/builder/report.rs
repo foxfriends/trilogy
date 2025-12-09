@@ -281,6 +281,61 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
+                    BreakOutsideLoopContext { span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message("break may not be used outside of a loop")
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("break used here")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
+                    ContinueOutsideLoopContext { span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message("continue may not be used outside of a loop")
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("continue used here")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
+                    CancelOutsideHandlerContext { span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message("cancel may not be used outside of a handler")
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("cancel used here")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
+                    ResumeOutsideHandlerContext { span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message("resume may not be used outside of a handler")
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("resume used here")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
+                    BecomeOutsideHandlerContext { span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message("become may not be used outside of a handler")
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("become used here")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                    }
                 }
             }
             ErrorKind::Analysis(location, error) => {

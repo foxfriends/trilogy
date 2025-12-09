@@ -50,6 +50,7 @@ impl Handler {
     fn convert(converter: &mut Converter, ast: syntax::Handler) -> Self {
         let span = ast.span();
         converter.push_scope();
+        converter.scope.set_allow_resume_cancel(false);
         let result = match ast {
             syntax::Handler::When(handler) => {
                 let effect = Identifier::temporary(converter, handler.pattern.span());
@@ -60,6 +61,7 @@ impl Handler {
                     .guard
                     .map(|ast| Expression::convert(converter, ast))
                     .unwrap_or_else(|| Expression::boolean(span, true));
+                converter.scope.set_allow_resume_cancel(true);
                 let body = Self::convert_strategy(converter, handler.strategy, effect);
                 Self {
                     span,
@@ -69,6 +71,7 @@ impl Handler {
                 }
             }
             syntax::Handler::Else(handler) => {
+                converter.scope.set_allow_resume_cancel(false);
                 let else_span = handler.else_token().span;
                 let effect = Identifier::temporary(converter, else_span);
                 let pattern = handler
@@ -78,6 +81,7 @@ impl Handler {
                 let pattern = Expression::reference(else_span, effect.clone())
                     .and(else_span.union(pattern.span), pattern);
                 let guard = Expression::boolean(else_span, true);
+                converter.scope.set_allow_resume_cancel(true);
                 let body = Self::convert_strategy(converter, handler.strategy, effect);
                 Self {
                     span,

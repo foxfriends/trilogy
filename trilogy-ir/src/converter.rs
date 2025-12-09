@@ -12,7 +12,7 @@ pub struct Converter<'a> {
     resolver: &'a dyn Resolver,
     source: &'a str,
     errors: Vec<Error>,
-    scope: Scope,
+    pub(crate) scope: Scope,
 }
 
 impl<'a> Converter<'a> {

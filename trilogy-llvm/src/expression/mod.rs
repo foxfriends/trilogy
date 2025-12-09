@@ -94,11 +94,8 @@ impl<'ctx> Codegen<'ctx> {
         let continue_continuation = self.continue_in_loop(continue_function);
         self.push_loop_scope(break_continuation, continue_continuation);
         self.begin_next_function(continue_function);
-        // TODO: within the condition of a loop, `break` keyword should refer to the parent scope's break,
-        // but here it refers to the child.
-        //
-        // Maybe solve this just by disallowing break keyword in loop condition entirely, and require
-        // explicit usage of a bound break variable?
+        // Within the condition, `break` and `cancel` are explicitly not bound, so it doesn't
+        // matter which it refers to at this point.
         let condition = self.compile_expression(&expr.condition, "while.condition")?;
         let bool_value = self.trilogy_boolean_untag(condition, name);
         self.trilogy_value_destroy(condition);

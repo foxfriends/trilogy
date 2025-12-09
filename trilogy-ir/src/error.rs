@@ -43,6 +43,21 @@ pub enum Error {
     MultiValuedPatternInRecordKey {
         expression: Span,
     },
+    ResumeOutsideHandlerContext {
+        span: Span,
+    },
+    CancelOutsideHandlerContext {
+        span: Span,
+    },
+    BecomeOutsideHandlerContext {
+        span: Span,
+    },
+    BreakOutsideLoopContext {
+        span: Span,
+    },
+    ContinueOutsideLoopContext {
+        span: Span,
+    },
 }
 
 impl std::error::Error for Error {}
@@ -56,6 +71,21 @@ impl Display for Error {
             Error::IdentifierInOwnDefinition { .. } => write!(f, "identifier in own definition"),
             Error::AssignedImmutableBinding { .. } => write!(f, "assigned immutable binding"),
             Error::DuplicateExport { .. } => write!(f, "duplicate export"),
+            Error::BecomeOutsideHandlerContext { .. } => {
+                write!(f, "become used outside of handler")
+            }
+            Error::ResumeOutsideHandlerContext { .. } => {
+                write!(f, "resume used outside of handler")
+            }
+            Error::CancelOutsideHandlerContext { .. } => {
+                write!(f, "cancel used outside of handler")
+            }
+            Error::BreakOutsideLoopContext { .. } => {
+                write!(f, "break used outside of loop")
+            }
+            Error::ContinueOutsideLoopContext { .. } => {
+                write!(f, "continue used outside of loop")
+            }
             Error::GluePatternMissingLiteral { .. } => {
                 write!(f, "glue pattern missing string literal")
             }

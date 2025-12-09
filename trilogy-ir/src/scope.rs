@@ -5,6 +5,8 @@ use source_span::Span;
 pub(crate) struct Scope {
     parent: Option<Box<Scope>>,
     symbols: SymbolTable,
+    break_continue: bool,
+    resume_cancel: bool,
     // A pseudoscope is used for `not` queries, where shadowing is not possible, but
     // new bindings are also not part of the parent scope
     pseudo: bool,
@@ -13,11 +15,15 @@ pub(crate) struct Scope {
 impl Scope {
     pub fn push(&mut self) {
         let parent = std::mem::take(self);
+        self.break_continue = parent.break_continue;
+        self.resume_cancel = parent.resume_cancel;
         self.parent = Some(Box::new(parent));
     }
 
     pub fn push_pseudo(&mut self) {
         let parent = std::mem::take(self);
+        self.break_continue = parent.break_continue;
+        self.resume_cancel = parent.resume_cancel;
         self.parent = Some(Box::new(parent));
         self.pseudo = true;
     }
@@ -57,5 +63,21 @@ impl Scope {
 
     pub fn declared_no_shadow(&self, name: &str) -> Option<&Id> {
         self.symbols.reuse(name)
+    }
+
+    pub fn set_allow_break_continue(&mut self, allow: bool)  {
+        self.break_continue = allow;
+    }
+
+    pub fn allow_break_continue(&mut self) -> bool {
+        self.break_continue
+    }
+
+    pub fn set_allow_resume_cancel(&mut self, allow: bool)  {
+        self.resume_cancel = allow;
+    }
+
+    pub fn allow_resume_cancel(&mut self) -> bool {
+        self.resume_cancel
     }
 }

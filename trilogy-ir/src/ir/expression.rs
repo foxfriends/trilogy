@@ -129,36 +129,71 @@ impl Expression {
                 Self::builtin(ast.exit.span, Builtin::Exit),
                 Self::convert(converter, ast.expression),
             ),
-            Resume(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.resume.span, Builtin::Resume),
-                Self::convert(converter, ast.expression),
-            ),
-            Become(ast) => Self::builtin(ast.r#become.span, Builtin::Cancel).apply_to(
-                ast.span(),
-                Self::builtin(ast.r#become.span, Builtin::Resume)
-                    .apply_to(ast.span(), Self::convert(converter, ast.expression)),
-            ),
-            Cancel(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.cancel.span, Builtin::Cancel),
-                Self::convert(converter, ast.expression),
-            ),
+            Resume(ast) => {
+                if !converter.scope.allow_resume_cancel() {
+                    converter.error(Error::ResumeOutsideHandlerContext {
+                        span: ast.r#resume.span,
+                    });
+                }
+                Self::application(
+                    ast.span(),
+                    Self::builtin(ast.resume.span, Builtin::Resume),
+                    Self::convert(converter, ast.expression),
+                )
+            }
+            Become(ast) => {
+                if !converter.scope.allow_resume_cancel() {
+                    converter.error(Error::BecomeOutsideHandlerContext {
+                        span: ast.r#become.span,
+                    });
+                }
+                Self::builtin(ast.r#become.span, Builtin::Cancel).apply_to(
+                    ast.span(),
+                    Self::builtin(ast.r#become.span, Builtin::Resume)
+                        .apply_to(ast.span(), Self::convert(converter, ast.expression)),
+                )
+            }
+            Cancel(ast) => {
+                if !converter.scope.allow_resume_cancel() {
+                    converter.error(Error::CancelOutsideHandlerContext {
+                        span: ast.r#cancel.span,
+                    });
+                }
+                Self::application(
+                    ast.span(),
+                    Self::builtin(ast.cancel.span, Builtin::Cancel),
+                    Self::convert(converter, ast.expression),
+                )
+            }
             Return(ast) => Self::application(
                 ast.span(),
                 Self::builtin(ast.r#return.span, Builtin::Return),
                 Self::convert(converter, ast.expression),
             ),
-            Break(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.r#break.span, Builtin::Break),
-                Self::convert(converter, ast.expression),
-            ),
-            Continue(ast) => Self::application(
-                ast.span(),
-                Self::builtin(ast.r#continue.span, Builtin::Continue),
-                Self::convert(converter, ast.expression),
-            ),
+            Break(ast) => {
+                if !converter.scope.allow_break_continue() {
+                    converter.error(Error::BreakOutsideLoopContext {
+                        span: ast.r#break.span,
+                    });
+                }
+                Self::application(
+                    ast.span(),
+                    Self::builtin(ast.r#break.span, Builtin::Break),
+                    Self::convert(converter, ast.expression),
+                )
+            }
+            Continue(ast) => {
+                if !converter.scope.allow_break_continue() {
+                    converter.error(Error::BreakOutsideLoopContext {
+                        span: ast.r#continue.span,
+                    });
+                }
+                Self::application(
+                    ast.span(),
+                    Self::builtin(ast.r#continue.span, Builtin::Continue),
+                    Self::convert(converter, ast.expression),
+                )
+            }
             Fn(ast) => Self::function(ast.span(), Function::convert_fn(converter, *ast)),
             Do(ast) => Self::procedure(ast.span(), Procedure::convert_do(converter, *ast)),
             Qy(ast) => Self::rule(ast.span(), Rule::convert_qy(converter, *ast)),
@@ -398,7 +433,9 @@ impl Expression {
     fn convert_for_statement(converter: &mut Converter, ast: syntax::ForStatement) -> Self {
         let span = ast.span();
         converter.push_scope();
+        converter.scope.set_allow_break_continue(false);
         let query = Query::convert(converter, ast.query);
+        converter.scope.set_allow_break_continue(true);
         let value = Expression::convert_block(converter, ast.body);
         converter.pop_scope();
         Expression::r#for(span, Iterator::new(query, value))
