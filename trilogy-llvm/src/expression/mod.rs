@@ -270,12 +270,12 @@ impl<'ctx> Codegen<'ctx> {
 
         self.end_continuation_point_as_close(body_closure);
         self.begin_next_function(body_function);
-        let result = self.compile_expression(&handled.expression, name)?;
-
-        // When the body is evaluated, it will cancel to exit the handled area, returning to
-        // the most recent resume if mid-handler, or to the outside when complete.
-        let cancel_to = self.use_temporary_clone(cancel_to).unwrap();
-        self.call_known_continuation(cancel_to, result);
+        if let Some(result) = self.compile_expression(&handled.expression, name) {
+            // When the body is evaluated, it will cancel to exit the handled area, returning to
+            // the most recent resume if mid-handler, or to the outside when complete.
+            let cancel_to = self.use_temporary_clone(cancel_to).unwrap();
+            self.call_known_continuation(cancel_to, result);
+        }
 
         // Next compile the handler.
         self.become_continuation_point(handler_continuation_point);

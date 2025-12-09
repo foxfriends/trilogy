@@ -1,0 +1,19 @@
+import "trilogy:io" use println
+
+proc inner!() {
+  with return 3
+    when 'eff then {
+      println!("hello")
+      cancel false
+    }
+    else yield
+}
+
+proc outer!() {
+  assert inner!() == 3
+  yield 'eff
+}
+
+proc main!() {
+  assert with outer!() when 'eff cancel true else cancel false
+}
