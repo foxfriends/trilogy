@@ -1184,28 +1184,6 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
-    /// Untags a function. The value should be a `trilogy_callable_value` and the return pointer will be
-    /// a bare function pointer.
-    pub(crate) fn trilogy_function_untag(
-        &self,
-        value: PointerValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let f = self.declare_bare(
-            "trilogy_function_untag",
-            self.context.ptr_type(AddressSpace::default()).fn_type(
-                &[self.context.ptr_type(AddressSpace::default()).into()],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(f, &[value.into()], name)
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_basic()
-            .into_pointer_value()
-    }
-
     pub(crate) fn trilogy_value_structural_eq(
         &self,
         lhs: PointerValue<'ctx>,
@@ -1311,63 +1289,6 @@ impl<'ctx> Codegen<'ctx> {
                         .i64_type()
                         .const_int(arity as u64, false)
                         .into(),
-                    function.as_global_value().as_pointer_value().into(),
-                ],
-                "",
-            )
-            .unwrap();
-    }
-
-    pub(crate) fn trilogy_callable_init_func(
-        &self,
-        t: PointerValue<'ctx>,
-        function: FunctionValue<'ctx>,
-    ) {
-        let f = self.declare_bare(
-            "trilogy_callable_init_func",
-            self.context.ptr_type(AddressSpace::default()).fn_type(
-                &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                ],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(
-                f,
-                &[
-                    t.into(),
-                    function.as_global_value().as_pointer_value().into(),
-                ],
-                "",
-            )
-            .unwrap();
-    }
-
-    pub(crate) fn trilogy_callable_init_fn(
-        &self,
-        t: PointerValue<'ctx>,
-        closure: PointerValue<'ctx>,
-        function: FunctionValue<'ctx>,
-    ) {
-        let f = self.declare_bare(
-            "trilogy_callable_init_fn",
-            self.context.ptr_type(AddressSpace::default()).fn_type(
-                &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                ],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(
-                f,
-                &[
-                    t.into(),
-                    closure.into(),
                     function.as_global_value().as_pointer_value().into(),
                 ],
                 "",

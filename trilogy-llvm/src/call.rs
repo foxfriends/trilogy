@@ -143,7 +143,7 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let callable = self.trilogy_callable_untag(callable_value, "");
-        let function = self.trilogy_function_untag(callable, "");
+        let function = self.trilogy_procedure_untag(callable, 1, "");
         let continuation_function = self.add_continuation("cc");
         self.call_callable(
             continuation_function,

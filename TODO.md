@@ -10,7 +10,6 @@
 * Fix the memory leaks
 * Something wrong with `or` patterns when running JIT
 * Rethink complex number syntax, make more like normal
-* Remove distinction between unary functions and unary procedures
 * Make blocks and expressions more interchangeable
 * Do a proper standard library design, maybe include a prelude
     * Type-agnostic global functions (similar to core, but safe)

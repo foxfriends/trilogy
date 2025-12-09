@@ -997,7 +997,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        self.trilogy_callable_init_fn(target, closure, function);
+        self.trilogy_callable_init_do(target, 1, closure, function);
         let here = self.builder.get_insert_block().unwrap();
         let snapshot = self.snapshot_function_context();
 

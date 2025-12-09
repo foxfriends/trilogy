@@ -16,9 +16,9 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(accessor_entry);
         if has_context {
             let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
-            self.trilogy_callable_init_fn(sret, ctx, accessing);
+            self.trilogy_callable_init_do(sret, 1, ctx, accessing);
         } else {
-            self.trilogy_callable_init_func(sret, accessing);
+            self.trilogy_callable_init_proc(sret, 1, accessing);
         }
         self.builder.build_return(None).unwrap();
     }
@@ -60,7 +60,7 @@ impl<'ctx> Codegen<'ctx> {
                 .builder
                 .build_alloca(self.value_type(), "TEMP_CLOSURE")
                 .unwrap();
-            self.trilogy_callable_init_fn(cont_val, closure, continuation);
+            self.trilogy_callable_init_do(cont_val, 1, closure, continuation);
             let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
             self.call_known_continuation(return_to, cont_val);
 

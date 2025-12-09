@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:string" use replace_all
 
-export to_string, dbg, trace, tap
+export to_string, dbg, trace
 
 func escape_string string = replace_all "\"" "\\\"" string
 
@@ -58,8 +58,6 @@ proc dbg!(value) {
   core::print!("${to_string value}\n")
   return value
 }
-
-func tap value = dbg!(value)
 
 proc trace!(label, value) {
   core::print!("${to_string label}: ${to_string value}\n")
