@@ -14,6 +14,10 @@ where
             include_str!("./debug.tri").to_owned(),
         )
         .source_module(
+            Location::library("compare").unwrap(),
+            include_str!("./compare.tri").to_owned(),
+        )
+        .source_module(
             Location::library("atom").unwrap(),
             include_str!("./atom.tri").to_owned(),
         )

@@ -1,0 +1,37 @@
+export min, max, asc, desc
+
+func max a b = if a > b then a else b
+
+test "compare max" {
+  assert max 1 5 == 5
+  assert max 5 1 == 5
+  assert max (-1) (-5) == -1
+  assert max "A" "B" == "B"
+}
+
+func min a b = if a < b then a else b
+
+test "compare min" {
+  assert min 1 5 == 1
+  assert min 5 1 == 1
+  assert min 1 (-5) == -5
+  assert min "A" "B" == "A"
+}
+
+func asc key a b = key a < key b
+
+test "compare asc" {
+  let asc_first = asc (fn t.t.'left)
+  assert asc_first (1:2) (2:1)
+  assert asc_first ('a':true) ('b':1)
+  assert !(asc_first ('b':true) ('a':1))
+}
+
+func desc key a b = key a > key b
+
+test "compare desc" {
+  let desc_first = desc (fn t.t.'left)
+  assert desc_first (2:1) (1:2)
+  assert !(desc_first ('a':true) ('b':1))
+  assert desc_first ('b':true) ('a':1)
+}
