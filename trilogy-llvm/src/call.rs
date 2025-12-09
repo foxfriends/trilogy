@@ -558,6 +558,12 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(done_continuation, "").into(),
         ];
         args.extend(arguments);
+        args.push(
+            self.context
+                .ptr_type(AddressSpace::default())
+                .const_null()
+                .into(),
+        );
         self.trilogy_value_destroy(value);
         let call = self
             .builder

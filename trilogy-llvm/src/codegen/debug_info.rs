@@ -1254,7 +1254,7 @@ impl<'ctx> DebugInfo<'ctx> {
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             None,
-            &vec![self.value_pointer_type.as_type(); arity + 5],
+            &vec![self.value_pointer_type.as_type(); arity + 6],
             LLVMDIFlagPublic,
         )
     }

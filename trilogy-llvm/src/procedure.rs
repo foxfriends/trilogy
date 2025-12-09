@@ -82,12 +82,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let (function, linkage_name) = if name == "main" {
             assert_eq!(arity, 0);
-            let function = self.add_main(
-                MAIN_NAME,
-                &name,
-                definition.span(),
-                module_context.is_some(),
-            );
+            let function = self.add_main(MAIN_NAME, &name, definition.span());
             (function, MAIN_NAME)
         } else {
             let function = self.add_procedure(&name, arity, &name, definition.span(), false);
