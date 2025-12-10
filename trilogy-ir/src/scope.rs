@@ -65,7 +65,7 @@ impl Scope {
         self.symbols.reuse(name)
     }
 
-    pub fn set_allow_break_continue(&mut self, allow: bool)  {
+    pub fn set_allow_break_continue(&mut self, allow: bool) {
         self.break_continue = allow;
     }
 
@@ -73,7 +73,7 @@ impl Scope {
         self.break_continue
     }
 
-    pub fn set_allow_resume_cancel(&mut self, allow: bool)  {
+    pub fn set_allow_resume_cancel(&mut self, allow: bool) {
         self.resume_cancel = allow;
     }
 
