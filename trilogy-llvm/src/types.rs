@@ -1,3 +1,4 @@
+use crate::IMPLICIT_PARAMS;
 use crate::codegen::Codegen;
 use bitvec::field::BitField;
 use inkwell::basic_block::BasicBlock;
@@ -234,13 +235,12 @@ impl<'ctx> Codegen<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
-        // 3: next
-        // 4: done
-        // [5..5 + arity): args
-        // 6 + arity: closure
-        self.context
-            .void_type()
-            .fn_type(&vec![self.value_type().into(); arity + 6], false)
+        // [3..3 + arity): args
+        // 4 + arity: closure
+        self.context.void_type().fn_type(
+            &vec![self.value_type().into(); arity + IMPLICIT_PARAMS + 1],
+            false,
+        )
     }
 
     pub(crate) fn accessor_type(&self, has_context: bool) -> FunctionType<'ctx> {
@@ -271,27 +271,24 @@ impl<'ctx> Codegen<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
-        // 3: next
-        // 4: done
-        // 5: argument
-        // 6: closure
-        self.context
-            .void_type()
-            .fn_type(&vec![self.value_type().into(); 6 + arity], false)
+        // 3: argument
+        // 4: closure
+        self.context.void_type().fn_type(
+            &vec![self.value_type().into(); IMPLICIT_PARAMS + 1 + arity],
+            false,
+        )
     }
 
     pub(crate) fn yield_type(&self) -> FunctionType<'ctx> {
         // 0: return
         // 1: yield
         // 2: end
-        // 3: next
-        // 4: done
-        // 5: effect
-        // 6: resume_to
-        // 7: closure
+        // 3: effect
+        // 4: resume_to
+        // 5: closure
         self.context
             .void_type()
-            .fn_type(&[self.value_type().into(); 8], false)
+            .fn_type(&[self.value_type().into(); 6], false)
     }
 
     pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {

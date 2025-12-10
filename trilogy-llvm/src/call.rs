@@ -89,8 +89,6 @@ impl<'ctx> Codegen<'ctx> {
         // Values must be extracted before they are invalidated
         let yield_to = self.get_yield("");
         let end_to = self.get_end("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
         let bound_closure = self.allocate_value("");
         self.trilogy_callable_closure_into(bound_closure, callable, "");
 
@@ -98,8 +96,8 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.close_current_continuation_as_return(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
-        let mut args = Vec::with_capacity(arity + 6);
-        args.extend([return_to, yield_to, end_to, next_to, done_to]);
+        let mut args = Vec::with_capacity(arity + IMPLICIT_PARAMS + 1);
+        args.extend([return_to, yield_to, end_to]);
         args.extend_from_slice(arguments);
         args.push(bound_closure);
         self.make_call(function_ptr, &args, arity);
@@ -171,8 +169,6 @@ impl<'ctx> Codegen<'ctx> {
         let rule = self.trilogy_rule_untag(callable, arity, "");
 
         // Values must be extracted before they are invalidated
-        let return_to = self.get_return(""); // NOTE: return isn't used... but idk what else to put for its value
-        let end_to = self.get_end("");
         let yield_to = self.get_yield("");
         let bound_closure = self.allocate_value("");
         self.trilogy_callable_closure_into(bound_closure, callable, "");
@@ -182,10 +178,10 @@ impl<'ctx> Codegen<'ctx> {
         let next_to = self.close_current_continuation_as_next_done(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
-        let mut args = Vec::with_capacity(arity + 6);
+        let mut args = Vec::with_capacity(arity + IMPLICIT_PARAMS + 1);
         args.extend([
-            return_to, yield_to, end_to, next_to,
-            done_to, // NOTE[next_overload_clone]: see other
+            // NOTE[next_overload_clone]: see other
+            next_to, yield_to, done_to,
         ]);
         args.extend_from_slice(arguments);
         args.push(bound_closure);
@@ -278,8 +274,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
         let end_to = self.get_end("");
-        let next_to = self.allocate_value("");
-        let done_to = self.allocate_value("");
         let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, callable);
         self.do_if(self.is_undefined(return_to), || {
@@ -289,14 +283,6 @@ impl<'ctx> Codegen<'ctx> {
         self.do_if(self.is_undefined(yield_to), || {
             self.clone_yield(yield_to);
         });
-        self.trilogy_callable_next_to_into(next_to, callable);
-        self.do_if(self.is_undefined(next_to), || {
-            self.clone_next(next_to);
-        });
-        self.trilogy_callable_done_to_into(done_to, callable);
-        self.do_if(self.is_undefined(done_to), || {
-            self.clone_done(done_to);
-        });
         self.trilogy_callable_closure_into(closure, callable, "");
 
         let mut args = Vec::with_capacity(arguments.len() + IMPLICIT_PARAMS + 1);
@@ -304,8 +290,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
         ]);
         args.extend(arguments);
         args.push(self.load_value(closure, "").into());
@@ -329,8 +313,6 @@ impl<'ctx> Codegen<'ctx> {
         let execution = self.add_continuation("execution");
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
 
         // NOTE: cleanup will be inserted here
         let closure = self
@@ -342,8 +324,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
             self.load_value(closure, "").into(),
         ];
@@ -399,8 +379,6 @@ impl<'ctx> Codegen<'ctx> {
         let the_yield_callable = self.trilogy_callable_untag(the_yield, "");
 
         let end_to = self.get_end("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
 
         let return_to = self.allocate_value("return_to");
         let yield_to = self.allocate_value("yield_to");
@@ -416,8 +394,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
             self.load_value(effect, "").into(),
             self.load_value(resume_to, "").into(),
             self.load_value(closure, "").into(),
@@ -449,8 +425,6 @@ impl<'ctx> Codegen<'ctx> {
         let resume_continuation = self.trilogy_continuation_untag(resume, "");
 
         let end_to = self.get_end("end");
-        let next_to = self.get_next("next");
-        let done_to = self.get_done("done");
         let new_cancel_to =
             self.close_current_continuation_as_cancel(continuation_function, "when.cancel");
         self.trilogy_value_destroy(cancel_location);
@@ -467,8 +441,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
             self.load_value(value, "").into(),
             self.load_value(closure, "").into(),
         ];
@@ -504,21 +476,15 @@ impl<'ctx> Codegen<'ctx> {
         let return_continuation = self.allocate_value("return");
         let yield_continuation = self.allocate_value("yield");
         let end_continuation = self.allocate_value("end");
-        let next_continuation = self.allocate_value("next");
-        let done_continuation = self.allocate_value("done");
 
         self.trilogy_callable_init_root(return_continuation, chain_function);
         self.trilogy_callable_init_root(yield_continuation, yield_function);
         self.trilogy_callable_init_root(end_continuation, end_function);
-        self.trilogy_value_clone_into(next_continuation, end_continuation);
-        self.trilogy_value_clone_into(done_continuation, end_continuation);
 
         let mut args = vec![
             self.load_value(return_continuation, "").into(),
             self.load_value(yield_continuation, "").into(),
             self.load_value(end_continuation, "").into(),
-            self.load_value(next_continuation, "").into(),
-            self.load_value(done_continuation, "").into(),
         ];
         args.extend(arguments);
         args.push(
