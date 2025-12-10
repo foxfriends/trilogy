@@ -1,11 +1,14 @@
 #include "trilogy_module.h"
 #include "internal.h"
 #include "trilogy_array.h"
+#include "trilogy_atom.h"
 #include "trilogy_callable.h"
+#include "trilogy_string.h"
 #include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 trilogy_module* trilogy_module_init(trilogy_value* tv, trilogy_module* module) {
@@ -89,5 +92,12 @@ void trilogy_module_find(
         }
     }
     // TODO: consider that this maybe should not be a panic...
-    return internal_panic("module does not contain requested member\n");
+    trilogy_string_value* repr = trilogy_atom_repr(id);
+    char* message = calloc_safe(repr->len + 45, sizeof(char));
+    char* repr_str = trilogy_string_as_c(repr);
+    sprintf(
+        message, "module does not contain requested member: %s\n", repr_str
+    );
+    free(repr_str);
+    return internal_panic(message);
 }

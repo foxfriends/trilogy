@@ -1,0 +1,32 @@
+import "trilogy:array" as array
+
+export init_zero, collect, from_array
+
+func init_zero l = 0bb <~~ l
+
+test "bits init_zero" {
+  assert init_zero 0 == 0bb
+  assert init_zero 3 == 0bb000
+}
+
+func from_array [] = 0bb
+func from_array [true, ..rest] = 0bb1 | (from_array rest ~~> 1)
+func from_array [false, ..rest] = from_array rest ~~> 1
+
+test "bits from_array" {
+  assert from_array [true, false, false, true, false] == 0bb10010
+  assert from_array [] == 0bb
+}
+
+func collect iterator = from_array <| array::collect iterator
+
+test "bits collect" {
+  let iterator = do() {
+    yield 'next(true)
+    yield 'next(false)
+    yield 'next(false)
+    yield 'next(true)
+    yield 'next(false)
+  }
+  assert collect iterator == 0bb10010
+}

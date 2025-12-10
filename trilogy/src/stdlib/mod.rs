@@ -26,6 +26,10 @@ where
             include_str!("./string.tri").to_owned(),
         )
         .source_module(
+            Location::library("bits").unwrap(),
+            include_str!("./bits.tri").to_owned(),
+        )
+        .source_module(
             Location::library("number").unwrap(),
             include_str!("./number.tri").to_owned(),
         )
