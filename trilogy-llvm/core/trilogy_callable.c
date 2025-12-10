@@ -120,7 +120,8 @@ trilogy_callable_value* trilogy_callable_init_cont(
             done_to, closure, p
         );
         callable->yield_to = callable;
-        callable->rc++;
+        // Don't increment the rc pointer though, this is accounted for
+        // specifically in destroy.
     } else {
         trilogy_callable_value_init(
             callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, next_to,
@@ -142,7 +143,11 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         // NOTE: even a continuation may have return_to and yield_to as NULL, as
         // is the case in the wrapper of main.
         if (val->return_to != NULL) trilogy_callable_destroy(val->return_to);
-        if (val->yield_to != NULL) trilogy_callable_destroy(val->yield_to);
+        // Special case here, for the top level yield that points to itself
+        // so that we don't double-destroy it.
+        if (val->yield_to != NULL && val->yield_to != val) {
+            trilogy_callable_destroy(val->yield_to);
+        }
         if (val->next_to != NULL) trilogy_callable_destroy(val->next_to);
         if (val->done_to != NULL) trilogy_callable_destroy(val->done_to);
         free(val);
