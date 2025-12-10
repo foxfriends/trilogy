@@ -516,16 +516,13 @@ impl<'ctx> Codegen<'ctx> {
                     self.variable(&id);
                 }
                 let value = self.compile_expression(&unif.expression, "let.expr")?;
-                let on_fail = self.get_end("let.fail");
                 self.bind_temporary(value);
-                self.bind_temporary(on_fail);
                 for id in unif.pattern.bindings() {
                     let var = self.get_variable(&id).unwrap().ptr();
                     self.trilogy_value_destroy(var);
                 }
-                self.compile_pattern_match(&unif.pattern, value, on_fail)?;
+                self.compile_pattern_match(&unif.pattern, value, self.get_end_temporary())?;
                 self.destroy_owned_temporary(value);
-                self.destroy_owned_temporary(on_fail);
                 self.compile_expression(&decl.body, name)
             }
             _ => {

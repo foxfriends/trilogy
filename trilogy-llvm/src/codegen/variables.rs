@@ -123,7 +123,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn get_end_temporary(&self) -> PointerValue<'ctx> {
-        self.function_params.borrow()[1]
+        self.function_params.borrow()[2]
     }
 
     /// Gets the `end_to` pointer from the current function context.
