@@ -122,6 +122,10 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    pub(crate) fn get_end_temporary(&self) -> PointerValue<'ctx> {
+        self.function_params.borrow()[1]
+    }
+
     /// Gets the `end_to` pointer from the current function context.
     pub(crate) fn clone_end(&self, into: PointerValue<'ctx>) {
         self.trilogy_value_clone_into(into, self.function_params.borrow()[2]);
