@@ -131,34 +131,10 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_value_clone_into(into, self.function_params.borrow()[2]);
     }
 
-    /// Gets the `next_to` pointer from the current rule context.
-    pub(crate) fn get_next(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.clone_next(container);
-        container
-    }
-
-    /// Gets the current `next` continuation, valid only when in a query.
-    pub(crate) fn clone_next(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[3]);
-    }
-
-    /// Gets the `done_to` pointer from the current rule context.
-    pub(crate) fn get_done(&self, name: &str) -> PointerValue<'ctx> {
-        let container = self.allocate_value(name);
-        self.clone_done(container);
-        container
-    }
-
-    /// Gets the current `done` continuation, valid only when in a query.
-    pub(crate) fn clone_done(&self, into: PointerValue<'ctx>) {
-        self.trilogy_value_clone_into(into, self.function_params.borrow()[4]);
-    }
-
     /// When in a continuation function, gets the value that was yielded to the continuation.
     pub(crate) fn get_continuation(&self, name: &str) -> PointerValue<'ctx> {
         let container = self.allocate_value(name);
-        self.trilogy_value_clone_into(container, self.function_params.borrow()[5]);
+        self.trilogy_value_clone_into(container, self.function_params.borrow()[3]);
         container
     }
 
@@ -169,13 +145,13 @@ impl<'ctx> Codegen<'ctx> {
 
     /// When in an effect handler, get the yielded effect.
     pub(crate) fn get_effect_temporary(&self) -> PointerValue<'ctx> {
-        self.function_params.borrow()[5]
+        self.function_params.borrow()[3]
     }
 
     /// When in an effect handler, get the resume_to continuation. This is a direct pointer,
     /// not a clone of the value.
     pub(crate) fn get_provided_resume(&self) -> PointerValue<'ctx> {
-        self.function_params.borrow()[6]
+        self.function_params.borrow()[4]
     }
 
     /// When in a handler function, gets the cancel to pointer.

@@ -8,7 +8,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         query: &ir::Query,
         done_to: PointerValue<'ctx>,
-    ) -> Option<PointerValue<'ctx>> {
+    ) -> PointerValue<'ctx> {
         let mut bound_ids = Vec::default();
 
         for variable in query.value.bindings() {
@@ -23,12 +23,12 @@ impl<'ctx> Codegen<'ctx> {
         query: &ir::Query,
         done_to: PointerValue<'ctx>,
         bound_ids: &mut Vec<Id>,
-    ) -> Option<PointerValue<'ctx>> {
+    ) -> PointerValue<'ctx> {
         let next_function = self.add_next_to_continuation(0, "iterator_next");
         let (next_to, then_continuation_cp) =
             self.capture_current_continuation(next_function, "next_continuation");
 
-        self.compile_query_value(&query.value, next_to, done_to, bound_ids)?;
+        let _ = self.compile_query_value(&query.value, next_to, done_to, bound_ids);
 
         self.become_continuation_point(then_continuation_cp);
         self.begin_next_function(next_function);
@@ -37,7 +37,7 @@ impl<'ctx> Codegen<'ctx> {
         // only the next-iteration function is guaranteed, and we return it here as if it was
         // the "return value" of the iterator. The Lookup case below handles the arguments, if
         // necessary, as that's the only situation where they are possible.
-        Some(self.get_continuation("next_iteration"))
+        self.get_continuation("next_iteration")
     }
 
     fn compile_query_value(
@@ -135,7 +135,7 @@ impl<'ctx> Codegen<'ctx> {
                 let (disj_second, disj_second_cp) =
                     self.capture_current_continuation(disj_second_fn, "disj.second");
                 let next_of_first =
-                    self.compile_query(&disj.0, disj_second, &mut bound_ids.clone())?;
+                    self.compile_query(&disj.0, disj_second, &mut bound_ids.clone());
                 self.call_known_continuation(
                     self.use_temporary_clone(next_to).unwrap(),
                     next_of_first,
@@ -143,16 +143,16 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.become_continuation_point(disj_second_cp);
                 self.begin_next_function(disj_second_fn);
-                let next_of_second = self.compile_query(&disj.1, done_to, bound_ids)?;
+                let next_of_second = self.compile_query(&disj.1, done_to, bound_ids);
                 self.call_known_continuation(
                     self.use_temporary_clone(next_to).unwrap(),
                     next_of_second,
                 );
             }
             ir::QueryValue::Conjunction(conj) => {
-                let next_of_first = self.compile_query(&conj.0, done_to, bound_ids)?;
+                let next_of_first = self.compile_query(&conj.0, done_to, bound_ids);
                 self.bind_temporary(next_of_first);
-                let next_of_second = self.compile_query(&conj.1, next_of_first, bound_ids)?;
+                let next_of_second = self.compile_query(&conj.1, next_of_first, bound_ids);
                 let next_to = self.use_temporary_clone(next_to).unwrap();
                 self.call_known_continuation(next_to, next_of_second);
             }
@@ -160,9 +160,9 @@ impl<'ctx> Codegen<'ctx> {
                 let done_to_clone = self.allocate_value("done_to_clone");
                 self.bind_temporary(done_to_clone);
                 self.trilogy_value_clone_into(done_to_clone, done_to);
-                let next_of_first = self.compile_query(&implication.0, done_to_clone, bound_ids)?;
+                let next_of_first = self.compile_query(&implication.0, done_to_clone, bound_ids);
                 self.trilogy_value_destroy(next_of_first);
-                let next_of_second = self.compile_query(&implication.1, done_to, bound_ids)?;
+                let next_of_second = self.compile_query(&implication.1, done_to, bound_ids);
                 let next_to = self.use_temporary_clone(next_to).unwrap();
                 self.call_known_continuation(next_to, next_of_second);
             }
@@ -173,8 +173,7 @@ impl<'ctx> Codegen<'ctx> {
                 let alt_second_fn = self.add_continuation("alt.second");
                 let (alt_second, alt_second_cp) =
                     self.capture_current_continuation(alt_second_fn, "alt.second");
-                let next_of_first =
-                    self.compile_query(&alt.0, alt_second, &mut bound_ids.clone())?;
+                let next_of_first = self.compile_query(&alt.0, alt_second, &mut bound_ids.clone());
 
                 let state_ref_first = self.use_temporary_clone(state).unwrap();
                 self.trilogy_value_destroy(state_ref_first);
@@ -208,7 +207,7 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.become_continuation_point(then_cp);
                 self.builder.position_at_end(then_block);
-                let next_of_second = self.compile_query(&alt.1, done_to, bound_ids)?;
+                let next_of_second = self.compile_query(&alt.1, done_to, bound_ids);
                 self.call_known_continuation(
                     self.use_temporary_clone(next_to).unwrap(),
                     next_of_second,
@@ -289,7 +288,7 @@ impl<'ctx> Codegen<'ctx> {
                 let go_next_fn = self.add_continuation("not.next");
                 let (go_next, go_next_cp) =
                     self.capture_current_continuation(go_next_fn, "not.next");
-                self.compile_query(query, go_next, bound_ids)?;
+                self.compile_query(query, go_next, bound_ids);
                 self.void_call_continuation(self.use_temporary_clone(done_to).unwrap());
 
                 self.become_continuation_point(go_next_cp);

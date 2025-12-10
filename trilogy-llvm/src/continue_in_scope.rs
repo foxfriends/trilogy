@@ -41,8 +41,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
         let yield_to = self.get_yield("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
 
         let parent_closure = self
             .builder
@@ -53,8 +51,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
             argument,
             self.load_value(parent_closure, "").into(),
         ];
@@ -76,15 +72,11 @@ impl<'ctx> Codegen<'ctx> {
     ) -> InstructionValue<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
 
         self.trilogy_callable_promote(
             return_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.get_yield(""),
-            self.get_next(""),
-            self.get_done(""),
         );
 
         let parent_closure = self
@@ -96,8 +88,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
             self.load_value(parent_closure, "").into(),
         ];
@@ -117,15 +107,11 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let end_to = self.get_end("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
 
         // self.trilogy_callable_promote(
         //     return_to,
         //     self.context.ptr_type(AddressSpace::default()).const_null(),
         //     self.get_yield(""),
-        //     self.get_next(""),
-        //     self.get_done(""),
         // );
 
         let continue_to = self.allocate_value("continue");
@@ -136,8 +122,6 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         let continue_to_callable = self.trilogy_callable_init_cont(
             continue_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
@@ -157,8 +141,6 @@ impl<'ctx> Codegen<'ctx> {
             self.load_value(return_to, "").into(),
             self.load_value(yield_to, "").into(),
             self.load_value(end_to, "").into(),
-            self.load_value(next_to, "").into(),
-            self.load_value(done_to, "").into(),
             self.value_type().const_zero().into(),
             self.load_value(closure, "").into(),
         ];

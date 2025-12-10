@@ -32,8 +32,6 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -54,8 +52,6 @@ impl<'ctx> Codegen<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
 
         self.bind_temporary(continuation);
 
@@ -70,8 +66,6 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
-            next_to,
-            done_to,
             closure,
             continuation_function,
         );
@@ -87,8 +81,6 @@ impl<'ctx> Codegen<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -100,8 +92,6 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
-            next_to,
-            done_to,
             closure,
             continuation_function,
         );
@@ -117,8 +107,6 @@ impl<'ctx> Codegen<'ctx> {
         let handler = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
         let closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
@@ -129,8 +117,6 @@ impl<'ctx> Codegen<'ctx> {
             handler,
             return_to,
             yield_to,
-            next_to,
-            done_to,
             closure,
             continuation_function,
         );
@@ -162,8 +148,6 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -192,8 +176,6 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -210,8 +192,6 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -222,8 +202,6 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            next_to,
-            done_to,
             closure,
             continuation_function,
         );
@@ -239,8 +217,6 @@ impl<'ctx> Codegen<'ctx> {
         let continuation = self.allocate_value(name);
         self.bind_temporary(continuation);
         let return_to = self.get_return("");
-        let next_to = self.get_next("");
-        let done_to = self.get_done("");
         let closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
@@ -251,8 +227,6 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            next_to,
-            done_to,
             closure,
             continuation_function,
         );

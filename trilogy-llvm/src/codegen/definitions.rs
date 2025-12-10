@@ -1,6 +1,6 @@
 //! Handles creating function definitions at the LLVM level.
-use crate::TAIL_CALL_CONV;
 use crate::codegen::Codegen;
+use crate::{IMPLICIT_PARAMS, TAIL_CALL_CONV};
 use inkwell::llvm_sys::LLVMCallConv;
 use inkwell::module::Linkage;
 use inkwell::values::FunctionValue;
@@ -13,10 +13,8 @@ impl<'ctx> Codegen<'ctx> {
     /// 1. return_to
     /// 2. yield_to
     /// 3. end_to
-    /// 4. next_to
-    /// 5. done_to
-    /// 6. value
-    /// 7. closure
+    /// 4. value
+    /// 5. closure
     ///
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
@@ -42,10 +40,8 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(0).unwrap().set_name("return_to");
         function.get_nth_param(1).unwrap().set_name("yield_to");
         function.get_nth_param(2).unwrap().set_name("end_to");
-        function.get_nth_param(3).unwrap().set_name("next_to");
-        function.get_nth_param(4).unwrap().set_name("done_to");
-        function.get_nth_param(5).unwrap().set_name("cont_val");
-        function.get_nth_param(6).unwrap().set_name("closure");
+        function.get_nth_param(3).unwrap().set_name("cont_val");
+        function.get_nth_param(4).unwrap().set_name("closure");
         function
     }
 
@@ -55,11 +51,9 @@ impl<'ctx> Codegen<'ctx> {
     /// 1. return_to
     /// 2. yield_to
     /// 3. end_to
-    /// 4. next_to
-    /// 5. done_to
-    /// 6. effect
-    /// 7. resume_to
-    /// 8. closure
+    /// 4. effect
+    /// 5. resume_to
+    /// 6. closure
     pub(crate) fn add_yield(&self) -> FunctionValue<'ctx> {
         let (parent_name, parent_linkage_name, span) = self.get_current_definition();
         let name = format!("yield#{parent_linkage_name}");
@@ -78,11 +72,9 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(0).unwrap().set_name("return_to");
         function.get_nth_param(1).unwrap().set_name("yield_to");
         function.get_nth_param(2).unwrap().set_name("end_to");
-        function.get_nth_param(3).unwrap().set_name("next_to");
-        function.get_nth_param(4).unwrap().set_name("done_to");
-        function.get_nth_param(5).unwrap().set_name("effect");
-        function.get_nth_param(6).unwrap().set_name("resume_to");
-        function.get_nth_param(7).unwrap().set_name("closure");
+        function.get_nth_param(3).unwrap().set_name("effect");
+        function.get_nth_param(4).unwrap().set_name("resume_to");
+        function.get_nth_param(5).unwrap().set_name("closure");
         function
     }
 
@@ -92,11 +84,9 @@ impl<'ctx> Codegen<'ctx> {
     /// - 1. return_to
     /// - 2. yield_to
     /// - 3. end_to
-    /// - 4. next_to
-    /// - 5. done_to
-    /// - 6. next_iteration
-    /// - [7 + arity). arguments
-    /// - [7 + arity. closure
+    /// - 4. next_iteration
+    /// - [5 + arity). arguments
+    /// - [5 + arity. closure
     ///
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
@@ -124,10 +114,8 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(0).unwrap().set_name("return_to");
         function.get_nth_param(1).unwrap().set_name("yield_to");
         function.get_nth_param(2).unwrap().set_name("end_to");
-        function.get_nth_param(3).unwrap().set_name("next_to");
-        function.get_nth_param(4).unwrap().set_name("done_to");
         function
-            .get_nth_param(5)
+            .get_nth_param(3)
             .unwrap()
             .set_name("next_iteration_param");
         function.get_last_param().unwrap().set_name("closure");
@@ -157,9 +145,7 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(0).unwrap().set_name("return_to");
         function.get_nth_param(1).unwrap().set_name("yield_to");
         function.get_nth_param(2).unwrap().set_name("end_to");
-        function.get_nth_param(3).unwrap().set_name("next_to");
-        function.get_nth_param(4).unwrap().set_name("done_to");
-        for (i, param) in function.get_param_iter().skip(5).enumerate() {
+        for (i, param) in function.get_param_iter().skip(IMPLICIT_PARAMS).enumerate() {
             param.set_name(&format!("param_{i}"));
         }
         function.get_last_param().unwrap().set_name("closure");
@@ -199,8 +185,6 @@ impl<'ctx> Codegen<'ctx> {
         function.get_nth_param(0).unwrap().set_name("return_to");
         function.get_nth_param(1).unwrap().set_name("yield_to");
         function.get_nth_param(2).unwrap().set_name("end_to");
-        function.get_nth_param(3).unwrap().set_name("next_to");
-        function.get_nth_param(4).unwrap().set_name("done_to");
         function.get_last_param().unwrap().set_name("closure");
         function
     }

@@ -444,8 +444,6 @@ impl<'ctx> Codegen<'ctx> {
                     return_to,
                     self.context.ptr_type(AddressSpace::default()).const_null(),
                     self.get_yield(""),
-                    self.get_next(""),
-                    self.get_done(""),
                 );
 
                 let function = self.add_continuation("captured_return");

@@ -122,11 +122,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
             }
             // The rule runs the iterator, resulting in new bindings being set.
-            let Some(next_iteration) =
-                self.compile_query_iteration(&overload.body, go_to_next_overload)
-            else {
-                break 'outer;
-            };
+            let next_iteration = self.compile_query_iteration(&overload.body, go_to_next_overload);
             self.bind_temporary(next_iteration);
 
             let mut arguments = Vec::with_capacity(arity + 1);
@@ -164,7 +160,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.builder.position_at_end(rebind_input);
                 }
             }
-            let next = self.get_next("");
+            let next = self.get_return("");
             for arg in arguments.iter_mut() {
                 *arg = self.use_temporary_clone(*arg).unwrap();
             }
@@ -173,7 +169,7 @@ impl<'ctx> Codegen<'ctx> {
             self.become_continuation_point(next_overload_cp);
             self.begin_next_function(next_overload_function);
         }
-        let done = self.get_done("");
+        let done = self.get_end("");
         self.void_call_continuation(done);
         self.end_function();
     }

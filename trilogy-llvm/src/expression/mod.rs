@@ -139,7 +139,7 @@ impl<'ctx> Codegen<'ctx> {
         let done_to_clone = self.allocate_value("break");
         self.trilogy_value_clone_into(done_to_clone, done_continuation);
         self.bind_temporary(done_to_clone);
-        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
+        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         self.push_loop_scope(done_to_clone, next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, name) {
@@ -170,7 +170,7 @@ impl<'ctx> Codegen<'ctx> {
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
             self.capture_current_continuation_as_break(done_function, "for_break");
-        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
+        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
             let arr_val = self.use_temporary_clone(output).unwrap();
@@ -197,7 +197,7 @@ impl<'ctx> Codegen<'ctx> {
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
             self.capture_current_continuation_as_break(done_function, "for_break");
-        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
+        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
             let set_val = self.use_temporary_clone(output).unwrap();
@@ -224,7 +224,7 @@ impl<'ctx> Codegen<'ctx> {
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
             self.capture_current_continuation_as_break(done_function, "for_break");
-        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
+        let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         let Value::Mapping(mapping) = &expr.value.value else {
             unreachable!()
@@ -524,7 +524,7 @@ impl<'ctx> Codegen<'ctx> {
                 let end = self.get_end("");
                 self.bind_temporary(end);
 
-                let next_to = self.compile_query_iteration(&decl.query, end)?;
+                let next_to = self.compile_query_iteration(&decl.query, end);
                 self.push_execution(next_to);
                 self.compile_expression(&decl.body, name)
             }
@@ -620,7 +620,7 @@ impl<'ctx> Codegen<'ctx> {
                 let end_false_fn = self.add_continuation("is_false");
                 let (end_false_cont, end_false_cp) =
                     self.capture_current_continuation(end_false_fn, "is_false");
-                let next = self.compile_query_iteration(query, end_false_cont)?;
+                let next = self.compile_query_iteration(query, end_false_cont);
                 self.trilogy_value_destroy(next);
                 let result = self.allocate_const(self.bool_const(true), "");
                 self.call_known_continuation(

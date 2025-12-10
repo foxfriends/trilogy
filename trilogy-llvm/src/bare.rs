@@ -1044,8 +1044,6 @@ impl<'ctx> Codegen<'ctx> {
         target: PointerValue<'ctx>,
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
-        next_to: PointerValue<'ctx>,
-        done_to: PointerValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_promote",
@@ -1054,64 +1052,12 @@ impl<'ctx> Codegen<'ctx> {
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
             ),
         );
         self.builder
-            .build_call(
-                f,
-                &[
-                    target.into(),
-                    return_to.into(),
-                    yield_to.into(),
-                    next_to.into(),
-                    done_to.into(),
-                ],
-                "",
-            )
-            .unwrap();
-    }
-
-    pub(crate) fn trilogy_callable_next_to_into(
-        &self,
-        target: PointerValue<'ctx>,
-        callable: PointerValue<'ctx>,
-    ) {
-        let f = self.declare_bare(
-            "trilogy_callable_next_to_into",
-            self.context.void_type().fn_type(
-                &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                ],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(f, &[target.into(), callable.into()], "")
-            .unwrap();
-    }
-
-    pub(crate) fn trilogy_callable_done_to_into(
-        &self,
-        target: PointerValue<'ctx>,
-        callable: PointerValue<'ctx>,
-    ) {
-        let f = self.declare_bare(
-            "trilogy_callable_done_to_into",
-            self.context.void_type().fn_type(
-                &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                ],
-                false,
-            ),
-        );
-        self.builder
-            .build_call(f, &[target.into(), callable.into()], "")
+            .build_call(f, &[target.into(), return_to.into(), yield_to.into()], "")
             .unwrap();
     }
 
@@ -1548,8 +1494,6 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
-        next_to: PointerValue<'ctx>,
-        done_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
     ) -> PointerValue<'ctx> {
@@ -1557,8 +1501,6 @@ impl<'ctx> Codegen<'ctx> {
             "trilogy_callable_init_cont",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
-                    self.context.ptr_type(AddressSpace::default()).into(),
-                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -1575,8 +1517,6 @@ impl<'ctx> Codegen<'ctx> {
                     t.into(),
                     return_to.into(),
                     yield_to.into(),
-                    next_to.into(),
-                    done_to.into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
                 ],
