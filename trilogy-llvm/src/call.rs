@@ -507,19 +507,13 @@ impl<'ctx> Codegen<'ctx> {
         let next_continuation = self.allocate_value("next");
         let done_continuation = self.allocate_value("done");
 
-        let return_closure = self.allocate_value("main.ret");
-        let yield_closure = self.allocate_value("main.yield");
-        let end_closure = self.allocate_value("main.end");
-        self.trilogy_array_init_cap(return_closure, 0, "");
-        self.trilogy_array_init_cap(yield_closure, 0, "");
-        self.trilogy_array_init_cap(end_closure, 0, "");
         self.trilogy_callable_init_cont(
             return_continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            return_closure,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             chain_function,
         );
         self.trilogy_callable_init_cont(
@@ -528,7 +522,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
-            end_closure,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             end_function,
         );
         self.trilogy_value_clone_into(done_continuation, end_continuation);
@@ -546,7 +540,7 @@ impl<'ctx> Codegen<'ctx> {
             yield_continuation,
             next_clone,
             done_clone,
-            yield_closure,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             yield_function,
         );
 

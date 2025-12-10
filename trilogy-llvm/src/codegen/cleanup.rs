@@ -11,10 +11,8 @@
 //! discarded without being captured, and retroactively close a created upvalue over those
 //! variables as needed.
 use super::{Closed, Codegen, ContinuationPoint, Exit, Parent, Variable};
-use inkwell::{
-    intrinsics::Intrinsic,
-    values::{BasicValue, PointerValue},
-};
+use inkwell::intrinsics::Intrinsic;
+use inkwell::values::{BasicValue, PointerValue};
 use std::rc::Rc;
 
 impl<'ctx> Codegen<'ctx> {
@@ -42,19 +40,23 @@ impl<'ctx> Codegen<'ctx> {
                             closure_instruction.get_parent().unwrap(),
                             closure_instruction,
                         );
-                        let closure = self.allocate_value("closure");
                         let closure_size = point.closure.borrow().len();
-                        let closure_array =
-                            self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
-
-                        // But close it after the close_after_instruction
-                        self.builder.position_at(
-                            close_after_instruction.get_parent().unwrap(),
-                            &close_after_instruction.get_next_instruction().unwrap(),
-                        );
-                        let parent = parent.upgrade().unwrap();
-                        self.build_closure(closure_array, parent.clone(), &point);
-                        self.clean_and_close_scope(&parent);
+                        let closure = self.allocate_value("closure");
+                        if closure_size > 0 {
+                            let closure_array = self.trilogy_array_init_cap(
+                                closure,
+                                closure_size,
+                                "closure.payload",
+                            );
+                            // But close it after the close_after_instruction
+                            self.builder.position_at(
+                                close_after_instruction.get_parent().unwrap(),
+                                &close_after_instruction.get_next_instruction().unwrap(),
+                            );
+                            let parent = parent.upgrade().unwrap();
+                            self.build_closure(closure_array, parent.clone(), &point);
+                            self.clean_and_close_scope(&parent);
+                        }
                         closure_instruction
                             .replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         closure_instruction.erase_from_basic_block();
@@ -82,19 +84,23 @@ impl<'ctx> Codegen<'ctx> {
                             closure_instruction.get_parent().unwrap(),
                             closure_instruction,
                         );
-                        let closure = self.allocate_value("closure");
                         let closure_size = point.closure.borrow().len();
-                        let closure_array =
-                            self.trilogy_array_init_cap(closure, closure_size, "closure.payload");
-
-                        // But close it after the close_after_instruction
-                        self.builder.position_at(
-                            close_after_instruction.get_parent().unwrap(),
-                            &close_after_instruction.get_next_instruction().unwrap(),
-                        );
-                        self.restore_function_context(snapshot.clone());
-                        let parent = parent.upgrade().unwrap();
-                        self.build_closure(closure_array, parent, &point);
+                        let closure = self.allocate_value("closure");
+                        if closure_size > 0 {
+                            let closure_array = self.trilogy_array_init_cap(
+                                closure,
+                                closure_size,
+                                "closure.payload",
+                            );
+                            // But close it after the close_after_instruction
+                            self.builder.position_at(
+                                close_after_instruction.get_parent().unwrap(),
+                                &close_after_instruction.get_next_instruction().unwrap(),
+                            );
+                            self.restore_function_context(snapshot.clone());
+                            let parent = parent.upgrade().unwrap();
+                            self.build_closure(closure_array, parent, &point);
+                        }
                         closure_instruction
                             .replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         closure_instruction.erase_from_basic_block();

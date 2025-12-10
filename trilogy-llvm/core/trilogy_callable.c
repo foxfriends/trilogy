@@ -37,7 +37,10 @@ static trilogy_callable_value* trilogy_callable_value_init(
     trilogy_value* return_to, trilogy_value* yield_to, trilogy_value* next_to,
     trilogy_value* done_to, trilogy_value* closure, void* p
 ) {
-    assert(closure == NO_CLOSURE || closure->tag == TAG_ARRAY);
+    assert(
+        closure == NO_CLOSURE || closure->tag == TAG_UNDEFINED ||
+        closure->tag == TAG_ARRAY
+    );
     callable->rc = 1;
     callable->tag = tag;
     callable->arity = arity;
@@ -61,8 +64,8 @@ static trilogy_callable_value* trilogy_callable_value_init(
         callable->done_to = trilogy_callable_assume(done_to);
         *done_to = trilogy_undefined;
     }
-    callable->closure = NULL;
-    if (closure != NO_CLOSURE) {
+    callable->closure = NO_CLOSURE;
+    if (closure != NO_CLOSURE && closure->tag != TAG_UNDEFINED) {
         callable->closure = trilogy_array_assume(closure);
         *closure = trilogy_undefined;
     }
@@ -108,8 +111,10 @@ trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* next_to, trilogy_value* done_to, trilogy_value* closure,
     void* p
 ) {
-    assert(closure != NO_CLOSURE);
-    assert(closure->tag == TAG_ARRAY);
+    assert(
+        closure == NO_CLOSURE || closure->tag == TAG_UNDEFINED ||
+        closure->tag == TAG_ARRAY
+    );
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     if (t == yield_to) {
