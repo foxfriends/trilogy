@@ -1563,6 +1563,36 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_callable_init_root(
+        &self,
+        t: PointerValue<'ctx>,
+        function: FunctionValue<'ctx>,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_callable_init_root",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(
+                f,
+                &[
+                    t.into(),
+                    function.as_global_value().as_pointer_value().into(),
+                ],
+                "",
+            )
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_basic()
+            .into_pointer_value()
+    }
+
     pub(crate) fn trilogy_unhandled_effect(&self, effect: PointerValue<'ctx>) -> NeverValue {
         let f = self.declare_bare(
             "trilogy_unhandled_effect",

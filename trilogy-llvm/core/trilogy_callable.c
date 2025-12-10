@@ -117,22 +117,31 @@ trilogy_callable_value* trilogy_callable_init_cont(
     );
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
-    if (t == yield_to) {
-        // A weird little special case: the top level yield points to itself
-        // as its own yield_to
-        trilogy_callable_value_init(
-            callable, CALLABLE_CONTINUATION, 1, return_to, NULL, next_to,
-            done_to, closure, p
-        );
-        callable->yield_to = callable;
-        // Don't increment the rc pointer though, this is accounted for
-        // specifically in destroy.
-    } else {
-        trilogy_callable_value_init(
-            callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, next_to,
-            done_to, closure, p
-        );
-    }
+    trilogy_callable_value_init(
+        callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, next_to,
+        done_to, closure, p
+    );
+    return trilogy_callable_init(t, callable);
+}
+
+trilogy_callable_value* trilogy_callable_init_root(trilogy_value* t, void* p) {
+    trilogy_callable_value* callable =
+        malloc_safe(sizeof(trilogy_callable_value));
+    // A weird little special case: the root level callbacks point to themself.
+    // This is ok because we know the functions they point to will never use
+    // these values, but we need SOME value in here so as not to act different
+    // when being used.
+    //
+    // Don't increment the rc pointers extra though, this is accounted for
+    // specifically in destroy.
+    trilogy_callable_value_init(
+        callable, CALLABLE_CONTINUATION, 1, NULL, NULL, NULL, NULL, NO_CLOSURE,
+        p
+    );
+    callable->return_to = callable;
+    callable->yield_to = callable;
+    callable->next_to = callable;
+    callable->done_to = callable;
     return trilogy_callable_init(t, callable);
 }
 
@@ -147,14 +156,20 @@ void trilogy_callable_destroy(trilogy_callable_value* val) {
         if (val->closure != NO_CLOSURE) trilogy_array_destroy(val->closure);
         // NOTE: even a continuation may have return_to and yield_to as NULL, as
         // is the case in the wrapper of main.
-        if (val->return_to != NULL) trilogy_callable_destroy(val->return_to);
+        if (val->return_to != NULL && val->return_to != val) {
+            trilogy_callable_destroy(val->return_to);
+        }
         // Special case here, for the top level yield that points to itself
         // so that we don't double-destroy it.
         if (val->yield_to != NULL && val->yield_to != val) {
             trilogy_callable_destroy(val->yield_to);
         }
-        if (val->next_to != NULL) trilogy_callable_destroy(val->next_to);
-        if (val->done_to != NULL) trilogy_callable_destroy(val->done_to);
+        if (val->next_to != NULL && val->next_to != val) {
+            trilogy_callable_destroy(val->next_to);
+        }
+        if (val->done_to != NULL && val->done_to != val) {
+            trilogy_callable_destroy(val->done_to);
+        }
         free(val);
         TRACE("\tDeallocated!\n");
     }

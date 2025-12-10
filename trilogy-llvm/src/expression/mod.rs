@@ -644,18 +644,18 @@ impl<'ctx> Codegen<'ctx> {
             },
             _ => {}
         };
-        let function = self.compile_expression(&application.function, "")?;
+        let function = self.compile_expression(&application.function, "fn")?;
         self.bind_temporary(function);
         match &application.argument.value {
             // Procedure application
             Value::Pack(pack) => {
                 let mut arguments = Vec::with_capacity(pack.values.len());
-                for val in pack.values.iter() {
+                for (i, val) in pack.values.iter().enumerate() {
                     assert!(
                         !val.is_spread,
                         "a spread is not permitted in procedure argument lists"
                     );
-                    let param = self.compile_expression(&val.expression, "")?;
+                    let param = self.compile_expression(&val.expression, &format!("arg_{i}"))?;
                     self.bind_temporary(param);
                     arguments.push(param);
                 }
@@ -667,7 +667,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             // Function application
             _ => {
-                let argument = self.compile_expression(&application.argument, "")?;
+                let argument = self.compile_expression(&application.argument, "arg")?;
                 let function = self.use_temporary_clone(function).unwrap();
                 Some(self.apply_function(function, argument, name))
             }

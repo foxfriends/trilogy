@@ -118,8 +118,8 @@ impl<'ctx> Codegen<'ctx> {
         name: &str,
     ) -> PointerValue<'ctx> {
         let arity = arguments.len();
-        let callable = self.trilogy_callable_untag(procedure, "");
-        let function = self.trilogy_procedure_untag(callable, arity, "");
+        let callable = self.trilogy_callable_untag(procedure, "fn_callable");
+        let function = self.trilogy_procedure_untag(callable, arity, "fn_ptr");
         let continuation_function = self.add_continuation("cc");
         self.call_callable(
             continuation_function,
@@ -142,8 +142,8 @@ impl<'ctx> Codegen<'ctx> {
         argument: PointerValue<'ctx>,
         name: &str,
     ) -> PointerValue<'ctx> {
-        let callable = self.trilogy_callable_untag(callable_value, "");
-        let function = self.trilogy_procedure_untag(callable, 1, "");
+        let callable = self.trilogy_callable_untag(callable_value, "fn_callable");
+        let function = self.trilogy_procedure_untag(callable, 1, "fn_ptr");
         let continuation_function = self.add_continuation("cc");
         self.call_callable(
             continuation_function,
@@ -507,42 +507,11 @@ impl<'ctx> Codegen<'ctx> {
         let next_continuation = self.allocate_value("next");
         let done_continuation = self.allocate_value("done");
 
-        self.trilogy_callable_init_cont(
-            return_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            chain_function,
-        );
-        self.trilogy_callable_init_cont(
-            end_continuation,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            end_function,
-        );
-        self.trilogy_value_clone_into(done_continuation, end_continuation);
+        self.trilogy_callable_init_root(return_continuation, chain_function);
+        self.trilogy_callable_init_root(yield_continuation, yield_function);
+        self.trilogy_callable_init_root(end_continuation, end_function);
         self.trilogy_value_clone_into(next_continuation, end_continuation);
-
-        let done_clone = self.allocate_value("done_2");
-        let next_clone = self.allocate_value("next_2");
-        let end_clone = self.allocate_value("end_2");
-        self.trilogy_value_clone_into(end_clone, end_continuation);
-        self.trilogy_value_clone_into(done_clone, done_continuation);
-        self.trilogy_value_clone_into(next_clone, next_continuation);
-        self.trilogy_callable_init_cont(
-            yield_continuation,
-            end_clone,
-            yield_continuation,
-            next_clone,
-            done_clone,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            yield_function,
-        );
+        self.trilogy_value_clone_into(done_continuation, end_continuation);
 
         let mut args = vec![
             self.load_value(return_continuation, "").into(),

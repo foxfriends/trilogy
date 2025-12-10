@@ -42,6 +42,7 @@ impl<'ctx> Codegen<'ctx> {
                         );
                         let closure_size = point.closure.borrow().len();
                         let closure = self.allocate_value("closure");
+                        let parent = parent.upgrade().unwrap();
                         if closure_size > 0 {
                             let closure_array = self.trilogy_array_init_cap(
                                 closure,
@@ -53,10 +54,9 @@ impl<'ctx> Codegen<'ctx> {
                                 close_after_instruction.get_parent().unwrap(),
                                 &close_after_instruction.get_next_instruction().unwrap(),
                             );
-                            let parent = parent.upgrade().unwrap();
                             self.build_closure(closure_array, parent.clone(), &point);
-                            self.clean_and_close_scope(&parent);
                         }
+                        self.clean_and_close_scope(&parent);
                         closure_instruction
                             .replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         closure_instruction.erase_from_basic_block();
