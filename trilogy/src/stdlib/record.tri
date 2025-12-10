@@ -1,0 +1,32 @@
+import "trilogy:core" as core
+
+export contains_key, collect
+
+func contains_key val record and typeof 'record = core::contains_key val record
+
+test "record contains_key" {
+  let record = {| 'a => 1, 'b => 2 |}
+  assert contains_key 'a record
+  assert contains_key 'b record
+  assert !(contains_key 1 record)
+}
+
+func collect iterator =
+  let record = {||},
+  with (iterator!(); record)
+    when 'next(key:val) then {
+      record.key = val
+      become unit
+    }
+    else yield
+
+test "record collect" {
+  let iterator = do() {
+    yield 'next(1: 'a)
+    yield 'next(2: 'b)
+    yield 'next(3: 'c)
+    yield 'next(2: 'd)
+    yield 'next(1: 'e)
+  }
+  assert collect iterator == {| 3 => 'c, 2 => 'd, 1 => 'e |}
+}
