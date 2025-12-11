@@ -7,7 +7,7 @@ import "trilogy:array" as array
 import "trilogy:number" as num
 import "trilogy:string" as str
 
-export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, between, end_by, end_by_1, sep_end_by, per_line, eof, any_char, char, char_of, digit, string, integer, letter, whitespace
+export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, between, end_by, end_by_1, sep_end_by, per_line, eof, any_char, char, char_of, digit, string, integer, letter, whitespace, word, words
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
@@ -266,4 +266,25 @@ proc whitespace!() {
 test "parsec whitespace" {
   assert parse whitespace " " == ' '
   assert with parse whitespace "1"; false when 'reject(_) cancel true else cancel false
+}
+
+## A parser for any word (a sequence of word characters `[A-Za-z0-9_]`).
+proc word!() {
+  return apply <| map (str::join "") <| many_1 <| choice [letter, digit, char '_']
+}
+
+test "parsec word" {
+  assert parse word "hello world" == "hello"
+  assert parse word "hello_world" == "hello_world"
+}
+
+## A parser for a sequence of words separated by whitespace
+proc words!() {
+  return apply <| sep_by whitespace word
+}
+
+test "parsec words" {
+  assert parse words "hello world" == ["hello", "world"]
+  assert parse words "hello_world" == ["hello_world"]
+  assert parse words "" == []
 }
