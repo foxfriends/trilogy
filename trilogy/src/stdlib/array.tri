@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:number" as num
 
-export push, pop, extend, length, map, flat_map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose, flatten, any, all
+export push, pop, extend, length, map, flat_map, filter, fold, rfold, reduce, rreduce, reverse, concat, append, prepend, first, last, tail, head, slice, take, skip, drop, collect, chunks, sort, sort_by, zip, transpose, rotate_cw, rotate_ccw, flatten, any, all
 
 proc push!(arr and typeof 'array, value) {
   core::push!(arr, value)
@@ -362,6 +362,20 @@ test "array transpose" {
   assert transpose [[1, 2, 3]] == [[1], [2], [3]]
   assert transpose [[1, 2, 3], [1, 2]] == [[1, 1], [2, 2], [3]]
   assert transpose [[1, 2, 3], [1, 2], [1, 2, 3]] == [[1, 1, 1], [2, 2, 2], [3, 3]]
+}
+
+func rotate_cw array = array |> reverse |> transpose
+
+test "array rotate_cw" {
+  assert rotate_cw [] == []
+  assert rotate_cw [[1, 2, 3], [4, 5, 6], [7, 8, 9]] == [[7, 4, 1], [8, 5, 2], [9, 6, 3]]
+}
+
+func rotate_ccw array = array |> transpose |> reverse
+
+test "array rotate_ccw" {
+  assert rotate_ccw [] == []
+  assert rotate_ccw [[7, 4, 1], [8, 5, 2], [9, 6, 3]] == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 }
 
 func flatten [] = []
