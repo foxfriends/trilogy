@@ -1,6 +1,6 @@
 import "trilogy:array" as array use collect
 
-export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, flat_map, scanl, fold, sum, count, from, any, all, enumerate
+export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, flat_map, scan, fold, reduce, sum, count, from, any, all, enumerate, find
 
 func run it = it!()
 
@@ -176,7 +176,7 @@ test "iterator flat_map" {
   assert collect <| flat_map (range 0) <| range 0 3 == [0, 0, 1, 0, 1, 2, 0, 1, 2, 3]
 }
 
-func scanl f a it = do() {
+func scan f a it = do() {
   let mut state = a
   with it!()
     when 'next(val) then {
@@ -186,22 +186,37 @@ func scanl f a it = do() {
     else yield
 }
 
-test "iterator scanl" {
-  assert collect <| scanl (+) 0 <| range 1 5 == [1, 3, 6, 10, 15]
+test "iterator scan" {
+  assert collect <| scan (+) 0 <| range 1 5 == [1, 3, 6, 10, 15]
 }
 
 func fold f a it =
   let mut state = a,
-  with it!()
+  with it!(); state
     when 'next(val) then {
       state = f state val
       become unit
     }
-    else yield;
-  state
+    else yield
 
 test "iterator fold" {
   assert fold (:) 0 <| range 1 5 == ((((0:1):2):3):4):5
+}
+
+func reduce f it =
+  let mut state = 'none,
+  with it!(); match state case 'some(v) then v else then yield 'mia
+    when 'next(val) then {
+      state = match state
+        case 'some(prev) then 'some(f prev val)
+        else then 'some(val)
+      become unit
+    }
+    else yield
+
+test "iterator reduce" {
+  assert reduce (:) <| range 1 5 == (((1:2):3):4):5
+  assert with reduce (:) <| rangex 0 0 when 'mia cancel true else cancel false
 }
 
 func sum it = fold (+) 0 it
@@ -261,4 +276,20 @@ func enumerate it = do() {
 
 test "iterator enumerate" {
   assert collect <| enumerate <| range 3 5 == [0:3, 1:4, 2:5]
+}
+
+func find p it = 
+  with it!(); yield 'mia
+    when 'next(v) then {
+      if p v {
+        return v
+      }
+      become unit
+    }
+    else yield
+
+import "trilogy:debug" use dbg
+test "iterator find" {
+  assert find ((==) 4) <| range 3 5 == 4
+  assert with find ((==) 4) <| range 1 3 when 'mia cancel true else cancel false
 }
