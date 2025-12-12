@@ -1,6 +1,14 @@
 import "trilogy:array" as array
+import "trilogy:core" as core
 
-export init_zero, collect, from_array
+export init_zero, collect, from_array, set_at, unset_at, pop_count, concat, length
+
+func length b and typeof 'bits = core::length b
+
+type c {
+  extern proc pop_count!(bits)
+  export pop_count
+}
 
 func init_zero l = 0bb <~~ l
 
@@ -29,4 +37,50 @@ test "bits collect" {
     yield 'next(false)
   }
   assert collect iterator == 0bb10010
+}
+
+func set_at index bb = bb | ((bb ^ bb | 0bb1) ~> index)
+
+test "bits set_at" {
+  assert set_at 3 0bb00000 == 0bb00010
+  assert set_at 3 0bb11111 == 0bb11111
+  assert set_at 0 0bb00000 == 0bb10000
+  assert set_at 5 0bb00000 == 0bb00000
+}
+
+func unset_at index bb = bb & ~((bb ^ bb | 0bb1) ~> index)
+
+test "bits unset_at" {
+  assert unset_at 3 0bb11111 == 0bb11101
+  assert unset_at 3 0bb00000 == 0bb00000
+  assert unset_at 0 0bb11111 == 0bb01111
+  assert unset_at 5 0bb11111 == 0bb11111
+}
+
+func unset_at index bb = bb & ~((bb ^ bb | 0bb1) ~> index)
+
+test "bits unset_at" {
+  assert unset_at 3 0bb11111 == 0bb11101
+  assert unset_at 3 0bb00000 == 0bb00000
+  assert unset_at 0 0bb11111 == 0bb01111
+  assert unset_at 5 0bb11111 == 0bb11111
+}
+
+func pop_count b and typeof 'bits = c::pop_count!(b)
+
+test "bits pop_count" {
+  assert pop_count 0bb00000000 == 0
+  assert pop_count 0bb10000000 == 1
+  assert pop_count 0bb10000001 == 2
+  assert pop_count 0bb11111111 == 8
+  assert pop_count 0bb11111111111111111111 == 20
+}
+
+func concat lhs rhs = lhs | (rhs ~~> length lhs)
+
+test "bits concat" {
+  assert concat 0bb0000 0bb0000 == 0bb00000000
+  assert concat 0bb1 0bb0 == 0bb10
+  assert concat 0bb0001 0bb1000 == 0bb00011000
+  assert concat 0bb0001 0bb10000000 == 0bb000110000000
 }

@@ -593,3 +593,9 @@ void denom(trilogy_value* rv, trilogy_value* val) {
     rational zero = RATIONAL_ZERO;
     trilogy_number_init_from_re_im(rv, real, zero);
 }
+
+void pop_count(trilogy_value* rv, trilogy_value* val) {
+    trilogy_bits_value* bits = trilogy_bits_untag(val);
+    size_t pop = trilogy_bits_pop_count(bits);
+    trilogy_number_init_u64(rv, pop);
+}

@@ -289,6 +289,14 @@ trilogy_bits_value* trilogy_bits_invert(trilogy_bits_value* bits) {
     return trilogy_bits_new(bits->len, contents);
 }
 
+size_t trilogy_bits_pop_count(trilogy_bits_value* bits) {
+    size_t count = 0;
+    for (size_t i = 0; i < bit_len_to_byte_len(bits->len); ++i) {
+        count += __builtin_popcount(bits->contents[i]);
+    }
+    return count;
+}
+
 trilogy_bits_value* trilogy_bits_assume(trilogy_value* val) {
     assert(val->tag == TAG_BITS);
     return (trilogy_bits_value*)val->payload;
