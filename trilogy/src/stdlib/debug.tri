@@ -59,7 +59,6 @@ proc dbg!(value) {
   return value
 }
 
-proc trace!(label, value) {
-  core::print!("${to_string label}: ${to_string value}\n")
-  return value
-}
+func trace label value =
+  core::print!("${to_string label}: ${to_string value}\n");
+  value
