@@ -1,6 +1,6 @@
 import "trilogy:array" as array use collect
 
-export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, flat_map, scan, fold, reduce, sum, count, from, any, all, enumerate, find
+export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, flat_map, scan, fold, reduce, sum, count, from, any, all, enumerate, find, choose
 
 func run it = it!()
 
@@ -288,8 +288,18 @@ func find p it =
     }
     else yield
 
-import "trilogy:debug" use dbg
 test "iterator find" {
   assert find ((==) 4) <| range 3 5 == 4
   assert with find ((==) 4) <| range 1 3 when 'mia cancel true else cancel false
+}
+
+func choose 0 _ = do() yield 'next([])
+func choose _ [] = do() {}
+func choose n [x, ..xs] = do() {
+  run <| choose (n - 1) xs |> map (array::prepend x)
+  run <| choose n xs
+}
+
+test "iterator choose" {
+  assert collect <| choose 2 [1, 2, 3] == [[1, 2], [1, 3], [2, 3]]
 }
