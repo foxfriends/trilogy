@@ -296,7 +296,7 @@ test "iterator find" {
 func choose 0 _ = do() yield 'next([])
 func choose _ [] = do() {}
 func choose n [x, ..xs] = do() {
-  run <| choose (n - 1) xs |> map (array::prepend x)
+  run <| map (array::prepend x) <| choose (n - 1) xs
   run <| choose n xs
 }
 
