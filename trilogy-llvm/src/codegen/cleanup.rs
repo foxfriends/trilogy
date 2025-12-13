@@ -276,6 +276,7 @@ impl<'ctx> Codegen<'ctx> {
                                 builder.position_before(&instruction);
                                 builder.set_current_debug_location(di_location);
                                 self.trilogy_reference_close_in(&builder, upvalue_internal);
+                                self.trilogy_value_destroy_in(&builder, original_upvalue);
                             }
                             self.builder.set_current_debug_location(debug_location);
                         }
@@ -297,7 +298,7 @@ impl<'ctx> Codegen<'ctx> {
                                 .unwrap(),
                         );
                         let new_upvalue = self.allocate_value(&format!("{id}.newup"));
-                        self.trilogy_value_clone_into_in(&builder, new_upvalue, original_upvalue);
+                        self.trilogy_value_clone_into(new_upvalue, original_upvalue);
                         new_upvalue
                     }
                 }

@@ -843,12 +843,12 @@ impl<'ctx> Codegen<'ctx> {
         // Then save the current context: this is the place from which we are branching.
         let original_function_scope = self.get_function();
         let snapshot = self.snapshot_function_context();
-        let if_true_block = self
-            .context
-            .append_basic_block(original_function_scope, "and.true");
         let if_false_block = self
             .context
             .append_basic_block(original_function_scope, "and.false");
+        let if_true_block = self
+            .context
+            .append_basic_block(original_function_scope, "and.true");
 
         let if_true_function = self.add_continuation("and.true");
         let merge_to_function = self.add_continuation("and.cont");
@@ -867,6 +867,7 @@ impl<'ctx> Codegen<'ctx> {
         self.become_continuation_point(true_cp);
         self.builder.position_at_end(if_true_block);
         self.restore_function_context(snapshot);
+        self.trilogy_value_destroy(lhs_value);
         let if_true_closure = self.void_continue_in_scope(if_true_function);
         self.end_continuation_point_as_close(if_true_closure);
 
