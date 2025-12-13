@@ -18,7 +18,7 @@ trilogy_string_value* trilogy_string_assume(trilogy_value* val);
 
 void trilogy_string_destroy(trilogy_string_value* val);
 
-char* trilogy_string_as_c(trilogy_string_value* val);
+char* trilogy_string_as_c(const trilogy_string_value* val);
 
 size_t trilogy_string_len(trilogy_string_value* val);
 uint32_t trilogy_string_at(trilogy_string_value* str, size_t index);

@@ -52,7 +52,7 @@ trilogy_string_value* trilogy_string_init_from_c(trilogy_value* tv, char* s) {
     return trilogy_string_init(tv, str);
 }
 
-char* trilogy_string_as_c(trilogy_string_value* str) {
+char* trilogy_string_as_c(const trilogy_string_value* str) {
     char* ptr = malloc_safe(sizeof(char) * (str->len + 1));
     strncpy(ptr, str->contents, str->len);
     ptr[str->len] = '\0';

@@ -4,7 +4,6 @@
 #include "types.h"
 #include <assert.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 trilogy_struct_value*
 trilogy_struct_init(trilogy_value* tv, trilogy_struct_value* st) {
