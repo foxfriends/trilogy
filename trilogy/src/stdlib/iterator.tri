@@ -302,4 +302,5 @@ func choose n [x, ..xs] = do() {
 
 test "iterator choose" {
   assert collect <| choose 2 [1, 2, 3] == [[1, 2], [1, 3], [2, 3]]
+  assert collect <| choose 0 [1, 2, 3] == [[]]
 }
