@@ -27,6 +27,14 @@ trilogy_string_init_new(trilogy_value* tv, size_t len, char* s) {
 }
 
 trilogy_string_value*
+trilogy_string_init_take(trilogy_value* tv, size_t len, char* s) {
+    trilogy_string_value* str = malloc_safe(sizeof(trilogy_string_value));
+    str->len = len;
+    str->contents = s;
+    return trilogy_string_init(tv, str);
+}
+
+trilogy_string_value*
 trilogy_string_clone_into(trilogy_value* tv, const trilogy_string_value* orig) {
     trilogy_string_value* str = malloc_safe(sizeof(trilogy_string_value));
     str->len = orig->len;
@@ -99,7 +107,7 @@ trilogy_string_value* trilogy_string_concat(
     char* ptr = malloc_safe(sizeof(char) * len);
     strncpy(ptr, lhs->contents, lhs->len);
     strncpy(ptr + lhs->len, rhs->contents, rhs->len);
-    return trilogy_string_init_new(rt, len, ptr);
+    return trilogy_string_init_take(rt, len, ptr);
 }
 
 bool trilogy_string_unglue_start(
