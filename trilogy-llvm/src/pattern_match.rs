@@ -251,22 +251,16 @@ impl<'ctx> Codegen<'ctx> {
                         )
                         .unwrap();
                     self.pm_cont_if(is_tuple, on_fail);
-                    let value_clone = self.allocate_value("");
-                    self.trilogy_value_clone_into(value_clone, value_ref);
-                    let tuple = self.trilogy_tuple_assume(value_clone, "");
                     let left = self.allocate_value("");
                     self.bind_temporary(left);
-                    self.trilogy_tuple_left(left, tuple);
+                    self.trilogy_tuple_left(left, self.trilogy_tuple_assume(value_ref, ""));
                     self.match_pattern(&app.argument, left, on_fail, bound_ids)?;
                     self.destroy_owned_temporary(left);
 
                     let value_ref = self.use_temporary(value).unwrap();
-                    let value_clone = self.allocate_value("");
-                    self.trilogy_value_clone_into(value_clone, value_ref);
-                    let tuple = self.trilogy_tuple_assume(value_clone, "");
                     let right = self.allocate_value("");
                     self.bind_temporary(right);
-                    self.trilogy_tuple_right(right, tuple);
+                    self.trilogy_tuple_right(right, self.trilogy_tuple_assume(value_ref, ""));
                     self.match_pattern(&application.argument, right, on_fail, bound_ids)?;
                     self.destroy_owned_temporary(right);
                     Some(())

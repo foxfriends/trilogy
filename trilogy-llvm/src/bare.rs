@@ -259,6 +259,31 @@ impl<'ctx> Codegen<'ctx> {
             .into_pointer_value()
     }
 
+    pub(crate) fn trilogy_tuple_init_take(
+        &self,
+        value: PointerValue<'ctx>,
+        lhs: PointerValue<'ctx>,
+        rhs: PointerValue<'ctx>,
+    ) -> PointerValue<'ctx> {
+        let f = self.declare_bare(
+            "trilogy_tuple_init_take",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[value.into(), lhs.into(), rhs.into()], "")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_basic()
+            .into_pointer_value()
+    }
+
     pub(crate) fn trilogy_tuple_assume(
         &self,
         t: PointerValue<'ctx>,

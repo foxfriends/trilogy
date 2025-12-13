@@ -182,7 +182,7 @@ impl<'ctx> Codegen<'ctx> {
                 let rhs = self.compile_expression(rhs, "cons.rhs")?;
                 let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
-                self.trilogy_tuple_init_new(out, lhs, rhs);
+                self.trilogy_tuple_init_take(out, lhs, rhs);
                 Some(out)
             }
             Builtin::Construct => {
