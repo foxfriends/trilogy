@@ -276,7 +276,6 @@ impl<'ctx> Codegen<'ctx> {
                                 builder.position_before(&instruction);
                                 builder.set_current_debug_location(di_location);
                                 self.trilogy_reference_close_in(&builder, upvalue_internal);
-                                instruction.remove_from_basic_block();
                             }
                             self.builder.set_current_debug_location(debug_location);
                         }

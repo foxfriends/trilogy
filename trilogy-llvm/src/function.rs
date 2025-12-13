@@ -50,9 +50,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut params = Vec::with_capacity(arity);
         for _ in 0..arity as u32 - 1 {
             let continuation = self.add_continuation("");
-            let param = self.get_continuation("");
-            self.bind_temporary(param);
-            params.push(param);
+            params.push(self.get_continuation_temporary());
             let return_to = self.get_return("return");
             let cont_val = self.allocate_value("next_call");
 
@@ -69,9 +67,7 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         // The last parameter is collected in the same continuation as the body
-        let param = self.get_continuation("");
-        self.bind_temporary(param);
-        params.push(param);
+        params.push(self.get_continuation_temporary());
 
         'outer: for overload in overloads {
             let overload = overload.borrow();

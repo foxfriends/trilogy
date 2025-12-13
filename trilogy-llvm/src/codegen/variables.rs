@@ -162,6 +162,11 @@ impl<'ctx> Codegen<'ctx> {
         container
     }
 
+    /// When in a continuation function, gets the value that was yielded to the continuation.
+    pub(crate) fn get_continuation_temporary(&self) -> PointerValue<'ctx> {
+        self.function_params.borrow()[5]
+    }
+
     /// When in an effect handler, get the yielded effect.
     pub(crate) fn get_effect_temporary(&self) -> PointerValue<'ctx> {
         self.function_params.borrow()[5]
