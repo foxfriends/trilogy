@@ -90,6 +90,7 @@ impl<'ctx> Codegen<'ctx> {
                     break 'outer;
                 }
             }
+            self.destroy_owned_temporary(go_to_next_overload);
 
             if let Some(value) = self.compile_expression(&overload.body, "") {
                 let ret = self.get_return("");

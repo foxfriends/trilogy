@@ -324,10 +324,11 @@ impl<'ctx> Codegen<'ctx> {
             let snapshot = self.snapshot_function_context();
 
             self.builder.position_at_end(next_block);
-            let go_next = self.use_temporary(go_to_next_case).unwrap();
+            let go_next = self.use_temporary_clone(go_to_next_case).unwrap();
             self.void_call_continuation(go_next);
 
             self.builder.position_at_end(body_block);
+            self.destroy_owned_temporary(go_to_next_case);
             self.restore_function_context(snapshot);
             self.become_continuation_point(body_cp);
             self.push_handler_scope(resume);
@@ -564,11 +565,12 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap();
 
             self.builder.position_at_end(next_block);
-            let go_next = self.use_temporary(go_to_next_case).unwrap();
+            let go_next = self.use_temporary_clone(go_to_next_case).unwrap();
             self.void_call_continuation(go_next);
 
             self.builder.position_at_end(body_block);
             self.become_continuation_point(body_cp);
+            self.destroy_owned_temporary(go_to_next_case);
             if let Some(result) = self.compile_expression(&case.body, name) {
                 let closure_allocation = self.continue_in_scope(continuation, result);
                 self.end_continuation_point_as_merge(&mut merger, closure_allocation);
