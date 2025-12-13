@@ -740,9 +740,6 @@ impl<'ctx> Codegen<'ctx> {
                     let key_val = self.use_temporary(key).unwrap();
                     let out = self.allocate_value(name);
                     self.member_assign(out, container_val, key_val, value);
-                    self.trilogy_value_destroy(value);
-                    self.destroy_owned_temporary(key);
-                    self.destroy_owned_temporary(container);
                     Some(out)
                 }
                 _ => panic!("invalid lvalue in assignment"),

@@ -260,9 +260,12 @@ impl<'ctx> Codegen<'ctx> {
                         )
                         .unwrap();
                     self.pm_cont_if(is_struct, on_fail);
+
+                    let value_clone = self.allocate_value("");
+                    self.trilogy_value_clone_into(value_clone, value_ref);
                     let destructed = self.allocate_value("");
                     self.bind_temporary(destructed);
-                    self.destruct(destructed, value_ref);
+                    self.destruct(destructed, value_clone);
                     let tuple = self.trilogy_tuple_assume(destructed, "");
                     let part = self.allocate_value("");
                     self.bind_temporary(part);
@@ -291,6 +294,8 @@ impl<'ctx> Codegen<'ctx> {
                         .unwrap();
                     self.pm_cont_if(is_string, on_fail);
 
+                    let value_clone = self.allocate_value("");
+                    self.trilogy_value_clone_into(value_clone, value_ref);
                     let output = self.allocate_value("unglued");
                     self.bind_temporary(output);
                     if matches!(app.argument.value, Value::String(..)) {
@@ -298,7 +303,7 @@ impl<'ctx> Codegen<'ctx> {
                         let lhs = self
                             .compile_expression(&app.argument, "glue_pattern_lhs")
                             .unwrap();
-                        let is_ok = self.unglue_start(output, lhs, value_ref, "did_unglue");
+                        let is_ok = self.unglue_start(output, lhs, value_clone, "did_unglue");
                         self.pm_cont_if(is_ok, on_fail);
                         self.match_pattern(&application.argument, output, on_fail, bound_ids)?;
                     } else if matches!(application.argument.value, Value::String(..)) {
@@ -306,7 +311,7 @@ impl<'ctx> Codegen<'ctx> {
                         let rhs = self
                             .compile_expression(&application.argument, "glue_pattern_rhs")
                             .unwrap();
-                        let is_ok = self.unglue_end(output, value_ref, rhs, "did_unglue");
+                        let is_ok = self.unglue_end(output, value_clone, rhs, "did_unglue");
                         self.pm_cont_if(is_ok, on_fail);
                         self.match_pattern(&app.argument, output, on_fail, bound_ids)?;
                     } else {

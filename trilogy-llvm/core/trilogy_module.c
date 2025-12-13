@@ -92,7 +92,7 @@ void trilogy_module_find(
         }
     }
     // TODO: consider that this maybe should not be a panic...
-    trilogy_string_value* repr = trilogy_atom_repr(id);
+    const trilogy_string_value* repr = trilogy_atom_repr(id);
     char* message = calloc_safe(repr->len + 45, sizeof(char));
     char* repr_str = trilogy_string_as_c(repr);
     sprintf(

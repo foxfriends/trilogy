@@ -6,6 +6,9 @@ trilogy_tuple_init(trilogy_value* tv, trilogy_tuple_value* tup);
 trilogy_tuple_value* trilogy_tuple_init_new(
     trilogy_value* tv, trilogy_value* fst, trilogy_value* snd
 );
+trilogy_tuple_value* trilogy_tuple_init_take(
+    trilogy_value* tv, trilogy_value* fst, trilogy_value* snd
+);
 trilogy_tuple_value*
 trilogy_tuple_clone_into(trilogy_value* tv, trilogy_tuple_value* tup);
 
