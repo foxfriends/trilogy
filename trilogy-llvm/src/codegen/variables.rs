@@ -309,7 +309,8 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    /// Uses a clone of a previously bound temporary value.
+    /// Uses a clone of a previously bound temporary value. If the temporary value was not an upvalue,
+    /// it is NOT cloned.
     pub(crate) fn use_temporary_clone(
         &self,
         temporary: PointerValue<'ctx>,

@@ -118,7 +118,7 @@ impl<'ctx> Codegen<'ctx> {
         let compose = self.reference_core("compose");
         self.bind_temporary(rhs);
         let composed = self.apply_function(compose, lhs, "composing");
-        let rhs = self.use_temporary(rhs).unwrap();
+        let rhs = self.use_temporary_clone(rhs).unwrap();
         self.apply_function(composed, rhs, name)
     }
 
@@ -131,7 +131,7 @@ impl<'ctx> Codegen<'ctx> {
         let member_access = self.reference_core("member_access");
         self.bind_temporary(rhs);
         let composed = self.apply_function(member_access, lhs, "accessing");
-        let rhs = self.use_temporary(rhs).unwrap();
+        let rhs = self.use_temporary_clone(rhs).unwrap();
         self.apply_function(composed, rhs, name)
     }
 

@@ -178,8 +178,22 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(crate) fn allocate_value(&self, name: &str) -> PointerValue<'ctx> {
-        let value = self.builder.build_alloca(self.value_type(), name).unwrap();
-        self.builder
+        let entry = self
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_parent()
+            .unwrap()
+            .get_first_basic_block()
+            .unwrap();
+        let builder = self.context.create_builder();
+        if let Some(begin) = entry.get_first_instruction() {
+            builder.position_at(entry, &begin);
+        } else {
+            builder.position_at_end(entry);
+        }
+        let value = builder.build_alloca(self.value_type(), name).unwrap();
+        builder
             .build_store(value, self.value_type().const_zero())
             .unwrap();
         value

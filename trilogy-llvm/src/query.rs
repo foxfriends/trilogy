@@ -243,7 +243,7 @@ impl<'ctx> Codegen<'ctx> {
                 let (next_iteration_inner, output_arguments) = self.call_rule(
                     elem,
                     &[self.use_temporary(input).unwrap(), collection],
-                    self.use_temporary(done_to).unwrap(),
+                    self.use_temporary_clone(done_to).unwrap(),
                     "lookup_next",
                 );
 

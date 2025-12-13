@@ -137,7 +137,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "seq.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "seq.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.structural_eq(out, lhs, rhs);
                 Some(out)
@@ -146,7 +146,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "sne.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "sne.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.structural_neq(out, lhs, rhs);
                 Some(out)
@@ -155,7 +155,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "req.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "req.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.referential_eq(out, lhs, rhs);
                 Some(out)
@@ -164,7 +164,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "rne.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rne.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.referential_neq(out, lhs, rhs);
                 Some(out)
@@ -173,14 +173,14 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "acc.c")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "acc.i")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 Some(self.member_access(lhs, rhs, ""))
             }
             Builtin::Cons => {
                 let lhs = self.compile_expression(lhs, "cons.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "cons.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.trilogy_tuple_init_new(out, lhs, rhs);
                 Some(out)
@@ -198,7 +198,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "glue.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "glue.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.glue(out, lhs, rhs);
                 Some(out)
@@ -207,7 +207,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "lt.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lt.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.lt(out, lhs, rhs);
                 Some(out)
@@ -216,7 +216,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "gt.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "gt.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.gt(out, lhs, rhs);
                 Some(out)
@@ -225,7 +225,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "lte.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lte.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.lte(out, lhs, rhs);
                 Some(out)
@@ -234,7 +234,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "gte.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "gte.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.gte(out, lhs, rhs);
                 Some(out)
@@ -243,7 +243,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "add.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "add.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.add(out, lhs, rhs);
                 Some(out)
@@ -252,7 +252,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "sub.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "sub.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.subtract(out, lhs, rhs);
                 Some(out)
@@ -261,7 +261,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "mul.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "mul.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.multiply(out, lhs, rhs);
                 Some(out)
@@ -270,7 +270,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "div.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "div.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.divide(out, lhs, rhs);
                 Some(out)
@@ -279,7 +279,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "rem.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rem.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.rem(out, lhs, rhs);
                 Some(out)
@@ -288,7 +288,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "pow.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "pow.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.power(out, lhs, rhs);
                 Some(out)
@@ -297,7 +297,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "intdiv.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "intdiv.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.int_divide(out, lhs, rhs);
                 Some(out)
@@ -308,7 +308,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "b_and.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "b_and.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.bitwise_and(out, lhs, rhs);
                 Some(out)
@@ -317,7 +317,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "b_or.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "b_or.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.bitwise_or(out, lhs, rhs);
                 Some(out)
@@ -326,7 +326,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "b_xor.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "b_xor.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.bitwise_xor(out, lhs, rhs);
                 Some(out)
@@ -335,7 +335,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "lsh.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lsh.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_left(out, lhs, rhs);
                 Some(out)
@@ -344,7 +344,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "lshex.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lshex.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_left_extend(out, lhs, rhs);
                 Some(out)
@@ -353,7 +353,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "lshcon.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "lshcon.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_left_contract(out, lhs, rhs);
                 Some(out)
@@ -362,7 +362,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "rsh.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rsh.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_right(out, lhs, rhs);
                 Some(out)
@@ -371,7 +371,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "rshex.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rshex.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_right_extend(out, lhs, rhs);
                 Some(out)
@@ -380,7 +380,7 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "rshcon.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rshcon.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 let out = self.allocate_value(name);
                 self.shift_right_contract(out, lhs, rhs);
                 Some(out)
@@ -389,28 +389,28 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.compile_expression(lhs, "compose.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "compose.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 Some(self.compose(lhs, rhs, name))
             }
             Builtin::RCompose => {
                 let lhs = self.compile_expression(lhs, "rcompose.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rcompose.rhs")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 Some(self.compose(rhs, lhs, name))
             }
             Builtin::Pipe => {
                 let lhs = self.compile_expression(lhs, "pipe.arg")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "pipe.fn")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 Some(self.apply_function(rhs, lhs, name))
             }
             Builtin::RPipe => {
                 let lhs = self.compile_expression(lhs, "pipe.fn")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "pipe.arg")?;
-                let lhs = self.use_temporary(lhs).unwrap();
+                let lhs = self.use_temporary_clone(lhs).unwrap();
                 Some(self.apply_function(lhs, rhs, name))
             }
             Builtin::Sequence => {

@@ -121,6 +121,7 @@ impl<'ctx> Codegen<'ctx> {
                         // We have detected this variable as referenced in a future scope, so we have to close it
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
+                        self.trilogy_value_destroy(*pointer);
                     } else if matches!(id, Closed::Variable(..)) {
                         // In this case, we have not YET detected that it is referenced, but it still might be
                         // detected later, so we have to record this destroy in case it has to be upgraded to a
@@ -166,6 +167,7 @@ impl<'ctx> Codegen<'ctx> {
                         // We have detected this variable as referenced in a future scope, so we have to close it
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
+                        self.trilogy_value_destroy(*pointer);
                     } else {
                         // In this case, we have not YET detected that it is referenced, but it still might be
                         // detected later, so we have to record this destroy in case it has to be upgraded to a
@@ -200,8 +202,20 @@ impl<'ctx> Codegen<'ctx> {
         let mut upvalues = root_scope.upvalues.borrow_mut();
         for id in child_scope.closure.borrow().iter() {
             let new_upvalue = if let Some(ptr) = upvalues.get(id) {
+                let builder = self.context.create_builder();
+                builder.position_at(
+                    ptr.as_instruction().unwrap().get_parent().unwrap(),
+                    &ptr.as_instruction()
+                        .unwrap()
+                        .get_next_instruction()
+                        .unwrap()
+                        .get_next_instruction()
+                        .unwrap()
+                        .get_next_instruction()
+                        .unwrap(),
+                );
                 let new_upvalue = self.allocate_value(&format!("{id}.cloneup"));
-                self.trilogy_value_clone_into(new_upvalue, *ptr);
+                self.trilogy_value_clone_into_in(&builder, new_upvalue, *ptr);
                 new_upvalue
             } else {
                 match self
@@ -267,8 +281,24 @@ impl<'ctx> Codegen<'ctx> {
                             self.builder.set_current_debug_location(debug_location);
                         }
 
+                        builder.position_at(
+                            original_upvalue
+                                .as_instruction()
+                                .unwrap()
+                                .get_parent()
+                                .unwrap(),
+                            &original_upvalue
+                                .as_instruction()
+                                .unwrap()
+                                .get_next_instruction()
+                                .unwrap()
+                                .get_next_instruction()
+                                .unwrap()
+                                .get_next_instruction()
+                                .unwrap(),
+                        );
                         let new_upvalue = self.allocate_value(&format!("{id}.newup"));
-                        self.trilogy_value_clone_into(new_upvalue, original_upvalue);
+                        self.trilogy_value_clone_into_in(&builder, new_upvalue, original_upvalue);
                         new_upvalue
                     }
                 }

@@ -49,7 +49,28 @@ impl<'ctx> Codegen<'ctx> {
                     bound_ids.push(id.id.clone());
                     let variable = self.variable(&id.id);
                     let value_ref = self.use_temporary(value).unwrap();
+
+                    let bind = self.context.append_basic_block(self.get_function(), "bind");
+                    let check = self
+                        .context
+                        .append_basic_block(self.get_function(), "check");
+                    let matched = self
+                        .context
+                        .append_basic_block(self.get_function(), "matched");
+
+                    self.branch_undefined(variable, bind, check);
+
+                    self.builder.position_at_end(bind);
                     self.trilogy_value_clone_into(variable, value_ref);
+                    self.builder.build_unconditional_branch(matched).unwrap();
+
+                    self.builder.position_at_end(check);
+                    let pinned = self.allocate_value("");
+                    self.trilogy_value_clone_into(pinned, variable);
+                    self.match_constant(value, pinned, on_fail);
+                    self.builder.build_unconditional_branch(matched).unwrap();
+
+                    self.builder.position_at_end(matched);
                 }
             }
             Value::Conjunction(conj) => {
@@ -191,7 +212,7 @@ impl<'ctx> Codegen<'ctx> {
             .build_conditional_branch(cond, cont, fail)
             .unwrap();
         self.builder.position_at_end(fail);
-        let on_fail = self.use_temporary(on_fail).unwrap();
+        let on_fail = self.use_temporary_clone(on_fail).unwrap();
         self.void_call_continuation(on_fail);
 
         self.builder.position_at_end(cont);
@@ -230,8 +251,9 @@ impl<'ctx> Codegen<'ctx> {
                         )
                         .unwrap();
                     self.pm_cont_if(is_tuple, on_fail);
-
-                    let tuple = self.trilogy_tuple_assume(value_ref, "");
+                    let value_clone = self.allocate_value("");
+                    self.trilogy_value_clone_into(value_clone, value_ref);
+                    let tuple = self.trilogy_tuple_assume(value_clone, "");
                     let left = self.allocate_value("");
                     self.bind_temporary(left);
                     self.trilogy_tuple_left(left, tuple);
@@ -239,7 +261,9 @@ impl<'ctx> Codegen<'ctx> {
                     self.destroy_owned_temporary(left);
 
                     let value_ref = self.use_temporary(value).unwrap();
-                    let tuple = self.trilogy_tuple_assume(value_ref, "");
+                    let value_clone = self.allocate_value("");
+                    self.trilogy_value_clone_into(value_clone, value_ref);
+                    let tuple = self.trilogy_tuple_assume(value_clone, "");
                     let right = self.allocate_value("");
                     self.bind_temporary(right);
                     self.trilogy_tuple_right(right, tuple);
@@ -294,10 +318,10 @@ impl<'ctx> Codegen<'ctx> {
                         .unwrap();
                     self.pm_cont_if(is_string, on_fail);
 
-                    let value_clone = self.allocate_value("");
-                    self.trilogy_value_clone_into(value_clone, value_ref);
                     let output = self.allocate_value("unglued");
                     self.bind_temporary(output);
+                    let value_clone = self.allocate_value("");
+                    self.trilogy_value_clone_into(value_clone, value_ref);
                     if matches!(app.argument.value, Value::String(..)) {
                         // If left side is a string literal, compare to the start of the string
                         let lhs = self
@@ -356,18 +380,20 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Negate => {
                 let negated = self.allocate_value("negated");
-                let value = self.use_temporary(value).unwrap();
+                let value_ref = self.use_temporary(value).unwrap();
                 let is_number = self
                     .builder
                     .build_int_compare(
                         IntPredicate::EQ,
-                        self.get_tag(value, ""),
+                        self.get_tag(value_ref, ""),
                         self.tag_type().const_int(TAG_NUMBER, false),
                         "is_num",
                     )
                     .unwrap();
                 self.pm_cont_if(is_number, on_fail);
-                self.negate(negated, value);
+                let value_clone = self.allocate_value("");
+                self.trilogy_value_clone_into(value_clone, value_ref);
+                self.negate(negated, value_clone);
                 self.bind_temporary(negated);
                 self.match_pattern(expression, negated, on_fail, bound_ids)?;
             }

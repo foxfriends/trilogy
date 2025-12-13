@@ -163,7 +163,7 @@ impl<'ctx> Codegen<'ctx> {
         expr: &ir::Iterator,
         name: &str,
     ) -> Option<PointerValue<'ctx>> {
-        let output = self.allocate_value("acc");
+        let output = self.allocate_value(name);
         self.trilogy_array_init_cap(output, 8, "");
         self.bind_temporary(output);
 
@@ -173,7 +173,7 @@ impl<'ctx> Codegen<'ctx> {
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
-            let arr_val = self.use_temporary(output).unwrap();
+            let arr_val = self.use_temporary_clone(output).unwrap();
             let arr = self.trilogy_array_assume(arr_val, "");
             self.trilogy_array_push(arr, value);
             let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
@@ -182,9 +182,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(done_continuation_point);
         self.begin_next_function(done_function);
-        let output_clone = self.allocate_value(name);
-        self.trilogy_value_clone_into(output_clone, self.use_temporary(output).unwrap());
-        Some(output_clone)
+        Some(self.use_temporary_clone(output).unwrap())
     }
 
     fn compile_set_comprehension(
@@ -192,7 +190,7 @@ impl<'ctx> Codegen<'ctx> {
         expr: &ir::Iterator,
         name: &str,
     ) -> Option<PointerValue<'ctx>> {
-        let output = self.allocate_value("acc");
+        let output = self.allocate_value(name);
         self.trilogy_set_init_cap(output, 8, "");
         self.bind_temporary(output);
 
@@ -202,7 +200,7 @@ impl<'ctx> Codegen<'ctx> {
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation)?;
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
-            let set_val = self.use_temporary(output).unwrap();
+            let set_val = self.use_temporary_clone(output).unwrap();
             let set = self.trilogy_set_assume(set_val, "");
             self.trilogy_set_insert(set, value);
             let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
@@ -211,9 +209,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(done_continuation_point);
         self.begin_next_function(done_function);
-        let output_clone = self.allocate_value(name);
-        self.trilogy_value_clone_into(output_clone, self.use_temporary(output).unwrap());
-        Some(output_clone)
+        Some(self.use_temporary_clone(output).unwrap())
     }
 
     fn compile_record_comprehension(
@@ -221,7 +217,7 @@ impl<'ctx> Codegen<'ctx> {
         expr: &ir::Iterator,
         name: &str,
     ) -> Option<PointerValue<'ctx>> {
-        let output = self.allocate_value("acc");
+        let output = self.allocate_value(name);
         self.trilogy_record_init_cap(output, 8, "");
         self.bind_temporary(output);
 
@@ -236,7 +232,7 @@ impl<'ctx> Codegen<'ctx> {
         if let Some(key) = self.compile_expression(&mapping.0, "key") {
             self.bind_temporary(key);
             if let Some(value) = self.compile_expression(&mapping.1, "val") {
-                let rec_val = self.use_temporary(output).unwrap();
+                let rec_val = self.use_temporary_clone(output).unwrap();
                 let rec = self.trilogy_record_assume(rec_val, "");
                 self.trilogy_record_insert(rec, self.use_temporary_clone(key).unwrap(), value);
                 let next_iteration = self.use_temporary_clone(next_iteration).unwrap();
@@ -246,9 +242,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.become_continuation_point(done_continuation_point);
         self.begin_next_function(done_function);
-        let output_clone = self.allocate_value(name);
-        self.trilogy_value_clone_into(output_clone, self.use_temporary(output).unwrap());
-        Some(output_clone)
+        Some(self.use_temporary_clone(output).unwrap())
     }
 
     fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
@@ -418,7 +412,7 @@ impl<'ctx> Codegen<'ctx> {
         let target = self.allocate_value(name);
         let array_value = self.trilogy_array_init_cap(target, pack.values.len(), "arr");
         for (is_spread, temporary) in temporaries {
-            let value = self.use_temporary(temporary).unwrap();
+            let value = self.use_temporary_clone(temporary).unwrap();
             if is_spread {
                 self.trilogy_array_append(array_value, value);
             } else {
@@ -442,7 +436,7 @@ impl<'ctx> Codegen<'ctx> {
         let target = self.allocate_value(name);
         let set_value = self.trilogy_set_init_cap(target, pack.values.len(), "set");
         for (is_spread, temporary) in temporaries {
-            let value = self.use_temporary(temporary).unwrap();
+            let value = self.use_temporary_clone(temporary).unwrap();
             if is_spread {
                 self.trilogy_set_append(set_value, value);
             } else {
@@ -484,12 +478,12 @@ impl<'ctx> Codegen<'ctx> {
         for element in temporaries {
             match element {
                 Element::KeyValue(key, value) => {
-                    let key = self.use_temporary(key).unwrap();
-                    let value = self.use_temporary(value).unwrap();
+                    let key = self.use_temporary_clone(key).unwrap();
+                    let value = self.use_temporary_clone(value).unwrap();
                     self.trilogy_record_insert(record_value, key, value);
                 }
                 Element::Spread(value) => {
-                    let value = self.use_temporary(value).unwrap();
+                    let value = self.use_temporary_clone(value).unwrap();
                     self.trilogy_record_append(record_value, value);
                 }
             }
@@ -616,12 +610,12 @@ impl<'ctx> Codegen<'ctx> {
                 let next = self.compile_query_iteration(query, end_false_cont)?;
                 self.trilogy_value_destroy(next);
                 let result = self.allocate_const(self.bool_const(true), "");
-                self.call_known_continuation(self.use_temporary(merge_to_cont).unwrap(), result);
+                self.call_known_continuation(self.use_temporary_clone(merge_to_cont).unwrap(), result);
 
                 self.become_continuation_point(end_false_cp);
                 self.begin_next_function(end_false_fn);
                 let result = self.allocate_const(self.bool_const(false), "");
-                self.call_known_continuation(self.use_temporary(merge_to_cont).unwrap(), result);
+                self.call_known_continuation(self.use_temporary_clone(merge_to_cont).unwrap(), result);
 
                 self.become_continuation_point(merge_to_cp);
                 self.begin_next_function(merge_to_fn);
@@ -660,7 +654,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
                 let function = self.use_temporary_clone(function).unwrap();
                 for arg in arguments.iter_mut() {
-                    *arg = self.use_temporary(*arg).unwrap();
+                    *arg = self.use_temporary_clone(*arg).unwrap();
                 }
                 Some(self.call_procedure(function, &arguments, name))
             }
@@ -736,8 +730,8 @@ impl<'ctx> Codegen<'ctx> {
                     let key = self.compile_expression(&app.argument, "")?;
                     self.bind_temporary(key);
                     let value = self.compile_expression(&assign.rhs, "")?;
-                    let container_val = self.use_temporary(container).unwrap();
-                    let key_val = self.use_temporary(key).unwrap();
+                    let container_val = self.use_temporary_clone(container).unwrap();
+                    let key_val = self.use_temporary_clone(key).unwrap();
                     let out = self.allocate_value(name);
                     self.member_assign(out, container_val, key_val, value);
                     Some(out)
