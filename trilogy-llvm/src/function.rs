@@ -53,8 +53,8 @@ impl<'ctx> Codegen<'ctx> {
             let param = self.get_continuation("");
             self.bind_temporary(param);
             params.push(param);
-            let return_to = self.get_return("");
-            let cont_val = self.allocate_value("");
+            let return_to = self.get_return("return");
+            let cont_val = self.allocate_value("next_call");
 
             let closure = self
                 .builder

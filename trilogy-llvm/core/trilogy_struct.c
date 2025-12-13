@@ -16,7 +16,7 @@ trilogy_struct_init(trilogy_value* tv, trilogy_struct_value* st) {
 
 trilogy_struct_value*
 trilogy_struct_init_new(trilogy_value* tv, uint64_t i, trilogy_value* val) {
-    trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
+    trilogy_struct_value* st = malloc_safe(sizeof(trilogy_struct_value));
     st->atom = i;
     st->contents = trilogy_undefined;
     trilogy_value_clone_into(&st->contents, val);
@@ -25,7 +25,7 @@ trilogy_struct_init_new(trilogy_value* tv, uint64_t i, trilogy_value* val) {
 
 trilogy_struct_value*
 trilogy_struct_init_take(trilogy_value* tv, uint64_t i, trilogy_value* val) {
-    trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
+    trilogy_struct_value* st = malloc_safe(sizeof(trilogy_struct_value));
     st->atom = i;
     st->contents = *val;
     *val = trilogy_undefined;
@@ -34,7 +34,7 @@ trilogy_struct_init_take(trilogy_value* tv, uint64_t i, trilogy_value* val) {
 
 trilogy_struct_value*
 trilogy_struct_clone_into(trilogy_value* tv, trilogy_struct_value* val) {
-    trilogy_struct_value* st = malloc(sizeof(trilogy_struct_value));
+    trilogy_struct_value* st = malloc_safe(sizeof(trilogy_struct_value));
     st->atom = val->atom;
     st->contents = trilogy_undefined;
     trilogy_value_clone_into(&st->contents, &val->contents);

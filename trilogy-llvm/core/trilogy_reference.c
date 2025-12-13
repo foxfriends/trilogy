@@ -1,4 +1,5 @@
 #include "trilogy_reference.h"
+#include "internal.h"
 #include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
@@ -16,7 +17,7 @@ trilogy_reference_init(trilogy_value* tv, trilogy_reference* ref) {
 trilogy_reference* trilogy_reference_to(trilogy_value* tv, trilogy_value* val) {
     if (val->tag == TAG_REFERENCE)
         return trilogy_reference_clone_into(tv, trilogy_reference_assume(val));
-    trilogy_reference* ref = malloc(sizeof(trilogy_reference));
+    trilogy_reference* ref = malloc_safe(sizeof(trilogy_reference));
     ref->rc = 1;
     ref->location = val;
     ref->closed = trilogy_undefined;
@@ -24,7 +25,7 @@ trilogy_reference* trilogy_reference_to(trilogy_value* tv, trilogy_value* val) {
 }
 
 trilogy_reference* trilogy_reference_init_empty(trilogy_value* tv) {
-    trilogy_reference* ref = malloc(sizeof(trilogy_reference));
+    trilogy_reference* ref = malloc_safe(sizeof(trilogy_reference));
     ref->rc = 1;
     ref->location = &ref->closed;
     ref->closed = trilogy_undefined;
