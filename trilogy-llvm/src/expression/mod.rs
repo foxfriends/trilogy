@@ -559,9 +559,6 @@ impl<'ctx> Codegen<'ctx> {
 
             self.builder.position_at_end(next_block);
             let go_next = self.use_temporary_clone(go_to_next_case).unwrap();
-            // TODO[memory_leak]: at this point, we are not correctly destroying any upvalues
-            // created in the body_block which have their `trilogy_reference_to` constructors
-            // hoisted into the start the current case's function.
             self.void_call_continuation(go_next);
 
             self.builder.position_at_end(body_block);
@@ -580,7 +577,6 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unreachable().unwrap();
 
         if returns {
-            self.destroy_owned_temporary(discriminant);
             self.merge_without_branch(merger);
             self.begin_next_function(continuation);
             Some(self.get_continuation(name))
