@@ -549,8 +549,7 @@ impl<'ctx> Codegen<'ctx> {
                 continue;
             };
             let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
-            // NOTE: bool doesn't really need to be destroyed... but do it anyway
-            self.trilogy_value_destroy(guard_bool);
+            self.trilogy_value_destroy(guard_bool); // NOTE: bool doesn't really need to be destroyed... but do it anyway
             let next_block = self.context.append_basic_block(self.get_function(), "next");
             let body_block = self.context.append_basic_block(self.get_function(), "body");
             let body_cp = self.branch_continuation_point();

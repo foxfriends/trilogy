@@ -264,7 +264,6 @@ impl<'ctx> Codegen<'ctx> {
                         if let Some(closing) =
                             scope.shadow_root().unclosed.borrow_mut().remove(&variable)
                         {
-                            let debug_location = self.builder.get_current_debug_location().unwrap();
                             // Due to the order of the code, captures appear above closes and cleans for
                             // the same parent in the continuation_points list.
                             //
@@ -278,25 +277,8 @@ impl<'ctx> Codegen<'ctx> {
                                 self.trilogy_reference_close_in(&builder, upvalue_internal);
                                 self.trilogy_value_destroy_in(&builder, original_upvalue);
                             }
-                            self.builder.set_current_debug_location(debug_location);
                         }
 
-                        builder.position_at(
-                            original_upvalue
-                                .as_instruction()
-                                .unwrap()
-                                .get_parent()
-                                .unwrap(),
-                            &original_upvalue
-                                .as_instruction()
-                                .unwrap()
-                                .get_next_instruction()
-                                .unwrap()
-                                .get_next_instruction()
-                                .unwrap()
-                                .get_next_instruction()
-                                .unwrap(),
-                        );
                         let new_upvalue = self.allocate_value(&format!("{id}.newup"));
                         self.trilogy_value_clone_into(new_upvalue, original_upvalue);
                         new_upvalue
