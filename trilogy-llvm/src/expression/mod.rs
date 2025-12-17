@@ -587,9 +587,13 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unreachable().unwrap();
 
         if returns {
-            self.destroy_owned_temporary(discriminant);
             self.merge_without_branch(merger);
             self.begin_next_function(continuation);
+            // The discriminant must be referenced once here so that it gets closed, even in the
+            // case that no branches of the match (beyond the first) actually use it, as this
+            // is not detected up front, and ends up just not closing or destroying it if it is
+            // lost.
+            self.use_temporary(discriminant);
             Some(self.get_continuation(name))
         } else {
             None
