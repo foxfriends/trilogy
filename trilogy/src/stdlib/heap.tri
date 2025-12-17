@@ -10,7 +10,7 @@ proc swap!(array, i, j) {
 }
 
 type heap cmp {
-  export push, pop, collect
+  export push, pop, collect, append, take
 
   proc push!(heap, val) {
     let mut i = length heap
@@ -22,6 +22,8 @@ type heap cmp {
       parent = (i - 1) // 2
     }
   }
+
+  func append val [..heap] = push!(heap, val); heap
 
   proc pop!(heap) {
     swap!(heap, 0, length heap - 1)
@@ -46,6 +48,8 @@ type heap cmp {
     return output
   }
 
+  func take [..heap] = pop!(heap):heap
+
   func collect iterator =
     let heap = [],
     with (iterator!(); heap)
@@ -69,6 +73,20 @@ test "heap push" {
   assert heap == [4, 3, 2, 1]
 }
 
+test "heap append" {
+  let max_heap = heap (>=)
+  let heap = []
+  let heap_2 = max_heap::append 1 heap
+  let heap_3 = max_heap::append 2 heap_2
+  let heap_4 = max_heap::append 3 heap_3
+  let heap_5 = max_heap::append 4 heap_4
+  assert heap == []
+  assert heap_2 == [1]
+  assert heap_3 == [2, 1]
+  assert heap_4 == [3, 1, 2]
+  assert heap_5 == [4, 3, 2, 1]
+}
+
 test "heap pop" {
   let max_heap = heap (>=)
   let heap = []
@@ -84,6 +102,22 @@ test "heap pop" {
   assert heap == [1]
   assert max_heap::pop!(heap) == 1
   assert heap == []
+}
+
+test "heap take" {
+  let max_heap = heap (>=)
+  let heap = []
+  max_heap::push!(heap, 3)
+  max_heap::push!(heap, 4)
+  max_heap::push!(heap, 1)
+  max_heap::push!(heap, 2)
+
+  let 4:heap_2 = max_heap::take heap
+  assert heap == [4, 3, 1, 2]
+  assert heap_2 == [3, 2, 1]
+  let 3:heap_3 = max_heap::take heap_2
+  assert heap_2 == [3, 2, 1]
+  assert heap_3 == [2, 1]
 }
 
 test "heap collect" {
