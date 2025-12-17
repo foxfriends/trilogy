@@ -1,0 +1,28 @@
+import "trilogy:heap" use heap
+import "trilogy:record" use contains_key
+
+export shortest_path_length
+
+proc shortest_path_length!(from, goal) {
+  let pq = heap (fn a b. a.'right <= b.'right)
+
+  let best = {| from => 0 |}
+  let front = []
+
+  let front = [from:0]
+  while !(contains_key goal best) {
+    let from_pos:score = pq::pop!(front)
+    if best.from_pos != score { continue unit }
+
+    let neighbours = yield 'neighbours(from_pos)
+    for to_pos:weight in neighbours {
+      let alt = score + weight
+      if !(contains_key to_pos best) || alt < best.to_pos {
+        best.to_pos = alt
+        pq::push!(front, to_pos:alt)
+      }
+    }
+  }
+
+  return best.goal
+}

@@ -66,6 +66,10 @@ where
             include_str!("./parsec.tri").to_owned(),
         )
         .source_module(
+            Location::library("algorithm").unwrap(),
+            include_str!("./algorithm.tri").to_owned(),
+        )
+        .source_module(
             Location::library("ansi").unwrap(),
             include_str!("./ansi.tri").to_owned(),
         )

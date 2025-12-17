@@ -1,8 +1,11 @@
 import "trilogy:core" use length
+import "trilogy:array" as array
 import "trilogy:iterator" as it
 import "trilogy:number" use im, re
+import "trilogy:record" use contains_key
+import "trilogy:algorithm" as algorithm
 
-export from, adjacent, rotate_right, surrounding, x, y, coord
+export from, adjacent, rotate_right, surrounding, x, y, coord, shortest_path_length
 
 func x pos = re pos
 func y pos = im pos
@@ -77,4 +80,15 @@ test "grid rotate_right" {
     1,
     1 + 0i1,
   ]
+}
+
+proc shortest_path_length!(grid, from, to) {
+  return with algorithm::shortest_path_length!(from, to)
+    when 'neighbours(from_pos) resume
+      adjacent from_pos
+      |> it::from
+      |> it::filter (fn p. contains_key p grid)
+      |> it::map (fn p. p:grid.p)
+      |> array::collect
+    else yield
 }
