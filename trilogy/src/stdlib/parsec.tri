@@ -208,7 +208,7 @@ func char c = do() {
 }
 
 ## A parser for a single token.
-func any = do() {
+proc any!() {
   match yield 'next
     case 'some(ch) {
       yield 'accept
