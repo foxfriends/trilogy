@@ -1,7 +1,6 @@
 //! Functions for managing context and scope across continuation points.
 
 use super::{Closed, Codegen, Snapshot, Variable};
-use inkwell::debug_info::DILocation;
 use inkwell::values::{InstructionValue, PointerValue};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -95,19 +94,10 @@ pub(crate) struct ContinuationPoint<'ctx> {
 
     /// Maintains the order of variables found in the closure array.
     pub(super) closure: RefCell<Vec<Closed<'ctx>>>,
-    /// The mapping from variable names to their upvalues. If one already exists for a variable
-    /// as it is being captured, it must be reused.
-    pub(super) upvalues: RefCell<HashMap<Closed<'ctx>, PointerValue<'ctx>>>,
     /// The lexical pre-continuations from which this continuation may be reached. May be many
     /// in the case of branching instructions such as `if` or `match`.
     pub(super) parents: Vec<Exit<'ctx>>,
     pub(super) shadows: Option<Weak<ContinuationPoint<'ctx>>>,
-
-    /// A bit of a hack, but this is tracking all places that a variable is destroyed during
-    /// scope cleanup without being closed. If we later determine that we need to close that
-    /// variable, this allows us to go back and make sure it was closed after all.
-    pub(super) unclosed:
-        RefCell<HashMap<PointerValue<'ctx>, Vec<(InstructionValue<'ctx>, DILocation<'ctx>)>>>,
 }
 
 impl<'ctx> ContinuationPoint<'ctx> {
@@ -126,10 +116,8 @@ impl<'ctx> ContinuationPoint<'ctx> {
                 .map(|id| Closed::Variable(id.clone()))
                 .collect(),
             module_closure,
-            upvalues: RefCell::default(),
             parents: vec![],
             shadows: None,
-            unclosed: RefCell::default(),
         }
     }
 
@@ -160,10 +148,8 @@ impl<'ctx> ContinuationPoint<'ctx> {
             ),
             module_closure: self.module_closure.clone(),
             parent_variables: self.compute_parent_variables(),
-            upvalues: RefCell::default(),
             parents: vec![],
             shadows: None,
-            unclosed: RefCell::default(),
         }
     }
 
@@ -176,10 +162,8 @@ impl<'ctx> ContinuationPoint<'ctx> {
             closure: RefCell::default(),
             module_closure: self.module_closure.clone(),
             parent_variables: HashSet::default(), // self.parent_variables.clone(),
-            upvalues: RefCell::default(),
             parents: vec![],
             shadows: Some(Rc::downgrade(self)),
-            unclosed: RefCell::default(),
         }
     }
 
