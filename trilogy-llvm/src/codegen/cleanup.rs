@@ -23,6 +23,9 @@ impl<'ctx> Codegen<'ctx> {
             let mut rcs = self.continuation_points.borrow_mut();
             rcs.pop()
         } {
+            // TODO[memory-leaks]: a 2 pass cleanup might be required: cleanup this way on the way
+            // down, recording which upvalues were created and destroyed, and then go back in reverse
+            // to clean up the remaining upvalues which were created but not destroyed.
             let Some(point) = Rc::into_inner(point) else {
                 continue;
             };
