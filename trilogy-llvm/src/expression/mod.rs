@@ -549,13 +549,13 @@ impl<'ctx> Codegen<'ctx> {
             let (go_to_next_case, next_case_cp) =
                 self.capture_current_continuation(next_case_function, "match.next");
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
-            let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
-                self.become_continuation_point(next_case_cp);
-                self.begin_next_function(next_case_function);
-                continue;
-            };
 
             if !matches!(case.guard.value, Value::Boolean(true)) {
+                let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
+                    self.become_continuation_point(next_case_cp);
+                    self.begin_next_function(next_case_function);
+                    continue;
+                };
                 let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
                 self.trilogy_value_destroy(guard_bool); // NOTE: bool doesn't really need to be destroyed... but do it anyway
                 let next_block = self.context.append_basic_block(self.get_function(), "next");
