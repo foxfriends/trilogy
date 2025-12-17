@@ -1,3 +1,4 @@
+import "trilogy:core"
 import "trilogy:string"
 import "trilogy:number"
 import "trilogy:iterator"

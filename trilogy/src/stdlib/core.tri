@@ -210,6 +210,13 @@ export append
 func contains_key key arr = c::contains_key!(arr, key)
 export contains_key
 
+func slice i fin (bits and typeof 'bits) =
+  if i > fin || i < 0 then
+    yield 'arg
+  else if i > length bits || fin > length bits then
+    yield 'mia
+  else
+    (bits <<~ i) ~>> (length bits - fin)
 func slice i fin arr =
   if i > fin || i < 0 then
     yield 'arg
@@ -218,6 +225,12 @@ func slice i fin arr =
   else
     c::slice!(arr, i, fin)
 export slice
+
+test "core slice" {
+  assert slice 1 5 0bb10101010 == 0bb0101
+  assert slice 1 5 "hello world" == "ello"
+  assert slice 1 5 [1, 2, 3, 4, 5, 6, 7] == [2, 3, 4, 5]
+}
 
 export to_string
 func to_string val = match val
