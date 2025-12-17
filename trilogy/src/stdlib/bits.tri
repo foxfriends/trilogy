@@ -10,7 +10,7 @@ type c {
   export pop_count
 }
 
-export init_zero, collect, from_array, set_at, unset_at, pop_count, concat, length
+export init_zero, collect, from_array, set_at, unset_at, pop_count, concat, length, from
 
 func length b and typeof 'bits = core::length b
 
