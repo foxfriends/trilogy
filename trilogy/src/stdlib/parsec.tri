@@ -6,6 +6,7 @@ import "trilogy:debug" use dbg
 import "trilogy:array" as array
 import "trilogy:number" as num
 import "trilogy:string" as str
+import "trilogy:core" as core
 
 export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, between, end_by, end_by_1, sep_end_by, per_line, eof, any_char, char, char_of, digit, string, integer, letter, whitespace, word, words
 
@@ -22,7 +23,7 @@ func parse parser input = (run_parser parser input) . 'left
 ## Run a parser against an input string, returning the parsed result
 ## and the remaining portion of the string.
 func run_parser parser input =
-  let len = str::length input,
+  let len = core::length input,
   let mut pos = 0,
   let result = with parser!()
     when 'eof if pos == len resume true
@@ -39,7 +40,7 @@ func run_parser parser input =
       become unit
     }
     else yield,
-  result : str::slice pos len input
+  result : core::slice pos len input
 
 ## Parses the parser as a single atomic unit, without consuming any of the input on failure.
 func atomic parser = do() {
