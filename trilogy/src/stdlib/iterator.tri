@@ -1,6 +1,6 @@
 import "trilogy:array" as array use collect
 
-export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, flat_map, scan, fold, reduce, sum, count, from, any, all, enumerate, find, choose
+export run, of, forever, repeat, take, range, range_step, rangex, rangex_step, filter, map, flat_map, scan, fold, reduce, sum, count, from, any, all, enumerate, find, choose, for_each
 
 func run it = it!()
 
@@ -303,4 +303,17 @@ func choose n [x, ..xs] = do() {
 test "iterator choose" {
   assert collect <| choose 2 [1, 2, 3] == [[1, 2], [1, 3], [2, 3]]
   assert collect <| choose 0 [1, 2, 3] == [[]]
+}
+
+func for_each f it = with it!(); unit
+  when 'next(v) then {
+    f v
+    become unit
+  }
+  else yield
+
+test "iterator for_each" {
+  let arr = []
+  assert for_each (fn n. array::push!(arr, n)) <| range 1 4 == unit
+  assert arr == [1, 2, 3, 4]
 }
