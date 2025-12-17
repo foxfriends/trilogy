@@ -336,7 +336,7 @@ impl<'ctx> Codegen<'ctx> {
 
     /// Uses a previously bound temporary value, only if it is not captured.
     fn use_owned_temporary(&self, temporary: PointerValue<'ctx>) -> Option<PointerValue<'ctx>> {
-        match self.reference_from_scope(
+        match self.try_reference_from_scope(
             &self.current_continuation_point(),
             &Closed::Temporary(temporary),
         )? {
@@ -370,18 +370,8 @@ impl<'ctx> Codegen<'ctx> {
         scope: &ContinuationPoint<'ctx>,
         closed: &Closed<'ctx>,
     ) -> Option<Variable<'ctx>> {
-        // If the variable has already been referenced in the current scope, return the saved reference to avoid
-        // doing the work of looking it up again.
-        //
-        // This is the case for all owned variables, and also for closed variables that have already been used.
-        if let Some(var) = scope.variables.borrow().get(closed) {
-            return Some(*var);
-        }
-
-        if let Some(shadowed) = &scope.shadows {
-            // If the current scope is shadowing another, then we defer to the shadowed one at this point, as
-            // the parent variables must always be collected in the top-most scope (the REAL scope).
-            return self.reference_from_scope(&shadowed.upgrade().unwrap(), closed);
+        if let Some(var) = self.try_reference_from_scope(scope, closed) {
+            return Some(var);
         }
 
         if scope.parent_variables.contains(closed) {
@@ -435,6 +425,29 @@ impl<'ctx> Codegen<'ctx> {
                 .borrow_mut()
                 .insert(closed.clone(), variable);
             return Some(variable);
+        }
+
+        None
+    }
+
+    /// Gets a variable or temporary from a particular scope, but only if it is already in this scope.
+    pub(super) fn try_reference_from_scope(
+        &self,
+        scope: &ContinuationPoint<'ctx>,
+        closed: &Closed<'ctx>,
+    ) -> Option<Variable<'ctx>> {
+        // If the variable has already been referenced in the current scope, return the saved reference to avoid
+        // doing the work of looking it up again.
+        //
+        // This is the case for all owned variables, and also for closed variables that have already been used.
+        if let Some(var) = scope.variables.borrow().get(closed) {
+            return Some(*var);
+        }
+
+        if let Some(shadowed) = &scope.shadows {
+            // If the current scope is shadowing another, then we defer to the shadowed one at this point, as
+            // the parent variables must always be collected in the top-most scope (the REAL scope).
+            return self.reference_from_scope(&shadowed.upgrade().unwrap(), closed);
         }
 
         None

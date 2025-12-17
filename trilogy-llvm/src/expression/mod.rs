@@ -577,6 +577,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.build_unreachable().unwrap();
 
         if returns {
+            self.destroy_owned_temporary(discriminant);
             self.merge_without_branch(merger);
             self.begin_next_function(continuation);
             Some(self.get_continuation(name))
