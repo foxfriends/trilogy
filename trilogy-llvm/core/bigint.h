@@ -13,13 +13,12 @@ typedef struct bigint {
      */
     size_t capacity;
     /**
-     * The number of significant digits in the digits array. Length is 0 iff the
-     * value is 0.
+     * The number of significant digits in the digits array.
      */
     size_t length;
     /**
      * Though I don't like it, I admit that in this case it makes sense: these
-     * are the base (2^64-1) digits of the number in little endian order.
+     * are the base (2^32) digits of the number in little endian order.
      */
     union {
         digit_t* digits;
@@ -38,6 +37,8 @@ void bigint_init_const(bigint* v, size_t digit_length, const digit_t* digits);
 void bigint_init_from_u64(bigint* v, uint64_t u64);
 void bigint_destroy(bigint* v);
 void bigint_clone(bigint* clone, const bigint* value);
+
+const digit_t* bigint_digits_ptr(const bigint* val);
 
 /**
  * Add rhs to lhs in place. May reallocate lhs to be larger.

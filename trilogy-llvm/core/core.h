@@ -83,3 +83,4 @@ void numer(trilogy_value* rv, trilogy_value* num);
 void denom(trilogy_value* rv, trilogy_value* num);
 
 void pop_count(trilogy_value* rv, trilogy_value* bits);
+void to_bits(trilogy_value* rv, trilogy_value* value);

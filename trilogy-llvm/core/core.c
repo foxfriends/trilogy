@@ -1,3 +1,4 @@
+#include "bigint.h"
 #include "internal.h"
 #include "rational.h"
 #include "trilogy_array.h"
@@ -641,15 +642,19 @@ void slice(
 
 void re(trilogy_value* rv, trilogy_value* val) {
     trilogy_number_value* num = trilogy_number_untag(val);
+    rational real;
+    rational_clone(&real, &num->re);
     rational zero = RATIONAL_ZERO;
-    trilogy_number_init_from_re_im(rv, num->re, zero);
+    trilogy_number_init_from_re_im(rv, real, zero);
     trilogy_value_destroy(val);
 }
 
 void im(trilogy_value* rv, trilogy_value* val) {
     trilogy_number_value* num = trilogy_number_untag(val);
+    rational im;
+    rational_clone(&im, &num->im);
     rational zero = RATIONAL_ZERO;
-    trilogy_number_init_from_re_im(rv, num->im, zero);
+    trilogy_number_init_from_re_im(rv, im, zero);
     trilogy_value_destroy(val);
 }
 
@@ -657,7 +662,7 @@ void numer(trilogy_value* rv, trilogy_value* val) {
     trilogy_number_value* num = trilogy_number_untag(val);
     rational real = RATIONAL_ONE;
     real.is_negative = num->re.is_negative;
-    real.numer = num->re.numer;
+    bigint_clone(&real.numer, &num->re.numer);
     rational zero = RATIONAL_ZERO;
     trilogy_number_init_from_re_im(rv, real, zero);
     trilogy_value_destroy(val);
@@ -666,7 +671,7 @@ void numer(trilogy_value* rv, trilogy_value* val) {
 void denom(trilogy_value* rv, trilogy_value* val) {
     trilogy_number_value* num = trilogy_number_untag(val);
     rational real = RATIONAL_ONE;
-    real.numer = num->re.denom;
+    bigint_clone(&real.numer, &num->re.denom);
     rational zero = RATIONAL_ZERO;
     trilogy_number_init_from_re_im(rv, real, zero);
     trilogy_value_destroy(val);
@@ -676,5 +681,24 @@ void pop_count(trilogy_value* rv, trilogy_value* val) {
     trilogy_bits_value* bits = trilogy_bits_untag(val);
     size_t pop = trilogy_bits_pop_count(bits);
     trilogy_number_init_u64(rv, pop);
+    trilogy_value_destroy(val);
+}
+
+void to_bits(trilogy_value* rv, trilogy_value* val) {
+    switch (val->tag) {
+    case TAG_NUMBER: {
+        trilogy_number_value* num = trilogy_number_assume(val);
+        assert(bigint_is_zero(&num->im.numer));
+        assert(bigint_is_one(&num->re.denom));
+        trilogy_bits_init_from_bigint(rv, &num->re.numer);
+        break;
+    }
+    case TAG_STRING: {
+        internal_panic("unimplemented: bits from string\n");
+        break;
+    }
+    default:
+        rte("number or string", val->tag);
+    }
     trilogy_value_destroy(val);
 }

@@ -1,14 +1,18 @@
 import "trilogy:array" as array
 import "trilogy:core" as core
+import "trilogy:number" as number
+
+type c {
+  extern proc to_bits!(val)
+  export to_bits
+
+  extern proc pop_count!(bits)
+  export pop_count
+}
 
 export init_zero, collect, from_array, set_at, unset_at, pop_count, concat, length
 
 func length b and typeof 'bits = core::length b
-
-type c {
-  extern proc pop_count!(bits)
-  export pop_count
-}
 
 func init_zero l = 0bb <~~ l
 
@@ -83,4 +87,13 @@ test "bits concat" {
   assert concat 0bb1 0bb0 == 0bb10
   assert concat 0bb0001 0bb1000 == 0bb00011000
   assert concat 0bb0001 0bb10000000 == 0bb000110000000
+}
+
+func from value and typeof 'number = value |> number::numer |> number::abs |> c::to_bits
+
+test "bits from" {
+  assert from 0 == 0bb00000000000000000000000000000000
+  assert from 0xFFFFFFFF == 0bb11111111111111111111111111111111
+  assert from 0xDEADBEEF == 0bxDEADBEEF
+  assert from 0x12345678DEADBEEF == 0bx12345678DEADBEEF
 }

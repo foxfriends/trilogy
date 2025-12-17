@@ -1,4 +1,5 @@
 #include "trilogy_bits.h"
+#include "bigint.h"
 #include "internal.h"
 #include "types.h"
 #include <assert.h>
@@ -42,11 +43,38 @@ trilogy_bits_init_new(trilogy_value* tv, size_t len, uint8_t* b) {
 }
 
 trilogy_bits_value*
+trilogy_bits_init_from_bigint(trilogy_value* tv, bigint* num) {
+    size_t digits_len = num->length;
+    size_t digit_bytes = sizeof(digit_t) / sizeof(uint8_t);
+    if (digits_len > SIZE_MAX / digit_bytes) {
+        internal_panic("bits length limit\n");
+    }
+    size_t byte_len = digits_len * digit_bytes;
+
+    const digit_t* digits = bigint_digits_ptr(num);
+
+    trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
+    bits->len = byte_len * 8;
+    bits->contents = malloc_safe(sizeof(uint8_t) * byte_len);
+    for (size_t i = 0; i < digits_len; ++i) {
+        // Numbers are little-endian, but bits should be big endian, so digits
+        // have to be copied in reverse order.
+        size_t j = digits_len - i - 1;
+        bits->contents[i * digit_bytes] = (uint8_t)(digits[j] >> 24) & 0xFF;
+        bits->contents[i * digit_bytes + 1] = (uint8_t)(digits[j] >> 16) & 0xFF;
+        bits->contents[i * digit_bytes + 2] = (uint8_t)(digits[j] >> 8) & 0xFF;
+        bits->contents[i * digit_bytes + 3] = (uint8_t)(digits[j]) & 0xFF;
+    }
+    return trilogy_bits_init(tv, bits);
+}
+
+trilogy_bits_value*
 trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val) {
     trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
     bits->len = val->len;
-    bits->contents = malloc_safe(sizeof(uint8_t) * val->len);
-    memcpy(bits->contents, val->contents, bit_len_to_byte_len(val->len));
+    size_t byte_len = bit_len_to_byte_len(val->len);
+    bits->contents = malloc_safe(sizeof(uint8_t) * byte_len);
+    memcpy(bits->contents, val->contents, byte_len);
     return trilogy_bits_init(tv, bits);
 }
 

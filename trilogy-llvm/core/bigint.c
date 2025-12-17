@@ -226,7 +226,7 @@ digits_mul_by(digit_t* output, const digit_t* lhs, digit_t rhs, size_t len) {
     output[len] = (digit_t)carry;
 }
 
-static const digit_t* digits_ptr(const bigint* val) {
+const digit_t* bigint_digits_ptr(const bigint* val) {
     return val->capacity == 0 ? &val->contents.value : val->contents.digits;
 }
 
@@ -244,7 +244,7 @@ void bigint_mul(bigint* lhs, const bigint* rhs) {
     memset(output, 0, sizeof(digit_t) * capacity);
     for (size_t i = 0; i < lhs->length; i++) {
         digits_mul_by(
-            output + i, digits_ptr(rhs), digit_at(lhs, i), rhs->length
+            output + i, bigint_digits_ptr(rhs), digit_at(lhs, i), rhs->length
         );
     }
     if (lhs->capacity) free(lhs->contents.digits);
@@ -317,12 +317,12 @@ void bigint_div_rem(bigint* lhs, const bigint* rhs, bigint* rem_out) {
     }
 
     digit_t* u = malloc_safe((n + m + 1) * sizeof(digit_t));
-    memcpy(u, digits_ptr(lhs), (n + m) * sizeof(digit_t));
+    memcpy(u, bigint_digits_ptr(lhs), (n + m) * sizeof(digit_t));
     u[n + m] = 0;
     digits_lsh(n + m + 1, u, offset);
 
     digit_t* v = malloc_safe(n * sizeof(digit_t));
-    memcpy(v, digits_ptr(rhs), n * sizeof(digit_t));
+    memcpy(v, bigint_digits_ptr(rhs), n * sizeof(digit_t));
     digits_lsh(n, v, offset);
 
     digit_t* q = malloc_safe((m + 1) * sizeof(digit_t));
