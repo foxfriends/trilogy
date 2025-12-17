@@ -539,6 +539,12 @@ impl<'ctx> Codegen<'ctx> {
         let mut merger = Merger::default();
         let mut returns = false;
         for case in &expr.cases {
+            // An unmatchable case can be skipped; rare this would occur, but easy to handle
+            // since we're handling true specially anyway
+            if matches!(case.guard.value, Value::Boolean(false)) {
+                continue;
+            }
+
             let next_case_function = self.add_continuation("match.next");
             let (go_to_next_case, next_case_cp) =
                 self.capture_current_continuation(next_case_function, "match.next");
@@ -548,21 +554,25 @@ impl<'ctx> Codegen<'ctx> {
                 self.begin_next_function(next_case_function);
                 continue;
             };
-            let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
-            self.trilogy_value_destroy(guard_bool); // NOTE: bool doesn't really need to be destroyed... but do it anyway
-            let next_block = self.context.append_basic_block(self.get_function(), "next");
-            let body_block = self.context.append_basic_block(self.get_function(), "body");
-            let body_cp = self.branch_continuation_point();
-            self.builder
-                .build_conditional_branch(guard_flag, body_block, next_block)
-                .unwrap();
 
-            self.builder.position_at_end(next_block);
-            let go_next = self.use_temporary_clone(go_to_next_case).unwrap();
-            self.void_call_continuation(go_next);
+            if !matches!(case.guard.value, Value::Boolean(true)) {
+                let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
+                self.trilogy_value_destroy(guard_bool); // NOTE: bool doesn't really need to be destroyed... but do it anyway
+                let next_block = self.context.append_basic_block(self.get_function(), "next");
+                let body_block = self.context.append_basic_block(self.get_function(), "body");
+                let body_cp = self.branch_continuation_point();
+                self.builder
+                    .build_conditional_branch(guard_flag, body_block, next_block)
+                    .unwrap();
 
-            self.builder.position_at_end(body_block);
-            self.become_continuation_point(body_cp);
+                self.builder.position_at_end(next_block);
+                let go_next = self.use_temporary_clone(go_to_next_case).unwrap();
+                self.void_call_continuation(go_next);
+
+                self.builder.position_at_end(body_block);
+                self.become_continuation_point(body_cp);
+            }
+
             self.destroy_owned_temporary(go_to_next_case);
             if let Some(result) = self.compile_expression(&case.body, name) {
                 let closure_allocation = self.continue_in_scope(continuation, result);
@@ -609,12 +619,18 @@ impl<'ctx> Codegen<'ctx> {
                 let next = self.compile_query_iteration(query, end_false_cont)?;
                 self.trilogy_value_destroy(next);
                 let result = self.allocate_const(self.bool_const(true), "");
-                self.call_known_continuation(self.use_temporary_clone(merge_to_cont).unwrap(), result);
+                self.call_known_continuation(
+                    self.use_temporary_clone(merge_to_cont).unwrap(),
+                    result,
+                );
 
                 self.become_continuation_point(end_false_cp);
                 self.begin_next_function(end_false_fn);
                 let result = self.allocate_const(self.bool_const(false), "");
-                self.call_known_continuation(self.use_temporary_clone(merge_to_cont).unwrap(), result);
+                self.call_known_continuation(
+                    self.use_temporary_clone(merge_to_cont).unwrap(),
+                    result,
+                );
 
                 self.become_continuation_point(merge_to_cp);
                 self.begin_next_function(merge_to_fn);
