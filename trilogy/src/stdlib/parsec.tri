@@ -8,7 +8,7 @@ import "trilogy:number" as num
 import "trilogy:string" as str
 import "trilogy:core" as core
 
-export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, between, end_by, end_by_1, sep_end_by, per_line, eof, any, char, char_of, digit, hex_digit, string, integer, hex_integer, letter, whitespace, word, words
+export apply, parse, run_parser, atomic, map, seq, repeat, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, between, end_by, end_by_1, sep_end_by, per_line, eof, any, char, char_of, digit, hex_digit, string, integer, hex_integer, letter, whitespace, word, words
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
@@ -58,6 +58,14 @@ func map f parser = do() f parser!()
 
 ## Run a list of parsers in sequence, parsing to a list of their results.
 func seq parsers = do() array::map apply parsers
+
+## Parse the same parser an exact number of times, returning the results as an array
+func repeat 0 _ = do() []
+func repeat n parser = do() [apply parser, ..apply <| repeat (n - 1) parser]
+
+test "parsec repeat" {
+  assert parse (repeat 3 (char 'a')) "aaa" == ['a', 'a', 'a']
+}
 
 ## Attempt a parser, returning 'some(result) if it succeeds. If it fails,
 ## returns 'none without consuming any input.
@@ -200,11 +208,11 @@ func char c = do() {
 }
 
 ## A parser for a single token.
-func any c = do() {
+func any = do() {
   match yield 'next
     case 'some(ch) {
       yield 'accept
-      return c
+      return ch
     }
     else {
       yield 'reject("reached end of input")
