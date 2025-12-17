@@ -2,17 +2,21 @@ import "trilogy:core" use length
 import "trilogy:iterator" as it
 import "trilogy:number" use im, re
 
-export from, adjacent, rotate_right, surrounding
+export from, adjacent, rotate_right, surrounding, x, y, coord
+
+func x pos = re pos
+func y pos = im pos
+func coord x y = x + 0i1 * y
 
 proc from!(arr and typeof 'array) {
   let mut pos = 0i0
   let mut grid = {||}
-  while im pos < length arr {
-    while re pos < length (arr.(im pos)) {
-      grid.pos = arr.(im pos).(re pos)
+  while y pos < length arr {
+    while x pos < length (arr.(y pos)) {
+      grid.pos = arr.(y pos).(x pos)
       pos += 1
     }
-    pos = 0i1 * (1 + im pos)
+    pos = 0i1 * (1 + y pos)
   }
   return grid
 }
