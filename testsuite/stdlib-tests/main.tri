@@ -1,6 +1,7 @@
 import "trilogy:string"
 import "trilogy:number"
 import "trilogy:iterator"
+import "trilogy:tuple"
 import "trilogy:array"
 import "trilogy:set"
 import "trilogy:bits"

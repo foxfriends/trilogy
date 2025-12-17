@@ -22,6 +22,10 @@ where
             include_str!("./atom.tri").to_owned(),
         )
         .source_module(
+            Location::library("tuple").unwrap(),
+            include_str!("./tuple.tri").to_owned(),
+        )
+        .source_module(
             Location::library("string").unwrap(),
             include_str!("./string.tri").to_owned(),
         )

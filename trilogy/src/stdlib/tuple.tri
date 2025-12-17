@@ -1,0 +1,37 @@
+export left, right, map_left, map_right, map, uncurry
+
+func right (_:r) = r
+
+test "tuple right" {
+  assert right ('a:'b) == 'b
+}
+
+func left (l:_) = l
+
+test "tuple left" {
+  assert left ('a:'b) == 'a
+}
+
+func map_right f (l:r) = l:f r
+
+test "tuple map_right" {
+  assert map_right ((*) 2) (1:1) == 1:2
+}
+
+func map_left f (l:r) = f l:r
+
+test "tuple map_left" {
+  assert map_left ((*) 2) (1:1) == 2:1
+}
+
+func map fl fr (l:r) = fl l:fr r
+
+test "tuple map_left" {
+  assert map ((*) 2) ((*) 3) (1:1) == 2:3
+}
+
+func uncurry f (l:r) = f l r
+
+test "tuple uncurry" {
+  assert uncurry (*) (3:2) == 6
+}
