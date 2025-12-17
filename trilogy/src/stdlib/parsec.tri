@@ -8,7 +8,7 @@ import "trilogy:number" as num
 import "trilogy:string" as str
 import "trilogy:core" as core
 
-export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, between, end_by, end_by_1, sep_end_by, per_line, eof, any_char, char, char_of, digit, string, integer, letter, whitespace, word, words
+export apply, parse, run_parser, atomic, map, seq, option, choice, many, many_1, sep_by, sep_by_1, followed_by, prefixed_by, between, end_by, end_by_1, sep_end_by, per_line, eof, any_char, char, char_of, digit, hex_digit, string, integer, hex_integer, letter, whitespace, word, words
 
 ## Within the context of a larger parser, apply this sub parser and get its result.
 func apply parser = parser!()
