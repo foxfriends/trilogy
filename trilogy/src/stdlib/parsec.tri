@@ -255,17 +255,21 @@ test "parsec hex_digit" {
   assert with parse hex_digit "Z"; false when 'reject(_) cancel true else cancel false
 }
 
-## Parses a base-10 integer from a string, returning the value as a number.
+## Parses a base-10 integer from a string, returning the value as a number. A leading `-` sign
+## is accepted for negative integers.
 proc integer!() {
+  let is_negative = 'some('-') == apply <| option <| char '-'
   let digits = apply <| many_1 digit
-  return digits
+  let val = digits
     |> array::map (num::from_digit)
     |> array::fold (fn a d. 10 * a + d) 0
+  return if is_negative then -val else val
 }
 
 test "parsec integer" {
   assert parse integer "12345" == 12345
   assert parse integer "000300" == 300
+  assert parse integer "-000300" == -300
 }
 
 ## Parses a base-16 integer from a string, returning the value as a number.
