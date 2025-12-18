@@ -1,4 +1,4 @@
-export min, max, asc, desc
+export min, max, min_by, max_by, asc, desc
 
 func max a b = if a > b then a else b
 
@@ -9,6 +9,14 @@ test "compare max" {
   assert max "A" "B" == "B"
 }
 
+func max_by f a b = if f a >= f b then a else b
+
+test "compare max_by" {
+  assert max_by (fn _:v.v) (1:2) (2:1) == 1:2
+  assert max_by (fn _:v.v) (1:2) (2:2) == 1:2
+  assert max_by (fn _:v.v) (2:1) (1:2) == 1:2
+}
+
 func min a b = if a < b then a else b
 
 test "compare min" {
@@ -16,6 +24,14 @@ test "compare min" {
   assert min 5 1 == 1
   assert min 1 (-5) == -5
   assert min "A" "B" == "A"
+}
+
+func min_by f a b = if f a <= f b then a else b
+
+test "compare min_by" {
+  assert min_by (fn _:v.v) (1:2) (2:1) == 2:1
+  assert min_by (fn _:v.v) (1:2) (2:2) == 1:2
+  assert min_by (fn _:v.v) (2:1) (1:2) == 2:1
 }
 
 func asc key a b = key a < key b
