@@ -33,7 +33,7 @@ impl<'ctx> Codegen<'ctx> {
         value: V,
         name: &str,
     ) -> PointerValue<'ctx> {
-        let pointer = self.builder.build_alloca(self.value_type(), name).unwrap();
+        let pointer = self.allocate_value(name);
         self.builder.build_store(pointer, value).unwrap();
         pointer
     }

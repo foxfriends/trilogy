@@ -267,10 +267,7 @@ impl<'ctx> Codegen<'ctx> {
         if let Some(instruction) = instruction.get_next_instruction() {
             builder.position_at(instruction.get_parent().unwrap(), &instruction);
         }
-        let upvalue = builder.build_alloca(self.value_type(), name).unwrap();
-        builder
-            .build_store(upvalue, self.value_type().const_zero())
-            .unwrap();
+        let upvalue = self.allocate_value(name);
         self.trilogy_array_at_in(builder, upvalue, closure_array, index);
         upvalue
     }

@@ -415,9 +415,13 @@ impl<'ctx> Codegen<'ctx> {
                 .build_phi(self.context.ptr_type(AddressSpace::default()), "arg")
                 .unwrap();
             phi.add_incoming(&[(&in_arg, in_block), (&out_arg, out_block)]);
-            let arg = phi.as_basic_value().into_pointer_value();
-            self.bind_temporary(arg);
-            Some(arg)
+            let phi_arg = phi.as_basic_value().into_pointer_value();
+            let merged_arg = self.allocate_value("merged_arg");
+            self.builder
+                .build_store(merged_arg, self.load_value(phi_arg, ""))
+                .unwrap();
+            self.bind_temporary(merged_arg);
+            Some(merged_arg)
         } else {
             let arg_continuation = self.add_continuation("arg");
             let end = self.continue_in_scope(arg_continuation, in_arg);

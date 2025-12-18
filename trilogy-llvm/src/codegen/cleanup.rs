@@ -14,7 +14,7 @@ use super::{Closed, Codegen, ContinuationPoint, Exit, Parent, Variable};
 use inkwell::debug_info::DILocation;
 use inkwell::intrinsics::Intrinsic;
 use inkwell::values::{BasicValue, InstructionValue, PointerValue};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 #[derive(Default)]
@@ -23,13 +23,33 @@ struct CleanupState<'ctx> {
     /// as it is being captured, it must be reused.
     upvalues: HashMap<Closed<'ctx>, PointerValue<'ctx>>,
 
-    /// A bit of a hack, but this is tracking all places that a variable is destroyed during
-    /// scope cleanup without being closed. If we later determine that we need to close that
-    /// variable, this allows us to go back and make sure it was closed after all.
+    /// This is tracking all places that a variable is destroyed during scope cleanup without
+    /// being closed. If we later determine that we need to close that variable, this allows
+    /// us to go back and make sure it was closed after all.
     unclosed: HashMap<PointerValue<'ctx>, Vec<(InstructionValue<'ctx>, DILocation<'ctx>)>>,
+
+    /// Similarly, this tracks all places where we do cleanup, and the upvalues which were
+    /// handled at those points. Since the upvalues in some scope may be discovered after
+    /// that scope has already been cleaned, we need to revisit those scopes to close such
+    /// upvalues.
+    handled: Vec<(
+        InstructionValue<'ctx>,
+        DILocation<'ctx>,
+        HashSet<PointerValue<'ctx>>,
+    )>,
 }
 
 impl<'ctx> Codegen<'ctx> {
+    fn do_nothing(&self) -> InstructionValue<'ctx> {
+        let do_nothing = Intrinsic::find("llvm.donothing").unwrap();
+        let do_nothing = do_nothing.get_declaration(&self.module, &[]).unwrap();
+        self.builder
+            .build_call(do_nothing, &[], "noop")
+            .unwrap()
+            .try_as_basic_value()
+            .unwrap_instruction()
+    }
+
     /// Closes the current continuation point and all the continuation points up the chain.
     /// This is intended to be called at the end of a top level declaration.
     pub(crate) fn close_continuation(&self) {
@@ -60,6 +80,7 @@ impl<'ctx> Codegen<'ctx> {
                         let closure_size = point.closure.borrow().len();
                         let closure = self.allocate_value("closure");
                         let parent = parent.upgrade().unwrap();
+                        let mut handled_upvalues = HashSet::new();
                         if closure_size > 0 {
                             let closure_array = self.trilogy_array_init_cap(
                                 closure,
@@ -73,12 +94,28 @@ impl<'ctx> Codegen<'ctx> {
                             );
                             self.build_closure(
                                 &mut cleanup_state,
+                                &mut handled_upvalues,
                                 closure_array,
                                 parent.clone(),
                                 &point,
                             );
                         }
-                        self.clean_and_close_scope(&mut cleanup_state, &parent);
+                        self.clean_and_close_scope(
+                            &mut cleanup_state,
+                            &mut handled_upvalues,
+                            &parent,
+                        );
+
+                        cleanup_state
+                            .entry(Rc::as_ptr(&parent.shadow_root()))
+                            .or_default()
+                            .handled
+                            .push((
+                                self.do_nothing(),
+                                self.builder.get_current_debug_location().unwrap(),
+                                handled_upvalues,
+                            ));
+
                         closure_instruction
                             .replace_all_uses_with(&closure.as_instruction_value().unwrap());
                         closure_instruction.erase_from_basic_block();
@@ -92,7 +129,22 @@ impl<'ctx> Codegen<'ctx> {
                         self.builder.position_before(closure_instruction);
                         self.restore_function_context(snapshot.clone());
                         let parent = parent.upgrade().unwrap();
-                        self.clean_and_close_scope(&mut cleanup_state, &parent);
+                        let mut handled_upvalues = HashSet::new();
+                        self.clean_and_close_scope(
+                            &mut cleanup_state,
+                            &mut handled_upvalues,
+                            &parent,
+                        );
+
+                        cleanup_state
+                            .entry(Rc::as_ptr(&parent.shadow_root()))
+                            .or_default()
+                            .handled
+                            .push((
+                                self.do_nothing(),
+                                self.builder.get_current_debug_location().unwrap(),
+                                handled_upvalues,
+                            ));
                     }
                     Exit::Capture(Parent {
                         parent,
@@ -121,7 +173,13 @@ impl<'ctx> Codegen<'ctx> {
                             );
                             self.restore_function_context(snapshot.clone());
                             let parent = parent.upgrade().unwrap();
-                            self.build_closure(&mut cleanup_state, closure_array, parent, &point);
+                            self.build_closure(
+                                &mut cleanup_state,
+                                &mut HashSet::new(),
+                                closure_array,
+                                parent,
+                                &point,
+                            );
                         }
                         closure_instruction
                             .replace_all_uses_with(&closure.as_instruction_value().unwrap());
@@ -129,19 +187,37 @@ impl<'ctx> Codegen<'ctx> {
                     }
                 }
             }
-            // If this point's has an upvalue array, is populated, that means it's a shadow root, and this
+            // If this point's upvalue array is populated, that means it's a shadow root, and this
             // is the last time we will visit this shadow root. We now need to revisit all of the children
             // of point and close any upvalues that were created after we closed that child.
+            let Some(state) = cleanup_state.get(&point_pointer) else {
+                continue;
+            };
+            if state.upvalues.is_empty() {
+                continue;
+            }
+            for (location, di_location, handled) in &state.handled {
+                self.builder
+                    .position_at(location.get_parent().unwrap(), location);
+                self.builder.set_current_debug_location(*di_location);
+                for upvalue in state.upvalues.values() {
+                    if !handled.contains(upvalue) {
+                        self.trilogy_value_destroy(*upvalue);
+                    }
+                }
+                location.remove_from_basic_block();
+            }
         }
     }
 
     fn clean_and_close_scope(
         &self,
         state: &mut HashMap<*const ContinuationPoint<'ctx>, CleanupState<'ctx>>,
+        handled_upvalues: &mut HashSet<PointerValue<'ctx>>,
         cp: &Rc<ContinuationPoint<'ctx>>,
     ) {
         if let Some(shadowed) = &cp.shadows {
-            self.clean_and_close_scope(state, &shadowed.upgrade().unwrap());
+            self.clean_and_close_scope(state, handled_upvalues, &shadowed.upgrade().unwrap());
         }
         let root_state = state.entry(Rc::as_ptr(&cp.shadow_root())).or_default();
 
@@ -153,6 +229,7 @@ impl<'ctx> Codegen<'ctx> {
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
                         self.trilogy_value_destroy(*pointer);
+                        handled_upvalues.insert(*pointer);
                     } else if matches!(id, Closed::Variable(..)) {
                         // In this case, we have not YET detected that it is referenced, but it still might be
                         // detected later, so we have to record this destroy in case it has to be upgraded to a
@@ -167,14 +244,7 @@ impl<'ctx> Codegen<'ctx> {
                         // their destruction (or lack thereof) is expected by the rest of codegen. We do,
                         // however, wish to track them for closing purposes, so use a no-op instead of a destroy.
                         // self.allocate_value(&format!("comment#{id:?}"));
-                        let do_nothing = Intrinsic::find("llvm.donothing").unwrap();
-                        let do_nothing = do_nothing.get_declaration(&self.module, &[]).unwrap();
-                        let instruction = self
-                            .builder
-                            .build_call(do_nothing, &[], "noop")
-                            .unwrap()
-                            .try_as_basic_value()
-                            .unwrap_instruction();
+                        let instruction = self.do_nothing();
                         root_state.unclosed.entry(*pointer).or_default().push((
                             instruction,
                             self.builder.get_current_debug_location().unwrap(),
@@ -189,6 +259,7 @@ impl<'ctx> Codegen<'ctx> {
                         let upvalue = self.trilogy_reference_assume(*pointer);
                         self.trilogy_reference_close(upvalue);
                         self.trilogy_value_destroy(*pointer);
+                        handled_upvalues.insert(*pointer);
                     } else {
                         // In this case, we have not YET detected that it is referenced, but it still might be
                         // detected later, so we have to record this destroy in case it has to be upgraded to a
@@ -211,6 +282,7 @@ impl<'ctx> Codegen<'ctx> {
     fn build_closure(
         &self,
         state: &mut HashMap<*const ContinuationPoint<'ctx>, CleanupState<'ctx>>,
+        handled_upvalues: &mut HashSet<PointerValue<'ctx>>,
         closure_array: PointerValue<'ctx>,
         scope: Rc<ContinuationPoint<'ctx>>,
         child_scope: &ContinuationPoint<'ctx>,
@@ -220,20 +292,8 @@ impl<'ctx> Codegen<'ctx> {
 
         for id in child_scope.closure.borrow().iter() {
             let new_upvalue = if let Some(ptr) = root_state.upvalues.get(id) {
-                let builder = self.context.create_builder();
-                builder.position_at(
-                    ptr.as_instruction().unwrap().get_parent().unwrap(),
-                    &ptr.as_instruction()
-                        .unwrap()
-                        .get_next_instruction()
-                        .unwrap()
-                        .get_next_instruction()
-                        .unwrap()
-                        .get_next_instruction()
-                        .unwrap(),
-                );
                 let new_upvalue = self.allocate_value(&format!("{id}.cloneup"));
-                self.trilogy_value_clone_into_in(&builder, new_upvalue, *ptr);
+                self.trilogy_value_clone_into(new_upvalue, *ptr);
                 new_upvalue
             } else {
                 match self
@@ -292,6 +352,7 @@ impl<'ctx> Codegen<'ctx> {
                                 builder.set_current_debug_location(di_location);
                                 self.trilogy_reference_close_in(&builder, upvalue_internal);
                                 self.trilogy_value_destroy_in(&builder, original_upvalue);
+                                handled_upvalues.insert(original_upvalue);
                             }
                         }
 
