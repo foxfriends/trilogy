@@ -175,7 +175,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // All variables and values are invalid after this point.
         let continuation_function = self.add_next_to_continuation(arity, "next_to_cc");
-        let next_to = self.close_current_continuation_as_next_done(continuation_function, "cc");
+        let next_to = self.close_current_continuation_as_return(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + IMPLICIT_PARAMS + 1);
