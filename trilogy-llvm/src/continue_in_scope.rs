@@ -61,12 +61,11 @@ impl<'ctx> Codegen<'ctx> {
         parent_closure.as_instruction_value().unwrap()
     }
 
-    #[must_use = "continuation point must be closed"]
     pub(crate) fn continue_in_handler(
         &self,
         function: FunctionValue<'ctx>,
         yield_to: PointerValue<'ctx>,
-    ) -> InstructionValue<'ctx> {
+    ) {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
 
@@ -86,7 +85,7 @@ impl<'ctx> Codegen<'ctx> {
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         self.direct_tail_call(function, args, "");
         self.builder.build_return(None).unwrap();
-        parent_closure.as_instruction_value().unwrap()
+        self.end_continuation_point_as_close(parent_closure.as_instruction_value().unwrap());
     }
 
     pub(crate) fn continue_in_loop(

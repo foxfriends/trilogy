@@ -259,10 +259,9 @@ impl<'ctx> Codegen<'ctx> {
             self.capture_current_continuation_as_yield(handler_function, "yield");
 
         // Then enter the handler, given the new yield values.
-        let body_closure = self.continue_in_handler(body_function, handler);
+        self.continue_in_handler(body_function, handler);
         self.push_with_scope(cancel_to);
 
-        self.end_continuation_point_as_close(body_closure);
         self.begin_next_function(body_function);
         if let Some(result) = self.compile_expression(&handled.expression, name) {
             // When the body is evaluated, it will cancel to exit the handled area, returning to
