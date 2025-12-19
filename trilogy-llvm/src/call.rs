@@ -93,7 +93,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(bound_closure, callable, "");
 
         // All variables and values are invalid after this point.
-        let return_to = self.close_current_continuation_as_return(continuation_function, "cc");
+        let return_to = self.close_current_continuation(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + IMPLICIT_PARAMS + 1);
@@ -175,7 +175,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // All variables and values are invalid after this point.
         let continuation_function = self.add_next_to_continuation(arity, "next_to_cc");
-        let next_to = self.close_current_continuation_as_return(continuation_function, "cc");
+        let next_to = self.close_current_continuation(continuation_function, "cc");
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + IMPLICIT_PARAMS + 1);
@@ -388,7 +388,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(closure, the_yield_callable, "");
 
         let resume_function = self.add_continuation("yield.resume");
-        let resume_to = self.close_current_continuation_as_resume(resume_function, "yield.resume");
+        let resume_to = self.close_current_continuation(resume_function, "yield.resume");
 
         let args = &[
             self.load_value(return_to, "").into(),
@@ -425,8 +425,7 @@ impl<'ctx> Codegen<'ctx> {
         let resume_continuation = self.trilogy_continuation_untag(resume, "");
 
         let end_to = self.get_end("end");
-        let new_cancel_to =
-            self.close_current_continuation_as_cancel(continuation_function, "when.cancel");
+        let new_cancel_to = self.close_current_continuation(continuation_function, "when.cancel");
         self.trilogy_value_destroy(cancel_location);
         self.trilogy_value_clone_into(cancel_location, new_cancel_to);
 

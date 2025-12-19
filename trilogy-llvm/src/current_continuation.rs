@@ -40,95 +40,7 @@ impl<'ctx> Codegen<'ctx> {
         (continuation, capture)
     }
 
-    /// Constructs a TrilogyValue that represents the current continuation to be used as `cancel`.
-    ///
-    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
-    /// so may not be referenced.
-    pub(crate) fn close_current_continuation_as_cancel(
-        &self,
-        continuation_function: FunctionValue<'ctx>,
-        name: &str,
-    ) -> PointerValue<'ctx> {
-        let continuation = self.allocate_value(name);
-        let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
-
-        self.bind_temporary(continuation);
-
-        let closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_CLOSURE")
-            .unwrap();
-
-        // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
-        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
-        self.trilogy_callable_init_cont(
-            continuation,
-            return_to,
-            yield_to,
-            closure,
-            continuation_function,
-        );
-
-        continuation
-    }
-
-    pub(crate) fn capture_current_continuation_as_cancel(
-        &self,
-        continuation_function: FunctionValue<'ctx>,
-        name: &str,
-    ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
-        let continuation = self.allocate_value(name);
-        let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
-        self.bind_temporary(continuation);
-        let closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_CLOSURE")
-            .unwrap();
-        let shadow = self.shadow_continuation_point();
-        let capture = self.capture_contination_point(closure.as_instruction_value().unwrap());
-        self.trilogy_callable_init_cont(
-            continuation,
-            return_to,
-            yield_to,
-            closure,
-            continuation_function,
-        );
-        self.become_continuation_point(shadow);
-        (continuation, capture)
-    }
-
-    pub(crate) fn capture_current_continuation_as_yield(
-        &self,
-        continuation_function: FunctionValue<'ctx>,
-        name: &str,
-    ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
-        let handler = self.allocate_value(name);
-        let return_to = self.get_return("");
-        let yield_to = self.get_yield("");
-        let closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
-            .unwrap();
-        let shadow = self.shadow_continuation_point();
-        let capture = self.capture_contination_point(closure.as_instruction_value().unwrap());
-        self.trilogy_callable_init_cont(
-            handler,
-            return_to,
-            yield_to,
-            closure,
-            continuation_function,
-        );
-        self.become_continuation_point(shadow);
-        (handler, capture)
-    }
-
-    /// Constructs a TrilogyValue that represents the current continuation, marked to be called using "resume" calling convention.
-    ///
-    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
-    /// so may not be referenced.
-    pub(crate) fn close_current_continuation_as_resume(
+    pub(crate) fn close_current_continuation(
         &self,
         continuation_function: FunctionValue<'ctx>,
         name: &str,
@@ -155,15 +67,11 @@ impl<'ctx> Codegen<'ctx> {
         continuation
     }
 
-    /// Constructs a TrilogyValue that represents the current continuation to be used as `return`.
-    ///
-    /// This invalidates the current continuation point, all variables will be destroyed afterwards,
-    /// so may not be referenced.
-    pub(crate) fn close_current_continuation_as_return(
+    pub(crate) fn capture_current_continuation_full(
         &self,
         continuation_function: FunctionValue<'ctx>,
         name: &str,
-    ) -> PointerValue<'ctx> {
+    ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
@@ -172,7 +80,8 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
-        self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
+        let shadow = self.shadow_continuation_point();
+        let capture = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
             continuation,
             return_to,
@@ -180,32 +89,6 @@ impl<'ctx> Codegen<'ctx> {
             closure,
             continuation_function,
         );
-        continuation
-    }
-
-    /// Constructs a TrilogyValue that represents the current continuation to be used as `break`.
-    pub(crate) fn capture_current_continuation_as_break(
-        &self,
-        continuation_function: FunctionValue<'ctx>,
-        name: &str,
-    ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
-        let continuation = self.allocate_value(name);
-        self.bind_temporary(continuation);
-        let return_to = self.get_return("");
-        let closure = self
-            .builder
-            .build_alloca(self.value_type(), "TEMP_HANDLER_CLOSURE")
-            .unwrap();
-        let shadow = self.shadow_continuation_point();
-        let capture = self.capture_contination_point(closure.as_instruction_value().unwrap());
-        self.trilogy_callable_init_cont(
-            continuation,
-            return_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            closure,
-            continuation_function,
-        );
-
         self.become_continuation_point(shadow);
         (continuation, capture)
     }
