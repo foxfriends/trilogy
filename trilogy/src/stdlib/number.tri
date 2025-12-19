@@ -1,6 +1,6 @@
 import "trilogy:core" as core
 
-export numer, denom, is_natural, is_whole, is_integer, is_real, is_imaginary, is_complex, from_digit, from_hex_digit, abs, re, im, conj, swap, sign
+export numer, denom, is_natural, is_whole, is_integer, is_real, is_imaginary, is_complex, from_digit, from_hex_digit, abs, re, im, conj, swap, sign, ceil, floor, trunc
 
 func numer num and typeof 'number = core::numer!(num)
 
