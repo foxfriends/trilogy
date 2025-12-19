@@ -175,32 +175,6 @@ void trilogy_callable_yield_to_into(
     trilogy_callable_clone_into(val, cal->yield_to);
 }
 
-void trilogy_callable_promote(
-    trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to
-) {
-    trilogy_callable_value* original = trilogy_callable_untag(tv);
-    trilogy_callable_value* clone = malloc_safe(sizeof(trilogy_callable_value));
-    *clone = *original;
-    clone->rc = 1;
-    if (return_to != NULL) {
-        clone->return_to = trilogy_callable_assume(return_to);
-        *return_to = trilogy_undefined;
-    } else if (clone->return_to != NULL) {
-        clone->return_to->rc++;
-    }
-    if (yield_to != NULL) {
-        clone->yield_to = trilogy_callable_assume(yield_to);
-        *yield_to = trilogy_undefined;
-    } else if (clone->yield_to != NULL) {
-        clone->yield_to->rc++;
-    }
-    if (clone->closure != NO_CLOSURE) {
-        clone->closure->rc++;
-    }
-    trilogy_value_destroy(tv);
-    trilogy_callable_init(tv, clone);
-}
-
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val) {
     TRACE("Expect callable\t(%d): %p\n", val->tag, val);
     if (val->tag != TAG_CALLABLE) rte("callable", val->tag);

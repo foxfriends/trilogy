@@ -61,9 +61,6 @@ impl<'ctx> Codegen<'ctx> {
         parent_closure.as_instruction_value().unwrap()
     }
 
-    /// When continuing into a handler, we have to promote `return`, `break` and `cancel` with their
-    /// current contextual values. This allows calls to those continuations to invisibly discard the
-    /// effect handler that we are about to install when called.
     #[must_use = "continuation point must be closed"]
     pub(crate) fn continue_in_handler(
         &self,
@@ -92,8 +89,6 @@ impl<'ctx> Codegen<'ctx> {
         parent_closure.as_instruction_value().unwrap()
     }
 
-    /// When continuing into a loop, promote `return` and `cancel` with their contextual
-    /// values so that when called, they jump out of anything we've added inside the loop.
     pub(crate) fn continue_in_loop(
         &self,
         continue_function: FunctionValue<'ctx>,
@@ -101,12 +96,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
         let end_to = self.get_end("");
-
-        // self.trilogy_callable_promote(
-        //     return_to,
-        //     self.context.ptr_type(AddressSpace::default()).const_null(),
-        //     self.get_yield(""),
-        // );
 
         let continue_to = self.allocate_value("continue");
         self.bind_temporary(continue_to);

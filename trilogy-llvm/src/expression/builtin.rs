@@ -1,5 +1,4 @@
 use crate::codegen::Codegen;
-use inkwell::AddressSpace;
 use inkwell::values::BasicValue;
 use inkwell::values::PointerValue;
 use trilogy_ir::ir::{self, Builtin};

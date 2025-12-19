@@ -36,10 +36,6 @@ void trilogy_callable_yield_to_into(
     trilogy_value*, trilogy_callable_value* orig
 );
 
-void trilogy_callable_promote(
-    trilogy_value* tv, trilogy_value* return_to, trilogy_value* yield_to
-);
-
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val);
 trilogy_callable_value* trilogy_callable_assume(trilogy_value* val);
 
