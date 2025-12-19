@@ -73,12 +73,6 @@ impl<'ctx> Codegen<'ctx> {
         let return_to = self.get_return("");
         let end_to = self.get_end("");
 
-        self.trilogy_callable_promote(
-            return_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
-            self.get_yield(""),
-        );
-
         let parent_closure = self
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")

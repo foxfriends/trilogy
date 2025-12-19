@@ -166,6 +166,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
+        let yield_to = self.get_yield("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -175,7 +176,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_init_cont(
             continuation,
             return_to,
-            self.context.ptr_type(AddressSpace::default()).const_null(),
+            yield_to,
             closure,
             continuation_function,
         );
