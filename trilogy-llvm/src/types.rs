@@ -288,7 +288,7 @@ impl<'ctx> Codegen<'ctx> {
         // 5: closure
         self.context
             .void_type()
-            .fn_type(&[self.value_type().into(); 6], false)
+            .fn_type(&[self.value_type().into(); IMPLICIT_PARAMS + 3], false)
     }
 
     pub(crate) fn is_undefined(&self, value: PointerValue<'ctx>) -> IntValue<'ctx> {

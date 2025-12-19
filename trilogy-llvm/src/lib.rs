@@ -30,7 +30,7 @@ mod types;
 
 type Entrypoint = unsafe extern "C" fn() -> c_void;
 
-/// Parameters to rules/procedures/functions start at 5, due to return, yield, and end
+/// Parameters to rules/procedures/functions start after the implicit parameters: return, yield, and end
 const IMPLICIT_PARAMS: usize = 3;
 
 // Apparently, this is the number... but it's not listed in llvm_sys.
