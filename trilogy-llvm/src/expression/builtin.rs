@@ -443,7 +443,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_callable_promote(
                     return_to,
                     self.context.ptr_type(AddressSpace::default()).const_null(),
-                    self.get_yield(""),
+                    self.context.ptr_type(AddressSpace::default()).const_null(),
                     self.get_next(""),
                     self.get_done(""),
                 );
