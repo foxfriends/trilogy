@@ -90,7 +90,7 @@ impl<'ctx> Codegen<'ctx> {
         let break_function = self.add_continuation("while.done");
 
         let (break_continuation, break_continuation_point) =
-            self.capture_current_continuation(break_function, "break");
+            self.capture_current_continuation_full(break_function, "break");
         let continue_continuation = self.continue_in_loop(continue_function);
         self.push_loop_scope(break_continuation, continue_continuation);
         self.begin_next_function(continue_function);
@@ -135,7 +135,7 @@ impl<'ctx> Codegen<'ctx> {
     fn compile_for(&self, expr: &ir::Iterator, name: &str) -> Option<PointerValue<'ctx>> {
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break");
         let done_to_clone = self.allocate_value("break");
         self.trilogy_value_clone_into(done_to_clone, done_continuation);
         self.bind_temporary(done_to_clone);
@@ -169,7 +169,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break");
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
@@ -196,7 +196,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break");
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
@@ -223,7 +223,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break");
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         let Value::Mapping(mapping) = &expr.value.value else {
