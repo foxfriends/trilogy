@@ -73,6 +73,14 @@ impl Definition {
         let item = match token.token_type {
             KwType => {
                 let head = TypeHead::parse(parser)?;
+                if let Err(token) = parser.check(OBrace) {
+                    let error = SyntaxError::new(
+                        token.span,
+                        "only identifiers are permitted in a type definition",
+                    );
+                    parser.error(error.clone());
+                    return Err(error);
+                }
                 DefinitionItem::Type(Box::new(TypeDefinition::parse(parser, head)?))
             }
             KwImport => DefinitionItem::Import(Box::new(ImportDefinition::parse(parser)?)),
