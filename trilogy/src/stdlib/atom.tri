@@ -1,9 +1,9 @@
 import "trilogy:atom/rt" as rt
 
-const dyn_atoms = {||}
+slot dyn_atoms = {||}
 
 export to_string
-func to_string atom = match rt::lookup_const atom
+func to_string atom = match rt::lookup_slot atom
   case name and typeof 'string then name
   else _ then dyn_atoms.atom
 

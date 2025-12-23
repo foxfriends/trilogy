@@ -18,8 +18,6 @@ pub enum TokenType {
     KwContinue,
     /// `case`
     KwCase,
-    /// `const`
-    KwConst,
     /// `do`
     KwDo,
     /// `else`
@@ -52,8 +50,6 @@ pub enum TokenType {
     KwMatch,
     /// `mut`
     KwMut,
-    /// `next`
-    KwNext,
     /// `not`
     KwNot,
     /// `or`
@@ -70,6 +66,8 @@ pub enum TokenType {
     KwReturn,
     /// `rule`
     KwRule,
+    /// `slot`
+    KwSlot,
     /// `test`
     KwTest,
     /// `then`
@@ -100,6 +98,8 @@ pub enum TokenType {
     KwCatch,
     /// `class`
     KwClass,
+    /// `const`
+    KwConst,
     /// `data`
     KwData,
     /// `defer`
@@ -132,6 +132,8 @@ pub enum TokenType {
     KwMacro,
     /// `module`
     KwModule,
+    /// `next`
+    KwNext,
     /// `oper`
     KwOper,
     /// `prec`

@@ -177,7 +177,7 @@ syntax tree, so having the documentation inside is simply useful.
         \bnfpn{RuleDefinition}\bnfor
     } \\
     \bnfmore*{
-        \bnfpn{ConstantDefinition}\bnfor
+        \bnfpn{SlotDefinition}\bnfor
     } \\
     \bnfmore*{
         \bnfpn{ExternProcedureDefinition}\bnfor
@@ -352,15 +352,27 @@ externally also may not access members of the module in which they are declared.
     \TrinaryInfC{$\Gamma \vdash p$}
 \end{prooftree}
 
-\subsubsection{Constants}
+\subsubsection{Slots}
 
-Constants are the most basic type of definition, consisting of a name and an expression
+Slots are the most basic type of definition, consisting of a name and an expression
 to bind as the value for that name. The expression is evaluated once, at the time the
-module in which the constant is declared is instantiated.
+module in which the slot is declared is instantiated.
+
+Slots may be declared as mutable, allowing the value in the slot to be reassigned later.
 
 \begin{bnf*}
-    \bnfprod{ConstantDefinition}{
-        \bnfts{\kw{const}}
+    \bnfprod{SlotDefinition}{
+        \bnfts{\kw{slot}}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfts{=}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfts{\kw{slot}}
+        \bnfsp
+        \bnfts{\kw{mut}}
         \bnfsp
         \bnfpn{Identifier}
         \bnfsp
@@ -373,12 +385,12 @@ module in which the constant is declared is instantiated.
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash E : \tau$}
     \AxiomC{$\kw{const}\ k\ \texttt{=}\ E$}
-    \LeftLabel{Constant}
+    \LeftLabel{Slot}
     \BinaryInfC{$\Gamma \vdash k : \tau$}
 \end{prooftree}
 
-Though syntactically there is no restriction on what expressions can be used in a constant,
-the expression must be a valid ``constant expression''. Constant expressions may not involve
+Though there is no restriction on what value can be stored in a slot, the initial value
+expression must be a valid ``constant expression''. Constant expressions may not involve
 effect handlers, function calls, procedure calls, or comprehensions as those may perform
 side effects which are not permitted at constant time. Only literals, basic operators, module
 applications, module lookups may occur. References to other constants are also permitted, as

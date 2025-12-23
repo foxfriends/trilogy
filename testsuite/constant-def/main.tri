@@ -1,6 +1,6 @@
-const value = 5
-const sum = 5 + 15
-const string = "hello world"
+slot value = 5
+slot sum = 5 + 15
+slot string = "hello world"
 
 proc main!() {
   assert value == 5

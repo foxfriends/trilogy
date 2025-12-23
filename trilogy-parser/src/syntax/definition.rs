@@ -85,7 +85,7 @@ impl Definition {
             }
             KwImport => DefinitionItem::Import(Box::new(ImportDefinition::parse(parser)?)),
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
-            KwConst => DefinitionItem::Constant(Box::new(ConstantDefinition::parse(parser)?)),
+            KwSlot => DefinitionItem::Constant(Box::new(ConstantDefinition::parse(parser)?)),
             KwRule => DefinitionItem::Rule(Box::new(RuleDefinition::parse(parser)?)),
             KwProc => DefinitionItem::Procedure(Box::new(ProcedureDefinition::parse(parser)?)),
             KwExtern => DefinitionItem::ExternalProcedure(Box::new(

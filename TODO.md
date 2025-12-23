@@ -2,7 +2,6 @@
 
 * Runtime new atom (beware Ruby symbol problem)
 * `defer` statement
-* Rethink `const` (`slot` and `slot mut`?)
 * Upgrade `for` to be a folding construct
 * Finish FFI (foreign types)
 * Loosen requirement of pinning identifiers in queries (auto-pin should be better)

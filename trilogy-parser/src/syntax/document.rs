@@ -28,7 +28,7 @@ impl Spanned for Document {
 impl Document {
     fn synchronize(parser: &mut Parser) {
         parser.synchronize([
-            DocOuter, KwType, KwFunc, KwProc, KwRule, KwConst, KwExport, KwImport, EndOfFile,
+            DocOuter, KwType, KwFunc, KwProc, KwRule, KwSlot, KwExport, KwImport, EndOfFile,
         ]);
     }
 

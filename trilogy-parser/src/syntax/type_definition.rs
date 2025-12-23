@@ -21,8 +21,7 @@ impl Spanned for TypeDefinition {
 impl TypeDefinition {
     fn synchronize(parser: &mut Parser) {
         parser.synchronize([
-            DocOuter, KwType, KwImport, KwFunc, KwProc, KwRule, KwConst, KwExport, CBrace,
-            EndOfFile,
+            DocOuter, KwType, KwImport, KwFunc, KwProc, KwRule, KwSlot, KwExport, CBrace, EndOfFile,
         ]);
     }
 

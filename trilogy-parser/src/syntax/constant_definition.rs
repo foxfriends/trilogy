@@ -3,14 +3,15 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-/// A constant definition item.
+/// A slot definition item.
 ///
 /// ```trilogy
-/// const name = value
+/// slot name = value
 /// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ConstantDefinition {
-    pub r#const: Token,
+    pub slot: Token,
+    pub r#mut: Option<Token>,
     pub name: Identifier,
     pub eq: Token,
     pub body: Expression,
@@ -25,17 +26,19 @@ impl Spanned for ConstantDefinition {
 
 impl ConstantDefinition {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let r#const = parser.expect(TokenType::KwConst).map_err(|token| {
-            parser.expected(token, "expected `const` to begin constant definition")
-        })?;
+        let slot = parser
+            .expect(TokenType::KwSlot)
+            .map_err(|token| parser.expected(token, "expected `slot` to begin slot definition"))?;
+        let r#mut = parser.expect(TokenType::KwMut).ok();
         let name = Identifier::parse(parser)?;
         let eq = parser
             .expect(TokenType::OpEq)
-            .map_err(|token| parser.expected(token, "expected `=` in constant definition"))?;
+            .map_err(|token| parser.expected(token, "expected `=` in slot definition"))?;
         let body = Expression::parse(parser)?;
         Ok(ConstantDefinition {
-            span: r#const.span.union(body.span()),
-            r#const,
+            span: slot.span.union(body.span()),
+            r#mut,
+            slot,
             name,
             eq,
             body,
@@ -47,7 +50,8 @@ impl ConstantDefinition {
 mod test {
     use super::*;
 
-    test_parse!(const_valid: "const x = 123" => ConstantDefinition::parse => "(ConstantDefinition _ _ _ _)");
-    test_parse_error!(const_no_name: "const = 5" => ConstantDefinition::parse);
-    test_parse_error!(const_no_value: "const hello" => ConstantDefinition::parse => "expected `=` in constant definition");
+    test_parse!(const_valid: "slot x = 123" => ConstantDefinition::parse => "(ConstantDefinition _ _ _ _ _)");
+    test_parse!(const_mutable_valid: "slot mut x = 123" => ConstantDefinition::parse => "(ConstantDefinition _ _ _ _ _)");
+    test_parse_error!(const_no_name: "slot = 5" => ConstantDefinition::parse);
+    test_parse_error!(const_no_value: "slot hello" => ConstantDefinition::parse => "expected `=` in slot definition");
 }

@@ -95,6 +95,7 @@ impl Token {
             "resume" => TokenType::KwResume,
             "return" => TokenType::KwReturn,
             "rule" => TokenType::KwRule,
+            "slot" => TokenType::KwSlot,
             "static" => TokenType::KwStatic,
             "struct" => TokenType::KwStruct,
             "super" => TokenType::KwSuper,

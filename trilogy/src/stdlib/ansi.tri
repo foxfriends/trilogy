@@ -8,43 +8,43 @@
 
 # Colours
 
-const RESET_COLOR = "\u{001b}[0m"
+slot RESET_COLOR = "\u{001b}[0m"
 
-const BLACK = "\u{001b}[30m"
-const RED = "\u{001b}[31m"
-const GREEN = "\u{001b}[32m"
-const YELLOW = "\u{001b}[33m"
-const BLUE = "\u{001b}[34m"
-const MAGENTA = "\u{001b}[35m"
-const CYAN = "\u{001b}[36m"
-const WHITE = "\u{001b}[37m"
+slot BLACK = "\u{001b}[30m"
+slot RED = "\u{001b}[31m"
+slot GREEN = "\u{001b}[32m"
+slot YELLOW = "\u{001b}[33m"
+slot BLUE = "\u{001b}[34m"
+slot MAGENTA = "\u{001b}[35m"
+slot CYAN = "\u{001b}[36m"
+slot WHITE = "\u{001b}[37m"
 
-const BG_BLACK = "\u{001b}[40m"
-const BG_RED = "\u{001b}[41m"
-const BG_GREEN = "\u{001b}[42m"
-const BG_YELLOW = "\u{001b}[43m"
-const BG_BLUE = "\u{001b}[44m"
-const BG_MAGENTA = "\u{001b}[45m"
-const BG_CYAN = "\u{001b}[46m"
-const BG_WHITE = "\u{001b}[47m"
+slot BG_BLACK = "\u{001b}[40m"
+slot BG_RED = "\u{001b}[41m"
+slot BG_GREEN = "\u{001b}[42m"
+slot BG_YELLOW = "\u{001b}[43m"
+slot BG_BLUE = "\u{001b}[44m"
+slot BG_MAGENTA = "\u{001b}[45m"
+slot BG_CYAN = "\u{001b}[46m"
+slot BG_WHITE = "\u{001b}[47m"
 
-const BRIGHT_BLACK = "\u{001b}[90m"
-const BRIGHT_RED = "\u{001b}[91m"
-const BRIGHT_GREEN = "\u{001b}[92m"
-const BRIGHT_YELLOW = "\u{001b}[93m"
-const BRIGHT_BLUE = "\u{001b}[94m"
-const BRIGHT_MAGENTA = "\u{001b}[95m"
-const BRIGHT_CYAN = "\u{001b}[96m"
-const BRIGHT_WHITE = "\u{001b}[97m"
+slot BRIGHT_BLACK = "\u{001b}[90m"
+slot BRIGHT_RED = "\u{001b}[91m"
+slot BRIGHT_GREEN = "\u{001b}[92m"
+slot BRIGHT_YELLOW = "\u{001b}[93m"
+slot BRIGHT_BLUE = "\u{001b}[94m"
+slot BRIGHT_MAGENTA = "\u{001b}[95m"
+slot BRIGHT_CYAN = "\u{001b}[96m"
+slot BRIGHT_WHITE = "\u{001b}[97m"
 
-const BG_BRIGHT_BLACK = "\u{001b}[100m"
-const BG_BRIGHT_RED = "\u{001b}[101m"
-const BG_BRIGHT_GREEN = "\u{001b}[102m"
-const BG_BRIGHT_YELLOW = "\u{001b}[103m"
-const BG_BRIGHT_BLUE = "\u{001b}[104m"
-const BG_BRIGHT_MAGENTA = "\u{001b}[105m"
-const BG_BRIGHT_CYAN = "\u{001b}[106m"
-const BG_BRIGHT_WHITE = "\u{001b}[107m"
+slot BG_BRIGHT_BLACK = "\u{001b}[100m"
+slot BG_BRIGHT_RED = "\u{001b}[101m"
+slot BG_BRIGHT_GREEN = "\u{001b}[102m"
+slot BG_BRIGHT_YELLOW = "\u{001b}[103m"
+slot BG_BRIGHT_BLUE = "\u{001b}[104m"
+slot BG_BRIGHT_MAGENTA = "\u{001b}[105m"
+slot BG_BRIGHT_CYAN = "\u{001b}[106m"
+slot BG_BRIGHT_WHITE = "\u{001b}[107m"
 
 export black, red, green, yellow, blue, magenta, cyan, white
 
@@ -104,47 +104,47 @@ func bg_rgb r g b text = apply_color "\u{001b}[48;2;${r};${g};${b}m" text
 
 export bold, dim, italic, underline, blink, inverse, invisible, strikethrough, double_underline
 
-const BOLD = "\u{001b}[1m"
-const RESET_BOLD = "\u{001b}[22m"
+slot BOLD = "\u{001b}[1m"
+slot RESET_BOLD = "\u{001b}[22m"
 
 func bold text = "${BOLD}${text}${RESET_BOLD}"
 
-const DIM = "\u{001b}[2m"
-const RESET_DIM = "\u{001b}[22m"
+slot DIM = "\u{001b}[2m"
+slot RESET_DIM = "\u{001b}[22m"
 
 func dim text = "${DIM}${text}${RESET_DIM}"
 
-const ITALIC = "\u{001b}[3m"
-const RESET_ITALIC = "\u{001b}[23m"
+slot ITALIC = "\u{001b}[3m"
+slot RESET_ITALIC = "\u{001b}[23m"
 
 func italic text = "${ITALIC}${text}${RESET_ITALIC}"
 
-const UNDERLINE = "\u{001b}[4m"
-const RESET_UNDERLINE = "\u{001b}[24m"
+slot UNDERLINE = "\u{001b}[4m"
+slot RESET_UNDERLINE = "\u{001b}[24m"
 
 func underline text = "${UNDERLINE}${text}${RESET_UNDERLINE}"
 
-const BLINK = "\u{001b}[5m"
-const RESET_BLINK = "\u{001b}[25m"
+slot BLINK = "\u{001b}[5m"
+slot RESET_BLINK = "\u{001b}[25m"
 
 func blink text = "${BLINK}${text}${RESET_BLINK}"
 
-const INVERSE = "\u{001b}[7m"
-const RESET_INVERSE = "\u{001b}[27m"
+slot INVERSE = "\u{001b}[7m"
+slot RESET_INVERSE = "\u{001b}[27m"
 
 func inverse text = "${INVERSE}${text}${RESET_INVERSE}"
 
-const INVISIBLE = "\u{001b}[8m"
-const RESET_INVISIBLE = "\u{001b}[28m"
+slot INVISIBLE = "\u{001b}[8m"
+slot RESET_INVISIBLE = "\u{001b}[28m"
 
 func invisible text = "${INVISIBLE}${text}${RESET_INVISIBLE}"
 
-const STRIKETHROUGH = "\u{001b}[9m"
-const RESET_STRIKETHROUGH = "\u{001b}[29m"
+slot STRIKETHROUGH = "\u{001b}[9m"
+slot RESET_STRIKETHROUGH = "\u{001b}[29m"
 
 func strikethrough text = "${STRIKETHROUGH}${text}${RESET_STRIKETHROUGH}"
 
-const DOUBLE_UNDERLINE = "\u{001b}[21m"
-const RESET_DOUBLE_UNDERLINE = "\u{001b}[24m"
+slot DOUBLE_UNDERLINE = "\u{001b}[21m"
+slot RESET_DOUBLE_UNDERLINE = "\u{001b}[24m"
 
 func double_underline text = "${DOUBLE_UNDERLINE}${text}${RESET_DOUBLE_UNDERLINE}"

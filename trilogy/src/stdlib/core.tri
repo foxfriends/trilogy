@@ -168,43 +168,43 @@ type c {
   export denom
 }
 
-const im = c::im
+slot im = c::im
 export im
 
-const re = c::re
+slot re = c::re
 export re
 
-const numer = c::numer
+slot numer = c::numer
 export numer
 
-const denom = c::denom
+slot denom = c::denom
 export denom
 
-const print = c::print
+slot print = c::print
 export print
 
-const readline = c::readline
+slot readline = c::readline
 export readline
 
-const readchar = c::readchar
+slot readchar = c::readchar
 export readchar
 
-const panic = c::panic
+slot panic = c::panic
 export panic
 
-const trace = c::trace
+slot trace = c::trace
 export trace
 
-const push = c::push
+slot push = c::push
 export push
 
-const pop = c::pop
+slot pop = c::pop
 export pop
 
-const delete_member = c::delete_member
+slot delete_member = c::delete_member
 export delete_member
 
-const append = c::append
+slot append = c::append
 export append
 
 func contains_key key arr = c::contains_key!(arr, key)

@@ -435,6 +435,7 @@ test_tokenize!(kw_module => "module" = [KwModule]);
 test_tokenize!(kw_oper => "oper" = [KwOper]);
 test_tokenize!(kw_prec => "prec" = [KwPrec]);
 test_tokenize!(kw_protocol => "protocol" = [KwProtocol]);
+test_tokenize!(kw_slot => "slot" = [KwSlot]);
 test_tokenize!(kw_static => "static" = [KwStatic]);
 test_tokenize!(kw_struct => "struct" = [KwStruct]);
 test_tokenize!(kw_switch => "switch" = [KwSwitch]);

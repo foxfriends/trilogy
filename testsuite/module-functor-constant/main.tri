@@ -1,5 +1,5 @@
 type child a b {
-  const sum = a + b
+  slot sum = a + b
 
   export sum
 }
