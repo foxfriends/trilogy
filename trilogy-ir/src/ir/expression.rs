@@ -256,7 +256,13 @@ impl Expression {
             FunctionAssignment(ast) => crate::ir::Assignment::convert_function(converter, *ast),
             If(ast) => IfElse::convert_expression(converter, *ast),
             Match(ast) => crate::ir::Match::convert_expression(converter, *ast),
-            Defer(_ast) => todo!("implement defer"),
+            Defer(ast) => {
+                converter.error(Error::Unimplemented {
+                    feature: "defer statement",
+                    span: ast.span(),
+                });
+                crate::ir::Defer::convert(converter, *ast)
+            }
             While(ast) => crate::ir::While::convert(converter, *ast),
             For(ast) => Self::convert_for_statement(converter, *ast),
             Expression(ast) => Self::convert(converter, *ast),
@@ -701,6 +707,10 @@ impl Expression {
     pub(super) fn disjunction(span: Span, lhs: Expression, rhs: Expression) -> Self {
         Expression::new(span, Value::Disjunction(Box::new((lhs, rhs))))
     }
+
+    pub(super) fn defer(span: Span, defer: Defer) -> Self {
+        Expression::new(span, Value::Defer(Box::new(defer)))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -740,6 +750,7 @@ pub enum Value {
     Array(Box<Pack>),
     Set(Box<Pack>),
     Record(Box<Pack>),
+    Defer(Box<Defer>),
     End,
 }
 

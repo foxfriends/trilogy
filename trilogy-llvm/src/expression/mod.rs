@@ -66,6 +66,7 @@ impl<'ctx> Codegen<'ctx> {
                 self.compile_end();
                 None
             }
+            Value::Defer(..) => todo!("implement defer"),
             Value::Pack(..) => panic!("loose packs are not permitted"),
             Value::Mapping(..) => panic!("loose mappings are not permitted"),
             Value::Conjunction(..) => panic!("conjunction not permitted in expression context"),

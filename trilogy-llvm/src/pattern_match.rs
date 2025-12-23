@@ -160,6 +160,7 @@ impl<'ctx> Codegen<'ctx> {
             Value::Pack(..) => unreachable!(),
             Value::Sequence(..) => unreachable!(),
             Value::Assignment(..) => unreachable!(),
+            Value::Defer(..) => unreachable!(),
             Value::Mapping(..) => unreachable!(),
             Value::Query(..) => unreachable!(),
             Value::While(..) => unreachable!(),

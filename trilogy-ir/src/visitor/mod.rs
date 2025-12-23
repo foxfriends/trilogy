@@ -103,6 +103,7 @@ pub trait IrVisitor: Sized {
     visit_node!(visit_record, Pack);
     visit_node!(visit_record_comprehension, Iterator);
     visit_node!(visit_while, While);
+    visit_node!(visit_defer, Defer);
     visit_node!(visit_for, Iterator);
     visit_node!(visit_application, Application);
     visit_node!(visit_let, Let);
@@ -190,6 +191,7 @@ impl IrVisitable for Value {
             Reference(val) => visitor.visit_reference(val),
             ModuleAccess(val) => visitor.visit_module_access(val),
             Assert(val) => visitor.visit_assert(val),
+            Defer(val) => visitor.visit_defer(val),
             End => visitor.visit_end(),
         }
     }
@@ -252,6 +254,12 @@ impl IrVisitable for Iterator {
 impl IrVisitable for While {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         visitor.visit_expression(&self.condition);
+        visitor.visit_expression(&self.body);
+    }
+}
+
+impl IrVisitable for Defer {
+    fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         visitor.visit_expression(&self.body);
     }
 }
