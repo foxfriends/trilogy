@@ -69,11 +69,11 @@ pub(crate) enum Precedence {
     Exponent,
     RCompose,
     Compose,
-    Path,
     Application,
     Unary,
     Call,
     Access,
+    Path,
 }
 
 enum ExpressionResult {
@@ -771,14 +771,13 @@ mod test {
     test_parse!(expr_prec_paths: "a b::c d::e f" => Expression::parse => "
       (Expression::Application
         (Application
-          (Expression::ModuleAccess
-            (ModuleAccess
+          (Expression::Application
+            (Application
               (Expression::Application
                 (Application
-                  (Expression::ModuleAccess _)
-                  (Expression::Reference _)))
-              _
-              (Identifier)))
+                  (Expression::Reference _)
+                  (Expression::ModuleAccess _)))
+              (Expression::ModuleAccess _)))
           (Expression::Reference _)))
     ");
 }

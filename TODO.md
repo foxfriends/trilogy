@@ -27,7 +27,6 @@
 * Additional operators (though this might be resolved by having a prelude):
     * `length` (`#val`)
     * prefix nullary procedure call `!()` (`let x = !() <| many_1 <| char 'x'`)
-* Change precedence of `::` so that `it::reduce compare::max` is `(it::reduce) (compare::max)` instead of `(it::reduce compare)::max`
 * Steal `use` from Gleam:
     * Unary: `let x using array::each [1, 2, 3]; ...` -> `array::each [1, 2, 3] do(x) {...}`
     * Nullary: `using times 3` -> `times 3 do() {...}`

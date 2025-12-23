@@ -11,5 +11,5 @@ type mod1 v {
 }
 
 proc main!() {
-  assert mod1 3::mod2 5::value!() == 18
+  assert ((mod1 3)::mod2 5)::value!() == 18
 }

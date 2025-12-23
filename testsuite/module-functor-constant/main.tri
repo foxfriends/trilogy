@@ -5,5 +5,5 @@ type child a b {
 }
 
 proc main!() {
-  assert child 3 4::sum === 7
+  assert (child 3 4)::sum === 7
 }
