@@ -373,9 +373,15 @@ export to_array
 func length val = c::length!(val)
 export length
 
-rule elem(element, [element, .._])
-rule elem(element, [_, ..rest]) <- elem(element, ^rest)
-rule elem(_, []) <- end
+rule between(lo, hi, lo) <- is lo < hi
+rule between(lo, hi, n) <- is lo < hi and lo_2 = lo + 1 and between(lo_2, hi, n)
+export between
+
+rule elem(element, array and typeof 'array) <-
+  max = length array
+  and between(0, max, i)
+  and element = array.i
+
 rule elem(element, set and typeof 'set) <-
   array = c::set_to_array!(set)
   and elem(element, ^array)

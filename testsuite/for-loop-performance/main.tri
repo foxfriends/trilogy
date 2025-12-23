@@ -1,9 +1,8 @@
-import "trilogy:array" use collect
-import "trilogy:iterator" use range
 import "trilogy:debug" use dbg
+import "trilogy:core" use between
 
 proc main!() {
-  for i in collect <| range 0 1_000_000 {
+  for between(0, 1_000_000, i) {
     if i % 100_000 == 0 {
       dbg!(i)
     }
