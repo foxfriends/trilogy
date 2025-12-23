@@ -1,0 +1,5 @@
+import "trilogy:debug" use dbg as this_is_new_crazy_name
+
+proc main!() {
+  this_is_new_crazy_name!(123)
+}

@@ -22,7 +22,6 @@
     * Consistent interfaces to individual core standard modules
     * Maybe adjust naming and organization of `core.c`, which is kind of scary conflictable
 * Guards on `func`
-* Put `import ... use x as y` back in (did I just forget it?)
 * Improve stack traces and panic messages for debugging
 * Additional operators (though this might be resolved by having a prelude):
     * `length` (`#val`)

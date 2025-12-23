@@ -106,12 +106,15 @@ impl Definition {
                         .unwrap_or_else(|| anonymous.get(&import.import.span).unwrap().clone());
 
                     for name in type_use.names {
-                        let symbol = converter.declared(name.as_ref()).unwrap().clone();
+                        let symbol = converter
+                            .declared(name.aliased_name().as_ref())
+                            .unwrap()
+                            .clone();
                         let definition = definitions.get_mut(&symbol).unwrap();
                         let DefinitionItem::Constant(constant) = &mut definition.item else {
                             let error = Error::DuplicateDefinition {
                                 original: symbol.declaration_span,
-                                duplicate: name,
+                                duplicate: name.aliased_name().clone(),
                             };
                             converter.error(error);
                             return;
@@ -122,7 +125,7 @@ impl Definition {
                                 module_ident.id.declaration_span,
                                 module_ident.clone(),
                             ),
-                            name,
+                            name.original_name().clone(),
                         )
                     }
                 }
@@ -225,15 +228,17 @@ impl Definition {
 
                 if let Some(module_use) = &import.type_use {
                     for name in &module_use.names {
-                        if let Some(original) = converter.declared_no_shadow(name.as_ref()) {
+                        if let Some(original) =
+                            converter.declared_no_shadow(name.aliased_name().as_ref())
+                        {
                             let original = original.declaration_span;
                             converter.error(Error::DuplicateDefinition {
                                 original,
-                                duplicate: name.clone(),
+                                duplicate: name.aliased_name().clone(),
                             });
                         }
 
-                        let used_name = Identifier::declare(converter, name.clone());
+                        let used_name = Identifier::declare(converter, name.aliased_name().clone());
                         names.push(Self::new(
                             name.span(),
                             ConstantDefinition::declare(used_name),
