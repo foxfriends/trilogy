@@ -1039,6 +1039,26 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    pub(crate) fn trilogy_callable_end_to_into(
+        &self,
+        target: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "trilogy_callable_end_to_into",
+            self.context.void_type().fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), callable.into()], "")
+            .unwrap();
+    }
+
     /// Untags a procedure. The value should be a `trilogy_callable_value` and the return pointer will be
     /// a bare function pointer.
     pub(crate) fn trilogy_procedure_untag(
@@ -1472,6 +1492,7 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         return_to: PointerValue<'ctx>,
         yield_to: PointerValue<'ctx>,
+        end_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
     ) -> PointerValue<'ctx> {
@@ -1479,6 +1500,7 @@ impl<'ctx> Codegen<'ctx> {
             "trilogy_callable_init_cont",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -1495,6 +1517,7 @@ impl<'ctx> Codegen<'ctx> {
                     t.into(),
                     return_to.into(),
                     yield_to.into(),
+                    end_to.into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
                 ],

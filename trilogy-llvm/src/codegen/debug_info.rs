@@ -12,6 +12,7 @@ use source_span::Span;
 use std::{cell::RefCell, path::PathBuf, rc::Rc};
 use url::Url;
 
+use crate::IMPLICIT_PARAMS;
 use crate::codegen::Codegen;
 
 pub(crate) struct DebugInfo<'ctx> {
@@ -800,7 +801,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         ptr_size,
                         0,
-                        2 * ptr_size,
+                        64 + ptr_size,
                         LLVMDIFlagPublic,
                         callable_ptr_placeholder_type.as_type(),
                     )
@@ -813,7 +814,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         ptr_size,
                         0,
-                        3 * ptr_size,
+                        64 + 2 * ptr_size,
                         LLVMDIFlagPublic,
                         callable_ptr_placeholder_type.as_type(),
                     )
@@ -821,25 +822,12 @@ impl<'ctx> DebugInfo<'ctx> {
                 builder
                     .create_member_type(
                         unit.get_file().as_debug_info_scope(),
-                        "cancel_to",
+                        "end_to",
                         unit.get_file(),
                         0,
                         ptr_size,
                         0,
-                        4 * ptr_size,
-                        LLVMDIFlagPublic,
-                        callable_ptr_placeholder_type.as_type(),
-                    )
-                    .as_type(),
-                builder
-                    .create_member_type(
-                        unit.get_file().as_debug_info_scope(),
-                        "resume_to",
-                        unit.get_file(),
-                        0,
-                        ptr_size,
-                        0,
-                        5 * ptr_size,
+                        64 + 3 * ptr_size,
                         LLVMDIFlagPublic,
                         callable_ptr_placeholder_type.as_type(),
                     )
@@ -852,7 +840,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         ptr_size,
                         0,
-                        8 * ptr_size,
+                        64 + 4 * ptr_size,
                         LLVMDIFlagPublic,
                         array_ptr_type.as_type(),
                     )
@@ -865,7 +853,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         ptr_size,
                         0,
-                        9 * ptr_size,
+                        64 + 5 * ptr_size,
                         LLVMDIFlagPublic,
                         builder
                             .create_basic_type("function", ptr_size, 0x01, LLVMDIFlagPublic)
@@ -1198,13 +1186,13 @@ impl<'ctx> DebugInfo<'ctx> {
         let continuation_type = builder.create_subroutine_type(
             unit.get_file(),
             None,
-            &[value_pointer_type.as_type(); 9],
+            &[value_pointer_type.as_type(); IMPLICIT_PARAMS + 2],
             LLVMDIFlagPublic,
         );
         let yield_type = builder.create_subroutine_type(
             unit.get_file(),
             None,
-            &[value_pointer_type.as_type(); 9],
+            &[value_pointer_type.as_type(); IMPLICIT_PARAMS + 3],
             LLVMDIFlagPublic,
         );
         unsafe {
@@ -1254,7 +1242,7 @@ impl<'ctx> DebugInfo<'ctx> {
         self.builder.create_subroutine_type(
             self.unit.get_file(),
             None,
-            &vec![self.value_pointer_type.as_type(); arity + 6],
+            &vec![self.value_pointer_type.as_type(); arity + IMPLICIT_PARAMS + 1],
             LLVMDIFlagPublic,
         )
     }

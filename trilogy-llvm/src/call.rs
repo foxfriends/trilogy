@@ -273,7 +273,7 @@ impl<'ctx> Codegen<'ctx> {
         let continuation_pointer = self.trilogy_continuation_untag(callable, "");
         let return_to = self.allocate_value("");
         let yield_to = self.allocate_value("");
-        let end_to = self.get_end("");
+        let end_to = self.allocate_value("");
         let closure = self.allocate_value("");
         self.trilogy_callable_return_to_into(return_to, callable);
         self.do_if(self.is_undefined(return_to), || {
@@ -282,6 +282,10 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_yield_to_into(yield_to, callable);
         self.do_if(self.is_undefined(yield_to), || {
             self.clone_yield(yield_to);
+        });
+        self.trilogy_callable_end_to_into(end_to, callable);
+        self.do_if(self.is_undefined(end_to), || {
+            self.clone_end(end_to);
         });
         self.trilogy_callable_closure_into(closure, callable, "");
 

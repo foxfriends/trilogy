@@ -32,6 +32,7 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
         );
@@ -48,6 +49,7 @@ impl<'ctx> Codegen<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
+        let end_to = self.get_end("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -60,6 +62,7 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
+            end_to,
             closure,
             continuation_function,
         );
@@ -75,6 +78,7 @@ impl<'ctx> Codegen<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
+        let end_to = self.get_end("");
         self.bind_temporary(continuation);
         let closure = self
             .builder
@@ -86,6 +90,7 @@ impl<'ctx> Codegen<'ctx> {
             continuation,
             return_to,
             yield_to,
+            end_to,
             closure,
             continuation_function,
         );

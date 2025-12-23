@@ -21,8 +21,8 @@ trilogy_callable_value*
 trilogy_callable_init_rule(trilogy_value* t, uint32_t arity, void* p);
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to /* moved */,
-    trilogy_value* yield_to /* moved */, trilogy_value* closure /* moved */,
-    void* p
+    trilogy_value* yield_to /* moved */, trilogy_value* end_to /* moved */,
+    trilogy_value* closure /* moved */, void* p
 );
 void trilogy_callable_clone_into(trilogy_value*, trilogy_callable_value* orig);
 void trilogy_callable_destroy(trilogy_callable_value* val);
@@ -35,6 +35,7 @@ void trilogy_callable_return_to_into(
 void trilogy_callable_yield_to_into(
     trilogy_value*, trilogy_callable_value* orig
 );
+void trilogy_callable_end_to_into(trilogy_value*, trilogy_callable_value* orig);
 
 trilogy_callable_value* trilogy_callable_untag(trilogy_value* val);
 trilogy_callable_value* trilogy_callable_assume(trilogy_value* val);

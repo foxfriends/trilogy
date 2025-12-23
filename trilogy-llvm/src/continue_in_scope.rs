@@ -106,6 +106,7 @@ impl<'ctx> Codegen<'ctx> {
             continue_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
             self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continue_function,
         );
