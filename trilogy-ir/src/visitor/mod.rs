@@ -74,7 +74,7 @@ pub trait IrVisitor: Sized {
     visit_node!(visit_module, Module);
     visit_node!(visit_rule_definition, RuleDefinition);
     visit_node!(visit_rule, Rule);
-    visit_node!(visit_constant_definition, ConstantDefinition);
+    visit_node!(visit_constant_definition, SlotDefinition);
     visit_node!(visit_expression, Expression);
     visit_node!(visit_pattern, Expression);
     visit_node!(visit_value, Value);
@@ -429,7 +429,7 @@ impl IrVisitable for TestDefinition {
     }
 }
 
-impl IrVisitable for ConstantDefinition {
+impl IrVisitable for SlotDefinition {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         visitor.visit_identifier(&self.name);
         visitor.visit_expression(&self.value);

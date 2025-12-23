@@ -200,7 +200,10 @@ impl Definition {
                     return vec![];
                 }
                 let name = Identifier::declare(converter, ast.name.clone());
-                Self::new(ast.span(), ConstantDefinition::declare(name))
+                Self::new(
+                    ast.span(),
+                    SlotDefinition::declare(name, ast.r#mut.is_some()),
+                )
             }
             syntax::DefinitionItem::Import(import) => {
                 let name = if let Some(type_as) = &import.type_as {
@@ -241,7 +244,7 @@ impl Definition {
                         let used_name = Identifier::declare(converter, name.aliased_name().clone());
                         names.push(Self::new(
                             name.span(),
-                            ConstantDefinition::declare(used_name),
+                            SlotDefinition::declare(used_name, false),
                         ));
                     }
                 }

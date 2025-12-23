@@ -9,7 +9,7 @@ use trilogy_scanner::{Token, TokenType};
 /// slot name = value
 /// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
-pub struct ConstantDefinition {
+pub struct SlotDefinition {
     pub slot: Token,
     pub r#mut: Option<Token>,
     pub name: Identifier,
@@ -18,13 +18,13 @@ pub struct ConstantDefinition {
     span: Span,
 }
 
-impl Spanned for ConstantDefinition {
+impl Spanned for SlotDefinition {
     fn span(&self) -> Span {
         self.span
     }
 }
 
-impl ConstantDefinition {
+impl SlotDefinition {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let slot = parser
             .expect(TokenType::KwSlot)
@@ -35,7 +35,7 @@ impl ConstantDefinition {
             .expect(TokenType::OpEq)
             .map_err(|token| parser.expected(token, "expected `=` in slot definition"))?;
         let body = Expression::parse(parser)?;
-        Ok(ConstantDefinition {
+        Ok(SlotDefinition {
             span: slot.span.union(body.span()),
             r#mut,
             slot,
@@ -50,8 +50,8 @@ impl ConstantDefinition {
 mod test {
     use super::*;
 
-    test_parse!(const_valid: "slot x = 123" => ConstantDefinition::parse => "(ConstantDefinition _ _ _ _ _)");
-    test_parse!(const_mutable_valid: "slot mut x = 123" => ConstantDefinition::parse => "(ConstantDefinition _ _ _ _ _)");
-    test_parse_error!(const_no_name: "slot = 5" => ConstantDefinition::parse);
-    test_parse_error!(const_no_value: "slot hello" => ConstantDefinition::parse => "expected `=` in slot definition");
+    test_parse!(const_valid: "slot x = 123" => SlotDefinition::parse => "(SlotDefinition _ _ _ _ _)");
+    test_parse!(const_mutable_valid: "slot mut x = 123" => SlotDefinition::parse => "(SlotDefinition _ _ _ _ _)");
+    test_parse_error!(const_no_name: "slot = 5" => SlotDefinition::parse);
+    test_parse_error!(const_no_value: "slot hello" => SlotDefinition::parse => "expected `=` in slot definition");
 }

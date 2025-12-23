@@ -7,7 +7,7 @@ use trilogy_ir::{Id, ir};
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn compile_constant(
         &self,
-        definition: &ir::ConstantDefinition,
+        definition: &ir::SlotDefinition,
         module_context: Option<Vec<Id>>,
     ) {
         let name = definition.name.to_string();

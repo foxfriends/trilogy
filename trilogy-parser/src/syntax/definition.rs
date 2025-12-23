@@ -15,7 +15,7 @@ pub enum DefinitionItem {
     /// An external procedure definition.
     ExternalProcedure(Box<ExternalProcedureDefinition>),
     /// A constant definition.
-    Constant(Box<ConstantDefinition>),
+    Constant(Box<SlotDefinition>),
     /// A function definition.
     Function(Box<FunctionDefinition>),
     /// A rule definition.
@@ -85,7 +85,7 @@ impl Definition {
             }
             KwImport => DefinitionItem::Import(Box::new(ImportDefinition::parse(parser)?)),
             KwExport => DefinitionItem::Export(Box::new(ExportDefinition::parse(parser)?)),
-            KwSlot => DefinitionItem::Constant(Box::new(ConstantDefinition::parse(parser)?)),
+            KwSlot => DefinitionItem::Constant(Box::new(SlotDefinition::parse(parser)?)),
             KwRule => DefinitionItem::Rule(Box::new(RuleDefinition::parse(parser)?)),
             KwProc => DefinitionItem::Procedure(Box::new(ProcedureDefinition::parse(parser)?)),
             KwExtern => DefinitionItem::ExternalProcedure(Box::new(

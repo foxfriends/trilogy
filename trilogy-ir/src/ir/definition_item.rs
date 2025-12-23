@@ -7,7 +7,7 @@ pub enum DefinitionItem {
     Function(Box<FunctionDefinition>),
     Rule(Box<RuleDefinition>),
     Test(Box<TestDefinition>),
-    Constant(Box<ConstantDefinition>),
+    Constant(Box<SlotDefinition>),
     Module(Box<ModuleDefinition>),
 }
 
@@ -35,8 +35,8 @@ impl From<TestDefinition> for DefinitionItem {
     }
 }
 
-impl From<ConstantDefinition> for DefinitionItem {
-    fn from(value: ConstantDefinition) -> Self {
+impl From<SlotDefinition> for DefinitionItem {
+    fn from(value: SlotDefinition) -> Self {
         Self::Constant(Box::new(value))
     }
 }
@@ -81,7 +81,7 @@ impl DefinitionItem {
     }
 
     /// Returns the item if it is a constant, or None otherwise
-    pub fn as_constant(&self) -> Option<&ConstantDefinition> {
+    pub fn as_constant(&self) -> Option<&SlotDefinition> {
         match self {
             Self::Constant(def) => Some(def.as_ref()),
             _ => None,

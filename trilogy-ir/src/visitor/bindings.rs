@@ -45,7 +45,7 @@ impl IrVisitor for Bindings {
         }
     }
 
-    fn visit_constant_definition(&mut self, node: &ConstantDefinition) {
+    fn visit_constant_definition(&mut self, node: &SlotDefinition) {
         self.bindings.insert(node.name.id.clone());
     }
 
