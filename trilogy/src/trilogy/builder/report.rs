@@ -75,6 +75,19 @@ impl<E: std::error::Error> Error<E> {
             ErrorKind::Ir(location, error) => {
                 use trilogy_ir::Error::*;
                 match error {
+                    Unimplemented { feature, span } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message(format!(
+                                "feature `{}` is not implemented",
+                                feature.fg(primary)
+                            ))
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("used here"),
+                            )
+                    }
                     UnknownExport { name } => {
                         let span = cache.span(location, name.span());
                         ariadne::Report::build(kind, span.clone())

@@ -5,6 +5,10 @@ use trilogy_parser::syntax;
 
 #[derive(Debug)]
 pub enum Error {
+    Unimplemented {
+        feature: &'static str,
+        span: Span,
+    },
     UnknownExport {
         name: syntax::Identifier,
     },
@@ -65,6 +69,9 @@ impl std::error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Error::Unimplemented { feature, .. } => {
+                write!(f, "feature `{feature}` is not implemented")
+            }
             Error::UnknownExport { .. } => write!(f, "unknown export"),
             Error::UnboundIdentifier { .. } => write!(f, "unbound identifier"),
             Error::DuplicateDefinition { .. } => write!(f, "duplicate definition"),

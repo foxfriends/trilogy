@@ -200,6 +200,13 @@ impl Definition {
                     return vec![];
                 }
                 let name = Identifier::declare(converter, ast.name.clone());
+                let is_mutable = ast.r#mut.is_some();
+                if is_mutable {
+                    converter.error(Error::Unimplemented {
+                        feature: "mutable slots",
+                        span: ast.r#mut.as_ref().unwrap().span,
+                    })
+                }
                 Self::new(
                     ast.span(),
                     SlotDefinition::declare(name, ast.r#mut.is_some()),
