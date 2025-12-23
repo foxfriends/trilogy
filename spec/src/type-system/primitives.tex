@@ -137,7 +137,7 @@ These numbers support all the normal operations (addition \op{+},
 subtraction \op{-}, multiplication \op{*}, division \op{/},
 modulus \op{\%}, integer division \op{//}, power \op{**}), but
 division is perfect (\texttt{1 / 3 == 1/3}), and operations that
-require complex numbers (\texttt{(-1) ** 1/2 == 0i1}) will succeed.
+require complex numbers (\texttt{(-1) ** 1/2 == 1i}) will succeed.
 
 The string representation of a Number depends on the value of the number,
 and is most conveniently described by example:
@@ -155,9 +155,9 @@ and is most conveniently described by example:
         \val{-123.456} & \texttt{-123.456} \\
         \val{1/3} & \texttt{1/3} \\
         \val{-1/3} & \texttt{-1/3} \\
-        \val{123i456} & \texttt{123 + 456i} \\
-        \val{123 - 0i456} & \texttt{123 - 456i} \\
-        \val{123.5i5.4} & \texttt{123.5 + 5.4i} \\
+        \val{123 + 456i} & \texttt{123 + 456i} \\
+        \val{123 - 456i} & \texttt{123 - 456i} \\
+        \val{123.5 + 5.4i} & \texttt{123.5 + 5.4i} \\
         \hline
     \end{tabular}
 \end{table}

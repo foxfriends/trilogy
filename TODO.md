@@ -9,7 +9,6 @@
 * Fix the memory leaks
 * Something wrong with `or` patterns when running JIT
 * Allow `with {}` (with a block)
-* Rethink complex number syntax, make more like normal
 * Make blocks and expressions more interchangeable
 * Rethink syntax of cases (`match` and `with`)
     * Add braces like most languages use

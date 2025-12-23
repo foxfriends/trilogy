@@ -8,9 +8,9 @@ test "number numer" {
   assert numer 1 == 1
   assert numer 3/2 == 3
   assert numer 4/2 == 2
-  assert numer 3i1 == 3
+  assert numer (3+1i)== 3
   assert numer (-5/2) == -5
-  assert numer 3/2i1/4 == 3
+  assert numer (3/2 + 1/4i) == 3
 }
 
 func denom num and typeof 'number = core::denom!(num)
@@ -19,9 +19,9 @@ test "number denom" {
   assert denom 1 == 1
   assert denom 3/2 == 2
   assert denom 4/2 == 1
-  assert denom 3i1 == 1
+  assert denom (3 + 1i) == 1
   assert denom (-5/2) == 2
-  assert denom 3/2i1/4 == 2
+  assert denom (3/2 + 1/4i) == 2
 }
 
 func is_natural num = im num == 0 && denom num == 1 && numer num >= 1
@@ -31,8 +31,8 @@ test "number is_natural" {
   assert !(is_natural 0)
   assert !(is_natural (-1))
   assert !(is_natural 1/2)
-  assert !(is_natural 0i1)
-  assert !(is_natural 3i1)
+  assert !(is_natural 1i)
+  assert !(is_natural (3 + 1i))
 }
 
 func is_whole num = im num == 0 && denom num == 1 && numer num >= 0
@@ -42,8 +42,8 @@ test "number is_whole" {
   assert is_whole 0
   assert !(is_whole 1/2)
   assert !(is_whole (-1))
-  assert !(is_whole 0i1)
-  assert !(is_whole 3i1)
+  assert !(is_whole 1i)
+  assert !(is_whole (3 + 1i))
 }
 
 func is_integer num = im num == 0 && denom num == 1
@@ -53,8 +53,8 @@ test "number is_integer" {
   assert is_integer 0
   assert is_integer (-1)
   assert !(is_integer 1/2)
-  assert !(is_integer 0i1)
-  assert !(is_integer 3i1)
+  assert !(is_integer 1i)
+  assert !(is_integer (3 + 1i))
 }
 
 func is_real num = im num == 0
@@ -64,8 +64,8 @@ test "number is_integer" {
   assert is_real 0
   assert is_real (-1)
   assert is_real 1/2
-  assert !(is_real 0i1)
-  assert !(is_real 3i1)
+  assert !(is_real 1i)
+  assert !(is_real (3 + 1i))
 }
 
 func is_imaginary num = re num == 0 && im num != 0
@@ -75,8 +75,8 @@ test "number is_integer" {
   assert !(is_imaginary 0)
   assert !(is_imaginary (-1))
   assert !(is_imaginary 1/2)
-  assert is_imaginary 0i1
-  assert !(is_imaginary 3i1)
+  assert is_imaginary 1i
+  assert !(is_imaginary (3 + 1i))
 }
 
 func is_complex num = re num != 0 && im num != 0
@@ -86,36 +86,36 @@ test "number is_integer" {
   assert !(is_complex 0)
   assert !(is_complex (-1))
   assert !(is_complex 1/2)
-  assert !(is_complex 0i1)
-  assert (is_complex 3i1)
+  assert !(is_complex 1i)
+  assert (is_complex (3 + 1i))
 }
 
 func re num and typeof 'number = core::re!(num)
 
 test "number re" {
-  assert re 3i1 == 3
-  assert re (-3i1) == -3
+  assert re (3 + 1i) == 3
+  assert re (-3 - 1i) == -3
 }
 
 func im num and typeof 'number = core::im!(num)
 
 test "number im" {
-  assert im 3i1 == 1
-  assert im (-3i1) == -1
+  assert im (3 + 1i) == 1
+  assert im (-3 - 1i) == -1
 }
 
-func conj num and typeof 'number = re num - (0i1 * im num)
+func conj num and typeof 'number = re num - (1i * im num)
 
 test "number conj" {
-  assert conj 3i1 == 3 - 0i1
-  assert conj (-3i1) == -3 + 0i1
+  assert conj (3 + 1i) == 3 - 1i
+  assert conj (-3 - 1i) == -3 + 1i
 }
 
-func swap num and typeof 'number = conj num * 0i1
+func swap num and typeof 'number = conj num * 1i
 
 test "number swap" {
-  assert swap 3i1 == 1i3
-  assert swap (-3i1) == -1i3
+  assert swap (3 + 1i) == 1 + 3i
+  assert swap (-3 - 1i) == -1 - 3i
 }
 
 func from_digit '9' = 9
@@ -163,7 +163,7 @@ test "number sign" {
 }
 
 func trunc_ a = if denom a == 1 then a else numer a // denom a
-func trunc a = trunc_ (re a) + 0i1 * trunc_ (im a)
+func trunc a = trunc_ (re a) + 1i * trunc_ (im a)
 
 test "number trunc" {
   assert trunc 5 == 5
@@ -171,12 +171,12 @@ test "number trunc" {
   assert trunc (-5) == -5
   assert trunc (-5/2) == -2
   assert trunc (5/2) == 2
-  assert trunc (5/2i5/2) == 2i2
-  assert trunc (-5/2i5/2) == -2i2
+  assert trunc (5/2 + 5/2i) == 2 + 2i
+  assert trunc (-5/2 - 5/2i) == -2 - 2i
 }
 
 func floor_ a = if denom a == 1 then a else if a > 0 then trunc_ a else trunc_ a - 1
-func floor a = floor_ (re a) + 0i1 * floor_ (im a)
+func floor a = floor_ (re a) + 1i * floor_ (im a)
 
 test "number floor" {
   assert floor 5 == 5
@@ -184,12 +184,12 @@ test "number floor" {
   assert floor (-5) == -5
   assert floor (-5/2) == -3
   assert floor (5/2) == 2
-  assert floor (5/2i5/2) == 2i2
-  assert floor (-5/2i5/2) == -3i3
+  assert floor (5/2 + 5/2i) == 2 + 2i
+  assert floor (-5/2 - 5/2i) == -3 - 3i
 }
 
 func ceil_ a = if denom a == 1 then a else if a > 0 then trunc_ a + 1 else trunc_ a
-func ceil a = ceil_ (re a) + 0i1 * ceil_ (im a)
+func ceil a = ceil_ (re a) + 1i * ceil_ (im a)
 
 test "number ceil" {
   assert ceil 5 == 5
@@ -197,6 +197,6 @@ test "number ceil" {
   assert ceil (-5) == -5
   assert ceil (-5/2) == -2
   assert ceil (5/2) == 3
-  assert ceil (5/2i5/2) == 3i3
-  assert ceil (-5/2i5/2) == -2i2
+  assert ceil (5/2 + 5/2i) == 3 + 3i
+  assert ceil (-5/2 - 5/2i) == -2 - 2i
 }

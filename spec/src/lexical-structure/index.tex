@@ -245,13 +245,11 @@ when writing or parsing expressions, as these two representations will
 lead to different results in ways not relevant to other languages without
 rational literals.
 
-As they are not often seen in other languages (and similarly unlikely to
-be witnessed in \Trilogy{}), complex numbers are written such as \val{13i5}
-to represent $13 + 5i$. On either side of the \texttt{i} may be a valid
-real number (including rational or floating point numbers). Neither value
-may be omitted (i.e. \val{0i5} not \texttt{i5}, and \val{13i0} not
-\texttt{13i}). A negative complex number $15 - 5i$ is written \val{15 - 0i5}
-(there is no literal, this is just a subtraction).
+A number suffixed with \texttt{i} is treated as an imaginary number, for
+example \val{13 + 5i} can be used to represent the complex number  $13 + 5i$.
+The number may be any valid real number (including rational or floating
+point numbers). A negative complex number $15 - 5i$ is written as usual
+(\val{15 - 5i}).
 
 \subsection{String and Character Literals}
 

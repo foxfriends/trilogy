@@ -445,26 +445,21 @@ impl<'a> Scanner<'a> {
         &mut self,
         starts_with: char,
     ) -> Result<BitsOrNumber<Complex<BigRational>>, Box<Token>> {
-        let real = match self.rational_or_float_or_bits(starts_with)? {
+        let number = match self.rational_or_float_or_bits(starts_with)? {
             BitsOrNumber::Number(number) => number,
             BitsOrNumber::Bits(bits) => return Ok(BitsOrNumber::Bits(bits)),
         };
-        let imaginary = match self.peek() {
-            Some('i') if self.predict('0'..='9') => {
-                self.consume().unwrap();
-                let first = self.consume().unwrap();
-                match self.rational_or_float_or_bits(first)? {
-                    BitsOrNumber::Number(number) => number,
-                    BitsOrNumber::Bits(..) => {
-                        return Err(Box::new(
-                            self.make_error("An imaginary component must be a number, not bits"),
-                        ));
-                    }
-                }
-            }
-            _ => BigRational::zero(),
-        };
-        Ok(BitsOrNumber::Number(Complex::new(real, imaginary)))
+        if self.expect('i').is_some() {
+            Ok(BitsOrNumber::Number(Complex::new(
+                BigRational::zero(),
+                number,
+            )))
+        } else {
+            Ok(BitsOrNumber::Number(Complex::new(
+                number,
+                BigRational::zero(),
+            )))
+        }
     }
 
     fn numeric(&mut self, starts_with: char) -> Token {

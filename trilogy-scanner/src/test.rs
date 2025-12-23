@@ -303,11 +303,11 @@ test_tokenize!(float_zero => "0.0" = [Numeric]);
 test_tokenize!(rational => "1/1234" = [Numeric]);
 test_tokenize!(rational_zero => "0/1" = [Numeric]);
 test_tokenize!(rational_div_by_zero => "1/0" = [Error]);
-test_tokenize!(complex => "5i1" = [Numeric]);
-test_tokenize!(complex_zero => "0i0" = [Numeric]);
-test_tokenize!(complex_float => "0.5i3" = [Numeric]);
-test_tokenize!(complex_rational => "1/5i1/3" = [Numeric]);
-test_tokenize!(no_rational_complex => "1i5/1i3" = [Error Identifier]);
+test_tokenize!(complex => "5i" = [Numeric]);
+test_tokenize!(complex_zero => "0i" = [Numeric]);
+test_tokenize!(complex_float => "0.5i" = [Numeric]);
+test_tokenize!(complex_rational => "1/5i" = [Numeric]);
+test_tokenize!(no_rational_complex => "1i/1i" = [Numeric OpSlash Numeric]);
 test_tokenize!(complex_no_prefix => "i123" = [Identifier]);
 test_tokenize!(no_float_rational => "0.5/1.3" = [Numeric OpSlash Numeric]);
 
@@ -329,8 +329,6 @@ test_tokenize!(bits_oct_state_underscores => "0bo_01_2345_67" = [Bits]);
 test_tokenize!(no_bits_float => "0bb1.1" = [Bits OpDot Numeric]);
 test_tokenize!(no_bits_rational => "0bb01/1" = [Bits OpSlash Numeric]);
 test_tokenize!(no_bits_rational_denom => "1/0bb01" = [Error]);
-test_tokenize!(no_bits_complex => "0bb01i1" = [Error Identifier]);
-test_tokenize!(no_bits_complex_imaginary => "1i0bb01" = [Error]);
 
 test_tokenize!(atom => "'hello" = [Atom]);
 test_tokenize!(atom_short => "'h" = [Atom]);
