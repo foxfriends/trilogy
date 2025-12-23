@@ -288,7 +288,10 @@ impl<'ctx> Codegen<'ctx> {
                 let go_next_fn = self.add_continuation("not.next");
                 let (go_next, go_next_cp) =
                     self.capture_current_continuation(go_next_fn, "not.next");
-                self.compile_query(query, go_next, bound_ids);
+                // Pass this thing to `done_to` so that it recovers if we reach done.
+                let inner_next = self.compile_query(query, go_next, bound_ids);
+                // If the inner query instead gives `next`, then discard those results and call done.
+                self.trilogy_value_destroy(inner_next);
                 self.void_call_continuation(self.use_temporary_clone(done_to).unwrap());
 
                 self.become_continuation_point(go_next_cp);

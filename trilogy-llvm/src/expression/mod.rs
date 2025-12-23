@@ -614,11 +614,11 @@ impl<'ctx> Codegen<'ctx> {
                 };
                 let merge_to_fn = self.add_continuation("is.cont");
                 let (merge_to_cont, merge_to_cp) =
-                    self.capture_current_continuation(merge_to_fn, "is.cont");
+                    self.capture_current_continuation_full(merge_to_fn, "is.cont");
 
                 let end_false_fn = self.add_continuation("is_false");
                 let (end_false_cont, end_false_cp) =
-                    self.capture_current_continuation(end_false_fn, "is_false");
+                    self.capture_current_continuation_full(end_false_fn, "is_false");
                 let next = self.compile_query_iteration(query, end_false_cont);
                 self.trilogy_value_destroy(next);
                 let result = self.allocate_const(self.bool_const(true), "");
