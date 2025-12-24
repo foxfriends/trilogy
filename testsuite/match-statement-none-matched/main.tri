@@ -1,5 +1,6 @@
 proc main!() {
-  match 'c
+  match 'c {
     case 'a { exit 1 }
     case 'b { exit 2 }
+  }
 }

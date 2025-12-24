@@ -1,18 +1,19 @@
 proc my_program!() {
   yield 'put(3:4)
   yield 'put(5:6)
-  return match yield 'get(3)
+  return match yield 'get(3) {
     case 'some(v) then "${v}"
     case 'none then "nothing here"
-    else then end
+  }
 }
 
 proc in_memory_with_map!(action) {
   let mut map = {||}
   let result = with action!()
-    when 'get(k) resume match map
+    when 'get(k) resume match map {
       case {| ^k => v, .._ |} then 'some(v)
-      else then 'none
+      else 'none
+    }
     when 'put(k:v) then {
       map.k = v
       become unit

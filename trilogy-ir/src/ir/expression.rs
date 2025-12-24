@@ -255,7 +255,7 @@ impl Expression {
             Assignment(ast) => crate::ir::Assignment::convert(converter, *ast),
             FunctionAssignment(ast) => crate::ir::Assignment::convert_function(converter, *ast),
             If(ast) => IfElse::convert_expression(converter, *ast),
-            Match(ast) => crate::ir::Match::convert_expression(converter, *ast),
+            Match(ast) => crate::ir::Match::convert_statement(converter, *ast),
             Defer(ast) => {
                 converter.error(Error::Unimplemented {
                     feature: "defer statement",

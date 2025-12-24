@@ -13,7 +13,7 @@ pub struct Match {
 }
 
 impl Match {
-    pub(super) fn convert_expression(
+    pub(super) fn convert_statement(
         converter: &mut Converter,
         ast: syntax::MatchExpression,
     ) -> Expression {
@@ -28,13 +28,11 @@ impl Match {
             Some(ast) => {
                 let span = ast.r#else.span().union(ast.body.span());
                 converter.push_scope();
-                let pattern = match ast.else_binding {
-                    None => Expression::wildcard(ast.r#else.span),
-                    Some(binding) => Expression::convert_pattern(converter, binding),
-                };
+                let pattern = Expression::wildcard(ast.r#else.span);
                 let guard = Expression::boolean(ast.r#else.span, true);
                 let body = match ast.body {
                     MatchExpressionCaseBody::Then(_, body) => Expression::convert(converter, body),
+                    MatchExpressionCaseBody::Bare(body) => Expression::convert(converter, body),
                     MatchExpressionCaseBody::Block(body) => {
                         Expression::convert_block(converter, body)
                     }
@@ -53,6 +51,50 @@ impl Match {
                     pattern: Expression::wildcard(span),
                     guard: Expression::boolean(span, true),
                     body: Expression::unit(span),
+                });
+            }
+        }
+        Expression::r#match(span, Self { expression, cases })
+    }
+
+    pub(super) fn convert_expression(
+        converter: &mut Converter,
+        ast: syntax::MatchExpression,
+    ) -> Expression {
+        let span = ast.span();
+        let expression = Expression::convert(converter, ast.expression);
+        let mut cases: Vec<_> = ast
+            .cases
+            .into_iter()
+            .map(|ast| Case::convert_expression(converter, ast))
+            .collect();
+        match ast.else_case {
+            Some(ast) => {
+                let span = ast.r#else.span().union(ast.body.span());
+                converter.push_scope();
+                let pattern = Expression::wildcard(ast.r#else.span);
+                let guard = Expression::boolean(ast.r#else.span, true);
+                let body = match ast.body {
+                    MatchExpressionCaseBody::Then(_, body) => Expression::convert(converter, body),
+                    MatchExpressionCaseBody::Bare(body) => Expression::convert(converter, body),
+                    MatchExpressionCaseBody::Block(body) => {
+                        Expression::convert_block(converter, body)
+                    }
+                };
+                converter.pop_scope();
+                cases.push(Case {
+                    span,
+                    pattern,
+                    guard,
+                    body,
+                });
+            }
+            None => {
+                cases.push(Case {
+                    span,
+                    pattern: Expression::wildcard(span),
+                    guard: Expression::boolean(span, true),
+                    body: Expression::end(span),
                 });
             }
         }
@@ -83,6 +125,7 @@ impl Case {
             .unwrap_or_else(|| Expression::boolean(case_span, true));
         let body = match ast.body {
             MatchExpressionCaseBody::Then(_, body) => Expression::convert(converter, body),
+            MatchExpressionCaseBody::Bare(body) => Expression::convert(converter, body),
             MatchExpressionCaseBody::Block(body) => Expression::convert_block(converter, body),
         };
         converter.pop_scope();

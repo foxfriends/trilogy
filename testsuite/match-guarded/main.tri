@@ -1,8 +1,9 @@
 proc main!() {
-  let val = match 'a(1)
+  let val = match 'a(1) {
     case 'a(n) if n > 3 then 1
     case 'a(n) if n < 3 then 2
-    else then 3
+    else 3
+  }
 
   assert val == 2
 }

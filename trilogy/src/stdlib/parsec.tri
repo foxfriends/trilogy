@@ -110,17 +110,19 @@ func many_1 parser = do() {
 }
 
 func sep_tail sep parser = do() {
-  return match apply <| option <| prefixed_by sep parser
+  return match apply <| option <| prefixed_by sep parser {
     case 'some(result) then [result, ..apply <| sep_tail sep parser]
-    else then [] 
+    else []
+  }
 }
 
 ## Parses zero or more occurrences of `parser`, separated by `sep`. Returns
 ## an array of the parsed values of `parser`.
 func sep_by sep parser = do() {
-  return match apply <| option parser
+  return match apply <| option parser {
     case 'some(first) then [first, ..apply <| sep_tail sep parser]
-    else then []
+    else []
+  }
 }
 
 ## Parses one or more occurrences of `parser`, separated by `sep`. Returns
@@ -155,9 +157,10 @@ func between prefix suffix parser = do() {
 ## Parses zero or more occurrences of `parser`, separated and ended by `sep`.
 ## Returns an array of the parsed values of `parser`.
 func end_by sep parser = do() {
-  let first = match apply <| option <| followed_by sep parser
+  let first = match apply <| option <| followed_by sep parser {
     case 'some(value) then value
-    else then return []
+    else { return [] }
+  }
   let tail = apply <| end_by sep parser
   return [first, ..tail]
 }
@@ -171,12 +174,14 @@ func end_by_1 sep parser = do() {
 }
 
 func sep_end_by sep parser = do() {
-  let first = match apply <| option parser
+  let first = match apply <| option parser {
     case 'some(value) then value
-    else then return []
-  return match apply <| option sep
+    else { return [] }
+  }
+  return match apply <| option sep {
     case 'some(_) then [first, ..apply <| sep_end_by sep parser]
-    else then [first]
+    else [first]
+  }
 }
 
 ## Reads one instance of `parser` per line.
@@ -192,12 +197,13 @@ proc eof!() {
 
 ## A parser for a single character.
 func char c = do() {
-  let actual = match yield 'next
+  let actual = match yield 'next {
     case 'some(ch) then ch
     else {
       yield 'reject("reached end of input")
       end
     }
+  }
   if c == actual {
     yield 'accept
     return c
@@ -209,7 +215,7 @@ func char c = do() {
 
 ## A parser for a single token.
 proc any!() {
-  match yield 'next
+  match yield 'next {
     case 'some(ch) {
       yield 'accept
       return ch
@@ -218,6 +224,7 @@ proc any!() {
       yield 'reject("reached end of input")
       end
     }
+  }
 }
 
 ## A parser for a specific sequence of characters.

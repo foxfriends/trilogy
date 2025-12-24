@@ -5,54 +5,56 @@ export to_string, dbg, trace
 
 func escape_string string = replace_all "\"" "\\\"" string
 
-func to_string val = match val
-  case lhs:rhs then "(${to_string lhs}:${to_string rhs})"
-  case typeof 'atom then "'${core::to_string val}"
-  case typeof 'struct {
-    let lhs:rhs = core::destruct val
-    "${to_string lhs}(${to_string rhs})"
-  }
-  case typeof 'array {
-    let mut str = "["
-    let mut i = 0
-    while i < core::length val {
-      str <>= "${to_string val.i}"
-      i += 1
-      if i != core::length val {
-        str <>= ", "
-      }
+func to_string val =
+  match val {
+    case lhs:rhs then "(${to_string lhs}:${to_string rhs})"
+    case typeof 'atom then "'${core::to_string val}"
+    case typeof 'struct {
+      let lhs:rhs = core::destruct val
+      "${to_string lhs}(${to_string rhs})"
     }
-    str <> "]"
-  }
-  case typeof 'set {
-    let mut str = "[|"
-    let mut i = 0
-    let arr = core::to_array val
-    while i < core::length arr {
-      str <>= "${to_string arr.i}"
-      i += 1
-      if i != core::length arr {
-        str <>= ", "
+    case typeof 'array {
+      let mut str = "["
+      let mut i = 0
+      while i < core::length val {
+        str <>= "${to_string val.i}"
+        i += 1
+        if i != core::length val {
+          str <>= ", "
+        }
       }
+      str <> "]"
     }
-    str <> "|]"
-  }
-  case typeof 'record {
-    let mut str = "{|"
-    let mut i = 0
-    let arr = core::to_array val
-    while i < core::length arr {
-      str <>= "${to_string arr.i.'left} => ${to_string arr.i.'right}"
-      i += 1
-      if i != core::length arr {
-        str <>= ", "
+    case typeof 'set {
+      let mut str = "[|"
+      let mut i = 0
+      let arr = core::to_array val
+      while i < core::length arr {
+        str <>= "${to_string arr.i}"
+        i += 1
+        if i != core::length arr {
+          str <>= ", "
+        }
       }
+      str <> "|]"
     }
-    str <> "|}"
+    case typeof 'record {
+      let mut str = "{|"
+      let mut i = 0
+      let arr = core::to_array val
+      while i < core::length arr {
+        str <>= "${to_string arr.i.'left} => ${to_string arr.i.'right}"
+        i += 1
+        if i != core::length arr {
+          str <>= ", "
+        }
+      }
+      str <> "|}"
+    }
+    case typeof 'string then "\"${escape_string val}\""
+    case typeof 'bits then "0bb${core::to_string val}"
+    else core::to_string val
   }
-  case typeof 'string then "\"${escape_string val}\""
-  case typeof 'bits then "0bb${core::to_string val}"
-  else then core::to_string val
 
 proc dbg!(value) {
   core::print!("${to_string value}\n")

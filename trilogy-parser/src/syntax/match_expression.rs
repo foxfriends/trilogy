@@ -7,8 +7,10 @@ use trilogy_scanner::{Token, TokenType::*};
 pub struct MatchExpression {
     pub r#match: Token,
     pub expression: Expression,
+    pub obrace: Token,
     pub cases: Vec<MatchExpressionCase>,
     pub else_case: Option<MatchExpressionElseCase>,
+    pub cbrace: Token,
     span: Span,
 }
 
@@ -26,6 +28,9 @@ impl MatchExpression {
 
         let expression = Expression::parse(parser)?;
 
+        let obrace = parser
+            .expect(OBrace)
+            .map_err(|token| parser.expected(token, "expected { to begin `match` body"))?;
         let mut cases = vec![];
         loop {
             if let Err(token) = parser.check(KwCase) {
@@ -48,6 +53,10 @@ impl MatchExpression {
             None
         };
 
+        let cbrace = parser
+            .expect(CBrace)
+            .map_err(|token| parser.expected(token, "expected } to end `match` body"))?;
+
         let span = match &else_case {
             Some(case) => r#match.span.union(case.span()),
             None => r#match.span.union(
@@ -61,16 +70,11 @@ impl MatchExpression {
             span,
             r#match,
             expression,
+            obrace,
             cases,
             else_case,
+            cbrace,
         })
-    }
-
-    pub(crate) fn strict_expression(self) -> SyntaxResult<Self> {
-        if self.else_case.is_some() {
-            return Ok(self);
-        }
-        Err(ErrorKind::MatchExpressionRestriction.at(self.span()))
     }
 }
 
@@ -86,6 +90,7 @@ pub struct MatchExpressionCase {
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum MatchExpressionCaseBody {
     Then(Token, Expression),
+    Bare(Expression),
     Block(Block),
 }
 
@@ -111,7 +116,8 @@ impl MatchExpressionCase {
             .map(|_| Pattern::parse(parser))
             .transpose()?;
         let guard = Guard::parse_optional(parser)?;
-        let body = MatchExpressionCaseBody::parse(parser, Precedence::None)?;
+
+        let body = MatchExpressionCaseBody::parse(parser, Precedence::Continuation)?;
         Ok(Self {
             span: case.span.union(body.span()),
             case,
@@ -157,7 +163,6 @@ impl Guard {
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct MatchExpressionElseCase {
     pub r#else: Token,
-    pub else_binding: Option<Pattern>,
     pub body: MatchExpressionCaseBody,
     span: Span,
 }
@@ -171,18 +176,15 @@ impl Spanned for MatchExpressionElseCase {
 impl MatchExpressionElseCase {
     fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let r#else = parser.expect(KwElse).unwrap();
-        let else_binding = if parser.check(Discard).is_ok() {
-            Some(Pattern::parse(parser)?)
-        } else if parser.check(KwThen).is_ok() || parser.check(OBrace).is_ok() {
-            None
+        let body = if parser.check(OBrace).is_ok() {
+            MatchExpressionCaseBody::Block(Block::parse(parser)?)
         } else {
-            Some(Pattern::Binding(Box::new(BindingPattern::parse(parser)?)))
+            let body = Expression::parse_precedence(parser, Precedence::None)?;
+            MatchExpressionCaseBody::Bare(body)
         };
-        let body = MatchExpressionCaseBody::parse(parser, Precedence::Continuation)?;
         Ok(Self {
             span: r#else.span.union(body.span()),
             r#else,
-            else_binding,
             body,
         })
     }
@@ -192,11 +194,14 @@ impl MatchExpressionElseCase {
 mod test {
     use super::*;
 
-    test_parse!(match_parse_exprs: "match x\n  case 1 then x\n  else then y" => MatchExpression::parse => "
+    test_parse!(match_parse_exprs: "match x { case 1 then x\n  else y }" => MatchExpression::parse => "
       (MatchExpression
         _
         (Expression::Reference _)
+        _
         [(MatchExpressionCase _ _ _ _)]
-        (MatchExpressionElseCase _ _ _))
+        (MatchExpressionElseCase _ _)
+        _)
     ");
+    test_parse_error!(match_no_parse_else_not_last: "match x { case 1 then x\n  else y\n  case 2 then x }" => MatchExpression::parse);
 }

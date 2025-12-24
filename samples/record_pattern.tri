@@ -5,10 +5,11 @@ proc main!() {
         3 => "c",
     |};
 
-    let y = match rec
+    let y = match rec {
         case {| 1 => "b", 2 => _, ..c |} then c
         case {| 1 => "a", 3 => _, ..c |} then c
-        else _ then unit
+        else unit
+    }
 
     exit y;
 }

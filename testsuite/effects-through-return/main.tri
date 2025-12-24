@@ -3,9 +3,10 @@ proc both!(a, b) {
 }
 
 proc inner!() {
-  match both!('a, 'b)
+  match both!('a, 'b) {
     case 'a then return 1
     case 'b then return 2
+  }
 }
 
 proc main!() {

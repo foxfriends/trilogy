@@ -3,9 +3,11 @@ import "trilogy:atom/rt" as rt
 slot dyn_atoms = {||}
 
 export to_string
-func to_string atom = match rt::lookup_slot atom
-  case name and typeof 'string then name
-  else _ then dyn_atoms.atom
+func to_string atom =
+  match rt::lookup_slot atom {
+    case name and typeof 'string then name
+    else dyn_atoms.atom
+  }
 
 export new
 proc new!(name) {

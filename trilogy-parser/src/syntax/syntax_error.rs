@@ -11,7 +11,6 @@ pub enum ErrorKind {
     TripleDot { dot: Span },
     IfStatementRestriction,
     IfExpressionRestriction,
-    MatchExpressionRestriction,
     TaggedTemplateMissingIdentifier,
     TaggedTemplateNotIdentifier,
 }
@@ -77,9 +76,6 @@ impl Display for SyntaxError {
             )?,
             ErrorKind::IfExpressionRestriction => {
                 write!(f, "an `if` expression must have an `else` clause")?
-            }
-            ErrorKind::MatchExpressionRestriction => {
-                write!(f, "a `match` expression must have an `else` case")?
             }
             ErrorKind::TaggedTemplateMissingIdentifier => write!(
                 f,

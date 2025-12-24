@@ -1,24 +1,23 @@
-\subsubsection{Match-Else}
+\subsubsection{Match}
 
-The \kw{match}-\kw{else} expression unifies a value with its cases, and evaluates the
+The \kw{match} expression unifies a value with its cases, and evaluates the
 branch associated with the first unification that succeeds. This is much
 like the \kw{match} statement of \Prose{}, but as all expressions are required
-to evaluate to some value, the \kw{match}-\kw{else} expression requires a specific
-\kw{else} clause to be run in the situation that no \kw{case} was selected.
+to evaluate to some value, the execution ends if no case is matched.
 
-Repeated here are the same grammar for Cases as seen in \S\ref{sec:prose-match}.
+Repeated here are the same grammar rules as seen in \S\ref{sec:prose-match}.
 
 \begin{bnf*}
-    \bnfprod{MatchElse}{
+    \bnfprod{Match}{
         \bnfts{\kw{match}}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
+        \bnfts{\{}
+        \bnfsp
         \bnfpn{Cases}
         \bnfsp
-        \bnfts{\kw{else}}
-        \bnfsp
-        \bnfpn{ElseCase}
+        \bnfts{\}}
     } \\
     \bnfprod{Cases}{
         \bnfpn{Case}
@@ -26,6 +25,8 @@ Repeated here are the same grammar for Cases as seen in \S\ref{sec:prose-match}.
         \bnfpn{Cases}
         \bnfor
         \bnfpn{Case}
+        \bnfor
+        \bnfpn{ElseCase}
     } \\
     \bnfprod{Case}{
         \bnfts{\kw{case}}
@@ -62,13 +63,13 @@ Repeated here are the same grammar for Cases as seen in \S\ref{sec:prose-match}.
         \bnfts{\kw{else}}
         \bnfsp
         \bnfpn{CaseBody}
-    } \\
+    }
 \end{bnf*}
 
-The \kw{match}-\kw{else} expression is evaluated in much the same way as the \kw{match}
+The \kw{match} expression is evaluated in much the same way as the \kw{match}
 statement of \Prose{} (\S\ref{sec:prose-match}). The only addition is the inclusion of
 the \kw{else} case, and the fact that the result of evaluating the matched case is used
-as the resulting value of the whole \kw{match}-\kw{else} expression.
+as the resulting value of the whole \kw{match} expression.
 
 \begin{prooftree}
     \AxiomC{$\Gamma \vdash E$}
@@ -103,7 +104,7 @@ as the resulting value of the whole \kw{match}-\kw{else} expression.
 \end{prooftree}
 
 The omitted clauses of the \kw{case} statement are formalized by the same syntax
-transformation as before, as well as the additional \kw{else} case:
+transformation as before:
 
 \begin{align*}
     \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %

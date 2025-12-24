@@ -205,11 +205,17 @@ test "iterator fold" {
 
 func reduce f it =
   let mut state = 'none,
-  with it!(); match state case 'some(v) then v else then yield 'mia
+  with
+      it!();
+      match state {
+        case 'some(v) then v
+        else yield 'mia
+      }
     when 'next(val) then {
-      state = match state
+      state = match state {
         case 'some(prev) then 'some(f prev val)
-        else then 'some(val)
+        else 'some(val)
+      }
       become unit
     }
     else yield

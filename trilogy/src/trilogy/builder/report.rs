@@ -73,9 +73,9 @@ impl<E: std::error::Error> Error<E> {
                 return;
             }
             ErrorKind::Ir(location, error) => {
-                use trilogy_ir::Error::*;
+                use trilogy_ir::Error;
                 match error {
-                    Unimplemented { feature, span } => {
+                    Error::Unimplemented { feature, span } => {
                         let span = cache.span(location, *span);
                         ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
@@ -88,7 +88,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_message("used here"),
                             )
                     }
-                    UnknownExport { name } => {
+                    Error::UnknownExport { name } => {
                         let span = cache.span(location, name.span());
                         ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
@@ -101,7 +101,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_message("listed here"),
                             )
                     }
-                    UnboundIdentifier { name } => {
+                    Error::UnboundIdentifier { name } => {
                         let span = cache.span(location, name.span());
                         ariadne::Report::build(kind, span.clone())
                             .with_message(format!(
@@ -114,7 +114,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_message("referenced here"),
                             )
                     }
-                    DuplicateDefinition {
+                    Error::DuplicateDefinition {
                         original,
                         duplicate,
                     } => {
@@ -140,7 +140,7 @@ impl<E: std::error::Error> Error<E> {
                             )
                             .with_note("all declarations in the same scope with the same name must be of the same type and arity")
                     }
-                    DuplicateExport {
+                    Error::DuplicateExport {
                         original,
                         duplicate,
                     } => {
@@ -164,7 +164,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(2),
                             )
                     }
-                    IdentifierInOwnDefinition { name } => {
+                    Error::IdentifierInOwnDefinition { name } => {
                         let span = cache.span(location, name.span);
                         let declaration_span = cache.span(location, name.declaration_span);
                         ariadne::Report::build(kind, span.clone())
@@ -186,7 +186,7 @@ impl<E: std::error::Error> Error<E> {
                             )
                             .with_config(Config::default().with_cross_gap(false))
                     }
-                    AssignedImmutableBinding { name, assignment } => {
+                    Error::AssignedImmutableBinding { name, assignment } => {
                         let span = cache.span(location, *assignment);
                         let declaration_span = cache.span(location, name.declaration_span);
                         ariadne::Report::build(kind, span.clone())
@@ -211,7 +211,7 @@ impl<E: std::error::Error> Error<E> {
                                 name.id.name(),
                             ))
                     }
-                    GluePatternMissingLiteral { lhs, glue, rhs } => {
+                    Error::GluePatternMissingLiteral { lhs, glue, rhs } => {
                         let lhs = cache.span(location, *lhs);
                         let glue = cache.span(location, *glue);
                         let rhs = cache.span(location, *rhs);
@@ -238,7 +238,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(3),
                             )
                     }
-                    NonConstantExpressionInConstant { expression } => {
+                    Error::NonConstantExpressionInConstant { expression } => {
                         let span = cache.span(location, *expression);
                         ariadne::Report::build(kind, span.clone())
                             .with_message(
@@ -251,7 +251,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    NoReturnFromRule { expression } => {
+                    Error::NoReturnFromRule { expression } => {
                         let span = cache.span(location, *expression);
                         ariadne::Report::build(kind, span.clone())
                             .with_message(
@@ -264,7 +264,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    MultiValuedPatternInSet { expression } => {
+                    Error::MultiValuedPatternInSet { expression } => {
                         let span = cache.span(location, *expression);
                         ariadne::Report::build(kind, span.clone())
                             .with_message(
@@ -279,7 +279,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    MultiValuedPatternInRecordKey { expression } => {
+                    Error::MultiValuedPatternInRecordKey { expression } => {
                         let span = cache.span(location, *expression);
                         ariadne::Report::build(kind, span.clone())
                             .with_message(
@@ -294,7 +294,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    BreakOutsideLoopContext { span } => {
+                    Error::BreakOutsideLoopContext { span } => {
                         let span = cache.span(location, *span);
                         ariadne::Report::build(kind, span.clone())
                             .with_message("break may not be used outside of a loop")
@@ -305,7 +305,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    ContinueOutsideLoopContext { span } => {
+                    Error::ContinueOutsideLoopContext { span } => {
                         let span = cache.span(location, *span);
                         ariadne::Report::build(kind, span.clone())
                             .with_message("continue may not be used outside of a loop")
@@ -316,7 +316,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    CancelOutsideHandlerContext { span } => {
+                    Error::CancelOutsideHandlerContext { span } => {
                         let span = cache.span(location, *span);
                         ariadne::Report::build(kind, span.clone())
                             .with_message("cancel may not be used outside of a handler")
@@ -327,7 +327,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    ResumeOutsideHandlerContext { span } => {
+                    Error::ResumeOutsideHandlerContext { span } => {
                         let span = cache.span(location, *span);
                         ariadne::Report::build(kind, span.clone())
                             .with_message("resume may not be used outside of a handler")
@@ -338,7 +338,7 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
-                    BecomeOutsideHandlerContext { span } => {
+                    Error::BecomeOutsideHandlerContext { span } => {
                         let span = cache.span(location, *span);
                         ariadne::Report::build(kind, span.clone())
                             .with_message("become may not be used outside of a handler")
@@ -406,22 +406,22 @@ impl<E: std::error::Error> Error<E> {
                 }
             }
             ErrorKind::Syntax(location, error) => {
-                use trilogy_parser::syntax::ErrorKind::*;
+                use trilogy_parser::syntax::ErrorKind;
                 let span = cache.span(location, error.span());
                 match error.kind() {
-                    Unknown(message) => ariadne::Report::build(kind, span.clone())
+                    ErrorKind::Unknown(message) => ariadne::Report::build(kind, span.clone())
                         .with_message(message)
                         .with_label(Label::new(span).with_color(primary)),
-                    RuleRightArrow => ariadne::Report::build(kind, span.clone())
+                    ErrorKind::RuleRightArrow => ariadne::Report::build(kind, span.clone())
                         .with_message(format!("a `{}` may not be used in a rule definition", "->".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing it with a `<-`")),
-                    KwNotInExpression => ariadne::Report::build(kind, span.clone())
+                    ErrorKind::KwNotInExpression => ariadne::Report::build(kind, span.clone())
                         .with_message(format!("the `{}` keyword may not be used in an expression, did you mean to use the `!` operator?", "not".fg(primary)))
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing this `not` with `!`")),
-                    MatchStatementExpressionCase => ariadne::Report::build(kind, span.clone())
+                    ErrorKind::MatchStatementExpressionCase => ariadne::Report::build(kind, span.clone())
                         .with_message("cases in a match statement must be handled with blocks")
                         .with_label(Label::new(span).with_color(primary).with_message("try replacing this handler with a block")),
-                    TripleDot { dot } => {
+                    ErrorKind::TripleDot { dot } => {
                         let dot = cache.span(location, *dot);
                         ariadne::Report::build(kind, span.clone())
                             .with_message(format!("unexpected extra `{}` in spread (`{}`) expression", ".".fg(primary), "..".fg(secondary)))
@@ -429,16 +429,14 @@ impl<E: std::error::Error> Error<E> {
                             .with_label(Label::new(dot).with_color(primary).with_message("try removing this `.`"))
                             .with_help("the spread operator uses only two (`..`)")
                     }
-                    IfStatementRestriction => ariadne::Report::build(kind, span)
+                    ErrorKind::IfStatementRestriction => ariadne::Report::build(kind, span)
                         .with_message("an `if` statement must be in strict statement form, or be a valid `if` expression"),
-                    IfExpressionRestriction => ariadne::Report::build(kind, span)
+                    ErrorKind::IfExpressionRestriction => ariadne::Report::build(kind, span)
                         .with_message("an `if` expression must have an `else` clause"),
-                    MatchExpressionRestriction => ariadne::Report::build(kind, span)
-                        .with_message("a `match` expression must have an `else` case"),
-                    TaggedTemplateMissingIdentifier => ariadne::Report::build(kind, span.clone())
+                    ErrorKind::TaggedTemplateMissingIdentifier => ariadne::Report::build(kind, span.clone())
                         .with_message("a tagged template requires a tag identifier")
                         .with_label(Label::new(span).with_color(primary).with_message("try inserting an identifier here")),
-                    TaggedTemplateNotIdentifier => ariadne::Report::build(kind, span.clone())
+                    ErrorKind::TaggedTemplateNotIdentifier => ariadne::Report::build(kind, span.clone())
                         .with_message("the `$` operator prefixing a tagged template requires an identifier")
                         .with_label(Label::new(span).with_color(primary).with_message("this must be an identifier")),
                 }

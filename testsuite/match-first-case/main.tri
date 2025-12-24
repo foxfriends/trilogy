@@ -1,9 +1,10 @@
 proc main!() {
-  let val = match 'a
+  let val = match 'a {
     case 'a then 1
     case 'b then 2
     case 'c then 3
-    else then 4
+    else 4
+  }
 
   assert val == 1
 }

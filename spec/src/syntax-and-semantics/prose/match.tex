@@ -9,7 +9,8 @@ in much the same way a \kw{false} evaluation of an \kw{if} statement is skipped.
 
 The \kw{match} statement takes an expression and is followed by multiple \kw{case}
 statements. Each \kw{case} statement has a pattern, a guard, or both, and then a block
-of code to run if that case is selected.
+of code to run if that case is selected. An \kw{else} clause may be included as the
+last case, to be run in the situation that no \kw{case} was selected.
 
 \begin{bnf*}
     \bnfprod{Match}{
@@ -17,7 +18,11 @@ of code to run if that case is selected.
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
+        \bnfts{\{}
+        \bnfsp
         \bnfpn{Cases}
+        \bnfsp
+        \bnfts{\}}
     } \\
     \bnfprod{Cases}{
         \bnfpn{Case}
@@ -25,6 +30,8 @@ of code to run if that case is selected.
         \bnfpn{Cases}
         \bnfor
         \bnfpn{Case}
+        \bnfor
+        \bnfpn{ElseCase}
     } \\
     \bnfprod{Case}{
         \bnfts{\kw{case}}
@@ -49,6 +56,19 @@ of code to run if that case is selected.
         \bnfor
         \bnfpn{Block}
     } \\
+    \bnfprod{ElseCase}{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Binding}
+        \bnfsp
+        \bnfpn{CaseBody}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{CaseBody}
+    }
 \end{bnf*}
 
 To evaluate a \kw{match} statement, the original expression is evaluated, and compared
@@ -94,9 +114,12 @@ they are simply ignored and the program continues.
     \BinaryInfC{$\Gamma \vdash \kw{match}\ E\ R_1 R_2 \cdots R_n \Rightarrow \Phi$}
 \end{prooftree}
 
-The omitted clauses of the \kw{case} statement are formalized by syntax transformation:
+The omitted clauses of the \kw{case} statement, and the behaviour of the \kw{else} case,
+are formalized by syntax transformation:
 
 \begin{align*}
     \texttt{\kw{case} \$p:pat} &\Rightarrow \texttt{\kw{case} \$p \kw{if} \kw{true}} \\ %
     \texttt{\kw{case} \kw{if} \$c:expr} &\Rightarrow \texttt{\kw{case} \_ \kw{if} \$c} \\ %
+    \texttt{\kw{else} \_ \kw{then}} &\Rightarrow \texttt{\kw{case} \_ \kw{then}} \\ %
+    \texttt{\kw{else} \$i:id \kw{then}} &\Rightarrow \texttt{\kw{case} \$i \kw{then}} \\ %
 \end{align*}

@@ -4,8 +4,9 @@ proc main!() {
   let set = [| (do() (return))!() |]
   assert length set == 1
   let goto in set
-  match goto
+  match goto {
     case 1 then exit 0
-    else then goto 1
+    else goto 1
+  }
   exit 1
 }

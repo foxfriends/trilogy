@@ -1,0 +1,6 @@
+proc main!() {
+  let x = match 'c {
+    case 'a then 1
+    case 'b then 2
+  }
+}

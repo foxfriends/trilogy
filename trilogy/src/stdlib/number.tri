@@ -151,10 +151,12 @@ test "number abs" {
   assert abs 0 == 0
 }
 
-func sign a = match a
-  case 0 then 0
-  case n if n < 0 then -1
-  else then 1
+func sign a =
+  match a {
+    case 0 then 0
+    case n if n < 0 then -1
+    else 1
+  }
 
 test "number sign" {
   assert sign 5 == 1
