@@ -338,10 +338,14 @@ impl<'ctx> Codegen<'ctx> {
             self.begin_next_function(next_case_function);
         }
 
-        // A handler is always complete by the syntax requiring an `else` case at the end, so the last
-        // branch is never reachable.
-        let unreachable = self.builder.build_unreachable().unwrap();
-        self.end_continuation_point_as_clean(unreachable);
+        self.push_handler_scope(resume);
+        let effect = self.use_temporary_clone(effect).unwrap();
+        let returned = self.call_yield(effect, "");
+        let resumed = self.call_resume(returned, "");
+        let cancel = self.allocate_value("");
+        self.trilogy_value_clone_into(cancel, self.get_cancel());
+        self.call_known_continuation(cancel, resumed);
+        self.pop_handler_scope();
     }
 
     fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {

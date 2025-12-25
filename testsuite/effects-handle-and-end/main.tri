@@ -3,5 +3,5 @@ proc body!() {
 }
 
 proc main!() {
-  with body!() when 'eff then {} else yield
+  with body!() { when 'eff then {} }
 }

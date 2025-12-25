@@ -405,19 +405,20 @@ proc test_main!(tests) {
 
   for test_name:test_procedure in tests {
     c::print!("test ${test_name} ... ")
-    with test_procedure!()
+    with test_procedure!() {
       when 'assertion_failed(msg) then {
         c::print!(red "assertion failed")
         c::print!(": ${msg}\n")
         failures += 1
         continue unit
       }
-      else eff then {
+      when eff then {
         c::print!(red "failure")
         c::print!(": unhandled effect yielded from test: ${eff}\n")
         failures += 1
         continue unit
       }
+    }
     c::print!(green "ok")
     c::print!("\n")
     successes += 1

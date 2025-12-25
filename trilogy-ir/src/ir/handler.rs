@@ -74,12 +74,7 @@ impl Handler {
                 converter.scope.set_allow_resume_cancel(false);
                 let else_span = handler.else_token().span;
                 let effect = Identifier::temporary(converter, else_span);
-                let pattern = handler
-                    .identifier
-                    .map(|id| Expression::reference(id.span(), Identifier::declare(converter, id)))
-                    .unwrap_or_else(|| Expression::wildcard(else_span));
-                let pattern = Expression::reference(else_span, effect.clone())
-                    .and(else_span.union(pattern.span), pattern);
+                let pattern = Expression::reference(else_span, effect.clone());
                 let guard = Expression::boolean(else_span, true);
                 converter.scope.set_allow_resume_cancel(true);
                 let body = Self::convert_strategy(converter, handler.strategy, effect);

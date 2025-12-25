@@ -6,12 +6,13 @@ proc do_inner!() {
 }
 
 proc do_things!() {
-  return with do_inner!() else yield
+  return with do_inner!() { else yield }
 }
 
 proc main!() {
-  assert with do_things!()
+  assert with do_things!() {
     when 'get_hello resume 'hello
     else yield
+  }
   println!("Made it to end")
 }

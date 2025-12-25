@@ -42,9 +42,9 @@ proc readline!() {
 export readlines
 proc readlines!() {
   while true {
-    let line = with readline!()
+    let line = with readline!() {
       when 'eof cancel break unit
-      else yield
+    }
     yield 'next(line)
   }
 }

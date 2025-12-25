@@ -3,8 +3,9 @@ proc inner!() {
 }
 
 proc main!() {
-  with inner!()
+  with inner!() {
     when 'eff resume 1
     else yield
+  }
   assert "Unreachable" as false
 }

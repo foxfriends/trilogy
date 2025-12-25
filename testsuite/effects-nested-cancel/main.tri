@@ -6,14 +6,15 @@ proc do_inner!() {
 }
 
 proc do_things!() {
-  with do_inner!() else yield
+  with do_inner!() { else yield }
   assert "don't go here" as false
   return false
 }
 
 proc main!() {
-  assert 'hello == with do_things!()
+  assert 'hello == with do_things!() {
     when 'get_hello cancel 'hello
     else yield
+  }
   println!("Made it to end")
 }

@@ -11,12 +11,13 @@ proc process!() {
 }
 
 proc main!() {
-  let x = with process!()
+  let x = with process!() {
     when 'both then {
       let a = resume true
       let b = resume false
       cancel a:b
     }
     else yield
+  }
   assert x == (('a:'c):('a:'d)):(('b:'c):('b:'d))
 }

@@ -31,8 +31,8 @@ func of val = do() {
 }
 
 test "iterator of" {
-  assert 3 == with run <| of 3 when 'next(val) cancel val else yield
-  assert unit == with run <| of 3 when 'next(3) resume 1 else yield
+  assert 3 == with run <| of 3 { when 'next(val) cancel val }
+  assert unit == with run <| of 3 { when 'next(3) resume 1 }
   assert collect <| of 3 == [3]
 }
 
@@ -48,13 +48,13 @@ test "iterator repeat" {
 
 func take n it = do() {
   let mut i = 0
-  with it!()
+  with it!() {
     when 'next(val) if i < n then {
       i += 1
       become yield 'next(val)
     }
     when 'next(_) cancel unit
-    else yield
+  }
 }
 
 test "iterator take" {
@@ -69,7 +69,7 @@ test "iterator take" {
 func chunks 0 _ = yield 'arg
 func chunks n it = do() {
   let mut chunk = []
-  with it!()
+  with it!() {
     when 'next(item) then {
       chunk = [..chunk, item]
       if array::length chunk == n {
@@ -78,7 +78,7 @@ func chunks n it = do() {
       }
       become unit
     }
-    else yield
+  }
   if chunk != [] { yield 'next(chunk) }
 }
 
@@ -86,7 +86,7 @@ test "iterator chunks" {
   assert collect <| chunks 3 <| range 1 9 == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
   assert collect <| chunks 3 <| range 1 7 == [[1, 2, 3], [4, 5, 6], [7]]
   assert collect <| chunks 1 <| range 1 3 == [[1], [2], [3]]
-  with chunks 0 when 'arg cancel unit else yield
+  with chunks 0 { when 'arg cancel unit }
 }
 
 func range_step _ _ 0 = yield 'arg
@@ -142,10 +142,10 @@ test "iterator rangex" {
 }
 
 func filter predicate it = do() {
-  with it!()
+  with it!() {
     when 'next(val) if predicate val resume yield 'next(val)
     when 'next(_) resume unit
-    else yield
+  }
 }
 
 test "iterator filter" {
@@ -153,9 +153,9 @@ test "iterator filter" {
 }
 
 func map f it = do() {
-  with it!()
+  with it!() {
     when 'next(val) resume yield 'next(f val)
-    else yield
+  }
 }
 
 test "iterator map" {
@@ -163,13 +163,13 @@ test "iterator map" {
 }
 
 func flat_map f it = do() {
-  with it!()
+  with it!() {
     when 'next(val) then {
       let inner = f val
       inner!()
       become unit
     }
-    else yield
+  }
 }
 
 test "iterator flat_map" {
@@ -178,12 +178,12 @@ test "iterator flat_map" {
 
 func scan f a it = do() {
   let mut state = a
-  with it!()
+  with it!() {
     when 'next(val) then {
       state = f state val
       become yield 'next(state)
     }
-    else yield
+  }
 }
 
 test "iterator scan" {
@@ -192,12 +192,12 @@ test "iterator scan" {
 
 func fold f a it =
   let mut state = a,
-  with it!(); state
+  with it!(); state {
     when 'next(val) then {
       state = f state val
       become unit
     }
-    else yield
+  }
 
 test "iterator fold" {
   assert fold (:) 0 <| range 1 5 == ((((0:1):2):3):4):5
@@ -206,11 +206,12 @@ test "iterator fold" {
 func reduce f it =
   let mut state = 'none,
   with
-      it!();
-      match state {
-        case 'some(v) then v
-        else yield 'mia
-      }
+    it!();
+    match state {
+      case 'some(v) then v
+      else yield 'mia
+    }
+  {
     when 'next(val) then {
       state = match state {
         case 'some(prev) then 'some(f prev val)
@@ -218,11 +219,11 @@ func reduce f it =
       }
       become unit
     }
-    else yield
+  }
 
 test "iterator reduce" {
   assert reduce (:) <| range 1 5 == (((1:2):3):4):5
-  assert with reduce (:) <| rangex 0 0 when 'mia cancel true else cancel false
+  assert with reduce (:) <| rangex 0 0 { when 'mia cancel true else cancel false }
 }
 
 func sum it = fold (+) 0 it
@@ -238,14 +239,14 @@ test "iterator count" {
 }
 
 func any predicate it = 
-  with it!(); false
+  with it!(); false {
     when 'next(val) then {
       if predicate val {
         return true
       }
       become unit
     }
-    else yield
+  }
 
 test "iterator any" {
   assert any ((==) 2) <| range 1 3
@@ -254,14 +255,14 @@ test "iterator any" {
 }
 
 func all predicate it = 
-  with it!(); true
+  with it!(); true {
     when 'next(val) then {
       if !(predicate val) {
         return false
       }
       become unit
     }
-    else yield
+  }
 
 test "iterator all" {
   assert !(all (fn x. x < 2) <| range 1 3)
@@ -271,13 +272,13 @@ test "iterator all" {
 
 func enumerate it = do() {
   let mut i = 0
-  with it!()
+  with it!() {
     when 'next(v) then {
       let j = i
       i += 1
       become yield 'next(j:v)
     }
-    else yield
+  }
 }
 
 test "iterator enumerate" {
@@ -285,18 +286,18 @@ test "iterator enumerate" {
 }
 
 func find p it = 
-  with it!(); yield 'mia
+  with it!(); yield 'mia {
     when 'next(v) then {
       if p v {
         return v
       }
       become unit
     }
-    else yield
+  }
 
 test "iterator find" {
   assert find ((==) 4) <| range 3 5 == 4
-  assert with find ((==) 4) <| range 1 3 when 'mia cancel true else cancel false
+  assert with find ((==) 4) <| range 1 3 { when 'mia cancel true else cancel false }
 }
 
 func choose 0 _ = do() yield 'next([])
@@ -311,12 +312,13 @@ test "iterator choose" {
   assert collect <| choose 0 [1, 2, 3] == [[]]
 }
 
-func for_each f it = with it!(); unit
-  when 'next(v) then {
-    f v
-    become unit
+func for_each f it =
+  with it!(); unit {
+    when 'next(v) then {
+      f v
+      become unit
+    }
   }
-  else yield
 
 test "iterator for_each" {
   let arr = []

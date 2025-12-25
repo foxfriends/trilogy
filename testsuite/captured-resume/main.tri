@@ -8,13 +8,14 @@ proc yielding!() {
 
 proc main!() {
   let mut res = unit
-  with yielding!()
+  with yielding!() {
     when 'capture then{
       res = (resume)
       cancel unit
     }
     when 'get_value resume 5
     else yield
+  }
 
   assert res 5 == 10
   assert res 20 == 25

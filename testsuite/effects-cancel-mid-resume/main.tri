@@ -7,7 +7,7 @@ proc inner!() {
 }
 
 proc main!() {
-  let x = with inner!()
+  let x = with inner!() {
     when 'in then {
       if resume 'a
         then cancel 1
@@ -15,5 +15,6 @@ proc main!() {
     }
     when 'out cancel false
     else yield
+  }
   assert "final result should be 2 but it was ${x}" as x == 2
 }

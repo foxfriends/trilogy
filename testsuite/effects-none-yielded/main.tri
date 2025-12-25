@@ -3,6 +3,6 @@ proc body!() {
 }
 
 proc main!() {
-  let y = with body!() else yield
+  let y = with body!() { else yield }
   assert y == 5
 }

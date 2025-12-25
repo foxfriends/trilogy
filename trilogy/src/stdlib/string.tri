@@ -43,18 +43,10 @@ test "string slice" {
   assert slice 1 2 "123" == "2"
   assert slice 1 1 "123" == ""
   assert slice 1 3 "123" == "23"
-  assert with (slice (-1) 2 "123"; false)
-    when 'arg cancel true
-    else yield
-  assert with (slice 2 1 "123"; false)
-    when 'arg cancel true
-    else yield
-  assert with (slice 0 5 "123"; false)
-    when 'mia cancel true
-    else yield
-  assert with (slice 5 5 "123"; false)
-    when 'mia cancel true
-    else yield
+  assert with (slice (-1) 2 "123"; false) { when 'arg cancel true }
+  assert with (slice 2 1 "123"; false) { when 'arg cancel true }
+  assert with (slice 0 5 "123"; false) { when 'mia cancel true }
+  assert with (slice 5 5 "123"; false) { when 'mia cancel true }
 }
 
 func take n (str and typeof 'string) =
@@ -68,9 +60,7 @@ test "string take" {
   assert take 2 "123" == "12"
   assert take 3 "123" == "123"
   assert take 12 "123" == "123"
-  assert with (take (-1) "123"; false)
-    when 'arg cancel true
-    else yield
+  assert with (take (-1) "123"; false) { when 'arg cancel true }
 }
 
 func skip n (str and typeof 'string) =
@@ -84,9 +74,7 @@ test "string skip" {
   assert skip 2 "123" == "3"
   assert skip 3 "123" == ""
   assert skip 12 "123" == ""
-  assert with (skip (-1) "123"; false)
-    when 'arg cancel true
-    else yield
+  assert with (skip (-1) "123"; false) { when 'arg cancel true }
 }
 
 func drop n (str and typeof 'string) =
@@ -100,9 +88,7 @@ test "string drop" {
   assert drop 2 "123" == "1"
   assert drop 3 "123" == ""
   assert drop 12 "123" == ""
-  assert with (drop (-1) "123"; false)
-    when 'arg cancel true
-    else yield
+  assert with (drop (-1) "123"; false) { when 'arg cancel true }
 }
 
 func starts_with prefix string = take (length prefix) string == prefix
@@ -208,12 +194,12 @@ test "string split" {
 
 func collect iterator =
   let mut str = "",
-  with (iterator!(); str)
+  with (iterator!(); str) {
     when 'next(val) then {
       str <>= core::to_string val
       become unit
     }
-    else yield
+  }
 
 test "string collect" {
   let string_iter = do() {

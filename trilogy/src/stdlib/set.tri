@@ -51,12 +51,12 @@ test "set contains" {
 
 func collect iterator =
   let set = [||],
-  with (iterator!(); set)
+  with (iterator!(); set) {
     when 'next(val) then {
       push!(set, val)
       become unit
     }
-    else yield
+  }
 
 test "set collect" {
   let iterator = do() {

@@ -5,11 +5,11 @@ proc xor!() {
 }
 
 proc choice!(action) {
-  return with [action!()]
+  return with [action!()] {
     when 'choice then {
       cancel [..resume false, ..resume true]
     }
-    else yield
+  }
 }
 
 proc surprising!() {
@@ -21,13 +21,13 @@ proc surprising!() {
 
 proc pstate!(init, action) {
   let mut state = init
-  let result = with action!()
+  let result = with action!() {
     when 'get resume state
     when 'set(val) then {
       state = val
       become unit
     }
-    else yield
+  }
   return result:state
 }
 

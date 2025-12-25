@@ -9,7 +9,7 @@ proc my_program!() {
 
 proc in_memory_with_map!(action) {
   let mut map = {||}
-  let result = with action!()
+  let result = with action!() {
     when 'get(k) resume match map {
       case {| ^k => v, .._ |} then 'some(v)
       else 'none
@@ -18,7 +18,7 @@ proc in_memory_with_map!(action) {
       map.k = v
       become unit
     }
-    else yield
+  }
   return result:map
 }
 

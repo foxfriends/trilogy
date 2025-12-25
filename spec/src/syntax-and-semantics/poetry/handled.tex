@@ -9,7 +9,11 @@ allows effects to be handled, and uses the \kw{with} keyword as well.
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
+        \bnfts{\{}
+        \bnfsp
         \bnfpn{EffectHandlers}
+        \bnfsp
+        \bnfts{\}}
     }
 \end{bnf*}
 
@@ -19,5 +23,5 @@ The semantics of the \kw{with} expression itself are very simple:
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash E : \tau$}
     \LeftLabel{With}
-    \UnaryInfC{$\Gamma\vdash \kw{when}\ E : \tau$}
+    \UnaryInfC{$\Gamma\vdash \kw{with}\ E : \tau$}
 \end{prooftree}

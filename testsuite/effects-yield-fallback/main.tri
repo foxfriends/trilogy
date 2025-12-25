@@ -3,6 +3,6 @@ proc body!() {
 }
 
 proc main!() {
-  with body!() else yield
+  with body!() { else yield }
   exit 1
 }

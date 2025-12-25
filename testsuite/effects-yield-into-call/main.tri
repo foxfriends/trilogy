@@ -5,10 +5,10 @@ proc inner!() {
 }
 
 proc main!() {
-  with inner!()
+  with inner!() {
     when 'a then {
       resume 1
       become 2
     }
-    else yield
+  }
 }

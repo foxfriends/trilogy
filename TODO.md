@@ -10,10 +10,6 @@
 * Something wrong with `or` patterns when running JIT
 * Allow `with {}` (with a block)
 * Make blocks and expressions more interchangeable
-* Rethink syntax of cases (`with`)
-    * Add braces like most languages use
-    * `else yield` is default fallback for `when`
-    * Remove binding from `else _ then {}` case, as it will be optional and could just be a regular last case
 * Do a proper standard library design, maybe include a prelude
     * Type-agnostic global functions (similar to core, but safe)
     * Consistent interfaces to individual core standard modules

@@ -3,8 +3,9 @@ proc inner!() {
 }
 
 proc main!() {
-  let x = with inner!()
+  let x = with inner!() {
     when 'eff cancel 2
     else yield
+  }
   assert x == 2
 }

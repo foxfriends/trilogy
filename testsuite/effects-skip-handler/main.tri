@@ -4,9 +4,10 @@ proc inner!() {
 }
 
 proc outer!() {
-  return with inner!()
+  return with inner!() {
     when 'done then { return 3 }
     else yield
+  }
 }
 
 proc main!() {

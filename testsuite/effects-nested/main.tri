@@ -12,20 +12,22 @@ proc do_inner!() {
 
 proc do_things!() {
   return d!(8,
-    with d!(6, do_inner!())
-      else eff then {
+    with d!(6, do_inner!()) {
+      when eff then {
         cancel d!(7,
           resume d!(4,
             yield d!(2, eff)
           )
         )
       }
+    }
   )
 }
 
 proc main!() {
-  assert d!(11, with d!(9, do_things!())
+  assert d!(11, with d!(9, do_things!()) {
     when 'get_hello cancel d!(10, resume d!(3, 'hello))
-    else yield)
+    else yield
+  })
   dbg!("Made it to end")
 }

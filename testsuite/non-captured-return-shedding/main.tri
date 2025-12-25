@@ -1,12 +1,13 @@
 import "trilogy:io" use println
 
 proc inner!() {
-  with return 3
+  with return 3 {
     when 'eff then {
       println!("hello")
       cancel false
     }
     else yield
+  }
 }
 
 proc outer!() {
@@ -15,5 +16,5 @@ proc outer!() {
 }
 
 proc main!() {
-  assert with outer!() when 'eff cancel true else cancel false
+  assert with outer!() { when 'eff cancel true else cancel false }
 }

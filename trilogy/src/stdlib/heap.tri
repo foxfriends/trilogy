@@ -52,12 +52,12 @@ type heap cmp {
 
   func collect iterator =
     let heap = [],
-    with (iterator!(); heap)
+    with (iterator!(); heap) {
       when 'next(val) then {
         push!(heap, val)
         become unit
       }
-      else yield
+    }
 }
 
 test "heap push" {

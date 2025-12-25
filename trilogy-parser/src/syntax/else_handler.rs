@@ -1,36 +1,24 @@
-use super::{Identifier, *};
+use super::*;
 use crate::{Parser, Spanned};
 use source_span::Span;
-use trilogy_scanner::{
-    Token,
-    TokenType::{self, *},
-};
+use trilogy_scanner::{Token, TokenType};
 
 /// A fallback `else` handler for a handled `when` statement or expression.
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct ElseHandler {
     pub r#else: Token,
-    pub identifier: Option<Identifier>,
     pub strategy: HandlerStrategy,
     span: Span,
 }
 
 impl ElseHandler {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let r#else = parser.expect(KwElse).unwrap();
-
-        let identifier = if parser.check(TokenType::Identifier).is_ok() {
-            Some(Identifier::parse(parser).unwrap())
-        } else {
-            None
-        };
-
+        let r#else = parser.expect(TokenType::KwElse).unwrap();
         let strategy = HandlerStrategy::parse(parser)?;
 
         Ok(Self {
             span: r#else.span.union(strategy.span()),
             r#else,
-            identifier,
             strategy,
         })
     }
@@ -50,9 +38,7 @@ impl Spanned for ElseHandler {
 mod test {
     use super::*;
 
-    test_parse!(elsehandler_yield: "else yield" => ElseHandler::parse => "(ElseHandler _ () _)");
-    test_parse!(elsehandler_resume_without_id: "else resume 3" => ElseHandler::parse => "(ElseHandler _ () _)");
-    test_parse!(elsehandler_resume_with_id: "else x resume x" => ElseHandler::parse => "(ElseHandler _ (Identifier) _)");
-    test_parse!(elsehandler_cancel_without_id: "else cancel 3" => ElseHandler::parse => "(ElseHandler _ () _)");
-    test_parse!(elsehandler_cancel_with_id: "else x cancel x" => ElseHandler::parse => "(ElseHandler _ (Identifier) _)");
+    test_parse!(elsehandler_yield: "else yield" => ElseHandler::parse => "(ElseHandler _ _)");
+    test_parse!(elsehandler_resume: "else resume 3" => ElseHandler::parse => "(ElseHandler _ _)");
+    test_parse!(elsehandler_cancel: "else cancel 3" => ElseHandler::parse => "(ElseHandler _ _)");
 }

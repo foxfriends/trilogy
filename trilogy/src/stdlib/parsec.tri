@@ -25,7 +25,7 @@ func parse parser input = (run_parser parser input) . 'left
 func run_parser parser input =
   let len = core::length input,
   let mut pos = 0,
-  let result = with parser!()
+  let result = with parser!() {
     when 'eof if pos == len resume true
     when 'eof resume false
     when 'pos resume pos
@@ -39,18 +39,18 @@ func run_parser parser input =
       pos += 1
       become unit
     }
-    else yield,
+  },
   result : core::slice pos len input
 
 ## Parses the parser as a single atomic unit, without consuming any of the input on failure.
 func atomic parser = do() {
   let pos = yield 'pos
-  return with apply parser
+  return with apply parser {
     when 'reject(_) and rej then {
       yield 'reset(pos)
       yield rej
     }
-    else yield
+  }
 }
 
 ## Transform the output value of a parser without parsing any more input.
@@ -70,16 +70,16 @@ test "parsec repeat" {
 ## Attempt a parser, returning 'some(result) if it succeeds. If it fails,
 ## returns 'none without consuming any input.
 func option parser = do()
-  with 'some(apply <| atomic parser)
+  with 'some(apply <| atomic parser) {
     when 'reject(_) cancel 'none
-    else yield
+  }
 
 ## Attempt each of the list of parsers. Returns the value of the first
 ## parser that succeeds.
 func choice [] = do() yield 'reject("choice had no options")
 func choice [parser, ..rest] = do () {
-  return with apply <| atomic parser
-    when 'reject(err) cancel with apply <| choice rest
+  return with apply <| atomic parser {
+    when 'reject(err) cancel with apply <| choice rest {
       when 'reject("choice had no options") then {
         yield 'reject(err)
         end
@@ -88,16 +88,16 @@ func choice [parser, ..rest] = do () {
         yield 'reject("${err}, or ${errs}")
         end
       }
-      else yield
-    else yield
+    }
+  }
 }
 
 ## Applies the parser as many times as possible, returning an array of
 ## the parsed results.
 func many parser = do() {
-  let result = with apply <| atomic parser
+  let result = with apply <| atomic parser {
     when 'reject(_) then { return [] }
-    else yield
+  }
   return [result, ..apply <| many parser]
 }
 
@@ -248,7 +248,7 @@ proc digit!() {
 
 test "parsec digit" {
   assert parse digit "123" == '1'
-  assert with parse digit "A"; false when 'reject(_) cancel true else cancel false
+  assert with parse digit "A"; false { when 'reject(_) cancel true else cancel false }
 }
 
 ## A parser for any base-16 digit.
@@ -259,7 +259,7 @@ proc hex_digit!() {
 test "parsec hex_digit" {
   assert parse hex_digit "123" == '1'
   assert parse hex_digit "abc" == 'a'
-  assert with parse hex_digit "Z"; false when 'reject(_) cancel true else cancel false
+  assert with parse hex_digit "Z"; false { when 'reject(_) cancel true else cancel false }
 }
 
 ## Parses a base-10 integer from a string, returning the value as a number. A leading `-` sign
@@ -300,7 +300,7 @@ proc letter!() {
 
 test "parsec letter" {
   assert parse letter "a" == 'a'
-  assert with parse letter "1"; false when 'reject(_) cancel true else cancel false
+  assert with parse letter "1"; false { when 'reject(_) cancel true else cancel false }
 }
 
 ## A parser for any ASCII whitespace.
@@ -310,7 +310,7 @@ proc whitespace!() {
 
 test "parsec whitespace" {
   assert parse whitespace " " == ' '
-  assert with parse whitespace "1"; false when 'reject(_) cancel true else cancel false
+  assert with parse whitespace "1"; false { when 'reject(_) cancel true else cancel false }
 }
 
 ## A parser for any word (a sequence of word characters `[A-Za-z0-9_]`).

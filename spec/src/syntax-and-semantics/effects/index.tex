@@ -28,17 +28,11 @@ handlers.
         \bnfor
     } \\
     \bnfmore{
+        \bnfpn{EffectHandler}
+        \bnfor
         \bnfts{\kw{else}}
-        \bnfsp
-        \bnfpn{Binding}
         \bnfsp
         \bnfpn{Handler}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{else}}
-        \bnfsp
-        \bnfpn{Expression}
     } \\
     \bnfprod{EffectHandler}{
         \bnfts{\kw{when}}
@@ -70,12 +64,8 @@ handlers.
     \bnfmore{
         \bnfts{\kw{then}}
         \bnfsp
-        \bnfpn{Expression}
-        \bnfor
         \bnfpn{Block}
         \bnfor
-    } \\
-    \bnfmore{
         \bnfts{\kw{yield}}
         \bnfsp
         \bnfpn{Expression}
@@ -85,10 +75,9 @@ handlers.
 \end{bnf*}
 
 Effect handlers are defined with \kw{when} and are either written in functional
-or imperative style. At the end of a chain of handlers, the \kw{else} clause is
-included to describe what to do in the case of no handler matching; the default
-choice should be \kw{else yield}, but in some situations there may be reason to
-do otherwise.
+or imperative style. At the end of a chain of handlers, an \kw{else} clause may be
+included to describe what to do in the case of no handler matching; if omitted,
+the default is as if it were written \kw{else yield}.
 
 Handlers install a contextual handler around a piece of code. When an effect is
 yielded, the ``nearest'' handler with a matching pattern and guard will be used
@@ -102,9 +91,9 @@ handler to denote that no handling is done, and the effect is simply re-yielded
 to a handler in the parent scope (a re-yielded effect never gets handled by another
 handler on the same chain).
 
-A \kw{cancel} handler will not respond to the yielder, instead completing the entire expression
-or statement on which the handler was attached, as if the \kw{with} keyword evaluated
-to the value that \kw{cancel} was supplied.
+A \kw{cancel} handler will not respond to the yielder, instead completing the entire
+expression or statement on which the handler was attached, as if the \kw{with} keyword
+evaluated to the value that \kw{cancel} was supplied.
 
 A \kw{resume} handler will respond with the evaluation of the expression following
 the keyword. The \kw{yield} that performed the effect will evaluate to that value.

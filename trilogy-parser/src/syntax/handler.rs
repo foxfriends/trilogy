@@ -23,5 +23,5 @@ mod test {
     use super::*;
 
     test_parse!(handler_when: "when 'NAN resume 5" => Handler::parse => "(Handler::When (WhenHandler _ _ _ _))");
-    test_parse!(handler_else: "else n resume 5" => Handler::parse => "(Handler::Else (ElseHandler _ _ _))");
+    test_parse!(handler_else: "else resume 5" => Handler::parse => "(Handler::Else (ElseHandler _ _))");
 }
