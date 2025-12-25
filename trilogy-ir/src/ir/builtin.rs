@@ -65,8 +65,6 @@ pub enum Builtin {
     LeftShiftContract,
     /// ~>>
     RightShiftContract,
-    /// ;
-    Sequence,
     /// :
     Cons,
     /// <>
@@ -127,7 +125,6 @@ impl Builtin {
             syntax::Keyword::RightShiftExtend(..) => Self::RightShiftExtend,
             syntax::Keyword::LeftShiftContract(..) => Self::LeftShiftContract,
             syntax::Keyword::RightShiftContract(..) => Self::RightShiftContract,
-            syntax::Keyword::Sequence(..) => Self::Sequence,
             syntax::Keyword::Cons(..) => Self::Cons,
             syntax::Keyword::Glue(..) => Self::Glue,
             syntax::Keyword::Compose(..) => Self::Compose,
@@ -177,7 +174,6 @@ impl Builtin {
             syntax::BinaryOperator::RightShiftExtend(..) => Self::RightShiftExtend,
             syntax::BinaryOperator::LeftShiftContract(..) => Self::LeftShiftContract,
             syntax::BinaryOperator::RightShiftContract(..) => Self::RightShiftContract,
-            syntax::BinaryOperator::Sequence(..) => Self::Sequence,
             syntax::BinaryOperator::Cons(..) => Self::Cons,
             syntax::BinaryOperator::Glue(..) => Self::Glue,
             syntax::BinaryOperator::Compose(..) => Self::Compose,
@@ -249,7 +245,6 @@ impl Builtin {
                 | Self::RightShiftExtend
                 | Self::LeftShiftContract
                 | Self::RightShiftContract
-                | Self::Sequence
                 | Self::Cons
                 | Self::Glue
                 | Self::Compose

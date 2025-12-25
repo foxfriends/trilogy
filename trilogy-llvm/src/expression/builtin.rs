@@ -102,7 +102,6 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::RCompose => unreachable!(),
             Builtin::Pipe => unreachable!(),
             Builtin::RPipe => unreachable!(),
-            Builtin::Sequence => unreachable!(),
             Builtin::Access => unreachable!(),
             Builtin::Add => unreachable!(),
             Builtin::Subtract => unreachable!(),
@@ -412,11 +411,6 @@ impl<'ctx> Codegen<'ctx> {
                 let lhs = self.use_temporary_clone(lhs).unwrap();
                 Some(self.apply_function(lhs, rhs, name))
             }
-            Builtin::Sequence => {
-                let lhs = self.compile_expression(lhs, "")?;
-                self.trilogy_value_destroy(lhs);
-                self.compile_expression(rhs, name)
-            }
             // Non-binary operators
             Builtin::ToString => unreachable!(),
             Builtin::Negate => unreachable!(),
@@ -609,7 +603,6 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::Pipe => self.reference_core("pipe"),
             Builtin::RPipe => self.reference_core("rpipe"),
             // Not referenceable operators
-            Builtin::Sequence => unreachable!(),
             Builtin::ToString => unreachable!(),
             Builtin::Negate => unreachable!(),
             Builtin::Not => unreachable!(),

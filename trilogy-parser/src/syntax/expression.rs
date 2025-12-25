@@ -70,7 +70,6 @@ impl FollowingExpression {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub(crate) enum Precedence {
     None,
-    Sequence,
     Continuation,
     Or,
     And,
@@ -219,7 +218,6 @@ impl Expression {
             OpBang if precedence < Precedence::Call && !is_spaced => Ok(Continue(Self::Call(
                 Box::new(CallExpression::parse(parser, lhs)?),
             ))),
-            OpSemi if precedence <= Precedence::Sequence => Self::binary(parser, lhs),
 
             // NOTE: despite and/or being allowed in patterns, we can't accept them here because
             // they are also allowed in queries, in which case an expression was never an option,
@@ -757,16 +755,6 @@ mod test {
                   (BinaryOperator::Access _)
                   (Expression::Atom _)))
               (Expression::Number _)))))");
-    test_parse!(expr_let_seq: "b; let a = b, a; b" => Expression::parse => "
-      (Expression::Binary
-        (BinaryOperation
-          _
-          (BinaryOperator::Sequence _)
-          (Expression::Binary
-            (BinaryOperation
-              (Expression::Let _)
-              (BinaryOperator::Sequence _)
-              _))))");
     test_parse!(expr_mod_access: "mod1::mod2::member" => Expression::parse => "
       (Expression::ModuleAccess
         (ModuleAccess

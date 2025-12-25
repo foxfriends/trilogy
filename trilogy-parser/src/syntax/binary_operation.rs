@@ -94,7 +94,6 @@ pub enum BinaryOperator {
     RightShiftExtend(Token),
     LeftShiftContract(Token),
     RightShiftContract(Token),
-    Sequence(Token),
     Cons(Token),
     Glue(Token),
     Compose(Token),
@@ -134,7 +133,6 @@ impl BinaryOperator {
             OpShrEx => Self::RightShiftExtend(token),
             OpShlCon => Self::LeftShiftContract(token),
             OpShrCon => Self::RightShiftContract(token),
-            OpSemi => Self::Sequence(token),
             OpColon => Self::Cons(token),
             OpGlue => Self::Glue(token),
             OpLtLt => Self::Compose(token),
@@ -173,7 +171,6 @@ impl BinaryOperator {
             | BinaryOperator::RightShiftExtend(..)
             | BinaryOperator::LeftShiftContract(..)
             | BinaryOperator::RightShiftContract(..) => Precedence::BitwiseShift,
-            BinaryOperator::Sequence(..) => Precedence::Sequence,
             BinaryOperator::Cons(..) => Precedence::Cons,
             BinaryOperator::Glue(..) => Precedence::Glue,
             BinaryOperator::Compose(..) => Precedence::Compose,
@@ -215,7 +212,6 @@ mod test {
     test_parse!(binop_bitwise_shr_ex: "a ~~> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RightShiftExtend _) _))");
     test_parse!(binop_bitwise_shl_con: "a <<~ b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::LeftShiftContract _) _))");
     test_parse!(binop_bitwise_shr_con: "a ~>> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RightShiftContract _) _))");
-    test_parse!(binop_seq: "a ; b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Sequence _) _))");
     test_parse!(binop_cons: "a : b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Cons _) _))");
     test_parse!(binop_glue: "a <> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Glue _) _))");
     test_parse!(binop_compose: "a << b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Compose _) _))");

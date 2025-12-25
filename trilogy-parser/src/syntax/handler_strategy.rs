@@ -43,7 +43,7 @@ mod test {
 
     test_parse!(handler_strategy_yield: "yield" => HandlerStrategy::parse => "(HandlerStrategy::Yield _)");
     test_parse!(handler_strategy_cancel: "cancel 3" => HandlerStrategy::parse => "(HandlerStrategy::Cancel _ _)");
-    test_parse!(handler_strategy_invert: "then cancel resume 5" => HandlerStrategy::parse => "(HandlerStrategy::Bare _)");
-    test_parse!(handler_strategy_invert: "{ cancel resume 5 }" => HandlerStrategy::parse => "(HandlerStrategy::Bare _)");
+    test_parse!(handler_strategy_then: "then cancel resume 5" => HandlerStrategy::parse => "(HandlerStrategy::Bare _)");
+    test_parse!(handler_strategy_block: "{ cancel resume 5 }" => HandlerStrategy::parse => "(HandlerStrategy::Bare _)");
     test_parse!(handler_strategy_resume: "resume 4" => HandlerStrategy::parse => "(HandlerStrategy::Resume _ _)");
 }
