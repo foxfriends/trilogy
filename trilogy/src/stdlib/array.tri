@@ -112,7 +112,7 @@ func reduce f [x, ..xs] = fold f x xs
 
 test "array reduce" {
   assert reduce (+) [1, 2, 3, 4] == 10
-  assert with (reduce (+) []; false) { when 'mia cancel true }
+  assert with { reduce (+) []; false } { when 'mia cancel true }
   assert reduce (:) [1, 2, 3] == (1:2):3
 }
 
@@ -121,7 +121,7 @@ func rreduce f [..xs, x] = rfold f x xs
 
 test "array rreduce" {
   assert rreduce (+) [1, 2, 3, 4] == 10
-  assert with (rreduce (+) []; false) { when 'mia cancel true }
+  assert with { rreduce (+) []; false } { when 'mia cancel true }
   assert rreduce (:) [1, 2, 3] == (3:2):1
 }
 
@@ -168,7 +168,7 @@ func first [x, .._] = x
 
 test "array first" {
   assert first [1, 2, 3] == 1
-  assert with (first []; false) { when 'mia cancel true }
+  assert with { first []; false } { when 'mia cancel true }
 }
 
 func last [] = yield 'mia
@@ -176,7 +176,7 @@ func last [.._, x] = x
 
 test "array last" {
   assert last [1, 2, 3] == 3
-  assert with (last []; false) { when 'mia cancel true }
+  assert with { last []; false } { when 'mia cancel true }
 }
 
 func tail [] = yield 'mia
@@ -184,7 +184,7 @@ func tail [_, ..xs] = xs
 
 test "array tail" {
   assert tail [1, 2, 3] == [2, 3]
-  assert with (tail []; false) { when 'mia cancel true }
+  assert with { tail []; false } { when 'mia cancel true }
 }
 
 func head [] = yield 'mia
@@ -192,7 +192,7 @@ func head [..xs, _] = xs
 
 test "array head" {
   assert head [1, 2, 3] == [1, 2]
-  assert with (head []; false) { when 'mia cancel true }
+  assert with { head []; false } { when 'mia cancel true }
 }
 
 func slice i fin (arr and typeof 'array) = core::slice i fin arr
@@ -202,10 +202,10 @@ test "array slice" {
   assert slice 1 2 [1, 2, 3] == [2]
   assert slice 1 1 [1, 2, 3] == []
   assert slice 1 3 [1, 2, 3] == [2, 3]
-  assert with (slice (-1) 2 [1, 2, 3]; false) { when 'arg cancel true }
-  assert with (slice 2 1 [1, 2, 3]; false) { when 'arg cancel true }
-  assert with (slice 0 5 [1, 2, 3]; false) { when 'mia cancel true }
-  assert with (slice 5 5 [1, 2, 3]; false) { when 'mia cancel true }
+  assert with { slice (-1) 2 [1, 2, 3]; false } { when 'arg cancel true }
+  assert with { slice 2 1 [1, 2, 3]; false } { when 'arg cancel true }
+  assert with { slice 0 5 [1, 2, 3]; false } { when 'mia cancel true }
+  assert with { slice 5 5 [1, 2, 3]; false } { when 'mia cancel true }
 }
 
 func take n (arr and typeof 'array) =
@@ -219,7 +219,7 @@ test "array take" {
   assert take 2 [1, 2, 3] == [1, 2]
   assert take 3 [1, 2, 3] == [1, 2, 3]
   assert take 12 [1, 2, 3] == [1, 2, 3]
-  assert with (take (-1) [1, 2, 3]; false) { when 'arg cancel true }
+  assert with { take (-1) [1, 2, 3]; false } { when 'arg cancel true }
 }
 
 func skip n (arr and typeof 'array) =
@@ -233,7 +233,7 @@ test "array skip" {
   assert skip 2 [1, 2, 3] == [3]
   assert skip 3 [1, 2, 3] == []
   assert skip 12 [1, 2, 3] == []
-  assert with (skip (-1) [1, 2, 3]; false) { when 'arg cancel true }
+  assert with { skip (-1) [1, 2, 3]; false } { when 'arg cancel true }
 }
 
 func drop n (arr and typeof 'array) =
@@ -247,12 +247,12 @@ test "array drop" {
   assert drop 2 [1, 2, 3] == [1]
   assert drop 3 [1, 2, 3] == []
   assert drop 12 [1, 2, 3] == []
-  assert with (drop (-1) [1, 2, 3]; false) { when 'arg cancel true }
+  assert with { drop (-1) [1, 2, 3]; false } { when 'arg cancel true }
 }
 
 func collect iterator =
   let arr = [],
-  with (iterator!(); arr) {
+  with { iterator!(); arr } {
     when 'next(val) then {
       push!(arr, val)
       become unit

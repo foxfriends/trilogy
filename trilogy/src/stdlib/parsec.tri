@@ -248,7 +248,7 @@ proc digit!() {
 
 test "parsec digit" {
   assert parse digit "123" == '1'
-  assert with parse digit "A"; false { when 'reject(_) cancel true else cancel false }
+  assert with { parse digit "A"; false } { when 'reject(_) cancel true else cancel false }
 }
 
 ## A parser for any base-16 digit.
@@ -259,7 +259,7 @@ proc hex_digit!() {
 test "parsec hex_digit" {
   assert parse hex_digit "123" == '1'
   assert parse hex_digit "abc" == 'a'
-  assert with parse hex_digit "Z"; false { when 'reject(_) cancel true else cancel false }
+  assert with { parse hex_digit "Z"; false } { when 'reject(_) cancel true else cancel false }
 }
 
 ## Parses a base-10 integer from a string, returning the value as a number. A leading `-` sign
@@ -300,7 +300,7 @@ proc letter!() {
 
 test "parsec letter" {
   assert parse letter "a" == 'a'
-  assert with parse letter "1"; false { when 'reject(_) cancel true else cancel false }
+  assert with { parse letter "1"; false } { when 'reject(_) cancel true else cancel false }
 }
 
 ## A parser for any ASCII whitespace.
@@ -310,7 +310,7 @@ proc whitespace!() {
 
 test "parsec whitespace" {
   assert parse whitespace " " == ' '
-  assert with parse whitespace "1"; false { when 'reject(_) cancel true else cancel false }
+  assert with { parse whitespace "1"; false } { when 'reject(_) cancel true else cancel false }
 }
 
 ## A parser for any word (a sequence of word characters `[A-Za-z0-9_]`).

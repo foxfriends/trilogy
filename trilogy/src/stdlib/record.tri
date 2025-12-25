@@ -29,7 +29,7 @@ test "record contains_key" {
 
 func collect iterator =
   let record = {||},
-  with (iterator!(); record) {
+  with { iterator!(); record } {
     when 'next(key:val) then {
       record.key = val
       become unit

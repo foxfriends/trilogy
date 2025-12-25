@@ -192,7 +192,7 @@ test "iterator scan" {
 
 func fold f a it =
   let mut state = a,
-  with it!(); state {
+  with { it!(); state } {
     when 'next(val) then {
       state = f state val
       become unit
@@ -205,13 +205,13 @@ test "iterator fold" {
 
 func reduce f it =
   let mut state = 'none,
-  with
-    it!();
+  with {
+    it!()
     match state {
       case 'some(v) then v
       else yield 'mia
     }
-  {
+  } {
     when 'next(val) then {
       state = match state {
         case 'some(prev) then 'some(f prev val)
@@ -239,7 +239,7 @@ test "iterator count" {
 }
 
 func any predicate it = 
-  with it!(); false {
+  with { it!(); false } {
     when 'next(val) then {
       if predicate val {
         return true
@@ -255,7 +255,7 @@ test "iterator any" {
 }
 
 func all predicate it = 
-  with it!(); true {
+  with { it!(); true } {
     when 'next(val) then {
       if !(predicate val) {
         return false
@@ -286,7 +286,7 @@ test "iterator enumerate" {
 }
 
 func find p it = 
-  with it!(); yield 'mia {
+  with { it!(); yield 'mia } {
     when 'next(v) then {
       if p v {
         return v
@@ -313,7 +313,7 @@ test "iterator choose" {
 }
 
 func for_each f it =
-  with it!(); unit {
+  with { it!(); unit } {
     when 'next(v) then {
       f v
       become unit
