@@ -8,9 +8,6 @@
     * Really: fix queries all over, they're pretty broken
 * Fix the memory leaks
 * Something wrong with `or` patterns when running JIT
-* Make blocks and expressions more interchangeable:
-    * Block is a sequence expression
-    * When a block allows for disambiguation, allow `then` keyword to start an expression (e.g. `if`, `case`, `when`)
 * Do a proper standard library design, maybe include a prelude
     * Type-agnostic global functions (similar to core, but safe)
     * Consistent interfaces to individual core standard modules

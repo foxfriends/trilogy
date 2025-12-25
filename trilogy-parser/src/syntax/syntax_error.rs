@@ -9,7 +9,6 @@ pub enum ErrorKind {
     RuleRightArrow,
     MatchStatementExpressionCase,
     TripleDot { dot: Span },
-    IfStatementRestriction,
     IfExpressionRestriction,
     TaggedTemplateMissingIdentifier,
     TaggedTemplateNotIdentifier,
@@ -70,10 +69,6 @@ impl Display for SyntaxError {
                 write!(f, "case in match statement should be a block")?
             }
             ErrorKind::TripleDot { .. } => write!(f, "triple `...` should be `..`")?,
-            ErrorKind::IfStatementRestriction => write!(
-                f,
-                "an `if` statement must be in strict statement form, or be a valid `if` expression"
-            )?,
             ErrorKind::IfExpressionRestriction => {
                 write!(f, "an `if` expression must have an `else` clause")?
             }

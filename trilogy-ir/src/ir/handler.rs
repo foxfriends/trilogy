@@ -31,7 +31,10 @@ impl Handler {
                     ),
                 )
             }
-            syntax::HandlerStrategy::Then { body, .. } => {
+            syntax::HandlerStrategy::Bare(syntax::FollowingExpression::Then(_, body)) => {
+                Expression::convert(converter, body)
+            }
+            syntax::HandlerStrategy::Bare(syntax::FollowingExpression::Block(body)) => {
                 Expression::convert_block(converter, body)
             }
             syntax::HandlerStrategy::Yield(token) => {

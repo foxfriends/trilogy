@@ -25,9 +25,6 @@ impl Statement {
             KwLet => Ok(Self::Let(Box::new(LetStatement::parse(parser)?))),
             KwIf => {
                 let expr = IfElseExpression::parse(parser)?;
-                if !expr.is_strict_statement() && !expr.is_strict_expression() {
-                    parser.error(ErrorKind::IfStatementRestriction.at(expr.span()));
-                }
                 Ok(Self::If(Box::new(expr)))
             }
             KwMatch => Ok(Self::Match(Box::new(MatchExpression::parse(parser)?))),
@@ -37,7 +34,7 @@ impl Statement {
             KwAssert => Ok(Self::Assert(Box::new(AssertStatement::parse(parser)?))),
             OBrace => Ok(Self::Block(Box::new(Block::parse(parser)?))),
             _ => {
-                let expression = Expression::parse_no_seq(parser)?;
+                let expression = Expression::parse(parser)?;
                 if parser.check(IdentifierEq).is_ok() {
                     if !expression.is_lvalue() {
                         parser.error(SyntaxError::new(

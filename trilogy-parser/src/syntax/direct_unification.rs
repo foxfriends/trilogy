@@ -19,7 +19,7 @@ pub struct DirectUnification {
 impl DirectUnification {
     pub(crate) fn parse(parser: &mut Parser, pattern: Pattern) -> SyntaxResult<Self> {
         let eq = parser.expect(OpEq).expect("Caller should have found this");
-        let expression = Expression::parse_parameter_list(parser)?.map_err(|patt| {
+        let expression = Expression::parse_or_pattern(parser)?.map_err(|patt| {
             let error = SyntaxError::new(
                 patt.span(),
                 "expected an expression on the right side of `=`, but found a pattern",

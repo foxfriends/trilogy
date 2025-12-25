@@ -18,7 +18,7 @@ pub struct BooleanQuery {
 impl BooleanQuery {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let is = parser.expect(KwIs).unwrap();
-        let expression = Expression::parse_parameter_list(parser)?.map_err(|patt| {
+        let expression = Expression::parse_or_pattern(parser)?.map_err(|patt| {
             let error = SyntaxError::new(
                 patt.span(),
                 "expected an expression after `is`, but found a pattern",

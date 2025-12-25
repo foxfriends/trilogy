@@ -1,4 +1,4 @@
-use super::{expression::Precedence, *};
+use super::*;
 use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
@@ -83,26 +83,8 @@ pub struct MatchExpressionCase {
     pub case: Token,
     pub pattern: Option<Pattern>,
     pub guard: Option<Guard>,
-    pub body: MatchExpressionCaseBody,
+    pub body: FollowingExpression,
     span: Span,
-}
-
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
-pub enum MatchExpressionCaseBody {
-    Then(Token, Expression),
-    Bare(Expression),
-    Block(Block),
-}
-
-impl MatchExpressionCaseBody {
-    fn parse(parser: &mut Parser, precedence: expression::Precedence) -> SyntaxResult<Self> {
-        if let Ok(token) = parser.expect(KwThen) {
-            let body = Expression::parse_precedence(parser, precedence)?;
-            Ok(MatchExpressionCaseBody::Then(token, body))
-        } else {
-            Ok(MatchExpressionCaseBody::Block(Block::parse(parser)?))
-        }
-    }
 }
 
 impl MatchExpressionCase {
@@ -117,7 +99,7 @@ impl MatchExpressionCase {
             .transpose()?;
         let guard = Guard::parse_optional(parser)?;
 
-        let body = MatchExpressionCaseBody::parse(parser, Precedence::Continuation)?;
+        let body = FollowingExpression::parse(parser)?;
         Ok(Self {
             span: case.span.union(body.span()),
             case,
@@ -163,7 +145,7 @@ impl Guard {
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct MatchExpressionElseCase {
     pub r#else: Token,
-    pub body: MatchExpressionCaseBody,
+    pub body: Expression,
     span: Span,
 }
 
@@ -176,12 +158,7 @@ impl Spanned for MatchExpressionElseCase {
 impl MatchExpressionElseCase {
     fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         let r#else = parser.expect(KwElse).unwrap();
-        let body = if parser.check(OBrace).is_ok() {
-            MatchExpressionCaseBody::Block(Block::parse(parser)?)
-        } else {
-            let body = Expression::parse_precedence(parser, Precedence::None)?;
-            MatchExpressionCaseBody::Bare(body)
-        };
+        let body = Expression::parse(parser)?;
         Ok(Self {
             span: r#else.span.union(body.span()),
             r#else,

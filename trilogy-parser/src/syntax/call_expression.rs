@@ -32,7 +32,7 @@ impl CallExpression {
             if let Ok(end) = parser.expect(CParen) {
                 break end;
             }
-            let expression = Expression::parse_parameter_list(parser)?.map_err(|patt| {
+            let expression = Expression::parse_or_pattern(parser)?.map_err(|patt| {
                 let error = SyntaxError::new(
                     patt.span(),
                     "expected an expression in procedure call arguments, but found a pattern",

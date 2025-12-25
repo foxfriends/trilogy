@@ -1,7 +1,7 @@
 use super::*;
 use crate::{Parser, Spanned, token_pattern::TokenPattern};
 use become_expression::BecomeExpression;
-use trilogy_scanner::TokenType::{self, *};
+use trilogy_scanner::{Token, TokenType};
 
 /// The many kinds of expressions in a Trilogy program.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
@@ -45,6 +45,26 @@ pub enum Expression {
     Handled(Box<HandledExpression>),
     Parenthesized(Box<ParenthesizedExpression>),
     ModuleAccess(Box<ModuleAccess>),
+    Block(Box<Block>),
+}
+
+/// The many kinds of expressions in a Trilogy program.
+#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+pub enum FollowingExpression {
+    Then(Token, Expression),
+    Block(Block),
+}
+
+impl FollowingExpression {
+    pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
+        if parser.check(TokenType::KwThen).is_ok() {
+            let then = parser.expect(TokenType::KwThen).unwrap();
+            let body = Expression::parse(parser)?;
+            Ok(Self::Then(then, body))
+        } else {
+            Ok(Self::Block(Block::parse(parser)?))
+        }
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -84,39 +104,39 @@ enum ExpressionResult {
 
 impl Expression {
     pub(crate) const PREFIX: [TokenType; 33] = [
-        Numeric,
-        String,
-        Bits,
-        KwTrue,
-        KwFalse,
-        Atom,
-        Character,
-        KwUnit,
-        OBrack,
-        OBrackPipe,
-        OBracePipe,
-        OpBang,
-        OpTilde,
-        KwYield,
-        KwIf,
-        KwIs,
-        KwMatch,
-        KwEnd,
-        KwExit,
-        KwReturn,
-        KwResume,
-        KwBreak,
-        KwContinue,
-        KwCancel,
-        KwLet,
-        Identifier,
-        KwWith,
-        KwFn,
-        KwDo,
-        KwQy,
-        OpDollar,
-        TemplateStart,
-        OParen,
+        TokenType::Numeric,
+        TokenType::String,
+        TokenType::Bits,
+        TokenType::KwTrue,
+        TokenType::KwFalse,
+        TokenType::Atom,
+        TokenType::Character,
+        TokenType::KwUnit,
+        TokenType::OBrack,
+        TokenType::OBrackPipe,
+        TokenType::OBracePipe,
+        TokenType::OpBang,
+        TokenType::OpTilde,
+        TokenType::KwYield,
+        TokenType::KwIf,
+        TokenType::KwIs,
+        TokenType::KwMatch,
+        TokenType::KwEnd,
+        TokenType::KwExit,
+        TokenType::KwReturn,
+        TokenType::KwResume,
+        TokenType::KwBreak,
+        TokenType::KwContinue,
+        TokenType::KwCancel,
+        TokenType::KwLet,
+        TokenType::Identifier,
+        TokenType::KwWith,
+        TokenType::KwFn,
+        TokenType::KwDo,
+        TokenType::KwQy,
+        TokenType::OpDollar,
+        TokenType::TemplateStart,
+        TokenType::OParen,
     ];
 
     fn binary(parser: &mut Parser, lhs: Expression) -> SyntaxResult<ExpressionResult> {
@@ -131,7 +151,6 @@ impl Expression {
         parser: &mut Parser,
         precedence: Precedence,
         lhs: Expression,
-        no_seq: bool,
     ) -> SyntaxResult<ExpressionResult> {
         // A bit of strangeness here because `peek()` takes a mutable reference,
         // so we can't use the fields afterwards... but we need their value after
@@ -143,6 +162,7 @@ impl Expression {
         let token = parser.force_peek();
 
         use ExpressionResult::{Continue, Done};
+        use TokenType::*;
 
         match token.token_type {
             OpDot if precedence < Precedence::Access => Self::binary(parser, lhs),
@@ -199,7 +219,7 @@ impl Expression {
             OpBang if precedence < Precedence::Call && !is_spaced => Ok(Continue(Self::Call(
                 Box::new(CallExpression::parse(parser, lhs)?),
             ))),
-            OpSemi if precedence <= Precedence::Sequence && !no_seq => Self::binary(parser, lhs),
+            OpSemi if precedence <= Precedence::Sequence => Self::binary(parser, lhs),
 
             // NOTE: despite and/or being allowed in patterns, we can't accept them here because
             // they are also allowed in queries, in which case an expression was never an option,
@@ -219,7 +239,8 @@ impl Expression {
             // otherwise unambiguous.
             //
             // Sadly, the list of things that can follow, for an application, is
-            // anything prefix (except unary operators) so this becomes a very long list.
+            // anything prefix (except unary operators or blocks) so this becomes
+            // a very long list.
             _ if Expression::PREFIX.matches(token)
                 && precedence < Precedence::Application
                 && !is_line_start
@@ -236,6 +257,7 @@ impl Expression {
 
     fn parse_prefix(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
         let token = parser.peek();
+        use TokenType::*;
         match token.token_type {
             Numeric => Ok(Ok(Self::Number(Box::new(NumberLiteral::parse(parser)?)))),
             String => Ok(Ok(Self::String(Box::new(StringLiteral::parse(parser)?)))),
@@ -385,6 +407,7 @@ impl Expression {
                 parser.error(error.clone());
                 Err(error)
             }
+            OBrace => Ok(Ok(Expression::Block(Box::new(Block::parse(parser)?)))),
             _ => {
                 let error = SyntaxError::new(
                     token.span,
@@ -399,11 +422,10 @@ impl Expression {
     fn parse_suffix(
         parser: &mut Parser,
         precedence: Precedence,
-        no_seq: bool,
         mut expr: Expression,
     ) -> SyntaxResult<Result<Self, Pattern>> {
         loop {
-            match Self::parse_follow(parser, precedence, expr, no_seq)? {
+            match Self::parse_follow(parser, precedence, expr)? {
                 ExpressionResult::Continue(updated) => expr = updated,
                 ExpressionResult::Done(expr) => return Ok(Ok(expr)),
                 ExpressionResult::Pattern(patt) => return Ok(Err(patt)),
@@ -414,10 +436,9 @@ impl Expression {
     fn parse_precedence_inner(
         parser: &mut Parser,
         precedence: Precedence,
-        no_seq: bool,
     ) -> SyntaxResult<Result<Self, Pattern>> {
         match Self::parse_prefix(parser)? {
-            Ok(expr) => Self::parse_suffix(parser, precedence, no_seq, expr),
+            Ok(expr) => Self::parse_suffix(parser, precedence, expr),
             Err(patt) => Ok(Err(Pattern::parse_suffix(
                 parser,
                 pattern::Precedence::None,
@@ -430,7 +451,7 @@ impl Expression {
         parser: &mut Parser,
         precedence: Precedence,
     ) -> SyntaxResult<Result<Self, Pattern>> {
-        Self::parse_precedence_inner(parser, precedence, false)
+        Self::parse_precedence_inner(parser, precedence)
     }
 
     pub(crate) fn parse_precedence(
@@ -445,22 +466,12 @@ impl Expression {
         })
     }
 
-    pub(crate) fn parse_parameter_list(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
-        Self::parse_precedence_inner(parser, Precedence::None, true)
-    }
-
     pub(crate) fn parse_or_pattern(parser: &mut Parser) -> SyntaxResult<Result<Self, Pattern>> {
         Self::parse_or_pattern_precedence(parser, Precedence::None)
     }
 
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
         Self::parse_precedence(parser, Precedence::None)
-    }
-
-    pub(crate) fn parse_no_seq(parser: &mut Parser) -> SyntaxResult<Self> {
-        Self::parse_precedence_inner(parser, Precedence::None, true)?.map_err(|patt| {
-            SyntaxError::new(patt.span(), "expected an expression but found a pattern")
-        })
     }
 
     pub(crate) fn is_lvalue(&self) -> bool {

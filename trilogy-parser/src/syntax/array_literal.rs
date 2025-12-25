@@ -102,7 +102,7 @@ impl ArrayElement {
         {
             parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
         }
-        let expression = Expression::parse_parameter_list(parser)?;
+        let expression = Expression::parse_or_pattern(parser)?;
         match expression {
             Ok(expression) => match spread {
                 None => Ok(Ok(Self::Element(expression))),

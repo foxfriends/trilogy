@@ -15,6 +15,7 @@ impl Expression {
     pub(super) fn convert(converter: &mut Converter, ast: syntax::Expression) -> Self {
         use syntax::Expression::*;
         match ast {
+            Block(block) => Self::convert_block(converter, *block),
             Number(ast) => Self::number(ast.span(), crate::ir::Number::convert(*ast)),
             Character(ast) => Self::character(ast.span(), ast.value()),
             String(ast) => Self::string(ast.span(), ast.value()),

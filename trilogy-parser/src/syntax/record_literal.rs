@@ -99,17 +99,17 @@ impl RecordElement {
                 parser.error(ErrorKind::TripleDot { dot: dot.span }.at(spread.span));
             }
 
-            let expression = Expression::parse_parameter_list(parser)?;
+            let expression = Expression::parse_or_pattern(parser)?;
             match expression {
                 Ok(expression) => Ok(Ok(Self::Spread(spread, expression))),
                 Err(pattern) => Ok(Err(RecordPatternElement::Spread(spread, pattern))),
             }
         } else {
-            let key = Expression::parse_parameter_list(parser)?;
+            let key = Expression::parse_or_pattern(parser)?;
             parser.expect(OpFatArrow).map_err(|token| {
                 parser.expected(token, "expected `=>` in key value pair of record literal")
             })?;
-            let value = Expression::parse_parameter_list(parser)?;
+            let value = Expression::parse_or_pattern(parser)?;
             match (key, value) {
                 (Ok(key), Ok(value)) => Ok(Ok(Self::Element(key, value))),
                 (Ok(key), Err(value)) => {

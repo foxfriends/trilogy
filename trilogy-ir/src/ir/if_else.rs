@@ -1,9 +1,6 @@
 use super::*;
 use crate::Converter;
-use trilogy_parser::{
-    Spanned,
-    syntax::{self, ElseBody},
-};
+use trilogy_parser::{Spanned, syntax};
 
 #[derive(Clone, Debug)]
 pub struct IfElse {
@@ -32,15 +29,14 @@ impl IfElse {
         let span = ast.span();
         let condition = Expression::convert(converter, ast.condition);
         let when_false = match ast.when_false {
-            Some(when_false) => match when_false.body {
-                ElseBody::Block(block) => Expression::convert_block(converter, block),
-                ElseBody::Expression(expression) => Expression::convert(converter, expression),
-            },
+            Some(when_false) => Expression::convert(converter, when_false.body),
             None => Expression::unit(span),
         };
         let when_true = match ast.when_true {
-            syntax::IfBody::Block(block) => Expression::convert_block(converter, block),
-            syntax::IfBody::Then(_, expr) => Expression::convert(converter, expr),
+            syntax::FollowingExpression::Block(block) => {
+                Expression::convert_block(converter, block)
+            }
+            syntax::FollowingExpression::Then(_, expr) => Expression::convert(converter, expr),
         };
         Expression::if_else(span, Self::new(condition, when_true, when_false))
     }
