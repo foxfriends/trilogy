@@ -11,19 +11,26 @@ fully by \Poetry{}.
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
-        \bnfpn{Block}
-        \bnfor
+        \bnfpn{FollowingExpression}
+        \bnfsp
+        \bnfprod{ElseIf}
     } \\
     \bnfmore{
         \bnfts{\kw{if}}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
-        \bnfpn{Block}
-        \bnfsp
+        \bnfpn{FollowingExpression}
+        \bnfor
+    } \\
+    \bnfprod{ElseIf}{
         \bnfts{\kw{else}}
         \bnfsp
         \bnfpn{If}
+        \bnfor
+        \bnfts{\kw{else}}
+        \bnfsp
+        \bnfpn{Expression}
     }
 \end{bnf*}
 

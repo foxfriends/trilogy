@@ -13,21 +13,10 @@ clause, as the expression must always evaluate to some value.
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Expression}
+        \bnfpn{FollowingExpression}
         \bnfsp
         \bnfpn{Else}
         \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{if}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfpn{Block}
-        \bnfsp
-        \bnfpn{Else}
     } \\
     \bnfprod{Else}{
         \bnfts{\kw{else}}

@@ -34,8 +34,8 @@ When called, the body of the procedure is run with the formal parameters bound t
 the arguments with which the procedure was called. A procedure may use the \kw{return}
 keyword to end its evaluation, with its call evaluating to the returned value.
 If control runs off the end of the procedure's body, its call evaluates to \kw{unit}.
-A procedure may cause a fizzle or branch, in which case all evaluations are propgated
-to the call site, conceptually causing the call to fizzle or branch respectively.
+A procedure may cause an execution to end or branch, in which case all evaluations are propgated
+to the call site, conceptually causing the call to end or branch respectively.
 
 \begin{prooftree}
     \AxiomC{$\kw{proc}\ p\texttt{!}(P_{1\hdots n})\ \block{M,\ \kw{return}\ N}$}

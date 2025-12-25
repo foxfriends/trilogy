@@ -39,11 +39,10 @@ condition evaluating to \kw{false}. This allows custom abstractions to enforce
 their invariants and provide in a way that provides a clear indication that
 something is being done incorrectly.
 
-A fizzle is typically not treated as an error; fizzles are often expected
-to cull unnecessary branches of execution. Fizzles are caused only by bindings
-which do not have any solutions. The only time a fizzle is treated as an error
-is when it is the last execution in the program, in which case it is an \emph{execution
-fizzled error}.
+An execution ending is typically not treated as an error; such endings are often expected
+to cull unnecessary branches of execution. The only time an execution ending is treated as
+an error is when it is the last execution in the program, in which case it is a
+\emph{last execution ended error}.
 
 Most things considered ``errors'' languages with typical exception
 handling constructs (e.g. \texttt{try} and \texttt{catch}) are handled through

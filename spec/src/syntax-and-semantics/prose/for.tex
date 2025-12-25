@@ -39,5 +39,5 @@ continues after each branch has been evaluated. Where a \kw{let} statement would
 result in multiple parallel executions with separate execution contexts, the
 \kw{for} loop executes the block for each binding of the query in sequence,
 all within one continuous execution context. A failed \kw{let} binding will cause
-the current execution to fizzle, while a \kw{for} loop query that does not
+the current execution to end, while a \kw{for} loop query that does not
 have a solution simply causes the loop to be skipped, but execution does not end.

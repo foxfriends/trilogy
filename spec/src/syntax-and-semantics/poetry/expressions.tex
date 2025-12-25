@@ -9,7 +9,7 @@ Though the expression grammar does include binary operators and other binary key
 in a later pass in the interpreter (\S\ref{sec:precedence}).
 
 \begin{bnf*}
-    \bnfprod{Expression}{
+    \bnfprod{ExpressionNoBlock}{
         \bnfpn{Primitive}
         \bnfor
         \bnfpn{Compound}
@@ -80,12 +80,32 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
     \bnfmore{
         \bnfpn{Template}
         \bnfor
-        \bnfpn{Block}
-        \bnfor
         \bnfts{(}
         \bnfsp
         \bnfpn{Expression}
         \bnfsp
         \bnfts{)}
     }
+\end{bnf*}
+
+For disambiguation purposes, we do not permit blocks to be used fully interchangeably with
+regular expressions (though nearly). In places where it may be ambiguous, blocks are typically
+considered to be part of the next clause of a statement, rather than part of an existing
+expression. Meanwhile, to explicitly separate an expression into the next clause of a statement
+without using a block, the \kw{then} keyword is used to denote the beginning of the following
+expression.
+
+\begin{bnf*}
+    \bnfprod{Expression}{
+        \bnfpn{ExpressionNoBlock}
+        \bnfor
+        \bnfpn{Block}
+    } \\
+    \bnfprod{FollowingExpression}{
+        \bnfts{\kw{then}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+        \bnfpn{Block}
+    } \\
 \end{bnf*}

@@ -35,7 +35,7 @@ Repeated here are the same grammar rules as seen in \S\ref{sec:prose-match}.
         \bnfsp
         \bnfpn{CaseGuard}
         \bnfsp
-        \bnfpn{CaseBody}
+        \bnfpn{FollowingExpression}
     } \\
     \bnfprod{CaseGuard}{
         \bnfts{\kw{if}}
@@ -44,25 +44,10 @@ Repeated here are the same grammar rules as seen in \S\ref{sec:prose-match}.
         \bnfor
         \bnfes
     } \\
-    \bnfprod{CaseBody}{
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfor
-        \bnfpn{Block}
-    } \\
     \bnfprod{ElseCase}{
         \bnfts{\kw{else}}
         \bnfsp
-        \bnfpn{Binding}
-        \bnfsp
-        \bnfpn{CaseBody}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{else}}
-        \bnfsp
-        \bnfpn{CaseBody}
+        \bnfpn{Expression}
     }
 \end{bnf*}
 

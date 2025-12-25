@@ -227,7 +227,7 @@ later, what appears to be nondeterminism can be implemented very
 easily, and without the function even needing to know that it is
 maybe running nondeterministically.
 
-\inputcode{fizzle.tri}
+\inputcode{ends.tri}
 
 Omitting the \kw{is} keyword, rules of \Law{} may still be called
 when in a default binding context, such as that of \kw{let}. In this case,
@@ -235,7 +235,7 @@ nondeterminism in execution is exposed leading to some unusual but
 interesting behaviour.
 
 When a pattern in a binding context fails to match, we say the
-execution \emph{fizzles}, ending it silently. Meanwhile, if a pattern in
+\emph{execution ends}, ending it silently. Meanwhile, if a pattern in
 the binding context binds more than once, the execution \emph{branches} into
 multiple parallel executions, which run independently of each other
 (in different execution contexts).

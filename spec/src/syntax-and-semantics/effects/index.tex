@@ -62,9 +62,7 @@ handlers.
         \bnfor
     } \\
     \bnfmore{
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Block}
+        \bnfpn{FollowingExpression}
         \bnfor
         \bnfts{\kw{yield}}
         \bnfsp
@@ -100,10 +98,10 @@ the keyword. The \kw{yield} that performed the effect will evaluate to that valu
 Once the resumed continuation complets, the \kw{resume} handler will evaluate to
 that final value, as if it were written \kw{then cancel resume}.
 
-The \kw{then} handler neither cancels nor resumes, but allows the programmer to fully
-describe exactly the control flow that is desired. When evaluation reaches the end of
-the block of the \kw{then} handler, execution simply fizzles, the \kw{cancel}
-or \kw{become} must be written explicitly.
+The \kw{then} or block handler neither cancels nor resumes automatically, but allows
+the programmer to fully describe exactly the control flow that is desired. When
+evaluation reaches the end of the block of such a handler, execution simply ends,
+the \kw{cancel} or \kw{become} must be written explicitly.
 
 In each case, the first-class keywords \kw{resume}, \kw{cancel} and \kw{become} are
 bound to the current effect handler, and may be used as part of the handler body.
@@ -117,7 +115,7 @@ to is used as the value of the \kw{resume} application.
 Only when the effect handler's body is encounters the \kw{cancel} keyword does the original
 expression finally evaluate, specifically to the value that was passed to \kw{cancel}.
 If a handler runs off its scope without using \kw{cancel} (or \kw{become}), execution
-fizzles instead. \kw{cancel} itself is also a first class keyword that can be captured
+ends instead. \kw{cancel} itself is also a first class keyword that can be captured
 to get the unbounded continuation following the end of the original expression to be
 passed along to other code, if so desired.
 

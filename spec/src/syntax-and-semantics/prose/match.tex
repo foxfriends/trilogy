@@ -40,7 +40,7 @@ last case, to be run in the situation that no \kw{case} was selected.
         \bnfsp
         \bnfpn{CaseGuard}
         \bnfsp
-        \bnfpn{CaseBody}
+        \bnfpn{FollowingExpression}
     } \\
     \bnfprod{CaseGuard}{
         \bnfts{\kw{if}}
@@ -49,25 +49,10 @@ last case, to be run in the situation that no \kw{case} was selected.
         \bnfor
         \bnfes
     } \\
-    \bnfprod{CaseBody}{
-        \bnfts{\kw{then}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfor
-        \bnfpn{Block}
-    } \\
     \bnfprod{ElseCase}{
         \bnfts{\kw{else}}
         \bnfsp
-        \bnfpn{Binding}
-        \bnfsp
-        \bnfpn{CaseBody}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfts{\kw{else}}
-        \bnfsp
-        \bnfpn{CaseBody}
+        \bnfpn{Expression}
     }
 \end{bnf*}
 
