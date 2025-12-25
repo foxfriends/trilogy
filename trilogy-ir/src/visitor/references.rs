@@ -58,7 +58,9 @@ impl IrVisitor for References {
 
     fn visit_case(&mut self, node: &Case) {
         self.ignore.extend(node.bindings());
-        node.guard.visit(self);
+        if let Some(guard) = &node.guard {
+            guard.visit(self);
+        }
         node.body.visit(self);
     }
 
@@ -79,7 +81,9 @@ impl IrVisitor for References {
 
     fn visit_handler(&mut self, node: &Handler) {
         self.ignore.extend(node.bindings());
-        node.guard.visit(self);
+        if let Some(guard) = &node.guard {
+            guard.visit(self);
+        }
         node.body.visit(self);
     }
 

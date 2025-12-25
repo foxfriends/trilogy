@@ -298,7 +298,9 @@ impl IrVisitable for Match {
 impl IrVisitable for Case {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         visitor.visit_pattern(&self.pattern);
-        visitor.visit_expression(&self.guard);
+        if let Some(guard) = &self.guard {
+            visitor.visit_expression(guard);
+        }
         visitor.visit_expression(&self.body);
     }
 }
@@ -307,6 +309,9 @@ impl IrVisitable for Function {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         for parameter in &self.parameters {
             visitor.visit_pattern(parameter);
+        }
+        if let Some(guard) = &self.guard {
+            visitor.visit_expression(guard);
         }
         visitor.visit_expression(&self.body);
     }
@@ -333,7 +338,9 @@ impl IrVisitable for Handled {
 impl IrVisitable for Handler {
     fn visit<V: IrVisitor>(&self, visitor: &mut V) {
         visitor.visit_pattern(&self.pattern);
-        visitor.visit_expression(&self.guard);
+        if let Some(guard) = &self.guard {
+            visitor.visit_expression(guard);
+        }
         visitor.visit_expression(&self.body);
     }
 }

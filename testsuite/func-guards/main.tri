@@ -1,0 +1,7 @@
+func check n if n < 5 = false
+func check n = n == 5
+
+proc main!() {
+  assert check 5
+  assert check 5
+}

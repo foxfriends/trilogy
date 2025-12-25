@@ -8,6 +8,7 @@ pub struct Function {
     pub span: Span,
     pub head_span: Span,
     pub parameters: Vec<Expression>,
+    pub guard: Option<Expression>,
     pub body: Expression,
 }
 
@@ -22,6 +23,10 @@ impl Function {
             .into_iter()
             .map(|param| Expression::convert_pattern(converter, param))
             .collect();
+        let guard = ast
+            .head
+            .guard
+            .map(|guard| Expression::convert(converter, guard.expression));
         let body = Expression::builtin(span, Builtin::Return)
             .apply_to(span, Expression::convert(converter, ast.body));
         converter.pop_scope();
@@ -29,6 +34,7 @@ impl Function {
             span,
             head_span,
             parameters,
+            guard,
             body,
         }
     }
@@ -48,6 +54,7 @@ impl Function {
             head_span: ast.r#fn.span.union(ast.dot.span),
             span,
             parameters,
+            guard: None,
             body,
         }
     }

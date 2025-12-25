@@ -29,13 +29,12 @@ impl Match {
                 let span = ast.r#else.span().union(ast.body.span());
                 converter.push_scope();
                 let pattern = Expression::wildcard(ast.r#else.span);
-                let guard = Expression::boolean(ast.r#else.span, true);
                 let body = Expression::convert(converter, ast.body);
                 converter.pop_scope();
                 cases.push(Case {
                     span,
                     pattern,
-                    guard,
+                    guard: None,
                     body,
                 });
             }
@@ -43,7 +42,7 @@ impl Match {
                 cases.push(Case {
                     span,
                     pattern: Expression::wildcard(span),
-                    guard: Expression::boolean(span, true),
+                    guard: None,
                     body: Expression::unit(span),
                 });
             }
@@ -67,13 +66,12 @@ impl Match {
                 let span = ast.r#else.span().union(ast.body.span());
                 converter.push_scope();
                 let pattern = Expression::wildcard(ast.r#else.span);
-                let guard = Expression::boolean(ast.r#else.span, true);
                 let body = Expression::convert(converter, ast.body);
                 converter.pop_scope();
                 cases.push(Case {
                     span,
                     pattern,
-                    guard,
+                    guard: None,
                     body,
                 });
             }
@@ -81,7 +79,7 @@ impl Match {
                 cases.push(Case {
                     span,
                     pattern: Expression::wildcard(span),
-                    guard: Expression::boolean(span, true),
+                    guard: None,
                     body: Expression::end(span),
                 });
             }
@@ -94,7 +92,7 @@ impl Match {
 pub struct Case {
     pub span: Span,
     pub pattern: Expression,
-    pub guard: Expression,
+    pub guard: Option<Expression>,
     pub body: Expression,
 }
 
@@ -109,8 +107,7 @@ impl Case {
             .unwrap_or_else(|| Expression::wildcard(case_span));
         let guard = ast
             .guard
-            .map(|ast| Expression::convert(converter, ast.expression))
-            .unwrap_or_else(|| Expression::boolean(case_span, true));
+            .map(|ast| Expression::convert(converter, ast.expression));
         let body = match ast.body {
             FollowingExpression::Then(_, body) => Expression::convert(converter, body),
             FollowingExpression::Block(body) => Expression::convert_block(converter, body),

@@ -12,7 +12,6 @@
     * Type-agnostic global functions (similar to core, but safe)
     * Consistent interfaces to individual core standard modules
     * Maybe adjust naming and organization of `core.c`, which is kind of scary conflictable
-* Guards on `func`
 * Improve error messages:
     * Eliminate places where panics are visible to the end user; should be covered by `yield`/`end` (rewrite spec I guess)
     * Review error handling in scanner/parser/IR, so all are nicely reported; maybe reimplement this using trait objects so it's not so spread out

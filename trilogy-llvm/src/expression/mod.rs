@@ -292,6 +292,12 @@ impl<'ctx> Codegen<'ctx> {
         // The handler works similar to a match expression, but matching against the effect
         // and doing much more control flow work.
         for handler in handlers {
+            if matches!(
+                handler.guard.as_ref().map(|g| &g.value),
+                Some(Value::Boolean(false))
+            ) {
+                continue;
+            }
             let next_case_function = self.add_continuation("");
             let (go_to_next_case, next_case_cp) =
                 self.capture_current_continuation(next_case_function, "when.next");
@@ -301,30 +307,34 @@ impl<'ctx> Codegen<'ctx> {
             {
                 break;
             }
-            let Some(guard_bool) = self.compile_expression(&handler.guard, "when.guard") else {
-                self.become_continuation_point(next_case_cp);
-                self.begin_next_function(next_case_function);
-                continue;
-            };
-            let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
-            // NOTE: bool doesn't really need to be destroyed... but do it anyway
-            self.trilogy_value_destroy(guard_bool);
-            let body_block = self.context.append_basic_block(self.get_function(), "body");
-            let next_block = self.context.append_basic_block(self.get_function(), "next");
-            let body_cp = self.branch_continuation_point();
-            self.builder
-                .build_conditional_branch(guard_flag, body_block, next_block)
-                .unwrap();
-            let snapshot = self.snapshot_function_context();
+            if let Some(guard) = &handler.guard
+                && !matches!(guard.value, Value::Boolean(true))
+            {
+                let Some(guard_bool) = self.compile_expression(guard, "when.guard") else {
+                    self.become_continuation_point(next_case_cp);
+                    self.begin_next_function(next_case_function);
+                    continue;
+                };
+                let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
+                // NOTE: bool doesn't really need to be destroyed... but do it anyway
+                self.trilogy_value_destroy(guard_bool);
+                let body_block = self.context.append_basic_block(self.get_function(), "body");
+                let next_block = self.context.append_basic_block(self.get_function(), "next");
+                let body_cp = self.branch_continuation_point();
+                self.builder
+                    .build_conditional_branch(guard_flag, body_block, next_block)
+                    .unwrap();
+                let snapshot = self.snapshot_function_context();
 
-            self.builder.position_at_end(next_block);
-            let go_next = self.use_temporary_clone(go_to_next_case).unwrap();
-            self.void_call_continuation(go_next);
+                self.builder.position_at_end(next_block);
+                let go_next = self.use_temporary_clone(go_to_next_case).unwrap();
+                self.void_call_continuation(go_next);
 
-            self.builder.position_at_end(body_block);
-            self.destroy_owned_temporary(go_to_next_case);
-            self.restore_function_context(snapshot);
-            self.become_continuation_point(body_cp);
+                self.builder.position_at_end(body_block);
+                self.destroy_owned_temporary(go_to_next_case);
+                self.restore_function_context(snapshot);
+                self.become_continuation_point(body_cp);
+            }
             self.push_handler_scope(resume);
             if let Some(result) = self.compile_expression(&handler.body, "handler_result") {
                 // If a handler runs off, it ends. Most handlers should choose to explicitly cancel
@@ -545,7 +555,10 @@ impl<'ctx> Codegen<'ctx> {
         for case in &expr.cases {
             // An unmatchable case can be skipped; rare this would occur, but easy to handle
             // since we're handling true specially anyway
-            if matches!(case.guard.value, Value::Boolean(false)) {
+            if matches!(
+                case.guard.as_ref().map(|g| &g.value),
+                Some(Value::Boolean(false))
+            ) {
                 continue;
             }
 
@@ -554,8 +567,10 @@ impl<'ctx> Codegen<'ctx> {
                 self.capture_current_continuation(next_case_function, "match.next");
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
 
-            if !matches!(case.guard.value, Value::Boolean(true)) {
-                let Some(guard_bool) = self.compile_expression(&case.guard, "match.guard") else {
+            if let Some(guard) = &case.guard
+                && !matches!(guard.value, Value::Boolean(true))
+            {
+                let Some(guard_bool) = self.compile_expression(guard, "match.guard") else {
                     self.become_continuation_point(next_case_cp);
                     self.begin_next_function(next_case_function);
                     continue;

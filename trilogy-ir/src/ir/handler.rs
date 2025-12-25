@@ -7,7 +7,7 @@ use trilogy_parser::{Spanned, syntax};
 pub struct Handler {
     pub span: Span,
     pub pattern: Expression,
-    pub guard: Expression,
+    pub guard: Option<Expression>,
     pub body: Expression,
 }
 
@@ -60,10 +60,7 @@ impl Handler {
                 let pattern = Expression::convert_pattern(converter, handler.pattern);
                 let pattern =
                     Expression::reference(pattern.span, effect.clone()).and(pattern.span, pattern);
-                let guard = handler
-                    .guard
-                    .map(|ast| Expression::convert(converter, ast))
-                    .unwrap_or_else(|| Expression::boolean(span, true));
+                let guard = handler.guard.map(|ast| Expression::convert(converter, ast));
                 converter.scope.set_allow_resume_cancel(true);
                 let body = Self::convert_strategy(converter, handler.strategy, effect);
                 Self {
@@ -78,13 +75,12 @@ impl Handler {
                 let else_span = handler.else_token().span;
                 let effect = Identifier::temporary(converter, else_span);
                 let pattern = Expression::reference(else_span, effect.clone());
-                let guard = Expression::boolean(else_span, true);
                 converter.scope.set_allow_resume_cancel(true);
                 let body = Self::convert_strategy(converter, handler.strategy, effect);
                 Self {
                     span,
                     pattern,
-                    guard,
+                    guard: None,
                     body,
                 }
             }

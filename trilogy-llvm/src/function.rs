@@ -2,7 +2,10 @@ use crate::Codegen;
 use inkwell::values::{BasicValue, FunctionValue};
 use source_span::Span;
 use std::borrow::Borrow;
-use trilogy_ir::{Id, ir};
+use trilogy_ir::{
+    Id,
+    ir::{self, Expression, Value},
+};
 
 impl<'ctx> Codegen<'ctx> {
     fn write_function_accessor(
@@ -72,6 +75,13 @@ impl<'ctx> Codegen<'ctx> {
         'outer: for (i, overload) in overloads.iter().enumerate() {
             let overload = overload.borrow();
             assert_eq!(overload.parameters.len(), arity);
+            if matches!(
+                overload.guard.as_ref().map(|g| &g.value),
+                Some(Value::Boolean(false))
+            ) {
+                continue;
+            }
+
             self.set_span(overload.head_span);
 
             let next_overload_function = self.add_continuation(if i == overloads.len() - 1 {
@@ -90,6 +100,32 @@ impl<'ctx> Codegen<'ctx> {
                     break 'outer;
                 }
             }
+
+            if let Some(guard) = &overload.guard
+                && !matches!(guard.value, Value::Boolean(true))
+            {
+                let Some(guard_bool) = self.compile_expression(guard, "match.guard") else {
+                    self.become_continuation_point(next_overload_cp);
+                    self.begin_next_function(next_overload_function);
+                    continue;
+                };
+                let guard_flag = self.trilogy_boolean_untag(guard_bool, "");
+                self.trilogy_value_destroy(guard_bool); // NOTE: bool doesn't really need to be destroyed... but do it anyway
+                let next_block = self.context.append_basic_block(self.get_function(), "next");
+                let body_block = self.context.append_basic_block(self.get_function(), "body");
+                let body_cp = self.branch_continuation_point();
+                self.builder
+                    .build_conditional_branch(guard_flag, body_block, next_block)
+                    .unwrap();
+
+                self.builder.position_at_end(next_block);
+                let go_next = self.use_temporary_clone(go_to_next_overload).unwrap();
+                self.void_call_continuation(go_next);
+
+                self.builder.position_at_end(body_block);
+                self.become_continuation_point(body_cp);
+            }
+
             self.destroy_owned_temporary(go_to_next_overload);
 
             if let Some(value) = self.compile_expression(&overload.body, "") {
