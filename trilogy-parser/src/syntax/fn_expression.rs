@@ -52,7 +52,7 @@ mod test {
     test_parse!(fn_pattern: "fn x:xs. xs" => Expression::parse => "(Expression::Fn (FnExpression _ [(Pattern::Tuple _)] _ _))");
     test_parse!(fn_multiple_params: "fn x y. x * y" => Expression::parse => "(Expression::Fn (FnExpression _ [(Pattern::Binding _) (Pattern::Binding _)] _ _))");
     test_parse!(fn_multiple_patterns: "fn x:xs y:ys. x * y" => Expression::parse => "(Expression::Fn (FnExpression _ [(Pattern::Tuple _) (Pattern::Tuple _)] _ _))");
-    test_parse_error!(fn_invalid_body: "fn x. { return x * y }" => Expression::parse);
+    test_parse_error!(fn_invalid_body: "fn x. let y = 5" => Expression::parse);
     test_parse_error!(fn_invalid_pattern: "fn x + y. x" => Expression::parse);
     test_parse_error!(fn_no_params: "fn. 3" => Expression::parse);
 }

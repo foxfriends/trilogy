@@ -52,7 +52,7 @@ mod test {
 
     test_parse!(arraycomp_simple: "[x for x in array]" => Expression::parse => "(Expression::ArrayComprehension (ArrayComprehension _ _ _ _ _))");
     test_parse!(arraycomp_complex: "[x:y for lookup(x) and another(y)]" => Expression::parse => "(Expression::ArrayComprehension (ArrayComprehension _ _ _ _ _))");
-    test_parse!(array_comp_seq: "[(x; y) for lookup(x, y)]" => Expression::parse => "(Expression::ArrayComprehension (ArrayComprehension _ _ _ _ _))");
+    test_parse!(array_comp_seq: "[{x; y} for lookup(x, y)]" => Expression::parse => "(Expression::ArrayComprehension (ArrayComprehension _ _ _ _ _))");
 
     test_parse_error!(arraycomp_no_commas: "[x, y for lookup(x, y)]" => Expression::parse => "only one element may precede the `for` keyword in a comprehension");
     test_parse_error!(arraycomp_no_end: "[x for x in array" => Expression::parse => "expected `]` to end array comprehension");

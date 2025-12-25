@@ -51,5 +51,5 @@ mod test {
     test_parse!(direct_collection: "[..a] = [1, 2, 3]" => Query::parse => "(Query::Direct (DirectUnification _ _ _))");
     test_parse_error!(direct_no_op_eq: "[..a] += [1, 2, 3]" => Query::parse);
     test_parse_error!(direct_no_expr: "a b = 123" => Query::parse);
-    test_parse_error!(direct_invalid_expr: "a = {}" => Query::parse);
+    test_parse_error!(direct_invalid_expr: "a = let x = 5" => Query::parse);
 }

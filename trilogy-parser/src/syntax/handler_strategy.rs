@@ -12,25 +12,27 @@ pub enum HandlerStrategy {
 
 impl HandlerStrategy {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let token = parser
-            .expect([KwCancel, KwResume, KwThen, KwYield, OBrace])
-            .map_err(|token| {
-                parser.expected(
+        let token = match parser.check([KwCancel, KwResume, KwThen, KwYield, OBrace]) {
+            Ok(token) => token,
+            Err(token) => {
+                let token = token.clone();
+                return Err(parser.expected(
                     token,
                     "expected `cancel`, `resume`, `then`, `yield`, or a block in handler",
-                )
-            })?;
+                ));
+            }
+        };
 
         match token.token_type {
             KwCancel => Ok(Self::Cancel {
-                cancel: token,
+                cancel: parser.expect(KwCancel).unwrap(),
                 body: Expression::parse(parser)?,
             }),
             KwResume => Ok(Self::Resume {
-                resume: token,
+                resume: parser.expect(KwResume).unwrap(),
                 body: Expression::parse(parser)?,
             }),
-            KwYield => Ok(Self::Yield(token)),
+            KwYield => Ok(Self::Yield(parser.expect(KwYield).unwrap())),
             KwThen | OBrace => Ok(Self::Bare(FollowingExpression::parse(parser)?)),
             _ => unreachable!(),
         }

@@ -48,7 +48,6 @@ pub enum Expression {
     Block(Box<Block>),
 }
 
-/// The many kinds of expressions in a Trilogy program.
 #[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
 pub enum FollowingExpression {
     Then(Token, Expression),
@@ -57,8 +56,7 @@ pub enum FollowingExpression {
 
 impl FollowingExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        if parser.check(TokenType::KwThen).is_ok() {
-            let then = parser.expect(TokenType::KwThen).unwrap();
+        if let Ok(then) = parser.expect(TokenType::KwThen) {
             let body = Expression::parse(parser)?;
             Ok(Self::Then(then, body))
         } else {
@@ -661,7 +659,7 @@ mod test {
         (IfElseExpression
           _
           (Expression::Boolean _)
-          (IfBody::Then _ _)
+          (FollowingExpression::Then _ _)
           (ElseClause _ _)))");
 
     test_parse_error!(expr_eq_without_parens: "x == y == z" => Expression::parse => "equality operators cannot be chained, use parentheses to disambiguate");

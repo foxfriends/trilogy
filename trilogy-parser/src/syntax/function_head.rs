@@ -8,6 +8,7 @@ pub struct FunctionHead {
     pub func: Token,
     pub name: Identifier,
     pub parameters: Vec<Pattern>,
+    pub guard: Option<Guard>,
     span: Span,
 }
 
@@ -24,16 +25,18 @@ impl FunctionHead {
         let mut parameters = vec![];
         loop {
             parameters.push(Pattern::parse(parser)?);
-            if Pattern::PREFIX.matches(parser.peek()) {
-                continue;
+            if !Pattern::PREFIX.matches(parser.peek()) {
+                break;
             }
-            return Ok(Self {
-                span: func.span.union(parameters.last().unwrap().span()),
-                func,
-                name,
-                parameters,
-            });
         }
+        let guard = Guard::parse_optional(parser)?;
+        Ok(Self {
+            span: func.span.union(parameters.last().unwrap().span()),
+            func,
+            name,
+            guard,
+            parameters,
+        })
     }
 }
 
@@ -41,8 +44,9 @@ impl FunctionHead {
 mod test {
     use super::*;
 
-    test_parse!(funchead_one_param: "func hello x" => FunctionHead::parse => "(FunctionHead _ _ [_])");
-    test_parse!(funchead_multi_param: "func hello x y z" => FunctionHead::parse => "(FunctionHead _ _ [_ _ _])");
-    test_parse!(funchead_pattern_param: "func find f x:xs" => FunctionHead::parse => "(FunctionHead _ _ [_ _])");
+    test_parse!(funchead_one_param: "func hello x" => FunctionHead::parse => "(FunctionHead _ _ [_] ())");
+    test_parse!(funchead_multi_param: "func hello x y z" => FunctionHead::parse => "(FunctionHead _ _ [_ _ _] ())");
+    test_parse!(funchead_pattern_param: "func find f x:xs" => FunctionHead::parse => "(FunctionHead _ _ [_ _] ())");
+    test_parse!(funchead_guarded: "func find f x if x" => FunctionHead::parse => "(FunctionHead _ _ [_ _] (Guard _ _))");
     test_parse_error!(funchead_invalid_param: "func unadd (x + y)" => FunctionHead::parse);
 }
