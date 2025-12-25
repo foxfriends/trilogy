@@ -68,7 +68,7 @@ handled by the syntax tree but by another pass afterwards (\S\ref{sec:precedence
         \bnfor
     } \\
     \bnfmore{
-        \bnfts{\op{,}}
+        \bnfts{\op{.}}
         \bnfor
         \bnfts{\op{:}}
         \bnfor
@@ -435,19 +435,6 @@ tail end with zeros.
     \AxiomC{$|\sigma| = b$}
     \LeftLabel{Right Shift\textsubscript{M}}
     \TrinaryInfC{$\Gamma\vdash A\ \op{\textasciitilde>}\ B = (b\cdot \texttt{0})\rho$}
-\end{prooftree}
-
-Sequencing exists in \Poetry{}, as it does in \Prose{}, but is decidedly less
-fundamental. Sequencing in \Poetry{} however is never done with a line break,
-it must be explicitly denoted using the sequence operator (\op{,}). Semantically,
-the sequence operator simply does the first thing, then throws away its result
-and does the second. Useful in the case of effects, but not much else.
-
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash A$}
-    \AxiomC{$\Gamma\vdash B : \tau$}
-    \LeftLabel{Sequence}
-    \BinaryInfC{$\Gamma\vdash A\ \op{,}\ B : \tau$}
 \end{prooftree}
 
 The cons operator (\op{:}) is used for constructing tuples and lists. The

@@ -20,8 +20,6 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
     \bnfmore{
         \bnfpn{Reference}
         \bnfor
-        \bnfpn{MemberAccess}
-        \bnfor
         \bnfpn{ModuleAccess}
         \bnfor
     } \\
@@ -42,10 +40,10 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
         \bnfor
         \bnfpn{MatchElse}
         \bnfor
-        \bnfpn{Is}
-        \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Is}
+        \bnfor
         \bnfpn{End}
         \bnfor
         \bnfpn{Exit}
@@ -54,32 +52,34 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
         \bnfor
         \bnfpn{Cancel}
         \bnfor
-        \bnfpn{Become}
-        \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Become}
+        \bnfor
         \bnfpn{Return}
         \bnfor
         \bnfpn{Break}
         \bnfor
         \bnfpn{Continue}
         \bnfor
-        \bnfpn{Super}
-        \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Super}
+        \bnfor
         \bnfpn{FnClosure}
         \bnfor
         \bnfpn{DoClosure}
         \bnfor
+    } \\
+    \bnfmore{
         \bnfpn{QyClosure}
         \bnfor
         \bnfpn{Handled}
         \bnfor
-    } \\
-    \bnfmore{
         \bnfpn{Template}
         \bnfor
+    } \\
+    \bnfmore{
         \bnfts{(}
         \bnfsp
         \bnfpn{Expression}

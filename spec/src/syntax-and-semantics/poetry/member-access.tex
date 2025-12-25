@@ -1,21 +1,11 @@
 \subsubsection{Member Access}
 \label{sec:member-access}
 
-Some values contain other values within them, and those values are accessed using
-the member access syntax. Though this uses the \op{.} operator, as seen in many
-other languages, in \Trilogy{} that \op{.} truly is just an operator: the value on
-the right side is interpreted as an expression like any other.
-
-\begin{bnf*}
-    \bnfprod{MemberAccess}{
-        \bnfpn{Expression}
-        \bnfsp
-        \bnfts{\op{.}}
-        \bnfsp
-        \bnfpn{Expression}
-        \bnfor
-    }
-\end{bnf*}
+The member access operator (\op{.}) deserves its own section, for its relatively
+complex behaviour. Some values contain other values within them, and those values
+are accessed using the member access syntax. Though this uses a \op{.}, as seen in
+many other languages, in \Trilogy{} that \op{.} truly is just an operator: the value
+on the right side is interpreted as an expression like any other.
 
 The left expression is the ``container'' expression, while the right is the
 ``member'' expression. The exact semantics of this operator depends on the
