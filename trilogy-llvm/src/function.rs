@@ -2,10 +2,8 @@ use crate::Codegen;
 use inkwell::values::{BasicValue, FunctionValue};
 use source_span::Span;
 use std::borrow::Borrow;
-use trilogy_ir::{
-    Id,
-    ir::{self, Expression, Value},
-};
+use trilogy_ir::Id;
+use trilogy_ir::ir::{self, Value};
 
 impl<'ctx> Codegen<'ctx> {
     fn write_function_accessor(

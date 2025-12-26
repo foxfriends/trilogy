@@ -90,21 +90,21 @@ test "array filter" {
 }
 
 func fold _ a [] = a
-func fold f a [x, ..xs] = fold f (f a x) xs
+func fold f a [x, ..xs] = fold f (f x a) xs
 
 test "array fold" {
   assert fold (+) 0 [1, 2, 3, 4] == 10
   assert fold (+) 0 [] == 0
-  assert fold (:) 0 [1, 2, 3] == ((0:1):2):3
+  assert fold (:) 0 [1, 2, 3] == 3:(2:(1:0))
 }
 
 func rfold _ a [] = a
-func rfold f a [x, ..xs] = f (rfold f a xs) x
+func rfold f a [x, ..xs] = f x (rfold f a xs)
 
 test "array rfold" {
   assert rfold (+) 0 [1, 2, 3, 4] == 10
   assert rfold (+) 0 [] == 0
-  assert rfold (:) 0 [1, 2, 3] == ((0:3):2):1
+  assert rfold (:) 0 [1, 2, 3] == 1:(2:(3:0))
 }
 
 func reduce f [] = yield 'mia
@@ -113,7 +113,7 @@ func reduce f [x, ..xs] = fold f x xs
 test "array reduce" {
   assert reduce (+) [1, 2, 3, 4] == 10
   assert with { reduce (+) []; false } { when 'mia cancel true }
-  assert reduce (:) [1, 2, 3] == (1:2):3
+  assert reduce (:) [1, 2, 3] == 3:(2:1)
 }
 
 func rreduce f [] = yield 'mia
@@ -122,7 +122,7 @@ func rreduce f [..xs, x] = rfold f x xs
 test "array rreduce" {
   assert rreduce (+) [1, 2, 3, 4] == 10
   assert with { rreduce (+) []; false } { when 'mia cancel true }
-  assert rreduce (:) [1, 2, 3] == (3:2):1
+  assert rreduce (:) [1, 2, 3] == 1:(2:3)
 }
 
 func reverse [] = []
@@ -315,7 +315,7 @@ test "array zip" {
   assert zip [1, 2, 3] [1, 2] == [1:1, 2:2]
 }
 
-func unzip tuples = rfold (fn xs:ys x:y. ([x, ..xs] : [y, ..ys])) ([]:[]) tuples
+func unzip tuples = rfold (fn x:y xs:ys. ([x, ..xs] : [y, ..ys])) ([]:[]) tuples
 
 test "array  unzip" {
   assert unzip [1:2, 3:4, 5:6] == [1, 3, 5]:[2, 4, 6]

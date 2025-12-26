@@ -269,7 +269,7 @@ proc integer!() {
   let digits = apply <| many_1 digit
   let val = digits
     |> array::map (num::from_digit)
-    |> array::fold (fn a d. 10 * a + d) 0
+    |> array::fold (fn d a. 10 * a + d) 0
   return if is_negative then -val else val
 }
 
@@ -284,7 +284,7 @@ proc hex_integer!() {
   let digits = apply <| many_1 hex_digit
   return digits
     |> array::map (num::from_hex_digit)
-    |> array::fold (fn a d. 16 * a + d) 0
+    |> array::fold (fn d a. 16 * a + d) 0
 }
 
 test "parsec hex_integer" {

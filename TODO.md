@@ -23,5 +23,4 @@
     * Unary: `let x using array::each [1, 2, 3]; ...` -> `array::each [1, 2, 3] do(x) {...}`
     * Nullary: `using times 3` -> `times 3 do() {...}`
 * Consider nullary type definitions (is that just `ty` defs inside a procedure?)
-* Swap order of arguments to the reducer function in fold/reduce (`fn item acc. ...`)
 * Partially applied binary operators (e.g. `(< 3)` or `(4 :)`)

@@ -194,13 +194,13 @@ func fold f a it =
   let mut state = a,
   with { it!(); state } {
     when 'next(val) then {
-      state = f state val
+      state = f val state
       become unit
     }
   }
 
 test "iterator fold" {
-  assert fold (:) 0 <| range 1 5 == ((((0:1):2):3):4):5
+  assert fold (:) 0 <| range 1 5 == 5:(4:(3:(2:(1:0))))
 }
 
 func reduce f it =
@@ -214,7 +214,7 @@ func reduce f it =
   } {
     when 'next(val) then {
       state = match state {
-        case 'some(prev) then 'some(f prev val)
+        case 'some(prev) then 'some(f val prev)
         else 'some(val)
       }
       become unit
@@ -222,7 +222,7 @@ func reduce f it =
   }
 
 test "iterator reduce" {
-  assert reduce (:) <| range 1 5 == (((1:2):3):4):5
+  assert reduce (:) <| range 1 5 == 5:(4:(3:(2:1)))
   assert with reduce (:) <| rangex 0 0 { when 'mia cancel true else cancel false }
 }
 
@@ -232,7 +232,7 @@ test "iterator sum" {
   assert sum <| range 1 5 == 15
 }
 
-func count it = fold (fn a _. a + 1) 0 it
+func count it = fold (fn _ a. a + 1) 0 it
 
 test "iterator count" {
   assert count <| range 1 5 == 5

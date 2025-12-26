@@ -11,7 +11,7 @@ func update cmp key value record =
 func merge_by merger lhs rhs =
   rhs
   |> core::to_array
-  |> array::fold (fn state k:v. update merger k v state) lhs
+  |> array::fold (fn k:v state. update merger k v state) lhs
 
 test "record merge_by" {
   let max = fn key lhs rhs. if lhs > rhs then lhs else rhs
