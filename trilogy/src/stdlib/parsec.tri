@@ -267,9 +267,7 @@ test "parsec hex_digit" {
 proc integer!() {
   let is_negative = 'some('-') == apply <| option <| char '-'
   let digits = apply <| many_1 digit
-  let val = digits
-    |> array::map (num::from_digit)
-    |> array::fold (fn d a. 10 * a + d) 0
+  let val = num::parse_from_digits digits
   return if is_negative then -val else val
 }
 
@@ -282,9 +280,7 @@ test "parsec integer" {
 ## Parses a base-16 integer from a string, returning the value as a number.
 proc hex_integer!() {
   let digits = apply <| many_1 hex_digit
-  return digits
-    |> array::map (num::from_hex_digit)
-    |> array::fold (fn d a. 16 * a + d) 0
+  return num::parse_from_hex_digits digits
 }
 
 test "parsec hex_integer" {

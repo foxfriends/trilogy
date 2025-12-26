@@ -1,6 +1,7 @@
 import "trilogy:core" as core
+import "trilogy:iterator" as it
 
-export numer, denom, is_natural, is_whole, is_integer, is_real, is_imaginary, is_complex, from_digit, from_hex_digit, abs, re, im, conj, swap, sign, ceil, floor, trunc
+export numer, denom, is_natural, is_whole, is_integer, is_real, is_imaginary, is_complex, from_digit, from_hex_digit, abs, re, im, conj, swap, sign, ceil, floor, trunc, from_digits_base, parse_from_hex_digits, parse_from_digits
 
 func numer num and typeof 'number = core::numer!(num)
 
@@ -142,6 +143,41 @@ func from_hex_digit 'E' = 14
 func from_hex_digit 'f' = 15
 func from_hex_digit 'F' = 15
 func from_hex_digit n = from_digit n
+
+func from_digits_base base digits and typeof 'array =
+  digits
+  |> it::from
+  |> from_digits_base base
+func from_digits_base base digits = digits
+  |> it::fold (fn d a. a * base + d) 0
+
+test "number parse_from_digits" {
+  assert from_digits_base 10 [1, 2, 3, 4, 5, 6] == 123456
+  assert from_digits_base 8 (it::from [1, 2, 3, 4, 5, 6]) == 0o123456
+  assert from_digits_base 2 [] == 0
+}
+
+func parse_from_digits digits = digits
+  |> it::from
+  |> it::map from_digit
+  |> from_digits_base 10
+
+test "number parse_from_digits" {
+  assert parse_from_digits "123456" == 123456
+  assert parse_from_digits ['1', '2', '3', '4', '5'] == 12345
+  assert parse_from_digits "" == 0
+}
+
+func parse_from_hex_digits digits = digits
+  |> it::from
+  |> it::map from_hex_digit
+  |> from_digits_base 16
+
+test "number parse_from_hex_digits" {
+  assert parse_from_hex_digits "ff6600" == 0xff6600
+  assert parse_from_hex_digits ['f', 'a', 'b', 'c'] == 0xfabc
+  assert parse_from_hex_digits "" == 0
+}
 
 func abs n = if n >= 0 then n else -n
 
