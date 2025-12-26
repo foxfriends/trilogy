@@ -1,17 +1,31 @@
 import "trilogy:core" as core
 import "trilogy:array" as array
 
-export contains_key, merge_by, collect
+export contains_key, merge_by, collect, update
 
-func update cmp key value record =
+func replace_using cmp key value record =
   if contains_key key record
     then {| ..record, key => cmp key value (record.key) |}
     else {| ..record, key => value |}
 
+func update updater default key record =
+  if contains_key key record
+    then {| ..record, key => updater (record.key) |}
+    else {| ..record, key => updater default |}
+
+test "record update" {
+  let mut record = {| |}
+  record = update ((+) 1) 0 'a record
+  record = update ((+) 1) 0 'b record
+  record = update ((+) 1) 0 'a record
+  record = update ((+) 1) 0 'c record
+  assert record == {| 'a => 2, 'b => 1, 'c => 1 |}
+}
+
 func merge_by merger lhs rhs =
   rhs
   |> core::to_array
-  |> array::fold (fn k:v state. update merger k v state) lhs
+  |> array::fold (fn k:v state. replace_using merger k v state) lhs
 
 test "record merge_by" {
   let max = fn key lhs rhs. if lhs > rhs then lhs else rhs
