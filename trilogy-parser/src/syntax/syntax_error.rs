@@ -81,10 +81,9 @@ impl Display for SyntaxError {
                 f,
                 "the $ operator prefixing a tagged template requires a tag identifier"
             )?,
-            ErrorKind::DoMissingParameterList => write!(
-                f,
-                "a `do` closure requires a parameter list, even if empty"
-            )?,
+            ErrorKind::DoMissingParameterList => {
+                write!(f, "a `do` closure requires a parameter list, even if empty")?
+            }
         }
 
         Ok(())
