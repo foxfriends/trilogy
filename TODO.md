@@ -22,5 +22,18 @@
 * Steal `use` from Gleam:
     * Unary: `let x using array::each [1, 2, 3]; ...` -> `array::each [1, 2, 3] do(x) {...}`
     * Nullary: `using times 3` -> `times 3 do() {...}`
+
+    ```trilogy
+    let x using array::each [1, 2, 3]
+    -- for x using array::each [1, 2, 3]
+    using times 3
+
+    do(x) using array::each [1, 2, 3]
+    do() using times 3
+    do using times 3
+
+    -- using x = array::each [1, 2, 3]
+    -- using times 3
+    ```
 * Consider nullary type definitions (is that just `ty` defs inside a procedure?)
 * Partially applied binary operators (e.g. `(< 3)` or `(4 :)`)

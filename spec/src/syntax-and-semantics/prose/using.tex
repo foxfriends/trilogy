@@ -1,0 +1,47 @@
+\subsubsection{Using}
+
+The \kw{using} statement, though not adding anything you couldn't do already,
+provides a convenient syntax for avoiding ``callback hell''. We steal this
+basically straight out of Gleam.
+
+\begin{bnf*}
+    \bnfprod{Using}{
+        \bnfts{\kw{do}}
+        \bnfsp
+        \bnfts{(}
+        \bnfsp
+        \bnfpn{PatternList}
+        \bnfsp
+        \bnfts{)}
+        \bnfsp
+        \bnfts{\kw{using}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{do}}
+        \bnfsp
+        \bnfts{\kw{using}}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfts{\kw{using}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
+\end{bnf*}
+
+As this is purely syntax sugar, its behaviour can be defined as a syntax transformation,
+including the remainder of the lexical scope. In particular, all statements in
+the current scope following the \kw{using} statement are encapsulated in a callback,
+and passed as the final parameter to the function expression on the right side of the
+\kw{using} keyword.
+
+\begin{align*}
+    \texttt{\kw{using} \$e} &\Rightarrow \texttt{\kw{do}() \kw{using} \$e} \\ %
+    \texttt{\kw{do} \kw{using} \$e} &\Rightarrow \texttt{\kw{do}() \kw{using} \$e} \\ %
+    \texttt{\kw{do}(\$p) \kw{using} \$e; \$(\$t)*} &\Rightarrow \texttt{\$e (\kw{do}(\$p) \{ \$(\$t)* \})} \\ %
+\end{align*}
