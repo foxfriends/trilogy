@@ -45,3 +45,8 @@ and passed as the final parameter to the function expression on the right side o
     \texttt{\kw{do} \kw{using} \$e} &\Rightarrow \texttt{\kw{do}() \kw{using} \$e} \\ %
     \texttt{\kw{do}(\$p) \kw{using} \$e; \$(\$t)*} &\Rightarrow \texttt{\$e (\kw{do}(\$p) \{ \$(\$t)* \})} \\ %
 \end{align*}
+
+Worth noting is that the callback is truly a new function: the \kw{return} keyword
+used within this callback returns to the place where the callback is called within
+the \kw{using} statement's expression function. To escape back to a further scope,
+a captured return from that scope must be used.
