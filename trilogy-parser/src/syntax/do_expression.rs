@@ -10,10 +10,7 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```
 #[derive(Clone, Debug, PrettyPrintSExpr)]
 pub struct DoExpression {
-    pub do_token: Token,
-    pub open_paren: Token,
-    pub parameters: Vec<Pattern>,
-    pub close_paren: Token,
+    pub head: DoHead,
     pub body: DoBody,
     span: Span,
 }
@@ -26,40 +23,24 @@ impl Spanned for DoExpression {
 
 impl DoExpression {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let do_token = parser.expect(KwDo).unwrap();
-        let mut parameters = vec![];
-        let open_paren = parser.expect(OParen).map_err(|token| {
-            parser.expected(
-                token,
-                "expected `(` to do_token parameter list following `do`",
-            )
-        })?;
-        let close_paren = loop {
-            if let Ok(paren) = parser.expect(CParen) {
-                break paren;
-            }
-            parameters.push(Pattern::parse(parser)?);
-            if parser.expect(OpComma).is_ok() {
-                continue;
-            }
-            let close_paren = parser
-                .expect(CParen)
-                .map_err(|token| parser.expected(token, "expected `)` to end parameter list"))?;
-            break close_paren;
-        };
+        let head = DoHead::parse(parser)?;
+        Self::parse_with_head(parser, head)
+    }
+
+    pub(crate) fn parse_with_head(parser: &mut Parser, head: DoHead) -> SyntaxResult<Self> {
+        if head.parameter_list.is_none() {
+            parser.error(ErrorKind::DoMissingParameterList.at(head.span()));
+        }
         let body = DoBody::parse(parser)?;
         Ok(Self {
-            span: do_token.span.union(body.span()),
-            do_token,
-            open_paren,
-            parameters,
-            close_paren,
+            span: head.span().union(body.span()),
+            head,
             body,
         })
     }
 
-    pub fn do_token(&self) -> &Token {
-        &self.do_token
+    pub fn r#do(&self) -> &Token {
+        &self.head.r#do
     }
 }
 
@@ -92,6 +73,7 @@ mod test {
     use super::*;
 
     test_parse!(do_block: "do() {}" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Block _))");
+    test_parse_error!(do_block_no_params: "do {}" => DoExpression::parse);
     test_parse!(do_block_params: "do(a, b) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block _))");
     test_parse!(do_block_params_trailing_comma: "do(a, b, ) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block _))");
     test_parse_error!(do_block_params_leading_comma: "do(, a) {}" => DoExpression::parse);
@@ -100,8 +82,8 @@ mod test {
     test_parse_error!(do_block_invalid: "do() { exit }" => DoExpression::parse);
 
     test_parse!(do_expr_spaced: "do () 3" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Expression (Expression::Number _)))");
-    test_parse_error!(do_expr_bang: "do!() 3" => DoExpression::parse => "expected `(` to do_token parameter list following `do`");
-    test_parse_error!(do_no_parens: "do 3" => DoExpression::parse => "expected `(` to do_token parameter list following `do`");
+    test_parse_error!(do_expr_bang: "do!() 3" => DoExpression::parse => "expected `(` to begin parameter list");
+    test_parse_error!(do_no_parens: "do 3" => DoExpression::parse => "expected `(` to begin parameter list");
 
     test_parse!(do_expr: "do() 3" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Expression (Expression::Number _)))");
     test_parse!(do_expr_params: "do(a, b) a + b" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Expression (Expression::Binary _)))");

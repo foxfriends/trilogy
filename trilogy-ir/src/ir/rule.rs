@@ -19,6 +19,7 @@ impl Rule {
         let head_span = ast.head.span();
         let parameters = ast
             .head
+            .parameter_list
             .parameters
             .into_iter()
             .map(|param| Expression::convert_pattern(converter, param))

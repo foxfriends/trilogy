@@ -202,6 +202,7 @@ test_tokenize!(kw_type => "type" = [KwType]);
 test_tokenize!(kw_typeof => "typeof" = [KwTypeof]);
 test_tokenize!(kw_unit => "unit" = [KwUnit]);
 test_tokenize!(kw_use => "use" = [KwUse]);
+test_tokenize!(kw_use => "using" = [KwUsing]);
 test_tokenize!(kw_when => "when" = [KwWhen]);
 test_tokenize!(kw_while => "while" = [KwWhile]);
 test_tokenize!(kw_with => "with" = [KwWith]);

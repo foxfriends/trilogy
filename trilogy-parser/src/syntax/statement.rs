@@ -12,8 +12,9 @@ pub enum Statement {
     While(Box<WhileStatement>),
     For(Box<ForStatement>),
     Defer(Box<DeferStatement>),
-    Expression(Box<Expression>),
+    Using(Box<UsingStatement>),
     Assert(Box<AssertStatement>),
+    Expression(Box<Expression>),
     Block(Box<Block>),
 }
 
@@ -33,6 +34,20 @@ impl Statement {
             KwDefer => Ok(Self::Defer(Box::new(DeferStatement::parse(parser)?))),
             KwAssert => Ok(Self::Assert(Box::new(AssertStatement::parse(parser)?))),
             OBrace => Ok(Self::Block(Box::new(Block::parse(parser)?))),
+            KwUsing => Ok(Self::Using(Box::new(UsingStatement::parse(parser, None)?))),
+            KwDo => {
+                let head = DoHead::parse(parser)?;
+                if parser.check(KwUsing).is_ok() {
+                    Ok(Self::Using(Box::new(UsingStatement::parse(
+                        parser,
+                        Some(head),
+                    )?)))
+                } else {
+                    let procedure = DoExpression::parse_with_head(parser, head)?;
+                    let expression = Expression::Do(Box::new(procedure));
+                    Ok(Self::Expression(Box::new(expression)))
+                }
+            }
             _ => {
                 let expression = Expression::parse(parser)?;
                 if parser.check(IdentifierEq).is_ok() {

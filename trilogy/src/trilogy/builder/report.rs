@@ -437,6 +437,9 @@ impl<E: std::error::Error> Error<E> {
                     ErrorKind::TaggedTemplateNotIdentifier => ariadne::Report::build(kind, span.clone())
                         .with_message("the `$` operator prefixing a tagged template requires an identifier")
                         .with_label(Label::new(span).with_color(primary).with_message("this must be an identifier")),
+                    ErrorKind::DoMissingParameterList => ariadne::Report::build(kind, span.clone())
+                        .with_message("a `do` closure requires a parameter list, even if empty")
+                        .with_label(Label::new(span).with_color(primary).with_message("try adding `()` after this `do`"))
                 }
             }
             ErrorKind::Resolver(location, error) => {

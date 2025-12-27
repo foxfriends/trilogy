@@ -269,6 +269,7 @@ impl Expression {
             Expression(ast) => Self::convert(converter, *ast),
             Assert(ast) => Self::assert(ast.span(), crate::ir::Assert::convert(converter, *ast)),
             Block(ast) => Self::convert_block(converter, *ast),
+            Using(ast) => Self::convert_using(converter, *ast, rest),
         }
     }
 
@@ -541,6 +542,18 @@ impl Expression {
             None => Self::wildcard(ast.span()),
             Some(pattern) => Self::convert_pattern(converter, pattern),
         }
+    }
+
+    pub(super) fn convert_using(
+        converter: &mut Converter,
+        ast: syntax::UsingStatement,
+        rest: &mut impl std::iter::Iterator<Item = syntax::Statement>,
+    ) -> Expression {
+        let span = ast.span();
+        let expression = Expression::convert(converter, ast.expression);
+        let procedure = Procedure::convert_using(converter, ast.using.span, ast.head, rest);
+        let closure = Expression::procedure(span, procedure);
+        Expression::application(span, expression, closure)
     }
 
     pub(super) fn new(span: Span, value: Value) -> Self {

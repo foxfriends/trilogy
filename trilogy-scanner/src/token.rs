@@ -112,6 +112,7 @@ impl Token {
             "unless" => TokenType::KwUnless,
             "until" => TokenType::KwUntil,
             "use" => TokenType::KwUse,
+            "using" => TokenType::KwUsing,
             "when" => TokenType::KwWhen,
             "where" => TokenType::KwWhere,
             "while" => TokenType::KwWhile,

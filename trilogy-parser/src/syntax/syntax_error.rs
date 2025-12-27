@@ -12,6 +12,7 @@ pub enum ErrorKind {
     IfExpressionRestriction,
     TaggedTemplateMissingIdentifier,
     TaggedTemplateNotIdentifier,
+    DoMissingParameterList,
 }
 
 impl ErrorKind {
@@ -79,6 +80,10 @@ impl Display for SyntaxError {
             ErrorKind::TaggedTemplateNotIdentifier => write!(
                 f,
                 "the $ operator prefixing a tagged template requires a tag identifier"
+            )?,
+            ErrorKind::DoMissingParameterList => write!(
+                f,
+                "a `do` closure requires a parameter list, even if empty"
             )?,
         }
 

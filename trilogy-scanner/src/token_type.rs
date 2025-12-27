@@ -80,6 +80,10 @@ pub enum TokenType {
     KwTypeof,
     /// `unit`
     KwUnit,
+    /// `use`
+    KwUse,
+    /// `using`
+    KwUsing,
     /// `when`
     KwWhen,
     /// `while`
@@ -158,8 +162,6 @@ pub enum TokenType {
     KwUnless,
     /// `until`
     KwUntil,
-    /// `use`
-    KwUse,
     /// `where`
     KwWhere,
 
