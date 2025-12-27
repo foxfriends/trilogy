@@ -1,0 +1,42 @@
+\subsubsection{Fold (For Expression)}
+\label{sec:poetry-for}
+
+What may be surprising about the \kw{for} loop in \Trilogy{} is that it may be an
+expression, as well as a statement. In the expression form, it evaluates to a value,
+and works as you might expect a left-fold function to work. The syntax is similar to
+that of the regular \kw{for} loop (\S\ref{sec:prose-for}), but includes the additional
+\kw{where} clause to provide the accumulator variable's name and initial value.
+
+\begin{bnf*}
+    \bnfprod{Fold}{
+        \bnfts{\kw{for}}
+        \bnfsp
+        \bnfpn{Query}
+        \bnfsp
+        \bnfts{\kw{where}}
+        \bnfsp
+        \bnfpn{Identifier}
+        \bnfsp
+        \bnfts{=}
+        \bnfsp
+        \bnfpn{Expression}
+        \bnfsp
+        \bnfpn{Block}
+        \bnfor
+    }
+\end{bnf*}
+
+While the execution of this loop is much the same as a regular \kw{for} loop, the evaluation
+is more like a fold: on the first iteration of the loop, the variable identified in the
+\kw{where} clause is assigned its default value. On future iterations of the loop, the variable
+is assigned the final value of the previous iteration. When there are no more iterations, the
+final value of this accumulator variable is the resulting value of the loop.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E:\tau$}
+    \AxiomC{$\Gamma\vdash V:\tau$}
+    \LeftLabel{Fold}
+    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ \kw{where}\ i\ =\ V \{\ E\ \} : \tau$}
+\end{prooftree}
+
+More details on the behaviour of this loop are explained in the next section.

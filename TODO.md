@@ -3,6 +3,18 @@
 * Runtime new atom (beware Ruby symbol problem)
 * `defer` statement
 * Upgrade `for` to be a folding construct
+ 
+```trilogy
+# let [1, 2, 3] = from list = [] for vals(x) { [...list, x] }
+# let [1, 2, 3] = for vals(x) into list = [] { [...list, x] }
+let [1, 2, 3] = for vals(x) where list = [] { [...list, x] }
+# let [1, 2, 3] = for vals(x) let list = [] { [...list, x] }
+
+next
+break
+continue = break << next
+```
+
 * Finish FFI (foreign types)
 * Loosen requirement of pinning identifiers in queries (auto-pin should be better)
     * Really: fix queries all over, they're pretty broken

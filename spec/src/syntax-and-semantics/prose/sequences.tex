@@ -10,9 +10,10 @@ an explicit separator (\op{;}).
     \bnfmore{\bnfpn{Statement}\bnfor\bnfes}
 \end{bnf*}
 
-A sequence of statements executes each statement in order, performing some effect on the context in which
-it is being run. The value of the sequence is the value of the final statement in that sequence. Note, however,
-that only expression statements have values; if the final statement of a sequence is a non-expression statement,
+A sequence of statements executes each statement in order, performing some effect
+on the context in which it is being run. The value of the sequence is the value of
+the final statement in that sequence. Note, however, that only expression statements
+have values; if the final statement of a sequence is a non-expression statement,
 then the value of the whole sequence is just \kw{unit}.
 
 \begin{prooftree}

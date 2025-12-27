@@ -38,7 +38,7 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
         \bnfor
         \bnfpn{IfElse}
         \bnfor
-        \bnfpn{MatchElse}
+        \bnfpn{Match}
         \bnfor
     } \\
     \bnfmore{
@@ -48,31 +48,19 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
         \bnfor
         \bnfpn{Exit}
         \bnfor
-        \bnfpn{Resume}
-        \bnfor
-        \bnfpn{Cancel}
-        \bnfor
-    } \\
-    \bnfmore{
-        \bnfpn{Become}
-        \bnfor
         \bnfpn{Return}
         \bnfor
-        \bnfpn{Break}
-        \bnfor
-        \bnfpn{Continue}
-        \bnfor
     } \\
     \bnfmore{
-        \bnfpn{Super}
-        \bnfor
         \bnfpn{FnClosure}
         \bnfor
         \bnfpn{DoClosure}
         \bnfor
+        \bnfpn{QyClosure}
+        \bnfor
     } \\
     \bnfmore{
-        \bnfpn{QyClosure}
+        \bnfpn{Fold}
         \bnfor
         \bnfpn{Handled}
         \bnfor
@@ -80,6 +68,24 @@ in a later pass in the interpreter (\S\ref{sec:precedence}).
         \bnfor
     } \\
     \bnfmore{
+        \bnfpn{Resume}
+        \bnfor
+        \bnfpn{Cancel}
+        \bnfor
+        \bnfpn{Become}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Break}
+        \bnfor
+        \bnfpn{Continue}
+        \bnfor
+        \bnfpn{Next}
+        \bnfor
+    } \\
+    \bnfmore{
+        \bnfpn{Super}
+        \bnfor
         \bnfts{(}
         \bnfsp
         \bnfpn{Expression}

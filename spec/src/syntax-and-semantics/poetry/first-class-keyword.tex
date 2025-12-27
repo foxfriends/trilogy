@@ -1,16 +1,14 @@
 \subsubsection{First Class Keywords}
 \label{sec:first-class-keyword}
 
-The six keywords \kw{resume}, \kw{cancel}, \kw{become}, \kw{return}, \kw{break},
-and \kw{continue} are considered ``first class keywords'', meaning they may be
+The seven keywords \kw{resume}, \kw{cancel}, \kw{become}, \kw{return}, \kw{break},
+\kw{continue}, and \kw{next} are considered ``first class keywords'', meaning they may be
 used in expressions, stored in variables, and passed to functions to be called later.
 
 These four keywords are bound syntactically to their respective structures:
 \kw{resume}, \kw{cancel}, and \kw{become} to the nearest enclosing effect handler,
-\kw{break} and \kw{continue} to the nearest enclosing loop, and \kw{return} to the
-nearest enclosing procedure or function. When used in an expression, no matter how
-deeply nested in other structures or even closures, they continue to refer to these
-scopes (though do note that a new \kw{return} is introduced for nested closures).
+\kw{break}, \kw{continue}, and \kw{next} to the nearest enclosing loop,
+and \kw{return} to the nearest enclosing procedure or function.
 
 The syntactic binding becomes more important when the keyword is assigned to variables:
 even when passed as a value to another function or stored in a variable, the keyword
@@ -31,6 +29,8 @@ continues to refer to the structure that syntactically enclosed it.
         \bnfts{\kw{break}}
         \bnfor
         \bnfts{\kw{continue}}
+        \bnfor
+        \bnfts{\kw{next}}
     } \\
     \bnfprod{Resume}{
         \bnfts{\kw{resume}}
@@ -62,6 +62,11 @@ continues to refer to the structure that syntactically enclosed it.
         \bnfsp
         \bnfpn{Expression}
     } \\
+    \bnfprod{Next}{
+        \bnfts{\kw{next}}
+        \bnfsp
+        \bnfpn{Expression}
+    } \\
 \end{bnf*}
 
 In each case, these keywords represent a \emph{continuation}---a point in the
@@ -72,9 +77,16 @@ not be retrievable.
 The value supplied to the \kw{return} keyword is used as the value that the function
 it is bound to returns when called, as it would be when used regularly as a statement.
 
-Semantically, none of these are particularly interesting, though \kw{resume}, \kw{cancel},
-and \kw{become}, being part of the effect system and notably harder to define semantics for,
-are once again left for \S\ref{sec:effects}.
+\kw{resume}, \kw{cancel}, and \kw{become}, being part of the effect system and notably
+harder to define semantics for, are once again left for \S\ref{sec:effects}. Though not
+expressed in the grammar here, these three keywords are only permitted to be used or
+referenced within the body of a handler, the syntax of which is detailed later on.
+
+The \kw{break}, \kw{continue}, and \kw{next} keywords are similarly only permitted
+within loops. In particular, \kw{next} is only permitted within the expression form
+of a \kw{for} loop, as detailed in \S\ref{sec:poetry-for}. \kw{break} and \kw{continue}
+are for use in any loops (\kw{while} (\S\ref{sec:prose-while}) and statement form
+\kw{for} (\S\ref{sec:prose-for})).
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash E:\top$}
@@ -87,16 +99,6 @@ are once again left for \S\ref{sec:effects}.
     \LeftLabel{Continue}
     \UnaryInfC{$\Gamma\vdash \kw{continue}\ E : \bot$}
 \end{prooftree}
-
-\begin{prooftree}
-    \AxiomC{$\Gamma\vdash E:\top$}
-    \LeftLabel{Return}
-    \UnaryInfC{$\Gamma\vdash \kw{return}\ E : \bot$}
-\end{prooftree}
-
-More interesting than the formal semantics of these statements is a discussion on
-the practical semantics, which I believe are quietly hidden in the formal semantics,
-but also I am no expert and so maybe they are overlooked.
 
 The \kw{break} keyword is the least interesting; it simply ends the loop that it
 is bound to, and the program resumes execution from the point after the end of the
@@ -115,6 +117,38 @@ into the loop and continue. What this would be useful for is unknown (why didn't
 you just put that code in the loop to begin with?) but again, it is consistent with
 how continuations work, and so it is how it is.
 
+Unusual for \kw{break} and \kw{continue} is that they both require an expression.
+Though this expression is only relevant in some situations, it is required always
+for consistency. This situation will become apparent soon.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E:\tau$}
+    \AxiomC{$\Gamma\vdash V:\tau$}
+    \BinaryInfC{$\Gamma\vdash \kw{for}\ Q\ \kw{where}\ i\ =\ V \{\ \kw{next}\ E\ \} : \rho$}
+    \LeftLabel{Next}
+    \UnaryInfC{$\Gamma\vdash \kw{next}\ E : \rho$}
+\end{prooftree}
+
+The \kw{next} keyword is new: it moves forwards to the next iteration of the loop
+in much the same way as \kw{continue} but, once the loop is complete, the iterations
+are reversed and the final value of the loop up to that point is returned from \kw{next}.
+In this way, the final value of the loop is not necessarily the final value of the final
+iteration, but that value can be manipulated also on the way out. After using \kw{next},
+it is typically expected that \kw{break} will also be used to go back outwards, otherwise
+the loop will continue inwards again upon reaching the end of the loop body (as reaching
+the end of the loop body is much the same as calling \kw{continue} with the final value).
+
+The \kw{break} keyword also does not immediately end the loop, but instead goes back
+to the previous iteration in which \kw{next} was called. The value provided to the
+\kw{break} keyword being the value returned from \kw{next}.
+
+\kw{continue} in this situation can be considered to be equivalent to the following
+syntax transformation, and so hopefully does not need to be explained in particular:
+
+\begin{align*}
+    \texttt{\kw{continue} \$e} &\Rightarrow \texttt{\kw{break} \kw{next} \$e}
+\end{align*}
+
 Finally, the \kw{return} statement is also interesting in that it is, to some degree,
 a realization of the operator \textbf{J}, described by Peter J. Landin\cite{j}.
 Passing the return keyword to another function allows for a returned value to skip
@@ -122,3 +156,9 @@ multiple layers and return from the function the first class keyword was bound t
 If the \kw{return} escapes its function (e.g.\ by being itself returned), we now have
 a way to pass a value ``back in time''. It was shown by John C. Reynolds that \textbf{J}
 can be used to implement the call/cc function, much like the one seen in some Lisps\cite{defint}.
+
+\begin{prooftree}
+    \AxiomC{$\Gamma\vdash E:\top$}
+    \LeftLabel{Return}
+    \UnaryInfC{$\Gamma\vdash \kw{return}\ E : \bot$}
+\end{prooftree}

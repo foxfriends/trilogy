@@ -152,10 +152,6 @@ impl<'ctx> Codegen<'ctx> {
         self.become_continuation_point(done_continuation_point);
         self.begin_next_function(done_function);
         self.pop_loop_scope();
-        // TODO: the for should really somehow be a "fold" construct eventually
-        //
-        // let [1, 2, 3] = from list = [] for vals(x) { [...list, x] }
-        // let [1, 2, 3] = for vals(x) into list = [] { [...list, x] }
         Some(self.allocate_const(self.unit_const(), ""))
     }
 
