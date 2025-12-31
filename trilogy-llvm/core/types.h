@@ -166,6 +166,26 @@ typedef struct trilogy_record_value {
     trilogy_tuple_value* contents;
 } trilogy_record_value;
 
+typedef struct source_pos {
+    size_t line;
+    size_t column;
+} source_pos;
+
+typedef struct source_span {
+    source_pos start;
+    source_pos end;
+} source_span;
+
+/**
+ * Static metadata about each callable.
+ */
+typedef struct trilogy_callable_data {
+    const char* name;
+    const char* path;
+    source_span span;
+    const struct trilogy_callable_data* parent;
+} trilogy_callable_data;
+
 typedef struct trilogy_callable_value {
     /**
      * The reference count for this callable.
@@ -203,6 +223,7 @@ typedef struct trilogy_callable_value {
      * Pointer to the function itself.
      */
     void* function;
+    const trilogy_callable_data* metadata;
 } trilogy_callable_value;
 
 /**
@@ -230,6 +251,8 @@ typedef struct trilogy_reference {
  * Static metadata about each module.
  */
 typedef struct trilogy_module_data {
+    // const char* name;
+    // const char* path;
     size_t len;
     uint64_t* member_ids;
     uint8_t* member_exports;
@@ -247,7 +270,7 @@ typedef struct trilogy_module {
     /**
      * Pointer to the module data table
      **/
-    trilogy_module_data* module_data;
+    const trilogy_module_data* module_data;
     /**
      * The closure containing the module parameters and storage for constants.
      */

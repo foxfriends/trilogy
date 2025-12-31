@@ -35,7 +35,7 @@ void trilogy_callable_clone_into(
 static trilogy_callable_value* trilogy_callable_value_init(
     trilogy_callable_value* callable, trilogy_callable_tag tag, uint32_t arity,
     trilogy_value* return_to, trilogy_value* yield_to, trilogy_value* end_to,
-    trilogy_value* closure, void* p
+    trilogy_value* closure, void* p, const trilogy_callable_data* metadata
 ) {
     assert(
         closure == NO_CLOSURE || closure->tag == TAG_UNDEFINED ||
@@ -44,6 +44,7 @@ static trilogy_callable_value* trilogy_callable_value_init(
     callable->rc = 1;
     callable->tag = tag;
     callable->arity = arity;
+    callable->metadata = metadata;
     callable->return_to = NULL;
     if (return_to != NULL) {
         callable->return_to = trilogy_callable_assume(return_to);
@@ -75,7 +76,7 @@ trilogy_callable_value* trilogy_callable_init_do(
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_FUNCTION, arity, NULL, NULL, NULL, closure, p
+        callable, CALLABLE_FUNCTION, arity, NULL, NULL, NULL, closure, p, NULL
     );
     return trilogy_callable_init(t, callable);
 }
@@ -86,7 +87,7 @@ trilogy_callable_value* trilogy_callable_init_qy(
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_RULE, arity, NULL, NULL, NULL, closure, p
+        callable, CALLABLE_RULE, arity, NULL, NULL, NULL, closure, p, NULL
     );
     return trilogy_callable_init(t, callable);
 }
@@ -113,7 +114,7 @@ trilogy_callable_value* trilogy_callable_init_cont(
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, end_to,
-        closure, p
+        closure, p, NULL
     );
     return trilogy_callable_init(t, callable);
 }
@@ -129,7 +130,7 @@ trilogy_callable_value* trilogy_callable_init_root(trilogy_value* t, void* p) {
     // Don't increment the rc pointers extra though, this is accounted for
     // specifically in destroy.
     trilogy_callable_value_init(
-        callable, CALLABLE_CONTINUATION, 1, NULL, NULL, NULL, NO_CLOSURE, p
+        callable, CALLABLE_CONTINUATION, 1, NULL, NULL, NULL, NO_CLOSURE, p, NULL
     );
     callable->return_to = callable;
     callable->yield_to = callable;
@@ -222,7 +223,9 @@ void* trilogy_continuation_untag(trilogy_callable_value* val) {
     return (void*)val->function;
 }
 
-void* trilogy_callable_backtrace(trilogy_value* rv, trilogy_callable_value* val) {
+void* trilogy_callable_backtrace(
+    trilogy_value* rv, trilogy_callable_value* val
+) {
     // TODO: implement
     trilogy_array_init_empty(rv);
 }

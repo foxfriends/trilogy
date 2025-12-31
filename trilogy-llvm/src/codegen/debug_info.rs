@@ -113,6 +113,9 @@ impl<'ctx> DebugInfo<'ctx> {
         let u32_type = builder
             .create_basic_type("u32", 32, 0x7, LLVMDIFlagPublic)
             .unwrap();
+        let u64_type = builder
+            .create_basic_type("u64", 64, 0x7, LLVMDIFlagPublic)
+            .unwrap();
         let digit_t = builder
             .create_basic_type("digit_t", 32, 0x7, LLVMDIFlagPublic)
             .unwrap();
@@ -126,6 +129,10 @@ impl<'ctx> DebugInfo<'ctx> {
         let atom_type = builder
             .create_basic_type("atom", 64, 0x07, LLVMDIFlagPublic)
             .unwrap();
+        let function_ptr_type = builder
+            .create_basic_type("function", ptr_size, 0x01, LLVMDIFlagPublic)
+            .unwrap()
+            .as_type();
 
         let string_type = builder.create_struct_type(
             unit.get_file().as_debug_info_scope(),
@@ -742,6 +749,174 @@ impl<'ctx> DebugInfo<'ctx> {
             AddressSpace::default(),
         );
 
+        let source_pos_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "source_pos",
+            unit.get_file(),
+            0,
+            2 * ptr_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "line",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "column",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let source_span_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "source_span",
+            unit.get_file(),
+            0,
+            4 * ptr_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "start",
+                        unit.get_file(),
+                        0,
+                        2 * ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        source_pos_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "end",
+                        unit.get_file(),
+                        0,
+                        2 * ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        source_pos_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let callable_metadata_ptr_placeholder_type =
+            unsafe { builder.create_placeholder_derived_type(module.get_context()) };
+        let callable_metadata_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "trilogy_callable_data",
+            unit.get_file(),
+            0,
+            7 * ptr_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "name",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        c_str_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "path",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        c_str_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "span",
+                        unit.get_file(),
+                        0,
+                        4 * ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        source_span_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "parent",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        6 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_metadata_ptr_placeholder_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let callable_metadata_ptr_type = builder.create_pointer_type(
+            "",
+            callable_metadata_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+        unsafe {
+            builder.replace_placeholder_derived_type(
+                callable_metadata_ptr_placeholder_type,
+                callable_metadata_ptr_type,
+            );
+        }
+
         let callable_ptr_placeholder_type =
             unsafe { builder.create_placeholder_derived_type(module.get_context()) };
         let callable_type = builder.create_struct_type(
@@ -749,7 +924,7 @@ impl<'ctx> DebugInfo<'ctx> {
             "callable",
             unit.get_file(),
             0,
-            ptr_size * 8,
+            ptr_size * 9,
             0,
             LLVMDIFlagPublic,
             None,
@@ -855,10 +1030,20 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         64 + 5 * ptr_size,
                         LLVMDIFlagPublic,
-                        builder
-                            .create_basic_type("function", ptr_size, 0x01, LLVMDIFlagPublic)
-                            .unwrap()
-                            .as_type(),
+                        function_ptr_type,
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "metadata",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        64 + 6 * ptr_size,
+                        LLVMDIFlagPublic,
+                        callable_metadata_ptr_type.as_type(),
                     )
                     .as_type(),
             ],
@@ -878,6 +1063,181 @@ impl<'ctx> DebugInfo<'ctx> {
             builder
                 .replace_placeholder_derived_type(callable_ptr_placeholder_type, callable_ptr_type);
         }
+
+        // /**
+        //  * Static metadata about each module.
+        //  */
+        // typedef struct trilogy_module_data {
+        //     // const char* name;
+        //     // const char* path;
+        //     size_t len;
+        //     uint64_t* member_ids;
+        //     uint8_t* member_exports;
+        //     void** members;
+        // } trilogy_module_data;
+
+        let u64_ptr_type = builder.create_pointer_type(
+            "",
+            u64_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+
+        let byte_ptr_type = builder.create_pointer_type(
+            "",
+            byte_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+
+        let module_data_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "trilogy_module_data",
+            unit.get_file(),
+            0,
+            4 * ptr_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "len",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        size_t.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "member_ids",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        ptr_size,
+                        LLVMDIFlagPublic,
+                        u64_ptr_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "member_exports",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        byte_ptr_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "members",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        builder
+                            .create_pointer_type(
+                                "",
+                                function_ptr_type,
+                                ptr_size,
+                                0,
+                                AddressSpace::default(),
+                            )
+                            .as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let module_data_ptr_type = builder.create_pointer_type(
+            "",
+            module_data_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
+
+        let module_type = builder.create_struct_type(
+            unit.get_file().as_debug_info_scope(),
+            "module",
+            unit.get_file(),
+            0,
+            32 + 2 * ptr_size,
+            0,
+            LLVMDIFlagPublic,
+            None,
+            &[
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "rc",
+                        unit.get_file(),
+                        0,
+                        32,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        u32_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "module_data",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        32,
+                        LLVMDIFlagPublic,
+                        module_data_ptr_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "closure",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        32 + ptr_size,
+                        LLVMDIFlagPublic,
+                        array_ptr_type.as_type(),
+                    )
+                    .as_type(),
+            ],
+            0,
+            None,
+            "",
+        );
+
+        let module_ptr_type = builder.create_pointer_type(
+            "",
+            module_type.as_type(),
+            ptr_size,
+            0,
+            AddressSpace::default(),
+        );
 
         let any_value_type = builder.create_union_type(
             unit.get_file().as_debug_info_scope(),
@@ -1125,6 +1485,19 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         LLVMDIFlagPublic,
                         callable_ptr_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "module",
+                        unit.get_file(),
+                        0,
+                        ptr_size,
+                        0,
+                        0,
+                        LLVMDIFlagPublic,
+                        module_ptr_type.as_type(),
                     )
                     .as_type(),
             ],

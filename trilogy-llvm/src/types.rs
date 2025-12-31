@@ -62,6 +62,7 @@ impl<'ctx> Codegen<'ctx> {
     /// * Tag `11` = `set`; the value field is a pointer to a struct of `{ i64 length, [ptr x length] items }`.
     /// * Tag `12` = `record`; the value field is a pointer to a struct of `{ i64 length, [[ptr x 2] x length] items }`.
     /// * Tag `13` = `callable`; the value field is a pointer to a function.
+    /// * Tag `14` = `module`; the value field is a pointer to a module instance.
     pub(crate) fn value_type(&self) -> StructType<'ctx> {
         self.context
             .struct_type(&[self.tag_type().into(), self.payload_type().into()], false)
