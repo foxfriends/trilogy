@@ -221,3 +221,8 @@ void* trilogy_continuation_untag(trilogy_callable_value* val) {
     }
     return (void*)val->function;
 }
+
+void* trilogy_callable_backtrace(trilogy_value* rv, trilogy_callable_value* val) {
+    // TODO: implement
+    trilogy_array_init_empty(rv);
+}

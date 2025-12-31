@@ -5,6 +5,7 @@
 #include "trilogy_atom.h"
 #include "trilogy_bits.h"
 #include "trilogy_boolean.h"
+#include "trilogy_callable.h"
 #include "trilogy_character.h"
 #include "trilogy_number.h"
 #include "trilogy_record.h"
@@ -72,18 +73,6 @@ void readchar(trilogy_value* rv) {
     } else {
         trilogy_character_init(rv, ch);
     }
-}
-
-void trace(trilogy_value* rt) {
-    void* buffer[100];
-    int count = backtrace(buffer, 100);
-    trilogy_array_value* arr = trilogy_array_init_cap(rt, count);
-
-    char** trace = backtrace_symbols(buffer, count);
-    for (int i = 0; i < count; ++i) {
-        trilogy_string_init_from_c(&arr->contents[i], trace[i]);
-    }
-    free(trace);
 }
 
 void referential_eq(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
@@ -700,5 +689,11 @@ void to_bits(trilogy_value* rv, trilogy_value* val) {
     default:
         rte("number or string", val->tag);
     }
+    trilogy_value_destroy(val);
+}
+
+void callable_backtrace(trilogy_value* rv, trilogy_value* val) {
+    trilogy_callable_value* callable = trilogy_callable_untag(val);
+    trilogy_callable_backtrace(rv, callable);
     trilogy_value_destroy(val);
 }

@@ -11,8 +11,8 @@ type c {
   extern proc panic!(value)
   export panic
 
-  extern proc trace!(value)
-  export trace
+  extern proc callable_backtrace!(value)
+  export callable_backtrace
 
   extern proc exit_!(value)
   export exit_
@@ -192,8 +192,8 @@ export readchar
 slot panic = c::panic
 export panic
 
-slot trace = c::trace
-export trace
+func backtrace v and typeof 'callable = c::callable_backtrace v
+export backtrace
 
 slot push = c::push
 export push

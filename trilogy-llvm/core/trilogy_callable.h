@@ -43,3 +43,7 @@ trilogy_callable_value* trilogy_callable_assume(trilogy_value* val);
 void* trilogy_procedure_untag(trilogy_callable_value* val, uint32_t arity);
 void* trilogy_rule_untag(trilogy_callable_value* val, uint32_t arity);
 void* trilogy_continuation_untag(trilogy_callable_value* val);
+
+void* trilogy_callable_backtrace(
+    trilogy_value* trace, trilogy_callable_value* callable
+);
