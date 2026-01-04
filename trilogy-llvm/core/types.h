@@ -180,8 +180,9 @@ typedef struct source_span {
  * Static metadata about each callable.
  */
 typedef struct trilogy_callable_data {
-    const char* name;
     const char* path;
+    const char* name;
+    uint32_t arity;
     source_span span;
     const struct trilogy_callable_data* parent;
 } trilogy_callable_data;

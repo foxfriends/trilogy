@@ -840,7 +840,7 @@ impl<'ctx> DebugInfo<'ctx> {
             "trilogy_callable_data",
             unit.get_file(),
             0,
-            7 * ptr_size,
+            7 * ptr_size + 32,
             0,
             LLVMDIFlagPublic,
             None,
@@ -848,7 +848,7 @@ impl<'ctx> DebugInfo<'ctx> {
                 builder
                     .create_member_type(
                         unit.get_file().as_debug_info_scope(),
-                        "name",
+                        "path",
                         unit.get_file(),
                         0,
                         ptr_size,
@@ -861,7 +861,7 @@ impl<'ctx> DebugInfo<'ctx> {
                 builder
                     .create_member_type(
                         unit.get_file().as_debug_info_scope(),
-                        "path",
+                        "name",
                         unit.get_file(),
                         0,
                         ptr_size,
@@ -869,6 +869,19 @@ impl<'ctx> DebugInfo<'ctx> {
                         ptr_size,
                         LLVMDIFlagPublic,
                         c_str_type.as_type(),
+                    )
+                    .as_type(),
+                builder
+                    .create_member_type(
+                        unit.get_file().as_debug_info_scope(),
+                        "arity",
+                        unit.get_file(),
+                        0,
+                        32,
+                        0,
+                        2 * ptr_size,
+                        LLVMDIFlagPublic,
+                        u32_type.as_type(),
                     )
                     .as_type(),
                 builder
@@ -879,7 +892,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         4 * ptr_size,
                         0,
-                        2 * ptr_size,
+                        32 + 2 * ptr_size,
                         LLVMDIFlagPublic,
                         source_span_type.as_type(),
                     )
@@ -892,7 +905,7 @@ impl<'ctx> DebugInfo<'ctx> {
                         0,
                         ptr_size,
                         0,
-                        6 * ptr_size,
+                        32 + 6 * ptr_size,
                         LLVMDIFlagPublic,
                         callable_metadata_ptr_placeholder_type.as_type(),
                     )
