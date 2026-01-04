@@ -8,6 +8,7 @@ use trilogy_ir::ir::{self, Value};
 impl<'ctx> Codegen<'ctx> {
     fn write_function_accessor(
         &self,
+        definition: &ir::FunctionDefinition,
         accessor: FunctionValue<'ctx>,
         accessing: FunctionValue<'ctx>,
     ) {
@@ -15,11 +16,18 @@ impl<'ctx> Codegen<'ctx> {
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            &definition.name.to_string(),
+            definition.overloads[0].parameters.len() as u32,
+            definition.span(),
+            None,
+        );
         if has_context {
             let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
             self.trilogy_callable_init_do(sret, 1, ctx, accessing);
         } else {
-            self.trilogy_callable_init_proc(sret, 1, accessing);
+            self.trilogy_callable_init_proc(sret, 1, accessing, metadata);
         }
         self.builder.build_return(None).unwrap();
     }
@@ -33,7 +41,7 @@ impl<'ctx> Codegen<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
         let function = self.add_function(&name, &name, definition.span(), false);
-        self.write_function_accessor(accessor, function);
+        self.write_function_accessor(definition, accessor, function);
         self.set_current_definition(name.clone(), name, definition.span(), module_context);
         self.compile_function_body(function, &definition.overloads, definition.span());
         self.close_continuation();

@@ -204,17 +204,11 @@ impl<'ctx> Codegen<'ctx> {
         let atom_table: Vec<_> = atoms_vec
             .into_iter()
             .map(|(atom, _)| {
-                let bytes = atom.as_bytes();
-                let string = self.module.add_global(
-                    self.context.i8_type().array_type(bytes.len() as u32),
-                    None,
-                    "",
-                );
-                string.set_initializer(&self.context.const_string(bytes, false));
+                let string = self.global_c_string(atom);
                 self.string_value_type().const_named_struct(&[
                     self.context
                         .i64_type()
-                        .const_int(bytes.len() as u64, false)
+                        .const_int(atom.len() as u64, false)
                         .into(),
                     string.as_pointer_value().into(),
                 ])

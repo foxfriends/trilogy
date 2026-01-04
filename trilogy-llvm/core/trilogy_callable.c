@@ -71,12 +71,14 @@ static trilogy_callable_value* trilogy_callable_value_init(
 }
 
 trilogy_callable_value* trilogy_callable_init_do(
-    trilogy_value* t, uint32_t arity, trilogy_value* closure, void* p
+    trilogy_value* t, uint32_t arity, trilogy_value* closure, void* p,
+    const trilogy_callable_data* metadata
 ) {
     trilogy_callable_value* callable =
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
-        callable, CALLABLE_FUNCTION, arity, NULL, NULL, NULL, closure, p, NULL
+        callable, CALLABLE_FUNCTION, arity, NULL, NULL, NULL, closure, p,
+        metadata
     );
     return trilogy_callable_init(t, callable);
 }
@@ -92,9 +94,11 @@ trilogy_callable_value* trilogy_callable_init_qy(
     return trilogy_callable_init(t, callable);
 }
 
-trilogy_callable_value*
-trilogy_callable_init_proc(trilogy_value* t, uint32_t arity, void* p) {
-    return trilogy_callable_init_do(t, arity, NO_CLOSURE, p);
+trilogy_callable_value* trilogy_callable_init_proc(
+    trilogy_value* t, uint32_t arity, void* p,
+    const trilogy_callable_data* metadata
+) {
+    return trilogy_callable_init_do(t, arity, NO_CLOSURE, p, metadata);
 }
 
 trilogy_callable_value*
@@ -130,7 +134,8 @@ trilogy_callable_value* trilogy_callable_init_root(trilogy_value* t, void* p) {
     // Don't increment the rc pointers extra though, this is accounted for
     // specifically in destroy.
     trilogy_callable_value_init(
-        callable, CALLABLE_CONTINUATION, 1, NULL, NULL, NULL, NO_CLOSURE, p, NULL
+        callable, CALLABLE_CONTINUATION, 1, NULL, NULL, NULL, NO_CLOSURE, p,
+        NULL
     );
     callable->return_to = callable;
     callable->yield_to = callable;

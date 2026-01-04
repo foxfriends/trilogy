@@ -3,11 +3,18 @@ use inkwell::values::FunctionValue;
 use trilogy_ir::ir;
 
 impl<'ctx> Codegen<'ctx> {
-    fn write_test_accessor(&self, accessor: FunctionValue<'ctx>, accessing: FunctionValue<'ctx>) {
+    fn write_test_accessor(
+        &self,
+        test: &ir::TestDefinition,
+        accessor: FunctionValue<'ctx>,
+        accessing: FunctionValue<'ctx>,
+    ) {
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
-        self.trilogy_callable_init_proc(sret, 0, accessing);
+        let metadata =
+            self.build_callable_data(&self.module_path(), &test.name, 0, test.span, None);
+        self.trilogy_callable_init_proc(sret, 0, accessing, metadata);
         self.builder.build_return(None).unwrap();
     }
 
@@ -17,7 +24,7 @@ impl<'ctx> Codegen<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.add_test(&accessor_name);
         let function = self.add_procedure(&linkage_name, 0, &name, test.span, false);
-        self.write_test_accessor(accessor, function);
+        self.write_test_accessor(test, accessor, function);
         self.set_current_definition(name.to_owned(), linkage_name.to_owned(), test.span, None);
         self.compile_test_body(function, test);
         self.close_continuation();

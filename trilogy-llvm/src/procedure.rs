@@ -9,37 +9,45 @@ const MAIN_NAME: &str = "trilogy:::main";
 impl<'ctx> Codegen<'ctx> {
     fn write_procedure_accessor(
         &self,
+        definition: &ir::ProcedureDefinition,
         accessor: FunctionValue<'ctx>,
         accessing: FunctionValue<'ctx>,
-        arity: usize,
     ) {
         let has_context = accessor.count_params() == 2;
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            &definition.name.to_string(),
+            definition.arity as u32,
+            definition.span(),
+            None,
+        );
         if has_context {
             let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
-            self.trilogy_callable_init_do(sret, arity, ctx, accessing);
+            self.trilogy_callable_init_do(sret, definition.arity, ctx, accessing);
         } else {
-            self.trilogy_callable_init_proc(sret, arity, accessing);
+            self.trilogy_callable_init_proc(sret, definition.arity, accessing, metadata);
         }
         self.builder.build_return(None).unwrap();
     }
 
     pub(crate) fn declare_extern_procedure(
         &self,
-        name: &str,
-        arity: usize,
+        definition: &ir::ProcedureDefinition,
         linkage: Linkage,
         span: Span,
     ) -> FunctionValue<'ctx> {
+        let name = definition.name.to_string();
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let wrapper_name = format!("{}::{}.tailcc", self.module_path(), name);
-        let original_function = self.add_external_declaration(name, arity, span);
+        let original_function = self.add_external_declaration(&name, definition.arity, span);
 
         // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that
         // converts to CCC.
-        let wrapper_function = self.add_procedure(&wrapper_name, arity, &wrapper_name, span, true);
+        let wrapper_function =
+            self.add_procedure(&wrapper_name, definition.arity, &wrapper_name, span, true);
         self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span, None);
         self.begin_function(wrapper_function, span);
         self.set_span(span);
@@ -63,7 +71,7 @@ impl<'ctx> Codegen<'ctx> {
         let accessor = self.add_accessor(&accessor_name, false, linkage);
         self.set_current_definition(name.to_owned(), accessor_name.to_owned(), span, None);
         self.builder.unset_current_debug_location();
-        self.write_procedure_accessor(accessor, wrapper_function, arity);
+        self.write_procedure_accessor(definition, accessor, wrapper_function);
 
         accessor
     }
@@ -88,7 +96,7 @@ impl<'ctx> Codegen<'ctx> {
             let function = self.add_procedure(&name, arity, &name, definition.span(), false);
             (function, name.as_str())
         };
-        self.write_procedure_accessor(accessor, function, arity);
+        self.write_procedure_accessor(definition, accessor, function);
         self.set_current_definition(
             name.to_owned(),
             linkage_name.to_owned(),

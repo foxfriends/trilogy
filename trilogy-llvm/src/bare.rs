@@ -3,7 +3,7 @@ use inkwell::AddressSpace;
 use inkwell::builder::Builder;
 use inkwell::module::Linkage;
 use inkwell::types::FunctionType;
-use inkwell::values::{FunctionValue, InstructionValue, IntValue, PointerValue};
+use inkwell::values::{FunctionValue, GlobalValue, InstructionValue, IntValue, PointerValue};
 
 impl<'ctx> Codegen<'ctx> {
     /// Bare functions do not satisfy any particular calling convention, and are intended
@@ -18,6 +18,7 @@ impl<'ctx> Codegen<'ctx> {
 
     #[allow(dead_code, reason = "for debugging")]
     pub(crate) fn debug_print(&self, value: impl AsRef<str>) {
+        let debug_str = self.global_c_string(value.as_ref());
         let f = self.declare_bare(
             "printf",
             self.context.i32_type().fn_type(
@@ -25,14 +26,6 @@ impl<'ctx> Codegen<'ctx> {
                 true,
             ),
         );
-        let debug_str = self.module.add_global(
-            self.context
-                .i8_type()
-                .array_type(value.as_ref().len() as u32 + 1),
-            None,
-            "",
-        );
-        debug_str.set_initializer(&self.context.const_string(value.as_ref().as_bytes(), true));
         self.builder
             .build_call(f, &[debug_str.as_pointer_value().into()], "")
             .unwrap();
@@ -1237,6 +1230,7 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         arity: usize,
         function: FunctionValue<'ctx>,
+        metadata: GlobalValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_proc",
@@ -1244,6 +1238,7 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
@@ -1259,6 +1254,7 @@ impl<'ctx> Codegen<'ctx> {
                         .const_int(arity as u64, false)
                         .into(),
                     function.as_global_value().as_pointer_value().into(),
+                    metadata.as_pointer_value().into(),
                 ],
                 "",
             )
@@ -1465,6 +1461,7 @@ impl<'ctx> Codegen<'ctx> {
                     self.context.i64_type().into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
             ),
@@ -1480,6 +1477,10 @@ impl<'ctx> Codegen<'ctx> {
                         .into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
+                    self.context
+                        .ptr_type(AddressSpace::default())
+                        .const_null()
+                        .into(),
                 ],
                 "",
             )

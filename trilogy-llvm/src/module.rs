@@ -107,12 +107,7 @@ impl<'ctx> Codegen<'ctx> {
                     // TODO: probably most sensible to just disallow extern procedures to be defined in functor modules
                     // since they won't be able to access the context values anyway.
                     self.add_global(procedure.name.id.clone(), Head::Procedure);
-                    self.declare_extern_procedure(
-                        &procedure.name.to_string(),
-                        procedure.arity,
-                        linkage,
-                        procedure.span(),
-                    )
+                    self.declare_extern_procedure(procedure, linkage, procedure.span())
                 }
                 DefinitionItem::Procedure(procedure) => {
                     self.add_global(procedure.name.id.clone(), Head::Procedure);

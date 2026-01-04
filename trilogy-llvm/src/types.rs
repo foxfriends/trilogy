@@ -77,6 +77,31 @@ impl<'ctx> Codegen<'ctx> {
             .ptr_sized_int_type(self.execution_engine.get_target_data(), None)
     }
 
+    pub(crate) fn source_pos_type(&self) -> StructType<'ctx> {
+        self.context
+            .struct_type(&[self.usize_type().into(), self.usize_type().into()], false)
+    }
+
+    pub(crate) fn source_span_type(&self) -> StructType<'ctx> {
+        self.context.struct_type(
+            &[self.source_pos_type().into(), self.source_pos_type().into()],
+            false,
+        )
+    }
+
+    pub(crate) fn callable_data_type(&self) -> StructType<'ctx> {
+        self.context.struct_type(
+            &[
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+                self.context.i32_type().into(),
+                self.source_span_type().into(),
+                self.context.ptr_type(AddressSpace::default()).into(),
+            ],
+            false,
+        )
+    }
+
     pub(crate) fn get_tag(&self, pointer: PointerValue<'ctx>, name: &str) -> IntValue<'ctx> {
         let value = self
             .builder
@@ -200,7 +225,7 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
-    pub(crate) fn string_const(&self, into: PointerValue<'ctx>, value: &str) {
+    pub(crate) fn global_c_string(&self, value: &str) -> GlobalValue<'ctx> {
         let bytes = value.as_bytes();
         let string = self.module.add_global(
             self.context.i8_type().array_type(bytes.len() as u32),
@@ -209,6 +234,11 @@ impl<'ctx> Codegen<'ctx> {
         );
         string.set_initializer(&self.context.const_string(bytes, false));
         string.set_constant(true);
+        string
+    }
+
+    pub(crate) fn string_const(&self, into: PointerValue<'ctx>, value: &str) {
+        let string = self.global_c_string(value);
         self.trilogy_string_init_new(into, value.len(), string.as_pointer_value());
     }
 
@@ -325,5 +355,61 @@ impl<'ctx> Codegen<'ctx> {
         self.builder
             .build_load(self.value_type(), pointer, name)
             .unwrap()
+    }
+
+    pub(crate) fn build_callable_data(
+        &self,
+        path: &str,
+        name: &str,
+        arity: u32,
+        span: source_span::Span,
+        parent: Option<GlobalValue<'ctx>>,
+    ) -> GlobalValue<'ctx> {
+        let name = self.global_c_string(name);
+        let path = self.global_c_string(path);
+        let global = self.module.add_global(self.callable_data_type(), None, "");
+        global.set_initializer(
+            &self.callable_data_type().const_named_struct(&[
+                name.as_pointer_value().into(),
+                path.as_pointer_value().into(),
+                self.context
+                    .i32_type()
+                    .const_int(arity as u64, false)
+                    .into(),
+                self.source_span_type()
+                    .const_named_struct(&[
+                        self.source_pos_type()
+                            .const_named_struct(&[
+                                self.usize_type()
+                                    .const_int(span.start().line as u64, false)
+                                    .into(),
+                                self.usize_type()
+                                    .const_int(span.start().column as u64, false)
+                                    .into(),
+                            ])
+                            .into(),
+                        self.source_pos_type()
+                            .const_named_struct(&[
+                                self.usize_type()
+                                    .const_int(span.end().line as u64, false)
+                                    .into(),
+                                self.usize_type()
+                                    .const_int(span.end().column as u64, false)
+                                    .into(),
+                            ])
+                            .into(),
+                    ])
+                    .into(),
+                parent
+                    .map(|ptr| ptr.as_pointer_value().into())
+                    .unwrap_or_else(|| {
+                        self.context
+                            .ptr_type(AddressSpace::default())
+                            .const_null()
+                            .into()
+                    }),
+            ]),
+        );
+        global
     }
 }
