@@ -71,7 +71,7 @@ typedef trilogy_value* (*closure_accessor)(trilogy_value*, trilogy_value*);
 void trilogy_module_find(
     trilogy_value* tv, trilogy_module* module, uint64_t id
 ) {
-    trilogy_module_data* module_data = module->module_data;
+    const trilogy_module_data* module_data = module->module_data;
     // NOTE: modules are typically quite small, so linear search is usually
     // going to be just fine, but if someone makes a pathological module we
     // might do much better to binary search this.

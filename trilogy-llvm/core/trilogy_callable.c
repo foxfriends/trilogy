@@ -242,8 +242,9 @@ void* trilogy_continuation_untag(trilogy_callable_value* val) {
     return (void*)val->function;
 }
 
-static void backtrace_frame(trilogy_value* rv, trilogy_callable_value* val) {
-    if (val->metadata == NULL) {
+static void
+backtrace_frame(trilogy_value* rv, const trilogy_callable_data* metadata) {
+    if (metadata == NULL) {
         *rv = trilogy_unit;
         return;
     }
@@ -251,15 +252,15 @@ static void backtrace_frame(trilogy_value* rv, trilogy_callable_value* val) {
     trilogy_value key = trilogy_undefined;
     trilogy_value value = trilogy_undefined;
 
-    trilogy_string_init_from_c(&value, val->metadata->name);
+    trilogy_string_init_from_c(&value, metadata->name);
     trilogy_string_init_from_c(&key, "name");
     trilogy_record_insert(record, &key, &value);
 
-    trilogy_string_init_from_c(&value, val->metadata->path);
+    trilogy_string_init_from_c(&value, metadata->path);
     trilogy_string_init_from_c(&key, "path");
     trilogy_record_insert(record, &key, &value);
 
-    trilogy_number_init_u64(&value, val->metadata->arity);
+    trilogy_number_init_u64(&value, metadata->arity);
     trilogy_string_init_from_c(&key, "arity");
     trilogy_record_insert(record, &key, &value);
 
@@ -267,18 +268,18 @@ static void backtrace_frame(trilogy_value* rv, trilogy_callable_value* val) {
     trilogy_value end = trilogy_undefined;
     trilogy_value line = trilogy_undefined;
     trilogy_value col = trilogy_undefined;
-    trilogy_number_init_u64(&line, val->metadata->span.start.line);
-    trilogy_number_init_u64(&col, val->metadata->span.start.column);
+    trilogy_number_init_u64(&line, metadata->span.start.line);
+    trilogy_number_init_u64(&col, metadata->span.start.column);
     trilogy_tuple_init_take(&start, &line, &col);
-    trilogy_number_init_u64(&line, val->metadata->span.end.line);
-    trilogy_number_init_u64(&col, val->metadata->span.end.column);
+    trilogy_number_init_u64(&line, metadata->span.end.line);
+    trilogy_number_init_u64(&col, metadata->span.end.column);
     trilogy_tuple_init_take(&end, &line, &col);
     trilogy_tuple_init_take(&value, &start, &end);
     trilogy_string_init_from_c(&key, "span");
     trilogy_record_insert(record, &key, &value);
 
-    if (val->metadata->parent) {
-        backtrace_frame(&value, val->metadata->parent);
+    if (metadata->parent) {
+        backtrace_frame(&value, metadata->parent);
         trilogy_string_init_from_c(&key, "scope");
         trilogy_record_insert(record, &key, &value);
     }
@@ -290,7 +291,7 @@ void trilogy_callable_backtrace(
     trilogy_array_value* array = trilogy_array_init_empty(rv);
     while (val != NULL) {
         trilogy_value frame = trilogy_undefined;
-        backtrace_frame(&frame, val);
+        backtrace_frame(&frame, val->metadata);
         val = val->return_to;
         trilogy_array_push(array, &frame);
     }
