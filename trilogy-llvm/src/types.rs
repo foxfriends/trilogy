@@ -225,20 +225,22 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
-    pub(crate) fn global_c_string(&self, value: &str) -> GlobalValue<'ctx> {
+    pub(crate) fn global_c_string(&self, value: &str, null_terminated: bool) -> GlobalValue<'ctx> {
         let bytes = value.as_bytes();
         let string = self.module.add_global(
-            self.context.i8_type().array_type(bytes.len() as u32),
+            self.context
+                .i8_type()
+                .array_type(bytes.len() as u32 + if null_terminated { 1 } else { 0 }),
             None,
             "",
         );
-        string.set_initializer(&self.context.const_string(bytes, false));
+        string.set_initializer(&self.context.const_string(bytes, null_terminated));
         string.set_constant(true);
         string
     }
 
     pub(crate) fn string_const(&self, into: PointerValue<'ctx>, value: &str) {
-        let string = self.global_c_string(value);
+        let string = self.global_c_string(value, false);
         self.trilogy_string_init_new(into, value.len(), string.as_pointer_value());
     }
 
@@ -365,13 +367,13 @@ impl<'ctx> Codegen<'ctx> {
         span: source_span::Span,
         parent: Option<GlobalValue<'ctx>>,
     ) -> GlobalValue<'ctx> {
-        let name = self.global_c_string(name);
-        let path = self.global_c_string(path);
+        let name = self.global_c_string(name, true);
+        let path = self.global_c_string(path, true);
         let global = self.module.add_global(self.callable_data_type(), None, "");
         global.set_initializer(
             &self.callable_data_type().const_named_struct(&[
-                name.as_pointer_value().into(),
                 path.as_pointer_value().into(),
+                name.as_pointer_value().into(),
                 self.context
                     .i32_type()
                     .const_int(arity as u64, false)
@@ -400,14 +402,15 @@ impl<'ctx> Codegen<'ctx> {
                             .into(),
                     ])
                     .into(),
-                parent
-                    .map(|ptr| ptr.as_pointer_value().into())
-                    .unwrap_or_else(|| {
+                parent.map_or_else(
+                    || {
                         self.context
                             .ptr_type(AddressSpace::default())
                             .const_null()
                             .into()
-                    }),
+                    },
+                    |ptr| ptr.as_pointer_value().into(),
+                ),
             ]),
         );
         global

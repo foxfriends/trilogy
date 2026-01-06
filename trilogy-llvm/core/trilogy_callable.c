@@ -2,6 +2,10 @@
 #include "internal.h"
 #include "trace.h"
 #include "trilogy_array.h"
+#include "trilogy_number.h"
+#include "trilogy_record.h"
+#include "trilogy_string.h"
+#include "trilogy_tuple.h"
 #include "trilogy_value.h"
 #include "types.h"
 #include <assert.h>
@@ -205,6 +209,16 @@ trilogy_callable_value* trilogy_callable_assume(trilogy_value* val) {
     return (void*)val->payload;
 }
 
+void trilogy_callable_name(
+    trilogy_value* val, trilogy_callable_value* callable
+) {
+    if (callable->metadata != NULL) {
+        trilogy_string_init_from_c(val, callable->metadata->name);
+    } else {
+        trilogy_string_init_from_c(val, "<callable information missing>");
+    }
+}
+
 void* trilogy_procedure_untag(trilogy_callable_value* val, uint32_t arity) {
     if (val->tag != CALLABLE_FUNCTION) {
         internal_panic("invalid call of non-procedure callable\n");
@@ -228,9 +242,56 @@ void* trilogy_continuation_untag(trilogy_callable_value* val) {
     return (void*)val->function;
 }
 
-void* trilogy_callable_backtrace(
+static void backtrace_frame(trilogy_value* rv, trilogy_callable_value* val) {
+    if (val->metadata == NULL) {
+        *rv = trilogy_unit;
+        return;
+    }
+    trilogy_record_value* record = trilogy_record_init_cap(rv, 8);
+    trilogy_value key = trilogy_undefined;
+    trilogy_value value = trilogy_undefined;
+
+    trilogy_string_init_from_c(&value, val->metadata->name);
+    trilogy_string_init_from_c(&key, "name");
+    trilogy_record_insert(record, &key, &value);
+
+    trilogy_string_init_from_c(&value, val->metadata->path);
+    trilogy_string_init_from_c(&key, "path");
+    trilogy_record_insert(record, &key, &value);
+
+    trilogy_number_init_u64(&value, val->metadata->arity);
+    trilogy_string_init_from_c(&key, "arity");
+    trilogy_record_insert(record, &key, &value);
+
+    trilogy_value start = trilogy_undefined;
+    trilogy_value end = trilogy_undefined;
+    trilogy_value line = trilogy_undefined;
+    trilogy_value col = trilogy_undefined;
+    trilogy_number_init_u64(&line, val->metadata->span.start.line);
+    trilogy_number_init_u64(&col, val->metadata->span.start.column);
+    trilogy_tuple_init_take(&start, &line, &col);
+    trilogy_number_init_u64(&line, val->metadata->span.end.line);
+    trilogy_number_init_u64(&col, val->metadata->span.end.column);
+    trilogy_tuple_init_take(&end, &line, &col);
+    trilogy_tuple_init_take(&value, &start, &end);
+    trilogy_string_init_from_c(&key, "span");
+    trilogy_record_insert(record, &key, &value);
+
+    if (val->metadata->parent) {
+        backtrace_frame(&value, val->metadata->parent);
+        trilogy_string_init_from_c(&key, "scope");
+        trilogy_record_insert(record, &key, &value);
+    }
+}
+
+void trilogy_callable_backtrace(
     trilogy_value* rv, trilogy_callable_value* val
 ) {
-    // TODO: implement
-    trilogy_array_init_empty(rv);
+    trilogy_array_value* array = trilogy_array_init_empty(rv);
+    while (val != NULL) {
+        trilogy_value frame = trilogy_undefined;
+        backtrace_frame(&frame, val);
+        val = val->return_to;
+        trilogy_array_push(array, &frame);
+    }
 }

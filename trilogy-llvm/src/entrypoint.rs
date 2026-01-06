@@ -204,7 +204,7 @@ impl<'ctx> Codegen<'ctx> {
         let atom_table: Vec<_> = atoms_vec
             .into_iter()
             .map(|(atom, _)| {
-                let string = self.global_c_string(atom);
+                let string = self.global_c_string(atom, true);
                 self.string_value_type().const_named_struct(&[
                     self.context
                         .i64_type()

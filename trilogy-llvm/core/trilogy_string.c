@@ -43,7 +43,8 @@ trilogy_string_clone_into(trilogy_value* tv, const trilogy_string_value* orig) {
     return trilogy_string_init(tv, str);
 }
 
-trilogy_string_value* trilogy_string_init_from_c(trilogy_value* tv, char* s) {
+trilogy_string_value*
+trilogy_string_init_from_c(trilogy_value* tv, const char* s) {
     size_t len = (size_t)strlen(s);
     trilogy_string_value* str = malloc_safe(sizeof(trilogy_string_value));
     str->len = len;

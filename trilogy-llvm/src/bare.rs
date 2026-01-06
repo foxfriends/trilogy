@@ -18,7 +18,7 @@ impl<'ctx> Codegen<'ctx> {
 
     #[allow(dead_code, reason = "for debugging")]
     pub(crate) fn debug_print(&self, value: impl AsRef<str>) {
-        let debug_str = self.global_c_string(value.as_ref());
+        let debug_str = self.global_c_string(value.as_ref(), true);
         let f = self.declare_bare(
             "printf",
             self.context.i32_type().fn_type(

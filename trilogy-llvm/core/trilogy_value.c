@@ -307,12 +307,15 @@ void trilogy_value_to_string(trilogy_value* rv, trilogy_value* val) {
         free(buf);
         break;
     }
+    case TAG_CALLABLE: {
+        trilogy_callable_name(rv, trilogy_callable_assume(val));
+        break;
+    }
     case TAG_STRUCT:
     case TAG_TUPLE:
     case TAG_ARRAY:
     case TAG_SET:
     case TAG_RECORD:
-    case TAG_CALLABLE:
     case TAG_REFERENCE:
     case TAG_MODULE:
     default:
