@@ -48,7 +48,7 @@ impl<'ctx> Codegen<'ctx> {
                 res
             }
             Value::Application(app) => self.compile_application(app, name),
-            Value::Builtin(val) => Some(self.reference_builtin(*val, name)),
+            Value::Builtin(val) => Some(self.reference_builtin(*val, name, expression.span)),
             Value::Reference(val) => Some(self.compile_reference(val, name)),
             Value::ModuleAccess(access) => self.compile_module_access(&access.0, &access.1, name),
             Value::IfElse(if_else) => self.compile_if_else(if_else, name),
@@ -981,8 +981,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_do(&self, procedure: &ir::Procedure, name: &str) -> PointerValue<'ctx> {
-        let (current, _, _) = self.get_current_definition();
-        let function_name = format!("{current}<do@{}>", procedure.span);
+        let current = self.get_current_definition();
+        let function_name = format!("{}<do@{}>", current.name, procedure.span);
         let arity = procedure.parameters.len();
         let function =
             self.add_procedure(&function_name, arity, &function_name, procedure.span, true);
@@ -993,7 +993,14 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        self.trilogy_callable_init_do(target, arity, closure, function);
+        let child_metadata = self.build_callable_data(
+            &self.module_path(),
+            &function_name,
+            procedure.parameters.len() as u32,
+            procedure.span,
+            Some(current.metadata),
+        );
+        self.trilogy_callable_init_do(target, arity, closure, function, child_metadata);
         let here = self.builder.get_insert_block().unwrap();
         let snapshot = self.snapshot_function_context();
 
@@ -1009,8 +1016,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_fn(&self, func: &ir::Function, name: &str) -> PointerValue<'ctx> {
-        let (current, _, _) = self.get_current_definition();
-        let function_name = format!("{current}<fn@{}>", func.span);
+        let current = self.get_current_definition();
+        let function_name = format!("{}<fn@{}>", current.name, func.span);
         let function = self.add_function(&function_name, &function_name, func.span, true);
 
         let target = self.allocate_value(name);
@@ -1019,7 +1026,14 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        self.trilogy_callable_init_do(target, 1, closure, function);
+        let child_metadata = self.build_callable_data(
+            &self.module_path(),
+            &function_name,
+            func.parameters.len() as u32,
+            func.span,
+            Some(current.metadata),
+        );
+        self.trilogy_callable_init_do(target, 1, closure, function, child_metadata);
         let here = self.builder.get_insert_block().unwrap();
         let snapshot = self.snapshot_function_context();
 
@@ -1035,8 +1049,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_qy(&self, rule: &ir::Rule, name: &str) -> PointerValue<'ctx> {
-        let (current, _, _) = self.get_current_definition();
-        let rule_name = format!("{current}<qy@{}>", rule.span);
+        let current = self.get_current_definition();
+        let rule_name = format!("{}<qy@{}>", current.name, rule.span);
         let arity = rule.parameters.len();
         let function = self.add_rule(&rule_name, arity, &rule_name, rule.span, true);
 
@@ -1046,7 +1060,14 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
-        self.trilogy_callable_init_qy(target, arity, closure, function);
+        let child_metadata = self.build_callable_data(
+            &self.module_path(),
+            &rule_name,
+            arity as u32,
+            rule.span,
+            Some(current.metadata),
+        );
+        self.trilogy_callable_init_qy(target, arity, closure, function, child_metadata);
         let here = self.builder.get_insert_block().unwrap();
         let snapshot = self.snapshot_function_context();
 

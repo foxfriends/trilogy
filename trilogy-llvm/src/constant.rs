@@ -29,10 +29,13 @@ impl<'ctx> Codegen<'ctx> {
         );
         accessor.set_subprogram(subprogram);
 
+        let metadata =
+            self.build_callable_data(&self.module_path(), &name, 0, definition.span(), None);
         self.set_current_definition(
             name.clone(),
             accessor_name,
             definition.value.span,
+            metadata,
             module_context,
         );
         self.begin_constant(accessor, definition.span());

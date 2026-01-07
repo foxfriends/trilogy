@@ -310,10 +310,12 @@ impl<'ctx> Codegen<'ctx> {
         );
         accessor.set_subprogram(subprogram);
 
+        let metadata = self.build_callable_data(&name, "constructor", 0, module.span, None);
         self.set_current_definition(
             name.clone(),
             name.clone(),
             module.span,
+            metadata,
             previous_module_context,
         );
         self.begin_constant(accessor, module.span);
@@ -399,6 +401,13 @@ impl<'ctx> Codegen<'ctx> {
         let name = self.module_path();
         let constructor_name = format!("{name}:::constructor");
         let function = self.add_function(&constructor_name, &name, module.span, !is_public);
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            "#constructor",
+            module.parameters.len() as u32,
+            module.span,
+            None,
+        );
 
         // write_function_accessor
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
@@ -406,25 +415,39 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(accessor_entry);
         if has_context {
             let context = accessor.get_nth_param(1).unwrap().into_pointer_value();
-            self.trilogy_callable_init_do(sret, 1, context, function);
+            self.trilogy_callable_init_do(sret, 1, context, function, metadata);
         } else {
             let context = self.allocate_value("");
             self.trilogy_array_init_cap(context, 0, "");
-            self.trilogy_callable_init_do(sret, 1, context, function);
+            self.trilogy_callable_init_do(sret, 1, context, function, metadata);
         }
         self.builder.build_return(None).unwrap();
 
         // compile_function_body
-        self.set_current_definition(name.clone(), name, module.span, previous_module_context);
+        self.set_current_definition(
+            name.clone(),
+            name,
+            module.span,
+            metadata,
+            previous_module_context,
+        );
         self.begin_function(function, module.span);
 
         let arity = module.parameters.len();
-        for i in 0..arity - 1 {
+        for i in 0..arity as u32 - 1 {
             let continuation = self.add_continuation("");
             let param = self.get_continuation("");
-            let id = &module.parameters[i];
+            let id = &module.parameters[i as usize];
             let variable = self.variable(&id.id);
             self.trilogy_value_clone_into(variable, param);
+
+            let child_metadata = self.build_callable_data(
+                &self.module_path(),
+                "#constructor",
+                arity as u32 - i,
+                id.span.union(module.definitions_span),
+                Some(metadata),
+            );
 
             let return_to = self.get_return("");
             let cont_val = self.allocate_value("");
@@ -432,7 +455,7 @@ impl<'ctx> Codegen<'ctx> {
                 .builder
                 .build_alloca(self.value_type(), "TEMP_CLOSURE")
                 .unwrap();
-            self.trilogy_callable_init_do(cont_val, 1, closure, continuation);
+            self.trilogy_callable_init_do(cont_val, 1, closure, continuation, child_metadata);
             let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
             self.call_known_continuation(return_to, cont_val);
 

@@ -1,6 +1,7 @@
 use crate::codegen::Codegen;
 use inkwell::values::BasicValue;
 use inkwell::values::PointerValue;
+use source_span::Span;
 use trilogy_ir::ir::{self, Builtin};
 
 impl<'ctx> Codegen<'ctx> {
@@ -429,7 +430,12 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    pub(super) fn reference_builtin(&self, builtin: Builtin, name: &str) -> PointerValue<'ctx> {
+    pub(super) fn reference_builtin(
+        &self,
+        builtin: Builtin,
+        name: &str,
+        span: Span,
+    ) -> PointerValue<'ctx> {
         match builtin {
             Builtin::Return => {
                 let return_to = self.get_return_temporary();
@@ -440,7 +446,15 @@ impl<'ctx> Codegen<'ctx> {
                     .build_alloca(self.value_type(), "TEMP_CLOSURE")
                     .unwrap();
 
-                self.trilogy_callable_init_do(target, 1, closure, function);
+                let current = self.get_current_definition();
+                let metadata = self.build_callable_data(
+                    &self.module_path(),
+                    &format!("{} <return>", current.name),
+                    1,
+                    span,
+                    Some(current.metadata),
+                );
+                self.trilogy_callable_init_do(target, 1, closure, function, metadata);
 
                 let here = self.builder.get_insert_block().unwrap();
                 let snapshot = self.snapshot_function_context();
@@ -467,7 +481,15 @@ impl<'ctx> Codegen<'ctx> {
                     .build_alloca(self.value_type(), "TEMP_CLOSURE")
                     .unwrap();
 
-                self.trilogy_callable_init_do(target, 1, closure, function);
+                let current = self.get_current_definition();
+                let metadata = self.build_callable_data(
+                    &self.module_path(),
+                    &format!("{} <cancel>", current.name),
+                    1,
+                    span,
+                    Some(current.metadata),
+                );
+                self.trilogy_callable_init_do(target, 1, closure, function, metadata);
 
                 let here = self.builder.get_insert_block().unwrap();
                 let snapshot = self.snapshot_function_context();
@@ -496,7 +518,15 @@ impl<'ctx> Codegen<'ctx> {
                     .build_alloca(self.value_type(), "TEMP_CLOSURE")
                     .unwrap();
 
-                self.trilogy_callable_init_do(target, 1, closure, function);
+                let current = self.get_current_definition();
+                let metadata = self.build_callable_data(
+                    &self.module_path(),
+                    &format!("{} <resume>", current.name),
+                    1,
+                    span,
+                    Some(current.metadata),
+                );
+                self.trilogy_callable_init_do(target, 1, closure, function, metadata);
 
                 let here = self.builder.get_insert_block().unwrap();
                 let snapshot = self.snapshot_function_context();
@@ -523,7 +553,15 @@ impl<'ctx> Codegen<'ctx> {
                     .build_alloca(self.value_type(), "TEMP_CLOSURE")
                     .unwrap();
 
-                self.trilogy_callable_init_do(target, 1, closure, function);
+                let current = self.get_current_definition();
+                let metadata = self.build_callable_data(
+                    &self.module_path(),
+                    &format!("{} <break>", current.name),
+                    1,
+                    span,
+                    Some(current.metadata),
+                );
+                self.trilogy_callable_init_do(target, 1, closure, function, metadata);
 
                 let here = self.builder.get_insert_block().unwrap();
                 let snapshot = self.snapshot_function_context();
@@ -551,7 +589,15 @@ impl<'ctx> Codegen<'ctx> {
                     .build_alloca(self.value_type(), "TEMP_CLOSURE")
                     .unwrap();
 
-                self.trilogy_callable_init_do(target, 1, closure, function);
+                let current = self.get_current_definition();
+                let metadata = self.build_callable_data(
+                    &self.module_path(),
+                    &format!("{} <continue>", current.name),
+                    1,
+                    span,
+                    Some(current.metadata),
+                );
+                self.trilogy_callable_init_do(target, 1, closure, function, metadata);
 
                 let here = self.builder.get_insert_block().unwrap();
                 let snapshot = self.snapshot_function_context();

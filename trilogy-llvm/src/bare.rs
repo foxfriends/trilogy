@@ -1266,6 +1266,7 @@ impl<'ctx> Codegen<'ctx> {
         t: PointerValue<'ctx>,
         arity: usize,
         function: FunctionValue<'ctx>,
+        metadata: GlobalValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_rule",
@@ -1273,6 +1274,7 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
                 false,
@@ -1288,6 +1290,7 @@ impl<'ctx> Codegen<'ctx> {
                         .const_int(arity as u64, false)
                         .into(),
                     function.as_global_value().as_pointer_value().into(),
+                    metadata.as_pointer_value().into(),
                 ],
                 "",
             )
@@ -1300,6 +1303,7 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
+        metadata: GlobalValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_qy",
@@ -1307,6 +1311,7 @@ impl<'ctx> Codegen<'ctx> {
                 &[
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.i64_type().into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                 ],
@@ -1324,6 +1329,7 @@ impl<'ctx> Codegen<'ctx> {
                         .into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
+                    metadata.as_pointer_value().into(),
                 ],
                 "",
             )
@@ -1452,6 +1458,7 @@ impl<'ctx> Codegen<'ctx> {
         arity: usize,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
+        metadata: GlobalValue<'ctx>,
     ) {
         let f = self.declare_bare(
             "trilogy_callable_init_do",
@@ -1477,10 +1484,7 @@ impl<'ctx> Codegen<'ctx> {
                         .into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
-                    self.context
-                        .ptr_type(AddressSpace::default())
-                        .const_null()
-                        .into(),
+                    metadata.as_pointer_value().into(),
                 ],
                 "",
             )

@@ -37,7 +37,14 @@ impl<'ctx> Codegen<'ctx> {
             false,
         );
         main_wrapper.set_subprogram(main_scope);
-        self.set_current_definition(":::main".to_owned(), "main".to_owned(), span, None);
+        let metadata = self.build_callable_data(entrymodule, "#entrypoint", 0, span, None);
+        self.set_current_definition(
+            ":::main".to_owned(),
+            "main".to_owned(),
+            span,
+            metadata,
+            None,
+        );
         self.di.push_subprogram(main_scope);
         self.di.push_block_scope(span);
         self.set_span(span);
@@ -97,7 +104,14 @@ impl<'ctx> Codegen<'ctx> {
             false,
         );
         main_wrapper.set_subprogram(main_scope);
-        self.set_current_definition(":::main".to_owned(), "main".to_owned(), span, None);
+        let metadata = self.build_callable_data(entrymodule, "#entrypoint", 0, span, None);
+        self.set_current_definition(
+            ":::main".to_owned(),
+            "main".to_owned(),
+            span,
+            metadata,
+            None,
+        );
         self.di.push_subprogram(main_scope);
         self.di.push_block_scope(span);
         self.set_span(span);
@@ -146,7 +160,14 @@ impl<'ctx> Codegen<'ctx> {
             false,
         );
         main_wrapper.set_subprogram(main_scope);
-        self.set_current_definition(":::main".to_owned(), "main".to_owned(), span, None);
+        let metadata = self.build_callable_data("trilogy", "#entrypoint", 0, span, None);
+        self.set_current_definition(
+            ":::main".to_owned(),
+            "main".to_owned(),
+            span,
+            metadata,
+            None,
+        );
         self.di.push_subprogram(main_scope);
         self.di.push_block_scope(span);
         self.set_span(span);

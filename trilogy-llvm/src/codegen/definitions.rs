@@ -19,21 +19,21 @@ impl<'ctx> Codegen<'ctx> {
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
     pub(crate) fn add_continuation(&self, name: &str) -> FunctionValue<'ctx> {
-        let (parent_name, parent_linkage_name, span) = self.get_current_definition();
+        let parent = self.get_current_definition();
         let name = if name.is_empty() {
-            format!("cont#{parent_linkage_name}")
+            format!("cont#{}", parent.linkage_name)
         } else {
-            format!("cont#{parent_linkage_name}.{name}")
+            format!("cont#{}.{name}", parent.linkage_name)
         };
         let function =
             self.module
                 .add_function(&name, self.continuation_type(1), Some(Linkage::Private));
         function.set_call_conventions(TAIL_CALL_CONV);
         function.set_subprogram(self.di.create_function(
-            &parent_name,
+            &parent.name,
             function.get_name().to_str().unwrap(),
             self.di.continuation_di_type(),
-            span,
+            parent.span,
             true,
             true,
         ));
@@ -55,17 +55,17 @@ impl<'ctx> Codegen<'ctx> {
     /// 5. resume_to
     /// 6. closure
     pub(crate) fn add_yield(&self) -> FunctionValue<'ctx> {
-        let (parent_name, parent_linkage_name, span) = self.get_current_definition();
-        let name = format!("yield#{parent_linkage_name}");
+        let parent = self.get_current_definition();
+        let name = format!("yield#{}", parent.linkage_name);
         let function = self
             .module
             .add_function(&name, self.yield_type(), Some(Linkage::Private));
         function.set_call_conventions(TAIL_CALL_CONV);
         function.set_subprogram(self.di.create_function(
-            &parent_name,
+            &parent.name,
             function.get_name().to_str().unwrap(),
             self.di.yield_di_type(),
-            span,
+            parent.span,
             true,
             true,
         ));
@@ -91,11 +91,11 @@ impl<'ctx> Codegen<'ctx> {
     /// Typically only `value` is provided by the caller directly. The rest are stored in the continuation
     /// object and provided by the calling convention.
     pub(crate) fn add_next_to_continuation(&self, arity: usize, name: &str) -> FunctionValue<'ctx> {
-        let (parent_name, parent_linkage_name, span) = self.get_current_definition();
+        let parent = self.get_current_definition();
         let name = if name.is_empty() {
-            format!("cont#{parent_linkage_name}")
+            format!("cont#{}", parent.linkage_name)
         } else {
-            format!("cont#{parent_linkage_name}.{name}/{arity}")
+            format!("cont#{}.{name}/{arity}", parent.linkage_name)
         };
         let function = self.module.add_function(
             &name,
@@ -104,10 +104,10 @@ impl<'ctx> Codegen<'ctx> {
         );
         function.set_call_conventions(TAIL_CALL_CONV);
         function.set_subprogram(self.di.create_function(
-            &parent_name,
+            &parent.name,
             function.get_name().to_str().unwrap(),
             self.di.procedure_di_type(arity + 1),
-            span,
+            parent.span,
             true,
             true,
         ));

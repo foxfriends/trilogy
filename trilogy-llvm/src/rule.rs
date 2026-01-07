@@ -1,5 +1,5 @@
 use crate::{Codegen, IMPLICIT_PARAMS, codegen::Merger};
-use inkwell::values::FunctionValue;
+use inkwell::values::{FunctionValue, GlobalValue};
 use source_span::Span;
 use std::borrow::Borrow;
 use trilogy_ir::{Id, ir, visitor::HasCanEvaluate};
@@ -7,21 +7,40 @@ use trilogy_ir::{Id, ir, visitor::HasCanEvaluate};
 impl<'ctx> Codegen<'ctx> {
     fn write_rule_accessor(
         &self,
+        definition: &ir::RuleDefinition,
         accessor: FunctionValue<'ctx>,
         accessing: FunctionValue<'ctx>,
-        arity: usize,
-    ) {
+    ) -> GlobalValue<'ctx> {
         let has_context = accessor.count_params() == 2;
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            &definition.name.to_string(),
+            definition.overloads[0].parameters.len() as u32,
+            definition.span(),
+            None,
+        );
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         if has_context {
             let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
-            self.trilogy_callable_init_qy(sret, arity, ctx, accessing);
+            self.trilogy_callable_init_qy(
+                sret,
+                definition.overloads[0].parameters.len(),
+                ctx,
+                accessing,
+                metadata,
+            );
         } else {
-            self.trilogy_callable_init_rule(sret, arity, accessing);
+            self.trilogy_callable_init_rule(
+                sret,
+                definition.overloads[0].parameters.len(),
+                accessing,
+                metadata,
+            );
         }
         self.builder.build_return(None).unwrap();
+        metadata
     }
 
     pub(crate) fn compile_rule(
@@ -34,11 +53,12 @@ impl<'ctx> Codegen<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
         let function = self.add_rule(&name, arity, &name, definition.span(), false);
-        self.write_rule_accessor(accessor, function, arity);
+        let metadata = self.write_rule_accessor(definition, accessor, function);
         self.set_current_definition(
             name.to_owned(),
             name.to_owned(),
             definition.span(),
+            metadata,
             module_context,
         );
         self.compile_rule_body(function, &definition.overloads, definition.span());

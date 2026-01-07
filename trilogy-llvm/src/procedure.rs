@@ -1,6 +1,6 @@
 use crate::{Codegen, IMPLICIT_PARAMS};
 use inkwell::module::Linkage;
-use inkwell::values::{BasicMetadataValueEnum, FunctionValue};
+use inkwell::values::{BasicMetadataValueEnum, FunctionValue, GlobalValue};
 use source_span::Span;
 use trilogy_ir::{Id, ir};
 
@@ -12,7 +12,7 @@ impl<'ctx> Codegen<'ctx> {
         definition: &ir::ProcedureDefinition,
         accessor: FunctionValue<'ctx>,
         accessing: FunctionValue<'ctx>,
-    ) {
+    ) -> GlobalValue<'ctx> {
         let has_context = accessor.count_params() == 2;
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
         self.builder.position_at_end(accessor_entry);
@@ -26,11 +26,12 @@ impl<'ctx> Codegen<'ctx> {
         );
         if has_context {
             let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
-            self.trilogy_callable_init_do(sret, definition.arity, ctx, accessing);
+            self.trilogy_callable_init_do(sret, definition.arity, ctx, accessing, metadata);
         } else {
             self.trilogy_callable_init_proc(sret, definition.arity, accessing, metadata);
         }
         self.builder.build_return(None).unwrap();
+        metadata
     }
 
     pub(crate) fn declare_extern_procedure(
@@ -42,13 +43,25 @@ impl<'ctx> Codegen<'ctx> {
         let name = definition.name.to_string();
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let wrapper_name = format!("{}::{}.tailcc", self.module_path(), name);
-        let original_function = self.add_external_declaration(&name, definition.arity, span);
 
+        let original_function = self.add_external_declaration(&name, definition.arity, span);
         // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that
         // converts to CCC.
         let wrapper_function =
             self.add_procedure(&wrapper_name, definition.arity, &wrapper_name, span, true);
-        self.set_current_definition(wrapper_name.to_owned(), wrapper_name.to_owned(), span, None);
+
+        // Build accessor first
+        let accessor = self.add_accessor(&accessor_name, false, linkage);
+        self.builder.unset_current_debug_location();
+        let metadata = self.write_procedure_accessor(definition, accessor, wrapper_function);
+
+        self.set_current_definition(
+            wrapper_name.to_owned(),
+            wrapper_name.to_owned(),
+            span,
+            metadata,
+            None,
+        );
         self.begin_function(wrapper_function, span);
         self.set_span(span);
         let ret_val = self.allocate_value("");
@@ -67,11 +80,6 @@ impl<'ctx> Codegen<'ctx> {
 
         self.close_continuation();
         self.end_function();
-
-        let accessor = self.add_accessor(&accessor_name, false, linkage);
-        self.set_current_definition(name.to_owned(), accessor_name.to_owned(), span, None);
-        self.builder.unset_current_debug_location();
-        self.write_procedure_accessor(definition, accessor, wrapper_function);
 
         accessor
     }
@@ -96,11 +104,12 @@ impl<'ctx> Codegen<'ctx> {
             let function = self.add_procedure(&name, arity, &name, definition.span(), false);
             (function, name.as_str())
         };
-        self.write_procedure_accessor(definition, accessor, function);
+        let metadata = self.write_procedure_accessor(definition, accessor, function);
         self.set_current_definition(
             name.to_owned(),
             linkage_name.to_owned(),
             procedure.span,
+            metadata,
             module_context,
         );
         self.compile_procedure_body(function, procedure);

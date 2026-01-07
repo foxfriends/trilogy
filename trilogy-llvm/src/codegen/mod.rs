@@ -4,7 +4,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::execution_engine::ExecutionEngine;
 use inkwell::module::Module;
-use inkwell::values::PointerValue;
+use inkwell::values::{GlobalValue, PointerValue};
 use inkwell::{OptimizationLevel, values::FunctionValue};
 use source_span::Span;
 use std::cell::{Cell, RefCell};
@@ -31,6 +31,14 @@ pub(crate) struct NeverValue;
 
 pub(crate) const ATOM_ASSERTION_FAILED: u64 = 21;
 
+#[derive(Clone)]
+pub(crate) struct CurrentDefinition<'ctx> {
+    pub name: String,
+    pub linkage_name: String,
+    pub span: Span,
+    pub metadata: GlobalValue<'ctx>,
+}
+
 pub(crate) struct Codegen<'ctx> {
     pub(crate) atoms: Rc<RefCell<HashMap<String, u64>>>,
     pub(crate) context: &'ctx Context,
@@ -51,7 +59,7 @@ pub(crate) struct Codegen<'ctx> {
     /// compiling a function), and they should be topologically sorted according to their
     /// contained `capture_from` lists.
     continuation_points: RefCell<Vec<Rc<ContinuationPoint<'ctx>>>>,
-    current_definition: RefCell<(String, String, Span)>,
+    current_definition: RefCell<Option<CurrentDefinition<'ctx>>>,
     closure_array: Cell<Option<PointerValue<'ctx>>>,
     pub(crate) function_params: RefCell<Vec<PointerValue<'ctx>>>,
     pub(crate) current_break: RefCell<Vec<PointerValue<'ctx>>>,
@@ -163,9 +171,15 @@ impl<'ctx> Codegen<'ctx> {
         name: String,
         linkage_name: String,
         span: Span,
+        metadata: GlobalValue<'ctx>,
         module_context: Option<Vec<Id>>,
     ) {
-        *self.current_definition.borrow_mut() = (name, linkage_name, span);
+        *self.current_definition.borrow_mut() = Some(CurrentDefinition {
+            name,
+            linkage_name,
+            span,
+            metadata,
+        });
         self.continuation_points
             .borrow_mut()
             .push(Rc::new(ContinuationPoint::new(
@@ -173,8 +187,8 @@ impl<'ctx> Codegen<'ctx> {
             )));
     }
 
-    pub(crate) fn get_current_definition(&self) -> (String, String, Span) {
-        self.current_definition.borrow().clone()
+    pub(crate) fn get_current_definition(&self) -> CurrentDefinition<'ctx> {
+        self.current_definition.borrow().clone().unwrap()
     }
 
     pub(crate) fn allocate_value(&self, name: &str) -> PointerValue<'ctx> {

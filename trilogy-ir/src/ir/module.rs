@@ -8,6 +8,7 @@ pub struct Module {
     pub span: Span,
     pub parameters: Vec<Identifier>,
     definitions: Definitions,
+    pub definitions_span: Span,
 }
 
 impl Module {
@@ -18,12 +19,14 @@ impl Module {
             span,
             parameters: vec![],
             definitions,
+            definitions_span: span,
         }
     }
 
     pub(crate) fn convert_module(converter: &mut Converter, ast: syntax::TypeDefinition) -> Self {
         converter.push_scope();
         let span = ast.span();
+        let definitions_span = ast.open_brace.span.union(ast.close_brace.span);
         let parameters: Vec<_> = ast
             .head
             .parameters
@@ -36,6 +39,7 @@ impl Module {
             span,
             parameters,
             definitions,
+            definitions_span,
         }
     }
 

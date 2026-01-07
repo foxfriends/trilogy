@@ -1,5 +1,5 @@
 use crate::Codegen;
-use inkwell::values::{BasicValue, FunctionValue};
+use inkwell::values::{BasicValue, FunctionValue, GlobalValue};
 use source_span::Span;
 use std::borrow::Borrow;
 use trilogy_ir::Id;
@@ -11,7 +11,7 @@ impl<'ctx> Codegen<'ctx> {
         definition: &ir::FunctionDefinition,
         accessor: FunctionValue<'ctx>,
         accessing: FunctionValue<'ctx>,
-    ) {
+    ) -> GlobalValue<'ctx> {
         let has_context = accessor.count_params() == 2;
         let sret = accessor.get_nth_param(0).unwrap().into_pointer_value();
         let accessor_entry = self.context.append_basic_block(accessor, "entry");
@@ -25,11 +25,12 @@ impl<'ctx> Codegen<'ctx> {
         );
         if has_context {
             let ctx = accessor.get_nth_param(1).unwrap().into_pointer_value();
-            self.trilogy_callable_init_do(sret, 1, ctx, accessing);
+            self.trilogy_callable_init_do(sret, 1, ctx, accessing, metadata);
         } else {
             self.trilogy_callable_init_proc(sret, 1, accessing, metadata);
         }
         self.builder.build_return(None).unwrap();
+        metadata
     }
 
     pub(crate) fn compile_function(
@@ -41,8 +42,8 @@ impl<'ctx> Codegen<'ctx> {
         let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
         let function = self.add_function(&name, &name, definition.span(), false);
-        self.write_function_accessor(definition, accessor, function);
-        self.set_current_definition(name.clone(), name, definition.span(), module_context);
+        let metadata = self.write_function_accessor(definition, accessor, function);
+        self.set_current_definition(name.clone(), name, definition.span(), metadata, module_context);
         self.compile_function_body(function, &definition.overloads, definition.span());
         self.close_continuation();
     }
@@ -63,11 +64,19 @@ impl<'ctx> Codegen<'ctx> {
             let return_to = self.get_return("return");
             let cont_val = self.allocate_value("next_call");
 
+            let here = self.get_current_definition();
+            let child_metadata = self.build_callable_data(
+                &self.module_path(),
+                &here.name,
+                arity as u32 - i,
+                span,
+                Some(here.metadata),
+            );
+
             let closure = self
                 .builder
-                .build_alloca(self.value_type(), "TEMP_CLOSURE")
-                .unwrap();
-            self.trilogy_callable_init_do(cont_val, 1, closure, continuation);
+                .build_alloca(self.value_type(), "TEMP_CLOSURE")                .unwrap();
+            self.trilogy_callable_init_do(cont_val, 1, closure, continuation, child_metadata);
             let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
             self.call_known_continuation(return_to, cont_val);
 
