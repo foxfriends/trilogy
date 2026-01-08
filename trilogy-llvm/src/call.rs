@@ -499,9 +499,19 @@ impl<'ctx> Codegen<'ctx> {
         let yield_continuation = self.allocate_value("yield");
         let end_continuation = self.allocate_value("end");
 
+        let end_metadata = self.build_callable_data("trilogy", "end", 0, Span::default(), None);
+
         self.trilogy_callable_init_root(return_continuation, chain_function);
         self.trilogy_callable_init_root(yield_continuation, yield_function);
-        self.trilogy_callable_init_root(end_continuation, end_function);
+        self.trilogy_callable_init_cont(
+            end_continuation,
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            self.context.ptr_type(AddressSpace::default()).const_null(),
+            end_function,
+            end_metadata,
+        );
 
         let mut args = vec![
             self.load_value(return_continuation, "").into(),
@@ -530,6 +540,8 @@ impl<'ctx> Codegen<'ctx> {
         _ = self.trilogy_unhandled_effect(effect);
 
         self.begin_next_function(end_function);
+        let backtrace = self.call_procedure(self.backtrace(), &[], "", Span::default());
+        self.call_procedure(self.print_backtrace(), &[backtrace], "", Span::default());
         _ = self.trilogy_execution_ended();
 
         self.begin_next_function(chain_function);

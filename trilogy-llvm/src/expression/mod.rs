@@ -84,6 +84,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn compile_end(&self) {
+        // NOTE: because end is a continuation, it does not collect an additional stack frame
+        // when it gets called... this means the actual point where we ended from is not
+        // tracked, making it a bit hard to find.
         self.void_call_continuation(self.get_end(""));
     }
 

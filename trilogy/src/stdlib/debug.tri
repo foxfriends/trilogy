@@ -1,7 +1,7 @@
 import "trilogy:core" as core
 import "trilogy:string" use replace_all
 
-export to_string, dbg, trace, print_backtrace
+export to_string, dbg, trace, print_current_backtrace
 
 func escape_string string = replace_all "\"" "\\\"" string
 
@@ -66,11 +66,8 @@ func trace label value = {
   value
 }
 
-proc print_backtrace!() {
+proc print_current_backtrace!() {
   # Don't include "print_backtrace" in the printed backtrace, it's just annoying
   let [_, ..backtrace] = core::backtrace!()
-  for frame in backtrace {
-    let {| "path" => path, "name" => name, "span" => (line:col):_, .._ |} = frame
-    core::print!("${name}\n\tat ${path} +${line}:${col}\n")
-  }
+  core::print_backtrace!(backtrace)
 }
