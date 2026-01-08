@@ -3,10 +3,10 @@ import "trilogy:core" as core
 import "trilogy:number" as number
 
 type c {
-  extern proc to_bits!(val)
+  extern "c" proc to_bits!(val)
   export to_bits
 
-  extern proc pop_count!(bits)
+  extern "c" proc pop_count!(bits)
   export pop_count
 }
 

@@ -2,6 +2,7 @@ use crate::{Codegen, IMPLICIT_PARAMS};
 use inkwell::module::Linkage;
 use inkwell::values::{BasicMetadataValueEnum, FunctionValue, GlobalValue};
 use source_span::Span;
+use trilogy_ir::ir::CallConv;
 use trilogy_ir::{Id, ir};
 
 const MAIN_NAME: &str = "trilogy:::main";
@@ -42,46 +43,67 @@ impl<'ctx> Codegen<'ctx> {
     ) -> FunctionValue<'ctx> {
         let name = definition.name.to_string();
         let accessor_name = format!("{}::{}", self.module_path(), name);
-        let wrapper_name = format!("{}::{}.tailcc", self.module_path(), name);
+        match definition.call_conv {
+            CallConv::C => {
+                let wrapper_name = format!("{}::{}.tailcc", self.module_path(), name);
 
-        let original_function = self.add_external_declaration(&name, definition.arity, span);
-        // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that
-        // converts to CCC.
-        let wrapper_function =
-            self.add_procedure(&wrapper_name, definition.arity, &wrapper_name, span, true);
+                let original_function =
+                    self.add_external_declaration(&name, definition.arity, span);
+                // To allow callers to always use FastCC, we provide a wrapper around all extern procedures that
+                // converts to CCC.
+                let wrapper_function =
+                    self.add_procedure(&wrapper_name, definition.arity, &wrapper_name, span, true);
 
-        // Build accessor first
-        let accessor = self.add_accessor(&accessor_name, false, linkage);
-        self.builder.unset_current_debug_location();
-        let metadata = self.write_procedure_accessor(definition, accessor, wrapper_function);
+                // Build accessor first
+                let accessor = self.add_accessor(&accessor_name, false, linkage);
+                self.builder.unset_current_debug_location();
+                let metadata =
+                    self.write_procedure_accessor(definition, accessor, wrapper_function);
 
-        self.set_current_definition(
-            wrapper_name.to_owned(),
-            wrapper_name.to_owned(),
-            span,
-            metadata,
-            None,
-        );
-        self.begin_function(wrapper_function, span);
-        self.set_span(span);
-        let ret_val = self.allocate_value("");
-        let mut params = vec![ret_val.into()];
-        params.extend(
-            self.function_params
-                .borrow()
-                .iter()
-                .skip(IMPLICIT_PARAMS)
-                .map(|val| BasicMetadataValueEnum::<'ctx>::from(*val)),
-        );
-        self.builder
-            .build_direct_call(original_function, &params, "")
-            .unwrap();
-        self.call_known_continuation(self.get_return(""), ret_val);
+                self.set_current_definition(
+                    wrapper_name.to_owned(),
+                    wrapper_name.to_owned(),
+                    span,
+                    metadata,
+                    None,
+                );
+                self.begin_function(wrapper_function, span);
+                self.set_span(span);
+                let ret_val = self.allocate_value("");
+                let mut params = vec![ret_val.into()];
+                params.extend(
+                    self.function_params
+                        .borrow()
+                        .iter()
+                        .skip(IMPLICIT_PARAMS)
+                        .map(|val| BasicMetadataValueEnum::<'ctx>::from(*val)),
+                );
+                self.builder
+                    .build_direct_call(original_function, &params, "")
+                    .unwrap();
+                self.call_known_continuation(self.get_return(""), ret_val);
 
-        self.close_continuation();
-        self.end_function();
+                self.close_continuation();
+                self.end_function();
 
-        accessor
+                accessor
+            }
+            CallConv::Trilogy => {
+                let function = match self.module.get_function(&name) {
+                    Some(func) => func,
+                    None => self.module.add_function(
+                        &name,
+                        self.procedure_type(definition.arity),
+                        Some(Linkage::External),
+                    ),
+                };
+                // Build accessor only, the function is already correct
+                let accessor = self.add_accessor(&accessor_name, false, linkage);
+                self.builder.unset_current_debug_location();
+                self.write_procedure_accessor(definition, accessor, function);
+                accessor
+            }
+        }
     }
 
     pub(crate) fn compile_procedure(

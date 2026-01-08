@@ -19,6 +19,10 @@ pub enum Error {
         original: Span,
         duplicate: syntax::Identifier,
     },
+    UnknownCallingConvention {
+        span: Span,
+        value: String,
+    },
     IdentifierInOwnDefinition {
         name: ir::Identifier,
     },
@@ -112,6 +116,12 @@ impl Display for Error {
                 write!(
                     f,
                     "the keys of a record pattern may only be able to bind to a single value"
+                )
+            }
+            Error::UnknownCallingConvention { value, .. } => {
+                write!(
+                    f,
+                    "{value} is not a valid calling convention for an external procedure"
                 )
             }
         }

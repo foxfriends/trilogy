@@ -3,6 +3,7 @@ use inkwell::{
     module::Linkage,
     values::{FunctionValue, InstructionValue, PointerValue},
 };
+use source_span::Span;
 
 use crate::codegen::Codegen;
 
@@ -104,9 +105,14 @@ impl<'ctx> Codegen<'ctx> {
         )
     }
 
-    pub(crate) fn to_string(&self, argument: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn to_string(
+        &self,
+        argument: PointerValue<'ctx>,
+        name: &str,
+        span: Span,
+    ) -> PointerValue<'ctx> {
         let to_string = self.reference_core("to_string");
-        self.apply_function(to_string, argument, name)
+        self.apply_function(to_string, argument, name, span)
     }
 
     pub(crate) fn compose(
@@ -114,12 +120,13 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
         name: &str,
+        span: Span,
     ) -> PointerValue<'ctx> {
         let compose = self.reference_core("compose");
         self.bind_temporary(rhs);
-        let composed = self.apply_function(compose, lhs, "composing");
+        let composed = self.apply_function(compose, lhs, "composing", span);
         let rhs = self.use_temporary_clone(rhs).unwrap();
-        self.apply_function(composed, rhs, name)
+        self.apply_function(composed, rhs, name, span)
     }
 
     pub(crate) fn member_access(
@@ -127,12 +134,13 @@ impl<'ctx> Codegen<'ctx> {
         lhs: PointerValue<'ctx>,
         rhs: PointerValue<'ctx>,
         name: &str,
+        span: Span,
     ) -> PointerValue<'ctx> {
         let member_access = self.reference_core("member_access");
         self.bind_temporary(rhs);
-        let composed = self.apply_function(member_access, lhs, "accessing");
+        let composed = self.apply_function(member_access, lhs, "accessing", span);
         let rhs = self.use_temporary_clone(rhs).unwrap();
-        self.apply_function(composed, rhs, name)
+        self.apply_function(composed, rhs, name, span)
     }
 
     pub(crate) fn invert(&self, target: PointerValue<'ctx>, value: PointerValue<'ctx>) {

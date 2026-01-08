@@ -83,10 +83,10 @@ impl<'ctx> Codegen<'ctx> {
 
                 let second_function = self.add_continuation("disj.snd");
                 let (go_to_second, secondary_cp) =
-                    self.capture_current_continuation(second_function, "disj.snd");
+                    self.capture_current_continuation(second_function, "disj.snd", pattern.span);
                 let first_function = self.add_continuation("disj.fst");
                 let (go_to_first, primary_cp) =
-                    self.capture_current_continuation(first_function, "disj.fst");
+                    self.capture_current_continuation(first_function, "disj.fst", pattern.span);
                 self.void_call_continuation(go_to_first);
 
                 self.begin_next_function(first_function);

@@ -1,5 +1,6 @@
 use crate::Codegen;
 use inkwell::{AddressSpace, values::PointerValue};
+use source_span::Span;
 use trilogy_ir::visitor::{HasBindings, HasCanEvaluate};
 use trilogy_ir::{Id, ir};
 
@@ -26,9 +27,9 @@ impl<'ctx> Codegen<'ctx> {
     ) -> PointerValue<'ctx> {
         let next_function = self.add_next_to_continuation(0, "iterator_next");
         let (next_to, then_continuation_cp) =
-            self.capture_current_continuation(next_function, "next_continuation");
+            self.capture_current_continuation(next_function, "next_continuation", query.span);
 
-        let _ = self.compile_query_value(&query.value, next_to, done_to, bound_ids);
+        let _ = self.compile_query_value(query, next_to, done_to, bound_ids);
 
         self.become_continuation_point(then_continuation_cp);
         self.begin_next_function(next_function);
@@ -42,14 +43,14 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_query_value(
         &self,
-        query: &ir::QueryValue,
+        query: &ir::Query,
         next_to: PointerValue<'ctx>,
         done_to: PointerValue<'ctx>,
         bound_ids: &mut Vec<Id>,
     ) -> Option<()> {
-        match query {
+        match &query.value {
             ir::QueryValue::Pass => {
-                self.next_deterministic(next_to, done_to, "pass_next");
+                self.next_deterministic(next_to, done_to, "pass_next", query.span);
             }
             ir::QueryValue::End => {
                 self.void_call_continuation(self.use_temporary_clone(done_to).unwrap());
@@ -76,11 +77,12 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.become_continuation_point(true_cp);
                 self.builder.position_at_end(if_true_block);
-                self.next_deterministic(next_to, done_to, "is_next");
+                self.next_deterministic(next_to, done_to, "is_next", query.span);
             }
             ir::QueryValue::Lookup(lookup) if lookup.patterns.is_empty() => {
                 let rule = self.compile_expression(&lookup.path, "rule")?;
-                let (next_iteration, out) = self.call_rule(rule, &[], done_to, "lookup_next");
+                let (next_iteration, out) =
+                    self.call_rule(rule, &[], done_to, "lookup_next", query.span);
                 assert!(out.is_empty());
                 let next_to = self.use_temporary_clone(next_to).unwrap();
                 self.call_known_continuation(next_to, next_iteration);
@@ -101,6 +103,7 @@ impl<'ctx> Codegen<'ctx> {
                     &arguments,
                     self.use_temporary(done_to).unwrap(),
                     "lookup_next",
+                    query.span,
                 );
 
                 self.bind_temporary(next_iteration_inner);
@@ -109,7 +112,11 @@ impl<'ctx> Codegen<'ctx> {
                 // before starting its next internal iteration.
                 let next_iteration_with_cleanup = self.add_continuation("lookup.next");
                 let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
-                    self.capture_current_continuation(next_iteration_with_cleanup, "lookup.next");
+                    self.capture_current_continuation(
+                        next_iteration_with_cleanup,
+                        "lookup.next",
+                        query.span,
+                    );
 
                 let bound_before_lookup = bound_ids.len();
                 for (pattern, out_value) in lookup.patterns.iter().zip(output_arguments) {
@@ -133,7 +140,7 @@ impl<'ctx> Codegen<'ctx> {
             ir::QueryValue::Disjunction(disj) => {
                 let disj_second_fn = self.add_continuation("disj.second");
                 let (disj_second, disj_second_cp) =
-                    self.capture_current_continuation(disj_second_fn, "disj.second");
+                    self.capture_current_continuation(disj_second_fn, "disj.second", query.span);
                 let next_of_first =
                     self.compile_query(&disj.0, disj_second, &mut bound_ids.clone());
                 self.call_known_continuation(
@@ -172,7 +179,7 @@ impl<'ctx> Codegen<'ctx> {
 
                 let alt_second_fn = self.add_continuation("alt.second");
                 let (alt_second, alt_second_cp) =
-                    self.capture_current_continuation(alt_second_fn, "alt.second");
+                    self.capture_current_continuation(alt_second_fn, "alt.second", query.span);
                 let next_of_first = self.compile_query(&alt.0, alt_second, &mut bound_ids.clone());
 
                 let state_ref_first = self.use_temporary_clone(state).unwrap();
@@ -232,7 +239,14 @@ impl<'ctx> Codegen<'ctx> {
                     done_to,
                     bound_ids,
                 )?;
-                self.next_cleanup(done_to, next_to, bound_ids, pre_len, "assign_next");
+                self.next_cleanup(
+                    done_to,
+                    next_to,
+                    bound_ids,
+                    pre_len,
+                    "assign_next",
+                    query.span,
+                );
             }
             ir::QueryValue::Element(unification) => {
                 let input = self.compile_input_pattern(&unification.pattern)?;
@@ -244,6 +258,7 @@ impl<'ctx> Codegen<'ctx> {
                     &[self.use_temporary(input).unwrap(), collection],
                     self.use_temporary_clone(done_to).unwrap(),
                     "lookup_next",
+                    query.span,
                 );
 
                 // The element unification is kind of implemented weird. The actual iteration
@@ -257,7 +272,11 @@ impl<'ctx> Codegen<'ctx> {
                 // before starting its next internal iteration.
                 let next_iteration_with_cleanup = self.add_continuation("in.next");
                 let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
-                    self.capture_current_continuation(next_iteration_with_cleanup, "in.next");
+                    self.capture_current_continuation(
+                        next_iteration_with_cleanup,
+                        "in.next",
+                        query.span,
+                    );
 
                 // NOTE[rec-let]: see other
                 for id in unification.pattern.bindings() {
@@ -287,7 +306,7 @@ impl<'ctx> Codegen<'ctx> {
             ir::QueryValue::Not(query) => {
                 let go_next_fn = self.add_continuation("not.next");
                 let (go_next, go_next_cp) =
-                    self.capture_current_continuation(go_next_fn, "not.next");
+                    self.capture_current_continuation(go_next_fn, "not.next", query.span);
                 // Pass this thing to `done_to` so that it recovers if we reach done.
                 let inner_next = self.compile_query(query, go_next, bound_ids);
                 // If the inner query instead gives `next`, then discard those results and call done.
@@ -296,7 +315,7 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.become_continuation_point(go_next_cp);
                 self.begin_next_function(go_next_fn);
-                self.next_deterministic(next_to, done_to, "not.done");
+                self.next_deterministic(next_to, done_to, "not.done", query.span);
             }
         }
         Some(())
@@ -307,10 +326,11 @@ impl<'ctx> Codegen<'ctx> {
         next_to: PointerValue<'ctx>,
         done_to: PointerValue<'ctx>,
         name: &str,
+        span: Span,
     ) {
         let next_iteration = self.add_continuation(name);
         let (next_iteration_continuation, next_iteration_cp) =
-            self.capture_current_continuation(next_iteration, name);
+            self.capture_current_continuation(next_iteration, name, span);
         let next_to = self.use_temporary_clone(next_to).unwrap();
         self.call_known_continuation(next_to, next_iteration_continuation);
 
@@ -327,12 +347,13 @@ impl<'ctx> Codegen<'ctx> {
         bound_ids: &[Id],
         keep_ids: usize,
         name: &str,
+        span: Span,
     ) {
         // Wrap the next iteration with our own, as a lookup or unification requires some cleanup
         // before starting its next internal iteration.
         let next_iteration_with_cleanup = self.add_continuation(name);
         let (next_iteration_with_cleanup_continuation, next_iteration_with_cleanup_cp) =
-            self.capture_current_continuation(next_iteration_with_cleanup, name);
+            self.capture_current_continuation(next_iteration_with_cleanup, name, span);
         self.call_known_continuation(
             self.use_temporary_clone(next_to).unwrap(),
             next_iteration_with_cleanup_continuation,

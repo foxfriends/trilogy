@@ -349,6 +349,18 @@ impl<E: std::error::Error> Error<E> {
                                     .with_order(1),
                             )
                     }
+                    Error::UnknownCallingConvention { span, value } => {
+                        let span = cache.span(location, *span);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message(format!("{value} is not a valid calling convention for an external procedure"))
+                            .with_label(
+                                Label::new(span)
+                                    .with_message("named here")
+                                    .with_color(primary)
+                                    .with_order(1),
+                            )
+                            .with_note("valid calling conventions are: \"c\" or \"trilogy\"")
+                    }
                 }
             }
             ErrorKind::Analysis(location, error) => {

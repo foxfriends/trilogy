@@ -1491,6 +1491,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn trilogy_callable_init_cont(
         &self,
         t: PointerValue<'ctx>,
@@ -1499,11 +1500,13 @@ impl<'ctx> Codegen<'ctx> {
         end_to: PointerValue<'ctx>,
         closure: PointerValue<'ctx>,
         function: FunctionValue<'ctx>,
+        metadata: GlobalValue<'ctx>,
     ) -> PointerValue<'ctx> {
         let f = self.declare_bare(
             "trilogy_callable_init_cont",
             self.context.ptr_type(AddressSpace::default()).fn_type(
                 &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
                     self.context.ptr_type(AddressSpace::default()).into(),
@@ -1524,6 +1527,7 @@ impl<'ctx> Codegen<'ctx> {
                     end_to.into(),
                     closure.into(),
                     function.as_global_value().as_pointer_value().into(),
+                    metadata.as_pointer_value().into(),
                 ],
                 "",
             )
@@ -1670,6 +1674,26 @@ impl<'ctx> Codegen<'ctx> {
             .try_as_basic_value()
             .unwrap_basic()
             .into_pointer_value()
+    }
+
+    pub(crate) fn callable_backtrace(
+        &self,
+        target: PointerValue<'ctx>,
+        callable: PointerValue<'ctx>,
+    ) {
+        let f = self.declare_bare(
+            "callable_backtrace",
+            self.context.ptr_type(AddressSpace::default()).fn_type(
+                &[
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                    self.context.ptr_type(AddressSpace::default()).into(),
+                ],
+                false,
+            ),
+        );
+        self.builder
+            .build_call(f, &[target.into(), callable.into()], "")
+            .unwrap();
     }
 
     pub(crate) fn trilogy_module_find(

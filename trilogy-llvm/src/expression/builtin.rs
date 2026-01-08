@@ -10,6 +10,7 @@ impl<'ctx> Codegen<'ctx> {
         builtin: Builtin,
         expression: &ir::Expression,
         name: &str,
+        span: Span,
     ) -> Option<PointerValue<'ctx>> {
         match builtin {
             Builtin::Return => {
@@ -44,7 +45,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Yield => {
                 let effect = self.compile_expression(expression, "effect")?;
-                Some(self.call_yield(effect, name))
+                Some(self.call_yield(effect, name, span))
             }
             Builtin::Cancel => {
                 let value = self.compile_expression(expression, "cancel_arg")?;
@@ -55,7 +56,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::Resume => {
                 let value = self.compile_expression(expression, "resume_arg")?;
-                Some(self.call_resume(value, name))
+                Some(self.call_resume(value, name, span))
             }
             Builtin::Break => {
                 let result = self.compile_expression(expression, "break_arg")?;
@@ -70,7 +71,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             Builtin::ToString => {
                 let value = self.compile_expression(expression, "to_string_arg")?;
-                Some(self.to_string(value, name))
+                Some(self.to_string(value, name, expression.span))
             }
             Builtin::Negate => {
                 let value = self.compile_expression(expression, "negate_arg")?;
@@ -169,11 +170,12 @@ impl<'ctx> Codegen<'ctx> {
                 Some(out)
             }
             Builtin::Access => {
+                let span = lhs.span.union(rhs.span);
                 let lhs = self.compile_expression(lhs, "acc.c")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "acc.i")?;
                 let lhs = self.use_temporary_clone(lhs).unwrap();
-                Some(self.member_access(lhs, rhs, ""))
+                Some(self.member_access(lhs, rhs, "", span))
             }
             Builtin::Cons => {
                 let lhs = self.compile_expression(lhs, "cons.lhs")?;
@@ -385,32 +387,36 @@ impl<'ctx> Codegen<'ctx> {
                 Some(out)
             }
             Builtin::Compose => {
+                let span = lhs.span.union(rhs.span);
                 let lhs = self.compile_expression(lhs, "compose.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "compose.rhs")?;
                 let lhs = self.use_temporary_clone(lhs).unwrap();
-                Some(self.compose(lhs, rhs, name))
+                Some(self.compose(lhs, rhs, name, span))
             }
             Builtin::RCompose => {
+                let span = lhs.span.union(rhs.span);
                 let lhs = self.compile_expression(lhs, "rcompose.lhs")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "rcompose.rhs")?;
                 let lhs = self.use_temporary_clone(lhs).unwrap();
-                Some(self.compose(rhs, lhs, name))
+                Some(self.compose(rhs, lhs, name, span))
             }
             Builtin::Pipe => {
+                let span = lhs.span.union(rhs.span);
                 let lhs = self.compile_expression(lhs, "pipe.arg")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "pipe.fn")?;
                 let lhs = self.use_temporary_clone(lhs).unwrap();
-                Some(self.apply_function(rhs, lhs, name))
+                Some(self.apply_function(rhs, lhs, name, span))
             }
             Builtin::RPipe => {
+                let span = lhs.span.union(rhs.span);
                 let lhs = self.compile_expression(lhs, "pipe.fn")?;
                 self.bind_temporary(lhs);
                 let rhs = self.compile_expression(rhs, "pipe.arg")?;
                 let lhs = self.use_temporary_clone(lhs).unwrap();
-                Some(self.apply_function(lhs, rhs, name))
+                Some(self.apply_function(lhs, rhs, name, span))
             }
             // Non-binary operators
             Builtin::ToString => unreachable!(),
@@ -537,7 +543,7 @@ impl<'ctx> Codegen<'ctx> {
 
                 self.become_continuation_point(capture);
                 self.begin_next_function(function);
-                self.call_resume(self.get_continuation(""), "");
+                self.call_resume(self.get_continuation(""), "", span);
                 self.call_known_continuation(self.get_return("return"), self.get_continuation(""));
 
                 self.builder.position_at_end(here);

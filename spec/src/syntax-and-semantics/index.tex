@@ -438,6 +438,8 @@ not have the same name.
     \bnfprod{ExternTypeDefinition}{
         \bnfts{\kw{extern}}
         \bnfsp
+        \bnfpn{String}
+        \bnfsp
         \bnfts{\kw{type}}
         \bnfsp
         \bnfpn{TypeHead}
@@ -472,9 +474,12 @@ not have the same name.
 
 Worth noting is the use of the \kw{extern} keyword: a type or procedure can be declared as
 external indicating that it is not implemented within the current file but will be
-available at compilation time from the current module's native library. At this time, it is
-incorrect to use the \kw{extern} keyword in any user program, but it is included for use
-within the core library.
+available at compilation or link time from some externally provided native library.
+The string following the \kw{extern} keyword names the calling convention by which the
+externally defined function is to be called. Valid options are \texttt{"c"} or \texttt{"trilogy"}.
+
+At this time, it is likely incorrect to use the \kw{extern} keyword in any user program,
+but it is frequently used within the core library.
 
 \subimport{law/}{index.tex}
 

@@ -1,5 +1,6 @@
 use crate::codegen::{ATOM_ASSERTION_FAILED, Codegen, Global, Head, Merger, Variable};
 use inkwell::values::{BasicValue, PointerValue};
+use source_span::Span;
 use trilogy_ir::ir::{self, Builtin, QueryValue, Value};
 use trilogy_ir::visitor::{Bindings, HasBindings};
 use trilogy_parser::syntax;
@@ -38,9 +39,9 @@ impl<'ctx> Codegen<'ctx> {
             Value::Array(arr) => self.compile_array(arr, name),
             Value::Set(set) => self.compile_set(set, name),
             Value::Record(record) => self.compile_record(record, name),
-            Value::ArrayComprehension(comp) => self.compile_array_comprehension(comp, name),
-            Value::SetComprehension(comp) => self.compile_set_comprehension(comp, name),
-            Value::RecordComprehension(comp) => self.compile_record_comprehension(comp, name),
+            Value::ArrayComprehension(comp) => self.compile_array_comprehension(comp, name, expression.span),
+            Value::SetComprehension(comp) => self.compile_set_comprehension(comp, name, expression.span),
+            Value::RecordComprehension(comp) => self.compile_record_comprehension(comp, name, expression.span),
             Value::Sequence(seq) => {
                 self.di.push_block_scope(expression.span);
                 let res = self.compile_sequence(seq, name);
@@ -53,15 +54,15 @@ impl<'ctx> Codegen<'ctx> {
             Value::ModuleAccess(access) => self.compile_module_access(&access.0, &access.1, name),
             Value::IfElse(if_else) => self.compile_if_else(if_else, name),
             Value::Assignment(assign) => self.compile_assignment(assign, name),
-            Value::While(expr) => self.compile_while(expr, name),
-            Value::For(expr) => self.compile_for(expr, name),
+            Value::While(expr) => self.compile_while(expr, name, expression.span),
+            Value::For(expr) => self.compile_for(expr, name, expression.span),
             Value::Let(expr) => self.compile_let(expr, name),
             Value::Match(expr) => self.compile_match(expr, name),
-            Value::Assert(assertion) => self.compile_assertion(assertion, name),
+            Value::Assert(assertion) => self.compile_assertion(assertion, name, expression.span),
             Value::Fn(closure) => Some(self.compile_fn(closure, name)),
             Value::Do(closure) => Some(self.compile_do(closure, name)),
             Value::Qy(closure) => Some(self.compile_qy(closure, name)),
-            Value::Handled(handled) => self.compile_handled(handled, name),
+            Value::Handled(handled) => self.compile_handled(handled, name, expression.span),
             Value::End => {
                 self.compile_end();
                 None
@@ -86,13 +87,13 @@ impl<'ctx> Codegen<'ctx> {
         self.void_call_continuation(self.get_end(""));
     }
 
-    fn compile_while(&self, expr: &ir::While, name: &str) -> Option<PointerValue<'ctx>> {
+    fn compile_while(&self, expr: &ir::While, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
         let continue_function = self.add_continuation("while");
         let break_function = self.add_continuation("while.done");
 
         let (break_continuation, break_continuation_point) =
-            self.capture_current_continuation_full(break_function, "break");
-        let continue_continuation = self.continue_in_loop(continue_function);
+            self.capture_current_continuation_full(break_function, "break", span);
+        let continue_continuation = self.continue_in_loop(continue_function, span);
         self.push_loop_scope(break_continuation, continue_continuation);
         self.begin_next_function(continue_function);
         // Within the condition, `break` and `cancel` are explicitly not bound, so it doesn't
@@ -133,10 +134,10 @@ impl<'ctx> Codegen<'ctx> {
         Some(self.get_continuation(name))
     }
 
-    fn compile_for(&self, expr: &ir::Iterator, name: &str) -> Option<PointerValue<'ctx>> {
+    fn compile_for(&self, expr: &ir::Iterator, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation_full(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break", span);
         let done_to_clone = self.allocate_value("break");
         self.trilogy_value_clone_into(done_to_clone, done_continuation);
         self.bind_temporary(done_to_clone);
@@ -159,6 +160,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         expr: &ir::Iterator,
         name: &str,
+        span: Span,
     ) -> Option<PointerValue<'ctx>> {
         let output = self.allocate_value(name);
         self.trilogy_array_init_cap(output, 8, "");
@@ -166,7 +168,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation_full(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break", span);
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
@@ -186,6 +188,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         expr: &ir::Iterator,
         name: &str,
+        span: Span,
     ) -> Option<PointerValue<'ctx>> {
         let output = self.allocate_value(name);
         self.trilogy_set_init_cap(output, 8, "");
@@ -193,7 +196,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation_full(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break", span);
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         if let Some(value) = self.compile_expression(&expr.value, "element") {
@@ -213,6 +216,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         expr: &ir::Iterator,
         name: &str,
+        span: Span,
     ) -> Option<PointerValue<'ctx>> {
         let output = self.allocate_value(name);
         self.trilogy_record_init_cap(output, 8, "");
@@ -220,7 +224,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
-            self.capture_current_continuation_full(done_function, "for_break");
+            self.capture_current_continuation_full(done_function, "for_break", span);
         let next_iteration = self.compile_query_iteration(&expr.query, done_continuation);
         self.bind_temporary(next_iteration);
         let Value::Mapping(mapping) = &expr.value.value else {
@@ -242,18 +246,18 @@ impl<'ctx> Codegen<'ctx> {
         Some(self.use_temporary_clone(output).unwrap())
     }
 
-    fn compile_handled(&self, handled: &ir::Handled, name: &str) -> Option<PointerValue<'ctx>> {
+    fn compile_handled(&self, handled: &ir::Handled, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
         let body_function = self.add_continuation("when.handler");
         let handler_function = self.add_yield();
 
         // Prepare cancel continuation for after the handled section is complete.
         let cancel_to_function = self.add_continuation("when.cancel");
         let (cancel_to, cancel_to_continuation_point) =
-            self.capture_current_continuation_full(cancel_to_function, "cancel");
+            self.capture_current_continuation_full(cancel_to_function, "cancel", span);
 
         // Construct yield continuation that continues into the handler.
         let (handler, handler_continuation_point) =
-            self.capture_current_continuation_full(handler_function, "yield");
+            self.capture_current_continuation_full(handler_function, "yield", span);
 
         // Then enter the handler, given the new yield values.
         self.continue_in_handler(body_function, handler);
@@ -271,7 +275,7 @@ impl<'ctx> Codegen<'ctx> {
         self.become_continuation_point(handler_continuation_point);
         self.begin_next_function(handler_function);
 
-        self.compile_handlers(&handled.handlers);
+        self.compile_handlers(&handled.handlers, span);
 
         // Then back to the original scope, to continue the evaluation normally outside of the
         // handling construct.
@@ -281,7 +285,7 @@ impl<'ctx> Codegen<'ctx> {
         Some(self.get_continuation(name))
     }
 
-    fn compile_handlers(&self, handlers: &[ir::Handler]) {
+    fn compile_handlers(&self, handlers: &[ir::Handler], span: Span) {
         let resume = self.get_provided_resume();
         let effect = self.get_effect_temporary();
 
@@ -296,7 +300,7 @@ impl<'ctx> Codegen<'ctx> {
             }
             let next_case_function = self.add_continuation("");
             let (go_to_next_case, next_case_cp) =
-                self.capture_current_continuation(next_case_function, "when.next");
+                self.capture_current_continuation(next_case_function, "when.next", handler.span);
             if self
                 .compile_pattern_match(&handler.pattern, effect, go_to_next_case)
                 .is_none()
@@ -346,15 +350,15 @@ impl<'ctx> Codegen<'ctx> {
 
         self.push_handler_scope(resume);
         let effect = self.use_temporary_clone(effect).unwrap();
-        let returned = self.call_yield(effect, "");
-        let resumed = self.call_resume(returned, "");
+        let returned = self.call_yield(effect, "", span);
+        let resumed = self.call_resume(returned, "", span);
         let cancel = self.allocate_value("");
         self.trilogy_value_clone_into(cancel, self.get_cancel());
         self.call_known_continuation(cancel, resumed);
         self.pop_handler_scope();
     }
 
-    fn compile_assertion(&self, assertion: &ir::Assert, name: &str) -> Option<PointerValue<'ctx>> {
+    fn compile_assertion(&self, assertion: &ir::Assert, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
         let expression = self.compile_expression(&assertion.assertion, name)?;
 
         let pass_cp = self.branch_continuation_point();
@@ -381,7 +385,7 @@ impl<'ctx> Codegen<'ctx> {
                     .const_int(ATOM_ASSERTION_FAILED, false),
                 msg,
             );
-            self.call_yield(assertion_error, "");
+            self.call_yield(assertion_error, "", span);
             let panic_msg = self.allocate_value("");
             self.string_const(panic_msg, "resumed from assertion error\n");
             let panic = self.panic(panic_msg);
@@ -560,7 +564,7 @@ impl<'ctx> Codegen<'ctx> {
 
             let next_case_function = self.add_continuation("match.next");
             let (go_to_next_case, next_case_cp) =
-                self.capture_current_continuation(next_case_function, "match.next");
+                self.capture_current_continuation(next_case_function, "match.next", case.span);
             self.compile_pattern_match(&case.pattern, discriminant, go_to_next_case)?;
 
             if let Some(guard) = &case.guard
@@ -620,6 +624,7 @@ impl<'ctx> Codegen<'ctx> {
         application: &ir::Application,
         name: &str,
     ) -> Option<PointerValue<'ctx>> {
+        let span = application.function.span.union(application.argument.span);
         match &application.function.value {
             Value::Builtin(Builtin::Pin) => {
                 return self.compile_expression(&application.argument, name);
@@ -630,11 +635,11 @@ impl<'ctx> Codegen<'ctx> {
                 };
                 let merge_to_fn = self.add_continuation("is.cont");
                 let (merge_to_cont, merge_to_cp) =
-                    self.capture_current_continuation_full(merge_to_fn, "is.cont");
+                    self.capture_current_continuation_full(merge_to_fn, "is.cont", span);
 
                 let end_false_fn = self.add_continuation("is_false");
                 let (end_false_cont, end_false_cp) =
-                    self.capture_current_continuation_full(end_false_fn, "is_false");
+                    self.capture_current_continuation_full(end_false_fn, "is_false", span);
                 let next = self.compile_query_iteration(query, end_false_cont);
                 self.trilogy_value_destroy(next);
                 let result = self.allocate_const(self.bool_const(true), "");
@@ -656,7 +661,7 @@ impl<'ctx> Codegen<'ctx> {
                 return Some(self.get_continuation("is"));
             }
             Value::Builtin(builtin) if builtin.is_unary() => {
-                return self.compile_apply_unary(*builtin, &application.argument, name);
+                return self.compile_apply_unary(*builtin, &application.argument, name, span);
             }
             Value::Application(app) => match &app.function.value {
                 Value::Builtin(builtin) if builtin.is_binary() => {
@@ -690,13 +695,13 @@ impl<'ctx> Codegen<'ctx> {
                 for arg in arguments.iter_mut() {
                     *arg = self.use_temporary_clone(*arg).unwrap();
                 }
-                Some(self.call_procedure(function, &arguments, name))
+                Some(self.call_procedure(function, &arguments, name, span))
             }
             // Function application
             _ => {
                 let argument = self.compile_expression(&application.argument, "arg")?;
                 let function = self.use_temporary_clone(function).unwrap();
-                Some(self.apply_function(function, argument, name))
+                Some(self.apply_function(function, argument, name, span))
             }
         }
     }

@@ -1,6 +1,7 @@
 use crate::codegen::{Codegen, ContinuationPoint};
 use inkwell::AddressSpace;
 use inkwell::values::{BasicValue, FunctionValue, PointerValue};
+use source_span::Span;
 use std::rc::Rc;
 
 impl<'ctx> Codegen<'ctx> {
@@ -16,6 +17,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         continuation_function: FunctionValue<'ctx>,
         name: &str,
+        span: Span,
     ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
         let continuation = self.allocate_value(name);
         self.bind_temporary(continuation);
@@ -24,6 +26,15 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
+
+        let current = self.get_current_definition();
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            &current.name,
+            1,
+            span,
+            Some(current.metadata),
+        );
 
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         let shadow = self.shadow_continuation_point();
@@ -35,6 +46,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continuation_function,
+            metadata,
         );
         self.become_continuation_point(shadow);
 
@@ -45,6 +57,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         continuation_function: FunctionValue<'ctx>,
         name: &str,
+        span: Span,
     ) -> PointerValue<'ctx> {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
@@ -56,6 +69,15 @@ impl<'ctx> Codegen<'ctx> {
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
 
+        let current = self.get_current_definition();
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            &current.name,
+            1,
+            span,
+            Some(current.metadata),
+        );
+
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards
         self.end_continuation_point_as_close(closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
@@ -65,6 +87,7 @@ impl<'ctx> Codegen<'ctx> {
             end_to,
             closure,
             continuation_function,
+            metadata,
         );
 
         continuation
@@ -74,6 +97,7 @@ impl<'ctx> Codegen<'ctx> {
         &self,
         continuation_function: FunctionValue<'ctx>,
         name: &str,
+        span: Span,
     ) -> (PointerValue<'ctx>, Rc<ContinuationPoint<'ctx>>) {
         let continuation = self.allocate_value(name);
         let return_to = self.get_return("");
@@ -84,6 +108,16 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
+
+        let current = self.get_current_definition();
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            &current.name,
+            1,
+            span,
+            Some(current.metadata),
+        );
+
         let shadow = self.shadow_continuation_point();
         let capture = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.trilogy_callable_init_cont(
@@ -93,6 +127,7 @@ impl<'ctx> Codegen<'ctx> {
             end_to,
             closure,
             continuation_function,
+            metadata,
         );
         self.become_continuation_point(shadow);
         (continuation, capture)

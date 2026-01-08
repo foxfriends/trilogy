@@ -58,7 +58,7 @@ pub use module_definition::ModuleDefinition;
 pub use number::Number;
 pub use pack::{Element, Pack};
 pub use procedure::Procedure;
-pub use procedure_definition::ProcedureDefinition;
+pub use procedure_definition::{CallConv, ProcedureDefinition};
 pub use query::{Query, Value as QueryValue};
 pub use rule::Rule;
 pub use rule_definition::RuleDefinition;

@@ -103,7 +103,7 @@ impl<'ctx> Codegen<'ctx> {
             .unwrap();
         let di = DebugInfo::new(&module, "trilogy:runtime", &ee);
 
-        Codegen {
+        let codegen = Codegen {
             path: vec![],
             tests: vec![],
             atoms: Rc::new(RefCell::new(atoms)),
@@ -123,7 +123,29 @@ impl<'ctx> Codegen<'ctx> {
             current_continue: RefCell::default(),
             current_cancel: RefCell::default(),
             current_resume: RefCell::default(),
-        }
+        };
+        codegen.write_current_backtrace();
+        codegen
+    }
+
+    fn write_current_backtrace(&self) {
+        // Super privileged internal functions are handwritten here:
+        let current_backtrace = self.add_internal_definition("current_backtrace", 0);
+        let metadata =
+            self.build_callable_data("trilogy", "current_backtrace", 0, Span::default(), None);
+        self.set_current_definition(
+            "current_backtrace".to_owned(),
+            "current_backtrace".to_owned(),
+            Span::default(),
+            metadata,
+            None,
+        );
+
+        self.begin_function(current_backtrace, Span::default());
+        let output = self.allocate_value("");
+        self.callable_backtrace(output, self.get_return(""));
+        self.call_known_continuation(self.get_return(""), output);
+        self.end_function();
     }
 
     /// Creates a `Codegen` for another Trilogy file (module).

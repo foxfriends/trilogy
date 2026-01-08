@@ -29,7 +29,8 @@ trilogy_callable_value* trilogy_callable_init_rule(
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to /* moved */,
     trilogy_value* yield_to /* moved */, trilogy_value* end_to /* moved */,
-    trilogy_value* closure /* moved */, void* p
+    trilogy_value* closure /* moved */, void* p,
+    const trilogy_callable_data* metadata
 );
 void trilogy_callable_clone_into(trilogy_value*, trilogy_callable_value* orig);
 void trilogy_callable_destroy(trilogy_callable_value* val);

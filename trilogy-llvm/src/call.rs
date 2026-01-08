@@ -6,6 +6,7 @@ use inkwell::values::{
     BasicMetadataValueEnum, CallSiteValue, FunctionValue, InstructionValue, IntValue,
     LLVMTailCallKind, PointerValue,
 };
+use source_span::Span;
 
 impl<'ctx> Codegen<'ctx> {
     pub(crate) fn direct_tail_call(
@@ -75,6 +76,7 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// As per the general calling convention, the callable object itself is destroyed, and all
     /// arguments are moved into the call.
+    #[allow(clippy::too_many_arguments)]
     fn call_callable(
         &self,
         continuation_function: FunctionValue<'ctx>,
@@ -83,6 +85,7 @@ impl<'ctx> Codegen<'ctx> {
         function_ptr: PointerValue<'ctx>,
         arguments: &[PointerValue<'ctx>],
         name: &str,
+        span: Span,
     ) -> PointerValue<'ctx> {
         let arity = arguments.len();
 
@@ -93,7 +96,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(bound_closure, callable, "");
 
         // All variables and values are invalid after this point.
-        let return_to = self.close_current_continuation(continuation_function, "cc");
+        let return_to = self.close_current_continuation(continuation_function, "cc", span);
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + IMPLICIT_PARAMS + 1);
@@ -114,6 +117,7 @@ impl<'ctx> Codegen<'ctx> {
         procedure: PointerValue<'ctx>,
         arguments: &[PointerValue<'ctx>],
         name: &str,
+        span: Span,
     ) -> PointerValue<'ctx> {
         let arity = arguments.len();
         let callable = self.trilogy_callable_untag(procedure, "fn_callable");
@@ -126,6 +130,7 @@ impl<'ctx> Codegen<'ctx> {
             function,
             arguments,
             name,
+            span,
         )
     }
 
@@ -139,6 +144,7 @@ impl<'ctx> Codegen<'ctx> {
         callable_value: PointerValue<'ctx>,
         argument: PointerValue<'ctx>,
         name: &str,
+        span: Span,
     ) -> PointerValue<'ctx> {
         let callable = self.trilogy_callable_untag(callable_value, "fn_callable");
         let function = self.trilogy_procedure_untag(callable, 1, "fn_ptr");
@@ -150,6 +156,7 @@ impl<'ctx> Codegen<'ctx> {
             function,
             &[argument],
             name,
+            span,
         )
     }
 
@@ -163,6 +170,7 @@ impl<'ctx> Codegen<'ctx> {
         arguments: &[PointerValue<'ctx>],
         done_to: PointerValue<'ctx>,
         name: &str,
+        span: Span,
     ) -> (PointerValue<'ctx>, Vec<PointerValue<'ctx>>) {
         let arity = arguments.len();
         let callable = self.trilogy_callable_untag(value, "");
@@ -175,7 +183,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // All variables and values are invalid after this point.
         let continuation_function = self.add_next_to_continuation(arity, "next_to_cc");
-        let next_to = self.close_current_continuation(continuation_function, "cc");
+        let next_to = self.close_current_continuation(continuation_function, "cc", span);
         self.trilogy_value_destroy(value);
 
         let mut args = Vec::with_capacity(arity + IMPLICIT_PARAMS + 1);
@@ -378,7 +386,12 @@ impl<'ctx> Codegen<'ctx> {
     ///
     /// Since `yield` cannot be captured in Trilogy code at this time, we do not need to have
     /// any special handling for calling yield elsewhere; we just special case it in the compiler.
-    pub(crate) fn call_yield(&self, effect: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn call_yield(
+        &self,
+        effect: PointerValue<'ctx>,
+        name: &str,
+        span: Span,
+    ) -> PointerValue<'ctx> {
         let the_yield = self.get_yield("");
         let the_yield_callable = self.trilogy_callable_untag(the_yield, "");
 
@@ -392,7 +405,7 @@ impl<'ctx> Codegen<'ctx> {
         self.trilogy_callable_closure_into(closure, the_yield_callable, "");
 
         let resume_function = self.add_continuation("yield.resume");
-        let resume_to = self.close_current_continuation(resume_function, "yield.resume");
+        let resume_to = self.close_current_continuation(resume_function, "yield.resume", span);
 
         let args = &[
             self.load_value(return_to, "").into(),
@@ -416,7 +429,12 @@ impl<'ctx> Codegen<'ctx> {
     /// Calling `resume` causes a shift, as if a new handler was installed. This replaces the
     /// contextual `cancel_to` value so that when the current delimited continuation (`when`)
     /// is completed, we can go back into this handler.
-    pub(crate) fn call_resume(&self, value: PointerValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub(crate) fn call_resume(
+        &self,
+        value: PointerValue<'ctx>,
+        name: &str,
+        span: Span,
+    ) -> PointerValue<'ctx> {
         let resume_value = self.allocate_value("resume");
         self.trilogy_value_clone_into(resume_value, self.get_resume());
         let continuation_function = self.add_continuation("resume.back");
@@ -429,7 +447,8 @@ impl<'ctx> Codegen<'ctx> {
         let resume_continuation = self.trilogy_continuation_untag(resume, "");
 
         let end_to = self.get_end("end");
-        let new_cancel_to = self.close_current_continuation(continuation_function, "when.cancel");
+        let new_cancel_to =
+            self.close_current_continuation(continuation_function, "when.cancel", span);
         self.trilogy_value_destroy(cancel_location);
         self.trilogy_value_clone_into(cancel_location, new_cancel_to);
 
@@ -507,7 +526,7 @@ impl<'ctx> Codegen<'ctx> {
 
         self.begin_next_function(yield_function);
         let effect = self.get_continuation("effect");
-        let effect = self.to_string(effect, "effect_string");
+        let effect = self.to_string(effect, "effect_string", Span::default());
         _ = self.trilogy_unhandled_effect(effect);
 
         self.begin_next_function(end_function);

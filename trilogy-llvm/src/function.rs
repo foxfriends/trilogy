@@ -43,7 +43,13 @@ impl<'ctx> Codegen<'ctx> {
         let accessor = self.module.get_function(&accessor_name).unwrap();
         let function = self.add_function(&name, &name, definition.span(), false);
         let metadata = self.write_function_accessor(definition, accessor, function);
-        self.set_current_definition(name.clone(), name, definition.span(), metadata, module_context);
+        self.set_current_definition(
+            name.clone(),
+            name,
+            definition.span(),
+            metadata,
+            module_context,
+        );
         self.compile_function_body(function, &definition.overloads, definition.span());
         self.close_continuation();
     }
@@ -75,7 +81,8 @@ impl<'ctx> Codegen<'ctx> {
 
             let closure = self
                 .builder
-                .build_alloca(self.value_type(), "TEMP_CLOSURE")                .unwrap();
+                .build_alloca(self.value_type(), "TEMP_CLOSURE")
+                .unwrap();
             self.trilogy_callable_init_do(cont_val, 1, closure, continuation, child_metadata);
             let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
             self.call_known_continuation(return_to, cont_val);
@@ -104,8 +111,11 @@ impl<'ctx> Codegen<'ctx> {
             } else {
                 ""
             });
-            let (go_to_next_overload, next_overload_cp) =
-                self.capture_current_continuation(next_overload_function, "next_overload");
+            let (go_to_next_overload, next_overload_cp) = self.capture_current_continuation(
+                next_overload_function,
+                "next_overload",
+                overload.span
+            );
 
             for (pattern, param) in overload.parameters.iter().zip(&params) {
                 if self

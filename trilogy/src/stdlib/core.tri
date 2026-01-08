@@ -1,171 +1,173 @@
 type c {
-  extern proc print!(value)
+  extern "c" proc print!(value)
   export print
 
-  extern proc readline!()
+  extern "c" proc readline!()
   export readline
 
-  extern proc readchar!()
+  extern "c" proc readchar!()
   export readchar
 
-  extern proc panic!(value)
+  extern "c" proc panic!(value)
   export panic
 
-  extern proc callable_backtrace!(value)
-  export callable_backtrace
-
-  extern proc exit_!(value)
+  extern "c" proc exit_!(value)
   export exit_
 
-  extern proc structural_eq!(lhs, rhs)
+  extern "c" proc structural_eq!(lhs, rhs)
   export structural_eq
 
-  extern proc structural_neq!(lhs, rhs)
+  extern "c" proc structural_neq!(lhs, rhs)
   export structural_neq
 
-  extern proc referential_eq!(lhs, rhs)
+  extern "c" proc referential_eq!(lhs, rhs)
   export referential_eq
 
-  extern proc referential_neq!(lhs, rhs)
+  extern "c" proc referential_neq!(lhs, rhs)
   export referential_neq
 
-  extern proc lookup_atom!(atom)
+  extern "c" proc lookup_atom!(atom)
   export lookup_atom
 
-  extern proc length!(arr)
+  extern "c" proc length!(arr)
   export length
 
-  extern proc push!(arr, val)
+  extern "c" proc push!(arr, val)
   export push
 
-  extern proc pop!(arr)
+  extern "c" proc pop!(arr)
   export pop
 
-  extern proc append!(arr, val)
+  extern "c" proc append!(arr, val)
   export append
 
-  extern proc contains_key!(arr, key)
+  extern "c" proc contains_key!(arr, key)
   export contains_key
 
-  extern proc member_access!(container, index)
+  extern "c" proc member_access!(container, index)
   export member_access
 
-  extern proc delete_member!(container, index)
+  extern "c" proc delete_member!(container, index)
   export delete_member
 
-  extern proc glue!(lhs, rhs)
+  extern "c" proc glue!(lhs, rhs)
   export glue
 
-  extern proc cons!(lhs, rhs)
+  extern "c" proc cons!(lhs, rhs)
   export cons
 
-  extern proc construct!(lhs, rhs)
+  extern "c" proc construct!(lhs, rhs)
   export construct
 
-  extern proc destruct!(val)
+  extern "c" proc destruct!(val)
   export destruct
 
-  extern proc compare!(lhs, rhs)
+  extern "c" proc compare!(lhs, rhs)
   export compare
 
-  extern proc lt!(lhs, rhs)
+  extern "c" proc lt!(lhs, rhs)
   export lt
 
-  extern proc lte!(lhs, rhs)
+  extern "c" proc lte!(lhs, rhs)
   export lte
 
-  extern proc gt!(lhs, rhs)
+  extern "c" proc gt!(lhs, rhs)
   export gt
 
-  extern proc gte!(lhs, rhs)
+  extern "c" proc gte!(lhs, rhs)
   export gte
 
-  extern proc add!(lhs, rhs)
+  extern "c" proc add!(lhs, rhs)
   export add
 
-  extern proc subtract!(lhs, rhs)
+  extern "c" proc subtract!(lhs, rhs)
   export subtract
 
-  extern proc multiply!(lhs, rhs)
+  extern "c" proc multiply!(lhs, rhs)
   export multiply
 
-  extern proc divide!(lhs, rhs)
+  extern "c" proc divide!(lhs, rhs)
   export divide
 
-  extern proc int_divide!(lhs, rhs)
+  extern "c" proc int_divide!(lhs, rhs)
   export int_divide
 
-  extern proc rem!(lhs, rhs)
+  extern "c" proc rem!(lhs, rhs)
   export rem
 
-  extern proc power!(lhs, rhs)
+  extern "c" proc power!(lhs, rhs)
   export power
 
-  extern proc boolean_and!(lhs, rhs)
+  extern "c" proc boolean_and!(lhs, rhs)
   export boolean_and
 
-  extern proc boolean_or!(lhs, rhs)
+  extern "c" proc boolean_or!(lhs, rhs)
   export boolean_or
 
-  extern proc boolean_not!(lhs, rhs)
+  extern "c" proc boolean_not!(lhs, rhs)
   export boolean_not
 
-  extern proc bitwise_and!(lhs, rhs)
+  extern "c" proc bitwise_and!(lhs, rhs)
   export bitwise_and
 
-  extern proc bitwise_or!(lhs, rhs)
+  extern "c" proc bitwise_or!(lhs, rhs)
   export bitwise_or
 
-  extern proc bitwise_xor!(lhs, rhs)
+  extern "c" proc bitwise_xor!(lhs, rhs)
   export bitwise_xor
 
-  extern proc bitwise_invert!(val)
+  extern "c" proc bitwise_invert!(val)
   export bitwise_invert
 
-  extern proc shift_left!(lhs, rhs)
+  extern "c" proc shift_left!(lhs, rhs)
   export shift_left
 
-  extern proc shift_left_extend!(lhs, rhs)
+  extern "c" proc shift_left_extend!(lhs, rhs)
   export shift_left_extend
 
-  extern proc shift_left_contract!(lhs, rhs)
+  extern "c" proc shift_left_contract!(lhs, rhs)
   export shift_left_contract
 
-  extern proc shift_right!(lhs, rhs)
+  extern "c" proc shift_right!(lhs, rhs)
   export shift_right
 
-  extern proc shift_right_extend!(lhs, rhs)
+  extern "c" proc shift_right_extend!(lhs, rhs)
   export shift_right_extend
 
-  extern proc shift_right_contract!(lhs, rhs)
+  extern "c" proc shift_right_contract!(lhs, rhs)
   export shift_right_contract
 
-  extern proc primitive_to_string!(val)
+  extern "c" proc primitive_to_string!(val)
   export primitive_to_string
 
-  extern proc set_to_array!(val)
+  extern "c" proc set_to_array!(val)
   export set_to_array
 
-  extern proc record_to_array!(val)
+  extern "c" proc record_to_array!(val)
   export record_to_array
 
-  extern proc string_to_array!(val)
+  extern "c" proc string_to_array!(val)
   export string_to_array
 
-  extern proc slice!(val, i, fin)
+  extern "c" proc slice!(val, i, fin)
   export slice
 
-  extern proc re!(val)
+  extern "c" proc re!(val)
   export re
 
-  extern proc im!(val)
+  extern "c" proc im!(val)
   export im
 
-  extern proc numer!(val)
+  extern "c" proc numer!(val)
   export numer
 
-  extern proc denom!(val)
+  extern "c" proc denom!(val)
   export denom
+}
+
+type asm {
+  extern "trilogy" proc current_backtrace!()
+  export current_backtrace
 }
 
 slot im = c::im
@@ -192,7 +194,7 @@ export readchar
 slot panic = c::panic
 export panic
 
-func backtrace v and typeof 'callable = c::callable_backtrace v
+slot backtrace = asm::current_backtrace
 export backtrace
 
 slot push = c::push

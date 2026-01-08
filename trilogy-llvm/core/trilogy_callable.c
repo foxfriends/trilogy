@@ -115,7 +115,8 @@ trilogy_callable_value* trilogy_callable_init_rule(
 
 trilogy_callable_value* trilogy_callable_init_cont(
     trilogy_value* t, trilogy_value* return_to, trilogy_value* yield_to,
-    trilogy_value* end_to, trilogy_value* closure, void* p
+    trilogy_value* end_to, trilogy_value* closure, void* p,
+    const trilogy_callable_data* metadata
 ) {
     assert(
         closure == NO_CLOSURE || closure->tag == TAG_UNDEFINED ||
@@ -125,7 +126,7 @@ trilogy_callable_value* trilogy_callable_init_cont(
         malloc_safe(sizeof(trilogy_callable_value));
     trilogy_callable_value_init(
         callable, CALLABLE_CONTINUATION, 1, return_to, yield_to, end_to,
-        closure, p, NULL
+        closure, p, metadata
     );
     return trilogy_callable_init(t, callable);
 }
@@ -295,6 +296,7 @@ void trilogy_callable_backtrace(
     while (val != NULL) {
         trilogy_value frame = trilogy_undefined;
         backtrace_frame(&frame, val->metadata);
+        if (val == val->return_to) return;
         val = val->return_to;
         trilogy_array_push(array, &frame);
     }

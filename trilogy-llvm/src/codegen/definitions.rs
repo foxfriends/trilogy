@@ -122,7 +122,7 @@ impl<'ctx> Codegen<'ctx> {
         function
     }
 
-    fn add_definition(
+    pub(super) fn add_definition(
         &self,
         name: &str,
         arity: usize,
@@ -139,6 +139,29 @@ impl<'ctx> Codegen<'ctx> {
             self.di.procedure_di_type(arity),
             span,
             is_local_to_unit,
+            true,
+        ));
+        function.set_call_conventions(TAIL_CALL_CONV);
+        function.get_nth_param(0).unwrap().set_name("return_to");
+        function.get_nth_param(1).unwrap().set_name("yield_to");
+        function.get_nth_param(2).unwrap().set_name("end_to");
+        for (i, param) in function.get_param_iter().skip(IMPLICIT_PARAMS).enumerate() {
+            param.set_name(&format!("param_{i}"));
+        }
+        function.get_last_param().unwrap().set_name("closure");
+        function
+    }
+
+    pub(super) fn add_internal_definition(&self, name: &str, arity: usize) -> FunctionValue<'ctx> {
+        let function =
+            self.module
+                .add_function(name, self.procedure_type(arity), Some(Linkage::External));
+        function.set_subprogram(self.di.create_function(
+            name,
+            name,
+            self.di.procedure_di_type(arity),
+            Span::default(),
+            false,
             true,
         ));
         function.set_call_conventions(TAIL_CALL_CONV);

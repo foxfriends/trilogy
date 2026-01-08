@@ -3,6 +3,7 @@ use inkwell::AddressSpace;
 use inkwell::values::{
     BasicMetadataValueEnum, BasicValue, FunctionValue, InstructionValue, PointerValue,
 };
+use source_span::Span;
 
 impl<'ctx> Codegen<'ctx> {
     /// Continues to a point in the same lexical scope directly, without any runtime
@@ -91,6 +92,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn continue_in_loop(
         &self,
         continue_function: FunctionValue<'ctx>,
+        span: Span,
     ) -> PointerValue<'ctx> {
         let return_to = self.get_return("");
         let yield_to = self.get_yield("");
@@ -102,6 +104,16 @@ impl<'ctx> Codegen<'ctx> {
             .builder
             .build_alloca(self.value_type(), "TEMP_CLOSURE")
             .unwrap();
+
+        let current = self.get_current_definition();
+        let metadata = self.build_callable_data(
+            &self.module_path(),
+            &current.name,
+            1,
+            span,
+            Some(current.metadata),
+        );
+
         let continue_to_callable = self.trilogy_callable_init_cont(
             continue_to,
             self.context.ptr_type(AddressSpace::default()).const_null(),
@@ -109,6 +121,7 @@ impl<'ctx> Codegen<'ctx> {
             self.context.ptr_type(AddressSpace::default()).const_null(),
             closure,
             continue_function,
+            metadata,
         );
 
         // NOTE: cleanup will be inserted here, so variables and such are invalid afterwards

@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Converter, Error, Id, visitor::MightBeConstant};
+use crate::{Converter, Error, Id, ir::procedure_definition::CallConv, visitor::MightBeConstant};
 use source_span::Span;
 use std::{collections::HashMap, sync::Arc};
 use trilogy_parser::{Spanned, syntax};
@@ -308,9 +308,21 @@ impl Definition {
                 }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
+                let call_conv = ast.call_conv.value.as_ref().unwrap().as_str().unwrap();
+                let call_conv = match call_conv {
+                    "c" => CallConv::C,
+                    "trilogy" => CallConv::Trilogy,
+                    _ => {
+                        converter.error(Error::UnknownCallingConvention {
+                            span: ast.call_conv.span,
+                            value: call_conv.to_owned(),
+                        });
+                        CallConv::Trilogy
+                    }
+                };
                 Self::new(
                     span,
-                    ProcedureDefinition::declare(name, ast.head.parameters.len()),
+                    ProcedureDefinition::declare_extern(name, call_conv, ast.head.parameters.len()),
                 )
             }
             syntax::DefinitionItem::Rule(ast) => {

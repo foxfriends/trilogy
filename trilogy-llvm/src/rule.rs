@@ -82,8 +82,11 @@ impl<'ctx> Codegen<'ctx> {
             self.set_span(overload.head_span);
 
             let next_overload_function = self.add_continuation("overload");
-            let (go_to_next_overload, next_overload_cp) =
-                self.capture_current_continuation_full(next_overload_function, "next_overload");
+            let (go_to_next_overload, next_overload_cp) = self.capture_current_continuation_full(
+                next_overload_function,
+                "next_overload",
+                overload.span,
+            );
 
             // NOTE[next_overload_clone]: Make a clone of the next
             // overload function so that it can be captured without
