@@ -383,20 +383,20 @@ impl<'ctx> Codegen<'ctx> {
                         self.source_pos_type()
                             .const_named_struct(&[
                                 self.usize_type()
-                                    .const_int(span.start().line as u64, false)
+                                    .const_int(span.start().line as u64 + 1, false)
                                     .into(),
                                 self.usize_type()
-                                    .const_int(span.start().column as u64, false)
+                                    .const_int(span.start().column as u64 + 1, false)
                                     .into(),
                             ])
                             .into(),
                         self.source_pos_type()
                             .const_named_struct(&[
                                 self.usize_type()
-                                    .const_int(span.end().line as u64, false)
+                                    .const_int(span.end().line as u64 + 1, false)
                                     .into(),
                                 self.usize_type()
-                                    .const_int(span.end().column as u64, false)
+                                    .const_int(span.end().column as u64 + 1, false)
                                     .into(),
                             ])
                             .into(),

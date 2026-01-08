@@ -987,7 +987,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_do(&self, procedure: &ir::Procedure, name: &str) -> PointerValue<'ctx> {
         let current = self.get_current_definition();
-        let function_name = format!("{}<do@{}>", current.name, procedure.span);
+        let function_name = format!("{}<do {}>", current.name, procedure.span);
         let arity = procedure.parameters.len();
         let function =
             self.add_procedure(&function_name, arity, &function_name, procedure.span, true);
@@ -1012,7 +1012,9 @@ impl<'ctx> Codegen<'ctx> {
         let outer_cp = self.shadow_continuation_point();
         let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.become_continuation_point(inner_cp);
+        self.set_current_metadata(&function_name, child_metadata);
         self.compile_procedure_body(function, procedure);
+        self.set_current_metadata(&current.name, current.metadata);
 
         self.builder.position_at_end(here);
         self.restore_function_context(snapshot);
@@ -1022,7 +1024,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_fn(&self, func: &ir::Function, name: &str) -> PointerValue<'ctx> {
         let current = self.get_current_definition();
-        let function_name = format!("{}<fn@{}>", current.name, func.span);
+        let function_name = format!("{}<fn {}>", current.name, func.span);
         let function = self.add_function(&function_name, &function_name, func.span, true);
 
         let target = self.allocate_value(name);
@@ -1045,7 +1047,9 @@ impl<'ctx> Codegen<'ctx> {
         let outer_cp = self.shadow_continuation_point();
         let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.become_continuation_point(inner_cp);
+        self.set_current_metadata(&function_name, child_metadata);
         self.compile_function_body(function, &[func], func.span);
+        self.set_current_metadata(&current.name, current.metadata);
 
         self.builder.position_at_end(here);
         self.restore_function_context(snapshot);
@@ -1055,7 +1059,7 @@ impl<'ctx> Codegen<'ctx> {
 
     fn compile_qy(&self, rule: &ir::Rule, name: &str) -> PointerValue<'ctx> {
         let current = self.get_current_definition();
-        let rule_name = format!("{}<qy@{}>", current.name, rule.span);
+        let rule_name = format!("{}<qy {}>", current.name, rule.span);
         let arity = rule.parameters.len();
         let function = self.add_rule(&rule_name, arity, &rule_name, rule.span, true);
 
@@ -1079,7 +1083,9 @@ impl<'ctx> Codegen<'ctx> {
         let outer_cp = self.shadow_continuation_point();
         let inner_cp = self.capture_contination_point(closure.as_instruction_value().unwrap());
         self.become_continuation_point(inner_cp);
+        self.set_current_metadata(&rule_name, child_metadata);
         self.compile_rule_body(function, &[rule], rule.span);
+        self.set_current_metadata(&current.name, current.metadata);
 
         self.builder.position_at_end(here);
         self.restore_function_context(snapshot);

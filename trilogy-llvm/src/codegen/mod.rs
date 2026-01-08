@@ -209,6 +209,13 @@ impl<'ctx> Codegen<'ctx> {
             )));
     }
 
+    pub(crate) fn set_current_metadata(&self, name: &str, metadata: GlobalValue<'ctx>) {
+        let mut current = self.current_definition.borrow_mut();
+        let current = current.as_mut().unwrap();
+        current.metadata = metadata;
+        current.name = name.to_owned();
+    }
+
     pub(crate) fn get_current_definition(&self) -> CurrentDefinition<'ctx> {
         self.current_definition.borrow().clone().unwrap()
     }
