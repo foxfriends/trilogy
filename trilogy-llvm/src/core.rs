@@ -160,6 +160,10 @@ impl<'ctx> Codegen<'ctx> {
         self.reference_core("print_backtrace")
     }
 
+    pub(crate) fn print(&self) -> PointerValue<'ctx> {
+        self.reference_core("print")
+    }
+
     pub(crate) fn backtrace(&self) -> PointerValue<'ctx> {
         self.reference_core("backtrace")
     }

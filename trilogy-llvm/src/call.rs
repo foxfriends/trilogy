@@ -537,12 +537,24 @@ impl<'ctx> Codegen<'ctx> {
         self.begin_next_function(yield_function);
         let effect = self.get_continuation("effect");
         let effect = self.to_string(effect, "effect_string", Span::default());
-        _ = self.trilogy_unhandled_effect(effect);
+        self.debug_print("unhandled effect: ");
+        self.call_procedure(self.print(), &[effect], "", Span::default());
+        self.debug_print("\n\n");
+        let backtrace = self.call_procedure(self.backtrace(), &[], "", Span::default());
+        self.debug_print("stack trace:\n");
+        self.call_procedure(self.print_backtrace(), &[backtrace], "", Span::default());
+        let value = self.allocate_value("");
+        self.u32_const(value, 255);
+        _ = self.exit(value);
 
         self.begin_next_function(end_function);
+        self.debug_print("the only remaining execution ended\n\n");
         let backtrace = self.call_procedure(self.backtrace(), &[], "", Span::default());
+        self.debug_print("stack trace:\n");
         self.call_procedure(self.print_backtrace(), &[backtrace], "", Span::default());
-        _ = self.trilogy_execution_ended();
+        let value = self.allocate_value("");
+        self.u32_const(value, 255);
+        _ = self.exit(value);
 
         self.begin_next_function(chain_function);
         let result = self.allocate_value("result");

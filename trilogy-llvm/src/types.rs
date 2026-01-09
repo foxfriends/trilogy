@@ -225,6 +225,27 @@ impl<'ctx> Codegen<'ctx> {
         );
     }
 
+    pub(crate) fn u32_const(&self, into: PointerValue<'ctx>, value: u32) {
+        let re_numer_global = self.make_global_u32_array(&[value]);
+        let re_denom_global = self.make_global_u32_array(&[1]);
+        let im_numer_global = self.make_global_u32_array(&[0]);
+        let im_denom_global = self.make_global_u32_array(&[1]);
+        self.trilogy_number_init_const(
+            into,
+            self.context.bool_type().const_int(0, false),
+            1,
+            re_numer_global.as_pointer_value(),
+            1,
+            re_denom_global.as_pointer_value(),
+            self.context.bool_type().const_int(0, false),
+            1,
+            im_numer_global.as_pointer_value(),
+            1,
+            im_denom_global.as_pointer_value(),
+            "",
+        );
+    }
+
     pub(crate) fn global_c_string(&self, value: &str, null_terminated: bool) -> GlobalValue<'ctx> {
         let bytes = value.as_bytes();
         let string = self.module.add_global(

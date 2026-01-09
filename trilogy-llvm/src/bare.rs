@@ -16,7 +16,6 @@ impl<'ctx> Codegen<'ctx> {
         self.module.add_function(name, ty, Some(Linkage::External))
     }
 
-    #[allow(dead_code, reason = "for debugging")]
     pub(crate) fn debug_print(&self, value: impl AsRef<str>) {
         let debug_str = self.global_c_string(value.as_ref(), true);
         let f = self.declare_bare(
@@ -1565,41 +1564,6 @@ impl<'ctx> Codegen<'ctx> {
             .try_as_basic_value()
             .unwrap_basic()
             .into_pointer_value()
-    }
-
-    pub(crate) fn trilogy_unhandled_effect(&self, effect: PointerValue<'ctx>) -> NeverValue {
-        let f = self.declare_bare(
-            "trilogy_unhandled_effect",
-            self.context.void_type().fn_type(
-                &[self.context.ptr_type(AddressSpace::default()).into()],
-                false,
-            ),
-        );
-        let call = self
-            .builder
-            .build_call(f, &[effect.into()], "")
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_instruction();
-        self.end_continuation_point_as_clean(call);
-        self.builder.build_unreachable().unwrap();
-        NeverValue
-    }
-
-    pub(crate) fn trilogy_execution_ended(&self) -> NeverValue {
-        let f = self.declare_bare(
-            "trilogy_execution_ended",
-            self.context.void_type().fn_type(&[], false),
-        );
-        let call = self
-            .builder
-            .build_call(f, &[], "")
-            .unwrap()
-            .try_as_basic_value()
-            .unwrap_instruction();
-        self.end_continuation_point_as_clean(call);
-        self.builder.build_unreachable().unwrap();
-        NeverValue
     }
 
     pub(crate) fn trilogy_module_untag(

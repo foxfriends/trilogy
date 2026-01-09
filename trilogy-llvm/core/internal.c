@@ -1,6 +1,5 @@
 #include "internal.h"
 #include "trilogy_number.h"
-#include "trilogy_string.h"
 #include "types.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,17 +50,4 @@ void* realloc_safe(void* ptr, size_t size) {
     ptr = realloc(ptr, size);
     if (ptr == NULL) internal_panic("out of memory\n");
     return ptr;
-}
-
-static char* unhandled_effect_prefix = "unhandled effect: ";
-
-void trilogy_unhandled_effect(trilogy_value* effect_string) {
-    trilogy_string_value* string = trilogy_string_assume(effect_string);
-    char* c_string = trilogy_string_as_c(string);
-    fprintf(stderr, "%s%s\n", unhandled_effect_prefix, c_string);
-    exit(1);
-}
-
-void trilogy_execution_ended() {
-    internal_panic("the only remaining execution ended\n");
 }

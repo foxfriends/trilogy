@@ -439,7 +439,7 @@ export test_main
 proc print_backtrace!(trace_frames) {
   for frame in trace_frames {
     let {| "path" => path, "name" => name, "span" => (line:col):_, .._ |} = frame
-    print!("${name}\n\tat ${path} +${line}:${col}\n")
+    print!("- ${name}\n\tat ${path} +${line}:${col}\n")
   }
 }
 
