@@ -27,7 +27,6 @@ continue = break << next
 * Improve error messages:
     * Eliminate places where panics are visible to the end user; should be covered by `yield`/`end` (rewrite spec I guess)
     * Review error handling in scanner/parser/IR, so all are nicely reported; maybe reimplement this using trait objects so it's not so spread out
-    * Implement better messages in panics and asserts, with backtrace
 * Additional operators (though this might be resolved by having a prelude):
     * `length` (`#val`)
     * prefix nullary procedure call `!()` (`let x = !() <| many_1 <| char 'x'`)
