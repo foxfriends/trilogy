@@ -125,6 +125,7 @@ impl<'ctx> Codegen<'ctx> {
             current_resume: RefCell::default(),
         };
         codegen.write_current_backtrace();
+        codegen.write_backtrace_of();
         codegen
     }
 
@@ -140,10 +141,28 @@ impl<'ctx> Codegen<'ctx> {
             metadata,
             None,
         );
-
         self.begin_function(current_backtrace, Span::default());
         let output = self.allocate_value("");
         self.callable_backtrace(output, self.get_return(""));
+        self.call_known_continuation(self.get_return(""), output);
+        self.end_function();
+    }
+
+    fn write_backtrace_of(&self) {
+        // Super privileged internal functions are handwritten here:
+        let current_backtrace = self.add_internal_definition("backtrace_of", 1);
+        let metadata =
+            self.build_callable_data("trilogy", "backtrace_of", 1, Span::default(), None);
+        self.set_current_definition(
+            "backtrace_of".to_owned(),
+            "backtrace_of".to_owned(),
+            Span::default(),
+            metadata,
+            None,
+        );
+        self.begin_function(current_backtrace, Span::default());
+        let output = self.allocate_value("");
+        self.callable_backtrace(output, self.get_continuation(""));
         self.call_known_continuation(self.get_return(""), output);
         self.end_function();
     }

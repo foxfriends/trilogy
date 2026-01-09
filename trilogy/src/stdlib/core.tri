@@ -167,7 +167,8 @@ type c {
 
 type asm {
   extern "trilogy" proc current_backtrace!()
-  export current_backtrace
+  extern "trilogy" proc backtrace_of!(callable)
+  export current_backtrace, backtrace_of
 }
 
 slot im = c::im
@@ -196,6 +197,9 @@ export panic
 
 slot backtrace = asm::current_backtrace
 export backtrace
+
+slot backtrace_of = asm::backtrace_of
+export backtrace_of
 
 slot push = c::push
 export push

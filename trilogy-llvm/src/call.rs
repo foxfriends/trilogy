@@ -536,11 +536,17 @@ impl<'ctx> Codegen<'ctx> {
 
         self.begin_next_function(yield_function);
         let effect = self.get_continuation("effect");
+        let resume = self.get_provided_resume();
         let effect = self.to_string(effect, "effect_string", Span::default());
         self.debug_print("unhandled effect: ");
         self.call_procedure(self.print(), &[effect], "", Span::default());
         self.debug_print("\n\n");
-        let backtrace = self.call_procedure(self.backtrace(), &[], "", Span::default());
+        let backtrace = self.call_procedure(
+            self.backtrace_of(),
+            &[self.use_temporary_clone(resume).unwrap()],
+            "",
+            Span::default(),
+        );
         self.debug_print("stack trace:\n");
         self.call_procedure(self.print_backtrace(), &[backtrace], "", Span::default());
         let value = self.allocate_value("");

@@ -167,4 +167,8 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn backtrace(&self) -> PointerValue<'ctx> {
         self.reference_core("backtrace")
     }
+
+    pub(crate) fn backtrace_of(&self) -> PointerValue<'ctx> {
+        self.reference_core("backtrace_of")
+    }
 }
