@@ -67,7 +67,7 @@ func trace label value = {
 }
 
 proc print_current_backtrace!() {
-  # Don't include "print_backtrace" in the printed backtrace, it's just annoying
+  # Don't include "print_current_backtrace" in the printed backtrace, it's just annoying
   let [_, ..backtrace] = core::backtrace!()
-  core::print_backtrace!(backtrace)
+  core::eprint_backtrace!(backtrace)
 }

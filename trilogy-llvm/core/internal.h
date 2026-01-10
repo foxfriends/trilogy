@@ -8,3 +8,5 @@
 void* malloc_safe(size_t size);
 void* calloc_safe(size_t num, size_t size);
 void* realloc_safe(void* ptr, size_t size);
+
+int debug_print(const char* str);

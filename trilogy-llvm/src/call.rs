@@ -539,7 +539,7 @@ impl<'ctx> Codegen<'ctx> {
         let resume = self.get_provided_resume();
         let effect = self.to_string(effect, "effect_string", Span::default());
         self.debug_print("unhandled effect: ");
-        self.call_procedure(self.print(), &[effect], "", Span::default());
+        self.call_procedure(self.eprint(), &[effect], "", Span::default());
         self.debug_print("\n\n");
         let backtrace = self.call_procedure(
             self.backtrace_of(),
@@ -548,16 +548,16 @@ impl<'ctx> Codegen<'ctx> {
             Span::default(),
         );
         self.debug_print("stack trace:\n");
-        self.call_procedure(self.print_backtrace(), &[backtrace], "", Span::default());
+        self.call_procedure(self.eprint_backtrace(), &[backtrace], "", Span::default());
         let value = self.allocate_value("");
-        self.u32_const(value, 255);
+        self.u32_const(value, 1);
         _ = self.exit(value);
 
         self.begin_next_function(end_function);
         self.debug_print("the only remaining execution ended\n\n");
         let backtrace = self.call_procedure(self.backtrace(), &[], "", Span::default());
         self.debug_print("stack trace:\n");
-        self.call_procedure(self.print_backtrace(), &[backtrace], "", Span::default());
+        self.call_procedure(self.eprint_backtrace(), &[backtrace], "", Span::default());
         let value = self.allocate_value("");
         self.u32_const(value, 255);
         _ = self.exit(value);

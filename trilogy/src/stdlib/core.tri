@@ -2,6 +2,9 @@ type c {
   extern "c" proc print!(value)
   export print
 
+  extern "c" proc eprint!(value)
+  export eprint
+
   extern "c" proc readline!()
   export readline
 
@@ -185,6 +188,9 @@ export denom
 
 slot print = c::print
 export print
+
+slot eprint = c::eprint
+export eprint
 
 slot readline = c::readline
 export readline
@@ -440,11 +446,11 @@ proc test_main!(tests) {
 }
 export test_main
 
-proc print_backtrace!(trace_frames) {
+proc eprint_backtrace!(trace_frames) {
   for frame in trace_frames {
     let {| "path" => path, "name" => name, "span" => (line:col):_, .._ |} = frame
-    print!("- ${name}\n\tat ${path} +${line}:${col}\n")
+    eprint!("- ${name}\n\tat ${path} +${line}:${col}\n")
   }
 }
 
-export print_backtrace
+export eprint_backtrace

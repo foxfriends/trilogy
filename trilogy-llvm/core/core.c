@@ -45,6 +45,14 @@ void print(trilogy_value* rv, trilogy_value* val) {
     trilogy_number_init_u64(rv, 0);
 }
 
+void eprint(trilogy_value* rv, trilogy_value* val) {
+    char* ptr = trilogy_string_as_c(trilogy_string_untag(val));
+    fprintf(stderr, "%s", ptr);
+    free(ptr);
+    trilogy_value_destroy(val);
+    trilogy_number_init_u64(rv, 0);
+}
+
 void readline(trilogy_value* rv) {
     char* lineptr = NULL;
     size_t len = 0;

@@ -19,7 +19,7 @@ impl<'ctx> Codegen<'ctx> {
     pub(crate) fn debug_print(&self, value: impl AsRef<str>) {
         let debug_str = self.global_c_string(value.as_ref(), true);
         let f = self.declare_bare(
-            "printf",
+            "debug_print",
             self.context.i32_type().fn_type(
                 &[self.context.ptr_type(AddressSpace::default()).into()],
                 true,

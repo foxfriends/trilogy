@@ -51,3 +51,5 @@ void* realloc_safe(void* ptr, size_t size) {
     if (ptr == NULL) internal_panic("out of memory\n");
     return ptr;
 }
+
+int debug_print(const char* str) { fprintf(stderr, "%s", str); }

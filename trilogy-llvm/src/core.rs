@@ -156,12 +156,12 @@ impl<'ctx> Codegen<'ctx> {
         self.reference_core("test_main")
     }
 
-    pub(crate) fn print_backtrace(&self) -> PointerValue<'ctx> {
-        self.reference_core("print_backtrace")
+    pub(crate) fn eprint_backtrace(&self) -> PointerValue<'ctx> {
+        self.reference_core("eprint_backtrace")
     }
 
-    pub(crate) fn print(&self) -> PointerValue<'ctx> {
-        self.reference_core("print")
+    pub(crate) fn eprint(&self) -> PointerValue<'ctx> {
+        self.reference_core("eprint")
     }
 
     pub(crate) fn backtrace(&self) -> PointerValue<'ctx> {

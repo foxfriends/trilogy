@@ -3,6 +3,7 @@
 
 void panic(trilogy_value* rv, trilogy_value* message);
 void print(trilogy_value* rv, trilogy_value* str);
+void eprint(trilogy_value* rv, trilogy_value* str);
 void callable_backtrace(trilogy_value* rv, trilogy_value* callable);
 void readline(trilogy_value* rv);
 void readchar(trilogy_value* rv);
