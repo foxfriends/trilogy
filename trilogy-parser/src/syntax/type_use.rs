@@ -21,8 +21,8 @@ impl Spanned for TypeUse {
 
 #[derive(Clone, Debug, Spanned)]
 pub enum ImportedName {
-    Named(Identifier),
-    Aliased(AliasedName),
+    Named(Box<Identifier>),
+    Aliased(Box<AliasedName>),
 }
 
 impl ImportedName {
@@ -59,13 +59,13 @@ impl TypeUse {
             let original = Identifier::parse(parser)?;
             let name = if let Ok(r#as) = parser.expect(TokenType::KwAs) {
                 let aliased = Identifier::parse(parser)?;
-                ImportedName::Aliased(AliasedName {
+                ImportedName::Aliased(Box::new(AliasedName {
                     original,
                     r#as,
                     aliased,
-                })
+                }))
             } else {
-                ImportedName::Named(original)
+                ImportedName::Named(Box::new(original))
             };
             if let Ok(comma) = parser.expect(TokenType::OpComma) {
                 names.push(name, comma);
