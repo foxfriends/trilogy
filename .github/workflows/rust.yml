@@ -106,7 +106,7 @@ jobs:
           sudo apt-get install clang-19 llvm-19 libpolly-19-dev valgrind
       - name: Install Rust
         run: |
-          rustup install stable
-          rustup default stable
+          rustup install nightly
+          rustup default nightly
       - name: Run cargo test
-        run: ${{matrix.opts}} cargo test
+        run: ${{matrix.opts}} cargo +nightly test
