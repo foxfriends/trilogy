@@ -52,4 +52,4 @@ void* realloc_safe(void* ptr, size_t size) {
     return ptr;
 }
 
-int debug_print(const char* str) { fprintf(stderr, "%s", str); }
+int debug_print(const char* str) { return fprintf(stderr, "%s", str); }
