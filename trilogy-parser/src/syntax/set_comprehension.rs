@@ -1,20 +1,20 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct SetComprehension {
     pub open_bracket_pipe: Token,
     pub expression: Expression,
     pub query: Query,
     pub close_bracket_pipe: Token,
+    pub span: Span,
 }
 
 impl Spanned for SetComprehension {
     fn span(&self) -> source_span::Span {
-        self.open_bracket_pipe
-            .span
-            .union(self.close_bracket_pipe.span)
+        self.span
     }
 }
 
@@ -29,6 +29,7 @@ impl SetComprehension {
             .expect(CBrackPipe)
             .map_err(|token| parser.expected(token, "expected `|]` to end set comprehension"))?;
         Ok(Self {
+            span: open_bracket_pipe.span.union(close_bracket_pipe.span),
             open_bracket_pipe,
             expression,
             query,

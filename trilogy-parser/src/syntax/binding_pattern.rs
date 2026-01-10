@@ -1,45 +1,48 @@
 use super::*;
 use crate::{Parser, Spanned};
 use source_span::Span;
+use trilogy_scanner::{Token, TokenType};
 
 /// A binding pattern.
 ///
 /// ```trilogy
 /// mut x
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct BindingPattern {
-    pub mutable: MutModifier,
+    pub r#mut: Option<Token>,
     pub identifier: Identifier,
+    pub span: Span,
 }
 
 impl BindingPattern {
     pub(crate) fn parse(parser: &mut Parser) -> SyntaxResult<Self> {
-        let mutable = MutModifier::parse(parser);
+        let mutable = parser.expect(TokenType::KwMut).ok();
         let identifier = Identifier::parse(parser)?;
         Ok(Self {
-            mutable,
+            span: match &mutable {
+                Some(mutable) => mutable.span.union(identifier.span),
+                None => identifier.span,
+            },
+            r#mut: mutable,
             identifier,
         })
     }
 
     #[inline]
     pub fn is_immutable(&self) -> bool {
-        matches!(self.mutable, MutModifier::Not)
+        self.r#mut.is_none()
     }
 
     #[inline]
     pub fn is_mutable(&self) -> bool {
-        matches!(self.mutable, MutModifier::Mut(..))
+        self.r#mut.is_some()
     }
 }
 
 impl Spanned for BindingPattern {
     fn span(&self) -> Span {
-        match &self.mutable {
-            MutModifier::Not => self.identifier.span(),
-            MutModifier::Mut(token) => token.span.union(self.identifier.span()),
-        }
+        self.span
     }
 }
 
@@ -47,8 +50,8 @@ impl Spanned for BindingPattern {
 mod test {
     use super::*;
 
-    test_parse!(binding_immutable: "hello" => BindingPattern::parse => "(BindingPattern () (Identifier))");
-    test_parse!(binding_mutable: "mut hello" => BindingPattern::parse => "(BindingPattern (MutModifier::Mut _) (Identifier))");
+    test_parse!(binding_immutable: "hello" => BindingPattern::parse => BindingPattern { r#mut: None, .. });
+    test_parse!(binding_mutable: "mut hello" => BindingPattern::parse => BindingPattern { r#mut: Some(..), .. });
     test_parse_error!(binding_not_name: "mut 'hello" => BindingPattern::parse => "expected identifier");
     test_parse_error!(binding_multiple: "mut hello, world" => BindingPattern::parse);
 

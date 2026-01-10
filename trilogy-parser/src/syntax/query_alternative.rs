@@ -3,12 +3,12 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct QueryAlternative {
     pub lhs: Query,
     pub r#else: Token,
     pub rhs: Query,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for QueryAlternative {

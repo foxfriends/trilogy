@@ -3,11 +3,11 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct UnaryOperation {
     pub operator: UnaryOperator,
     pub operand: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for UnaryOperation {
@@ -39,7 +39,7 @@ impl UnaryOperation {
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum UnaryOperator {
     Negate(Token),
     Not(Token),

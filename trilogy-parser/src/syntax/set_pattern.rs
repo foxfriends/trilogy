@@ -3,12 +3,13 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct SetPattern {
     pub open_bracket_pipe: Token,
     pub elements: Vec<Pattern>,
     pub rest: Option<RestPattern>,
     pub close_bracket_pipe: Token,
+    pub span: Span,
 }
 
 impl SetPattern {
@@ -49,6 +50,7 @@ impl SetPattern {
             .map_err(|token| parser.expected(token, "expected `|]` to end set pattern"))?;
 
         Ok(Self {
+            span: open_bracket_pipe.span.union(close_bracket_pipe.span),
             open_bracket_pipe,
             elements,
             rest,
@@ -77,6 +79,7 @@ impl SetPattern {
                 "no trailing comma is permitted after the rest (`..`) element in a set pattern",
             ));
             return Ok(Self {
+                span: open_bracket_pipe.span.union(close_bracket_pipe.span),
                 open_bracket_pipe,
                 elements,
                 rest: Some(rest),
@@ -87,6 +90,7 @@ impl SetPattern {
             .expect(CBrackPipe)
             .map_err(|token| parser.expected(token, "expected `|]` to close set pattern"))?;
         Ok(Self {
+            span: open_bracket_pipe.span.union(close_bracket_pipe.span),
             open_bracket_pipe,
             elements,
             rest: Some(rest),
@@ -184,6 +188,10 @@ impl TryFrom<SetLiteral> for SetPattern {
         }
 
         Ok(Self {
+            span: value
+                .open_bracket_pipe
+                .span
+                .union(value.close_bracket_pipe.span),
             open_bracket_pipe: value.open_bracket_pipe,
             elements: head,
             rest,

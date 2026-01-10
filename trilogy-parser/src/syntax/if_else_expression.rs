@@ -3,13 +3,13 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct IfElseExpression {
     pub r#if: Token,
     pub condition: Expression,
     pub when_true: FollowingExpression,
     pub when_false: Option<ElseClause>,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for IfElseExpression {
@@ -49,7 +49,7 @@ impl IfElseExpression {
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub struct ElseClause {
     pub r#else: Token,
     pub body: Expression,

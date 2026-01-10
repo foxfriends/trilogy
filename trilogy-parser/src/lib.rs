@@ -1,5 +1,8 @@
 //! The parser for the Trilogy Programming Language.
 
+#![cfg_attr(test, expect(incomplete_features))]
+#![cfg_attr(test, feature(deref_patterns))]
+
 #[macro_use]
 extern crate trilogy_parser_derive;
 
@@ -7,16 +10,11 @@ extern crate trilogy_parser_derive;
 #[macro_use]
 mod test;
 
-mod format;
 mod parse;
 mod parser;
 mod spanned;
 pub mod syntax;
 mod token_pattern;
-
-// These things probably belong in some internal prelude...
-#[doc(hidden)]
-pub use format::{PrettyPrintSExpr, PrettyPrinted, PrettyPrinter};
 
 pub use parse::Parse;
 pub use parser::Parser;

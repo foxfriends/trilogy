@@ -1606,7 +1606,6 @@ dependencies = [
  "bitvec",
  "num",
  "peekmore",
- "pretty",
  "source-span",
  "trilogy-parser-derive",
  "trilogy-scanner",

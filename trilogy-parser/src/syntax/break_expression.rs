@@ -8,11 +8,11 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// break unit
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct BreakExpression {
     pub r#break: Token,
     pub expression: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl BreakExpression {
@@ -37,7 +37,7 @@ impl Spanned for BreakExpression {
 mod test {
     use super::*;
 
-    test_parse!(breakexpr_unit: "break unit" => BreakExpression::parse => "(BreakExpression _ _)");
-    test_parse!(breakexpr_value: "break true" => BreakExpression::parse => "(BreakExpression _ _)");
+    test_parse!(breakexpr_unit: "break unit" => BreakExpression::parse => BreakExpression { .. });
+    test_parse!(breakexpr_value: "break true" => BreakExpression::parse => BreakExpression { .. });
     test_parse_error!(breakexpr_empty: "break" => BreakExpression::parse);
 }

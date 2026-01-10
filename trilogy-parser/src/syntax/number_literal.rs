@@ -1,11 +1,19 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use num::{Complex, rational::BigRational};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType, TokenValue};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct NumberLiteral {
-    token: Token,
+    pub token: Token,
+    pub span: Span,
+}
+
+impl Spanned for NumberLiteral {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl NumberLiteral {
@@ -13,7 +21,10 @@ impl NumberLiteral {
         let token = parser
             .expect(TokenType::Numeric)
             .map_err(|token| parser.expected(token, "expected number literal"))?;
-        Ok(Self { token })
+        Ok(Self {
+            span: token.span,
+            token,
+        })
     }
 
     pub fn value(&self) -> Complex<BigRational> {

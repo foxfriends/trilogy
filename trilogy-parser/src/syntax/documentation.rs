@@ -1,4 +1,5 @@
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::Token;
 use trilogy_scanner::TokenType::{self, DocInner, DocOuter};
 
@@ -8,9 +9,16 @@ use trilogy_scanner::TokenType::{self, DocInner, DocOuter};
 /// ## Hello this is a doc comment.
 /// ## It may be multiple lines long.
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct Documentation {
     pub tokens: Vec<Token>,
+    pub span: Span,
+}
+
+impl Spanned for Documentation {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl Documentation {
@@ -24,7 +32,14 @@ impl Documentation {
             return None;
         }
 
-        Some(Self { tokens })
+        Some(Self {
+            span: tokens
+                .iter()
+                .map(|token| token.span)
+                .reduce(|l, r| l.union(r))
+                .unwrap(),
+            tokens,
+        })
     }
 
     pub(crate) fn parse_inner(parser: &mut Parser) -> Option<Self> {
@@ -40,11 +55,11 @@ impl Documentation {
 mod test {
     use super::*;
 
-    test_parse!(documentation_inner: "#! hello\n" => Documentation::parse_inner => "(Documentation _)");
-    test_parse!(documentation_inner_multiline: "#! hello\n#! world\n" => Documentation::parse_inner => "(Documentation _)");
-    test_parse!(documentation_inner_gaps: "#! hello\n\n#! world\n" => Documentation::parse_inner => "(Documentation _)");
+    test_parse!(documentation_inner: "#! hello\n" => Documentation::parse_inner => Documentation { .. });
+    test_parse!(documentation_inner_multiline: "#! hello\n#! world\n" => Documentation::parse_inner => Documentation { .. });
+    test_parse!(documentation_inner_gaps: "#! hello\n\n#! world\n" => Documentation::parse_inner => Documentation { .. });
 
-    test_parse!(documentation_outer: "## hello\n" => Documentation::parse_outer => "(Documentation _)");
-    test_parse!(documentation_outer_multiline: "## hello\n## world\n" => Documentation::parse_outer => "(Documentation _)");
-    test_parse!(documentation_outer_gaps: "## hello\n\n## world\n" => Documentation::parse_outer => "(Documentation _)");
+    test_parse!(documentation_outer: "## hello\n" => Documentation::parse_outer => Documentation { .. });
+    test_parse!(documentation_outer_multiline: "## hello\n## world\n" => Documentation::parse_outer => Documentation { .. });
+    test_parse!(documentation_outer_gaps: "## hello\n\n## world\n" => Documentation::parse_outer => Documentation { .. });
 }

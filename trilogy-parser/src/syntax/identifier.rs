@@ -1,10 +1,18 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct Identifier {
-    token: Token,
+    pub token: Token,
+    pub span: Span,
+}
+
+impl Spanned for Identifier {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl Identifier {
@@ -12,14 +20,20 @@ impl Identifier {
         let token = parser
             .expect(TokenType::Identifier)
             .map_err(|token| parser.expected(token, "expected identifier"))?;
-        Ok(Self { token })
+        Ok(Self {
+            span: token.span,
+            token,
+        })
     }
 
     pub(crate) fn parse_eq(parser: &mut Parser) -> SyntaxResult<Self> {
         let token = parser
             .expect(TokenType::IdentifierEq)
             .map_err(|token| parser.expected(token, "expected assignment identifier"))?;
-        Ok(Self { token })
+        Ok(Self {
+            span: token.span,
+            token,
+        })
     }
 }
 
@@ -50,13 +64,13 @@ impl TryFrom<Pattern> for Identifier {
 mod test {
     use super::*;
 
-    test_parse!(identifier_normal: "hello" => Identifier::parse => "(Identifier)");
-    test_parse!(identifier_underscored: "_hello" => Identifier::parse => "(Identifier)");
-    test_parse!(identifier_numbers: "hello123" => Identifier::parse => "(Identifier)");
+    test_parse!(identifier_normal: "hello" => Identifier::parse => Identifier { .. });
+    test_parse!(identifier_underscored: "_hello" => Identifier::parse => Identifier { .. });
+    test_parse!(identifier_numbers: "hello123" => Identifier::parse => Identifier { .. });
     test_parse_error!(identifier_keyword: "for" => Identifier::parse);
 
-    test_parse!(identifiereq_normal: "hello=" => Identifier::parse_eq => "(Identifier)");
-    test_parse!(identifiereq_underscored: "_hello=" => Identifier::parse_eq => "(Identifier)");
-    test_parse!(identifiereq_numbers: "hello123=" => Identifier::parse_eq => "(Identifier)");
+    test_parse!(identifiereq_normal: "hello=" => Identifier::parse_eq => Identifier { .. });
+    test_parse!(identifiereq_underscored: "_hello=" => Identifier::parse_eq => Identifier { .. });
+    test_parse!(identifiereq_numbers: "hello123=" => Identifier::parse_eq => Identifier { .. });
     test_parse_error!(identifiereq_keyword: "for=" => Identifier::parse_eq);
 }

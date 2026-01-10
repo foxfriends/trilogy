@@ -1,19 +1,21 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct RecordComprehension {
     pub open_brace_pipe: Token,
     pub key_expression: Expression,
     pub expression: Expression,
     pub query: Query,
     pub close_brace_pipe: Token,
+    pub span: Span,
 }
 
 impl Spanned for RecordComprehension {
     fn span(&self) -> source_span::Span {
-        self.open_brace_pipe.span.union(self.close_brace_pipe.span)
+        self.span
     }
 }
 
@@ -29,6 +31,7 @@ impl RecordComprehension {
             .expect(CBracePipe)
             .map_err(|token| parser.expected(token, "expected `|}` to end record comprehension"))?;
         Ok(Self {
+            span: open_brace_pipe.span.union(close_brace_pipe.span),
             open_brace_pipe,
             key_expression,
             expression,

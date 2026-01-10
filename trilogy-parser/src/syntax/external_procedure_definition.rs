@@ -3,13 +3,13 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ExternalProcedureDefinition {
     pub r#extern: Token,
     pub call_conv: Token,
     pub proc: Token,
     pub head: ProcedureHead,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for ExternalProcedureDefinition {

@@ -8,11 +8,11 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// cancel unit
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct CancelExpression {
     pub cancel: Token,
     pub expression: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl CancelExpression {
@@ -37,7 +37,7 @@ impl Spanned for CancelExpression {
 mod test {
     use super::*;
 
-    test_parse!(cancelexpr_unit: "cancel unit" => CancelExpression::parse => "(CancelExpression _ _)");
-    test_parse!(cancelexpr_value: "cancel true" => CancelExpression::parse => "(CancelExpression _ _)");
+    test_parse!(cancelexpr_unit: "cancel unit" => CancelExpression::parse => CancelExpression { .. });
+    test_parse!(cancelexpr_value: "cancel true" => CancelExpression::parse => CancelExpression { .. });
     test_parse_error!(cancelexpr_empty: "cancel" => CancelExpression::parse);
 }

@@ -4,16 +4,17 @@ use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
 /// The pre- and post-amble of the Trilogy file.
-#[derive(Clone, Debug, PrettyPrintSExpr)]
-pub(crate) struct Amble {
+#[derive(Clone, Debug)]
+pub struct Amble {
     pub start_of_file: Token,
     pub content: Document,
     pub end_of_file: Token,
+    pub span: Span,
 }
 
 impl Spanned for Amble {
     fn span(&self) -> Span {
-        self.start_of_file.span.union(self.end_of_file.span)
+        self.span
     }
 }
 
@@ -42,11 +43,12 @@ impl Amble {
         let end_of_file = parser
             .expect(EndOfFile)
             .expect("input should end with `EndOfFile`");
-
+        let span = start_of_file.span.union(end_of_file.span);
         Self {
             start_of_file,
             content,
             end_of_file,
+            span,
         }
     }
 }
@@ -55,8 +57,8 @@ impl Amble {
 mod test {
     use super::*;
 
-    test_parse_whole!(amble_empty: "" => Amble::parse => "(Amble _ (Document () []) _)");
-    test_parse_whole!(amble_empty_newline: "\n" => Amble::parse => "(Amble _ (Document () []) _)");
+    test_parse_whole!(amble_empty: "" => Amble::parse => Amble { content: Document { .. }, .. });
+    test_parse_whole!(amble_empty_newline: "\n" => Amble::parse => Amble { content: Document { .. }, .. });
     test_parse_whole_error!(amble_empty_bom: "\u{feff}" => Amble::parse => "the file contains a byte-order mark");
     test_parse_whole_error!(amble_empty_bom_newline: "\u{feff}\n" => Amble::parse => "the file contains a byte-order mark");
 }

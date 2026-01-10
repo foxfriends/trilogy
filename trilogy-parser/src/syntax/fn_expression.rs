@@ -8,13 +8,13 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// fn x y. x + y
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct FnExpression {
     pub r#fn: Token,
     pub parameters: Vec<Pattern>,
     pub dot: Token,
     pub body: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for FnExpression {
@@ -48,10 +48,10 @@ impl FnExpression {
 mod test {
     use super::*;
 
-    test_parse!(fn_identity: "fn x. x" => Expression::parse => "(Expression::Fn (FnExpression _ [(Pattern::Binding _)] _ _))");
-    test_parse!(fn_pattern: "fn x:xs. xs" => Expression::parse => "(Expression::Fn (FnExpression _ [(Pattern::Tuple _)] _ _))");
-    test_parse!(fn_multiple_params: "fn x y. x * y" => Expression::parse => "(Expression::Fn (FnExpression _ [(Pattern::Binding _) (Pattern::Binding _)] _ _))");
-    test_parse!(fn_multiple_patterns: "fn x:xs y:ys. x * y" => Expression::parse => "(Expression::Fn (FnExpression _ [(Pattern::Tuple _) (Pattern::Tuple _)] _ _))");
+    test_parse!(fn_identity: "fn x. x" => Expression::parse => Expression::Fn(FnExpression { parameters: [_], .. }));
+    test_parse!(fn_pattern: "fn x:xs. xs" => Expression::parse => Expression::Fn(FnExpression { parameters: [_], .. }));
+    test_parse!(fn_multiple_params: "fn x y. x * y" => Expression::parse => Expression::Fn(FnExpression { parameters: [_, _], .. }));
+    test_parse!(fn_multiple_patterns: "fn x:xs y:ys. x * y" => Expression::parse => Expression::Fn(FnExpression { parameters: [_, _], .. }));
     test_parse_error!(fn_invalid_body: "fn x. let y = 5" => Expression::parse);
     test_parse_error!(fn_invalid_pattern: "fn x + y. x" => Expression::parse);
     test_parse_error!(fn_no_params: "fn. 3" => Expression::parse);

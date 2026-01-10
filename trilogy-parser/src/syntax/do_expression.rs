@@ -8,11 +8,11 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// do() {}
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct DoExpression {
     pub head: DoHead,
     pub body: DoBody,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for DoExpression {
@@ -45,7 +45,7 @@ impl DoExpression {
 }
 
 /// The body of a procedure closure.
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum DoBody {
     /// A block used as the body of a `do` closure.
     ///
@@ -72,22 +72,22 @@ impl DoBody {
 mod test {
     use super::*;
 
-    test_parse!(do_block: "do() {}" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Block _))");
+    test_parse!(do_block: "do() {}" => DoExpression::parse => DoExpression { body: DoBody::Block(..), .. });
     test_parse_error!(do_block_no_params: "do {}" => DoExpression::parse);
-    test_parse!(do_block_params: "do(a, b) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block _))");
-    test_parse!(do_block_params_trailing_comma: "do(a, b, ) {}" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Block _))");
+    test_parse!(do_block_params: "do(a, b) {}" => DoExpression::parse => DoExpression { body: DoBody::Block(..), .. });
+    test_parse!(do_block_params_trailing_comma: "do(a, b, ) {}" => DoExpression::parse => DoExpression { body: DoBody::Block(..), .. });
     test_parse_error!(do_block_params_leading_comma: "do(, a) {}" => DoExpression::parse);
     test_parse_error!(do_block_params_empty_comma: "do(,) {}" => DoExpression::parse);
     test_parse_error!(do_block_missing_paren: "do(a {}" => DoExpression::parse => "expected `)` to end parameter list");
     test_parse_error!(do_block_invalid: "do() { exit }" => DoExpression::parse);
 
-    test_parse!(do_expr_spaced: "do () 3" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Expression (Expression::Number _)))");
-    test_parse_error!(do_expr_bang: "do!() 3" => DoExpression::parse => "expected `(` to begin parameter list");
-    test_parse_error!(do_no_parens: "do 3" => DoExpression::parse => "expected `(` to begin parameter list");
+    test_parse!(do_expr_spaced: "do () 3" => DoExpression::parse => DoExpression { body: DoBody::Expression(..), .. });
+    test_parse_error!(do_expr_bang: "do!() 3" => DoExpression::parse => "a `do` closure definition does not use `!`");
+    test_parse_error!(do_no_parens: "do 3" => DoExpression::parse => "a `do` closure requires a parameter list, even if empty");
 
-    test_parse!(do_expr: "do() 3" => DoExpression::parse => "(DoExpression _ _ [] _ (DoBody::Expression (Expression::Number _)))");
-    test_parse!(do_expr_params: "do(a, b) a + b" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Expression (Expression::Binary _)))");
-    test_parse!(do_expr_params_trailing_comma: "do(a, b, ) a + b" => DoExpression::parse => "(DoExpression _ _ [_ _] _ (DoBody::Expression (Expression::Binary _)))");
+    test_parse!(do_expr: "do() 3" => DoExpression::parse => DoExpression { body: DoBody::Expression(..), .. });
+    test_parse!(do_expr_params: "do(a, b) a + b" => DoExpression::parse => DoExpression { body: DoBody::Expression(..), .. });
+    test_parse!(do_expr_params_trailing_comma: "do(a, b, ) a + b" => DoExpression::parse => DoExpression { body: DoBody::Expression(..), .. });
     test_parse_error!(do_expr_params_leading_comma: "do(, a) a" => DoExpression::parse);
     test_parse_error!(do_expr_params_empty_comma: "do(,) 3" => DoExpression::parse);
     test_parse_error!(do_expr_invalid: "do() return" => DoExpression::parse);

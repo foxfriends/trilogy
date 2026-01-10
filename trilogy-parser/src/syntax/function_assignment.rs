@@ -2,12 +2,12 @@ use super::{expression::Precedence, *};
 use crate::{Parser, Spanned, TokenPattern};
 use source_span::Span;
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct FunctionAssignment {
     pub lhs: Expression,
     pub function: Identifier,
     pub arguments: Vec<Expression>,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for FunctionAssignment {
@@ -48,9 +48,9 @@ impl FunctionAssignment {
 mod test {
     use super::*;
 
-    test_parse!(fn_assignment_single_arg: "xs push= x" => Statement::parse => "(Statement::FunctionAssignment (FunctionAssignment _ _ [_]))");
-    test_parse!(fn_assignment_multi_arg: "xs fold= x f" => Statement::parse => "(Statement::FunctionAssignment (FunctionAssignment _ _ [_ _]))");
-    test_parse!(fn_assignment_operators_paren: "xs push= (x + y)" => Statement::parse => "(Statement::FunctionAssignment (FunctionAssignment _ _ [_]))");
+    test_parse!(fn_assignment_single_arg: "xs push= x" => Statement::parse => Statement::FunctionAssignment(FunctionAssignment { arguments: [_], .. }));
+    test_parse!(fn_assignment_multi_arg: "xs fold= x f" => Statement::parse => Statement::FunctionAssignment(FunctionAssignment { arguments: [_, _], .. }));
+    test_parse!(fn_assignment_operators_paren: "xs push= (x + y)" => Statement::parse => Statement::FunctionAssignment(FunctionAssignment { arguments: [_], .. }));
     test_parse_error!(fn_assignment_no_arg: "xs reverse=" => Statement::parse);
     test_parse_error!(fn_assignment_lhs_not_lvalue: "xs ys push= x y" => Statement::parse);
     test_parse_error!(fn_assignment_spaced: "xs push = x" => Statement::parse);

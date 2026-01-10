@@ -2,9 +2,6 @@ use clap::Parser as _;
 use std::path::PathBuf;
 use trilogy::{Builder, Trilogy};
 
-#[cfg(feature = "dev")]
-mod dev;
-
 /// Trilogy Programming Language
 #[derive(clap::Parser, Clone, Debug)]
 struct Cli {
@@ -87,10 +84,6 @@ enum Command {
     Lsp { files: Vec<PathBuf> },
     /// Print the version information.
     Version,
-    /// Commands for assistance when developing Trilogy.
-    #[cfg(feature = "dev")]
-    #[command(subcommand)]
-    Dev(dev::Command),
 }
 
 fn run(trilogy: Trilogy, print: bool, debug: bool) {
@@ -167,10 +160,6 @@ fn main() -> std::io::Result<()> {
                 std::process::exit(1);
             }
         },
-        #[cfg(feature = "dev")]
-        Command::Dev(dev_command) => {
-            dev::run(dev_command)?;
-        }
         Command::Version => {
             println!(
                 "{} {} -- Trilogy Language Compiler",

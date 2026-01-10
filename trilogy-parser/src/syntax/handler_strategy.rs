@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum HandlerStrategy {
     Cancel { cancel: Token, body: Expression },
     Resume { resume: Token, body: Expression },
@@ -43,9 +43,9 @@ impl HandlerStrategy {
 mod test {
     use super::*;
 
-    test_parse!(handler_strategy_yield: "yield" => HandlerStrategy::parse => "(HandlerStrategy::Yield _)");
-    test_parse!(handler_strategy_cancel: "cancel 3" => HandlerStrategy::parse => "(HandlerStrategy::Cancel _ _)");
-    test_parse!(handler_strategy_then: "then cancel resume 5" => HandlerStrategy::parse => "(HandlerStrategy::Bare _)");
-    test_parse!(handler_strategy_block: "{ cancel resume 5 }" => HandlerStrategy::parse => "(HandlerStrategy::Bare _)");
-    test_parse!(handler_strategy_resume: "resume 4" => HandlerStrategy::parse => "(HandlerStrategy::Resume _ _)");
+    test_parse!(handler_strategy_yield: "yield" => HandlerStrategy::parse => HandlerStrategy::Yield(..));
+    test_parse!(handler_strategy_cancel: "cancel 3" => HandlerStrategy::parse => HandlerStrategy::Cancel { .. });
+    test_parse!(handler_strategy_then: "then cancel resume 5" => HandlerStrategy::parse => HandlerStrategy::Bare(..));
+    test_parse!(handler_strategy_block: "{ cancel resume 5 }" => HandlerStrategy::parse => HandlerStrategy::Bare(..));
+    test_parse!(handler_strategy_resume: "resume 4" => HandlerStrategy::parse => HandlerStrategy::Resume { .. });
 }

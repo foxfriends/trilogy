@@ -8,12 +8,12 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// lhs + rhs
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct BinaryOperation {
     pub lhs: Expression,
     pub operator: BinaryOperator,
     pub rhs: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for BinaryOperation {
@@ -65,7 +65,7 @@ impl BinaryOperation {
 }
 
 /// A binary operator, represented by a single token.
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum BinaryOperator {
     Access(Token),
     And(Token),
@@ -185,41 +185,41 @@ impl BinaryOperator {
 mod test {
     use super::*;
 
-    test_parse!(binop_access: "a . b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Access _) _))");
-    test_parse!(binop_and: "a && b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::And _) _))");
-    test_parse!(binop_or: "a || b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Or _) _))");
-    test_parse!(binop_plus: "a + b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Add _) _))");
-    test_parse!(binop_minus: "a - b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Subtract _) _))");
-    test_parse!(binop_multiply: "a * b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Multiply _) _))");
-    test_parse!(binop_divide: "a / b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Divide _) _))");
-    test_parse!(binop_int_divide: "a // b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::IntDivide _) _))");
-    test_parse!(binop_remainder: "a % b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Remainder _) _))");
-    test_parse!(binop_power: "a ** b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Power _) _))");
-    test_parse!(binop_equal: "a == b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::StructuralEquality _) _))");
-    test_parse!(binop_ref_equal: "a === b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::ReferenceEquality _) _))");
-    test_parse!(binop_not_equal: "a != b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::StructuralInequality _) _))");
-    test_parse!(binop_not_ref_equal: "a !== b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::ReferenceInequality _) _))");
-    test_parse!(binop_lt: "a < b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Lt _) _))");
-    test_parse!(binop_gt: "a > b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Gt _) _))");
-    test_parse!(binop_leq: "a <= b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Leq _) _))");
-    test_parse!(binop_geq: "a >= b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Geq _) _))");
-    test_parse!(binop_bitwise_and: "a & b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::BitwiseAnd _) _))");
-    test_parse!(binop_bitwise_or: "a | b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::BitwiseOr _) _))");
-    test_parse!(binop_bitwise_xor: "a ^ b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::BitwiseXor _) _))");
-    test_parse!(binop_bitwise_shl: "a <~ b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::LeftShift _) _))");
-    test_parse!(binop_bitwise_shr: "a ~> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RightShift _) _))");
-    test_parse!(binop_bitwise_shl_ex: "a <~~ b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::LeftShiftExtend _) _))");
-    test_parse!(binop_bitwise_shr_ex: "a ~~> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RightShiftExtend _) _))");
-    test_parse!(binop_bitwise_shl_con: "a <<~ b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::LeftShiftContract _) _))");
-    test_parse!(binop_bitwise_shr_con: "a ~>> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RightShiftContract _) _))");
-    test_parse!(binop_cons: "a : b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Cons _) _))");
-    test_parse!(binop_glue: "a <> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Glue _) _))");
-    test_parse!(binop_compose: "a << b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Compose _) _))");
-    test_parse!(binop_rcompose: "a >> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RCompose _) _))");
-    test_parse!(binop_pipe: "a |> b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Pipe _) _))");
-    test_parse!(binop_rpipe: "a <| b" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::RPipe _) _))");
+    test_parse!(binop_access: "a . b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Access(_), .. }));
+    test_parse!(binop_and: "a && b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::And(_), .. }));
+    test_parse!(binop_or: "a || b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Or(_), .. }));
+    test_parse!(binop_plus: "a + b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Add(_), .. }));
+    test_parse!(binop_minus: "a - b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Subtract(_), .. }));
+    test_parse!(binop_multiply: "a * b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Multiply(_), .. }));
+    test_parse!(binop_divide: "a / b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Divide(_), .. }));
+    test_parse!(binop_int_divide: "a // b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::IntDivide(_), .. }));
+    test_parse!(binop_remainder: "a % b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Remainder(_), .. }));
+    test_parse!(binop_power: "a ** b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Power(_), .. }));
+    test_parse!(binop_equal: "a == b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::StructuralEquality(_), .. }));
+    test_parse!(binop_ref_equal: "a === b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::ReferenceEquality(_), .. }));
+    test_parse!(binop_not_equal: "a != b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::StructuralInequality(_), .. }));
+    test_parse!(binop_not_ref_equal: "a !== b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::ReferenceInequality(_), .. }));
+    test_parse!(binop_lt: "a < b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Lt(_), .. }));
+    test_parse!(binop_gt: "a > b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Gt(_), .. }));
+    test_parse!(binop_leq: "a <= b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Leq(_), .. }));
+    test_parse!(binop_geq: "a >= b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Geq(_), .. }));
+    test_parse!(binop_bitwise_and: "a & b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::BitwiseAnd(_), .. }));
+    test_parse!(binop_bitwise_or: "a | b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::BitwiseOr(_), .. }));
+    test_parse!(binop_bitwise_xor: "a ^ b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::BitwiseXor(_), .. }));
+    test_parse!(binop_bitwise_shl: "a <~ b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::LeftShift(_), .. }));
+    test_parse!(binop_bitwise_shr: "a ~> b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::RightShift(_), .. }));
+    test_parse!(binop_bitwise_shl_ex: "a <~~ b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::LeftShiftExtend(_), .. }));
+    test_parse!(binop_bitwise_shr_ex: "a ~~> b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::RightShiftExtend(_), .. }));
+    test_parse!(binop_bitwise_shl_con: "a <<~ b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::LeftShiftContract(_), .. }));
+    test_parse!(binop_bitwise_shr_con: "a ~>> b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::RightShiftContract(_), .. }));
+    test_parse!(binop_cons: "a : b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Cons(_), .. }));
+    test_parse!(binop_glue: "a <> b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Glue(_), .. }));
+    test_parse!(binop_compose: "a << b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Compose(_), .. }));
+    test_parse!(binop_rcompose: "a >> b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::RCompose(_), .. }));
+    test_parse!(binop_pipe: "a |> b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Pipe(_), .. }));
+    test_parse!(binop_rpipe: "a <| b" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::RPipe(_), .. }));
 
-    test_parse!(binop_with_unary: "a + -5" => Expression::parse => "(Expression::Binary (BinaryOperation _ (BinaryOperator::Add _) (Expression::Unary _)))");
+    test_parse!(binop_with_unary: "a + -5" => Expression::parse => Expression::Binary(BinaryOperation { operator: BinaryOperator::Add(_), rhs: Expression::Unary(_), .. }));
 
     test_parse_error!(binop_not_and_operator: "a and b" => Expression::parse);
     test_parse_error!(binop_not_or_operator: "a or b" => Expression::parse);

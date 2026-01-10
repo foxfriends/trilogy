@@ -1,18 +1,20 @@
 use super::*;
 use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct StructPattern {
     pub atom: AtomLiteral,
     pub open_paren: Token,
     pub pattern: Pattern,
     pub close_paren: Token,
+    pub span: Span,
 }
 
 impl Spanned for StructPattern {
-    fn span(&self) -> source_span::Span {
-        self.atom.span().union(self.close_paren.span)
+    fn span(&self) -> Span {
+        self.span
     }
 }
 
@@ -26,6 +28,7 @@ impl StructPattern {
             .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `)`"))?;
         Ok(Self {
+            span: atom.span().union(close_paren.span),
             atom,
             open_paren,
             pattern,
@@ -39,6 +42,7 @@ impl TryFrom<StructLiteral> for StructPattern {
 
     fn try_from(value: StructLiteral) -> Result<Self, Self::Error> {
         Ok(Self {
+            span: value.atom.span().union(value.close_paren.span),
             atom: value.atom,
             open_paren: value.open_paren,
             pattern: value.value.try_into()?,

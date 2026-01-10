@@ -3,13 +3,13 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct WhenHandler {
     pub when: Token,
     pub pattern: Pattern,
     pub guard: Option<Expression>,
     pub strategy: HandlerStrategy,
-    span: Span,
+    pub span: Span,
 }
 
 impl WhenHandler {

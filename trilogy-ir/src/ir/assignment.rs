@@ -1,7 +1,7 @@
 use super::*;
 use crate::{Converter, Error};
 use source_span::Span;
-use trilogy_parser::{Spanned, syntax};
+use trilogy_parser::syntax;
 
 #[derive(Clone, Debug)]
 pub struct Assignment {
@@ -15,7 +15,7 @@ impl Assignment {
         ast: syntax::AssignmentStatement,
     ) -> Expression {
         use syntax::AssignmentStrategy::*;
-        let span = ast.span();
+        let span = ast.span;
         let lhs = Expression::convert(converter, ast.lhs);
         let rhs = Expression::convert(converter, ast.rhs);
 
@@ -107,7 +107,7 @@ impl Assignment {
         converter: &mut Converter,
         ast: syntax::FunctionAssignment,
     ) -> Expression {
-        let span = ast.span();
+        let span = ast.span;
         let lhs = Expression::convert(converter, ast.lhs);
         let function = Identifier::declared(converter, &ast.function).unwrap_or_else(|| {
             converter.error(Error::UnboundIdentifier {

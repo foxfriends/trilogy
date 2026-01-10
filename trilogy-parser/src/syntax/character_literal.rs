@@ -1,5 +1,6 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// A character literal expression.
@@ -7,9 +8,16 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// 'a'
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct CharacterLiteral {
     pub token: Token,
+    pub span: Span,
+}
+
+impl Spanned for CharacterLiteral {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl CharacterLiteral {
@@ -17,7 +25,10 @@ impl CharacterLiteral {
         let token = parser
             .expect(TokenType::Character)
             .map_err(|token| parser.expected(token, "expected character literal"))?;
-        Ok(Self { token })
+        Ok(Self {
+            span: token.span,
+            token,
+        })
     }
 
     pub fn value(&self) -> char {
@@ -29,6 +40,6 @@ impl CharacterLiteral {
 mod test {
     use super::*;
 
-    test_parse!(char_lit: "'h'" => CharacterLiteral::parse => "(CharacterLiteral _)");
+    test_parse!(char_lit: "'h'" => CharacterLiteral::parse => CharacterLiteral { .. });
     test_parse_error!(not_char_lit: "\"h\"" => CharacterLiteral::parse => "expected character literal");
 }

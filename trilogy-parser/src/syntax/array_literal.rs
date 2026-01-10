@@ -8,16 +8,24 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// [..prefix, 1, 2, 3, ..suffix]
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ArrayLiteral {
     pub open_bracket: Token,
     pub elements: Punctuated<ArrayElement>,
     pub close_bracket: Token,
+    pub span: Span,
+}
+
+impl Spanned for ArrayLiteral {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl ArrayLiteral {
     pub(crate) fn new_empty(open_bracket: Token, close_bracket: Token) -> Self {
         Self {
+            span: open_bracket.span.union(close_bracket.span),
             open_bracket,
             elements: Punctuated::default(),
             close_bracket,
@@ -32,6 +40,7 @@ impl ArrayLiteral {
         let mut elements = Punctuated::init(first);
         if let Ok(close_bracket) = parser.expect(CBrack) {
             return Ok(Ok(Self {
+                span: open_bracket.span.union(close_bracket.span),
                 open_bracket,
                 elements,
                 close_bracket,
@@ -73,6 +82,7 @@ impl ArrayLiteral {
             };
         };
         Ok(Ok(Self {
+            span: open_bracket.span.union(close_bracket.span),
             open_bracket,
             elements,
             close_bracket,
@@ -80,13 +90,7 @@ impl ArrayLiteral {
     }
 }
 
-impl Spanned for ArrayLiteral {
-    fn span(&self) -> Span {
-        self.open_bracket.span.union(self.close_bracket.span)
-    }
-}
-
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum ArrayElement {
     Element(Expression),
     Spread(Token, Expression),
@@ -117,14 +121,14 @@ impl ArrayElement {
 mod test {
     use super::*;
 
-    test_parse!(arraylit_empty: "[]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [] _))");
-    test_parse!(arraylit_one: "[1]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_] _))");
-    test_parse!(arraylit_one_tc: "[1, ]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_] _))");
-    test_parse!(arraylit_many: "[1, 2, 3]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_ _ _] _))");
-    test_parse!(arraylit_many_tc: "[1, 2, 3, ]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_ _ _] _))");
-    test_parse!(arraylit_nested: "[[1, 2], [3, 4], [5, 6]]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [_ _ _] _))");
-    test_parse!(arraylit_no_comma: "[f 2]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [(_ (Expression::Application _))] _))");
-    test_parse!(arraylit_spread: "[..a, b]" => Expression::parse => "(Expression::Array (ArrayLiteral _ [(ArrayElement::Spread _ _) (ArrayElement::Element _)] _))");
+    test_parse!(arraylit_empty: "[]" => Expression::parse => Expression::Array(ArrayLiteral { .. }));
+    test_parse!(arraylit_one: "[1]" => Expression::parse => Expression::Array(ArrayLiteral { .. }));
+    test_parse!(arraylit_one_tc: "[1, ]" => Expression::parse => Expression::Array(ArrayLiteral { .. }));
+    test_parse!(arraylit_many: "[1, 2, 3, ]" => Expression::parse => Expression::Array(ArrayLiteral { elements: Punctuated { elements: [_, _, _], .. }, .. }));
+    test_parse!(arraylit_many_tc: "[1, 2, 3, ]" => Expression::parse => Expression::Array(ArrayLiteral { elements: Punctuated { elements: [_, _, _], .. }, .. }));
+    test_parse!(arraylit_nested: "[[1, 2], [3, 4], [5, 6], ]" => Expression::parse => Expression::Array(ArrayLiteral { elements: Punctuated { elements: [_, _, _], .. }, .. }));
+    test_parse!(arraylit_no_comma: "[f 2]" => Expression::parse => Expression::Array(ArrayLiteral { elements: Punctuated { elements: [], last: Some(ArrayElement::Element(Expression::Application(..))) }, .. }));
+    test_parse!(arraylit_spread: "[..a, b, ]" => Expression::parse => Expression::Array(ArrayLiteral { elements: Punctuated { elements: [(ArrayElement::Spread(..), _), (ArrayElement::Element(..), _)], .. }, .. }));
 
     test_parse_error!(arraylit_empty_tc: "[,]" => Expression::parse);
     test_parse_error!(arraylit_missing_item: "[1,,]" => Expression::parse);

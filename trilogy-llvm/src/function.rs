@@ -114,7 +114,7 @@ impl<'ctx> Codegen<'ctx> {
             let (go_to_next_overload, next_overload_cp) = self.capture_current_continuation(
                 next_overload_function,
                 "next_overload",
-                overload.span
+                overload.span,
             );
 
             for (pattern, param) in overload.parameters.iter().zip(&params) {

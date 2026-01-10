@@ -8,14 +8,14 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// procedure!(args)
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct CallExpression {
     pub procedure: Expression,
     pub bang: Token,
     pub open_paren: Token,
     pub arguments: Punctuated<Expression>,
     pub close_paren: Token,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for CallExpression {
@@ -64,9 +64,9 @@ impl CallExpression {
 mod test {
     use super::*;
 
-    test_parse!(callexpr_empty: "hello!()" => Expression::parse => "(Expression::Call (CallExpression _ _ _ [] _))");
-    test_parse!(callexpr_params: "hello!(a, b)" => Expression::parse => "(Expression::Call (CallExpression _ _ _ [_ _] _))");
-    test_parse!(callexpr_path: "hello world::inner::hello!(2)" => Expression::parse => "(Expression::Application (Application _ (Expression::Call (CallExpression _ _ _ [_] _))))");
-    test_parse!(callexpr_expr: "(a |> b |> c)!(1)" => Expression::parse => "(Expression::Call (CallExpression _ _ _ [_] _))");
+    test_parse!(callexpr_empty: "hello!()" => Expression::parse => Expression::Call(CallExpression { .. }));
+    test_parse!(callexpr_params: "hello!(a, b,)" => Expression::parse => Expression::Call(CallExpression { arguments: Punctuated { elements: [_, _], .. }, .. }));
+    test_parse!(callexpr_path: "hello world::inner::hello!(2)" => Expression::parse => Expression::Application(Application { argument: Expression::Call(CallExpression { .. }), .. }));
+    test_parse!(callexpr_expr: "(a |> b |> c)!(1)" => Expression::parse => Expression::Call(CallExpression { .. }));
     test_parse_error!(callexpr_missing_end: "hello!(1" => Expression::parse => "expected `,` or `)` in argument list");
 }

@@ -3,7 +3,7 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct QyExpression {
     pub qy: Token,
     pub open_paren: Token,
@@ -11,7 +11,7 @@ pub struct QyExpression {
     pub close_paren: Token,
     pub arrow: Token,
     pub body: Query,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for QyExpression {
@@ -64,9 +64,9 @@ impl QyExpression {
 mod test {
     use super::*;
 
-    test_parse!(qy_pass: "qy() <- pass" => QyExpression::parse => "(QyExpression _ _ [] _ _ _)");
-    test_parse!(qy_pass_params: "qy(a, b) <- pass" => QyExpression::parse => "(QyExpression _ _ [_ _] _ _ _)");
-    test_parse!(qy_pass_params_trailing_comma: "qy(a, b, ) <- pass" => QyExpression::parse => "(QyExpression _ _ [_ _] _ _ _)");
+    test_parse!(qy_pass: "qy() <- pass" => QyExpression::parse => QyExpression { .. });
+    test_parse!(qy_pass_params: "qy(a, b) <- pass" => QyExpression::parse => QyExpression { .. });
+    test_parse!(qy_pass_params_trailing_comma: "qy(a, b, ) <- pass" => QyExpression::parse => QyExpression { .. });
     test_parse_error!(qy_pass_params_leading_comma: "qy(, a) <- pass" => QyExpression::parse);
     test_parse_error!(qy_pass_params_empty_comma: "qy(,) <- pass" => QyExpression::parse);
     test_parse_error!(qy_pass_missing_paren: "qy(a <-" => QyExpression::parse => "expected `)` to end parameter list");

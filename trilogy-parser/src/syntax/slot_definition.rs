@@ -8,14 +8,14 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// slot name = value
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct SlotDefinition {
     pub slot: Token,
     pub r#mut: Option<Token>,
     pub name: Identifier,
     pub eq: Token,
     pub body: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for SlotDefinition {
@@ -50,8 +50,8 @@ impl SlotDefinition {
 mod test {
     use super::*;
 
-    test_parse!(const_valid: "slot x = 123" => SlotDefinition::parse => "(SlotDefinition _ _ _ _ _)");
-    test_parse!(const_mutable_valid: "slot mut x = 123" => SlotDefinition::parse => "(SlotDefinition _ _ _ _ _)");
+    test_parse!(const_valid: "slot x = 123" => SlotDefinition::parse => SlotDefinition{..});
+    test_parse!(const_mutable_valid: "slot mut x = 123" => SlotDefinition::parse => SlotDefinition{..});
     test_parse_error!(const_no_name: "slot = 5" => SlotDefinition::parse);
     test_parse_error!(const_no_value: "slot hello" => SlotDefinition::parse => "expected `=` in slot definition");
 }

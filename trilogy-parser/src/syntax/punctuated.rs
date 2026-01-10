@@ -1,5 +1,4 @@
-use crate::{PrettyPrintSExpr, Spanned};
-use pretty::DocAllocator;
+use crate::Spanned;
 use trilogy_scanner::Token;
 
 /// A punctuated list of nodes, separated by a punctuation token.
@@ -8,19 +7,6 @@ use trilogy_scanner::Token;
 pub struct Punctuated<T> {
     pub elements: Vec<(T, Token)>,
     pub last: Option<T>,
-}
-
-impl<'a, T: PrettyPrintSExpr<'a>> PrettyPrintSExpr<'a> for Punctuated<T> {
-    fn pretty_print_sexpr(&self, printer: &'a crate::PrettyPrinter) -> crate::PrettyPrinted<'a> {
-        printer
-            .intersperse(
-                self.iter().map(|node| node.pretty_print_sexpr(printer)),
-                printer.line(),
-            )
-            .nest(2)
-            .group()
-            .brackets()
-    }
 }
 
 impl<T> Default for Punctuated<T> {

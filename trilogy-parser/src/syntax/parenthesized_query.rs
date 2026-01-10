@@ -3,16 +3,17 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ParenthesizedQuery {
     pub open_paren: Token,
     pub query: Query,
     pub close_paren: Token,
+    pub span: Span,
 }
 
 impl Spanned for ParenthesizedQuery {
     fn span(&self) -> Span {
-        self.open_paren.span.union(self.close_paren.span())
+        self.span
     }
 }
 
@@ -27,6 +28,7 @@ impl ParenthesizedQuery {
                     .expect(CParen)
                     .map_err(|token| parser.expected(token, "expected `)`"))?;
                 Ok(Ok(Self {
+                    span: open_paren.span.union(close_paren.span),
                     open_paren,
                     query,
                     close_paren,

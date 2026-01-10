@@ -4,11 +4,11 @@ use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// A fallback `else` handler for a handled `when` statement or expression.
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ElseHandler {
     pub r#else: Token,
     pub strategy: HandlerStrategy,
-    span: Span,
+    pub span: Span,
 }
 
 impl ElseHandler {
@@ -38,7 +38,7 @@ impl Spanned for ElseHandler {
 mod test {
     use super::*;
 
-    test_parse!(elsehandler_yield: "else yield" => ElseHandler::parse => "(ElseHandler _ _)");
-    test_parse!(elsehandler_resume: "else resume 3" => ElseHandler::parse => "(ElseHandler _ _)");
-    test_parse!(elsehandler_cancel: "else cancel 3" => ElseHandler::parse => "(ElseHandler _ _)");
+    test_parse!(elsehandler_yield: "else yield" => ElseHandler::parse => ElseHandler { .. });
+    test_parse!(elsehandler_resume: "else resume 3" => ElseHandler::parse => ElseHandler { .. });
+    test_parse!(elsehandler_cancel: "else cancel 3" => ElseHandler::parse => ElseHandler { .. });
 }

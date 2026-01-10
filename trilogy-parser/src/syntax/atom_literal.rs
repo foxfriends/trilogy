@@ -1,5 +1,6 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// An atom literal expression.
@@ -7,9 +8,16 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// 'atom
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct AtomLiteral {
     pub token: Token,
+    pub span: Span,
+}
+
+impl Spanned for AtomLiteral {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl AtomLiteral {
@@ -17,7 +25,10 @@ impl AtomLiteral {
         let token = parser
             .expect(TokenType::Atom)
             .map_err(|token| parser.expected(token, "expected atom literal"))?;
-        Ok(Self { token })
+        Ok(Self {
+            span: token.span,
+            token,
+        })
     }
 
     /// The string value of this atom literal. Does not include the leading `'` character.
@@ -30,6 +41,6 @@ impl AtomLiteral {
 mod test {
     use super::*;
 
-    test_parse!(atom: "'hello" => AtomLiteral::parse => "(AtomLiteral _)");
+    test_parse!(atom: "'hello" => AtomLiteral::parse => AtomLiteral { .. });
     test_parse_error!(not_atom: "hello" => AtomLiteral::parse => "expected atom literal");
 }

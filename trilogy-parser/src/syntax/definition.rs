@@ -4,7 +4,7 @@ use source_span::Span;
 use trilogy_scanner::TokenType::*;
 
 /// The various items that can be defined in a Trilogy module.
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum DefinitionItem {
     /// An inline module definition.
     Type(Box<TypeDefinition>),
@@ -32,11 +32,11 @@ pub enum DefinitionItem {
 /// ## Documentation
 /// proc definition!() {}
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct Definition {
     pub documentation: Option<Documentation>,
     pub item: DefinitionItem,
-    span: Span,
+    pub span: Span,
 }
 
 impl Definition {
@@ -139,26 +139,26 @@ impl Spanned for Definition {
 mod test {
     use super::*;
 
-    test_parse!(def_proc: "proc hello!() {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Procedure _))");
-    test_parse!(def_proc_in_module: "proc hello!() {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Procedure _))");
-    test_parse!(def_func: "func hello x = x" => Definition::parse_in_document => "(Definition () (DefinitionItem::Function _))");
-    test_parse!(def_func_in_module: "func hello x = x" => Definition::parse_in_module => "(Definition () (DefinitionItem::Function _))");
-    test_parse!(def_fact: "rule hello(a, b)" => Definition::parse_in_document => "(Definition () (DefinitionItem::Rule _))");
-    test_parse!(def_rule: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_document => "(Definition () (DefinitionItem::Rule _))");
-    test_parse!(def_fact_in_module: "rule hello(a, b)" => Definition::parse_in_module => "(Definition () (DefinitionItem::Rule _))");
-    test_parse!(def_rule_in_module: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_module => "(Definition () (DefinitionItem::Rule _))");
-    test_parse!(def_module: "type X {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Type _))");
-    test_parse!(def_module_in_module: "type X {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Type _))");
-    test_parse!(def_external_module: "import \"./hello.tri\" as hello" => Definition::parse_in_document => "(Definition () (DefinitionItem::Import _))");
-    test_parse!(def_external_module_in_module: "import \"./hello.tri\" as hello" => Definition::parse_in_module => "(Definition () (DefinitionItem::Import _))");
-    test_parse!(def_export: "export a, b, c" => Definition::parse_in_document => "(Definition () (DefinitionItem::Export _))");
-    test_parse!(def_export_in_module: "export a, b, c" => Definition::parse_in_module => "(Definition () (DefinitionItem::Export _))");
-    test_parse!(def_test: "test \"hello\" {}" => Definition::parse_in_document => "(Definition () (DefinitionItem::Test _))");
-    test_parse!(def_test_in_module: "test \"hello\" {}" => Definition::parse_in_module => "(Definition () (DefinitionItem::Test _))");
-    test_parse!(def_documented: "## Hello this is a module\ntype A {}" => Definition::parse_in_document => "(Definition (Documentation _) (DefinitionItem::Type _))");
-    test_parse!(def_documented_in_module: "## Hello this is a module\ntype A {}" => Definition::parse_in_module => "(Definition (Documentation _) (DefinitionItem::Type _))");
-    test_parse!(def_nothing: "" => Definition::parse_in_document => "()");
-    test_parse!(def_nothing_in_module: "" => Definition::parse_in_module => "()");
+    test_parse!(def_proc: "proc hello!() {}" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Procedure(..), .. }));
+    test_parse!(def_proc_in_module: "proc hello!() {}" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Procedure(..), .. }));
+    test_parse!(def_func: "func hello x = x" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Function(..), .. }));
+    test_parse!(def_func_in_module: "func hello x = x" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Function(..), .. }));
+    test_parse!(def_fact: "rule hello(a, b)" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Rule(..), .. }));
+    test_parse!(def_rule: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Rule(..), .. }));
+    test_parse!(def_fact_in_module: "rule hello(a, b)" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Rule(..), .. }));
+    test_parse!(def_rule_in_module: "rule hello(a, b) <- x(a) and y(b)" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Rule(..), .. }));
+    test_parse!(def_module: "type X {}" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Type(..), .. }));
+    test_parse!(def_module_in_module: "type X {}" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Type(..), .. }));
+    test_parse!(def_external_module: "import \"./hello.tri\" as hello" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Import(..), .. }));
+    test_parse!(def_external_module_in_module: "import \"./hello.tri\" as hello" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Import(..), .. }));
+    test_parse!(def_export: "export a, b, c" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Export(..), .. }));
+    test_parse!(def_export_in_module: "export a, b, c" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Export(..), .. }));
+    test_parse!(def_test: "test \"hello\" {}" => Definition::parse_in_document => Some(Definition { item: DefinitionItem::Test(..), .. }));
+    test_parse!(def_test_in_module: "test \"hello\" {}" => Definition::parse_in_module => Some(Definition { item: DefinitionItem::Test(..), .. }));
+    test_parse!(def_documented: "## Hello this is a module\ntype A {}" => Definition::parse_in_document => Some(Definition { documentation: Some(Documentation { .. }), item: DefinitionItem::Type(..), .. }));
+    test_parse!(def_documented_in_module: "## Hello this is a module\ntype A {}" => Definition::parse_in_module => Some(Definition { documentation: Some(Documentation { .. }), item: DefinitionItem::Type(..), .. }));
+    test_parse!(def_nothing: "" => Definition::parse_in_document => None);
+    test_parse!(def_nothing_in_module: "" => Definition::parse_in_module => None);
     test_parse_error!(def_documented_nothing: "## Hello this is a doc for nothing" => Definition::parse_in_document => "outer documentation comment must precede the item it documents");
     test_parse_error!(def_documented_nothing_in_module: "## Hello this is a doc for nothing" => Definition::parse_in_module => "outer documentation comment must precede the item it documents");
     test_parse_error!(def_documented_inner: "#! Hello this is a module\ntype A {}" => Definition::parse_in_document => "inner documentation is only supported at the top of a document");

@@ -3,11 +3,11 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct BecomeExpression {
     pub r#become: Token,
     pub expression: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for BecomeExpression {

@@ -2,20 +2,21 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct KeywordReference {
     pub open_paren: Token,
     pub keyword: Keyword,
     pub close_paren: Token,
+    pub span: Span,
 }
 
 impl Spanned for KeywordReference {
     fn span(&self) -> Span {
-        self.open_paren.span.union(self.close_paren.span)
+        self.span
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum Keyword {
     Access(Token),
     And(Token),
@@ -116,6 +117,7 @@ impl KeywordReference {
         let keyword = constructor(parser.consume());
         let close_paren = parser.consume();
         Some(Self {
+            span: open_paren.span.union(close_paren.span),
             open_paren,
             keyword,
             close_paren,

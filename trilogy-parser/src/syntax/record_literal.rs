@@ -3,22 +3,24 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct RecordLiteral {
     pub open_brace_pipe: Token,
     pub elements: Vec<RecordElement>,
     pub close_brace_pipe: Token,
+    pub span: Span,
 }
 
 impl Spanned for RecordLiteral {
     fn span(&self) -> Span {
-        self.open_brace_pipe.span.union(self.close_brace_pipe.span)
+        self.span
     }
 }
 
 impl RecordLiteral {
     pub(crate) fn new_empty(open_brace_pipe: Token, close_brace_pipe: Token) -> Self {
         Self {
+            span: open_brace_pipe.span.union(close_brace_pipe.span),
             open_brace_pipe,
             elements: vec![],
             close_brace_pipe,
@@ -33,6 +35,7 @@ impl RecordLiteral {
         let mut elements = vec![first];
         if let Ok(close_brace_pipe) = parser.expect(CBracePipe) {
             return Ok(Ok(Self {
+                span: open_brace_pipe.span.union(close_brace_pipe.span),
                 open_brace_pipe,
                 elements,
                 close_brace_pipe,
@@ -73,6 +76,7 @@ impl RecordLiteral {
             };
         };
         Ok(Ok(Self {
+            span: open_brace_pipe.span.union(close_brace_pipe.span),
             open_brace_pipe,
             elements,
             close_brace_pipe,
@@ -80,16 +84,52 @@ impl RecordLiteral {
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub enum RecordElement {
-    Element(Expression, Expression),
-    Spread(Token, Expression),
+    Element {
+        key: Expression,
+        arrow: Token,
+        value: Expression,
+        span: Span,
+    },
+    Spread {
+        spread: Token,
+        value: Expression,
+        span: Span,
+    },
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+impl Spanned for RecordElement {
+    fn span(&self) -> Span {
+        match self {
+            Self::Element { span, .. } => *span,
+            Self::Spread { span, .. } => *span,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum RecordPatternElement {
-    Element(Pattern, Pattern),
-    Spread(Token, Pattern),
+    Element {
+        key: Pattern,
+        arrow: Token,
+        value: Pattern,
+        span: Span,
+    },
+    Spread {
+        spread: Token,
+        value: Pattern,
+        span: Span,
+    },
+}
+
+impl Spanned for RecordPatternElement {
+    fn span(&self) -> Span {
+        match self {
+            Self::Element { span, .. } => *span,
+            Self::Spread { span, .. } => *span,
+        }
+    }
 }
 
 impl RecordElement {
@@ -101,24 +141,54 @@ impl RecordElement {
 
             let expression = Expression::parse_or_pattern(parser)?;
             match expression {
-                Ok(expression) => Ok(Ok(Self::Spread(spread, expression))),
-                Err(pattern) => Ok(Err(RecordPatternElement::Spread(spread, pattern))),
+                Ok(expression) => Ok(Ok(Self::Spread {
+                    span: spread.span.union(expression.span()),
+                    spread,
+                    value: expression,
+                })),
+                Err(pattern) => Ok(Err(RecordPatternElement::Spread {
+                    span: spread.span.union(pattern.span()),
+                    spread,
+                    value: pattern,
+                })),
             }
         } else {
             let key = Expression::parse_or_pattern(parser)?;
-            parser.expect(OpFatArrow).map_err(|token| {
+            let arrow = parser.expect(OpFatArrow).map_err(|token| {
                 parser.expected(token, "expected `=>` in key value pair of record literal")
             })?;
             let value = Expression::parse_or_pattern(parser)?;
             match (key, value) {
-                (Ok(key), Ok(value)) => Ok(Ok(Self::Element(key, value))),
+                (Ok(key), Ok(value)) => Ok(Ok(Self::Element {
+                    span: key.span().union(value.span()),
+                    key,
+                    arrow,
+                    value,
+                })),
                 (Ok(key), Err(value)) => {
-                    Ok(Err(RecordPatternElement::Element(key.try_into()?, value)))
+                    let key: Pattern = key.try_into()?;
+                    Ok(Err(RecordPatternElement::Element {
+                        span: key.span().union(value.span()),
+                        key,
+                        arrow,
+                        value,
+                    }))
                 }
                 (Err(key), Ok(value)) => {
-                    Ok(Err(RecordPatternElement::Element(key, value.try_into()?)))
+                    let value: Pattern = value.try_into()?;
+                    Ok(Err(RecordPatternElement::Element {
+                        span: key.span().union(value.span()),
+                        key,
+                        arrow,
+                        value,
+                    }))
                 }
-                (Err(key), Err(value)) => Ok(Err(RecordPatternElement::Element(key, value))),
+                (Err(key), Err(value)) => Ok(Err(RecordPatternElement::Element {
+                    span: key.span().union(value.span()),
+                    key,
+                    arrow,
+                    value,
+                })),
             }
         }
     }

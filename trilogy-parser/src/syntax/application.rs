@@ -8,13 +8,13 @@ use crate::{Parser, Spanned};
 /// ```trilogy
 /// f x
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct Application {
     /// An expression that evaluates to the function being applied.
     pub function: Expression,
     /// An expression that evalutes to the argument to the function.
     pub argument: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for Application {
@@ -38,18 +38,13 @@ impl Application {
 mod test {
     use super::*;
 
-    test_parse!(application_simple: "hello world" => Expression::parse => "(Expression::Application (Application _ _))");
-    test_parse!(application_path: "a::hello (b::world)" => Expression::parse => "(Expression::Application (Application _ _))");
-    test_parse!(application_parenthesized: "hello (a + world)" => Expression::parse => "(Expression::Application (Application _ _))");
-    test_parse!(application_unary_not: "hello !b" => Expression::parse => "(Expression::Application (Application _ (Expression::Unary _)))");
-    test_parse!(not_application_unary_minus: "hello - b" => Expression::parse => "(Expression::Binary _)");
-    test_parse!(application_unary_negate: "hello ~b" => Expression::parse => "(Expression::Application (Application _ (Expression::Unary _)))");
-    test_parse!(application_keyword: "hello if x then 3 else 4" => Expression::parse => "(Expression::Application (Application _ (Expression::IfElse _)))");
-    test_parse!(application_of_number: "3 4 5" => Expression::parse => "(Expression::Application (Application _ _))");
-    test_parse!(application_binop: "hello a + world" => Expression::parse => "
-        (Expression::Binary
-          (BinaryOperation
-            (Expression::Application (Application _ _))
-            _
-            _))");
+    test_parse!(application_simple: "hello world" => Expression::parse => Expression::Application(Application { .. }));
+    test_parse!(application_path: "a::hello (b::world)" => Expression::parse => Expression::Application (Application { .. }));
+    test_parse!(application_parenthesized: "hello (a + world)" => Expression::parse => Expression::Application (Application { .. }));
+    test_parse!(application_unary_not: "hello !b" => Expression::parse => Expression::Application(Application { argument: Expression::Unary(..), .. }));
+    test_parse!(not_application_unary_minus: "hello - b" => Expression::parse => Expression::Binary(..));
+    test_parse!(application_unary_negate: "hello ~b" => Expression::parse => Expression::Application(Application { argument: Expression::Unary(..), .. }));
+    test_parse!(application_keyword: "hello if x then 3 else 4" => Expression::parse => Expression::Application(Application { argument: Expression::IfElse(..), .. }));
+    test_parse!(application_of_number: "3 4 5" => Expression::parse => Expression::Application(Application { .. }));
+    test_parse!(application_binop: "hello a + world" => Expression::parse => Expression::Binary(BinaryOperation { lhs: Expression::Application(Application { .. }), .. }));
 }

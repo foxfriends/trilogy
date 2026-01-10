@@ -3,12 +3,12 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct WhileStatement {
     pub r#while: Token,
     pub condition: Expression,
     pub body: Block,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for WhileStatement {

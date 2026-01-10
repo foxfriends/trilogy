@@ -39,9 +39,15 @@ impl<'ctx> Codegen<'ctx> {
             Value::Array(arr) => self.compile_array(arr, name),
             Value::Set(set) => self.compile_set(set, name),
             Value::Record(record) => self.compile_record(record, name),
-            Value::ArrayComprehension(comp) => self.compile_array_comprehension(comp, name, expression.span),
-            Value::SetComprehension(comp) => self.compile_set_comprehension(comp, name, expression.span),
-            Value::RecordComprehension(comp) => self.compile_record_comprehension(comp, name, expression.span),
+            Value::ArrayComprehension(comp) => {
+                self.compile_array_comprehension(comp, name, expression.span)
+            }
+            Value::SetComprehension(comp) => {
+                self.compile_set_comprehension(comp, name, expression.span)
+            }
+            Value::RecordComprehension(comp) => {
+                self.compile_record_comprehension(comp, name, expression.span)
+            }
             Value::Sequence(seq) => {
                 self.di.push_block_scope(expression.span);
                 let res = self.compile_sequence(seq, name);
@@ -90,7 +96,12 @@ impl<'ctx> Codegen<'ctx> {
         self.void_call_continuation(self.get_end(""));
     }
 
-    fn compile_while(&self, expr: &ir::While, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
+    fn compile_while(
+        &self,
+        expr: &ir::While,
+        name: &str,
+        span: Span,
+    ) -> Option<PointerValue<'ctx>> {
         let continue_function = self.add_continuation("while");
         let break_function = self.add_continuation("while.done");
 
@@ -137,7 +148,12 @@ impl<'ctx> Codegen<'ctx> {
         Some(self.get_continuation(name))
     }
 
-    fn compile_for(&self, expr: &ir::Iterator, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
+    fn compile_for(
+        &self,
+        expr: &ir::Iterator,
+        name: &str,
+        span: Span,
+    ) -> Option<PointerValue<'ctx>> {
         let done_function = self.add_continuation("done");
         let (done_continuation, done_continuation_point) =
             self.capture_current_continuation_full(done_function, "for_break", span);
@@ -249,7 +265,12 @@ impl<'ctx> Codegen<'ctx> {
         Some(self.use_temporary_clone(output).unwrap())
     }
 
-    fn compile_handled(&self, handled: &ir::Handled, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
+    fn compile_handled(
+        &self,
+        handled: &ir::Handled,
+        name: &str,
+        span: Span,
+    ) -> Option<PointerValue<'ctx>> {
         let body_function = self.add_continuation("when.handler");
         let handler_function = self.add_yield();
 
@@ -361,7 +382,12 @@ impl<'ctx> Codegen<'ctx> {
         self.pop_handler_scope();
     }
 
-    fn compile_assertion(&self, assertion: &ir::Assert, name: &str, span: Span) -> Option<PointerValue<'ctx>> {
+    fn compile_assertion(
+        &self,
+        assertion: &ir::Assert,
+        name: &str,
+        span: Span,
+    ) -> Option<PointerValue<'ctx>> {
         let expression = self.compile_expression(&assertion.assertion, name)?;
 
         let pass_cp = self.branch_continuation_point();

@@ -3,11 +3,11 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct TypeofPattern {
     pub type_of: Token,
     pub pattern: Pattern,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for TypeofPattern {

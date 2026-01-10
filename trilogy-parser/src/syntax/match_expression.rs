@@ -3,7 +3,7 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct MatchExpression {
     pub r#match: Token,
     pub expression: Expression,
@@ -11,7 +11,7 @@ pub struct MatchExpression {
     pub cases: Vec<MatchExpressionCase>,
     pub else_case: Option<MatchExpressionElseCase>,
     pub cbrace: Token,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for MatchExpression {
@@ -78,7 +78,7 @@ impl MatchExpression {
     }
 }
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct MatchExpressionCase {
     pub case: Token,
     pub pattern: Option<Pattern>,
@@ -116,7 +116,7 @@ impl Spanned for MatchExpressionCase {
     }
 }
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct MatchExpressionElseCase {
     pub r#else: Token,
     pub body: Expression,
@@ -145,14 +145,13 @@ impl MatchExpressionElseCase {
 mod test {
     use super::*;
 
-    test_parse!(match_parse_exprs: "match x { case 1 then x\n  else y }" => MatchExpression::parse => "
-      (MatchExpression
-        _
-        (Expression::Reference _)
-        _
-        [(MatchExpressionCase _ _ _ _)]
-        (MatchExpressionElseCase _ _)
-        _)
-    ");
+    test_parse!(match_parse_exprs: "match x { case 1 then x\n  else y }" => MatchExpression::parse =>
+      MatchExpression {
+        expression: Expression::Reference(_),
+        cases: [MatchExpressionCase {..}],
+        else_case: Some(MatchExpressionElseCase{..}),
+        ..
+      }
+    );
     test_parse_error!(match_no_parse_else_not_last: "match x { case 1 then x\n  else y\n  case 2 then x }" => MatchExpression::parse);
 }

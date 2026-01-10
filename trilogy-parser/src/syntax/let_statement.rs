@@ -3,11 +3,11 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct LetStatement {
     pub r#let: Token,
     pub query: Query,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for LetStatement {

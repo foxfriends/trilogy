@@ -8,11 +8,11 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// exit 123
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ExitExpression {
     pub exit: Token,
     pub expression: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for ExitExpression {
@@ -37,7 +37,7 @@ impl ExitExpression {
 mod test {
     use super::*;
 
-    test_parse!(exitexpr_unit: "exit unit" => ExitExpression::parse => "(ExitExpression _ _)");
-    test_parse!(exitexpr_value: "exit true" => ExitExpression::parse => "(ExitExpression _ _)");
+    test_parse!(exitexpr_unit: "exit unit" => ExitExpression::parse => ExitExpression { .. });
+    test_parse!(exitexpr_value: "exit true" => ExitExpression::parse => ExitExpression { .. });
     test_parse_error!(exitexpr_empty: "exit" => ExitExpression::parse);
 }

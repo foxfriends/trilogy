@@ -3,13 +3,13 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct Lookup {
     pub path: Expression,
     pub open_paren: Token,
     pub patterns: Vec<Pattern>,
     pub close_paren: Token,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for Lookup {

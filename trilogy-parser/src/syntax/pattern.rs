@@ -5,7 +5,7 @@ use trilogy_scanner::{
     TokenType::{self, *},
 };
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum Pattern {
     Conjunction(Box<PatternConjunction>),
     Disjunction(Box<PatternDisjunction>),
@@ -137,8 +137,9 @@ impl TryFrom<Expression> for Pattern {
     fn try_from(value: Expression) -> Result<Self, Self::Error> {
         match value {
             Expression::Reference(identifier) => Ok(Pattern::Binding(Box::new(BindingPattern {
+                r#mut: None,
+                span: identifier.span,
                 identifier: *identifier,
-                mutable: MutModifier::Not,
             }))),
             Expression::Atom(val) => Ok(Pattern::Atom(val)),
             Expression::Number(val) => Ok(Pattern::Number(val)),

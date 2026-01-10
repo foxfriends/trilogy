@@ -3,12 +3,13 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct RecordPattern {
     pub open_brace_pipe: Token,
     pub elements: Vec<(Pattern, Pattern)>,
     pub rest: Option<RestPattern>,
     pub close_brace_pipe: Token,
+    pub span: Span,
 }
 
 impl RecordPattern {
@@ -58,6 +59,7 @@ impl RecordPattern {
             .map_err(|token| parser.expected(token, "expected `|}` to end record pattern"))?;
 
         Ok(Self {
+            span: open_brace_pipe.span.union(close_brace_pipe.span),
             open_brace_pipe,
             elements,
             rest,
@@ -88,6 +90,7 @@ impl RecordPattern {
                 "no trailing comma is permitted after the rest (`..`) element in a record pattern",
             ));
             return Ok(Self {
+                span: open_brace_pipe.span.union(end.span),
                 open_brace_pipe,
                 elements,
                 rest: Some(rest),
@@ -100,6 +103,7 @@ impl RecordPattern {
             .map_err(|token| parser.expected(token, "expected `|}` to end record pattern"))?;
 
         Ok(Self {
+            span: open_brace_pipe.span.union(end.span),
             open_brace_pipe,
             elements,
             rest: Some(rest),
@@ -117,21 +121,21 @@ impl RecordPattern {
             .into_iter()
             .try_fold((vec![], None::<Pattern>), |(mut elements, mut rest), element| {
                 match element {
-                    RecordElement::Element(key, value) if rest.is_none() => {
+                    RecordElement::Element{ key, value, .. } if rest.is_none() => {
                         elements.push((key.try_into()?, value.try_into()?));
                     },
-                    RecordElement::Element(key, value) => {
+                    RecordElement::Element{ key, value, .. } => {
                         return Err(SyntaxError::new(
                             key.span().union(value.span()),
                             "no elements may follow the rest element of a record pattern, you might have meant this to be an expression",
                         ));
                     },
-                    RecordElement::Spread(.., value) if rest.is_none() => {
+                    RecordElement::Spread{ value, .. } if rest.is_none() => {
                         rest = Some(value.try_into()?);
                     },
-                    RecordElement::Spread(token, value) => {
+                    RecordElement::Spread{ span, ..} => {
                         return Err(SyntaxError::new(
-                            token.span.union(value.span()),
+                            span,
                             "a record pattern may contain only one rest element, you might have meant this to be an expression",
                         ));
                     },
@@ -142,21 +146,21 @@ impl RecordPattern {
                 parser.error(error.clone());
             })?;
         match (rest, head_element) {
-            (None, RecordPatternElement::Element(key, value)) => {
+            (None, RecordPatternElement::Element { key, value, .. }) => {
                 elements.push((key, value));
                 Self::parse_elements(parser, open_brace_pipe, elements)
             }
-            (None, RecordPatternElement::Spread(spread, value)) => Self::parse_rest(
+            (None, RecordPatternElement::Spread { spread, value, .. }) => Self::parse_rest(
                 parser,
                 open_brace_pipe,
                 elements,
                 RestPattern::new(spread, value),
             ),
-            (Some(..), element @ RecordPatternElement::Element(..)) => Err(SyntaxError::new(
+            (Some(..), element @ RecordPatternElement::Element { .. }) => Err(SyntaxError::new(
                 element.span(),
                 "no elements may follow the rest element in a record pattern, you might have meant this to be an expression",
             )),
-            (Some(..), element @ RecordPatternElement::Spread(..)) => Err(SyntaxError::new(
+            (Some(..), element @ RecordPatternElement::Spread { .. }) => Err(SyntaxError::new(
                 element.span(),
                 "a record pattern may contain only one rest element, you might have meant this to be an expression",
             )),
@@ -174,7 +178,7 @@ impl RecordPattern {
 
 impl Spanned for RecordPattern {
     fn span(&self) -> Span {
-        self.open_brace_pipe.span.union(self.close_brace_pipe.span)
+        self.span
     }
 }
 
@@ -187,13 +191,13 @@ impl TryFrom<RecordLiteral> for RecordPattern {
 
         for element in value.elements {
             match element {
-                RecordElement::Element(key, val) if rest.is_none() => {
-                    head.push((key.try_into()?, val.try_into()?))
+                RecordElement::Element { key, value, .. } if rest.is_none() => {
+                    head.push((key.try_into()?, value.try_into()?))
                 }
-                RecordElement::Spread(spread, val) if rest.is_none() => {
-                    rest = Some(RestPattern::try_from((spread, val))?)
+                RecordElement::Spread { spread, value, .. } if rest.is_none() => {
+                    rest = Some(RestPattern::try_from((spread, value))?)
                 }
-                RecordElement::Element(..) | RecordElement::Spread(..) => {
+                RecordElement::Element { .. } | RecordElement::Spread { .. } => {
                     return Err(SyntaxError::new(
                         element.span(),
                         "no elements may follow the rest (`..`) element in a set pattern",
@@ -203,6 +207,10 @@ impl TryFrom<RecordLiteral> for RecordPattern {
         }
 
         Ok(Self {
+            span: value
+                .open_brace_pipe
+                .span
+                .union(value.close_brace_pipe.span),
             open_brace_pipe: value.open_brace_pipe,
             elements: head,
             rest,

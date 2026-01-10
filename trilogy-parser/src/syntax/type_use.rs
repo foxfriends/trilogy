@@ -4,13 +4,13 @@ use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// The `use` portion of a module definition.
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct TypeUse {
     /// The `use` token
     pub r#use: Token,
     /// The imported names
     pub names: Punctuated<ImportedName>,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for TypeUse {
@@ -19,7 +19,7 @@ impl Spanned for TypeUse {
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum ImportedName {
     Named(Identifier),
     Aliased(AliasedName),
@@ -41,7 +41,7 @@ impl ImportedName {
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub struct AliasedName {
     pub original: Identifier,
     pub r#as: Token,

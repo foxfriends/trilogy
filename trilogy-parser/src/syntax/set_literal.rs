@@ -3,24 +3,24 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct SetLiteral {
     pub open_bracket_pipe: Token,
     pub elements: Vec<SetElement>,
     pub close_bracket_pipe: Token,
+    pub span: Span,
 }
 
 impl Spanned for SetLiteral {
     fn span(&self) -> Span {
-        self.open_bracket_pipe
-            .span
-            .union(self.close_bracket_pipe.span)
+        self.span
     }
 }
 
 impl SetLiteral {
     pub(crate) fn new_empty(open_bracket_pipe: Token, close_bracket_pipe: Token) -> Self {
         Self {
+            span: open_bracket_pipe.span.union(close_bracket_pipe.span),
             open_bracket_pipe,
             elements: vec![],
             close_bracket_pipe,
@@ -35,6 +35,7 @@ impl SetLiteral {
         let mut elements = vec![first];
         if let Ok(close_bracket_pipe) = parser.expect(CBrackPipe) {
             return Ok(Ok(Self {
+                span: open_bracket_pipe.span.union(close_bracket_pipe.span),
                 open_bracket_pipe,
                 elements,
                 close_bracket_pipe,
@@ -71,6 +72,7 @@ impl SetLiteral {
             };
         };
         Ok(Ok(Self {
+            span: open_bracket_pipe.span.union(close_bracket_pipe.span),
             open_bracket_pipe,
             elements,
             close_bracket_pipe,
@@ -86,7 +88,7 @@ impl SetLiteral {
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum SetElement {
     Element(Expression),
     Spread(Token, Expression),

@@ -8,12 +8,12 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// pattern = expression
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct DirectUnification {
     pub pattern: Pattern,
     pub eq: Token,
     pub expression: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl DirectUnification {
@@ -46,9 +46,9 @@ impl Spanned for DirectUnification {
 mod test {
     use super::*;
 
-    test_parse!(direct_keyword: "x = 5" => Query::parse => "(Query::Direct (DirectUnification _ _ _))");
-    test_parse!(direct_pattern: "5 = 5" => Query::parse => "(Query::Direct (DirectUnification _ _ _))");
-    test_parse!(direct_collection: "[..a] = [1, 2, 3]" => Query::parse => "(Query::Direct (DirectUnification _ _ _))");
+    test_parse!(direct_keyword: "x = 5" => Query::parse => Query::Direct(DirectUnification { .. }));
+    test_parse!(direct_pattern: "5 = 5" => Query::parse => Query::Direct(DirectUnification { .. }));
+    test_parse!(direct_collection: "[..a] = [1, 2, 3]" => Query::parse => Query::Direct(DirectUnification { .. }));
     test_parse_error!(direct_no_op_eq: "[..a] += [1, 2, 3]" => Query::parse);
     test_parse_error!(direct_no_expr: "a b = 123" => Query::parse);
     test_parse_error!(direct_invalid_expr: "a = let x = 5" => Query::parse);

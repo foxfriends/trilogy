@@ -8,11 +8,11 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// is expression
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct BooleanQuery {
     pub is: Token,
     pub expression: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl BooleanQuery {
@@ -44,9 +44,9 @@ impl Spanned for BooleanQuery {
 mod test {
     use super::*;
 
-    test_parse!(bool_query_simple: "is true" => BooleanQuery::parse => "(BooleanQuery _ _)");
-    test_parse!(bool_query_expression: "is x < 5" => BooleanQuery::parse => "(BooleanQuery _ _)");
-    test_parse!(bool_query_application: "is f x y" => BooleanQuery::parse => "(BooleanQuery _ _)");
+    test_parse!(bool_query_simple: "is true" => BooleanQuery::parse => BooleanQuery { .. });
+    test_parse!(bool_query_expression: "is x < 5" => BooleanQuery::parse => BooleanQuery { .. });
+    test_parse!(bool_query_application: "is f x y" => BooleanQuery::parse => BooleanQuery { .. });
     test_parse_error!(bool_query_commas: "is x, x" => BooleanQuery::parse);
     test_parse_error!(bool_query_invalid_expr: "is let x = 5" => BooleanQuery::parse);
 }

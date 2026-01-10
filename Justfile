@@ -29,7 +29,7 @@ check-c:
     {{clang_tidy}} --warnings-as-errors *.{c,h} --
 
 test:
-    cargo test
+    cargo +nightly test
 
 testsuite:
     cargo test --test testsuite

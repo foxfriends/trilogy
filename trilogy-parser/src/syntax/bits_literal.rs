@@ -1,6 +1,7 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
 use bitvec::prelude::*;
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
 /// A bits literal expression
@@ -8,9 +9,16 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// 0bb1010
 /// ```
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct BitsLiteral {
     pub token: Token,
+    pub span: Span,
+}
+
+impl Spanned for BitsLiteral {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl BitsLiteral {
@@ -18,7 +26,10 @@ impl BitsLiteral {
         let token = parser
             .expect(TokenType::Bits)
             .map_err(|token| parser.expected(token, "expected bits literal"))?;
-        Ok(Self { token })
+        Ok(Self {
+            span: token.span,
+            token,
+        })
     }
 
     /// The bits value of this expression.
@@ -36,8 +47,8 @@ impl BitsLiteral {
 mod test {
     use super::*;
 
-    test_parse!(bits_bin: "0bb0101" => BitsLiteral::parse => "(BitsLiteral _)");
-    test_parse!(bits_hex: "0bx10af" => BitsLiteral::parse => "(BitsLiteral _)");
-    test_parse!(bits_oct: "0bo107" => BitsLiteral::parse => "(BitsLiteral _)");
+    test_parse!(bits_bin: "0bb0101" => BitsLiteral::parse => BitsLiteral { .. });
+    test_parse!(bits_hex: "0bx10af" => BitsLiteral::parse => BitsLiteral { .. });
+    test_parse!(bits_oct: "0bo107" => BitsLiteral::parse => BitsLiteral { .. });
     test_parse_error!(not_bits: "0b101" => BitsLiteral::parse => "expected bits literal");
 }

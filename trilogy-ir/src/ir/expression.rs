@@ -201,11 +201,9 @@ impl Expression {
             Template(ast) => Self::convert_template(converter, *ast),
             Handled(ast) => crate::ir::Handled::convert_expression(converter, *ast),
             Parenthesized(ast) => Self::convert(converter, ast.expression),
-            ModuleAccess(ast) => Self::module_access(
-                ast.access_token().span,
-                Self::convert(converter, ast.lhs),
-                ast.rhs,
-            ),
+            ModuleAccess(ast) => {
+                Self::module_access(ast.access.span, Self::convert(converter, ast.lhs), ast.rhs)
+            }
         }
     }
 

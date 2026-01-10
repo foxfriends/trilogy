@@ -13,6 +13,7 @@ pub enum ErrorKind {
     TaggedTemplateMissingIdentifier,
     TaggedTemplateNotIdentifier,
     DoMissingParameterList,
+    DoUnnecessaryBangOParen,
 }
 
 impl ErrorKind {
@@ -83,6 +84,9 @@ impl Display for SyntaxError {
             )?,
             ErrorKind::DoMissingParameterList => {
                 write!(f, "a `do` closure requires a parameter list, even if empty")?
+            }
+            ErrorKind::DoUnnecessaryBangOParen => {
+                write!(f, "a `do` closure definition does not use `!`")?
             }
         }
 

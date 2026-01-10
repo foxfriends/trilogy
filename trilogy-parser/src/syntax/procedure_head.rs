@@ -3,14 +3,14 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ProcedureHead {
     pub name: Identifier,
     pub bang: Token,
     pub open_paren: Token,
     pub parameters: Vec<Pattern>,
     pub close_paren: Token,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for ProcedureHead {

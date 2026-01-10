@@ -3,12 +3,12 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct PatternDisjunction {
     pub lhs: Pattern,
     pub or: Token,
     pub rhs: Pattern,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for PatternDisjunction {

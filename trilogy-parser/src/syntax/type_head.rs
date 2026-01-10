@@ -3,12 +3,12 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct TypeHead {
     pub r#type: Token,
     pub name: Identifier,
     pub parameters: Vec<Identifier>,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for TypeHead {

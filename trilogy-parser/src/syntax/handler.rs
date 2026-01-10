@@ -2,7 +2,7 @@ use super::*;
 use crate::Parser;
 use trilogy_scanner::TokenType::*;
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum Handler {
     When(Box<WhenHandler>),
     Else(Box<ElseHandler>),
@@ -22,6 +22,6 @@ impl Handler {
 mod test {
     use super::*;
 
-    test_parse!(handler_when: "when 'NAN resume 5" => Handler::parse => "(Handler::When (WhenHandler _ _ _ _))");
-    test_parse!(handler_else: "else resume 5" => Handler::parse => "(Handler::Else (ElseHandler _ _))");
+    test_parse!(handler_when: "when 'NAN resume 5" => Handler::parse => Handler::When(WhenHandler { .. }));
+    test_parse!(handler_else: "else resume 5" => Handler::parse => Handler::Else(ElseHandler { .. }));
 }

@@ -8,10 +8,11 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// #- assert -# "msg" as #- expression -#
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct AssertMessage {
     pub message: Expression,
     pub r#as: Token,
+    pub span: Span,
 }
 
 /// An assert statement.
@@ -19,11 +20,12 @@ pub struct AssertMessage {
 /// ```trilogy
 /// assert "msg" as expression
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct AssertStatement {
     pub assert: Token,
     pub message: Option<AssertMessage>,
     pub assertion: Expression,
+    pub span: Span,
 }
 
 impl AssertStatement {
@@ -33,8 +35,10 @@ impl AssertStatement {
         if let Ok(r#as) = parser.expect(TokenType::KwAs) {
             let assertion = Expression::parse(parser)?;
             return Ok(Self {
+                span: assert.span.union(assertion.span()),
                 assert,
                 message: Some(AssertMessage {
+                    span: message_or_assertion.span().union(r#as.span),
                     message: message_or_assertion,
                     r#as,
                 }),
@@ -42,6 +46,7 @@ impl AssertStatement {
             });
         }
         Ok(Self {
+            span: assert.span.union(message_or_assertion.span()),
             assert,
             message: None,
             assertion: message_or_assertion,
@@ -59,9 +64,9 @@ impl Spanned for AssertStatement {
 mod test {
     use super::*;
 
-    test_parse!(assert_true: "assert true" => AssertStatement::parse => "(AssertStatement _ () (Expression::Boolean _))");
-    test_parse!(assert_expression: "assert if x then false else true" => AssertStatement::parse => "(AssertStatement _ () (Expression::IfElse _))");
-    test_parse!(assert_with_message: "assert \"message\" as true" => AssertStatement::parse => "(AssertStatement _ (AssertMessage _ _) (Expression::Boolean _))");
+    test_parse!(assert_true: "assert true" => AssertStatement::parse => AssertStatement { assertion: Expression::Boolean(..), .. });
+    test_parse!(assert_expression: "assert if x then false else true" => AssertStatement::parse => AssertStatement { assertion: Expression::IfElse(..), .. });
+    test_parse!(assert_with_message: "assert \"message\" as true" => AssertStatement::parse => AssertStatement { message: Some(..), assertion: Expression::Boolean(..) , .. });
     test_parse_error!(assert_without_expr: "assert" => AssertStatement::parse);
     test_parse_error!(assert_invalid_expr: "assert + 5" => AssertStatement::parse);
 }

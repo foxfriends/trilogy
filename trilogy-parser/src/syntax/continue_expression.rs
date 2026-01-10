@@ -8,11 +8,11 @@ use trilogy_scanner::{Token, TokenType::*};
 /// ```trilogy
 /// continue unit
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ContinueExpression {
     pub r#continue: Token,
     pub expression: Expression,
-    span: Span,
+    pub span: Span,
 }
 
 impl ContinueExpression {
@@ -37,7 +37,7 @@ impl Spanned for ContinueExpression {
 mod test {
     use super::*;
 
-    test_parse!(continueexpr_unit: "continue unit" => ContinueExpression::parse => "(ContinueExpression _ _)");
-    test_parse!(continueexpr_value: "continue true" => ContinueExpression::parse => "(ContinueExpression _ _)");
+    test_parse!(continueexpr_unit: "continue unit" => ContinueExpression::parse => ContinueExpression { .. });
+    test_parse!(continueexpr_value: "continue true" => ContinueExpression::parse => ContinueExpression { .. });
     test_parse_error!(continueexpr_empty: "continue" => ContinueExpression::parse);
 }

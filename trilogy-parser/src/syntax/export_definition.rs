@@ -8,11 +8,11 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// export something, something_else
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ExportDefinition {
     pub export: Token,
     pub names: Vec<Identifier>,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for ExportDefinition {
@@ -47,8 +47,8 @@ impl ExportDefinition {
 mod test {
     use super::*;
 
-    test_parse!(export_single: "export x" => ExportDefinition::parse => "(ExportDefinition _ [_])");
-    test_parse!(export_many: "export x, y, z" => ExportDefinition::parse => "(ExportDefinition _ [_ _ _])");
+    test_parse!(export_single: "export x" => ExportDefinition::parse => ExportDefinition { names: [_], .. });
+    test_parse!(export_many: "export x, y, z" => ExportDefinition::parse => ExportDefinition { names: [_, _, _], .. });
     test_parse_error!(export_not_ident: "export x y" => ExportDefinition::parse);
     test_parse_error!(export_none: "export" => ExportDefinition::parse);
 }

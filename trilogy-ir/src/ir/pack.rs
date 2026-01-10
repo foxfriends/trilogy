@@ -65,15 +65,16 @@ impl Element {
 
     pub(super) fn convert_record(converter: &mut Converter, ast: syntax::RecordElement) -> Self {
         match ast {
-            syntax::RecordElement::Element(key, value) => {
+            syntax::RecordElement::Element {
+                key, value, span, ..
+            } => {
                 let key = Expression::convert(converter, key);
                 let value = Expression::convert(converter, value);
-                let expression = Expression::mapping(key.span.union(value.span), key, value);
+                let expression = Expression::mapping(span, key, value);
                 Self::from(expression)
             }
-            syntax::RecordElement::Spread(token, ast) => {
-                let span = ast.span().union(token.span);
-                let expression = Expression::convert(converter, ast);
+            syntax::RecordElement::Spread { value, span, .. } => {
+                let expression = Expression::convert(converter, value);
                 Self {
                     span,
                     expression,

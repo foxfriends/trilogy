@@ -2,7 +2,7 @@ use super::*;
 use crate::{Parser, Spanned};
 use trilogy_scanner::TokenType;
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub enum Statement {
     Let(Box<LetStatement>),
     Assignment(Box<AssignmentStatement>),

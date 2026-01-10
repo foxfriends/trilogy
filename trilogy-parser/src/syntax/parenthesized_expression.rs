@@ -3,16 +3,17 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType::*};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ParenthesizedExpression {
     pub open_paren: Token,
     pub expression: Expression,
     pub close_paren: Token,
+    pub span: Span,
 }
 
 impl Spanned for ParenthesizedExpression {
     fn span(&self) -> Span {
-        self.open_paren.span.union(self.close_paren.span())
+        self.span
     }
 }
 
@@ -25,13 +26,16 @@ impl ParenthesizedExpression {
         let close_paren = parser
             .expect(CParen)
             .map_err(|token| parser.expected(token, "expected `)`"))?;
+        let span = open_paren.span.union(close_paren.span);
         Ok(match expression {
             Ok(expression) => Ok(Self {
+                span,
                 open_paren,
                 expression,
                 close_paren,
             }),
             Err(pattern) => Err(ParenthesizedPattern {
+                span,
                 open_paren,
                 pattern,
                 close_paren,

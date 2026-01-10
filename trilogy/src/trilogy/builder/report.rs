@@ -451,7 +451,10 @@ impl<E: std::error::Error> Error<E> {
                         .with_label(Label::new(span).with_color(primary).with_message("this must be an identifier")),
                     ErrorKind::DoMissingParameterList => ariadne::Report::build(kind, span.clone())
                         .with_message("a `do` closure requires a parameter list, even if empty")
-                        .with_label(Label::new(span).with_color(primary).with_message("try adding `()` after this `do`"))
+                        .with_label(Label::new(span).with_color(primary).with_message("try adding `()` after this `do`")),
+                    ErrorKind::DoUnnecessaryBangOParen => ariadne::Report::build(kind, span.clone())
+                        .with_message("a `do` closure definition does not use `!`")
+                        .with_label(Label::new(span).with_color(primary).with_message("try removing this `!`")),
                 }
             }
             ErrorKind::Resolver(location, error) => {

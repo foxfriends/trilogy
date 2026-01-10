@@ -1,10 +1,18 @@
 use super::*;
-use crate::Parser;
+use crate::{Parser, Spanned};
+use source_span::Span;
 use trilogy_scanner::{Token, TokenType};
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct UnitLiteral {
-    token: Token,
+    pub span: Span,
+    pub token: Token,
+}
+
+impl Spanned for UnitLiteral {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl UnitLiteral {
@@ -12,6 +20,9 @@ impl UnitLiteral {
         let token = parser
             .expect(TokenType::KwUnit)
             .map_err(|token| parser.expected(token, "expected boolean literal"))?;
-        Ok(Self { token })
+        Ok(Self {
+            span: token.span,
+            token,
+        })
     }
 }

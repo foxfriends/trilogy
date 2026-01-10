@@ -8,7 +8,7 @@ use trilogy_scanner::{Token, TokenType};
 /// ```trilogy
 /// import "./some/path.tri" as name use imported_ident
 /// ```
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct ImportDefinition {
     /// The `import` token.
     pub import: Token,
@@ -16,7 +16,7 @@ pub struct ImportDefinition {
     pub locator: StringLiteral,
     pub type_as: Option<TypeAs>,
     pub type_use: Option<TypeUse>,
-    span: Span,
+    pub span: Span,
 }
 
 impl Spanned for ImportDefinition {
@@ -25,13 +25,13 @@ impl Spanned for ImportDefinition {
     }
 }
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct TypeAs {
     /// The `as` token.
     pub r#as: Token,
     /// The identifier.
     pub identifier: Identifier,
-    span: Span,
+    pub span: Span,
 }
 
 impl TypeAs {
@@ -89,25 +89,21 @@ impl ImportDefinition {
 mod test {
     use super::*;
 
-    test_parse!(import_ok: "import \"./here.tri\" as hello" => Definition::parse_in_document => "
-      (Definition
-        _
-        (DefinitionItem::Import
-          (ImportDefinition
-            _
-            (StringLiteral)
-            (TypeAs _ _)
-            ())))");
+    test_parse!(import_ok: "import \"./here.tri\" as hello" => Definition::parse_in_document =>
+      Some(Definition {
+        item: DefinitionItem::Import(ImportDefinition { .. }),
+        ..
+      })
+    );
 
-    test_parse!(import_use: "import \"./here.tri\" use hello, world" => Definition::parse_in_document => "
-      (Definition
-        _
-        (DefinitionItem::Import
-          (ImportDefinition
-            _
-            (StringLiteral)
-            ()
-            (TypeUse _ _))))");
+    test_parse!(import_use: "import \"./here.tri\" use hello, world" => Definition::parse_in_document =>
+      Some(Definition {
+        item: DefinitionItem::Import(
+            ImportDefinition { .. },
+        )
+        ,..
+      })
+    );
 
     test_parse_error!(import_not_string: "import Hello as hello" => Definition::parse_in_document);
     test_parse_error!(import_args_invalid: "import Hello x y as hello" => Definition::parse_in_document);

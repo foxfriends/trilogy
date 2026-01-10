@@ -17,7 +17,7 @@ impl Match {
         converter: &mut Converter,
         ast: syntax::MatchExpression,
     ) -> Expression {
-        let span = ast.span();
+        let span = ast.span;
         let expression = Expression::convert(converter, ast.expression);
         let mut cases: Vec<_> = ast
             .cases
@@ -26,7 +26,7 @@ impl Match {
             .collect();
         match ast.else_case {
             Some(ast) => {
-                let span = ast.r#else.span().union(ast.body.span());
+                let span = ast.r#else.span.union(ast.body.span());
                 converter.push_scope();
                 let pattern = Expression::wildcard(ast.r#else.span);
                 let body = Expression::convert(converter, ast.body);
@@ -54,7 +54,7 @@ impl Match {
         converter: &mut Converter,
         ast: syntax::MatchExpression,
     ) -> Expression {
-        let span = ast.span();
+        let span = ast.span;
         let expression = Expression::convert(converter, ast.expression);
         let mut cases: Vec<_> = ast
             .cases
@@ -63,7 +63,7 @@ impl Match {
             .collect();
         match ast.else_case {
             Some(ast) => {
-                let span = ast.r#else.span().union(ast.body.span());
+                let span = ast.r#else.span.union(ast.body.span());
                 converter.push_scope();
                 let pattern = Expression::wildcard(ast.r#else.span);
                 let body = Expression::convert(converter, ast.body);

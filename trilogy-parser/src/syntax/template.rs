@@ -3,12 +3,12 @@ use crate::{Parser, Spanned};
 use source_span::Span;
 use trilogy_scanner::{Token, TokenType, TokenValue};
 
-#[derive(Clone, Debug, PrettyPrintSExpr)]
+#[derive(Clone, Debug)]
 pub struct Template {
     pub tag: Option<(Token, Identifier)>,
     pub template_start: Token,
     pub segments: Vec<TemplateSegment>,
-    span: Span,
+    pub span: Span,
 }
 
 impl Template {
@@ -101,7 +101,7 @@ impl Spanned for Template {
     }
 }
 
-#[derive(Clone, Debug, Spanned, PrettyPrintSExpr)]
+#[derive(Clone, Debug, Spanned)]
 pub struct TemplateSegment {
     pub interpolation: Expression,
     end: Token,
