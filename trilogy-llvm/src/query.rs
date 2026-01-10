@@ -249,13 +249,12 @@ impl<'ctx> Codegen<'ctx> {
                 );
             }
             ir::QueryValue::Element(unification) => {
-                let input = self.compile_input_pattern(&unification.pattern)?;
                 let collection =
                     self.compile_expression(&unification.expression, "in.collection")?;
                 let elem = self.elem();
                 let (next_iteration_inner, output_arguments) = self.call_rule(
                     elem,
-                    &[self.use_temporary(input).unwrap(), collection],
+                    &[self.allocate_undefined(""), collection],
                     self.use_temporary_clone(done_to).unwrap(),
                     "lookup_next",
                     query.span,
