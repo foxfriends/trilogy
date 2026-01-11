@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed};
+use syn::{Data, DataEnum, DeriveInput, Fields, FieldsNamed, FieldsUnnamed};
 
 pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
     let name = &ast.ident;
@@ -12,51 +12,6 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
         quote!()
     };
     match &ast.data {
-        Data::Struct(DataStruct { fields, .. }) => {
-            let include: Vec<_> = match fields {
-                Fields::Named(FieldsNamed { named, .. }) => named
-                    .iter()
-                    .enumerate()
-                    .map(|(i, field)| {
-                        let name = field.ident.as_ref().unwrap();
-                        if i == 0 {
-                            quote! {
-                                let span = self.#name.span();
-                            }
-                        } else {
-                            quote! {
-                                let span = span.union(self.#name.span());
-                            }
-                        }
-                    })
-                    .collect(),
-                Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => unnamed
-                    .iter()
-                    .enumerate()
-                    .map(|(i, ..)| {
-                        if i == 0 {
-                            quote! {
-                                let span = self.#i.span();
-                            }
-                        } else {
-                            quote! {
-                                let span = span.union(self.#i.span());
-                            }
-                        }
-                    })
-                    .collect(),
-                Fields::Unit => unimplemented!("unit structs are not used"),
-            };
-            quote! {
-                impl #generic_params crate::Spanned for #name #generics {
-                    fn span(&self) -> source_span::Span {
-                        #(#include)*
-                        span
-                    }
-                }
-            }
-            .into()
-        }
         Data::Enum(DataEnum { variants, .. }) => {
             let variants: Vec<_> = variants
                 .iter()
@@ -125,6 +80,8 @@ pub(crate) fn impl_derive(ast: DeriveInput) -> TokenStream {
             }
             .into()
         }
-        Data::Union(..) => unimplemented!("unions are not used"),
+        Data::Union(..) | Data::Struct(..) => {
+            unimplemented!("only enums can have Spanned derived")
+        }
     }
 }

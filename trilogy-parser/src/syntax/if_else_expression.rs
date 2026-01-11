@@ -31,7 +31,7 @@ impl IfElseExpression {
         };
 
         let span = match &when_false {
-            Some(case) => case.span().union(r#if.span),
+            Some(case) => case.span.union(r#if.span),
             None => when_true.span().union(r#if.span),
         };
 
@@ -49,10 +49,17 @@ impl IfElseExpression {
     }
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug)]
 pub struct ElseClause {
     pub r#else: Token,
     pub body: Expression,
+    pub span: Span,
+}
+
+impl Spanned for ElseClause {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl ElseClause {
@@ -61,6 +68,10 @@ impl ElseClause {
             .expect(KwElse)
             .expect("Caller should have found this");
         let body = Expression::parse(parser)?;
-        Ok(Self { r#else, body })
+        Ok(Self {
+            span: r#else.span.union(body.span()),
+            r#else,
+            body,
+        })
     }
 }

@@ -33,7 +33,7 @@ impl Template {
 
         let mut span = template_start.span;
         if !segments.is_empty() {
-            span = span.union(segments.span());
+            span = span.union(segments.last().unwrap().end.span);
         }
         if let Some(tag) = &tag {
             span = span.union(tag.0.span());
@@ -101,10 +101,10 @@ impl Spanned for Template {
     }
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug)]
 pub struct TemplateSegment {
     pub interpolation: Expression,
-    end: Token,
+    pub end: Token,
 }
 
 impl TemplateSegment {

@@ -41,11 +41,18 @@ impl ImportedName {
     }
 }
 
-#[derive(Clone, Debug, Spanned)]
+#[derive(Clone, Debug)]
 pub struct AliasedName {
     pub original: Identifier,
     pub r#as: Token,
     pub aliased: Identifier,
+    pub span: Span,
+}
+
+impl Spanned for AliasedName {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl TypeUse {
@@ -60,6 +67,7 @@ impl TypeUse {
             let name = if let Ok(r#as) = parser.expect(TokenType::KwAs) {
                 let aliased = Identifier::parse(parser)?;
                 ImportedName::Aliased(Box::new(AliasedName {
+                    span: original.span.union(aliased.span),
                     original,
                     r#as,
                     aliased,
