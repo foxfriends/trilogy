@@ -1,0 +1,9 @@
+import "trilogy:debug" use dbg
+
+proc main!() {
+  let mut n = 0bxDEADBEEF
+  while n != 0bb {
+    n <<~= 1
+    dbg!(n)
+  }
+}

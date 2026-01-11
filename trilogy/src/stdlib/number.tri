@@ -1,7 +1,29 @@
 import "trilogy:core" as core
 import "trilogy:iterator" as it
 
-export numer, denom, is_natural, is_whole, is_integer, is_real, is_imaginary, is_complex, from_digit, from_hex_digit, abs, re, im, conj, swap, sign, ceil, floor, trunc, from_digits_base, parse_from_hex_digits, parse_from_digits
+export from, numer, denom, is_natural, is_whole, is_integer, is_real, is_imaginary, is_complex, from_digit, from_hex_digit, abs, re, im, conj, swap, sign, ceil, floor, trunc, from_digits_base, parse_from_hex_digits, parse_from_digits
+
+func from_bits n 0bb = n
+func from_bits n bits if bits.0 = from_bits (n * 2 + 1) (bits <<~ 1)
+func from_bits n bits = from_bits (n * 2) (bits <<~ 1)
+
+func from bits and typeof 'bits = from_bits 0 bits
+
+import "trilogy:debug" use dbg
+test "number from" {
+  let mut n = 0bxDEADBEEF
+  while n != 0bb {
+    n <<~= 1
+    dbg!(n)
+  }
+
+  assert from 0bb == 0
+  assert from 0bb0000 == 0
+  assert from 0bb0001 == 1
+  assert from 0bb1000 == 8
+  assert "${from 0bxDEADBEEF} ${0xDEADBEEF}" as from 0bxDEADBEEF == 0xDEADBEEF
+  assert from 0bx12345678DEADBEEF == 0x12345678DEADBEEF
+}
 
 func numer num and typeof 'number = core::numer!(num)
 
