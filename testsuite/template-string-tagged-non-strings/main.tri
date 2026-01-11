@@ -1,0 +1,9 @@
+func wordify [string] [] = string
+func wordify [string, ..rs] [1, ..ri] = "${string}one${wordify rs ri}"
+func wordify [string, ..rs] [2, ..ri] = "${string}two${wordify rs ri}"
+func wordify [string, ..rs] [3, ..ri] = "${string}three${wordify rs ri}"
+
+proc main!() {
+  let string = $wordify"i have ${3} fish"
+  assert string == "i have three fish"
+}
