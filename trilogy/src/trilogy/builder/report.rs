@@ -211,6 +211,18 @@ impl<E: std::error::Error> Error<E> {
                                 name.id.name(),
                             ))
                     }
+                    Error::InvalidAssignmentTarget { target } => {
+                        let span = cache.span(location, *target);
+                        ariadne::Report::build(kind, span.clone())
+                            .with_message("invalid assignment target")
+                            .with_label(
+                                Label::new(span)
+                                    .with_color(primary)
+                                    .with_message("this expression is not assignable")
+                                    .with_order(1),
+                            )
+                            .with_help("only single identifiers or member access expressions (`.`) can be assigned to")
+                    }
                     Error::GluePatternMissingLiteral { lhs, glue, rhs } => {
                         let lhs = cache.span(location, *lhs);
                         let glue = cache.span(location, *glue);

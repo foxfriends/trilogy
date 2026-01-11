@@ -30,6 +30,9 @@ pub enum Error {
         name: ir::Identifier,
         assignment: Span,
     },
+    InvalidAssignmentTarget {
+        target: Span,
+    },
     DuplicateExport {
         original: Span,
         duplicate: syntax::Identifier,
@@ -81,6 +84,7 @@ impl Display for Error {
             Error::DuplicateDefinition { .. } => write!(f, "duplicate definition"),
             Error::IdentifierInOwnDefinition { .. } => write!(f, "identifier in own definition"),
             Error::AssignedImmutableBinding { .. } => write!(f, "assigned immutable binding"),
+            Error::InvalidAssignmentTarget { .. } => write!(f, "invalid assignment target"),
             Error::DuplicateExport { .. } => write!(f, "duplicate export"),
             Error::BecomeOutsideHandlerContext { .. } => {
                 write!(f, "become used outside of handler")

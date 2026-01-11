@@ -21,13 +21,26 @@ impl Assignment {
 
         let op = match ast.strategy {
             Direct(..) => {
-                if let expression::Value::Reference(id) = &lhs.value
-                    && !id.is_mutable
-                {
-                    converter.error(Error::AssignedImmutableBinding {
-                        name: *id.clone(),
-                        assignment: span,
-                    });
+                match &lhs.value {
+                    expression::Value::Reference(id) => {
+                        if !id.is_mutable {
+                            converter.error(Error::AssignedImmutableBinding {
+                                name: *id.clone(),
+                                assignment: span,
+                            });
+                        }
+                    }
+                    expression::Value::Application(app) => match &app.function.value {
+                        expression::Value::Application(app_fn)
+                            if matches!(app_fn.function.value, Value::Builtin(Builtin::Access)) => {
+                        }
+                        _ => {
+                            converter.error(Error::InvalidAssignmentTarget { target: lhs.span });
+                        }
+                    },
+                    _ => {
+                        converter.error(Error::InvalidAssignmentTarget { target: lhs.span });
+                    }
                 }
                 return Expression::assignment(span, Assignment { lhs, rhs });
             }
