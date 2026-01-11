@@ -385,7 +385,12 @@ void shift_left(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
     }
-    trilogy_bits_value* out = trilogy_bits_shift_left(lhs_bits, n);
+    trilogy_bits_value* out;
+    if (rhs_num->re.is_negative) {
+        out = trilogy_bits_shift_right(lhs_bits, n);
+    } else {
+        out = trilogy_bits_shift_left(lhs_bits, n);
+    }
     trilogy_bits_init(rv, out);
     trilogy_value_destroy(lhs);
     trilogy_value_destroy(rhs);
@@ -401,7 +406,12 @@ void shift_left_extend(
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
     }
-    trilogy_bits_value* out = trilogy_bits_shift_left_extend(lhs_bits, n);
+    trilogy_bits_value* out;
+    if (rhs_num->re.is_negative) {
+        out = trilogy_bits_shift_right_extend(lhs_bits, n);
+    } else {
+        out = trilogy_bits_shift_left_extend(lhs_bits, n);
+    }
     trilogy_bits_init(rv, out);
     trilogy_value_destroy(lhs);
     trilogy_value_destroy(rhs);
@@ -417,7 +427,12 @@ void shift_left_contract(
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
     }
-    trilogy_bits_value* out = trilogy_bits_shift_left_contract(lhs_bits, n);
+    trilogy_bits_value* out;
+    if (rhs_num->re.is_negative) {
+        out = trilogy_bits_shift_right_contract(lhs_bits, n);
+    } else {
+        out = trilogy_bits_shift_left_contract(lhs_bits, n);
+    }
     trilogy_bits_init(rv, out);
     trilogy_value_destroy(lhs);
     trilogy_value_destroy(rhs);
@@ -431,7 +446,12 @@ void shift_right(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
     }
-    trilogy_bits_value* out = trilogy_bits_shift_right(lhs_bits, n);
+    trilogy_bits_value* out;
+    if (rhs_num->re.is_negative) {
+        out = trilogy_bits_shift_left(lhs_bits, n);
+    } else {
+        out = trilogy_bits_shift_right(lhs_bits, n);
+    }
     trilogy_bits_init(rv, out);
     trilogy_value_destroy(lhs);
     trilogy_value_destroy(rhs);
@@ -447,7 +467,12 @@ void shift_right_extend(
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
     }
-    trilogy_bits_value* out = trilogy_bits_shift_right_extend(lhs_bits, n);
+    trilogy_bits_value* out;
+    if (rhs_num->re.is_negative) {
+        out = trilogy_bits_shift_left_extend(lhs_bits, n);
+    } else {
+        out = trilogy_bits_shift_right_extend(lhs_bits, n);
+    }
     trilogy_bits_init(rv, out);
     trilogy_value_destroy(lhs);
     trilogy_value_destroy(rhs);
@@ -463,7 +488,12 @@ void shift_right_contract(
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
     }
-    trilogy_bits_value* out = trilogy_bits_shift_right_contract(lhs_bits, n);
+    trilogy_bits_value* out;
+    if (rhs_num->re.is_negative) {
+        out = trilogy_bits_shift_left_contract(lhs_bits, n);
+    } else {
+        out = trilogy_bits_shift_right_contract(lhs_bits, n);
+    }
     trilogy_bits_init(rv, out);
     trilogy_value_destroy(lhs);
     trilogy_value_destroy(rhs);
