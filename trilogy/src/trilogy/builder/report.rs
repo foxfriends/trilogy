@@ -453,7 +453,8 @@ impl<E: std::error::Error> Error<E> {
                             .with_label(Label::new(dot).with_color(primary).with_message("try removing this `.`"))
                             .with_help("the spread operator uses only two (`..`)")
                     }
-                    ErrorKind::IfExpressionRestriction => ariadne::Report::build(kind, span)
+                    ErrorKind::IfExpressionRestriction => ariadne::Report::build(kind, span.clone())
+                        .with_label(Label::new(span).with_color(primary).with_message("in this expression"))
                         .with_message("an `if` expression must have an `else` clause"),
                     ErrorKind::TaggedTemplateMissingIdentifier => ariadne::Report::build(kind, span.clone())
                         .with_message("a tagged template requires a tag identifier")
