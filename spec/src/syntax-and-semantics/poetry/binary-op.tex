@@ -361,14 +361,16 @@ of explicit syntax.}
 
 The bitwise operators work only on values of Bits type, with the exception
 of the shift operators which expect the right-hand operand to be an integer.
-Again, if the types are incorrect, it causes is a runtime type error.
+Again, if the types are incorrect, it causes a runtime type error.
 
 The three main binary bitwise operators extend the shorter operand with 0s on
-the left until both are of the same length.
+the right until both are of the same length.
 
 The left and right shift operators each come in three forms; one that extends,
 one that contracts, and one that maintains the length of the value, filling the
-tail end with zeros.
+other end with zeros. Meanwhile, if the number provided to any of the shift
+operators is negative, it is treated as a shift in the opposite direction of the
+arrow.
 
 \begin{prooftree}
     \AxiomC{$\Gamma\vdash A = a : \ty{Bits}$}
