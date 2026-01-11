@@ -313,6 +313,14 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
         let mut stderr = trilogy_compile.stderr.take().unwrap();
         report.trilogy_exit_code = trilogy_compile.wait().unwrap().code().unwrap();
         report.trilogy_compile_time = start.elapsed();
+        if report.trilogy_exit_code == 101 {
+            // Rust programs exit 101 when they panic; panic does not count as a successfully
+            // failed compilation
+            let mut error = String::new();
+            stderr.read_to_string(&mut error).unwrap();
+            report.report_error = Some(error);
+            break 'test;
+        }
         stderr.read_to_string(&mut report.trilogy_stderr).unwrap();
         if report.trilogy_exit_code != 0 {
             break 'test;

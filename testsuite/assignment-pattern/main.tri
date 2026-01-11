@@ -1,0 +1,7 @@
+proc main!() {
+  let mut a = 5
+  let mut b = 6
+  a:b = 6:5
+  assert a == 6
+  assert b == 5
+}
