@@ -44,6 +44,31 @@ impl IfElseExpression {
         })
     }
 
+    pub(crate) fn parse_statement(parser: &mut Parser) -> SyntaxResult<Self> {
+        let r#if = parser.expect(KwIf).expect("Caller should have found this");
+        let condition = Expression::parse(parser)?;
+        let when_true = FollowingExpression::parse(parser)?;
+
+        let when_false = if parser.check(KwElse).is_ok() {
+            Some(ElseClause::parse_statement(parser)?)
+        } else {
+            None
+        };
+
+        let span = match &when_false {
+            Some(case) => case.span.union(r#if.span),
+            None => when_true.span().union(r#if.span),
+        };
+
+        Ok(Self {
+            r#if,
+            condition,
+            when_true,
+            when_false,
+            span,
+        })
+    }
+
     pub(crate) fn is_strict_expression(&self) -> bool {
         self.when_false.is_some()
     }
@@ -68,6 +93,22 @@ impl ElseClause {
             .expect(KwElse)
             .expect("Caller should have found this");
         let body = Expression::parse(parser)?;
+        Ok(Self {
+            span: r#else.span.union(body.span()),
+            r#else,
+            body,
+        })
+    }
+
+    fn parse_statement(parser: &mut Parser) -> SyntaxResult<Self> {
+        let r#else = parser
+            .expect(KwElse)
+            .expect("Caller should have found this");
+        let body = if parser.check(KwIf).is_ok() {
+            Expression::IfElse(Box::new(IfElseExpression::parse_statement(parser)?))
+        } else {
+            Expression::parse(parser)?
+        };
         Ok(Self {
             span: r#else.span.union(body.span()),
             r#else,

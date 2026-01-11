@@ -25,7 +25,7 @@ impl Statement {
         match token.token_type {
             KwLet => Ok(Self::Let(Box::new(LetStatement::parse(parser)?))),
             KwIf => {
-                let expr = IfElseExpression::parse(parser)?;
+                let expr = IfElseExpression::parse_statement(parser)?;
                 Ok(Self::If(Box::new(expr)))
             }
             KwMatch => Ok(Self::Match(Box::new(MatchExpression::parse(parser)?))),
