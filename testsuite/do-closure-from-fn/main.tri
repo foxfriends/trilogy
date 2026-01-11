@@ -7,4 +7,5 @@ func dbg_later val = do() {
 proc main!() {
   let closure = dbg_later 5
   closure!()
+  exit 0
 }

@@ -1,0 +1,14 @@
+import "trilogy:array" use map
+
+func each arr cb = map cb arr
+
+proc test_using!() {
+  do(x) using each [1, 2, 3]
+  do(y) using each [1, 2, 3]
+  return x + y
+}
+
+proc main!() {
+  let result = test_using!()
+  assert result == [[2, 3, 4], [3, 4, 5], [4, 5, 6]]
+}

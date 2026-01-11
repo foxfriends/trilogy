@@ -6,4 +6,5 @@ func recursive i =
 
 proc main!() {
   recursive 0
+  exit 0
 }

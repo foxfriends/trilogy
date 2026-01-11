@@ -33,9 +33,10 @@ referenced out of order.
 When called, the body of the procedure is run with the formal parameters bound to
 the arguments with which the procedure was called. A procedure may use the \kw{return}
 keyword to end its evaluation, with its call evaluating to the returned value.
-If control runs off the end of the procedure's body, its call evaluates to \kw{unit}.
-A procedure may cause an execution to end or branch, in which case all evaluations are propgated
-to the call site, conceptually causing the call to end or branch respectively.
+If control runs off the end of the procedure's body block, the call evaluates to the final
+value of the block. A procedure may cause an execution to end or branch, in which case all
+evaluations are propgated to the call site, conceptually causing the call to end or branch
+respectively.
 
 \begin{prooftree}
     \AxiomC{$\kw{proc}\ p\texttt{!}(P_{1\hdots n})\ \block{M,\ \kw{return}\ N}$}
@@ -55,10 +56,10 @@ to the call site, conceptually causing the call to end or branch respectively.
     \AxiomC{$\Sigma\vdash x_i: \tau_i$}
     \AxiomC{$x_i = P_i$}
     \def\extraVskip{3.5pt}
-    \BinaryInfC{$\Gamma,\setof{a_i\given a_i\defby P_i} \vdash M: \top$}
-    \LeftLabel{Procedure\textsuperscript{$\top$}}
+    \BinaryInfC{$\Gamma,\setof{a_i\given a_i\defby P_i} \vdash M \Rightarrow \Phi$}
+    \LeftLabel{Procedure\textsubscript{2}}
     \def\extraVskip{2pt}
-    \BinaryInfC{$\Gamma \vdash p : \texttt{!(}\tau_{1\hdots n}\texttt{)} \rightarrow \kw{unit}$}
+    \BinaryInfC{$\Gamma \vdash p : \texttt{!(}\tau_{1\hdots n}\texttt{)} \rightarrow \Phi$}
 \end{prooftree}
 
 \begin{prooftree}
@@ -66,7 +67,7 @@ to the call site, conceptually causing the call to end or branch respectively.
     \AxiomC{$\Sigma\vdash x_i: \tau_i$}
     \AxiomC{$x_i = P_i$}
     \def\extraVskip{3.5pt}
-    \BinaryInfC{$\Gamma,\setof{a_i\given a_i\defby P_i} \vdash M: \top$}
+    \BinaryInfC{$\Gamma,\setof{a_i\given a_i\defby P_i} \vdash M: \bot$}
     \LeftLabel{Procedure\textsuperscript{$\bot$}}
     \BinaryInfC{$\Gamma \vdash p : \texttt{!(}\tau_{1\hdots n}\texttt{)} \rightarrow \bot$}
 \end{prooftree}

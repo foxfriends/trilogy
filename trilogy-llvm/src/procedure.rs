@@ -156,12 +156,8 @@ impl<'ctx> Codegen<'ctx> {
             }
 
             if let Some(value) = self.compile_expression(&procedure.body, "") {
-                // There is no implicit return of the final value of a procedure. That value is lost,
-                // and unit is returned instead. It is most likely that there is a return in the body,
-                // in which case we never reach this point
-                self.trilogy_value_destroy(value);
                 let ret = self.get_return("");
-                self.call_known_continuation(ret, self.allocate_const(self.unit_const(), ""));
+                self.call_known_continuation(ret, value);
             }
         }
         self.end_function();

@@ -30,4 +30,5 @@ proc main!() {
     else yield
   })
   dbg!("Made it to end")
+  exit 0
 }

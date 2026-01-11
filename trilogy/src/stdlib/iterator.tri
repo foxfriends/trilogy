@@ -14,20 +14,21 @@ test "iterator from" {
 
   let kvs = collect <| from {|'a => 'b, 'c => 'd|}
   assert array::length kvs == 2
-  # assert is 'a:'b in kvs
-  # assert is 'c:'d in kvs
+  assert is 'a:'b in kvs
+  assert is 'c:'d in kvs
 
   let arr = collect <| from [|1, 2, 3|]
   assert array::length arr == 3
-  # assert is 1 in arr
-  # assert is 2 in arr
-  # assert is 3 in arr
+  assert is 1 in arr
+  assert is 2 in arr
+  assert is 3 in arr
 
   assert collect <| from "hello" == ['h', 'e', 'l', 'l', 'o']
 }
 
 func of val = do() {
   yield 'next(val)
+  return unit
 }
 
 test "iterator of" {

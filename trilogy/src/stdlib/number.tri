@@ -9,14 +9,7 @@ func from_bits n bits = from_bits (n * 2) (bits <<~ 1)
 
 func from bits and typeof 'bits = from_bits 0 bits
 
-import "trilogy:debug" use dbg
 test "number from" {
-  let mut n = 0bxDEADBEEF
-  while n != 0bb {
-    n <<~= 1
-    dbg!(n)
-  }
-
   assert from 0bb == 0
   assert from 0bb0000 == 0
   assert from 0bb0001 == 1
