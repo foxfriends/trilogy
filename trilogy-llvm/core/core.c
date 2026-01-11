@@ -380,7 +380,8 @@ void bitwise_invert(trilogy_value* rv, trilogy_value* value) {
 void shift_left(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
-    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    uint64_t n = trilogy_number_to_u64(rhs_num);
+    if (n > SIZE_MAX) internal_panic("out of range\n");
     if (n == 0) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
@@ -401,7 +402,8 @@ void shift_left_extend(
 ) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
-    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    uint64_t n = trilogy_number_to_u64(rhs_num);
+    if (n > SIZE_MAX) internal_panic("out of range\n");
     if (n == 0) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
@@ -422,7 +424,8 @@ void shift_left_contract(
 ) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
-    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    uint64_t n = trilogy_number_to_u64(rhs_num);
+    if (n > SIZE_MAX) internal_panic("out of range\n");
     if (n == 0) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
@@ -441,7 +444,8 @@ void shift_left_contract(
 void shift_right(trilogy_value* rv, trilogy_value* lhs, trilogy_value* rhs) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
-    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    uint64_t n = trilogy_number_to_u64(rhs_num);
+    if (n > SIZE_MAX) internal_panic("out of range\n");
     if (n == 0) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
@@ -462,7 +466,8 @@ void shift_right_extend(
 ) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
-    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    uint64_t n = trilogy_number_to_u64(rhs_num);
+    if (n > SIZE_MAX) internal_panic("out of range\n");
     if (n == 0) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;
@@ -483,7 +488,8 @@ void shift_right_contract(
 ) {
     trilogy_bits_value* lhs_bits = trilogy_bits_untag(lhs);
     trilogy_number_value* rhs_num = trilogy_number_untag(rhs);
-    size_t n = (size_t)trilogy_number_to_u64(rhs_num);
+    uint64_t n = trilogy_number_to_u64(rhs_num);
+    if (n > SIZE_MAX) internal_panic("out of range\n");
     if (n == 0) {
         trilogy_bits_clone_into(rv, lhs_bits);
         return;

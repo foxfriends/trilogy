@@ -223,7 +223,6 @@ static void shift_left_into(
     const size_t byte_dist = n / 8;
     const size_t bit_dist = n % 8;
     assert(out_len <= in_len);
-    assert(out_len >= in_len - byte_dist);
     for (size_t i = 0; i < in_len - byte_dist; ++i) {
         uint8_t left_part = in[i + byte_dist] << bit_dist;
         uint8_t right_part = 0;
