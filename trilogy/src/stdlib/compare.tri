@@ -1,4 +1,4 @@
-export min, max, min_by, max_by, asc, desc
+export min, max, min_by, max_by, asc, nonasc, desc, nondesc
 
 func max a b = if a > b then a else b
 
@@ -39,8 +39,23 @@ func asc key a b = key a < key b
 test "compare asc" {
   let asc_first = asc (fn t.t.'left)
   assert asc_first (1:2) (2:1)
+  assert !(asc_first (2:2) (2:1))
+  assert !(asc_first (2:2) (1:1))
   assert asc_first ('a':true) ('b':1)
+  assert !(asc_first ('b':true) ('b':1))
   assert !(asc_first ('b':true) ('a':1))
+}
+
+func nonasc key a b = key a >= key b
+
+test "compare nonasc" {
+  let nonasc_first = nonasc (fn t.t.'left)
+  assert !(nonasc_first (1:2) (2:1))
+  assert nonasc_first (2:2) (2:1)
+  assert nonasc_first (2:2) (1:1)
+  assert !(nonasc_first ('a':true) ('b':1))
+  assert nonasc_first ('b':true) ('b':1)
+  assert nonasc_first ('b':true) ('a':1)
 }
 
 func desc key a b = key a > key b
@@ -48,6 +63,21 @@ func desc key a b = key a > key b
 test "compare desc" {
   let desc_first = desc (fn t.t.'left)
   assert desc_first (2:1) (1:2)
-  assert !(desc_first ('a':true) ('b':1))
+  assert !(desc_first (2:1) (2:2))
+  assert !(desc_first (2:true) (2:1))
   assert desc_first ('b':true) ('a':1)
+  assert !(desc_first ('b':true) ('b':1))
+  assert !(desc_first ('a':true) ('b':1))
+}
+
+func nondesc key a b = key a <= key b
+
+test "compare nondesc" {
+  let nondesc_first = nondesc (fn t.t.'left)
+  assert !(nondesc_first (2:1) (1:2))
+  assert nondesc_first (2:1) (2:2)
+  assert nondesc_first (2:true) (2:1)
+  assert !(nondesc_first ('b':true) ('a':1))
+  assert nondesc_first ('b':true) ('b':1)
+  assert nondesc_first ('a':true) ('b':1)
 }
