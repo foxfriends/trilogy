@@ -33,3 +33,4 @@ continue = break << next
 * Consider nullary type definitions (is that just `ty` defs inside a procedure?)
 * Partially applied binary operators (e.g. `(< 3)` or `(4 :)`)
 * See about implementing `iterator::zip` and `iterator::capture`; do effects work well enougn?
+* Allow `assert` in rules
