@@ -40,38 +40,37 @@ impl<'ctx> Codegen<'ctx> {
         let prev = self.set_span(pattern.span);
 
         match &pattern.value {
+            Value::Reference(id) if bound_ids.contains(&id.id) => {
+                let pinned = self.allocate_value("");
+                self.trilogy_value_clone_into(pinned, self.variable(&id.id));
+                self.match_constant(value, pinned, on_fail);
+            }
             Value::Reference(id) => {
-                if bound_ids.contains(&id.id) {
-                    let pinned = self.allocate_value("");
-                    self.trilogy_value_clone_into(pinned, self.variable(&id.id));
-                    self.match_constant(value, pinned, on_fail);
-                } else {
-                    bound_ids.push(id.id.clone());
-                    let variable = self.variable(&id.id);
-                    let value_ref = self.use_temporary(value).unwrap();
+                bound_ids.push(id.id.clone());
+                let variable = self.variable(&id.id);
+                let value_ref = self.use_temporary(value).unwrap();
 
-                    let bind = self.context.append_basic_block(self.get_function(), "bind");
-                    let check = self
-                        .context
-                        .append_basic_block(self.get_function(), "check");
-                    let matched = self
-                        .context
-                        .append_basic_block(self.get_function(), "matched");
+                let bind = self.context.append_basic_block(self.get_function(), "bind");
+                let check = self
+                    .context
+                    .append_basic_block(self.get_function(), "check");
+                let matched = self
+                    .context
+                    .append_basic_block(self.get_function(), "matched");
 
-                    self.branch_undefined(variable, bind, check);
+                self.branch_undefined(variable, bind, check);
 
-                    self.builder.position_at_end(bind);
-                    self.trilogy_value_clone_into(variable, value_ref);
-                    self.builder.build_unconditional_branch(matched).unwrap();
+                self.builder.position_at_end(bind);
+                self.trilogy_value_clone_into(variable, value_ref);
+                self.builder.build_unconditional_branch(matched).unwrap();
 
-                    self.builder.position_at_end(check);
-                    let pinned = self.allocate_value("");
-                    self.trilogy_value_clone_into(pinned, variable);
-                    self.match_constant(value, pinned, on_fail);
-                    self.builder.build_unconditional_branch(matched).unwrap();
+                self.builder.position_at_end(check);
+                let pinned = self.allocate_value("");
+                self.trilogy_value_clone_into(pinned, variable);
+                self.match_constant(value, pinned, on_fail);
+                self.builder.build_unconditional_branch(matched).unwrap();
 
-                    self.builder.position_at_end(matched);
-                }
+                self.builder.position_at_end(matched);
             }
             Value::Conjunction(conj) => {
                 self.match_pattern(&conj.0, value, on_fail, bound_ids)?;

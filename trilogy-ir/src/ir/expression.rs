@@ -235,11 +235,10 @@ impl Expression {
         statements: &mut impl std::iter::Iterator<Item = syntax::Statement>,
         sequence: &mut Vec<Self>,
     ) {
-        let statement = match statements.next() {
-            Some(ast) => Self::convert_statement(converter, ast, statements),
-            None => return,
+        let Some(ast) = statements.next() else {
+            return;
         };
-        sequence.push(statement);
+        sequence.push(Self::convert_statement(converter, ast, statements));
         Self::convert_sequence_into(converter, statements, sequence);
     }
 

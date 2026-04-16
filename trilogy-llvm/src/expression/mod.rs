@@ -692,17 +692,17 @@ impl<'ctx> Codegen<'ctx> {
             Value::Builtin(builtin) if builtin.is_unary() => {
                 return self.compile_apply_unary(*builtin, &application.argument, name, span);
             }
-            Value::Application(app) => match &app.function.value {
-                Value::Builtin(builtin) if builtin.is_binary() => {
-                    return self.compile_apply_binary(
-                        *builtin,
-                        &app.argument,
-                        &application.argument,
-                        name,
-                    );
-                }
-                _ => {}
-            },
+            Value::Application(app)
+                if let Value::Builtin(builtin) = app.function.value
+                    && builtin.is_binary() =>
+            {
+                return self.compile_apply_binary(
+                    builtin,
+                    &app.argument,
+                    &application.argument,
+                    name,
+                );
+            }
             _ => {}
         };
         let function = self.compile_expression(&application.function, "fn")?;
@@ -789,23 +789,21 @@ impl<'ctx> Codegen<'ctx> {
                 self.trilogy_value_clone_into(variable.ptr(), value);
                 Some(value)
             }
-            Value::Application(app) => match &app.function.value {
-                Value::Application(parent)
-                    if matches!(parent.function.value, Value::Builtin(Builtin::Access)) =>
-                {
-                    let container = self.compile_expression(&parent.argument, "")?;
-                    self.bind_temporary(container);
-                    let key = self.compile_expression(&app.argument, "")?;
-                    self.bind_temporary(key);
-                    let value = self.compile_expression(&assign.rhs, "")?;
-                    let container_val = self.use_temporary_clone(container).unwrap();
-                    let key_val = self.use_temporary_clone(key).unwrap();
-                    let out = self.allocate_value(name);
-                    self.member_assign(out, container_val, key_val, value);
-                    Some(out)
-                }
-                _ => panic!("invalid lvalue in assignment"),
-            },
+            Value::Application(app)
+                if let Value::Application(parent) = &app.function.value
+                    && let Value::Builtin(Builtin::Access) = parent.function.value =>
+            {
+                let container = self.compile_expression(&parent.argument, "")?;
+                self.bind_temporary(container);
+                let key = self.compile_expression(&app.argument, "")?;
+                self.bind_temporary(key);
+                let value = self.compile_expression(&assign.rhs, "")?;
+                let container_val = self.use_temporary_clone(container).unwrap();
+                let key_val = self.use_temporary_clone(key).unwrap();
+                let out = self.allocate_value(name);
+                self.member_assign(out, container_val, key_val, value);
+                Some(out)
+            }
             _ => panic!("invalid lvalue in assignment"),
         }
     }

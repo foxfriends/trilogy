@@ -1,6 +1,5 @@
 //! The parser for the Trilogy Programming Language.
 
-#![cfg_attr(test, expect(incomplete_features))]
 #![cfg_attr(test, feature(deref_patterns))]
 
 #[macro_use]

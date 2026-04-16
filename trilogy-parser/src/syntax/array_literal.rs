@@ -108,10 +108,8 @@ impl ArrayElement {
         }
         let expression = Expression::parse_or_pattern(parser)?;
         match expression {
-            Ok(expression) => match spread {
-                None => Ok(Ok(Self::Element(expression))),
-                Some(spread) => Ok(Ok(Self::Spread(spread, expression))),
-            },
+            Ok(expression) if let Some(spread) = spread => Ok(Ok(Self::Spread(spread, expression))),
+            Ok(expression) => Ok(Ok(Self::Element(expression))),
             Err(pattern) => Ok(Err((spread, pattern))),
         }
     }

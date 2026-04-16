@@ -489,14 +489,11 @@ impl Expression {
             Self::Bits(..) => true,
             Self::String(..) => true,
             Self::Character(..) => true,
-            Self::Unary(op) if matches!(op.operator, UnaryOperator::Negate(..)) => {
+            Self::Unary(op) if let UnaryOperator::Negate(..) = op.operator => {
                 op.operand.is_pattern()
             }
             Self::Binary(op)
-                if matches!(
-                    op.operator,
-                    BinaryOperator::Glue(..) | BinaryOperator::Cons(..)
-                ) =>
+                if let BinaryOperator::Glue(..) | BinaryOperator::Cons(..) = op.operator =>
             {
                 op.lhs.is_pattern() && op.rhs.is_pattern()
             }

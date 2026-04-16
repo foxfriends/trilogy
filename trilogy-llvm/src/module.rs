@@ -70,16 +70,17 @@ impl<'ctx> Codegen<'ctx> {
                 Linkage::Private
             };
             let member_accessor = match &definition.item {
-                DefinitionItem::Module(module) if module.module.as_external().is_some() => {
+                DefinitionItem::Module(module)
+                    if let Some(location) = module.module.as_external() =>
+                {
                     // TODO: probably most sensible to just disallow external modules to be imported in functor
                     // modules since they won't be able to access the context values anyway.
-                    let location = module.module.as_external().unwrap().to_owned();
-                    let submodule = self.modules.get(&location).unwrap();
+                    let submodule = self.modules.get(location).unwrap();
                     self.add_global(
                         module.name.id.clone(),
-                        Head::ExternalModule(location.clone()),
+                        Head::ExternalModule(location.to_owned()),
                     );
-                    self.import_module(definition.name().unwrap(), &location, submodule)
+                    self.import_module(definition.name().unwrap(), location, submodule)
                 }
                 DefinitionItem::Module(def) => {
                     let module = def.module.as_module().unwrap();

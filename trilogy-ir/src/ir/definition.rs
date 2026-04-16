@@ -190,15 +190,17 @@ impl Definition {
     ) -> Vec<Self> {
         let def = match &ast.item {
             syntax::DefinitionItem::Export(..) => return vec![],
+            syntax::DefinitionItem::Constant(ast)
+                if let Some(original) = converter.declared_no_shadow(ast.name.as_ref()) =>
+            {
+                let original = original.declaration_span;
+                converter.error(Error::DuplicateDefinition {
+                    original,
+                    duplicate: ast.name.clone(),
+                });
+                return vec![];
+            }
             syntax::DefinitionItem::Constant(ast) => {
-                if let Some(original) = converter.declared_no_shadow(ast.name.as_ref()) {
-                    let original = original.declaration_span;
-                    converter.error(Error::DuplicateDefinition {
-                        original,
-                        duplicate: ast.name.clone(),
-                    });
-                    return vec![];
-                }
                 let name = Identifier::declare(converter, ast.name.clone());
                 let is_mutable = ast.r#mut.is_some();
                 if is_mutable {
@@ -258,38 +260,41 @@ impl Definition {
 
                 return names;
             }
+            syntax::DefinitionItem::Function(ast)
+                if let Some(_) = converter.declared_no_shadow(ast.head.name.as_ref()) =>
+            {
+                return vec![];
+            }
             syntax::DefinitionItem::Function(ast) => {
-                if converter
-                    .declared_no_shadow(ast.head.name.as_ref())
-                    .is_some()
-                {
-                    return vec![];
-                }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
                 Self::new(span, FunctionDefinition::declare(name))
             }
+            syntax::DefinitionItem::Type(ast)
+                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) =>
+            {
+                let original = original.declaration_span;
+                converter.error(Error::DuplicateDefinition {
+                    original,
+                    duplicate: ast.head.name.clone(),
+                });
+                return vec![];
+            }
             syntax::DefinitionItem::Type(ast) => {
-                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
-                    let original = original.declaration_span;
-                    converter.error(Error::DuplicateDefinition {
-                        original,
-                        duplicate: ast.head.name.clone(),
-                    });
-                    return vec![];
-                }
                 let name = Identifier::declare(converter, ast.head.name.clone());
                 Self::new(ast.span(), ModuleDefinition::declare(name))
             }
+            syntax::DefinitionItem::Procedure(ast)
+                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) =>
+            {
+                let original = original.declaration_span;
+                converter.error(Error::DuplicateDefinition {
+                    original,
+                    duplicate: ast.head.name.clone(),
+                });
+                return vec![];
+            }
             syntax::DefinitionItem::Procedure(ast) => {
-                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
-                    let original = original.declaration_span;
-                    converter.error(Error::DuplicateDefinition {
-                        original,
-                        duplicate: ast.head.name.clone(),
-                    });
-                    return vec![];
-                }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
                 Self::new(
@@ -297,15 +302,17 @@ impl Definition {
                     ProcedureDefinition::declare(name, ast.head.parameters.len()),
                 )
             }
+            syntax::DefinitionItem::ExternalProcedure(ast)
+                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) =>
+            {
+                let original = original.declaration_span;
+                converter.error(Error::DuplicateDefinition {
+                    original,
+                    duplicate: ast.head.name.clone(),
+                });
+                return vec![];
+            }
             syntax::DefinitionItem::ExternalProcedure(ast) => {
-                if let Some(original) = converter.declared_no_shadow(ast.head.name.as_ref()) {
-                    let original = original.declaration_span;
-                    converter.error(Error::DuplicateDefinition {
-                        original,
-                        duplicate: ast.head.name.clone(),
-                    });
-                    return vec![];
-                }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
                 let call_conv = ast.call_conv.value.as_ref().unwrap().as_str().unwrap();
@@ -325,13 +332,12 @@ impl Definition {
                     ProcedureDefinition::declare_extern(name, call_conv, ast.head.parameters.len()),
                 )
             }
+            syntax::DefinitionItem::Rule(ast)
+                if let Some(_) = converter.declared_no_shadow(ast.head.name.as_ref()) =>
+            {
+                return vec![];
+            }
             syntax::DefinitionItem::Rule(ast) => {
-                if converter
-                    .declared_no_shadow(ast.head.name.as_ref())
-                    .is_some()
-                {
-                    return vec![];
-                }
                 let span = ast.span();
                 let name = Identifier::declare(converter, ast.head.name.clone());
                 Self::new(span, RuleDefinition::declare(name))

@@ -190,19 +190,19 @@ impl<'ctx> Codegen<'ctx> {
             None => {
                 let closure_ptr = self.function_params.borrow().last().copied().unwrap();
                 match closure_ptr.as_instruction() {
-                    Some(instruction) => {
+                    Some(instruction)
                         // <- this is where instruction points
                         // %closure_ptr = alloca
                         // store %closure, %closure_ptr
                         // <- this is where we want to be
                         if let Some(instruction) = instruction
                             .get_next_instruction()
-                            .and_then(|ins| ins.get_next_instruction())
-                        {
-                            builder.position_at(instruction.get_parent().unwrap(), &instruction);
-                        } else {
-                            builder.position_at_end(instruction.get_parent().unwrap());
-                        }
+                            .and_then(|ins| ins.get_next_instruction()) =>
+                    {
+                        builder.position_at(instruction.get_parent().unwrap(), &instruction);
+                    }
+                    Some(instruction) => {
+                        builder.position_at_end(instruction.get_parent().unwrap());
                     }
                     None => {
                         let block = self.get_function().get_first_basic_block().unwrap();

@@ -30,10 +30,8 @@ impl IrVisitor for Bindings {
             Conjunction(pair) => self.visit_conjunction(pair),
             Disjunction(pair) => self.visit_disjunction(pair),
             Application(application) => self.visit_application(application),
-            Reference(ident) => {
-                if self.is_bindable {
-                    self.bindings.insert(ident.id.clone());
-                }
+            Reference(ident) if self.is_bindable => {
+                self.bindings.insert(ident.id.clone());
             }
             Set(pack) => self.visit_set(pack),
             Array(pack) => self.visit_array(pack),
