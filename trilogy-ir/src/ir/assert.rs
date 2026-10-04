@@ -9,6 +9,7 @@ pub struct Assert {
 }
 
 impl Assert {
+    #[expect(clippy::map_unwrap_or)]
     pub(super) fn convert(converter: &mut Converter, ast: syntax::AssertStatement) -> Self {
         let message = ast
             .message

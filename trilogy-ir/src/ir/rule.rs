@@ -24,10 +24,10 @@ impl Rule {
             .into_iter()
             .map(|param| Expression::convert_pattern(converter, param))
             .collect();
-        let body = ast
-            .body
-            .map(|query| Query::convert(converter, query))
-            .unwrap_or_else(|| Query::pass(span));
+        let body = ast.body.map_or_else(
+            || Query::pass(span),
+            |query| Query::convert(converter, query),
+        );
         body.validate_for_rule(converter);
         converter.pop_scope();
         Self {

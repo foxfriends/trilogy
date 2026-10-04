@@ -14,9 +14,7 @@ lax = ["trilogy-parser/lax"]
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive", "color"] }
-colored = "3.0.0"
 num = "0.4.0"
-pretty = "0.12.4"
 trilogy-scanner = { path = "../trilogy-scanner/" }
 trilogy-parser = { path = "../trilogy-parser/" }
 trilogy-ir = { path = "../trilogy-ir/" }
@@ -42,3 +40,6 @@ wait-timeout = "0.2.1"
 name = "testsuite"
 path = "./test.rs"
 harness = false
+
+[lints]
+workspace = true

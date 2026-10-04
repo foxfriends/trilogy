@@ -67,7 +67,7 @@ impl Procedure {
         body: &mut impl std::iter::Iterator<Item = syntax::Statement>,
     ) -> Self {
         converter.push_scope();
-        let head_span = head.as_ref().map(|head| head.span()).unwrap_or(using_span);
+        let head_span = head.as_ref().map_or(using_span, |head| head.span());
         let parameters: Vec<_> = head
             .and_then(|head| head.parameter_list)
             .into_iter()

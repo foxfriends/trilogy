@@ -101,10 +101,10 @@ impl Case {
         let case_span = ast.case.span;
         let span = ast.span();
         converter.push_scope();
-        let pattern = ast
-            .pattern
-            .map(|ast| Expression::convert_pattern(converter, ast))
-            .unwrap_or_else(|| Expression::wildcard(case_span));
+        let pattern = ast.pattern.map_or_else(
+            || Expression::wildcard(case_span),
+            |ast| Expression::convert_pattern(converter, ast),
+        );
         let guard = ast
             .guard
             .map(|ast| Expression::convert(converter, ast.expression));

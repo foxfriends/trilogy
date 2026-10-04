@@ -211,8 +211,7 @@ impl Expression {
         let span = ast.span();
         converter.push_scope();
         let expr = Self::convert_sequence(converter, &mut ast.statements.into_iter())
-            .map(|seq| Self::sequence(span, seq))
-            .unwrap_or_else(|| Self::unit(span));
+            .map_or_else(|| Self::unit(span), |seq| Self::sequence(span, seq));
         converter.pop_scope();
         expr
     }

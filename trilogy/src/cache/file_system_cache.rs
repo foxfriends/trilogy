@@ -57,9 +57,7 @@ impl Cache for FileSystemCache {
     type Error = io::Error;
 
     fn has(&self, location: &Location) -> bool {
-        self.cache_path(location)
-            .map(|path| path.exists())
-            .unwrap_or(false)
+        self.cache_path(location).is_some_and(|path| path.exists())
     }
 
     fn load(&self, location: &Location) -> Result<String, Self::Error> {
