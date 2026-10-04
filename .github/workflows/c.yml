@@ -12,9 +12,9 @@ jobs:
       - name: Install clang-format
         run: |
           sudo apt-get update
-          sudo apt-get install clang-format-19
+          sudo apt-get install clang-format-22
       - name: Run clang-format
-        run: clang-format-19 --Werror --dry-run *.{c,h}
+        run: clang-format-22 --Werror --dry-run *.{c,h}
         working-directory: trilogy-llvm/core
   check:
     name: check
@@ -25,7 +25,7 @@ jobs:
       - name: Install clang-tidy
         run: |
           sudo apt-get update
-          sudo apt-get install clang-tidy-19
+          sudo apt-get install clang-tidy-22
       - name: Run clang-tidy
-        run: clang-tidy-19 *.{c,h} --
+        run: clang-tidy-22 *.{c,h} --
         working-directory: trilogy-llvm/core

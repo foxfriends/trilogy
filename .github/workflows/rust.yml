@@ -2,7 +2,7 @@ name: Rust CI
 
 on: push
 env:
-  LLVM_SYS_191_PREFIX: /usr/lib/llvm-19/
+  LLVM_SYS_221_PREFIX: /usr/lib/llvm-22/
   RUST_BACKTRACE: 1
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install clang-19 llvm-19 libpolly-19-dev
+          sudo apt-get install clang-22 llvm-22 libpolly-22-dev
       - name: Install Rust
         run: |
           rustup install stable
@@ -72,7 +72,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install clang-19 llvm-19 libpolly-19-dev
+          sudo apt-get install clang-22 llvm-22 libpolly-22-dev
       - name: Install Rust
         run: |
           rustup install stable
@@ -103,7 +103,7 @@ jobs:
       - name: Install LLVM
         run: |
           sudo apt-get update
-          sudo apt-get install clang-19 llvm-19 libpolly-19-dev valgrind
+          sudo apt-get install clang-22 llvm-22 libpolly-22-dev valgrind
       - name: Install Rust
         run: |
           rustup install nightly

@@ -326,7 +326,7 @@ fn test_case(path: PathBuf, done: Sender<Report>) {
             break 'test;
         }
 
-        let clang = var("LLVM_SYS_191_PREFIX")
+        let clang = var("LLVM_SYS_221_PREFIX")
             .ok()
             .map(|pref| pref + "/bin/")
             .unwrap_or_else(|| "".to_owned())
