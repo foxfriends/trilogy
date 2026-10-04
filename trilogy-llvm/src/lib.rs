@@ -7,7 +7,7 @@
 //! but this is not convenient due to the compilation requirements, so it is not done.
 use codegen::Codegen;
 use inkwell::context::Context;
-use std::{collections::HashMap, ffi::c_void};
+use std::collections::HashMap;
 use trilogy_ir::ir;
 
 mod bare;
@@ -28,7 +28,7 @@ mod rule;
 mod test;
 mod types;
 
-type Entrypoint = unsafe extern "C" fn() -> c_void;
+type Entrypoint = unsafe extern "C" fn();
 
 /// Parameters to rules/procedures/functions start after the implicit parameters: return, yield, and end
 const IMPLICIT_PARAMS: usize = 3;
