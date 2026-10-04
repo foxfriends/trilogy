@@ -1,0 +1,100 @@
+import "trilogy:bits" as bits
+import "trilogy:number" as number
+import "trilogy:core" use length, slice
+import "trilogy:array" as array
+
+export md5
+proc md5!(mut input and typeof 'bits) {
+  let from_le = number::from << bits::swap_endianness
+
+  # From: https://en.wikipedia.org/wiki/MD5#Algorithm
+  let s = [
+    7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+    5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+    4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+    6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,
+  ]
+  let k = [
+    0bxd76aa478, 0bxe8c7b756, 0bx242070db, 0bxc1bdceee,
+    0bxf57c0faf, 0bx4787c62a, 0bxa8304613, 0bxfd469501,
+    0bx698098d8, 0bx8b44f7af, 0bxffff5bb1, 0bx895cd7be,
+    0bx6b901122, 0bxfd987193, 0bxa679438e, 0bx49b40821,
+    0bxf61e2562, 0bxc040b340, 0bx265e5a51, 0bxe9b6c7aa,
+    0bxd62f105d, 0bx02441453, 0bxd8a1e681, 0bxe7d3fbc8,
+    0bx21e1cde6, 0bxc33707d6, 0bxf4d50d87, 0bx455a14ed,
+    0bxa9e3e905, 0bxfcefa3f8, 0bx676f02d9, 0bx8d2a4c8a,
+    0bxfffa3942, 0bx8771f681, 0bx6d9d6122, 0bxfde5380c,
+    0bxa4beea44, 0bx4bdecfa9, 0bxf6bb4b60, 0bxbebfbc70,
+    0bx289b7ec6, 0bxeaa127fa, 0bxd4ef3085, 0bx04881d05,
+    0bxd9d4d039, 0bxe6db99e5, 0bx1fa27cf8, 0bxc4ac5665,
+    0bxf4292244, 0bx432aff97, 0bxab9423a7, 0bxfc93a039,
+    0bx655b59c3, 0bx8f0ccc92, 0bxffeff47d, 0bx85845dd1,
+    0bx6fa87e4f, 0bxfe2ce6e0, 0bxa3014314, 0bx4e0811a1,
+    0bxf7537e82, 0bxbd3af235, 0bx2ad7d2bb, 0bxeb86d391,
+  ]
+
+  let mut a0 = 0bx67452301
+  let mut b0 = 0bxefcdab89
+  let mut c0 = 0bx98badcfe
+  let mut d0 = 0bx10325476
+
+  let mut original_length = bits::from ((length input) % (2 ** 64))
+  original_length ~~>= 64 - (length original_length)
+  original_length = bits::swap_endianness original_length
+
+  input = bits::concat input 0bb1
+  while (length input) % 512 != 448 {
+    input <~~= 1
+  }
+  input = bits::concat input original_length
+
+  while length input != 0 {
+    let prefix = slice 0 512 input
+    input = slice 512 (length input) input
+
+    let mut a = a0
+    let mut b = b0
+    let mut c = c0
+    let mut d = d0
+    let mut i = 0
+    while i < 64 {
+      let mut f = 0
+      let mut g = 0
+      if i < 16 {
+        f = (b & c) | ((~b) & d)
+        g = i
+      } else if i < 32 {
+        f = (b & d) | (c & (~d))
+        g = (5 * i + 1) % 16
+      } else if i < 48 {
+        f = b ^ c ^ d
+        g = (3 * i + 5) % 16
+      } else {
+        f = c ^ (b | ~d)
+        g = (7 * i) % 16
+      }
+
+
+      let mg = slice (32 * g) (32 * (g + 1)) prefix
+      f = bits::from <| (number::from f + number::from a + number::from k.i + from_le mg) % (2 ** 32)
+      a = d
+      d = c
+      c = b
+      let rotated = number::from <| ((f <~ (s.i)) | (f ~> 32 - (s.i)))
+      b = bits::from <| (number::from b + rotated) % (2 ** 32)
+      i += 1
+    }
+    a0 = bits::from <| (number::from a0 + number::from a) % (2 ** 32)
+    b0 = bits::from <| (number::from b0 + number::from b) % (2 ** 32)
+    c0 = bits::from <| (number::from c0 + number::from c) % (2 ** 32)
+    d0 = bits::from <| (number::from d0 + number::from d) % (2 ** 32)
+  }
+
+  return array::rfold (bits::concat) 0bb [bits::swap_endianness n for n in [a0, b0, c0, d0]]
+}
+
+test "crypto md5" {
+  assert md5!(0bb) == 0bxd41d8cd98f00b204e9800998ecf8427e
+  assert md5!(bits::from "The quick brown fox jumps over the lazy dog") == 0bx9e107d9d372bb6826bd81d3542a419d6
+  assert md5!(bits::from "The quick brown fox jumps over the lazy dog.") == 0bxe4d909c290d0fb1ca068ffaddf22cbd0
+}

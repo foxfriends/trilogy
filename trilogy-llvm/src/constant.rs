@@ -11,7 +11,7 @@ impl<'ctx> Codegen<'ctx> {
         module_context: Option<Vec<Id>>,
     ) {
         let name = definition.name.to_string();
-        let accessor_name = format!("{}::{}", self.module_path(), &name);
+        let accessor_name = format!("{}::{}", self.module_path(), name);
         let accessor = self.module.get_function(&accessor_name).unwrap();
 
         let subprogram = self.di.builder.create_function(

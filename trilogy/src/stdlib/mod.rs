@@ -18,6 +18,10 @@ where
             include_str!("./compare.tri").to_owned(),
         )
         .source_module(
+            Location::library("crypto").unwrap(),
+            include_str!("./crypto.tri").to_owned(),
+        )
+        .source_module(
             Location::library("atom").unwrap(),
             include_str!("./atom.tri").to_owned(),
         )

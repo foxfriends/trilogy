@@ -79,6 +79,22 @@ trilogy_bits_init_from_bigint(trilogy_value* tv, bigint* num) {
 }
 
 trilogy_bits_value*
+trilogy_bits_init_from_string(trilogy_value* tv, trilogy_string_value* str) {
+    size_t byte_len = str->len;
+    if (byte_len > SIZE_MAX) {
+        internal_panic("bits length limit\n");
+    }
+
+    trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
+    bits->len = byte_len * 8;
+    bits->contents = malloc_safe(sizeof(uint8_t) * byte_len);
+    for (size_t i = 0; i < byte_len; ++i) {
+        bits->contents[i] = (uint8_t)str->contents[i];
+    }
+    return trilogy_bits_init(tv, bits);
+}
+
+trilogy_bits_value*
 trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val) {
     trilogy_bits_value* bits = malloc_safe(sizeof(trilogy_bits_value));
     bits->len = val->len;
@@ -236,7 +252,9 @@ static void shift_left_into(
 trilogy_bits_value*
 trilogy_bits_shift_left_contract(trilogy_bits_value* lhs, size_t n) {
     if (n == 0) return trilogy_bits_copy(lhs);
-    assert(n <= lhs->len);
+    if (lhs->len < n) {
+        n = lhs->len;
+    }
     size_t old_bit_len = lhs->len;
     size_t new_bit_len = old_bit_len - n;
     size_t old_len = bit_len_to_byte_len(old_bit_len);
@@ -249,7 +267,9 @@ trilogy_bits_shift_left_contract(trilogy_bits_value* lhs, size_t n) {
 
 trilogy_bits_value* trilogy_bits_shift_left(trilogy_bits_value* lhs, size_t n) {
     if (n == 0) return trilogy_bits_copy(lhs);
-    assert(n <= lhs->len);
+    if (lhs->len < n) {
+        n = lhs->len;
+    }
     size_t bit_len = lhs->len;
     size_t len = bit_len_to_byte_len(bit_len);
     uint8_t* out_bytes = malloc_safe(sizeof(uint8_t) * len);
@@ -295,7 +315,9 @@ trilogy_bits_shift_right_extend(trilogy_bits_value* lhs, size_t n) {
 trilogy_bits_value*
 trilogy_bits_shift_right_contract(trilogy_bits_value* lhs, size_t n) {
     if (n == 0) return trilogy_bits_copy(lhs);
-    assert(n <= lhs->len);
+    if (lhs->len < n) {
+        n = lhs->len;
+    }
     size_t new_bit_len = lhs->len - n;
     size_t new_len = bit_len_to_byte_len(new_bit_len);
     if (new_len == 0) return trilogy_bits_new(0, NULL);

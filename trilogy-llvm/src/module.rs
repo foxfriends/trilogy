@@ -542,16 +542,16 @@ impl<'ctx> Codegen<'ctx> {
                     );
                 }
                 DefinitionItem::Procedure(procedure) => {
-                    self.import_accessor(&format!("{}::{}", location, &procedure.name.to_string()));
+                    self.import_accessor(&format!("{}::{}", location, procedure.name));
                 }
                 DefinitionItem::Function(function) => {
-                    self.import_accessor(&format!("{}::{}", location, &function.name.to_string()));
+                    self.import_accessor(&format!("{}::{}", location, function.name));
                 }
                 DefinitionItem::Constant(constant) => {
-                    self.import_accessor(&format!("{}::{}", location, &constant.name.to_string()));
+                    self.import_accessor(&format!("{}::{}", location, constant.name));
                 }
                 DefinitionItem::Rule(rule) => {
-                    self.import_accessor(&format!("{}::{}", location, &rule.name.to_string()));
+                    self.import_accessor(&format!("{}::{}", location, rule.name));
                 }
                 DefinitionItem::Test(..) => unreachable!(),
             }

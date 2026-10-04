@@ -726,7 +726,8 @@ void to_bits(trilogy_value* rv, trilogy_value* val) {
         break;
     }
     case TAG_STRING: {
-        internal_panic("unimplemented: bits from string\n");
+        trilogy_string_value* str = trilogy_string_assume(val);
+        trilogy_bits_init_from_string(rv, str);
         break;
     }
     default:

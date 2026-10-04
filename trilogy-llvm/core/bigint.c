@@ -269,7 +269,10 @@ static void digits_rsh(size_t length, digit_t* digits, unsigned int offset) {
     assert(offset < 32);
     for (size_t i = 0; i < length; ++i) {
         digits[i] >>= offset;
-        if (i < length - 1) digits[i] |= digits[i + 1] << (32 - offset);
+        if (i < length - 1)
+            digits[i] |=
+                digits[i + 1] // NOLINT(clang-analyzer-security.ArrayBound)
+                << (32 - offset);
     }
 }
 
@@ -398,14 +401,21 @@ void bigint_div_rem(bigint* lhs, const bigint* rhs, bigint* rem_out) {
 }
 
 void bigint_div(bigint* lhs, const bigint* rhs) {
-    bigint_div_rem(lhs, rhs, NULL);
+    if (lhs->length >= rhs->length) {
+        bigint_div_rem(lhs, rhs, NULL);
+    } else {
+        bigint_destroy(lhs);
+        *lhs = bigint_zero;
+    }
 }
 
 void bigint_rem(bigint* lhs, const bigint* rhs) {
-    bigint out = bigint_zero;
-    bigint_div_rem(lhs, rhs, &out);
-    bigint_destroy(lhs);
-    *lhs = out;
+    if (lhs->length >= rhs->length) {
+        bigint out = bigint_zero;
+        bigint_div_rem(lhs, rhs, &out);
+        bigint_destroy(lhs);
+        *lhs = out;
+    }
 }
 
 int bigint_cmp(const bigint* lhs, const bigint* rhs) {

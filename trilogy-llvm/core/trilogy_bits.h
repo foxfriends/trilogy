@@ -14,6 +14,8 @@ trilogy_bits_clone_into(trilogy_value* tv, trilogy_bits_value* val);
 
 trilogy_bits_value*
 trilogy_bits_init_from_bigint(trilogy_value* tv, bigint* num);
+trilogy_bits_value*
+trilogy_bits_init_from_string(trilogy_value* tv, trilogy_string_value* str);
 
 trilogy_bits_value* trilogy_bits_untag(trilogy_value* val);
 trilogy_bits_value* trilogy_bits_assume(trilogy_value* val);
