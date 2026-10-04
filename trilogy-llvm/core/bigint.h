@@ -26,8 +26,10 @@ typedef struct bigint {
     } contents;
 } bigint;
 
+// clang-format off
 #define BIGINT_ZERO {.capacity = 0, .length = 1, .contents = {.value = 0}}
 #define BIGINT_ONE {.capacity = 0, .length = 1, .contents = {.value = 1}}
+// clang-format on
 
 extern const bigint bigint_zero;
 extern const bigint bigint_one;
