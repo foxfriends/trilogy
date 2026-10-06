@@ -654,11 +654,11 @@ impl<'ctx> Codegen<'ctx> {
             Builtin::RCompose => self.reference_core("rcompose"),
             Builtin::Pipe => self.reference_core("pipe"),
             Builtin::RPipe => self.reference_core("rpipe"),
+            Builtin::Not => todo!("i forgot to do this one"),
+            Builtin::Invert => todo!("i forgot to do this one"),
             // Not referenceable operators
             Builtin::ToString => unreachable!(),
             Builtin::Negate => unreachable!(),
-            Builtin::Not => unreachable!(),
-            Builtin::Invert => unreachable!(),
             Builtin::Construct => unreachable!(),
             Builtin::Is => unreachable!(),
             Builtin::Typeof => unreachable!(),
