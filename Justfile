@@ -2,7 +2,7 @@ set quiet
 set shell := ["fish", "-c"]
 set dotenv-load
 
-llvm_prefix := env("LLVM_SYS_221_PREFIX", "")
+llvm_prefix := env("LLVM_SYS_211_PREFIX", "")
 clang := if llvm_prefix == "" { "clang" } else { llvm_prefix / "bin/clang" }
 clang_format := if llvm_prefix == "" { "clang-format" } else { llvm_prefix / "bin/clang-format" }
 clang_tidy := if llvm_prefix == "" { "clang-tidy" } else { llvm_prefix / "bin/clang-tidy" }
