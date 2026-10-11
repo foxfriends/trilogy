@@ -78,12 +78,13 @@ void trilogy_string_slice(
     trilogy_string_init_new(tv, len, str->contents + start);
 }
 
+#include <stdio.h>
 int trilogy_string_compare(
     trilogy_string_value* lhs, trilogy_string_value* rhs
 ) {
     size_t len = lhs->len < rhs->len ? lhs->len : rhs->len;
     int cmp = strncmp(lhs->contents, rhs->contents, len);
-    if (cmp != 0) return cmp;
+    if (cmp != 0) return cmp < 0 ? -1 : 1;
     if (lhs->len < rhs->len) return -1;
     if (lhs->len > rhs->len) return 1;
     return 0;

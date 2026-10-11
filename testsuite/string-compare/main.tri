@@ -1,0 +1,6 @@
+proc main!() {
+  assert "London" > "Berlin"
+  assert "Berlin" < "Dublin"
+  assert "ABC" > "AB"
+  return 0
+}

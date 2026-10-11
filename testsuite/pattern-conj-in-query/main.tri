@@ -1,0 +1,5 @@
+proc main!() {
+  let arr = [1:1, 2:2, 3:3]
+  for (left and a):b in arr {}
+  for a:(right and b) in arr {}
+}
