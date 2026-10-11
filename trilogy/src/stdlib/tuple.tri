@@ -1,4 +1,6 @@
-export left, right, map_left, map_right, map, uncurry
+import "trilogy:array" as array
+
+export left, right, map_left, map_right, both, map, uncurry
 
 func right (_:r) = r
 
@@ -34,4 +36,13 @@ func uncurry f (l:r) = f l r
 
 test "tuple uncurry" {
   assert uncurry (*) (3:2) == 6
+}
+
+func both a:b = do() {
+  yield 'next(a)
+  yield 'next(b)
+}
+
+test "tuple both" {
+  assert both (3:2) |> array::collect == [3, 2]
 }
