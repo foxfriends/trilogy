@@ -454,3 +454,12 @@ proc eprint_backtrace!(trace_frames) {
 }
 
 export eprint_backtrace
+
+func repeat 0 _ v = v
+func repeat n f v = repeat (n - 1) f <| f v
+
+export repeat
+
+test "core repeat" {
+  assert repeat 40 ((+) 1) 0 == 40
+}
